@@ -349,16 +349,25 @@ async def delete_diving_center_comment(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Diving center not found"
+        )
+    
+    # Check if comment exists
     comment = db.query(CenterComment).filter(
         and_(CenterComment.id == comment_id, CenterComment.diving_center_id == diving_center_id)
     ).first()
-    
     if not comment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Comment not found"
         )
     
+    # Check if user can delete the comment
     if comment.user_id != current_user.id and not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -368,4 +377,72 @@ async def delete_diving_center_comment(
     db.delete(comment)
     db.commit()
     
-    return {"message": "Comment deleted successfully"} 
+    return {"message": "Comment deleted successfully"}
+
+# Gear Rental Endpoints
+@router.get("/{diving_center_id}/gear-rental")
+async def get_diving_center_gear_rental(diving_center_id: int, db: Session = Depends(get_db)):
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Diving center not found"
+        )
+    
+    gear_rental = db.query(GearRentalCost).filter(GearRentalCost.diving_center_id == diving_center_id).all()
+    return gear_rental
+
+@router.post("/{diving_center_id}/gear-rental")
+async def add_diving_center_gear_rental(
+    diving_center_id: int,
+    gear_rental: GearRentalCostCreate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Diving center not found"
+        )
+    
+    db_gear_rental = GearRentalCost(
+        diving_center_id=diving_center_id,
+        item_name=gear_rental.item_name,
+        cost=gear_rental.cost
+    )
+    db.add(db_gear_rental)
+    db.commit()
+    db.refresh(db_gear_rental)
+    return db_gear_rental
+
+@router.delete("/{diving_center_id}/gear-rental/{gear_id}")
+async def delete_diving_center_gear_rental(
+    diving_center_id: int,
+    gear_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Diving center not found"
+        )
+    
+    # Check if gear rental exists
+    gear_rental = db.query(GearRentalCost).filter(
+        and_(GearRentalCost.id == gear_id, GearRentalCost.diving_center_id == diving_center_id)
+    ).first()
+    if not gear_rental:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Gear rental not found"
+        )
+    
+    db.delete(gear_rental)
+    db.commit()
+    return {"message": "Gear rental deleted successfully"} 

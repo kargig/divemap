@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { Star, Map, MessageCircle, Send, Play, Image, ExternalLink, Anchor } from 'lucide-react';
+import { Star, Map, MessageCircle, Send, Play, Image, ExternalLink, Anchor, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api';
 
 const DiveSiteDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [showCommentForm, setShowCommentForm] = useState(false);
+
+  // Check if user has edit privileges
+  const canEdit = user && (user.is_admin || user.is_moderator);
 
   const { data: diveSite, isLoading, error } = useQuery(
     ['dive-site', id],
@@ -131,7 +135,18 @@ const DiveSiteDetail = () => {
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{diveSite.name}</h1>
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-3xl font-bold text-gray-900">{diveSite.name}</h1>
+          {canEdit && (
+            <button
+              onClick={() => navigate(`/dive-sites/${id}/edit`)}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </button>
+          )}
+        </div>
         <div className="flex items-center space-x-4">
           <span className={`px-3 py-1 text-sm font-medium rounded-full ${
             diveSite.difficulty_level === 'beginner' ? 'bg-green-100 text-green-800' :
@@ -143,9 +158,8 @@ const DiveSiteDetail = () => {
           </span>
           {diveSite.average_rating && (
             <div className="flex items-center">
-              <Star className="h-5 w-5 text-yellow-400 fill-current" />
-              <span className="ml-1 text-gray-700">
-                {diveSite.average_rating.toFixed(1)} ({diveSite.total_ratings} reviews)
+              <span className="text-lg font-semibold text-gray-700">
+                {diveSite.average_rating.toFixed(1)}/10 ({diveSite.total_ratings} reviews)
               </span>
             </div>
           )}

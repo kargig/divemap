@@ -10,8 +10,10 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import DiveSites from './pages/DiveSites';
 import DiveSiteDetail from './pages/DiveSiteDetail';
+import EditDiveSite from './pages/EditDiveSite';
 import DivingCenters from './pages/DivingCenters';
 import DivingCenterDetail from './pages/DivingCenterDetail';
+import EditDivingCenter from './pages/EditDivingCenter';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 
@@ -43,6 +45,25 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   return children;
 };
 
+// Protected route for admin/moderator
+const ProtectedEditRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (!user.is_admin && !user.is_moderator) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -57,8 +78,24 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/dive-sites" element={<DiveSites />} />
                 <Route path="/dive-sites/:id" element={<DiveSiteDetail />} />
+                <Route 
+                  path="/dive-sites/:id/edit" 
+                  element={
+                    <ProtectedEditRoute>
+                      <EditDiveSite />
+                    </ProtectedEditRoute>
+                  } 
+                />
                 <Route path="/diving-centers" element={<DivingCenters />} />
                 <Route path="/diving-centers/:id" element={<DivingCenterDetail />} />
+                <Route 
+                  path="/diving-centers/:id/edit" 
+                  element={
+                    <ProtectedEditRoute>
+                      <EditDivingCenter />
+                    </ProtectedEditRoute>
+                  } 
+                />
                 <Route 
                   path="/profile" 
                   element={

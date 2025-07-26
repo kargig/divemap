@@ -20,7 +20,16 @@ const DivingCenters = () => {
   // Fetch diving centers
   const { data: divingCenters, isLoading, error } = useQuery(
     ['diving-centers', searchParams],
-    () => api.get('/api/v1/diving-centers', { params: searchParams }),
+    () => {
+      // Filter out empty parameters
+      const filteredParams = Object.fromEntries(
+        Object.entries(searchParams).filter(([key, value]) => {
+          if (key === 'limit' || key === 'offset') return true;
+          return value !== '' && value !== null && value !== undefined;
+        })
+      );
+      return api.get('/api/v1/diving-centers', { params: filteredParams });
+    },
     {
       select: (response) => response.data,
       keepPreviousData: true
@@ -166,10 +175,9 @@ const DivingCenters = () => {
                 </h3>
                 {center.average_rating && (
                   <div className="flex items-center space-x-1">
-                    <span className="text-sm text-gray-600">{center.average_rating.toFixed(1)}</span>
-                    <div className="flex">
-                      {renderStars(Math.round(center.average_rating))}
-                    </div>
+                    <span className="text-sm font-semibold text-gray-700">
+                      {center.average_rating.toFixed(1)}/10
+                    </span>
                   </div>
                 )}
               </div>
@@ -214,7 +222,9 @@ const DivingCenters = () => {
                 {center.latitude && center.longitude && (
                   <div className="flex items-center text-sm text-gray-600">
                     <MapPin className="h-4 w-4 mr-2" />
-                    <span>{center.latitude.toFixed(4)}, {center.longitude.toFixed(4)}</span>
+                    <span>
+                      {Number(center.latitude).toFixed(4)}, {Number(center.longitude).toFixed(4)}
+                    </span>
                   </div>
                 )}
               </div>

@@ -215,9 +215,8 @@ const DiveSites = () => {
 
                 {site.average_rating && (
                   <div className="flex items-center mb-4">
-                    <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                    <span className="ml-1 text-gray-700">
-                      {site.average_rating.toFixed(1)} ({site.total_ratings} reviews)
+                    <span className="text-sm font-semibold text-gray-700">
+                      {site.average_rating.toFixed(1)}/10 ({site.total_ratings} reviews)
                     </span>
                   </div>
                 )}

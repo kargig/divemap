@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { Star, MapPin, Phone, Mail, Globe, Calendar, DollarSign } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Globe, Calendar, DollarSign, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api';
 
 const DivingCenterDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [newComment, setNewComment] = useState('');
   const [editingComment, setEditingComment] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
+
+  // Check if user has edit privileges
+  const canEdit = user && (user.is_admin || user.is_moderator);
 
   // Fetch diving center details
   const { data: center, isLoading, error } = useQuery(
@@ -171,21 +175,29 @@ const DivingCenterDetail = () => {
               <p className="text-gray-600 text-lg">{center.description}</p>
             )}
           </div>
-          {center.average_rating && (
-            <div className="text-right">
-              <div className="flex items-center space-x-2 mb-2">
-                <span className="text-2xl font-bold text-gray-900">
-                  {center.average_rating.toFixed(1)}
-                </span>
-                <div className="flex">
-                  {renderStars(Math.round(center.average_rating))}
+          <div className="flex items-center space-x-4">
+            {canEdit && (
+              <button
+                onClick={() => navigate(`/diving-centers/${id}/edit`)}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </button>
+            )}
+            {center.average_rating && (
+              <div className="text-right">
+                <div className="flex items-center space-x-2 mb-2">
+                  <span className="text-2xl font-bold text-gray-900">
+                    {center.average_rating.toFixed(1)}/10
+                  </span>
                 </div>
+                <p className="text-sm text-gray-600">
+                  {center.total_ratings} rating{center.total_ratings !== 1 ? 's' : ''}
+                </p>
               </div>
-              <p className="text-sm text-gray-600">
-                {center.total_ratings} rating{center.total_ratings !== 1 ? 's' : ''}
-              </p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Contact Information */}
