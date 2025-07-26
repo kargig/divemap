@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: divemap_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: divemap
+      MYSQL_USER: divemap_user
+      MYSQL_PASSWORD: divemap_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - divemap_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: divemap_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - divemap_network
+
+  # RabbitMQ (for Celery)
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: divemap_rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: divemap
+      RABBITMQ_DEFAULT_PASS: divemap_password
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - divemap_network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: divemap_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=mysql+pymysql://divemap_user:divemap_password@db:3306/divemap
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://divemap:divemap_password@rabbitmq:5672/
+      - SECRET_KEY=your-secret-key-change-in-production
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    networks:
+      - divemap_network
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: divemap_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - divemap_network
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: divemap_celery_worker
+    restart: always
+    command: celery -A app.celery worker --loglevel=info
+    environment:
+      - DATABASE_URL=mysql+pymysql://divemap_user:divemap_password@db:3306/divemap
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://divemap:divemap_password@rabbitmq:5672/
+      - SECRET_KEY=your-secret-key-change-in-production
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    networks:
+      - divemap_network
+
+volumes:
+  mysql_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  divemap_network:
+    driver: bridge 

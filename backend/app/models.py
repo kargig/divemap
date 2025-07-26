@@ -1,0 +1,193 @@
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, DECIMAL, ForeignKey, Enum, Date, Time
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+from app.database import Base
+import enum
+
+class DifficultyLevel(enum.Enum):
+    beginner = "beginner"
+    intermediate = "intermediate"
+    advanced = "advanced"
+    expert = "expert"
+
+class MediaType(enum.Enum):
+    photo = "photo"
+    video = "video"
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), unique=True, index=True, nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    is_admin = Column(Boolean, default=False)
+    is_moderator = Column(Boolean, default=False)
+
+    # Relationships
+    site_ratings = relationship("SiteRating", back_populates="user", cascade="all, delete-orphan")
+    site_comments = relationship("SiteComment", back_populates="user", cascade="all, delete-orphan")
+    center_ratings = relationship("CenterRating", back_populates="user", cascade="all, delete-orphan")
+    center_comments = relationship("CenterComment", back_populates="user", cascade="all, delete-orphan")
+
+class DiveSite(Base):
+    __tablename__ = "dive_sites"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False, index=True)
+    description = Column(Text)
+    latitude = Column(DECIMAL(10, 8))
+    longitude = Column(DECIMAL(11, 8))
+    address = Column(Text)  # Added address field
+    access_instructions = Column(Text)
+    dive_plans = Column(Text)
+    gas_tanks_necessary = Column(Text)
+    difficulty_level = Column(Enum(DifficultyLevel), default=DifficultyLevel.intermediate, index=True)
+    marine_life = Column(Text)  # Added marine life field
+    safety_information = Column(Text)  # Added safety information field
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    media = relationship("SiteMedia", back_populates="dive_site", cascade="all, delete-orphan")
+    ratings = relationship("SiteRating", back_populates="dive_site", cascade="all, delete-orphan")
+    comments = relationship("SiteComment", back_populates="dive_site", cascade="all, delete-orphan")
+    center_relationships = relationship("CenterDiveSite", back_populates="dive_site", cascade="all, delete-orphan")
+    dive_trips = relationship("ParsedDiveTrip", back_populates="dive_site")
+
+class SiteMedia(Base):
+    __tablename__ = "site_media"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), nullable=False, index=True)
+    media_type = Column(Enum(MediaType), nullable=False)
+    url = Column(String(500), nullable=False)
+    description = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    dive_site = relationship("DiveSite", back_populates="media")
+
+class SiteRating(Base):
+    __tablename__ = "site_ratings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    score = Column(Integer, nullable=False)  # 1-10
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    dive_site = relationship("DiveSite", back_populates="ratings")
+    user = relationship("User", back_populates="site_ratings")
+
+class SiteComment(Base):
+    __tablename__ = "site_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    comment_text = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    dive_site = relationship("DiveSite", back_populates="comments")
+    user = relationship("User", back_populates="site_comments")
+
+class DivingCenter(Base):
+    __tablename__ = "diving_centers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False, index=True)
+    description = Column(Text)
+    email = Column(String(255))
+    phone = Column(String(50))
+    website = Column(String(255))
+    latitude = Column(DECIMAL(10, 8))
+    longitude = Column(DECIMAL(11, 8))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    ratings = relationship("CenterRating", back_populates="diving_center", cascade="all, delete-orphan")
+    comments = relationship("CenterComment", back_populates="diving_center", cascade="all, delete-orphan")
+    dive_site_relationships = relationship("CenterDiveSite", back_populates="diving_center", cascade="all, delete-orphan")
+    gear_rental_costs = relationship("GearRentalCost", back_populates="diving_center", cascade="all, delete-orphan")
+    dive_trips = relationship("ParsedDiveTrip", back_populates="diving_center")
+
+class CenterRating(Base):
+    __tablename__ = "center_ratings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    score = Column(Integer, nullable=False)  # 1-10
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    diving_center = relationship("DivingCenter", back_populates="ratings")
+    user = relationship("User", back_populates="center_ratings")
+
+class CenterComment(Base):
+    __tablename__ = "center_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    comment_text = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    diving_center = relationship("DivingCenter", back_populates="comments")
+    user = relationship("User", back_populates="center_comments")
+
+class CenterDiveSite(Base):
+    __tablename__ = "center_dive_sites"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), nullable=False, index=True)
+    dive_cost = Column(DECIMAL(10, 2))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    diving_center = relationship("DivingCenter", back_populates="dive_site_relationships")
+    dive_site = relationship("DiveSite", back_populates="center_relationships")
+
+class GearRentalCost(Base):
+    __tablename__ = "gear_rental_costs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
+    item_name = Column(String(100), nullable=False)
+    cost = Column(DECIMAL(10, 2), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    diving_center = relationship("DivingCenter", back_populates="gear_rental_costs")
+
+class ParsedDiveTrip(Base):
+    __tablename__ = "parsed_dive_trips"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), index=True)
+    trip_date = Column(Date, nullable=False, index=True)
+    trip_time = Column(Time)
+    source_newsletter_id = Column(Integer, ForeignKey("newsletters.id"))
+    extracted_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    diving_center = relationship("DivingCenter", back_populates="dive_trips")
+    dive_site = relationship("DiveSite", back_populates="dive_trips")
+
+class Newsletter(Base):
+    __tablename__ = "newsletters"
+
+    id = Column(Integer, primary_key=True, index=True)
+    content = Column(Text, nullable=False)
+    received_at = Column(DateTime(timezone=True), server_default=func.now(), index=True) 
