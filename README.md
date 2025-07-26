@@ -14,7 +14,7 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 - **Media Management**: Upload and display photos and videos for dive sites
 - **Gear Rental**: Manage diving center gear rental costs
 - **Tag System**: Comprehensive tag/label management for dive sites
-- **Admin Dashboard**: Full administrative interface for content management
+- **Admin Dashboard**: Full administrative interface with separate management pages
 
 ## Tech Stack
 
@@ -96,6 +96,55 @@ The project includes comprehensive testing infrastructure:
 ### Database
 The application uses MySQL for data storage. The database is automatically initialized with sample data when the containers start.
 
+## Admin Interface
+
+### Admin Dashboard Structure
+
+The admin interface is organized into separate management pages for better organization and user experience:
+
+#### **Main Admin Dashboard** (`/admin`)
+- **Overview dashboard** with navigation cards
+- **Quick access** to all management areas
+- **System statistics** and overview information
+
+#### **Dive Sites Management** (`/admin/dive-sites`)
+- **Complete CRUD operations** for dive sites
+- **Enhanced table view** with tags and ratings
+- **View, Edit, Delete** actions with confirmation
+- **Loading states** and error handling
+- **Responsive design** with hover effects
+
+#### **Diving Centers Management** (`/admin/diving-centers`)
+- **Full management** of diving centers
+- **Contact information** display (email, phone, website)
+- **Location data** with coordinates
+- **Rating information** and status
+- **View, Edit, Delete** functionality
+
+#### **Tag Management** (`/admin/tags`)
+- **Complete CRUD operations** with modal forms
+- **Create and Edit** modals with validation
+- **Delete protection** for tags with associated dive sites
+- **Usage statistics** showing dive site counts
+- **Real-time updates** with React Query
+
+#### **User Management** (`/admin/users`)
+- **Complete user management** system
+- **Create new users** with role assignment
+- **Edit user details** including roles and status
+- **Delete users** with safety checks
+- **Password management** (optional updates)
+
+### Admin Navigation
+
+The admin interface includes an enhanced navigation system:
+
+- **Dropdown menu** in the navbar for admin users
+- **Direct links** to each admin section
+- **Icon-based navigation** for better UX
+- **Click-outside** to close functionality
+- **Smooth transitions** and hover effects
+
 ## API Endpoints
 
 ### Authentication
@@ -141,6 +190,7 @@ The application uses MySQL for data storage. The database is automatically initi
 
 ### Tag Management
 - `GET /api/v1/tags/` - Get all available tags
+- `GET /api/v1/tags/with-counts` - Get tags with dive site counts
 - `POST /api/v1/tags/` - Create new tag (admin/moderator)
 - `PUT /api/v1/tags/{tag_id}` - Update tag (admin/moderator)
 - `DELETE /api/v1/tags/{tag_id}` - Delete tag (admin/moderator)
@@ -150,6 +200,47 @@ The application uses MySQL for data storage. The database is automatically initi
 See the full API documentation at http://localhost:8000/docs
 
 ## Recent Enhancements
+
+### **Enhanced Admin Management System**
+- **Separate Admin URLs**: Dedicated pages for each management area
+  - `/admin` - Main dashboard with navigation cards
+  - `/admin/dive-sites` - Dive sites management
+  - `/admin/diving-centers` - Diving centers management
+  - `/admin/tags` - Tag management with full CRUD
+  - `/admin/users` - User management with role control
+- **Enhanced Navigation**: Dropdown menu in navbar for admin users
+- **Improved UX**: Card-based dashboard with visual icons and descriptions
+- **Modal Forms**: Inline create/edit forms for tags and users
+- **Real-time Updates**: React Query integration for instant data refresh
+
+### **Comprehensive Tag Management**
+- **Full CRUD Operations**: Create, read, update, delete tags
+- **Modal Forms**: Clean create and edit interfaces
+- **Delete Protection**: Tags with associated dive sites cannot be deleted
+- **Usage Statistics**: Display dive site counts for each tag
+- **Form Validation**: Client-side validation with user feedback
+- **Loading States**: Visual feedback during operations
+
+### **Advanced User Management**
+- **Complete User CRUD**: Create, edit, delete users
+- **Role Assignment**: Admin, moderator, and user roles
+- **Status Control**: Enable/disable user accounts
+- **Password Management**: Optional password updates
+- **Safety Checks**: Prevent self-deletion and unauthorized actions
+
+### **Enhanced Dive Sites Management**
+- **Comprehensive Table View**: Tags, ratings, difficulty levels
+- **Action Buttons**: View, edit, delete with confirmation dialogs
+- **Loading States**: Proper loading indicators
+- **Error Handling**: Comprehensive error messages
+- **Responsive Design**: Mobile-friendly interface
+
+### **Improved Diving Centers Management**
+- **Contact Information**: Email, phone, website display
+- **Location Data**: Coordinates and mapping information
+- **Rating Display**: Average ratings and status
+- **Action Management**: View, edit, delete operations
+- **Enhanced UX**: Hover effects and visual feedback
 
 ### **Admin Management System**
 - **Comprehensive Admin Dashboard**: Tag management, user management, dive sites, and diving centers

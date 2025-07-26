@@ -58,6 +58,7 @@ class UserListResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    message: Optional[str] = None
 
 class TokenData(BaseModel):
     username: Optional[str] = None

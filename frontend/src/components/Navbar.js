@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, User, Map, Home, Settings, Building } from 'lucide-react';
+import { LogOut, User, Map, Home, Settings, Building, ChevronDown, Users, MapPin, Tags } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showAdminDropdown, setShowAdminDropdown] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -40,10 +41,61 @@ const Navbar = () => {
             {user ? (
               <div className="flex items-center space-x-4">
                 {user.is_admin && (
-                  <Link to="/admin" className="flex items-center space-x-1 hover:text-blue-200 transition-colors">
-                    <Settings className="h-5 w-5" />
-                    <span>Admin</span>
-                  </Link>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowAdminDropdown(!showAdminDropdown)}
+                      className="flex items-center space-x-1 hover:text-blue-200 transition-colors"
+                    >
+                      <Settings className="h-5 w-5" />
+                      <span>Admin</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                    
+                    {showAdminDropdown && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                        <Link
+                          to="/admin"
+                          className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <Settings className="h-4 w-4 mr-2" />
+                          Dashboard
+                        </Link>
+                        <Link
+                          to="/admin/dive-sites"
+                          className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <MapPin className="h-4 w-4 mr-2" />
+                          Dive Sites
+                        </Link>
+                        <Link
+                          to="/admin/diving-centers"
+                          className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <Building className="h-4 w-4 mr-2" />
+                          Diving Centers
+                        </Link>
+                        <Link
+                          to="/admin/tags"
+                          className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <Tags className="h-4 w-4 mr-2" />
+                          Tags
+                        </Link>
+                        <Link
+                          to="/admin/users"
+                          className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <Users className="h-4 w-4 mr-2" />
+                          Users
+                        </Link>
+                      </div>
+                    )}
+                  </div>
                 )}
                 
                 <Link to="/profile" className="flex items-center space-x-1 hover:text-blue-200 transition-colors">
@@ -78,6 +130,14 @@ const Navbar = () => {
           </div>
         </div>
       </div>
+      
+      {/* Click outside to close dropdown */}
+      {showAdminDropdown && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowAdminDropdown(false)}
+        />
+      )}
     </nav>
   );
 };

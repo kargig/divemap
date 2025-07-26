@@ -65,8 +65,10 @@ def test_user(db_session):
     user = User(
         username="testuser",
         email="test@example.com",
-        password_hash="$2b$12$GDFsVWKY8LXDG9o4EIgvr.g5V2tSkrMD9QcZl0JKxVVSRbh.skEoe",  # "password"
-        is_admin=False
+        password_hash="$2b$12$Qf4ceC4ETacht.pNDme/H.nTnGtc7bNpWDZD2R39K.1Nh32oH7cfy",  # "password"
+        is_admin=False,
+        is_moderator=False,
+        enabled=True
     )
     db_session.add(user)
     db_session.commit()
@@ -79,13 +81,31 @@ def test_admin_user(db_session):
     admin = User(
         username="admin",
         email="admin@example.com",
-        password_hash="$2b$12$GDFsVWKY8LXDG9o4EIgvr.g5V2tSkrMD9QcZl0JKxVVSRbh.skEoe",  # "password"
-        is_admin=True
+        password_hash="$2b$12$Qf4ceC4ETacht.pNDme/H.nTnGtc7bNpWDZD2R39K.1Nh32oH7cfy",  # "password"
+        is_admin=True,
+        is_moderator=False,
+        enabled=True
     )
     db_session.add(admin)
     db_session.commit()
     db_session.refresh(admin)
     return admin
+
+@pytest.fixture
+def test_moderator_user(db_session):
+    """Create a test moderator user."""
+    moderator = User(
+        username="moderator",
+        email="moderator@example.com",
+        password_hash="$2b$12$Qf4ceC4ETacht.pNDme/H.nTnGtc7bNpWDZD2R39K.1Nh32oH7cfy",  # "password"
+        is_admin=False,
+        is_moderator=True,
+        enabled=True
+    )
+    db_session.add(moderator)
+    db_session.commit()
+    db_session.refresh(moderator)
+    return moderator
 
 @pytest.fixture
 def test_dive_site(db_session):
@@ -131,6 +151,11 @@ def admin_token(test_admin_user):
     return create_access_token(data={"sub": test_admin_user.username})
 
 @pytest.fixture
+def moderator_token(test_moderator_user):
+    """Create an access token for the test moderator user."""
+    return create_access_token(data={"sub": test_moderator_user.username})
+
+@pytest.fixture
 def auth_headers(user_token):
     """Return headers with user authentication."""
     return {"Authorization": f"Bearer {user_token}"}
@@ -138,4 +163,9 @@ def auth_headers(user_token):
 @pytest.fixture
 def admin_headers(admin_token):
     """Return headers with admin authentication."""
-    return {"Authorization": f"Bearer {admin_token}"} 
+    return {"Authorization": f"Bearer {admin_token}"}
+
+@pytest.fixture
+def moderator_headers(moderator_token):
+    """Return headers with moderator authentication."""
+    return {"Authorization": f"Bearer {moderator_token}"} 
