@@ -88,6 +88,14 @@ if (isNaN(latNum)) {
 * Tag validation and error handling
 * Tag state management and persistence
 
+#### **E. Map UI Testing**
+* Zoom level tracking and display
+* Map counter positioning and content
+* Zoom behavior for single vs multiple site selection
+* Maximum zoom level configuration
+* Map fit behavior and constraints
+* Real-time zoom level updates
+
 ## 3. Pre-Release Checklist
 
 ### 3.1 Code Changes

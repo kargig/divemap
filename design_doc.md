@@ -538,6 +538,16 @@ node test_regressions.js
 * ✅ Create new tags functionality for admins/moderators
 * ✅ Efficient tag management with proper state handling
 
+#### **Map UI and Zoom Management**
+* ✅ Interactive map display with OpenLayers integration
+* ✅ Different icons for dive sites and diving centers
+* ✅ Zoom level debugging indicator for optimal zoom configuration
+* ✅ Map counter box positioned at bottom-left for better UX
+* ✅ Configurable maximum zoom level (currently set to 18)
+* ✅ Smart zoom behavior: keeps zoom 5 levels before maximum for context
+* ✅ Real-time zoom level tracking and display
+* ✅ Map fit behavior optimization for single vs multiple site selection
+
 ### **13.3 Technical Improvements**
 
 #### **Frontend Enhancements**

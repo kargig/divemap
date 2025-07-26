@@ -17,6 +17,8 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
   const mapInstance = useRef();
   const [popupInfo, setPopupInfo] = useState(null);
   const [popupPosition, setPopupPosition] = useState(null);
+  const [currentZoom, setCurrentZoom] = useState(2);
+  const [maxZoom, setMaxZoom] = useState(19);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -37,6 +39,16 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
       });
 
       mapInstance.current = map;
+
+      // Set up zoom level tracking
+      map.getView().setMaxZoom(18);
+      setMaxZoom(18);
+      setCurrentZoom(map.getView().getZoom());
+      
+      // Listen for zoom changes
+      map.getView().on('change:resolution', () => {
+        setCurrentZoom(map.getView().getZoom());
+      });
 
     } catch (error) {
       console.error('Error creating map:', error);
@@ -104,9 +116,14 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
     // Fit view to show all features
     if (features.length > 0) {
       const extent = vectorSource.getExtent();
+      const view = mapInstance.current.getView();
+      const maxZoom = view.getMaxZoom();
+      const targetZoom = Math.max(maxZoom - 5, 2); // Keep zoom 5 levels before max, minimum 2
+      
       mapInstance.current.getView().fit(extent, {
         padding: [50, 50, 50, 50],
-        duration: 1000
+        duration: 1000,
+        maxZoom: targetZoom
       });
     }
   }, [diveSites]);
@@ -164,8 +181,13 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
   return (
     <div className="h-[36rem] w-full rounded-lg overflow-hidden shadow-md relative">
       <div ref={mapRef} className="w-full h-full" />
-      <div className="absolute top-2 left-2 bg-white bg-opacity-90 px-2 py-1 rounded text-xs">
+      <div className="absolute bottom-2 left-2 bg-white bg-opacity-90 px-2 py-1 rounded text-xs">
         {diveSites?.length || 0} dive sites loaded
+      </div>
+      
+      {/* Zoom Level Debug Indicator */}
+      <div className="absolute top-2 right-2 bg-white bg-opacity-90 px-2 py-1 rounded text-xs">
+        Zoom: {currentZoom.toFixed(1)} / Max: {maxZoom}
       </div>
       
       {popupInfo && popupPosition && (

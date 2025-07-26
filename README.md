@@ -151,7 +151,14 @@ See the full API documentation at http://localhost:8000/docs
 
 ## Recent Enhancements
 
-### Testing Infrastructure
+### **Map UI and Zoom Management**
+- **Zoom Level Debugging**: Real-time zoom level indicator for optimal map configuration
+- **Smart Zoom Behavior**: Keeps zoom 5 levels before maximum for better context
+- **Map Counter Positioning**: Moved to bottom-left for improved UX
+- **Configurable Max Zoom**: Set to level 18 for optimal detail without excessive zoom
+- **Map Fit Optimization**: Different zoom behavior for single vs multiple site selection
+
+### **Testing Infrastructure**
 - ✅ Comprehensive backend test suite with Pytest
 - ✅ Frontend validation scripts for regression prevention
 - ✅ Data type safety testing and validation

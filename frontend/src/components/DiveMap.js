@@ -17,6 +17,8 @@ const DiveMap = ({ diveSites = [], divingCenters = [], viewport, onViewportChang
   const mapInstance = useRef();
   const [popupInfo, setPopupInfo] = useState(null);
   const [popupPosition, setPopupPosition] = useState(null);
+  const [currentZoom, setCurrentZoom] = useState(2);
+  const [maxZoom, setMaxZoom] = useState(19);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -37,6 +39,16 @@ const DiveMap = ({ diveSites = [], divingCenters = [], viewport, onViewportChang
       });
 
       mapInstance.current = map;
+
+      // Set up zoom level tracking
+      map.getView().setMaxZoom(18);
+      setMaxZoom(18);
+      setCurrentZoom(map.getView().getZoom());
+      
+      // Listen for zoom changes
+      map.getView().on('change:resolution', () => {
+        setCurrentZoom(map.getView().getZoom());
+      });
 
     } catch (error) {
       console.error('Error creating map:', error);
@@ -149,9 +161,14 @@ const DiveMap = ({ diveSites = [], divingCenters = [], viewport, onViewportChang
     const allFeatures = [...diveSiteFeatures, ...divingCenterFeatures];
     if (allFeatures.length > 0) {
       const extent = new VectorSource({ features: allFeatures }).getExtent();
+      const view = mapInstance.current.getView();
+      const maxZoom = view.getMaxZoom();
+      const targetZoom = Math.max(maxZoom - 5, 2); // Keep zoom 5 levels before max, minimum 2
+      
       mapInstance.current.getView().fit(extent, {
         padding: [50, 50, 50, 50],
-        duration: 1000
+        duration: 1000,
+        maxZoom: targetZoom
       });
     }
   }, [diveSites, divingCenters]);
@@ -212,12 +229,17 @@ const DiveMap = ({ diveSites = [], divingCenters = [], viewport, onViewportChang
   return (
     <div className="h-[36rem] w-full rounded-lg overflow-hidden shadow-md relative">
       <div ref={mapRef} className="w-full h-full" />
-      <div className="absolute top-2 left-2 bg-white bg-opacity-90 px-2 py-1 rounded text-xs">
+      <div className="absolute bottom-2 left-2 bg-white bg-opacity-90 px-2 py-1 rounded text-xs">
         {totalItems} items loaded ({diveSites?.length || 0} dive sites, {divingCenters?.length || 0} diving centers)
       </div>
       
+      {/* Zoom Level Debug Indicator */}
+      <div className="absolute top-2 right-2 bg-white bg-opacity-90 px-2 py-1 rounded text-xs">
+        Zoom: {currentZoom.toFixed(1)} / Max: {maxZoom}
+      </div>
+      
       {/* Legend */}
-      <div className="absolute top-2 right-2 bg-white bg-opacity-90 px-3 py-2 rounded text-xs">
+      <div className="absolute bottom-2 right-2 bg-white bg-opacity-90 px-3 py-2 rounded text-xs">
         <div className="flex items-center space-x-2 mb-1">
           <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
           <span>Dive Sites</span>
