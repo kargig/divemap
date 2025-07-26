@@ -56,6 +56,7 @@ class DiveSite(Base):
     comments = relationship("SiteComment", back_populates="dive_site", cascade="all, delete-orphan")
     center_relationships = relationship("CenterDiveSite", back_populates="dive_site", cascade="all, delete-orphan")
     dive_trips = relationship("ParsedDiveTrip", back_populates="dive_site")
+    tags = relationship("DiveSiteTag", back_populates="dive_site", cascade="all, delete-orphan")
 
 class SiteMedia(Base):
     __tablename__ = "site_media"
@@ -190,4 +191,28 @@ class Newsletter(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     content = Column(Text, nullable=False)
-    received_at = Column(DateTime(timezone=True), server_default=func.now(), index=True) 
+    received_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+class AvailableTag(Base):
+    __tablename__ = "available_tags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False, index=True)
+    description = Column(Text)
+    created_by = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    dive_site_tags = relationship("DiveSiteTag", back_populates="tag", cascade="all, delete-orphan")
+
+class DiveSiteTag(Base):
+    __tablename__ = "dive_site_tags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), nullable=False, index=True)
+    tag_id = Column(Integer, ForeignKey("available_tags.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    dive_site = relationship("DiveSite", back_populates="tags")
+    tag = relationship("AvailableTag", back_populates="dive_site_tags") 

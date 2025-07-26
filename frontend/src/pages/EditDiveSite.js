@@ -4,7 +4,16 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Save, Trash2, Upload, X } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Upload, X, Tag, Building } from 'lucide-react';
+
+// Helper function to safely extract error message
+const getErrorMessage = (error) => {
+  if (typeof error === 'string') return error;
+  if (error?.message) return error.message;
+  if (error?.response?.data?.detail) return error.response.data.detail;
+  if (error?.detail) return error.detail;
+  return 'An error occurred';
+};
 
 const EditDiveSite = () => {
   const { id } = useParams();
@@ -34,6 +43,18 @@ const EditDiveSite = () => {
 
   const [isAddingMedia, setIsAddingMedia] = useState(false);
 
+  // Tag management state
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagDescription, setNewTagDescription] = useState('');
+  const [showTagForm, setShowTagForm] = useState(false);
+
+  // Diving center management state
+  const [selectedDivingCenters, setSelectedDivingCenters] = useState([]);
+  const [newDivingCenterId, setNewDivingCenterId] = useState('');
+  const [newDiveCost, setNewDiveCost] = useState('');
+  const [showDivingCenterForm, setShowDivingCenterForm] = useState(false);
+
   // Check if user has edit privileges
   const canEdit = user && (user.is_admin || user.is_moderator);
 
@@ -57,6 +78,45 @@ const EditDiveSite = () => {
           marine_life: data.marine_life || '',
           safety_information: data.safety_information || ''
         });
+        // Set selected tags
+        if (data.tags) {
+          setSelectedTags(data.tags.map(tag => tag.id));
+        }
+      }
+    }
+  );
+
+  // Fetch all available tags
+  const { data: availableTags = [] } = useQuery(
+    ['available-tags'],
+    () => api.get('/api/v1/tags/').then(res => res.data),
+    {
+      enabled: canEdit
+    }
+  );
+
+  // Fetch all diving centers
+  const { data: allDivingCenters = [], error: allDivingCentersError } = useQuery(
+    ['all-diving-centers'],
+    () => api.get('/api/v1/diving-centers/').then(res => res.data || []),
+    {
+      enabled: canEdit,
+      onError: (error) => {
+        console.error('Failed to fetch diving centers:', error);
+        toast.error('Failed to load diving centers');
+      }
+    }
+  );
+
+  // Fetch associated diving centers
+  const { data: associatedDivingCenters = [], error: associatedDivingCentersError } = useQuery(
+    ['dive-site-diving-centers', id],
+    () => api.get(`/api/v1/dive-sites/${id}/diving-centers/`).then(res => res.data || []),
+    {
+      enabled: !!id && canEdit,
+      onError: (error) => {
+        console.error('Failed to fetch diving centers:', error);
+        toast.error('Failed to load diving centers');
       }
     }
   );
@@ -65,14 +125,59 @@ const EditDiveSite = () => {
   const { data: media = [], isLoading: mediaLoading, error: mediaError } = useQuery(
     ['dive-site-media', id],
     () => api.get(`/api/v1/dive-sites/${id}/media`).then(res => {
-      console.log('Media API response:', res);
       return res.data || [];
     }),
     {
       enabled: !!id && canEdit,
       onError: (error) => {
-        console.error('Failed to fetch media:', error);
         toast.error('Failed to load media');
+      }
+    }
+  );
+
+  // Tag mutations
+  const createTagMutation = useMutation(
+    (tagData) => api.post('/api/v1/tags/', tagData),
+    {
+      onSuccess: (newTag) => {
+        queryClient.invalidateQueries(['available-tags']);
+        setSelectedTags(prev => [...prev, newTag.id]);
+        setNewTagName('');
+        setNewTagDescription('');
+        setShowTagForm(false);
+        toast.success('Tag created and selected successfully');
+      },
+      onError: (error) => {
+        toast.error(getErrorMessage(error));
+      }
+    }
+  );
+
+  // Diving center mutations
+  const addDivingCenterMutation = useMutation(
+    (centerData) => api.post(`/api/v1/dive-sites/${id}/diving-centers`, centerData),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['dive-site-diving-centers', id]);
+        setNewDivingCenterId('');
+        setNewDiveCost('');
+        toast.success('Diving center added successfully');
+      },
+      onError: (error) => {
+        toast.error(getErrorMessage(error));
+      }
+    }
+  );
+
+  const removeDivingCenterMutation = useMutation(
+    (centerId) => api.delete(`/api/v1/dive-sites/${id}/diving-centers/${centerId}`),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['dive-site-diving-centers', id]);
+        toast.success('Diving center removed successfully');
+      },
+      onError: (error) => {
+        toast.error(getErrorMessage(error));
       }
     }
   );
@@ -91,7 +196,7 @@ const EditDiveSite = () => {
         navigate(`/dive-sites/${id}`);
       },
       onError: (error) => {
-        toast.error(error.response?.data?.detail || 'Failed to update dive site');
+        toast.error(getErrorMessage(error));
       }
     }
   );
@@ -137,13 +242,47 @@ const EditDiveSite = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    const submitData = {
+    // Prepare the update data
+    const updateData = {
       ...formData,
-      latitude: parseFloat(formData.latitude) || null,
-      longitude: parseFloat(formData.longitude) || null
+      latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+      longitude: formData.longitude ? parseFloat(formData.longitude) : null,
     };
 
-    updateMutation.mutate(submitData);
+    // Update the dive site first
+    updateMutation.mutate(updateData, {
+      onSuccess: async () => {
+        // Handle tag changes
+        const currentTagIds = diveSite?.tags?.map(tag => tag.id) || [];
+        const newTagIds = selectedTags;
+        
+        // Add new tags
+        for (const tagId of newTagIds) {
+          if (!currentTagIds.includes(tagId)) {
+            try {
+              await api.post(`/api/v1/tags/dive-sites/${id}/tags`, { tag_id: tagId });
+            } catch (error) {
+              console.error('Failed to add tag:', error);
+            }
+          }
+        }
+        
+        // Remove tags that are no longer selected
+        for (const tagId of currentTagIds) {
+          if (!newTagIds.includes(tagId)) {
+            try {
+              await api.delete(`/api/v1/tags/dive-sites/${id}/tags/${tagId}`);
+            } catch (error) {
+              console.error('Failed to remove tag:', error);
+            }
+          }
+        }
+        
+        // Invalidate queries to refresh data
+        queryClient.invalidateQueries(['dive-site', id]);
+        queryClient.invalidateQueries(['available-tags']);
+      }
+    });
   };
 
   const handleAddMedia = (e) => {
@@ -199,7 +338,7 @@ const EditDiveSite = () => {
         <div className="max-w-4xl mx-auto px-4">
           <div className="bg-white rounded-lg shadow-md p-6">
             <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
-            <p className="text-gray-600">Failed to load dive site: {error.message}</p>
+            <p className="text-gray-600">Failed to load dive site: {getErrorMessage(error)}</p>
           </div>
         </div>
       </div>
@@ -512,6 +651,212 @@ const EditDiveSite = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Tags Management */}
+            <div className="border-t pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Tags</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowTagForm(!showTagForm)}
+                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  <Tag className="w-4 h-4 mr-2" />
+                  Add Tag
+                </button>
+              </div>
+
+              {/* Add Tag Form */}
+              {showTagForm && (
+                <div className="bg-gray-50 p-4 rounded-md mb-4">
+                  <form onSubmit={(e) => { e.preventDefault(); createTagMutation.mutate({ name: newTagName, description: newTagDescription }); }} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Tag Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={newTagName}
+                          onChange={(e) => setNewTagName(e.target.value)}
+                          required
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Description
+                        </label>
+                        <input
+                          type="text"
+                          value={newTagDescription}
+                          onChange={(e) => setNewTagDescription(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        type="submit"
+                        disabled={createTagMutation.isLoading}
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {createTagMutation.isLoading ? 'Adding...' : 'Add Tag'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowTagForm(false)}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Available Tags */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h4 className="text-md font-semibold text-gray-800">Select Tags</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {Array.isArray(availableTags) && availableTags.map((tag) => (
+                    <label key={tag.id} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedTags.includes(tag.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedTags(prev => [...prev, tag.id]);
+                          } else {
+                            setSelectedTags(prev => prev.filter(id => id !== tag.id));
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">{tag.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Selected Tags Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h4 className="text-md font-semibold text-gray-800">Selected Tags ({selectedTags.length})</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {selectedTags.length > 0 ? (
+                    selectedTags.map((tagId) => {
+                      const tag = availableTags.find(t => t.id === tagId);
+                      return tag ? (
+                        <span
+                          key={tagId}
+                          className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium"
+                        >
+                          {tag.name}
+                        </span>
+                      ) : null;
+                    })
+                  ) : (
+                    <p className="text-gray-500 text-sm">No tags selected</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Diving Centers Management */}
+            <div className="border-t pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Diving Centers</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowDivingCenterForm(!showDivingCenterForm)}
+                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  <Building className="w-4 h-4 mr-2" />
+                  Add Diving Center
+                </button>
+              </div>
+
+              {/* Add Diving Center Form */}
+              {showDivingCenterForm && (
+                <div className="bg-gray-50 p-4 rounded-md mb-4">
+                  <form onSubmit={(e) => { e.preventDefault(); addDivingCenterMutation.mutate({ diving_center_id: newDivingCenterId, dive_cost: newDiveCost }); }} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Diving Center *
+                        </label>
+                        <select
+                          value={newDivingCenterId}
+                          onChange={(e) => setNewDivingCenterId(e.target.value)}
+                          required
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select a diving center</option>
+                          {Array.isArray(allDivingCenters) && allDivingCenters
+                            .filter(center => !Array.isArray(associatedDivingCenters) || !associatedDivingCenters.some(associated => associated.id === center.id))
+                            .map((center) => (
+                              <option key={center.id} value={center.id}>{center.name}</option>
+                            ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Dive Cost
+                        </label>
+                        <input
+                          type="number"
+                          value={newDiveCost}
+                          onChange={(e) => setNewDiveCost(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        type="submit"
+                        disabled={addDivingCenterMutation.isLoading}
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {addDivingCenterMutation.isLoading ? 'Adding...' : 'Add Diving Center'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowDivingCenterForm(false)}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Associated Diving Centers */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h4 className="text-md font-semibold text-gray-800">Associated Diving Centers</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {Array.isArray(associatedDivingCenters) && associatedDivingCenters.map((center) => (
+                    <span
+                      key={center.id}
+                      className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium flex items-center justify-between"
+                    >
+                      {center.name}
+                      {center.dive_cost && ` ($${center.dive_cost})`}
+                      <button
+                        onClick={() => removeDivingCenterMutation.mutate(center.id)}
+                        className="ml-2 text-purple-600 hover:text-purple-800"
+                        title="Remove diving center"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  {(!Array.isArray(associatedDivingCenters) || associatedDivingCenters.length === 0) && (
+                    <p className="text-gray-500 text-sm">No diving centers associated</p>
+                  )}
+                </div>
               </div>
             </div>
 

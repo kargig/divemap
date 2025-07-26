@@ -172,6 +172,31 @@ CREATE TABLE IF NOT EXISTS newsletters (
     INDEX idx_received_at (received_at)
 );
 
+-- Tags/Labels system
+-- Available tags table (only admins/moderators can add new tags)
+CREATE TABLE IF NOT EXISTS available_tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT,
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_name (name)
+);
+
+-- Dive site tags junction table
+CREATE TABLE IF NOT EXISTS dive_site_tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    dive_site_id INT NOT NULL,
+    tag_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (dive_site_id) REFERENCES dive_sites(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES available_tags(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_site_tag (dive_site_id, tag_id),
+    INDEX idx_site_id (dive_site_id),
+    INDEX idx_tag_id (tag_id)
+);
+
 -- Insert default admin user (password: admin123)
 INSERT IGNORE INTO users (username, email, password_hash, is_admin) 
 VALUES ('admin', 'admin@divemap.com', '$2b$12$GDFsVWKY8LXDG9o4EIgvr.g5V2tSkrMD9QcZl0JKxVVSRbh.skEoe', TRUE);

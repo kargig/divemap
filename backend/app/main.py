@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 
-from app.routers import auth, dive_sites, users, diving_centers
+from app.routers import auth, dive_sites, users, diving_centers, tags
 from app.database import engine
 from app.models import Base
 
@@ -34,6 +34,7 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(dive_sites.router, prefix="/api/v1/dive-sites", tags=["Dive Sites"])
 app.include_router(diving_centers.router, prefix="/api/v1/diving-centers", tags=["Diving Centers"])
+app.include_router(tags.router, tags=["Tags"])
 
 @app.get("/")
 async def root():

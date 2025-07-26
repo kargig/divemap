@@ -4,14 +4,17 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 
 ## Features
 
-- **User Management**: Registration, authentication, and user profiles
-- **Dive Sites**: Browse, search, rate, and comment on dive sites with comprehensive details
-- **Diving Centers**: Discover diving centers with pricing, gear rental costs, and associated dive sites
-- **Interactive Map**: Visualize dive sites and centers on an interactive map with toggle controls
-- **Admin Dashboard**: Manage dive sites, centers, media content, and gear rental costs
-- **Edit Functionality**: Admin/moderator users can edit dive sites and diving centers
-- **Media Management**: Upload and manage photos and videos for dive sites
-- **Responsive Design**: Works on desktop and mobile devices
+- **User Management**: Registration, login, and profile management
+- **Dive Sites**: Comprehensive CRUD operations with detailed information
+- **Diving Centers**: Full management with gear rental costs and dive site associations
+- **Rating System**: Rate dive sites and diving centers (1-10 scale)
+- **Comments**: User comments on dive sites and diving centers
+- **Interactive Map**: View dive sites and diving centers on an interactive map
+- **Search & Filtering**: Advanced search and filtering capabilities
+- **Media Management**: Upload and display photos and videos for dive sites
+- **Gear Rental**: Manage diving center gear rental costs
+- **Tag System**: Comprehensive tag/label management for dive sites
+- **Admin Dashboard**: Full administrative interface for content management
 
 ## Tech Stack
 
@@ -95,27 +98,54 @@ The application uses MySQL for data storage. The database is automatically initi
 
 ## API Endpoints
 
-### Core Endpoints
-- `GET /api/v1/dive-sites` - List dive sites
-- `GET /api/v1/diving-centers` - List diving centers
-- `POST /api/v1/auth/login` - User login
+### Authentication
 - `POST /api/v1/auth/register` - User registration
+- `POST /api/v1/auth/login` - User login
+- `GET /api/v1/auth/me` - Get current user info
 
-### Admin Endpoints
-- `POST /api/v1/dive-sites` - Create dive site (admin only)
-- `PUT /api/v1/dive-sites/{id}` - Update dive site (admin only)
-- `DELETE /api/v1/dive-sites/{id}` - Delete dive site (admin only)
-- `POST /api/v1/diving-centers` - Create diving center (admin only)
-- `PUT /api/v1/diving-centers/{id}` - Update diving center (admin only)
-- `DELETE /api/v1/diving-centers/{id}` - Delete diving center (admin only)
+### Users
+- `GET /api/v1/users/` - Get all users (admin only)
+- `GET /api/v1/users/{user_id}` - Get user by ID
+- `PUT /api/v1/users/{user_id}` - Update user profile
 
-### Media and Gear Management
+### Dive Sites
+- `GET /api/v1/dive-sites/` - Get all dive sites
+- `POST /api/v1/dive-sites/` - Create dive site (admin/moderator)
+- `GET /api/v1/dive-sites/{id}` - Get dive site by ID
+- `PUT /api/v1/dive-sites/{id}` - Update dive site (admin/moderator)
+- `DELETE /api/v1/dive-sites/{id}` - Delete dive site (admin/moderator)
+- `POST /api/v1/dive-sites/{id}/rate` - Rate dive site
+- `GET /api/v1/dive-sites/{id}/comments` - Get dive site comments
+- `POST /api/v1/dive-sites/{id}/comments` - Add comment to dive site
+
+### Diving Centers
+- `GET /api/v1/diving-centers/` - Get all diving centers
+- `POST /api/v1/diving-centers/` - Create diving center (admin/moderator)
+- `GET /api/v1/diving-centers/{id}` - Get diving center by ID
+- `PUT /api/v1/diving-centers/{id}` - Update diving center (admin/moderator)
+- `DELETE /api/v1/diving-centers/{id}` - Delete diving center (admin/moderator)
+- `POST /api/v1/diving-centers/{id}/rate` - Rate diving center
+- `GET /api/v1/diving-centers/{id}/comments` - Get diving center comments
+- `POST /api/v1/diving-centers/{id}/comments` - Add comment to diving center
+
+### Media Management
 - `GET /api/v1/dive-sites/{id}/media` - Get dive site media
-- `POST /api/v1/dive-sites/{id}/media` - Add media to dive site
-- `DELETE /api/v1/dive-sites/{id}/media/{media_id}` - Delete media
-- `GET /api/v1/diving-centers/{id}/gear-rental` - Get gear rental costs
+- `POST /api/v1/dive-sites/{id}/media` - Upload media to dive site
+- `DELETE /api/v1/dive-sites/{id}/media/{media_id}` - Delete dive site media
+
+### Gear Rental Management
+- `GET /api/v1/diving-centers/{id}/gear-rental` - Get diving center gear rental costs
 - `POST /api/v1/diving-centers/{id}/gear-rental` - Add gear rental cost
+- `PUT /api/v1/diving-centers/{id}/gear-rental/{gear_id}` - Update gear rental cost
 - `DELETE /api/v1/diving-centers/{id}/gear-rental/{gear_id}` - Delete gear rental cost
+
+### Tag Management
+- `GET /api/v1/tags/` - Get all available tags
+- `POST /api/v1/tags/` - Create new tag (admin/moderator)
+- `PUT /api/v1/tags/{tag_id}` - Update tag (admin/moderator)
+- `DELETE /api/v1/tags/{tag_id}` - Delete tag (admin/moderator)
+- `POST /api/v1/tags/dive-sites/{dive_site_id}/tags` - Add tag to dive site
+- `DELETE /api/v1/tags/dive-sites/{dive_site_id}/tags/{tag_id}` - Remove tag from dive site
 
 See the full API documentation at http://localhost:8000/docs
 

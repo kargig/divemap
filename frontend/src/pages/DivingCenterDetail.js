@@ -6,6 +6,15 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api';
 
+// Helper function to safely extract error message
+const getErrorMessage = (error) => {
+  if (typeof error === 'string') return error;
+  if (error?.message) return error.message;
+  if (error?.response?.data?.detail) return error.response.data.detail;
+  if (error?.detail) return error.detail;
+  return 'An error occurred';
+};
+
 const DivingCenterDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -151,7 +160,7 @@ const DivingCenterDetail = () => {
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-600">Error loading diving center: {error.message}</p>
+        <p className="text-red-600">Error loading diving center: {getErrorMessage(error)}</p>
       </div>
     );
   }

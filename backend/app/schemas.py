@@ -37,6 +37,42 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+# Tag schemas
+class TagBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = None
+
+class TagCreate(TagBase):
+    pass
+
+class TagUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = None
+
+class TagResponse(TagBase):
+    id: int
+    created_by: Optional[int] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Dive site tag schemas
+class DiveSiteTagBase(BaseModel):
+    dive_site_id: int
+    tag_id: int
+
+class DiveSiteTagCreate(BaseModel):
+    tag_id: int
+
+class DiveSiteTagResponse(DiveSiteTagBase):
+    id: int
+    created_at: datetime
+    tag: TagResponse
+
+    class Config:
+        from_attributes = True
+
 # Dive site schemas
 class DiveSiteBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
@@ -73,6 +109,8 @@ class DiveSiteResponse(DiveSiteBase):
     updated_at: datetime
     average_rating: Optional[float] = None
     total_ratings: int = 0
+    tags: List[TagResponse] = []
+    user_rating: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -99,7 +137,7 @@ class RatingBase(BaseModel):
     score: int = Field(..., ge=1, le=10)
 
 class SiteRatingCreate(RatingBase):
-    dive_site_id: int
+    pass
 
 class SiteRatingResponse(RatingBase):
     id: int
@@ -165,7 +203,7 @@ class DivingCenterResponse(DivingCenterBase):
 
 # Center rating schemas
 class CenterRatingCreate(RatingBase):
-    diving_center_id: int
+    pass
 
 class CenterRatingResponse(RatingBase):
     id: int

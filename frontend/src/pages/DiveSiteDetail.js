@@ -6,6 +6,15 @@ import { Star, Map, MessageCircle, Send, Play, Image, ExternalLink, Anchor, Edit
 import toast from 'react-hot-toast';
 import api from '../api';
 
+// Helper function to safely extract error message
+const getErrorMessage = (error) => {
+  if (typeof error === 'string') return error;
+  if (error?.message) return error.message;
+  if (error?.response?.data?.detail) return error.response.data.detail;
+  if (error?.detail) return error.detail;
+  return 'An error occurred';
+};
+
 const DiveSiteDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -52,7 +61,9 @@ const DiveSiteDetail = () => {
   );
 
   const rateMutation = useMutation(
-    ({ score }) => api.post(`/api/v1/dive-sites/${id}/rate`, { score }),
+    ({ score }) => {
+      return api.post(`/api/v1/dive-sites/${id}/rate`, { score });
+    },
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['dive-site', id]);
@@ -60,7 +71,7 @@ const DiveSiteDetail = () => {
         setRating(0);
       },
       onError: (error) => {
-        toast.error(error.response?.data?.detail || 'Failed to submit rating');
+        toast.error(getErrorMessage(error));
       },
     }
   );
@@ -77,17 +88,24 @@ const DiveSiteDetail = () => {
         setShowCommentForm(false);
       },
       onError: (error) => {
-        toast.error(error.response?.data?.detail || 'Failed to post comment');
+        toast.error(getErrorMessage(error));
       },
     }
   );
+
+  // Set initial rating to user's previous rating if available
+  React.useEffect(() => {
+    if (diveSite && diveSite.user_rating) {
+      setRating(diveSite.user_rating);
+    }
+  }, [diveSite]);
 
   const handleRatingSubmit = () => {
     if (rating === 0) {
       toast.error('Please select a rating');
       return;
     }
-    rateMutation.mutate(rating);
+    rateMutation.mutate({ score: rating });
   };
 
   const handleCommentSubmit = (e) => {
@@ -412,16 +430,16 @@ const DiveSiteDetail = () => {
                   <button
                     key={star}
                     onClick={() => setRating(star)}
-                    className={`p-1 ${
-                      star <= rating ? 'text-yellow-400' : 'text-gray-300'
-                    }`}
+                    className={`p-1 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
                   >
                     <Star className="h-6 w-6 fill-current" />
                   </button>
                 ))}
               </div>
               <div className="text-sm text-gray-600 mb-4">
-                {rating > 0 ? `You rated this site ${rating}/10` : 'Click to rate'}
+                {diveSite?.user_rating ? (
+                  <>Your previous rating: <span className="font-bold">{diveSite.user_rating}/10</span></>
+                ) : rating > 0 ? `You rated this site ${rating}/10` : 'Click to rate'}
               </div>
               <button
                 onClick={handleRatingSubmit}
@@ -457,6 +475,23 @@ const DiveSiteDetail = () => {
               </div>
             </div>
           </div>
+
+          {/* Tags */}
+          {diveSite.tags && diveSite.tags.length > 0 && (
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Tags</h3>
+              <div className="flex flex-wrap gap-2">
+                {diveSite.tags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

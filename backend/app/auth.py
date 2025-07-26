@@ -94,4 +94,38 @@ async def get_current_moderator_user(current_user: User = Depends(get_current_us
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
         )
+    return current_user
+
+async def is_admin_or_moderator(current_user: User = Depends(get_current_user)) -> User:
+    """Check if user is admin or moderator"""
+    if not (current_user.is_admin or current_user.is_moderator):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
     return current_user 
+
+# Optional bearer for endpoints that don't require authentication
+async def get_optional_bearer_token(
+    authorization: Optional[str] = None
+) -> Optional[str]:
+    if not authorization:
+        return None
+    if not authorization.startswith("Bearer "):
+        return None
+    return authorization[7:]  # Remove "Bearer " prefix
+
+async def get_current_user_optional(
+    token: Optional[str] = Depends(get_optional_bearer_token),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    if not token:
+        return None
+    try:
+        token_data = verify_token(token)
+        if token_data is None:
+            return None
+        user = db.query(User).filter(User.username == token_data.username).first()
+        return user
+    except Exception:
+        return None 

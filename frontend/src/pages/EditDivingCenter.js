@@ -6,6 +6,15 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Save, Trash2, Plus, X } from 'lucide-react';
 
+// Helper function to safely extract error message
+const getErrorMessage = (error) => {
+  if (typeof error === 'string') return error;
+  if (error?.message) return error.message;
+  if (error?.response?.data?.detail) return error.response.data.detail;
+  if (error?.detail) return error.detail;
+  return 'An error occurred';
+};
+
 const EditDivingCenter = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -197,7 +206,7 @@ const EditDivingCenter = () => {
         <div className="max-w-4xl mx-auto px-4">
           <div className="bg-white rounded-lg shadow-md p-6">
             <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
-            <p className="text-gray-600">Failed to load diving center: {error.message}</p>
+            <p className="text-gray-600">Failed to load diving center: {getErrorMessage(error)}</p>
           </div>
         </div>
       </div>

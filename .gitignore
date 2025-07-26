@@ -141,3 +141,9 @@ dump.rdb
 
 # Local development
 .local/ 
+
+# Temporary import scripts (agent-created)
+backend/import_kml_dive_sites.py
+backend/update_dive_site_tags.py
+backend/doc.kml 
+map/

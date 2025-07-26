@@ -72,6 +72,22 @@ if (isNaN(latNum)) {
 - Null/undefined checks
 - Array safety checks
 
+### **C. Regression Prevention**
+* Automated testing for common frontend errors
+* Data type safety validation
+* API parameter filtering testing
+* Cross-browser compatibility testing
+* Tag management system testing
+* Bulk operations testing (tag selection, form submission)
+
+### **D. Tag Management Testing**
+* Tag display in dive site details
+* Multiple tag selection in edit forms
+* Tag creation and assignment
+* Bulk tag operations (add/remove)
+* Tag validation and error handling
+* Tag state management and persistence
+
 ## 3. Pre-Release Checklist
 
 ### 3.1 Code Changes

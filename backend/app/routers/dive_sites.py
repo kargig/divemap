@@ -10,9 +10,9 @@ from app.schemas import (
     SiteRatingCreate, SiteRatingResponse,
     SiteCommentCreate, SiteCommentUpdate, SiteCommentResponse,
     SiteMediaCreate, SiteMediaResponse,
-    DiveSiteSearchParams
+    DiveSiteSearchParams, CenterDiveSiteCreate
 )
-from app.auth import get_current_active_user, get_current_admin_user
+from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional
 
 router = APIRouter()
 
@@ -91,7 +91,11 @@ async def create_dive_site(
     }
 
 @router.get("/{dive_site_id}", response_model=DiveSiteResponse)
-async def get_dive_site(dive_site_id: int, db: Session = Depends(get_db)):
+async def get_dive_site(
+    dive_site_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional)  # <-- new optional dependency
+):
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
         raise HTTPException(
@@ -108,10 +112,28 @@ async def get_dive_site(dive_site_id: int, db: Session = Depends(get_db)):
         SiteRating.dive_site_id == dive_site.id
     ).scalar()
     
+    # Get tags for this dive site
+    from app.models import DiveSiteTag, AvailableTag
+    tags = db.query(AvailableTag).join(DiveSiteTag).filter(
+        DiveSiteTag.dive_site_id == dive_site_id
+    ).all()
+
+    # Get user's previous rating if authenticated
+    user_rating = None
+    if current_user:
+        user_rating_obj = db.query(SiteRating).filter(
+            SiteRating.dive_site_id == dive_site_id,
+            SiteRating.user_id == current_user.id
+        ).first()
+        if user_rating_obj:
+            user_rating = user_rating_obj.score
+    
     return {
         **dive_site.__dict__,
         "average_rating": float(avg_rating) if avg_rating else None,
-        "total_ratings": total_ratings
+        "total_ratings": total_ratings,
+        "tags": tags,
+        "user_rating": user_rating
     }
 
 @router.get("/{dive_site_id}/media", response_model=List[SiteMediaResponse])
@@ -184,6 +206,7 @@ async def delete_dive_site_media(
 
 @router.get("/{dive_site_id}/diving-centers")
 async def get_dive_site_diving_centers(dive_site_id: int, db: Session = Depends(get_db)):
+    """Get all diving centers associated with a dive site"""
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
@@ -192,18 +215,12 @@ async def get_dive_site_diving_centers(dive_site_id: int, db: Session = Depends(
             detail="Dive site not found"
         )
     
-    # Get associated diving centers with their dive costs
     centers = db.query(DivingCenter, CenterDiveSite.dive_cost).join(
         CenterDiveSite, DivingCenter.id == CenterDiveSite.diving_center_id
     ).filter(CenterDiveSite.dive_site_id == dive_site_id).all()
     
     result = []
     for center, dive_cost in centers:
-        # Calculate average rating for the center
-        avg_rating = db.query(func.avg(SiteRating.score)).filter(
-            SiteRating.dive_site_id == dive_site_id
-        ).scalar()
-        
         center_dict = {
             "id": center.id,
             "name": center.name,
@@ -213,12 +230,106 @@ async def get_dive_site_diving_centers(dive_site_id: int, db: Session = Depends(
             "website": center.website,
             "latitude": center.latitude,
             "longitude": center.longitude,
-            "dive_cost": float(dive_cost) if dive_cost else None,
-            "average_rating": float(avg_rating) if avg_rating else None
+            "dive_cost": dive_cost
         }
         result.append(center_dict)
     
     return result
+
+@router.post("/{dive_site_id}/diving-centers")
+async def add_diving_center_to_dive_site(
+    dive_site_id: int,
+    center_assignment: CenterDiveSiteCreate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Add a diving center to a dive site (admin only)"""
+    # Check if dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+    
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == center_assignment.diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Diving center not found"
+        )
+    
+    # Check if association already exists
+    existing_association = db.query(CenterDiveSite).filter(
+        CenterDiveSite.dive_site_id == dive_site_id,
+        CenterDiveSite.diving_center_id == center_assignment.diving_center_id
+    ).first()
+    
+    if existing_association:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Diving center is already associated with this dive site"
+        )
+    
+    # Create the association
+    db_association = CenterDiveSite(
+        dive_site_id=dive_site_id,
+        diving_center_id=center_assignment.diving_center_id,
+        dive_cost=center_assignment.dive_cost
+    )
+    db.add(db_association)
+    db.commit()
+    db.refresh(db_association)
+    
+    return {
+        "id": db_association.id,
+        "dive_site_id": dive_site_id,
+        "diving_center_id": center_assignment.diving_center_id,
+        "dive_cost": center_assignment.dive_cost,
+        "created_at": db_association.created_at
+    }
+
+@router.delete("/{dive_site_id}/diving-centers/{diving_center_id}")
+async def remove_diving_center_from_dive_site(
+    dive_site_id: int,
+    diving_center_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Remove a diving center from a dive site (admin only)"""
+    # Check if dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+    
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Diving center not found"
+        )
+    
+    # Find and delete the association
+    association = db.query(CenterDiveSite).filter(
+        CenterDiveSite.dive_site_id == dive_site_id,
+        CenterDiveSite.diving_center_id == diving_center_id
+    ).first()
+    
+    if not association:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Diving center is not associated with this dive site"
+        )
+    
+    db.delete(association)
+    db.commit()
+    
+    return {"message": "Diving center removed from dive site successfully"}
 
 @router.put("/{dive_site_id}", response_model=DiveSiteResponse)
 async def update_dive_site(
