@@ -21,6 +21,35 @@ class UserResponse(UserBase):
     created_at: datetime
     is_admin: bool
     is_moderator: bool
+    enabled: bool
+
+    class Config:
+        from_attributes = True
+
+# Admin user management schemas
+class UserCreateAdmin(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr
+    password: str = Field(..., min_length=6)
+    is_admin: bool = False
+    is_moderator: bool = False
+    enabled: bool = True
+
+class UserUpdateAdmin(BaseModel):
+    username: Optional[str] = Field(None, min_length=3, max_length=50)
+    email: Optional[EmailStr] = None
+    is_admin: Optional[bool] = None
+    is_moderator: Optional[bool] = None
+    enabled: Optional[bool] = None
+
+class UserListResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    is_admin: bool
+    is_moderator: bool
+    enabled: bool
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -53,6 +82,15 @@ class TagResponse(TagBase):
     id: int
     created_by: Optional[int] = None
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class TagWithCountResponse(TagBase):
+    id: int
+    created_by: Optional[int] = None
+    created_at: datetime
+    dive_site_count: int
 
     class Config:
         from_attributes = True
@@ -305,6 +343,7 @@ class DiveSiteSearchParams(BaseModel):
     difficulty_level: Optional[DifficultyLevel] = None
     min_rating: Optional[float] = Field(None, ge=0, le=10)
     max_rating: Optional[float] = Field(None, ge=0, le=10)
+    tag_ids: Optional[List[int]] = None
     limit: int = Field(50, ge=1, le=100)
     offset: int = Field(0, ge=0)
 

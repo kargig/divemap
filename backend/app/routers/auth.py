@@ -33,12 +33,15 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Username or email already registered"
         )
     
-    # Create new user
+    # Create new user (disabled by default, needs admin approval)
     hashed_password = get_password_hash(user_data.password)
     db_user = User(
         username=user_data.username,
         email=user_data.email,
-        password_hash=hashed_password
+        password_hash=hashed_password,
+        enabled=False,  # New users are disabled by default
+        is_admin=False,
+        is_moderator=False
     )
     
     try:
@@ -52,13 +55,17 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Username or email already registered"
         )
     
-    # Create access token
+    # Create access token (user can login but will be blocked by enabled check)
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": db_user.username}, expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "message": "Registration successful. Your account is pending admin approval."
+    }
 
 @router.post("/login", response_model=Token)
 async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
@@ -75,4 +82,19 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer"} 
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/google-login", response_model=Token)
+async def google_login(db: Session = Depends(get_db)):
+    """Google OAuth login endpoint (to be implemented)"""
+    # TODO: Implement Google OAuth integration
+    # This would involve:
+    # 1. Receiving Google ID token from frontend
+    # 2. Verifying the token with Google
+    # 3. Creating or updating user in database
+    # 4. Returning JWT token
+    
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Google OAuth login not yet implemented"
+    ) 

@@ -18,22 +18,44 @@ router = APIRouter()
 
 @router.get("/", response_model=List[DiveSiteResponse])
 async def get_dive_sites(
-    search_params: DiveSiteSearchParams = Depends(),
+    name: Optional[str] = Query(None),
+    difficulty_level: Optional[str] = Query(None),
+    min_rating: Optional[float] = Query(None, ge=0, le=10),
+    max_rating: Optional[float] = Query(None, ge=0, le=10),
+    tag_ids: Optional[List[int]] = Query(None),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db)
 ):
     query = db.query(DiveSite)
     
     # Apply filters
-    if search_params.name:
-        query = query.filter(DiveSite.name.ilike(f"%{search_params.name}%"))
+    if name:
+        query = query.filter(DiveSite.name.ilike(f"%{name}%"))
     
-    if search_params.difficulty_level:
-        query = query.filter(DiveSite.difficulty_level == search_params.difficulty_level)
+    if difficulty_level:
+        query = query.filter(DiveSite.difficulty_level == difficulty_level)
+    
+    # Apply tag filtering
+    if tag_ids:
+        from app.models import DiveSiteTag
+        from sqlalchemy import select
+        # Use AND logic - dive site must have ALL selected tags
+        # First, get dive site IDs that have all the required tags
+        tag_count = len(tag_ids)
+        dive_site_ids_with_all_tags = select(DiveSiteTag.dive_site_id).filter(
+            DiveSiteTag.tag_id.in_(tag_ids)
+        ).group_by(DiveSiteTag.dive_site_id).having(
+            func.count(DiveSiteTag.tag_id) == tag_count
+        )
+        
+        # Then filter the main query by those dive site IDs
+        query = query.filter(DiveSite.id.in_(dive_site_ids_with_all_tags))
     
     # Get dive sites with average ratings
-    dive_sites = query.offset(search_params.offset).limit(search_params.limit).all()
+    dive_sites = query.offset(offset).limit(limit).all()
     
-    # Calculate average ratings
+    # Calculate average ratings and get tags
     result = []
     for site in dive_sites:
         avg_rating = db.query(func.avg(SiteRating.score)).filter(
@@ -44,29 +66,39 @@ async def get_dive_sites(
             SiteRating.dive_site_id == site.id
         ).scalar()
         
+        # Get tags for this dive site
+        from app.models import DiveSiteTag, AvailableTag
+        tags = db.query(AvailableTag).join(DiveSiteTag).filter(
+            DiveSiteTag.dive_site_id == site.id
+        ).all()
+        
         site_dict = {
             "id": site.id,
             "name": site.name,
             "description": site.description,
             "latitude": site.latitude,
             "longitude": site.longitude,
+            "address": site.address,
             "access_instructions": site.access_instructions,
             "dive_plans": site.dive_plans,
             "gas_tanks_necessary": site.gas_tanks_necessary,
             "difficulty_level": site.difficulty_level,
+            "marine_life": site.marine_life,
+            "safety_information": site.safety_information,
             "created_at": site.created_at,
             "updated_at": site.updated_at,
             "average_rating": float(avg_rating) if avg_rating else None,
-            "total_ratings": total_ratings
+            "total_ratings": total_ratings,
+            "tags": tags
         }
         result.append(site_dict)
     
     # Apply rating filters
-    if search_params.min_rating is not None:
-        result = [site for site in result if site["average_rating"] and site["average_rating"] >= search_params.min_rating]
+    if min_rating is not None:
+        result = [site for site in result if site["average_rating"] and site["average_rating"] >= min_rating]
     
-    if search_params.max_rating is not None:
-        result = [site for site in result if site["average_rating"] and site["average_rating"] <= search_params.max_rating]
+    if max_rating is not None:
+        result = [site for site in result if site["average_rating"] and site["average_rating"] <= max_rating]
     
     return result
 

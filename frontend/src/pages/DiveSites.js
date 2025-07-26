@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
-import { Map, Star, Search, Filter, List, Globe } from 'lucide-react';
+import { Map, Star, Search, Filter, List, Globe, Tag } from 'lucide-react';
 import DiveSitesMap from '../components/DiveSitesMap';
 import api from '../api';
 
@@ -18,15 +18,38 @@ const DiveSites = () => {
     difficulty_level: '',
     min_rating: '',
     max_rating: '',
+    tag_ids: [],
   });
+
+  // Fetch available tags for filtering
+  const { data: availableTags } = useQuery(
+    ['available-tags'],
+    () => api.get('/api/v1/tags/').then(res => res.data),
+    {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
 
   const { data: diveSites, isLoading, error } = useQuery(
     ['dive-sites', searchParams],
     () => {
-      const filteredParams = Object.fromEntries(
-        Object.entries(searchParams).filter(([_, v]) => v !== '')
-      );
-      return api.get('/api/v1/dive-sites', { params: filteredParams });
+      // Create URLSearchParams to properly handle array parameters
+      const params = new URLSearchParams();
+      
+      // Add non-array parameters
+      if (searchParams.name) params.append('name', searchParams.name);
+      if (searchParams.difficulty_level) params.append('difficulty_level', searchParams.difficulty_level);
+      if (searchParams.min_rating) params.append('min_rating', searchParams.min_rating);
+      if (searchParams.max_rating) params.append('max_rating', searchParams.max_rating);
+      
+      // Add array parameters (tag_ids)
+      if (searchParams.tag_ids && searchParams.tag_ids.length > 0) {
+        searchParams.tag_ids.forEach(tagId => {
+          params.append('tag_ids', tagId.toString());
+        });
+      }
+      
+      return api.get(`/api/v1/dive-sites?${params.toString()}`);
     },
     {
       select: (response) => response.data,
@@ -48,6 +71,7 @@ const DiveSites = () => {
       difficulty_level: '',
       min_rating: '',
       max_rating: '',
+      tag_ids: [],
     });
   };
 
@@ -149,9 +173,65 @@ const DiveSites = () => {
               onClick={clearFilters}
               className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
             >
-              Clear Filters
+              Clear
             </button>
           </div>
+        </div>
+
+        {/* Tag Cloud */}
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Filter by Tags
+          </label>
+          <div className="flex flex-wrap gap-3">
+            {availableTags && availableTags.length > 0 ? (
+              availableTags.map((tag, index) => {
+                const isSelected = searchParams.tag_ids.includes(tag.id);
+                const sizes = ['text-sm', 'text-base', 'text-lg', 'text-xl'];
+                const colors = [
+                  'bg-blue-100 text-blue-800 hover:bg-blue-200',
+                  'bg-green-100 text-green-800 hover:bg-green-200',
+                  'bg-purple-100 text-purple-800 hover:bg-purple-200',
+                  'bg-orange-100 text-orange-800 hover:bg-orange-200',
+                  'bg-pink-100 text-pink-800 hover:bg-pink-200',
+                  'bg-indigo-100 text-indigo-800 hover:bg-indigo-200'
+                ];
+                const sizeClass = sizes[index % sizes.length];
+                const colorClass = colors[index % colors.length];
+                
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => {
+                      setSearchParams(prev => ({
+                        ...prev,
+                        tag_ids: prev.tag_ids.includes(tag.id)
+                          ? prev.tag_ids.filter(id => id !== tag.id)
+                          : [...prev.tag_ids, tag.id]
+                      }));
+                    }}
+                    className={`px-4 py-2 rounded-full font-medium transition-all duration-200 transform hover:scale-105 ${
+                      isSelected
+                        ? 'bg-blue-600 text-white shadow-lg scale-110'
+                        : `${colorClass} shadow-md`
+                    } ${sizeClass}`}
+                  >
+                    {tag.name}
+                  </button>
+                );
+              })
+            ) : (
+              <p className="text-gray-500 text-sm">Loading tags...</p>
+            )}
+          </div>
+          {searchParams.tag_ids.length > 0 && (
+            <div className="mt-3 text-sm text-gray-600">
+              <span className="font-medium">Selected:</span> {searchParams.tag_ids.length} tag{searchParams.tag_ids.length !== 1 ? 's' : ''} 
+              {searchParams.tag_ids.length > 1 && (
+                <span className="text-gray-500"> (showing sites with ALL selected tags)</span>
+              )}
+            </div>
+          )}
         </div>
         
         {/* View Mode Toggle */}
@@ -225,6 +305,22 @@ const DiveSites = () => {
                   <div className="flex items-center text-sm text-gray-500 mb-4">
                     <Map className="h-4 w-4 mr-1" />
                     <span>{site.latitude}, {site.longitude}</span>
+                  </div>
+                )}
+
+                {/* Tags */}
+                {site.tags && site.tags.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex flex-wrap gap-1">
+                      {site.tags.map((tag) => (
+                        <span
+                          key={tag.id}
+                          className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium"
+                        >
+                          {tag.name}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
 

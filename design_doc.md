@@ -567,3 +567,20 @@ node test_regressions.js
 * ✅ MySQL database with proper schema
 * ✅ Nginx reverse proxy configuration
 * ✅ Automated testing and validation scripts
+
+#### **Admin Management System**
+* ✅ Comprehensive admin dashboard with multiple management sections
+* ✅ Tag management with dive site count display
+* ✅ User management with role and status control
+* ✅ User approval system (new users disabled by default)
+* ✅ Admin-only user creation, editing, and deletion
+* ✅ Role-based access control (User, Moderator, Admin)
+* ✅ User status management (enabled/disabled)
+
+#### **User Registration and Approval System**
+* ✅ New users created with enabled=False by default
+* ✅ Admin approval required for account activation
+* ✅ Google OAuth login button (stub implementation)
+* ✅ Registration success message with approval notice
+* ✅ Disabled users blocked from accessing protected endpoints
+* ✅ User-friendly approval workflow

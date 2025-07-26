@@ -25,6 +25,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     is_admin = Column(Boolean, default=False)
     is_moderator = Column(Boolean, default=False)
+    enabled = Column(Boolean, default=True)  # New field for user activation
 
     # Relationships
     site_ratings = relationship("SiteRating", back_populates="user", cascade="all, delete-orphan")

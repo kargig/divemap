@@ -151,6 +151,19 @@ See the full API documentation at http://localhost:8000/docs
 
 ## Recent Enhancements
 
+### **Admin Management System**
+- **Comprehensive Admin Dashboard**: Tag management, user management, dive sites, and diving centers
+- **Tag Management**: View all tags with count of associated dive sites
+- **User Management**: List, edit, delete, and create users with role and status control
+- **User Approval System**: New users disabled by default, require admin approval
+- **Role-Based Access Control**: User, Moderator, and Admin roles with appropriate permissions
+
+### **User Registration and Approval**
+- **Google OAuth Integration**: Login button for Google authentication (stub implementation)
+- **Admin Approval Workflow**: New users must be approved by admin before accessing features
+- **User Status Management**: Enable/disable users with immediate effect
+- **Registration Feedback**: Clear messaging about approval requirements
+
 ### **Map UI and Zoom Management**
 - **Zoom Level Debugging**: Real-time zoom level indicator for optimal map configuration
 - **Smart Zoom Behavior**: Keeps zoom 5 levels before maximum for better context

@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_admin BOOLEAN DEFAULT FALSE,
     is_moderator BOOLEAN DEFAULT FALSE,
+    enabled BOOLEAN DEFAULT TRUE,
     INDEX idx_email (email),
     INDEX idx_username (username)
 );
