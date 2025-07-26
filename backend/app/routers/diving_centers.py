@@ -256,10 +256,7 @@ async def get_diving_center_comments(
             "comment_text": comment.comment_text,
             "created_at": comment.created_at,
             "updated_at": comment.updated_at,
-            "user": {
-                "id": comment.user.id,
-                "username": comment.user.username
-            }
+            "username": comment.user.username  # Return username directly
         }
         for comment in comments
     ]
@@ -295,10 +292,7 @@ async def create_diving_center_comment(
         "comment_text": db_comment.comment_text,
         "created_at": db_comment.created_at,
         "updated_at": db_comment.updated_at,
-        "user": {
-            "id": current_user.id,
-            "username": current_user.username
-        }
+        "username": current_user.username  # Return username directly
     }
 
 @router.put("/{diving_center_id}/comments/{comment_id}", response_model=CenterCommentResponse)
@@ -336,10 +330,7 @@ async def update_diving_center_comment(
         "comment_text": comment.comment_text,
         "created_at": comment.created_at,
         "updated_at": comment.updated_at,
-        "user": {
-            "id": comment.user.id,
-            "username": comment.user.username
-        }
+        "username": comment.user.username  # Return username directly
     }
 
 @router.delete("/{diving_center_id}/comments/{comment_id}")
