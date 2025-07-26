@@ -76,9 +76,13 @@ const EditDivingCenter = () => {
   const updateMutation = useMutation(
     (data) => api.put(`/api/v1/diving-centers/${id}`, data),
     {
-      onSuccess: () => {
+      onSuccess: async () => {
         toast.success('Diving center updated successfully');
-        queryClient.invalidateQueries(['diving-center', id]);
+        // Invalidate and refetch the diving center data before navigation
+        await queryClient.invalidateQueries(['diving-center', id]);
+        await queryClient.invalidateQueries(['admin-diving-centers']);
+        // Refetch the diving center data to ensure it's updated
+        await queryClient.refetchQueries(['diving-center', id]);
         navigate(`/diving-centers/${id}`);
       },
       onError: (error) => {

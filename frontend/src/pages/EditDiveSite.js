@@ -81,9 +81,13 @@ const EditDiveSite = () => {
   const updateMutation = useMutation(
     (data) => api.put(`/api/v1/dive-sites/${id}`, data),
     {
-      onSuccess: () => {
+      onSuccess: async () => {
         toast.success('Dive site updated successfully');
-        queryClient.invalidateQueries(['dive-site', id]);
+        // Invalidate and refetch the dive site data before navigation
+        await queryClient.invalidateQueries(['dive-site', id]);
+        await queryClient.invalidateQueries(['admin-dive-sites']);
+        // Refetch the dive site data to ensure it's updated
+        await queryClient.refetchQueries(['dive-site', id]);
         navigate(`/dive-sites/${id}`);
       },
       onError: (error) => {
