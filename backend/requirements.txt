@@ -1,9 +1,9 @@
-fastapi==0.104.1
+fastapi==0.116.1
 uvicorn[standard]==0.24.0
 sqlalchemy==2.0.23
 pymysql==1.1.1
 python-multipart==0.0.20
-python-jose[cryptography]==3.4.0
+python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
 python-dotenv==1.0.0
 redis==5.0.1
@@ -13,13 +13,14 @@ pytest-asyncio==0.21.1
 httpx==0.25.2
 pytest-cov==4.1.0
 email-validator==2.1.0
-pydantic[email]==2.5.0
+pydantic[email]==2.9.2
 # Security additions
 slowapi==0.1.9
 alembic==1.16.4
-python-multipart==0.0.20
 # Google OAuth
 google-auth==2.40.3
 google-auth-oauthlib==1.2.2
-# Fix dependency conflicts
-pyasn1==0.4.8 
+# Updated dependencies for security
+starlette==0.47.2
+anyio==4.9.0
+pyasn1==0.6.1 
