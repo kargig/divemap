@@ -47,6 +47,8 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 - **Enhanced User Profiles**: Diving certification tracking and dive count management
 - **Password Management**: Secure password change functionality with current password verification
 - **Comment Credentials**: User diving information displayed alongside comments
+- **Database Connectivity**: Robust startup process with database availability checking
+- **Container Optimization**: Pre-compiled wheels and IPv6 support for cloud deployment
 
 ## Tech Stack
 
@@ -70,17 +72,40 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 - **Pydantic** - Data validation
 - **JWT** - Authentication
 - **MySQL** - Database
-- **Docker** - Containerization
+- **Docker** - Containerization with optimized builds
 - **Google Auth** - OAuth verification
+- **Netcat-openbsd** - IPv6-compatible database connectivity checking
 
 ### Testing
 - **Pytest** - Backend testing framework
 - **Node.js** - Frontend validation scripts
 - **Automated Testing** - Regression prevention and data type validation
 
-## Security
+## Database Connectivity & Container Optimization
 
-This application implements comprehensive security measures to protect user data and prevent common vulnerabilities:
+The application includes robust database connectivity checking and container optimization for reliable deployment:
+
+### Database Connectivity Features
+- **Startup Health Check**: Backend container waits for database availability before starting
+- **Retry Logic**: 10 retry attempts with random 1-5 second delays between attempts
+- **IPv6 Support**: Uses netcat-openbsd for cloud deployment compatibility
+- **Visual Logging**: Clear status indicators (✅, ❌, ⏳, 🚀) for startup process
+- **Timeout Handling**: 5-second timeout per connection attempt to prevent hanging
+
+### Container Optimization
+- **Pre-compiled Wheels**: All Python packages use pre-compiled wheels for faster builds
+- **Reduced Dependencies**: Removed gcc and default-libmysqlclient-dev (~200MB reduction)
+- **Faster Builds**: No compilation step needed, only pre-compiled wheel downloads
+- **Smaller Containers**: Reduced container size and attack surface
+- **Better Security**: Fewer installed packages reduces potential vulnerabilities
+
+### Deployment Benefits
+- **Fly.io Compatibility**: IPv6 support for cloud deployment
+- **Reliability**: Robust database connectivity ensures application stability
+- **Performance**: Faster container builds and smaller image sizes
+- **Monitoring**: Clear visual indicators for startup status
+
+## Security
 
 ### Security Features
 - **Authentication & Authorization**: JWT-based authentication with role-based access control

@@ -6,6 +6,49 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 ### 🚀 Major Features
 
+#### **Database Connectivity and Container Optimization**
+- **Robust Database Connectivity Check**: Backend container now waits for database availability before starting
+- **IPv6 Support for Fly.io**: Implemented netcat-openbsd with IPv6 support for cloud deployment
+- **Retry Logic**: 10 retry attempts with random 1-5 second delays between attempts
+- **Container Optimization**: Removed unnecessary build dependencies (gcc, default-libmysqlclient-dev)
+- **Pre-compiled Wheels**: All Python packages now use pre-compiled wheels for faster builds
+
+**Database Connectivity Features:**
+- **Startup Script**: Proper `backend/startup.sh` script with database connectivity check
+- **Visual Logging**: Clear indicators (✅, ❌, ⏳, 🚀) for all startup states
+- **Timeout Handling**: 5-second timeout per connection attempt to prevent hanging
+- **Error Handling**: Proper exit codes and error messages for debugging
+- **Fly.io Ready**: IPv6 support for cloud deployment environments
+
+**Container Optimizations:**
+- **Removed Dependencies**: Eliminated `gcc` and `default-libmysqlclient-dev` (~200MB reduction)
+- **Faster Builds**: No compilation step needed, only pre-compiled wheel downloads
+- **Smaller Containers**: Reduced container size and attack surface
+- **Better Security**: Fewer installed packages reduces potential vulnerabilities
+- **Consistent Behavior**: Pre-compiled wheels work identically across environments
+
+**Files Added/Modified:**
+- `backend/startup.sh` - Main startup script with database connectivity check
+- `backend/test_netcat_ipv6.sh` - Test script for netcat IPv6 support
+- `backend/Dockerfile` - Optimized with removed dependencies and `--only-binary=all`
+- `backend/DATABASE_CONNECTIVITY.md` - Comprehensive documentation
+- `docker-compose.yml` - Already had proper `depends_on` configuration
+
+**Testing Results:**
+- **Database Connectivity**: ✅ Successfully detects database on startup
+- **Retry Logic**: ✅ Works with random delays and proper error handling
+- **IPv6 Support**: ✅ Netcat-openbsd working correctly for cloud deployment
+- **Container Build**: ✅ Faster builds with pre-compiled wheels
+- **Startup Sequence**: ✅ Proper migration and application startup
+
+**Deployment Benefits:**
+- **Fly.io Compatibility**: IPv6 support for cloud deployment
+- **Reliability**: Robust database connectivity ensures application stability
+- **Performance**: Faster container builds and smaller image sizes
+- **Monitoring**: Clear visual indicators for startup status
+
+#### **Enhanced User Profile Management**
+
 #### **Enhanced User Profile Management**
 - **Diving Certification Tracking**: Users can now set and display their diving certification (e.g., "PADI Open Water", "AOWD")
 - **Dive Count Management**: Users can track their total number of completed dives
