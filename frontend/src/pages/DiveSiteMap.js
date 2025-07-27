@@ -22,6 +22,7 @@ const DiveSiteMap = () => {
   const mapInstance = useRef();
   const [selectedSite, setSelectedSite] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(13);
+  const [popupPosition, setPopupPosition] = useState({ top: 20, left: 16 });
 
   // Fetch current dive site
   const { data: diveSite, isLoading: isLoadingDiveSite } = useQuery(
@@ -40,6 +41,56 @@ const DiveSiteMap = () => {
       enabled: !!id,
     }
   );
+
+  // Calculate optimal popup position based on click coordinates
+  const calculatePopupPosition = (clickX, clickY, mapWidth, mapHeight) => {
+    const popupWidth = 320; // Approximate popup width
+    const popupHeight = 200; // Approximate popup height
+    const margin = 16;
+    
+    // Start with default position (below and to the right of click)
+    let left = clickX + margin;
+    let top = clickY + margin;
+    
+    // Check if popup would go off the right edge
+    if (left + popupWidth > mapWidth - margin) {
+      left = clickX - popupWidth - margin;
+    }
+    
+    // Check if popup would go off the bottom edge
+    if (top + popupHeight > mapHeight - margin) {
+      top = clickY - popupHeight - margin;
+    }
+    
+    // If popup would go off the left edge, try positioning to the right
+    if (left < margin) {
+      left = margin;
+    }
+    
+    // If popup would go off the top edge, try positioning below
+    if (top < margin) {
+      top = margin;
+    }
+    
+    // Additional check: if the popup is still too close to edges, adjust further
+    // This handles cases where the click is very close to borders
+    if (clickY < popupHeight + margin * 2) {
+      // Click is very close to top, position popup below
+      top = clickY + margin;
+    }
+    
+    if (clickX < popupWidth / 2) {
+      // Click is very close to left edge, center the popup
+      left = margin;
+    }
+    
+    if (clickX > mapWidth - popupWidth / 2) {
+      // Click is very close to right edge, position popup to the left
+      left = mapWidth - popupWidth - margin;
+    }
+    
+    return { top, left };
+  };
 
   useEffect(() => {
     if (!mapRef.current || !diveSite) return;
@@ -126,6 +177,21 @@ const DiveSiteMap = () => {
         if (feature) {
           const site = feature.get('site');
           setSelectedSite(site);
+          
+          // Calculate optimal popup position
+          const mapElement = mapRef.current;
+          const mapRect = mapElement.getBoundingClientRect();
+          const clickX = event.pixel[0];
+          const clickY = event.pixel[1];
+          
+          const position = calculatePopupPosition(
+            clickX, 
+            clickY, 
+            mapRect.width, 
+            mapRect.height
+          );
+          
+          setPopupPosition(position);
         } else {
           setSelectedSite(null);
         }
@@ -184,12 +250,19 @@ const DiveSiteMap = () => {
 
       {/* Popup for selected site */}
       {selectedSite && (
-        <div className="absolute top-20 left-4 bg-white rounded-lg shadow-lg p-4 max-w-sm z-10">
+        <div 
+          className="absolute bg-white rounded-lg shadow-lg p-4 max-w-sm z-10 border border-gray-200"
+          style={{
+            top: `${popupPosition.top}px`,
+            left: `${popupPosition.left}px`,
+            maxWidth: '320px'
+          }}
+        >
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-semibold text-lg">{selectedSite.name}</h3>
             <button
               onClick={() => setSelectedSite(null)}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 text-xl font-bold"
             >
               ×
             </button>

@@ -20,6 +20,57 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
   const [currentZoom, setCurrentZoom] = useState(2);
   const [maxZoom, setMaxZoom] = useState(19);
 
+  // Calculate optimal popup position based on click coordinates
+  const calculatePopupPosition = (clickX, clickY, mapWidth, mapHeight) => {
+    const popupWidth = 280; // Approximate popup width
+    const popupHeight = 180; // Approximate popup height
+    const margin = 16;
+    
+    // Start with default position (above and centered on click)
+    let left = clickX;
+    let top = clickY - popupHeight - margin;
+    
+    // Check if popup would go off the left edge
+    if (left < margin) {
+      left = margin;
+    }
+    
+    // Check if popup would go off the right edge
+    if (left + popupWidth > mapWidth - margin) {
+      left = mapWidth - popupWidth - margin;
+    }
+    
+    // Check if popup would go off the top edge
+    if (top < margin) {
+      // Position popup below the click point instead
+      top = clickY + margin;
+    }
+    
+    // Check if popup would go off the bottom edge
+    if (top + popupHeight > mapHeight - margin) {
+      // Position popup above the click point
+      top = clickY - popupHeight - margin;
+    }
+    
+    // Additional edge case handling
+    if (clickY < popupHeight + margin * 2) {
+      // Click is very close to top, position popup below
+      top = clickY + margin;
+    }
+    
+    if (clickX < popupWidth / 2) {
+      // Click is very close to left edge, position popup from left margin
+      left = margin;
+    }
+    
+    if (clickX > mapWidth - popupWidth / 2) {
+      // Click is very close to right edge, position popup from right margin
+      left = mapWidth - popupWidth - margin;
+    }
+    
+    return { x: left, y: top };
+  };
+
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -139,7 +190,21 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
       if (feature) {
         const site = feature.get('site');
         setPopupInfo(site);
-        setPopupPosition({ x: event.pixel[0], y: event.pixel[1] });
+        
+        // Calculate optimal popup position
+        const mapElement = mapRef.current;
+        const mapRect = mapElement.getBoundingClientRect();
+        const clickX = event.pixel[0];
+        const clickY = event.pixel[1];
+        
+        const position = calculatePopupPosition(
+          clickX, 
+          clickY, 
+          mapRect.width, 
+          mapRect.height
+        );
+        
+        setPopupPosition(position);
         
         // Prevent event from bubbling up to document
         event.stopPropagation();
@@ -192,11 +257,10 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
       
       {popupInfo && popupPosition && (
         <div 
-          className="map-popup absolute bg-white rounded-lg shadow-lg p-4 max-w-xs z-50"
+          className="map-popup absolute bg-white rounded-lg shadow-lg p-4 max-w-xs z-50 border border-gray-200"
           style={{ 
-            left: (popupPosition.x + 10) + 'px', 
-            top: (popupPosition.y - 10) + 'px',
-            transform: 'translate(-50%, -100%)'
+            left: popupPosition.x + 'px', 
+            top: popupPosition.y + 'px'
           }}
         >
           <div className="p-2">
@@ -234,9 +298,9 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
                 setPopupInfo(null);
                 setPopupPosition(null);
               }}
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-xl font-bold"
             >
-              ✖
+              ×
             </button>
           </div>
         </div>
