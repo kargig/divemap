@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Save, Trash2, Plus, X } from 'lucide-react';
+import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
 
 // Helper function to safely extract error message
 const getErrorMessage = (error) => {
@@ -34,7 +35,8 @@ const EditDivingCenter = () => {
   const [gearRental, setGearRental] = useState([]);
   const [newGearItem, setNewGearItem] = useState({
     item_name: '',
-    cost: ''
+    cost: '',
+    currency: DEFAULT_CURRENCY
   });
 
   const [isAddingGear, setIsAddingGear] = useState(false);
@@ -158,7 +160,8 @@ const EditDivingCenter = () => {
     }
     addGearMutation.mutate({
       item_name: newGearItem.item_name,
-      cost: parseFloat(newGearItem.cost)
+      cost: parseFloat(newGearItem.cost),
+      currency: newGearItem.currency
     });
   };
 
@@ -355,7 +358,7 @@ const EditDivingCenter = () => {
               {isAddingGear && (
                 <div className="bg-gray-50 p-4 rounded-md mb-4">
                   <form onSubmit={handleAddGear} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Item Name *
@@ -371,7 +374,7 @@ const EditDivingCenter = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Cost (USD) *
+                          Cost *
                         </label>
                         <input
                           type="number"
@@ -382,6 +385,22 @@ const EditDivingCenter = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder="0.00"
                         />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Currency
+                        </label>
+                        <select
+                          value={newGearItem.currency}
+                          onChange={(e) => setNewGearItem(prev => ({ ...prev, currency: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          {getCurrencyOptions().map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                     <div className="flex space-x-2">
@@ -424,7 +443,7 @@ const EditDivingCenter = () => {
                   <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                       <h4 className="font-medium text-gray-900">{item.item_name}</h4>
-                      <p className="text-sm text-gray-600">${item.cost.toFixed(2)}</p>
+                      <p className="text-sm text-gray-600">{formatCost(item.cost, item.currency || DEFAULT_CURRENCY)}</p>
                     </div>
                     <button
                       onClick={() => handleDeleteGear(item.id)}

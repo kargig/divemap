@@ -12,7 +12,8 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 - **Interactive Map**: View dive sites and diving centers on an interactive map
 - **Search & Filtering**: Advanced search and filtering capabilities
 - **Media Management**: Upload and display photos and videos for dive sites
-- **Gear Rental**: Manage diving center gear rental costs
+- **Gear Rental**: Manage diving center gear rental costs with multi-currency support
+- **Multi-Currency System**: Support for 10 major world currencies with Euro (€) as default
 - **Tag System**: Comprehensive tag/label management for dive sites
 - **Admin Dashboard**: Full administrative interface with separate management pages
 - **Mass Operations**: Bulk delete functionality for admin management

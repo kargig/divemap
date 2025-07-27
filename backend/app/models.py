@@ -155,6 +155,7 @@ class CenterDiveSite(Base):
     diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
     dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), nullable=False, index=True)
     dive_cost = Column(DECIMAL(10, 2))
+    currency = Column(String(3), default="EUR", nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
@@ -168,6 +169,7 @@ class GearRentalCost(Base):
     diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
     item_name = Column(String(100), nullable=False)
     cost = Column(DECIMAL(10, 2), nullable=False)
+    currency = Column(String(3), default="EUR", nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

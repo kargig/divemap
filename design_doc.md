@@ -52,9 +52,9 @@ This document outlines the technical design for a Python-based web application, 
   * Contact information (email, phone, website).  
   * Location.  
   * List of dive sites they visit.  
-  * Dive cost per site.  
-  * Scuba gear rental costs (full set, individual items).  
-  * Tank rental costs (per type/size).  
+    * Dive cost per site (with multi-currency support).
+  * Scuba gear rental costs (full set, individual items) with currency selection.
+  * Tank rental costs (per type/size) with currency selection.  
 * **View Diving Center:**  
   * Display all aforementioned details.  
   * Average user rating.  
@@ -92,7 +92,18 @@ This document outlines the technical design for a Python-based web application, 
 * Search diving centers by name, location, associated dive sites.  
 * Filter dive sites/centers by average rating.
 
-### **3.7. Admin Management System**
+### **3.7. Multi-Currency Support System**
+
+* **Supported Currencies**: 10 major world currencies (USD, EUR, JPY, GBP, CNY, AUD, CAD, CHF, HKD, NZD)
+* **Default Currency**: Euro (€) is the default currency for all cost fields
+* **Currency Display**: Proper formatting with currency symbols and flags
+* **Flexible Input**: Users can submit costs in any supported currency
+* **Currency Validation**: 3-letter ISO currency code validation
+* **Database Storage**: Currency fields with indexes for performance
+* **API Integration**: All cost-related endpoints support currency
+* **Frontend Utility**: Comprehensive currency formatting and selection functions
+
+### **3.8. Admin Management System**
 
 * **Mass Operations**: Bulk delete functionality for admin management pages
 * **User Management**: Complete user CRUD with role assignment and status control
@@ -318,7 +329,9 @@ The application will follow a microservices-oriented or a well-separated monolit
 * /api/v1/diving-centers/{center\_id} (GET, PUT, DELETE)  
 * /api/v1/diving-centers/{center\_id}/rate (POST)  
 * /api/v1/diving-centers/{center\_id}/comments (GET, POST)  
-* /api/v1/diving-centers/search (GET)  
+* /api/v1/diving-centers/search (GET)
+* /api/v1/diving-centers/{center_id}/gear-rental (GET, POST) - Supports currency
+* /api/v1/dive-sites/{site_id}/diving-centers (GET, POST) - Supports currency  
 * /api/v1/admin/newsletters/parse (POST \- upload newsletter, trigger parsing)  
 * /api/v1/dive-trips (GET \- retrieve parsed trips for map)  
 * /api/v1/media/upload (POST \- for image/video uploads)

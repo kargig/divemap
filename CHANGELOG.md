@@ -6,6 +6,41 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 ### 🚀 Major Features
 
+#### **Multi-Currency Support System**
+- **10 World Currencies**: Support for USD, EUR, JPY, GBP, CNY, AUD, CAD, CHF, HKD, NZD
+- **Euro Default**: Euro (€) is the default currency for all cost fields
+- **Currency Symbols**: Proper display with currency symbols and flags
+- **Flexible Input**: Users can submit costs in any supported currency
+- **Visual Formatting**: Automatic formatting with symbols, flags, and codes
+- **Database Migration**: Added currency fields to cost tables with indexes
+- **API Integration**: Updated all cost-related endpoints to handle currency
+- **Frontend Utility**: Comprehensive currency utility functions
+
+**Supported Currencies:**
+- 🇺🇸 USD (US Dollar) - $
+- 🇪🇺 EUR (Euro) - € (default)
+- 🇯🇵 JPY (Japanese Yen) - ¥
+- 🇬🇧 GBP (British Pound) - £
+- 🇨🇳 CNY (Chinese Yuan) - ¥
+- 🇦🇺 AUD (Australian Dollar) - A$
+- 🇨🇦 CAD (Canadian Dollar) - C$
+- 🇨🇭 CHF (Swiss Franc) - CHF
+- 🇭🇰 HKD (Hong Kong Dollar) - HK$
+- 🇳🇿 NZD (New Zealand Dollar) - NZ$
+
+**Files Added:**
+- `frontend/src/utils/currency.js` - Comprehensive currency utility functions
+- `database/add_currency_fields.sql` - Database migration script
+
+**Files Modified:**
+- `backend/app/models.py` - Added currency fields to CenterDiveSite and GearRentalCost models
+- `backend/app/schemas.py` - Added currency fields with validation to schemas
+- `backend/app/routers/dive_sites.py` - Updated endpoints to handle currency
+- `backend/app/routers/diving_centers.py` - Updated gear rental endpoints
+- `frontend/src/pages/EditDiveSite.js` - Added currency selection for diving centers
+- `frontend/src/pages/EditDivingCenter.js` - Added currency selection for gear rental
+- `frontend/src/pages/DiveSiteDetail.js` - Updated cost display with currency formatting
+
 #### **Google OAuth Authentication**
 - **Complete OAuth 2.0 Integration**: Secure authentication with Google Identity Services
 - **Backend Token Verification**: Server-side verification with Google's servers
@@ -70,6 +105,9 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 - **Docker Rebuild**: Updated container with new dependencies
 
 #### **Database Schema Updates**
+- **Currency Fields**: Added currency fields to center_dive_sites and gear_rental_costs tables
+- **Currency Indexes**: Created indexes for currency fields for better performance
+- **Default Values**: Set 'EUR' as default currency for all existing records
 - **Google ID Field**: Added google_id to users table
 - **Index Creation**: Efficient Google ID lookups
 - **Migration Script**: Automated database migration
@@ -83,6 +121,9 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 ### 🐛 Bug Fixes
 
 #### **Backend Issues**
+- **Currency Validation**: Fixed currency code validation and error handling
+- **Currency Migration**: Successfully added currency fields to database
+- **Currency Defaults**: Properly set Euro as default currency for existing records
 - **Google OAuth Dependencies**: Fixed ModuleNotFoundError for Google packages
 - **Database Migration**: Successfully added google_id field
 - **Container Rebuild**: Fixed dependency installation issues

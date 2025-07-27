@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Star, Map, MessageCircle, Send, Play, Image, ExternalLink, Anchor, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api';
+import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 
 // Helper function to safely extract error message
 const getErrorMessage = (error) => {
@@ -319,7 +320,7 @@ const DiveSiteDetail = () => {
                       <h3 className="font-semibold text-gray-900">{center.name}</h3>
                       {center.dive_cost && (
                         <span className="text-green-600 font-semibold">
-                          ${center.dive_cost}
+                          {formatCost(center.dive_cost, center.currency || DEFAULT_CURRENCY)}
                         </span>
                       )}
                     </div>

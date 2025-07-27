@@ -402,7 +402,8 @@ async def add_diving_center_gear_rental(
     db_gear_rental = GearRentalCost(
         diving_center_id=diving_center_id,
         item_name=gear_rental.item_name,
-        cost=gear_rental.cost
+        cost=gear_rental.cost,
+        currency=gear_rental.currency
     )
     db.add(db_gear_rental)
     db.commit()

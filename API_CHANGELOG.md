@@ -4,6 +4,76 @@ This document tracks recent changes, bug fixes, and improvements to the Divemap 
 
 ## Latest Changes (Latest Release)
 
+### ✅ Added: Multi-Currency Support System
+
+**Feature:** Comprehensive currency system supporting the top 10 world currencies with Euro (€) as default.
+
+**Implementation:**
+- **Supported Currencies**: USD, EUR, JPY, GBP, CNY, AUD, CAD, CHF, HKD, NZD
+- **Default Currency**: Euro (€) is the default currency for all cost fields
+- **Currency Symbols**: Proper display with currency symbols and flags
+- **Flexible Input**: Users can submit costs in any supported currency
+- **Visual Formatting**: Automatic formatting with symbols, flags, and codes
+
+**Database Changes:**
+- Added `currency` field to `center_dive_sites` table (VARCHAR(3), default 'EUR')
+- Added `currency` field to `gear_rental_costs` table (VARCHAR(3), default 'EUR')
+- Created indexes for currency fields for better performance
+- Migration script provided in `database/add_currency_fields.sql`
+
+**API Endpoint Updates:**
+- **POST** `/api/v1/dive-sites/{id}/diving-centers` - Now accepts `currency` field
+- **GET** `/api/v1/dive-sites/{id}/diving-centers` - Now returns `currency` field
+- **POST** `/api/v1/diving-centers/{id}/gear-rental` - Now accepts `currency` field
+- **GET** `/api/v1/diving-centers/{id}/gear-rental` - Now returns `currency` field
+
+**Frontend Enhancements:**
+- **Currency Utility**: `frontend/src/utils/currency.js` with comprehensive currency functions
+- **EditDiveSite**: Added currency dropdown when adding diving centers
+- **EditDivingCenter**: Added currency selection for gear rental costs
+- **DiveSiteDetail**: Updated to display costs with proper currency symbols
+- **Currency Formatting**: Automatic formatting with symbols, flags, and codes
+
+**Currency Utility Functions:**
+- `formatCost()`: Formats costs with currency symbols
+- `getCurrencyOptions()`: Provides dropdown options with flags and names
+- `getCurrencyInfo()`: Retrieves currency information by code
+- `isValidCurrency()`: Validates currency codes
+- `getDefaultCurrency()`: Returns default currency info
+
+**Supported Currencies with Symbols:**
+- 🇺🇸 USD (US Dollar) - $
+- 🇪🇺 EUR (Euro) - € (default)
+- 🇯🇵 JPY (Japanese Yen) - ¥
+- 🇬🇧 GBP (British Pound) - £
+- 🇨🇳 CNY (Chinese Yuan) - ¥
+- 🇦🇺 AUD (Australian Dollar) - A$
+- 🇨🇦 CAD (Canadian Dollar) - C$
+- 🇨🇭 CHF (Swiss Franc) - CHF
+- 🇭🇰 HKD (Hong Kong Dollar) - HK$
+- 🇳🇿 NZD (New Zealand Dollar) - NZ$
+
+**Files Added:**
+- `frontend/src/utils/currency.js` - Comprehensive currency utility functions
+- `database/add_currency_fields.sql` - Database migration script
+
+**Files Modified:**
+- `backend/app/models.py` - Added currency fields to CenterDiveSite and GearRentalCost models
+- `backend/app/schemas.py` - Added currency fields with validation to schemas
+- `backend/app/routers/dive_sites.py` - Updated endpoints to handle currency
+- `backend/app/routers/diving_centers.py` - Updated gear rental endpoints
+- `frontend/src/pages/EditDiveSite.js` - Added currency selection for diving centers
+- `frontend/src/pages/EditDivingCenter.js` - Added currency selection for gear rental
+- `frontend/src/pages/DiveSiteDetail.js` - Updated cost display with currency formatting
+
+**Security Features:**
+- Currency code validation (3-letter ISO format)
+- Graceful handling of unsupported currencies
+- Input sanitization and validation
+- No breaking changes to existing functionality
+
+### ✅ Added: Google OAuth Authentication
+
 ### ✅ Added: Google OAuth Authentication
 
 **Feature:** Complete Google OAuth 2.0 integration for secure authentication.
@@ -205,6 +275,59 @@ docker-compose down && docker-compose up -d
 
 ## API Response Format Changes
 
+### Currency Support
+
+**New Fields in Responses:**
+- `currency` field added to diving center associations and gear rental costs
+- Default value is "EUR" for all existing records
+- Currency codes follow ISO 4217 standard (3-letter codes)
+
+**Diving Center Association Response:**
+```json
+{
+  "id": 1,
+  "name": "Diving Center Name",
+  "description": "Description",
+  "email": "info@divingcenter.com",
+  "phone": "+1234567890",
+  "website": "www.divingcenter.com",
+  "latitude": 12.3456,
+  "longitude": -78.9012,
+  "dive_cost": 150.00,
+  "currency": "EUR"
+}
+```
+
+**Gear Rental Cost Response:**
+```json
+{
+  "id": 1,
+  "diving_center_id": 1,
+  "item_name": "Full Set",
+  "cost": 50.00,
+  "currency": "USD",
+  "created_at": "2024-01-01T00:00:00Z"
+}
+```
+
+**Request Format for Adding Diving Centers:**
+```json
+{
+  "diving_center_id": 1,
+  "dive_cost": 150.00,
+  "currency": "EUR"
+}
+```
+
+**Request Format for Adding Gear Rental:**
+```json
+{
+  "item_name": "Full Set",
+  "cost": 50.00,
+  "currency": "USD"
+}
+```
+
 ### Google OAuth Authentication
 
 **New Endpoint:** `POST /api/v1/auth/google-login`
@@ -282,12 +405,17 @@ This change improves frontend performance by eliminating the need for `Number()`
 
 ### New Test Cases Added
 
-1. **Google OAuth Testing**: Verify Google token verification and user creation
-2. **Mass Delete Testing**: Test bulk operations with safety features
-3. **Tag Serialization Testing**: Verify tags are returned as dictionaries, not model objects
-4. **Difficulty Level Validation**: Test that 'expert' difficulty level is accepted
-5. **Response Validation**: Ensure all dive site endpoints return valid JSON
-6. **Admin Authentication**: Test admin login with updated password requirements
+1. **Currency System Testing**: Verify currency storage, retrieval, and formatting
+2. **Multi-Currency Support**: Test all 10 supported currencies (USD, EUR, JPY, GBP, CNY, AUD, CAD, CHF, HKD, NZD)
+3. **Currency Validation**: Test currency code validation and error handling
+4. **Default Currency**: Verify Euro (€) is properly set as default
+5. **Frontend Currency Display**: Test currency symbol and flag display
+6. **Google OAuth Testing**: Verify Google token verification and user creation
+7. **Mass Delete Testing**: Test bulk operations with safety features
+8. **Tag Serialization Testing**: Verify tags are returned as dictionaries, not model objects
+9. **Difficulty Level Validation**: Test that 'expert' difficulty level is accepted
+10. **Response Validation**: Ensure all dive site endpoints return valid JSON
+11. **Admin Authentication**: Test admin login with updated password requirements
 
 ### Updated Test Data
 
@@ -300,24 +428,33 @@ This change improves frontend performance by eliminating the need for `Number()`
 
 ### For Developers
 
-1. **Google OAuth Setup**: Follow `GOOGLE_OAUTH_SETUP.md` for complete configuration
-2. **Database Migration**: Run the Google ID migration script
-3. **Tag Handling**: When working with dive site tags, always expect dictionaries with fields: `id`, `name`, `description`, `created_by`, `created_at`
-4. **Difficulty Levels**: The API now supports four difficulty levels: 'beginner', 'intermediate', 'advanced', 'expert'
-5. **Admin Access**: Default admin credentials may have changed - check with system administrator
+1. **Currency System Setup**: Run the currency migration script: `database/add_currency_fields.sql`
+2. **Currency Validation**: All currency codes must be 3-letter ISO format (e.g., 'USD', 'EUR', 'JPY')
+3. **Default Currency**: Euro (€) is the default currency for all cost fields
+4. **Google OAuth Setup**: Follow `GOOGLE_OAUTH_SETUP.md` for complete configuration
+5. **Database Migration**: Run the Google ID migration script
+6. **Tag Handling**: When working with dive site tags, always expect dictionaries with fields: `id`, `name`, `description`, `created_by`, `created_at`
+7. **Difficulty Levels**: The API now supports four difficulty levels: 'beginner', 'intermediate', 'advanced', 'expert'
+8. **Admin Access**: Default admin credentials may have changed - check with system administrator
 
 ### For Frontend
 
-1. **Google OAuth**: Implement Google Sign-In buttons using Google Identity Services
-2. **Mass Delete**: Add checkbox selection and bulk delete functionality
-3. **Tag Display**: Tags are now properly serialized and can be displayed directly
-4. **Difficulty Filtering**: Frontend can now filter by 'expert' difficulty level
-5. **Error Handling**: 500 errors on dive sites endpoint should be resolved
-6. **Latitude/Longitude**: Now returned as numbers instead of strings - no need for `Number()` conversion
+1. **Currency System**: Import and use currency utility functions from `frontend/src/utils/currency.js`
+2. **Currency Display**: Use `formatCost()` function to display costs with proper currency symbols
+3. **Currency Selection**: Use `getCurrencyOptions()` for dropdown menus with flags and names
+4. **Default Currency**: Euro (€) is automatically selected for new cost entries
+5. **Google OAuth**: Implement Google Sign-In buttons using Google Identity Services
+6. **Mass Delete**: Add checkbox selection and bulk delete functionality
+7. **Tag Display**: Tags are now properly serialized and can be displayed directly
+8. **Difficulty Filtering**: Frontend can now filter by 'expert' difficulty level
+9. **Error Handling**: 500 errors on dive sites endpoint should be resolved
+10. **Latitude/Longitude**: Now returned as numbers instead of strings - no need for `Number()` conversion
 
 ## Performance Impact
 
 - **Positive**: Fixed 500 errors improve API reliability
+- **Currency System**: Minimal overhead with improved user experience
+- **Currency Indexes**: Database indexes improve query performance for currency fields
 - **Minimal**: Tag serialization adds small overhead but improves data consistency
 - **Google OAuth**: Adds secure authentication without performance impact
 - **Mass Delete**: Efficient bulk operations with proper error handling
@@ -325,6 +462,8 @@ This change improves frontend performance by eliminating the need for `Number()`
 
 ## Security Notes
 
+- **Currency Validation**: Currency codes are validated to prevent injection attacks
+- **Input Sanitization**: Currency inputs are properly sanitized and validated
 - **Google OAuth**: Secure token verification with Google's servers
 - **Rate Limiting**: OAuth endpoints have rate limiting protection
 - **Account Security**: Google users are enabled by default but can be managed
@@ -335,8 +474,11 @@ This change improves frontend performance by eliminating the need for `Number()`
 
 ## Future Considerations
 
-1. **Google OAuth Enhancements**: Consider additional OAuth providers (Facebook, GitHub, etc.)
-2. **Tag Categories**: If tag categories are needed in the future, add a `category` field to the AvailableTag model
-3. **Difficulty Levels**: Consider if additional difficulty levels are needed
-4. **Serialization**: Consider using Pydantic's `from_attributes = True` for automatic model serialization
-5. **Mass Operations**: Consider adding bulk update and bulk create functionality 
+1. **Currency Enhancements**: Consider adding currency conversion rates and real-time exchange rates
+2. **Additional Currencies**: Consider adding more currencies based on user demand
+3. **Currency Preferences**: Consider user-specific currency preferences and settings
+4. **Google OAuth Enhancements**: Consider additional OAuth providers (Facebook, GitHub, etc.)
+5. **Tag Categories**: If tag categories are needed in the future, add a `category` field to the AvailableTag model
+6. **Difficulty Levels**: Consider if additional difficulty levels are needed
+7. **Serialization**: Consider using Pydantic's `from_attributes = True` for automatic model serialization
+8. **Mass Operations**: Consider adding bulk update and bulk create functionality 

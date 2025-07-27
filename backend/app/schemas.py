@@ -316,12 +316,14 @@ class DiveSiteTagResponse(BaseModel):
 class CenterDiveSiteCreate(BaseModel):
     diving_center_id: int
     dive_cost: Optional[float] = Field(None, ge=0)
+    currency: str = Field("EUR", min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
 
 class CenterDiveSiteResponse(BaseModel):
     id: int
     dive_site_id: int
     diving_center_id: int
     dive_cost: Optional[float] = None
+    currency: str = "EUR"
     created_at: datetime
 
     class Config:
@@ -331,12 +333,14 @@ class CenterDiveSiteResponse(BaseModel):
 class GearRentalCostCreate(BaseModel):
     item_name: str = Field(..., min_length=1, max_length=100)
     cost: float = Field(..., ge=0)
+    currency: str = Field("EUR", min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
 
 class GearRentalCostResponse(BaseModel):
     id: int
     diving_center_id: int
     item_name: str
     cost: float
+    currency: str = "EUR"
     created_at: datetime
 
     class Config:

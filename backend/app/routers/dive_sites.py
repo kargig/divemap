@@ -317,12 +317,12 @@ async def get_dive_site_diving_centers(
             detail="Dive site not found"
         )
     
-    centers = db.query(DivingCenter, CenterDiveSite.dive_cost).join(
+    centers = db.query(DivingCenter, CenterDiveSite.dive_cost, CenterDiveSite.currency).join(
         CenterDiveSite, DivingCenter.id == CenterDiveSite.diving_center_id
     ).filter(CenterDiveSite.dive_site_id == dive_site_id).all()
     
     result = []
-    for center, dive_cost in centers:
+    for center, dive_cost, currency in centers:
         center_dict = {
             "id": center.id,
             "name": center.name,
@@ -332,7 +332,8 @@ async def get_dive_site_diving_centers(
             "website": center.website,
             "latitude": center.latitude,
             "longitude": center.longitude,
-            "dive_cost": dive_cost
+            "dive_cost": dive_cost,
+            "currency": currency
         }
         result.append(center_dict)
     
@@ -381,7 +382,8 @@ async def add_diving_center_to_dive_site(
     db_association = CenterDiveSite(
         dive_site_id=dive_site_id,
         diving_center_id=center_assignment.diving_center_id,
-        dive_cost=center_assignment.dive_cost
+        dive_cost=center_assignment.dive_cost,
+        currency=center_assignment.currency
     )
     db.add(db_association)
     db.commit()
@@ -392,6 +394,7 @@ async def add_diving_center_to_dive_site(
         "dive_site_id": dive_site_id,
         "diving_center_id": center_assignment.diving_center_id,
         "dive_cost": center_assignment.dive_cost,
+        "currency": center_assignment.currency,
         "created_at": db_association.created_at
     }
 

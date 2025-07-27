@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Save, Trash2, Upload, X, Tag, Building } from 'lucide-react';
+import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
 
 // Helper function to safely extract error message
 const getErrorMessage = (error) => {
@@ -53,6 +54,7 @@ const EditDiveSite = () => {
   const [selectedDivingCenters, setSelectedDivingCenters] = useState([]);
   const [newDivingCenterId, setNewDivingCenterId] = useState('');
   const [newDiveCost, setNewDiveCost] = useState('');
+  const [newDiveCurrency, setNewDiveCurrency] = useState(DEFAULT_CURRENCY);
   const [showDivingCenterForm, setShowDivingCenterForm] = useState(false);
 
   // Check if user has edit privileges
@@ -161,6 +163,8 @@ const EditDiveSite = () => {
         queryClient.invalidateQueries(['dive-site-diving-centers', id]);
         setNewDivingCenterId('');
         setNewDiveCost('');
+        setNewDiveCurrency(DEFAULT_CURRENCY);
+        setShowDivingCenterForm(false);
         toast.success('Diving center added successfully');
       },
       onError: (error) => {
@@ -363,6 +367,7 @@ const EditDiveSite = () => {
             <h1 className="text-3xl font-bold text-gray-900">Edit Dive Site</h1>
           </div>
 
+          {/* Main Dive Site Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -764,25 +769,56 @@ const EditDiveSite = () => {
               </div>
             </div>
 
-            {/* Diving Centers Management */}
-            <div className="border-t pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Diving Centers</h3>
-                <button
-                  type="button"
-                  onClick={() => setShowDivingCenterForm(!showDivingCenterForm)}
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  <Building className="w-4 h-4 mr-2" />
-                  Add Diving Center
-                </button>
-              </div>
+            {/* Submit Button */}
+            <div className="flex justify-end space-x-4 pt-6 border-t">
+              <button
+                type="button"
+                onClick={() => navigate(`/dive-sites/${id}`)}
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={updateMutation.isLoading}
+                className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {updateMutation.isLoading ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
 
-              {/* Add Diving Center Form */}
-              {showDivingCenterForm && (
-                <div className="bg-gray-50 p-4 rounded-md mb-4">
-                  <form onSubmit={(e) => { e.preventDefault(); addDivingCenterMutation.mutate({ diving_center_id: newDivingCenterId, dive_cost: newDiveCost }); }} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Diving Centers Management - Outside Main Form */}
+          <div className="border-t pt-6 mt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Diving Centers</h3>
+              <button
+                type="button"
+                onClick={() => setShowDivingCenterForm(!showDivingCenterForm)}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                <Building className="w-4 h-4 mr-2" />
+                Add Diving Center
+              </button>
+            </div>
+
+            {/* Add Diving Center Form */}
+            {showDivingCenterForm && (
+              <div className="bg-gray-50 p-4 rounded-md mb-4">
+                <form onSubmit={(e) => { 
+                  e.preventDefault(); 
+                  if (!newDivingCenterId) {
+                    toast.error('Please select a diving center');
+                    return;
+                  }
+                  addDivingCenterMutation.mutate({ 
+                    diving_center_id: parseInt(newDivingCenterId), 
+                    dive_cost: newDiveCost ? parseFloat(newDiveCost) : null,
+                    currency: newDiveCurrency
+                  }); 
+                }} className="space-y-4">
+                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Diving Center *
@@ -812,73 +848,69 @@ const EditDiveSite = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Currency
+                        </label>
+                        <select
+                          value={newDiveCurrency}
+                          onChange={(e) => setNewDiveCurrency(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          {getCurrencyOptions().map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <button
-                        type="submit"
-                        disabled={addDivingCenterMutation.isLoading}
-                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-                      >
-                        {addDivingCenterMutation.isLoading ? 'Adding...' : 'Add Diving Center'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowDivingCenterForm(false)}
-                        className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {/* Associated Diving Centers */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <h4 className="text-md font-semibold text-gray-800">Associated Diving Centers</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {Array.isArray(associatedDivingCenters) && associatedDivingCenters.map((center) => (
-                    <span
-                      key={center.id}
-                      className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium flex items-center justify-between"
+                  <div className="flex space-x-2">
+                    <button
+                      type="submit"
+                      disabled={addDivingCenterMutation.isLoading}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
                     >
-                      {center.name}
-                      {center.dive_cost && ` ($${center.dive_cost})`}
-                      <button
-                        onClick={() => removeDivingCenterMutation.mutate(center.id)}
-                        className="ml-2 text-purple-600 hover:text-purple-800"
-                        title="Remove diving center"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                  {(!Array.isArray(associatedDivingCenters) || associatedDivingCenters.length === 0) && (
-                    <p className="text-gray-500 text-sm">No diving centers associated</p>
-                  )}
-                </div>
+                      {addDivingCenterMutation.isLoading ? 'Adding...' : 'Add Diving Center'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowDivingCenterForm(false)}
+                      className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Associated Diving Centers */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <h4 className="text-md font-semibold text-gray-800">Associated Diving Centers</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {Array.isArray(associatedDivingCenters) && associatedDivingCenters.map((center) => (
+                  <span
+                    key={center.id}
+                    className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium flex items-center justify-between"
+                  >
+                    {center.name}
+                    {center.dive_cost && ` (${formatCost(center.dive_cost, center.currency || DEFAULT_CURRENCY)})`}
+                    <button
+                      onClick={() => removeDivingCenterMutation.mutate(center.id)}
+                      className="ml-2 text-purple-600 hover:text-purple-800"
+                      title="Remove diving center"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+                {(!Array.isArray(associatedDivingCenters) || associatedDivingCenters.length === 0) && (
+                  <p className="text-gray-500 text-sm">No diving centers associated</p>
+                )}
               </div>
             </div>
-
-            {/* Submit Button */}
-            <div className="flex justify-end space-x-4 pt-6 border-t">
-              <button
-                type="button"
-                onClick={() => navigate(`/dive-sites/${id}`)}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={updateMutation.isLoading}
-                className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {updateMutation.isLoading ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>
