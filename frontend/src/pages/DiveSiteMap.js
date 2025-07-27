@@ -8,11 +8,12 @@ import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import ClusterSource from 'ol/source/Cluster';
 import OSM from 'ol/source/OSM';
 import { fromLonLat } from 'ol/proj';
 import { Point } from 'ol/geom';
 import { Feature } from 'ol';
-import { Style, Circle as CircleStyle, Fill, Stroke } from 'ol/style';
+import { Style, Icon, Text, Fill, Stroke, Circle } from 'ol/style';
 import api from '../api';
 
 const DiveSiteMap = () => {
@@ -23,6 +24,7 @@ const DiveSiteMap = () => {
   const [selectedSite, setSelectedSite] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(13);
   const [popupPosition, setPopupPosition] = useState({ top: 20, left: 16 });
+  const [useClustering, setUseClustering] = useState(false);
 
   // Fetch current dive site
   const { data: diveSite, isLoading: isLoadingDiveSite } = useQuery(
@@ -41,6 +43,78 @@ const DiveSiteMap = () => {
       enabled: !!id,
     }
   );
+
+  // Create custom dive site icon
+  const createDiveSiteIcon = (isMain = false) => {
+    const size = isMain ? 32 : 24;
+    
+    // Create SVG scuba flag (diver down flag) - red rectangle with white diagonal stripe
+    const svg = `
+      <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Red rectangle background -->
+        <rect x="2" y="2" width="20" height="20" fill="#dc2626" stroke="white" stroke-width="1"/>
+        <!-- White diagonal stripe from top-left to bottom-right -->
+        <path d="M2 2 L22 22" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        <!-- Optional: Add small white dots for bubbles -->
+        <circle cx="6" cy="6" r="1" fill="white"/>
+        <circle cx="18" cy="18" r="1" fill="white"/>
+      </svg>
+    `;
+    
+    const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    
+    return new Icon({
+      src: dataUrl,
+      scale: 1,
+      anchor: [0.5, 0.5],
+      anchorXUnits: 'fraction',
+      anchorYUnits: 'fraction'
+    });
+  };
+
+  // Create cluster style function
+  const createClusterStyle = (feature) => {
+    const features = feature.get('features');
+    const size = features.length;
+    
+    if (size === 1) {
+      // Single feature - show individual dive site icon
+      const site = features[0].get('site');
+      const isMain = features[0].get('isMain');
+      return new Style({
+        image: createDiveSiteIcon(isMain)
+      });
+    } else {
+      // Multiple features - show cluster circle
+      return new Style({
+        image: new Circle({
+          radius: Math.min(size * 3 + 10, 25),
+          fill: new Fill({
+            color: '#dc2626'
+          }),
+          stroke: new Stroke({
+            color: 'white',
+            width: 2
+          })
+        }),
+        text: new Text({
+          text: size.toString(),
+          fill: new Fill({
+            color: 'white'
+          }),
+          font: 'bold 14px Arial'
+        })
+      });
+    }
+  };
+
+  // Create non-clustered style function
+  const createNonClusteredStyle = (feature) => {
+    const isMain = feature.get('isMain');
+    return new Style({
+      image: createDiveSiteIcon(isMain)
+    });
+  };
 
   // Calculate optimal popup position based on click coordinates
   const calculatePopupPosition = (clickX, clickY, mapWidth, mapHeight) => {
@@ -117,7 +191,12 @@ const DiveSiteMap = () => {
       
       // Listen for zoom changes
       map.getView().on('change:resolution', () => {
-        setCurrentZoom(map.getView().getZoom());
+        const newZoom = map.getView().getZoom();
+        console.log(`Zoom changed to: ${newZoom}`);
+        setCurrentZoom(newZoom);
+        const newClusteringState = newZoom <= 11;
+        console.log(`Setting clustering to: ${newClusteringState}`);
+        setUseClustering(newClusteringState);
       });
 
       // Create features for all sites
@@ -143,27 +222,24 @@ const DiveSiteMap = () => {
         });
       }
 
-      const vectorSource = new VectorSource({
-        features: features
+      // Create source based on zoom level
+      const currentZoom = map.getView().getZoom();
+      const shouldUseClustering = currentZoom <= 11;
+      const clusterDistance = shouldUseClustering ? 50 : 0; // 0 = no clustering
+      console.log(`Initial zoom: ${currentZoom}, shouldUseClustering: ${shouldUseClustering}, distance: ${clusterDistance}`);
+      setUseClustering(shouldUseClustering);
+
+      // Always use ClusterSource with dynamic distance
+      const source = new ClusterSource({
+        distance: clusterDistance,
+        source: new VectorSource({
+          features: features
+        })
       });
 
       const vectorLayer = new VectorLayer({
-        source: vectorSource,
-        style: (feature) => {
-          const isMain = feature.get('isMain');
-          return new Style({
-            image: new CircleStyle({
-              radius: isMain ? 12 : 8,
-              fill: new Fill({
-                color: isMain ? '#f59371' : '#2563ea'
-              }),
-              stroke: new Stroke({
-                color: 'white',
-                width: 2
-              })
-            })
-          });
-        }
+        source: source,
+        style: createClusterStyle // Always use cluster style, it handles single features
       });
 
       map.addLayer(vectorLayer);
@@ -175,8 +251,50 @@ const DiveSiteMap = () => {
         });
 
         if (feature) {
-          const site = feature.get('site');
-          setSelectedSite(site);
+          console.log('Feature clicked:', feature);
+          console.log('Current useClustering:', useClustering);
+          
+          // Always handle as cluster feature since we always use ClusterSource
+          const features = feature.get('features');
+          console.log('Features in cluster:', features?.length);
+          
+          if (features && features.length === 1) {
+            // Single dive site
+            const site = features[0].get('site');
+            console.log('Single site clicked:', site?.name);
+            setSelectedSite(site);
+          } else if (features && features.length > 1) {
+            // Cluster - zoom in to show individual sites
+            console.log('Cluster clicked, zooming in');
+            try {
+              const extent = source.getClusterExtent(feature);
+              // Check if extent is valid (not empty)
+              if (extent && extent.getWidth && extent.getWidth() > 0 && extent.getHeight && extent.getHeight() > 0) {
+                map.getView().fit(extent, {
+                  duration: 500,
+                  padding: [50, 50, 50, 50]
+                });
+              } else {
+                // Fallback: zoom in by one level
+                const view = map.getView();
+                const currentZoom = view.getZoom();
+                view.animate({
+                  zoom: currentZoom + 1,
+                  duration: 500
+                });
+              }
+            } catch (error) {
+              console.warn('Error fitting cluster extent:', error);
+              // Fallback: zoom in by one level
+              const view = map.getView();
+              const currentZoom = view.getZoom();
+              view.animate({
+                zoom: currentZoom + 1,
+                duration: 500
+              });
+            }
+            return; // Don't show popup for clusters
+          }
           
           // Calculate optimal popup position
           const mapElement = mapRef.current;
@@ -208,6 +326,35 @@ const DiveSiteMap = () => {
       }
     };
   }, [diveSite, nearbyDiveSites]);
+
+  // Update clustering distance when zoom changes
+  useEffect(() => {
+    if (!mapInstance.current || !diveSite) return;
+
+    // Get current vector layer
+    const layers = mapInstance.current.getLayers();
+    const existingVectorLayer = layers.getArray().find(layer => layer instanceof VectorLayer);
+    if (!existingVectorLayer) return;
+
+    const currentSource = existingVectorLayer.getSource();
+    if (!(currentSource instanceof ClusterSource)) return;
+
+    // Get current zoom and determine new distance
+    const currentZoom = mapInstance.current.getView().getZoom();
+    const shouldUseClustering = currentZoom <= 11;
+    const newDistance = shouldUseClustering ? 50 : 0;
+    
+    console.log(`Updating cluster distance: ${currentSource.getDistance()} -> ${newDistance} (zoom: ${currentZoom})`);
+    
+    if (currentSource.getDistance() !== newDistance) {
+      // Update the cluster distance
+      currentSource.setDistance(newDistance);
+      setUseClustering(shouldUseClustering);
+      
+      // Force a refresh of the source
+      currentSource.refresh();
+    }
+  }, [currentZoom, diveSite, nearbyDiveSites]);
 
   if (isLoadingDiveSite || isLoadingNearby || !diveSite) {
     return (

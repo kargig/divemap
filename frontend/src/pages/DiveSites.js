@@ -1,25 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Map, Star, Search, Filter, List, Globe, Tag } from 'lucide-react';
 import DiveSitesMap from '../components/DiveSitesMap';
 import api from '../api';
 
 const DiveSites = () => {
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
+  // Get initial values from URL parameters
+  const getInitialViewMode = () => {
+    const viewMode = searchParams.get('view');
+    return viewMode === 'map' ? 'map' : 'list';
+  };
+
+  const getInitialFilters = () => {
+    return {
+      name: searchParams.get('name') || '',
+      difficulty_level: searchParams.get('difficulty_level') || '',
+      min_rating: searchParams.get('min_rating') || '',
+      max_rating: searchParams.get('max_rating') || '',
+      tag_ids: searchParams.getAll('tag_ids').map(id => parseInt(id)).filter(id => !isNaN(id)),
+    };
+  };
+
+  const [viewMode, setViewMode] = useState(getInitialViewMode);
   const [viewport, setViewport] = useState({
     longitude: 0,
     latitude: 0,
     zoom: 2
   });
   
-  const [searchParams, setSearchParams] = useState({
-    name: '',
-    difficulty_level: '',
-    min_rating: '',
-    max_rating: '',
-    tag_ids: [],
-  });
+  const [filters, setFilters] = useState(getInitialFilters);
+
+  // Update URL when view mode or filters change
+  useEffect(() => {
+    const newSearchParams = new URLSearchParams();
+    
+    // Add view mode
+    if (viewMode === 'map') {
+      newSearchParams.set('view', 'map');
+    }
+    
+    // Add filters
+    if (filters.name) newSearchParams.set('name', filters.name);
+    if (filters.difficulty_level) newSearchParams.set('difficulty_level', filters.difficulty_level);
+    if (filters.min_rating) newSearchParams.set('min_rating', filters.min_rating);
+    if (filters.max_rating) newSearchParams.set('max_rating', filters.max_rating);
+    
+    // Add tag IDs
+    filters.tag_ids.forEach(tagId => {
+      newSearchParams.append('tag_ids', tagId.toString());
+    });
+    
+    // Update URL without triggering a page reload
+    navigate(`?${newSearchParams.toString()}`, { replace: true });
+  }, [viewMode, filters, navigate]);
 
   // Fetch available tags for filtering
   const { data: availableTags } = useQuery(
@@ -31,20 +68,20 @@ const DiveSites = () => {
   );
 
   const { data: diveSites, isLoading, error } = useQuery(
-    ['dive-sites', searchParams],
+    ['dive-sites', filters],
     () => {
       // Create URLSearchParams to properly handle array parameters
       const params = new URLSearchParams();
       
       // Add non-array parameters
-      if (searchParams.name) params.append('name', searchParams.name);
-      if (searchParams.difficulty_level) params.append('difficulty_level', searchParams.difficulty_level);
-      if (searchParams.min_rating) params.append('min_rating', searchParams.min_rating);
-      if (searchParams.max_rating) params.append('max_rating', searchParams.max_rating);
+      if (filters.name) params.append('name', filters.name);
+      if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
+      if (filters.min_rating) params.append('min_rating', filters.min_rating);
+      if (filters.max_rating) params.append('max_rating', filters.max_rating);
       
       // Add array parameters (tag_ids)
-      if (searchParams.tag_ids && searchParams.tag_ids.length > 0) {
-        searchParams.tag_ids.forEach(tagId => {
+      if (filters.tag_ids && filters.tag_ids.length > 0) {
+        filters.tag_ids.forEach(tagId => {
           params.append('tag_ids', tagId.toString());
         });
       }
@@ -59,20 +96,33 @@ const DiveSites = () => {
 
   const handleSearchChange = (e) => {
     const { name, value } = e.target;
-    setSearchParams(prev => ({
+    setFilters(prev => ({
       ...prev,
       [name]: value,
     }));
   };
 
   const clearFilters = () => {
-    setSearchParams({
+    setFilters({
       name: '',
       difficulty_level: '',
       min_rating: '',
       max_rating: '',
       tag_ids: [],
     });
+  };
+
+  const handleViewModeChange = (newViewMode) => {
+    setViewMode(newViewMode);
+  };
+
+  const handleTagToggle = (tagId) => {
+    setFilters(prev => ({
+      ...prev,
+      tag_ids: prev.tag_ids.includes(tagId)
+        ? prev.tag_ids.filter(id => id !== tagId)
+        : [...prev.tag_ids, tagId]
+    }));
   };
 
   if (isLoading) {
@@ -92,7 +142,7 @@ const DiveSites = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">Dive Sites</h1>
         <p className="text-gray-600">Discover amazing dive sites around the world</p>
@@ -111,7 +161,7 @@ const DiveSites = () => {
                 type="text"
                 name="name"
                 placeholder="Search by name..."
-                value={searchParams.name}
+                value={filters.name}
                 onChange={handleSearchChange}
                 className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
@@ -124,7 +174,7 @@ const DiveSites = () => {
             </label>
             <select
               name="difficulty_level"
-              value={searchParams.difficulty_level}
+              value={filters.difficulty_level}
               onChange={handleSearchChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
@@ -146,7 +196,7 @@ const DiveSites = () => {
               min="1"
               max="10"
               placeholder="Min rating"
-              value={searchParams.min_rating}
+              value={filters.min_rating}
               onChange={handleSearchChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
@@ -162,7 +212,7 @@ const DiveSites = () => {
               min="1"
               max="10"
               placeholder="Max rating"
-              value={searchParams.max_rating}
+              value={filters.max_rating}
               onChange={handleSearchChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
@@ -186,7 +236,7 @@ const DiveSites = () => {
           <div className="flex flex-wrap gap-3">
             {availableTags && availableTags.length > 0 ? (
               availableTags.map((tag, index) => {
-                const isSelected = searchParams.tag_ids.includes(tag.id);
+                const isSelected = filters.tag_ids.includes(tag.id);
                 const sizes = ['text-sm', 'text-base', 'text-lg', 'text-xl'];
                 const colors = [
                   'bg-blue-100 text-blue-800 hover:bg-blue-200',
@@ -202,14 +252,7 @@ const DiveSites = () => {
                 return (
                   <button
                     key={tag.id}
-                    onClick={() => {
-                      setSearchParams(prev => ({
-                        ...prev,
-                        tag_ids: prev.tag_ids.includes(tag.id)
-                          ? prev.tag_ids.filter(id => id !== tag.id)
-                          : [...prev.tag_ids, tag.id]
-                      }));
-                    }}
+                    onClick={() => handleTagToggle(tag.id)}
                     className={`px-4 py-2 rounded-full font-medium transition-all duration-200 transform hover:scale-105 ${
                       isSelected
                         ? 'bg-blue-600 text-white shadow-lg scale-110'
@@ -224,10 +267,10 @@ const DiveSites = () => {
               <p className="text-gray-500 text-sm">Loading tags...</p>
             )}
           </div>
-          {searchParams.tag_ids.length > 0 && (
+          {filters.tag_ids.length > 0 && (
             <div className="mt-3 text-sm text-gray-600">
-              <span className="font-medium">Selected:</span> {searchParams.tag_ids.length} tag{searchParams.tag_ids.length !== 1 ? 's' : ''} 
-              {searchParams.tag_ids.length > 1 && (
+              <span className="font-medium">Selected:</span> {filters.tag_ids.length} tag{filters.tag_ids.length !== 1 ? 's' : ''} 
+              {filters.tag_ids.length > 1 && (
                 <span className="text-gray-500"> (showing sites with ALL selected tags)</span>
               )}
             </div>
@@ -238,7 +281,7 @@ const DiveSites = () => {
         <div className="mt-4 flex justify-center">
           <div className="bg-gray-100 rounded-lg p-1">
             <button
-              onClick={() => setViewMode('list')}
+              onClick={() => handleViewModeChange('list')}
               className={`px-4 py-2 rounded-md transition-colors ${
                 viewMode === 'list'
                   ? 'bg-white text-blue-600 shadow-sm'
@@ -249,7 +292,7 @@ const DiveSites = () => {
               List View
             </button>
             <button
-              onClick={() => setViewMode('map')}
+              onClick={() => handleViewModeChange('map')}
               className={`px-4 py-2 rounded-md transition-colors ${
                 viewMode === 'map'
                   ? 'bg-white text-blue-600 shadow-sm'
