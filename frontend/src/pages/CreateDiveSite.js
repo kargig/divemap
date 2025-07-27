@@ -91,7 +91,7 @@ const CreateDiveSite = () => {
     try {
       console.log('Making geocoding request for:', formData.latitude, formData.longitude);
       
-      const response = await api.get('/api/v1/dive-sites/reverse-geocode', {
+      const response = await api.get('/api/v1/dive-sites/reverse-geocode/', {
         params: {
           latitude: parseFloat(formData.latitude),
           longitude: parseFloat(formData.longitude)

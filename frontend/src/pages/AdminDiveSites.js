@@ -16,7 +16,7 @@ const AdminDiveSites = () => {
   // Fetch dive sites data
   const { data: diveSites, isLoading } = useQuery(
     ['admin-dive-sites'],
-    () => api.get('/api/v1/dive-sites'),
+    () => api.get('/api/v1/dive-sites/'),
     {
       select: (response) => response.data,
     }

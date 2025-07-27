@@ -38,7 +38,7 @@ const DiveSiteMap = () => {
   // Fetch nearby dive sites
   const { data: nearbyDiveSites, isLoading: isLoadingNearby } = useQuery(
     ['dive-site-nearby', id],
-    () => api.get(`/api/v1/dive-sites/${id}/nearby`).then(res => res.data),
+    () => api.get(`/api/v1/dive-sites/${id}/nearby/`).then(res => res.data),
     {
       enabled: !!id,
     }

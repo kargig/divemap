@@ -67,7 +67,7 @@ const EditDivingCenter = () => {
   // Fetch gear rental costs
   const { data: gearRentalData = [], isLoading: gearLoading, error: gearError } = useQuery(
     ['diving-center-gear', id],
-    () => api.get(`/api/v1/diving-centers/${id}/gear-rental`).then(res => {
+    () => api.get(`/api/v1/diving-centers/${id}/gear-rental/`).then(res => {
       console.log('Gear rental API response:', res);
       return res.data || [];
     }),

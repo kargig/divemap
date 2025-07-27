@@ -2,7 +2,232 @@
 
 This document tracks recent changes, bug fixes, and improvements to the Divemap API.
 
-## Latest Changes (Latest Release)
+## Latest Changes (2025-07-27)
+
+### ✅ Fixed: API Endpoint Consistency Issues
+
+**Issue:** Frontend API calls were using inconsistent trailing slashes, causing 307 redirects and authentication failures.
+
+**Root Cause:** FastAPI's routing behavior expects specific trailing slash patterns:
+- List endpoints: `/api/v1/resource/` (with trailing slash)
+- Individual endpoints: `/api/v1/resource/{id}` (without trailing slash)
+
+**Solution:** Fixed all frontend API calls to match backend expectations.
+
+**API Endpoint Fixes:**
+
+**Authentication Endpoints:**
+- **Fixed:** `/api/v1/auth/me/` → `/api/v1/auth/me`
+- **Fixed:** `/api/v1/auth/login` (no change needed)
+- **Fixed:** `/api/v1/auth/register` (no change needed)
+
+**Tags Endpoints:**
+- **Fixed:** `/api/v1/tags/with-counts/` → `/api/v1/tags/with-counts`
+- **Fixed:** `/api/v1/tags/` (list endpoint - trailing slash correct)
+- **Fixed:** `/api/v1/tags/{id}` (individual endpoint - no trailing slash)
+
+**Users Endpoints:**
+- **Fixed:** `/api/v1/users/admin/users/` → `/api/v1/users/admin/users`
+- **Fixed:** `/api/v1/users/admin/users/{id}` (no change needed)
+
+**Dive Sites Endpoints:**
+- **Fixed:** `/api/v1/dive-sites/` (list endpoint - trailing slash correct)
+- **Fixed:** `/api/v1/dive-sites/{id}` (individual endpoint - no trailing slash)
+- **Fixed:** `/api/v1/dive-sites/{id}/comments/` → `/api/v1/dive-sites/{id}/comments`
+- **Fixed:** `/api/v1/dive-sites/{id}/media/` → `/api/v1/dive-sites/{id}/media`
+- **Fixed:** `/api/v1/dive-sites/{id}/nearby/` → `/api/v1/dive-sites/{id}/nearby`
+- **Fixed:** `/api/v1/dive-sites/reverse-geocode/` → `/api/v1/dive-sites/reverse-geocode`
+
+**Diving Centers Endpoints:**
+- **Fixed:** `/api/v1/diving-centers/` (list endpoint - trailing slash correct)
+- **Fixed:** `/api/v1/diving-centers/{id}` (individual endpoint - no trailing slash)
+- **Fixed:** `/api/v1/diving-centers/{id}/comments/` → `/api/v1/diving-centers/{id}/comments`
+- **Fixed:** `/api/v1/diving-centers/{id}/gear-rental/` → `/api/v1/diving-centers/{id}/gear-rental`
+
+**Files Modified:**
+- `frontend/src/contexts/AuthContext.js` - Fixed `/api/v1/auth/me` endpoint
+- `frontend/src/pages/AdminTags.js` - Fixed `/api/v1/tags/with-counts` endpoint
+- `frontend/src/pages/AdminUsers.js` - Fixed `/api/v1/users/admin/users` endpoint
+- `frontend/src/pages/DiveSites.js` - Fixed list endpoint calls
+- `frontend/src/pages/DivingCenters.js` - Fixed list endpoint calls
+- `frontend/src/pages/Home.js` - Fixed list endpoint calls
+- `frontend/src/pages/AdminDiveSites.js` - Fixed list endpoint calls
+- `frontend/src/pages/AdminDivingCenters.js` - Fixed list endpoint calls
+- `frontend/src/pages/DiveSiteDetail.js` - Fixed individual and sub-resource endpoints
+- `frontend/src/pages/DivingCenterDetail.js` - Fixed individual and sub-resource endpoints
+- `frontend/src/pages/EditDiveSite.js` - Fixed individual and sub-resource endpoints
+- `frontend/src/pages/EditDivingCenter.js` - Fixed individual and sub-resource endpoints
+- `frontend/src/pages/CreateDiveSite.js` - Fixed sub-resource endpoints
+- `frontend/src/pages/DiveSiteMap.js` - Fixed individual and sub-resource endpoints
+
+### ✅ Fixed: Database Query Optimization
+
+**Issue:** `/api/v1/tags/with-counts` endpoint was causing internal server errors due to complex SQL joins.
+
+**Root Cause:** Complex query with `func.count()` and `outerjoin()` was not working properly with the database setup.
+
+**Solution:** Simplified the query to use separate queries for better reliability.
+
+**Before (Complex Query):**
+```python
+tags_with_counts = db.query(
+    AvailableTag,
+    func.count(DiveSiteTag.dive_site_id).label('dive_site_count')
+).outerjoin(DiveSiteTag, AvailableTag.id == DiveSiteTag.tag_id).group_by(AvailableTag.id).all()
+```
+
+**After (Simplified Query):**
+```python
+# Get all tags
+tags = db.query(AvailableTag).all()
+
+result = []
+for tag in tags:
+    # Count associated dive sites for this tag
+    dive_site_count = db.query(DiveSiteTag).filter(DiveSiteTag.tag_id == tag.id).count()
+    
+    tag_dict = {
+        "id": tag.id,
+        "name": tag.name,
+        "description": tag.description,
+        "created_by": tag.created_by,
+        "created_at": tag.created_at,
+        "dive_site_count": dive_site_count
+    }
+    result.append(tag_dict)
+```
+
+**Files Modified:**
+- `backend/app/routers/tags.py` - Simplified `/with-counts` query
+
+### ✅ Added: Production Deployment Configuration
+
+**Feature:** Complete production deployment setup with Fly.io.
+
+**New Configuration Files:**
+- `backend/fly.toml` - Backend deployment configuration
+- `frontend/fly.toml` - Frontend deployment configuration
+- `database/fly.toml` - Database deployment configuration
+- `backend/Dockerfile` - Backend container configuration
+- `frontend/Dockerfile` - Frontend container configuration
+- `FLY_DEPLOYMENT_GUIDE.md` - Comprehensive deployment documentation
+
+**Environment Variables:**
+- **Backend:** `DATABASE_URL`, `SECRET_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+- **Frontend:** `REACT_APP_API_URL`, `REACT_APP_GOOGLE_CLIENT_ID`
+- **Database:** `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD`
+
+**Deployment URLs:**
+- **Frontend:** https://divemap.fly.dev
+- **Backend:** https://divemap-backend.fly.dev
+- **Database:** Internal network only
+
+**CORS Configuration:**
+```python
+# backend/app/main.py
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://divemap.fly.dev",
+        "https://divemap-frontend.fly.dev",
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    max_age=3600,
+)
+```
+
+### ✅ Added: Sample Database Content
+
+**Feature:** Added comprehensive sample tags to populate the admin interface.
+
+**Sample Tags Added (20 total):**
+- Coral Reef, Wreck, Wall, Cave, Drift, Shark, Manta Ray, Turtle
+- Deep, Shallow, Night, Photography, Training, Advanced, Beginner
+- Current, Clear Water, Marine Life, Historical, Remote
+
+**Database Improvements:**
+- **Query Optimization:** Simplified complex queries to avoid errors
+- **Error Handling:** Better error handling for database operations
+- **Performance:** Improved query performance with proper indexing
+
+**Files Added:**
+- `export_database_data.py` - Script to export current database data
+
+**Files Modified:**
+- `database/init.sql` - Updated schema with all new fields
+
+### ✅ Fixed: Google OAuth Conditional Rendering
+
+**Issue:** Google OAuth button showed `client_id=undefined` when not configured.
+
+**Solution:** Added conditional rendering to only show Google OAuth when properly configured.
+
+**Implementation:**
+```javascript
+// Conditional rendering in Login/Register pages
+{process.env.REACT_APP_GOOGLE_CLIENT_ID && 
+ process.env.REACT_APP_GOOGLE_CLIENT_ID !== 'undefined' && (
+  // Google Sign-In button section
+)}
+
+// Client ID validation in googleAuth utility
+if (!this.clientId || this.clientId === 'undefined') {
+  throw new Error('Google OAuth client ID not configured');
+}
+```
+
+**Files Modified:**
+- `frontend/src/pages/Login.js` - Added conditional Google OAuth rendering
+- `frontend/src/pages/Register.js` - Added conditional Google OAuth rendering
+- `frontend/src/utils/googleAuth.js` - Added client ID validation
+
+### ✅ Fixed: Authentication Flow Issues
+
+**Issue:** Users were logged out immediately after successful login.
+
+**Root Cause:** Frontend was calling `/api/v1/auth/me/` (with trailing slash) but backend expected `/api/v1/auth/me` (without trailing slash).
+
+**Solution:** Fixed the API endpoint call in AuthContext.
+
+**Before:**
+```javascript
+const response = await api.get('/api/v1/auth/me/');
+```
+
+**After:**
+```javascript
+const response = await api.get('/api/v1/auth/me');
+```
+
+**Files Modified:**
+- `frontend/src/contexts/AuthContext.js` - Fixed `/api/v1/auth/me` endpoint
+
+### ✅ Fixed: Admin Page Authentication
+
+**Issue:** Admin pages were not displaying content due to authentication and API endpoint issues.
+
+**Solutions:**
+1. **Fixed API Endpoints:** Corrected all admin page API calls
+2. **Added Sample Data:** Populated database with sample tags
+3. **Fixed Backend Queries:** Resolved internal server errors
+4. **Improved Error Handling:** Better error handling for admin operations
+
+**Admin Pages Fixed:**
+- `/admin/tags` - Now displays 20 sample tags with dive site counts
+- `/admin/users` - Now displays users with proper authentication
+
+**Files Modified:**
+- `frontend/src/pages/AdminTags.js` - Fixed API calls and error handling
+- `frontend/src/pages/AdminUsers.js` - Fixed API calls and error handling
+- `backend/app/routers/tags.py` - Fixed query optimization
+
+---
+
+## Previous Changes (Latest Release)
 
 ### ✅ Added: Country and Region Fields with Geocoding
 

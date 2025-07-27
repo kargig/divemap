@@ -2,6 +2,27 @@
 
 A comprehensive web application for scuba diving enthusiasts to discover, rate, and review dive sites and diving centers.
 
+## 🚀 Live Application
+
+**Production Deployment:** The application is now live and accessible at:
+- **Frontend:** https://divemap.fly.dev
+- **Backend API:** https://divemap-backend.fly.dev
+
+**Demo Credentials:**
+- **Admin:** `admin`
+- **Test User:** `testuser`
+
+**Features Available:**
+- ✅ User registration and authentication
+- ✅ Dive site browsing and management
+- ✅ Diving center browsing and management
+- ✅ Admin interface for content management
+- ✅ Interactive maps and geolocation
+- ✅ Search and filtering capabilities
+- ✅ Rating and review system
+- ✅ Multi-currency support
+- ✅ Tag management system
+
 ## Features
 
 - **User Management**: Registration, login, and profile management with Google OAuth support

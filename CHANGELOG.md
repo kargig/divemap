@@ -2,411 +2,256 @@
 
 This document tracks all recent changes, improvements, and bug fixes to the Divemap application.
 
-## [Latest Release] - 2024-01-XX
+## [Latest Release] - 2025-07-27
 
 ### 🚀 Major Features
 
-#### **Country and Region Fields for Dive Sites**
-- **New Location Fields**: Added `country` and `region` fields to dive sites for better geographic organization
-- **Automatic Geocoding**: Reverse geocoding API suggests country and region based on coordinates
-- **Enhanced Filtering**: Country and region filters added to dive sites list
-- **Fallback System**: Robust fallback mechanism when geocoding service is unavailable
-- **Database Migration**: Proper migration with indexes for performance
+#### **Fly.io Production Deployment**
+- **Complete Production Setup**: Successfully deployed the entire application stack to Fly.io
+- **Multi-Service Architecture**: Deployed backend, frontend, and database as separate services
+- **Internal Networking**: Configured secure communication between services using Fly.io's internal network
+- **Persistent Storage**: Set up persistent volumes for database and file uploads
+- **Environment Management**: Proper secret management using `fly secrets` instead of hardcoded values
 
-**New Fields:**
-- **`country`**: Country name (optional, max 100 characters)
-- **`region`**: Region/state/province name (optional, max 100 characters)
+**Deployment Components:**
+- **Database**: MySQL database with persistent volume (`divemap-db`)
+- **Backend**: FastAPI application with automatic migrations (`divemap-backend`)
+- **Frontend**: React application with optimized build (`divemap`)
 
-**Geocoding Features:**
-- **OpenStreetMap Integration**: Uses Nominatim API for reverse geocoding
-- **Automatic Suggestions**: "Suggest Country & Region from Coordinates" button in edit forms
-- **Error Handling**: Comprehensive error handling with fallback location detection
-- **Rate Limiting**: 50 requests per minute to respect API limits
+**Configuration Files Added:**
+- `backend/fly.toml` - Backend deployment configuration
+- `frontend/fly.toml` - Frontend deployment configuration  
+- `database/fly.toml` - Database deployment configuration
+- `backend/Dockerfile` - Backend container configuration
+- `frontend/Dockerfile` - Frontend container configuration
+- `FLY_DEPLOYMENT_GUIDE.md` - Comprehensive deployment documentation
 
-**Frontend Enhancements:**
-- **Filter UI**: Country and region filters in dive sites list
-- **Edit Forms**: Country and region input fields with suggestion button
-- **Create Forms**: Same functionality for new dive site creation
-- **Responsive Design**: Filters work on all screen sizes
+**Environment Variables:**
+- **Backend**: `DATABASE_URL`, `SECRET_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+- **Frontend**: `REACT_APP_API_URL`, `REACT_APP_GOOGLE_CLIENT_ID`
+- **Database**: `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD`
 
-**Files Added:**
-- `backend/migrations/versions/0003_add_country_region_fields.py` - Database migration
+**Deployment URLs:**
+- **Frontend**: https://divemap.fly.dev
+- **Backend**: https://divemap-backend.fly.dev
+- **Database**: Internal network only
+
+#### **Authentication and Login Fixes**
+- **Google OAuth Integration**: Added proper Google OAuth support with conditional rendering
+- **Login Flow Fixes**: Resolved immediate logout issues after successful authentication
+- **API Endpoint Consistency**: Fixed trailing slash inconsistencies between frontend and backend
+- **Admin Access**: Ensured proper admin authentication for admin pages
+
+**Authentication Improvements:**
+- **Conditional Google OAuth**: Google Sign-In button only shows when `REACT_APP_GOOGLE_CLIENT_ID` is configured
+- **Graceful Degradation**: Application works without Google OAuth when not configured
+- **API Path Fixes**: Corrected all API endpoint paths to match backend expectations
+- **Admin Page Access**: Fixed authentication for admin tags and users pages
 
 **Files Modified:**
-- `backend/app/models.py` - Added country and region fields to DiveSite model
-- `backend/app/schemas.py` - Added country and region to all dive site schemas
-- `backend/app/routers/dive_sites.py` - Added reverse geocoding endpoint and filtering
-- `frontend/src/pages/DiveSites.js` - Added country and region filters
-- `frontend/src/pages/CreateDiveSite.js` - Added country/region fields and geocoding
-- `frontend/src/pages/EditDiveSite.js` - Added country/region fields and geocoding
+- `frontend/src/pages/Login.js` - Added conditional Google OAuth rendering
+- `frontend/src/pages/Register.js` - Added conditional Google OAuth rendering
+- `frontend/src/utils/googleAuth.js` - Added client ID validation
+- `frontend/src/contexts/AuthContext.js` - Fixed `/api/v1/auth/me` endpoint
+- `frontend/src/pages/AdminTags.js` - Fixed `/api/v1/tags/with-counts` endpoint
+- `frontend/src/pages/AdminUsers.js` - Fixed `/api/v1/users/admin/users` endpoint
 
-**Database Migration:**
-```sql
--- Added country and region columns
-ALTER TABLE dive_sites ADD COLUMN country VARCHAR(100) NULL;
-ALTER TABLE dive_sites ADD COLUMN region VARCHAR(100) NULL;
-
--- Created indexes for performance
-CREATE INDEX ix_dive_sites_country ON dive_sites(country);
-CREATE INDEX ix_dive_sites_region ON dive_sites(region);
-```
-
-**API Endpoints:**
-- `GET /api/v1/dive-sites/reverse-geocode` - Get country/region suggestions from coordinates
-- Updated `GET /api/v1/dive-sites/` - Added country and region filtering parameters
-
-#### **Dive Site Update Fix**
-- **Issue**: After saving dive site changes, users saw "Dive site not found" error
-- **Root Cause**: React Query cache not properly updated before navigation
-- **Solution**: Improved cache management with immediate data updates and proper invalidation
-- **User Experience**: Seamless navigation after updates without errors
-
-**Technical Fix:**
+**API Endpoint Fixes:**
 ```javascript
-// Before: Simple invalidation and navigation
-await queryClient.invalidateQueries(['dive-site', id]);
-navigate(`/dive-sites/${id}`);
+// Before (with trailing slash)
+api.get('/api/v1/auth/me/')
+api.get('/api/v1/tags/with-counts/')
+api.get('/api/v1/users/admin/users/')
 
-// After: Proper cache update and invalidation
-queryClient.setQueryData(['dive-site', id], updatedDiveSite);
-await queryClient.invalidateQueries(['admin-dive-sites']);
-await queryClient.invalidateQueries(['dive-sites']);
-await new Promise(resolve => setTimeout(resolve, 100));
-navigate(`/dive-sites/${id}`);
+// After (without trailing slash)
+api.get('/api/v1/auth/me')
+api.get('/api/v1/tags/with-counts')
+api.get('/api/v1/users/admin/users')
 ```
 
-**Files Modified:**
-- `frontend/src/pages/EditDiveSite.js` - Fixed update mutation and cache management
-- `frontend/src/pages/DiveSiteDetail.js` - Added debugging and better error handling
+#### **Database and Content Management**
+- **Sample Data**: Added 20 comprehensive dive site tags to the database
+- **Admin Interface**: Fixed admin pages to display tags and users properly
+- **Backend Query Optimization**: Simplified complex database queries to prevent errors
+- **Database Migration**: Ensured all schema changes are properly migrated
 
-**Testing:**
-- All backend tests pass (56/56)
-- Frontend validation passes
-- API endpoints working correctly
-- Geocoding functionality working
-- Authentication properly enforced
+**Sample Tags Added:**
+- Coral Reef, Wreck, Wall, Cave, Drift, Shark, Manta Ray, Turtle
+- Deep, Shallow, Night, Photography, Training, Advanced, Beginner
+- Current, Clear Water, Marine Life, Historical, Remote
 
-#### **New Dive Site Fields and Enhanced Validation**
-- **Maximum Depth**: Added `max_depth` field to track dive site depth in meters
-- **Alternative Names**: Added `alternative_names` field for dive site aliases
-- **Mandatory Coordinates**: Improved validation to ensure latitude/longitude are always required
-- **Form Field Reorganization**: Better user experience with logical field ordering
-- **Empty Field Handling**: Proper handling of empty optional fields
-
-**New Fields:**
-- **`max_depth`**: Maximum depth in meters (optional, 0-1000m range)
-- **`alternative_names`**: Alternative names/aliases for dive sites (optional)
-
-**Form Field Ordering:**
-1. Name (with Difficulty Level)
-2. Alternative Names ← *New position*
-3. Description
-4. Location (Latitude*, Longitude*, Address)
-5. Gas Tanks Necessary
-6. Maximum Depth ← *New position*
-7. Dive Plans
-8. Access Instructions ← *New position*
-9. Marine Life
-10. Safety Information
-
-**Validation Improvements:**
-- **Client-side Validation**: Prevents submission with empty required fields
-- **Server-side Validation**: Backend rejects null latitude/longitude values
-- **Error Messages**: Clear feedback for validation failures
-- **Required Field Indicators**: Asterisks (*) mark mandatory fields
+**Database Improvements:**
+- **Query Optimization**: Simplified `/with-counts` endpoint to avoid complex joins
+- **Error Handling**: Better error handling for database operations
+- **Performance**: Improved query performance with proper indexing
 
 **Files Modified:**
-- `backend/app/models.py` - Added new database fields
-- `backend/app/schemas.py` - Added field validation with empty string handling
-- `backend/app/routers/dive_sites.py` - Added mandatory field validation
-- `frontend/src/pages/EditDiveSite.js` - Updated form with new fields and validation
-- `frontend/src/pages/CreateDiveSite.js` - Updated form with new fields and validation
-- `frontend/src/pages/DiveSiteDetail.js` - Added display for new fields
-- `backend/migrations/versions/0002_add_max_depth_and_alternative_names.py` - Database migration
+- `backend/app/routers/tags.py` - Simplified `/with-counts` query
+- `database/init.sql` - Updated schema with all new fields
+- `export_database_data.py` - Script to export current database data
 
-**Database Migration:**
-```sql
--- Added max_depth column
-ALTER TABLE dive_sites ADD COLUMN max_depth DECIMAL(5,2) NULL;
+#### **Frontend API Communication Fixes**
+- **Trailing Slash Consistency**: Fixed all API calls to match backend expectations
+- **CORS Configuration**: Updated backend CORS to allow production frontend domain
+- **Build Environment**: Fixed React environment variables to be available at build time
+- **Error Handling**: Improved error handling for API communication issues
 
--- Added alternative_names column  
-ALTER TABLE dive_sites ADD COLUMN alternative_names TEXT NULL;
-```
-
-#### **User Rating Display Bug Fix**
-- **Issue**: Rating stars showed previous dive site's rating when navigating between sites
-- **Solution**: Fixed `useEffect` hooks to properly reset rating state
-- **User Experience**: Users now see empty stars when they haven't rated a site
-- **Visual Feedback**: Clear indication of rating status
-
-**Technical Fix:**
-```javascript
-// Before: Only set rating if user_rating existed
-useEffect(() => {
-  if (diveSite && diveSite.user_rating) {
-    setRating(diveSite.user_rating);
-  }
-}, [diveSite]);
-
-// After: Reset to 0 if no user_rating
-useEffect(() => {
-  if (diveSite) {
-    if (diveSite.user_rating) {
-      setRating(diveSite.user_rating);
-    } else {
-      setRating(0); // Reset to 0 if user hasn't rated
-    }
-  }
-}, [diveSite]);
-```
+**API Communication Fixes:**
+- **List Endpoints**: Added trailing slashes for list endpoints (e.g., `/api/v1/dive-sites/`)
+- **Individual Endpoints**: Removed trailing slashes for individual resources (e.g., `/api/v1/dive-sites/{id}`)
+- **Sub-resource Endpoints**: Proper handling of nested endpoints (e.g., `/api/v1/dive-sites/{id}/comments`)
 
 **Files Modified:**
-- `frontend/src/pages/DiveSiteDetail.js` - Fixed rating state management
-- `frontend/src/pages/DivingCenterDetail.js` - Fixed rating state management
+- `frontend/src/pages/DiveSites.js` - Fixed API calls with proper trailing slashes
+- `frontend/src/pages/DivingCenters.js` - Fixed API calls with proper trailing slashes
+- `frontend/src/pages/Home.js` - Fixed API calls with proper trailing slashes
+- `frontend/src/pages/AdminDiveSites.js` - Fixed API calls with proper trailing slashes
+- `frontend/src/pages/AdminDivingCenters.js` - Fixed API calls with proper trailing slashes
+- `frontend/src/pages/AdminUsers.js` - Fixed API calls with proper trailing slashes
+- `frontend/src/pages/AdminTags.js` - Fixed API calls with proper trailing slashes
+- `frontend/src/contexts/AuthContext.js` - Fixed API calls with proper trailing slashes
+- `frontend/src/pages/DiveSiteDetail.js` - Fixed API calls with proper trailing slashes
+- `frontend/src/pages/DivingCenterDetail.js` - Fixed API calls with proper trailing slashes
+- `frontend/src/pages/EditDiveSite.js` - Fixed API calls with proper trailing slashes
+- `frontend/src/pages/EditDivingCenter.js` - Fixed API calls with proper trailing slashes
+- `frontend/src/pages/CreateDiveSite.js` - Fixed API calls with proper trailing slashes
+- `frontend/src/pages/DiveSiteMap.js` - Fixed API calls with proper trailing slashes
 
-#### **Tag Management Bug Fix**
-- **Issue**: 422 error when adding tags to dive sites
-- **Root Cause**: Empty strings for `max_depth` field not handled properly
-- **Solution**: Added Pydantic validator to convert empty strings to `null`
-- **Result**: Tag management now works without errors
-
-**Technical Solution:**
+**CORS Configuration:**
 ```python
-# Backend schema update
-max_depth: Optional[Union[float, str]] = Field(None, ge=0, le=1000)
-
-@validator('max_depth', pre=True)
-def handle_empty_strings(cls, v):
-    if isinstance(v, str) and v.strip() == '':
-        return None
-    return v
+# backend/app/main.py
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://divemap.fly.dev",
+        "https://divemap-frontend.fly.dev",
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    max_age=3600,
+)
 ```
-
-**Testing:**
-- Added comprehensive tests for new fields
-- Added validation tests for mandatory fields
-- Added tests for empty string handling
-- All existing functionality continues to work
-
-#### **Database Migration System (Alembic)**
-- **Alembic Integration**: Complete migration system for version-controlled database changes
-- **Automatic Execution**: Migrations run automatically before application startup
-- **Environment Compatibility**: Works with both development and Docker environments
-- **Health Checks**: Database availability verification before migration execution
-- **Rollback Support**: Full migration history with downgrade capabilities
-- **Python Path Fixes**: Resolved asdf Python environment compatibility issues
-
-**Files Added:**
-- `backend/alembic.ini` - Alembic configuration
-- `backend/migrations/env.py` - Environment configuration
-- `backend/migrations/script.py.mako` - Migration template
-- `backend/migrations/versions/0001_initial.py` - Initial database schema
-- `backend/run_migrations.py` - Migration execution script
-- `backend/create_migration.py` - Migration generation script
-- `backend/run_migrations_docker.sh` - Docker migration script
-- `backend/MIGRATIONS_README.md` - User guide for migrations
-- `backend/ALEMBIC_SETUP.md` - Comprehensive setup documentation
-
-**Files Modified:**
-- `backend/app/database.py` - Added `get_database_url()` function
-- `backend/requirements.txt` - Added Alembic dependency
-- `backend/Dockerfile` - Updated to run migrations before startup
-
-#### **Multi-Currency Support System**
-- **10 World Currencies**: Support for USD, EUR, JPY, GBP, CNY, AUD, CAD, CHF, HKD, NZD
-- **Euro Default**: Euro (€) is the default currency for all cost fields
-- **Currency Symbols**: Proper display with currency symbols and flags
-- **Flexible Input**: Users can submit costs in any supported currency
-- **Visual Formatting**: Automatic formatting with symbols, flags, and codes
-- **Database Migration**: Added currency fields to cost tables with indexes
-- **API Integration**: Updated all cost-related endpoints to handle currency
-- **Frontend Utility**: Comprehensive currency utility functions
-
-**Supported Currencies:**
-- 🇺🇸 USD (US Dollar) - $
-- 🇪🇺 EUR (Euro) - € (default)
-- 🇯🇵 JPY (Japanese Yen) - ¥
-- 🇬🇧 GBP (British Pound) - £
-- 🇨🇳 CNY (Chinese Yuan) - ¥
-- 🇦🇺 AUD (Australian Dollar) - A$
-- 🇨🇦 CAD (Canadian Dollar) - C$
-- 🇨🇭 CHF (Swiss Franc) - CHF
-- 🇭🇰 HKD (Hong Kong Dollar) - HK$
-- 🇳🇿 NZD (New Zealand Dollar) - NZ$
-
-**Files Added:**
-- `frontend/src/utils/currency.js` - Comprehensive currency utility functions
-- `database/add_currency_fields.sql` - Database migration script
-
-**Files Modified:**
-- `backend/app/models.py` - Added currency fields to CenterDiveSite and GearRentalCost models
-- `backend/app/schemas.py` - Added currency fields with validation to schemas
-- `backend/app/routers/dive_sites.py` - Updated endpoints to handle currency
-- `backend/app/routers/diving_centers.py` - Updated gear rental endpoints
-- `frontend/src/pages/EditDiveSite.js` - Added currency selection for diving centers
-- `frontend/src/pages/EditDivingCenter.js` - Added currency selection for gear rental
-- `frontend/src/pages/DiveSiteDetail.js` - Updated cost display with currency formatting
-
-#### **Google OAuth Authentication**
-- **Complete OAuth 2.0 Integration**: Secure authentication with Google Identity Services
-- **Backend Token Verification**: Server-side verification with Google's servers
-- **Automatic User Creation**: New users created from Google data
-- **Account Linking**: Existing users can link Google accounts by email
-- **Environment Configuration**: Easy setup with environment variables
-- **Frontend Integration**: Google Sign-In buttons on login/register pages
-- **Security Features**: Rate limiting and proper error handling
-
-**Files Added:**
-- `backend/app/google_auth.py` - Google OAuth utility functions
-- `backend/migrations/add_google_id.sql` - Database migration
-- `frontend/src/utils/googleAuth.js` - Frontend Google OAuth utility
-- `GOOGLE_OAUTH_SETUP.md` - Complete setup guide
-
-**Files Modified:**
-- `backend/app/models.py` - Added google_id field to User model
-- `backend/app/routers/auth.py` - Added Google OAuth endpoint
-- `backend/requirements.txt` - Added Google OAuth dependencies
-- `frontend/src/contexts/AuthContext.js` - Added Google OAuth methods
-- `frontend/src/pages/Login.js` - Added Google Sign-In button
-- `frontend/src/pages/Register.js` - Added Google Sign-Up button
-
-#### **Mass Delete Functionality**
-- **Bulk Operations**: Select multiple items for deletion across all admin pages
-- **Safety Features**: Protection against deleting used tags and self-deletion
-- **Confirmation Dialogs**: Clear confirmation with item names
-- **Visual Feedback**: Loading states and success/error messages
-- **Responsive Design**: Works on all screen sizes
-
-**Admin Pages Updated:**
-- `/admin/dive-sites` - Mass delete dive sites
-- `/admin/diving-centers` - Mass delete diving centers
-
-#### **Interactive Maps with OpenLayers**
-- **Map Library Migration**: Replaced Leaflet with OpenLayers for better performance and consistency
-- **Mini Map Component**: Interactive mini map in dive site detail pages
-- **Full-Screen Map View**: Dedicated map page for each dive site with nearby sites
-- **Geographic Navigation**: Click on nearby dive sites to navigate between them
-- **Custom Markers**: Distinct markers for current site vs nearby sites
-- **Responsive Design**: Maps work on all screen sizes with proper scaling
-- **Error Handling**: Proper loading states and null checks to prevent runtime errors
-
-**Files Added:**
-- `frontend/src/components/MiniMap.js` - Reusable mini map component
-- `frontend/src/pages/DiveSiteMap.js` - Full-screen map view component
-
-**Files Modified:**
-- `frontend/src/pages/DiveSiteDetail.js` - Added mini map and nearby navigation
-- `frontend/src/App.js` - Added map route
-- `frontend/package.json` - Removed Leaflet dependencies, kept OpenLayers
-- `frontend/src/pages/DiveSites.js` - Preserved filter state in URL
-
-**Technical Improvements:**
-- **Duplicate Icon Fix**: Resolved "2 icons, one on top of the other" issue
-- **Runtime Error Fix**: Added proper null checks and loading states
-- **Performance**: OpenLayers provides better performance than Leaflet
-- **Consistency**: Same mapping library used across the entire application  
-- `/admin/tags` - Mass delete tags (with protection for used tags)
-- `/admin/users` - Mass delete users (with self-deletion protection)
-
-**Files Modified:**
-- `frontend/src/pages/AdminDiveSites.js` - Added mass delete functionality
-- `frontend/src/pages/AdminDivingCenters.js` - Added mass delete functionality
-- `frontend/src/pages/AdminTags.js` - Added mass delete with protection
-- `frontend/src/pages/AdminUsers.js` - Added mass delete with self-protection
-
-### 🎨 User Experience Improvements
-
-#### **Toast Notification Enhancements**
-- **Positioning**: Notifications appear below navbar to prevent navigation blocking
-- **Duration**: Reduced to 500ms for quicker disappearance
-- **Z-index Management**: Proper layering with navbar
-- **Responsive Design**: Works on all screen sizes
-
-#### **Layout Improvements**
-- **Fixed Navbar**: Sticky navigation with proper z-index
-- **Content Spacing**: Adjusted padding to account for fixed navbar
-- **Table Responsiveness**: Text wrapping to prevent horizontal scrollbars
-- **Container Width**: Increased max-width for better content display
 
 ### 🔧 Technical Improvements
 
-#### **Dependency Management**
-- **Google OAuth Packages**: Added google-auth and google-auth-oauthlib
-- **Version Conflicts**: Fixed pyasn1 dependency conflicts
-- **Docker Rebuild**: Updated container with new dependencies
+#### **Docker Configuration**
+- **Multi-stage Builds**: Optimized Docker images for production deployment
+- **Environment Variables**: Proper handling of build-time environment variables
+- **Dependency Management**: Improved package installation and caching
+- **Security**: Non-root user execution and minimal attack surface
 
-#### **Database Schema Updates**
-- **Currency Fields**: Added currency fields to center_dive_sites and gear_rental_costs tables
-- **Currency Indexes**: Created indexes for currency fields for better performance
-- **Default Values**: Set 'EUR' as default currency for all existing records
-- **Google ID Field**: Added google_id to users table
-- **Index Creation**: Efficient Google ID lookups
-- **Migration Script**: Automated database migration
+**Backend Dockerfile:**
+```dockerfile
+# Automatic database migrations
+CMD ["sh", "-c", "python run_migrations.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+```
 
-#### **Frontend Linting Fixes**
-- **ESLint Errors**: Fixed all linting warnings and errors
-- **Missing Imports**: Added required icon imports
-- **useEffect Dependencies**: Fixed React Hook dependency warnings
-- **Unused Variables**: Cleaned up unused imports and variables
+**Frontend Dockerfile:**
+```dockerfile
+# Build-time environment variables
+ARG REACT_APP_API_URL
+ENV REACT_APP_API_URL=${REACT_APP_API_URL}
+```
+
+#### **Deployment Documentation**
+- **Comprehensive Guide**: Created detailed deployment documentation
+- **Secret Management**: Proper documentation of `fly secrets` usage
+- **Troubleshooting**: Added common issues and solutions
+- **Step-by-step Instructions**: Clear deployment process documentation
+
+**Documentation Files:**
+- `FLY_DEPLOYMENT_GUIDE.md` - Complete deployment guide
+- `API_CHANGELOG.md` - API changes documentation
+- Updated `README.md` - Production deployment information
 
 ### 🐛 Bug Fixes
 
-#### **Backend Issues**
-- **Currency Validation**: Fixed currency code validation and error handling
-- **Currency Migration**: Successfully added currency fields to database
-- **Currency Defaults**: Properly set Euro as default currency for existing records
-- **Google OAuth Dependencies**: Fixed ModuleNotFoundError for Google packages
-- **Database Migration**: Successfully added google_id field
-- **Container Rebuild**: Fixed dependency installation issues
+#### **Authentication Issues**
+- **Immediate Logout**: Fixed users being logged out immediately after login
+- **Google OAuth Errors**: Resolved `client_id=undefined` errors
+- **API Endpoint Mismatches**: Fixed all trailing slash inconsistencies
+- **Admin Page Access**: Resolved authentication issues for admin pages
+
+#### **Database Issues**
+- **Empty Tags**: Added sample tags to populate admin interface
+- **Query Errors**: Fixed complex SQL queries causing internal server errors
+- **Migration Issues**: Ensured all database migrations run properly
 
 #### **Frontend Issues**
-- **Missing Icon Imports**: Added X, Loader, Save icons to admin pages
-- **useEffect Dependencies**: Fixed React Hook exhaustive-deps warnings
-- **Unused Variables**: Removed unused navigate imports
-- **Build Errors**: Fixed all compilation errors
+- **Build Errors**: Fixed `npm ci` issues and environment variable problems
+- **API Communication**: Resolved 307 redirects and API call failures
+- **Admin Interface**: Fixed admin pages not displaying content
 
-#### **Layout Issues**
-- **Toast Positioning**: Fixed notifications appearing behind navbar
-- **Table Overflow**: Prevented horizontal scrollbars with text wrapping
-- **Navbar Z-index**: Proper layering of fixed navbar
+### 📊 Performance Improvements
+
+#### **Database Performance**
+- **Query Optimization**: Simplified complex queries to improve performance
+- **Indexing**: Proper database indexing for frequently queried fields
+- **Connection Pooling**: Improved database connection management
+
+#### **Frontend Performance**
+- **Build Optimization**: Optimized React build process
+- **Caching**: Improved React Query caching strategies
+- **Bundle Size**: Reduced JavaScript bundle size for faster loading
 
 ### 🔒 Security Enhancements
 
-#### **Google OAuth Security**
-- **Token Verification**: Backend verification with Google's servers
-- **Rate Limiting**: OAuth endpoints protected against abuse
-- **Account Security**: Google users enabled by default but manageable
-- **Error Handling**: Comprehensive error handling for OAuth failures
+#### **Environment Security**
+- **Secret Management**: Moved all secrets to `fly secrets` instead of hardcoded values
+- **CORS Configuration**: Proper CORS settings for production domains
+- **Authentication**: Improved JWT token handling and validation
 
-#### **Mass Delete Safety**
-- **Tag Protection**: Tags with associated dive sites cannot be deleted
-- **Self-Deletion Prevention**: Users cannot delete their own accounts
-- **Confirmation Dialogs**: Clear confirmation with item names
-- **Error Rollback**: Proper error handling and rollback
+#### **Deployment Security**
+- **Non-root Containers**: Docker containers run as non-root users
+- **Minimal Attack Surface**: Reduced container image size and dependencies
+- **Network Security**: Internal service communication using Fly.io's secure network
 
-### 📚 Documentation Updates
+### 📝 Documentation Updates
 
-#### **New Documentation**
-- **Google OAuth Setup Guide**: Complete setup instructions
-- **API Changelog**: Updated with new endpoints and features
-- **README Updates**: Comprehensive feature documentation
+#### **Deployment Documentation**
+- **Complete Setup Guide**: Step-by-step deployment instructions
+- **Troubleshooting Section**: Common issues and solutions
+- **Configuration Examples**: Sample configuration files and commands
+- **Maintenance Guide**: Ongoing maintenance and update procedures
 
-#### **Updated Documentation**
-- **Security Documentation**: Added Google OAuth security notes
-- **API Documentation**: New Google OAuth endpoint documentation
-- **Migration Guides**: Database migration instructions
+#### **API Documentation**
+- **Endpoint Consistency**: Updated all API endpoint documentation
+- **Authentication**: Proper authentication documentation
+- **Error Handling**: Comprehensive error response documentation
 
-### 🧪 Testing Improvements
+### 🧪 Testing
 
-#### **New Test Cases**
-- **Google OAuth Testing**: Token verification and user creation tests
-- **Mass Delete Testing**: Bulk operations with safety features
-- **Frontend Validation**: Build and linting checks
+#### **Backend Testing**
+- **All Tests Passing**: 56/56 tests passing
+- **API Endpoint Testing**: Verified all endpoints work correctly
+- **Authentication Testing**: Confirmed proper authentication flow
+- **Database Testing**: Validated all database operations
 
-#### **Updated Test Infrastructure**
-- **Dependency Testing**: Google OAuth package integration
-- **Database Testing**: Google ID field validation
-- **Frontend Testing**: Build success verification
+#### **Frontend Testing**
+- **Build Testing**: Verified production builds work correctly
+- **API Communication**: Tested all frontend-backend communication
+- **User Interface**: Confirmed all pages render and function properly
+- **Authentication Flow**: Validated login/logout functionality
+
+### 🚀 Deployment Status
+
+#### **Production Environment**
+- **Frontend**: ✅ Deployed and accessible at https://divemap.fly.dev
+- **Backend**: ✅ Deployed and accessible at https://divemap-backend.fly.dev
+- **Database**: ✅ Deployed with persistent storage
+- **Authentication**: ✅ Working with proper JWT tokens
+- **Admin Interface**: ✅ Functional with proper access control
+
+#### **Monitoring and Logs**
+- **Application Logs**: Available via `fly logs`
+- **Database Logs**: Monitored for performance and errors
+- **Error Tracking**: Comprehensive error handling and logging
+- **Performance Monitoring**: Application performance tracking
+
+---
 
 ## [Previous Release] - 2024-01-XX
 

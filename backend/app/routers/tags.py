@@ -18,20 +18,21 @@ def get_all_tags(db: Session = Depends(get_db)):
 @router.get("/with-counts", response_model=List[TagWithCountResponse])
 def get_all_tags_with_counts(db: Session = Depends(get_db)):
     """Get all available tags with count of associated dive sites"""
-    tags_with_counts = db.query(
-        AvailableTag,
-        func.count(DiveSiteTag.dive_site_id).label('dive_site_count')
-    ).outerjoin(DiveSiteTag, AvailableTag.id == DiveSiteTag.tag_id).group_by(AvailableTag.id).all()
+    # Get all tags
+    tags = db.query(AvailableTag).all()
     
     result = []
-    for tag, count in tags_with_counts:
+    for tag in tags:
+        # Count associated dive sites for this tag
+        dive_site_count = db.query(DiveSiteTag).filter(DiveSiteTag.tag_id == tag.id).count()
+        
         tag_dict = {
             "id": tag.id,
             "name": tag.name,
             "description": tag.description,
             "created_by": tag.created_by,
             "created_at": tag.created_at,
-            "dive_site_count": count
+            "dive_site_count": dive_site_count
         }
         result.append(tag_dict)
     

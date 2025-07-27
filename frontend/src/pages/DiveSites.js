@@ -92,7 +92,7 @@ const DiveSites = () => {
         });
       }
       
-      return api.get(`/api/v1/dive-sites?${params.toString()}`);
+      return api.get(`/api/v1/dive-sites/?${params.toString()}`);
     },
     {
       select: (response) => response.data,

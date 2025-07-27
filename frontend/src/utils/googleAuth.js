@@ -33,6 +33,11 @@ class GoogleAuth {
 
   // Initialize Google Sign-In button
   async initializeSignInButton(buttonId, onSuccess, onError) {
+    // Check if client ID is configured
+    if (!this.clientId || this.clientId === 'undefined') {
+      throw new Error('Google OAuth client ID not configured');
+    }
+
     await this.initialize();
     
     if (!this.google) {
@@ -67,6 +72,11 @@ class GoogleAuth {
 
   // Sign in with Google
   async signIn() {
+    // Check if client ID is configured
+    if (!this.clientId || this.clientId === 'undefined') {
+      throw new Error('Google OAuth client ID not configured');
+    }
+
     await this.initialize();
     
     if (!this.google) {
@@ -94,6 +104,11 @@ class GoogleAuth {
 
   // Check if user is signed in
   async isSignedIn() {
+    // Check if client ID is configured
+    if (!this.clientId || this.clientId === 'undefined') {
+      return false;
+    }
+
     await this.initialize();
     
     if (!this.google) {
@@ -113,6 +128,11 @@ class GoogleAuth {
 
   // Get current user info
   async getCurrentUser() {
+    // Check if client ID is configured
+    if (!this.clientId || this.clientId === 'undefined') {
+      throw new Error('Google OAuth client ID not configured');
+    }
+
     await this.initialize();
     
     if (!this.google) {

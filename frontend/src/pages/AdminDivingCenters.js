@@ -16,7 +16,7 @@ const AdminDivingCenters = () => {
   // Fetch diving centers data
   const { data: divingCenters, isLoading } = useQuery(
     ['admin-diving-centers'],
-    () => api.get('/api/v1/diving-centers'),
+    () => api.get('/api/v1/diving-centers/'),
     {
       select: (response) => response.data,
     }

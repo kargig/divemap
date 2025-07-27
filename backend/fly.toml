@@ -1,0 +1,34 @@
+# fly.toml app configuration file generated for divemap-backend on 2025-07-27T16:43:27+03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'divemap-backend'
+primary_region = 'fra'
+
+[build]
+
+[env]
+  ACCESS_TOKEN_EXPIRE_MINUTES = '30'
+  ALGORITHM = 'HS256'
+  PYTHONPATH = '/app'
+
+[processes]
+  app = 'uvicorn app.main:app --host 0.0.0.0 --port 8000'
+
+[[mounts]]
+  source = 'divemap_uploads'
+  destination = '/app/uploads'
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '2gb'
+  cpu_kind = 'shared'
+  cpus = 2

@@ -20,14 +20,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create uploads directory
-RUN mkdir -p /app/uploads
-
-# Expose port
-EXPOSE 8000
+RUN mkdir -p uploads
 
 # Make migration scripts executable
 RUN chmod +x /app/run_migrations.py
 RUN chmod +x /app/run_migrations_docker.sh
 
+# Expose port
+EXPOSE 8000
+
 # Run migrations and then start the application
-CMD ["sh", "-c", "python run_migrations.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"] 
+CMD ["sh", "-c", "python run_migrations.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"] 

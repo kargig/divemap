@@ -10,13 +10,15 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    google_id VARCHAR(255) UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_admin BOOLEAN DEFAULT FALSE,
     is_moderator BOOLEAN DEFAULT FALSE,
     enabled BOOLEAN DEFAULT TRUE,
     INDEX idx_email (email),
-    INDEX idx_username (username)
+    INDEX idx_username (username),
+    INDEX idx_google_id (google_id)
 );
 
 -- Dive sites table
@@ -33,11 +35,18 @@ CREATE TABLE IF NOT EXISTS dive_sites (
     difficulty_level ENUM('beginner', 'intermediate', 'advanced', 'expert') DEFAULT 'intermediate',
     marine_life TEXT,
     safety_information TEXT,
+    max_depth DECIMAL(5, 2),
+    alternative_names TEXT,
+    country VARCHAR(100),
+    region VARCHAR(100),
+    view_count INT DEFAULT 0 NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_name (name),
     INDEX idx_difficulty (difficulty_level),
-    INDEX idx_location (latitude, longitude)
+    INDEX idx_location (latitude, longitude),
+    INDEX idx_country (country),
+    INDEX idx_region (region)
 );
 
 -- Site media table
@@ -90,6 +99,7 @@ CREATE TABLE IF NOT EXISTS diving_centers (
     website VARCHAR(255),
     latitude DECIMAL(10, 8),
     longitude DECIMAL(11, 8),
+    view_count INT DEFAULT 0 NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_name (name),
@@ -130,12 +140,14 @@ CREATE TABLE IF NOT EXISTS center_dive_sites (
     diving_center_id INT NOT NULL,
     dive_site_id INT NOT NULL,
     dive_cost DECIMAL(10, 2),
+    currency VARCHAR(3) DEFAULT 'EUR' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (diving_center_id) REFERENCES diving_centers(id) ON DELETE CASCADE,
     FOREIGN KEY (dive_site_id) REFERENCES dive_sites(id) ON DELETE CASCADE,
     UNIQUE KEY unique_center_site (diving_center_id, dive_site_id),
     INDEX idx_center_id (diving_center_id),
-    INDEX idx_site_id (dive_site_id)
+    INDEX idx_site_id (dive_site_id),
+    INDEX idx_currency (currency)
 );
 
 -- Gear rental costs table
@@ -144,9 +156,11 @@ CREATE TABLE IF NOT EXISTS gear_rental_costs (
     diving_center_id INT NOT NULL,
     item_name VARCHAR(100) NOT NULL,
     cost DECIMAL(10, 2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'EUR' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (diving_center_id) REFERENCES diving_centers(id) ON DELETE CASCADE,
-    INDEX idx_center_id (diving_center_id)
+    INDEX idx_center_id (diving_center_id),
+    INDEX idx_currency (currency)
 );
 
 -- Parsed dive trips table
@@ -216,4 +230,29 @@ INSERT IGNORE INTO diving_centers (name, description, email, phone, website, lat
 ('Belize Diving Adventures', 'Specialized in Blue Hole and barrier reef diving. Experienced guides and small group tours.', 'dive@belizediving.com', '+501 226 2015', 'www.belizediving.com', 17.92, -87.96),
 ('Iceland Dive Tours', 'Unique diving experiences in Iceland including Silfra fissure. Dry suit diving specialists.', 'info@icelanddivetours.is', '+354 555 1234', 'www.icelanddivetours.is', 64.15, -21.95),
 ('Red Sea Diving Center', 'Premier diving center in Sharm El Sheikh. Access to famous wrecks and coral reefs.', 'dive@redseadiving.com', '+20 69 360 1234', 'www.redseadiving.com', 27.91, 34.33),
-('Hawaii Ocean Adventures', 'Specialized in manta ray night dives and Hawaiian marine life encounters.', 'aloha@hawaiioceanadventures.com', '+1 808 555 0123', 'www.hawaiioceanadventures.com', 19.64, -155.99); 
+('Hawaii Ocean Adventures', 'Specialized in manta ray night dives and Hawaiian marine life encounters.', 'aloha@hawaiioceanadventures.com', '+1 808 555 0123', 'www.hawaiioceanadventures.com', 19.64, -155.99);
+
+-- =============================================================================
+-- CURRENT DATABASE DATA
+-- =============================================================================
+-- 
+-- To include your current database data, run the export script:
+-- python export_database_data.py
+-- 
+-- Then copy the output and paste it below this section.
+-- 
+-- Example format:
+-- INSERT INTO users (id, username, email, password_hash, google_id, created_at, updated_at, is_admin, is_moderator, enabled) VALUES (...);
+-- INSERT INTO dive_sites (id, name, description, latitude, longitude, address, access_instructions, dive_plans, gas_tanks_necessary, difficulty_level, marine_life, safety_information, max_depth, alternative_names, country, region, view_count, created_at, updated_at) VALUES (...);
+-- INSERT INTO diving_centers (id, name, description, email, phone, website, latitude, longitude, view_count, created_at, updated_at) VALUES (...);
+-- INSERT INTO available_tags (id, name, description, created_by, created_at) VALUES (...);
+-- INSERT INTO dive_site_tags (id, dive_site_id, tag_id, created_at) VALUES (...);
+-- INSERT INTO site_media (id, dive_site_id, media_type, url, description, created_at) VALUES (...);
+-- INSERT INTO site_ratings (id, dive_site_id, user_id, score, created_at) VALUES (...);
+-- INSERT INTO site_comments (id, dive_site_id, user_id, comment_text, created_at, updated_at) VALUES (...);
+-- INSERT INTO center_ratings (id, diving_center_id, user_id, score, created_at) VALUES (...);
+-- INSERT INTO center_comments (id, diving_center_id, user_id, comment_text, created_at, updated_at) VALUES (...);
+-- INSERT INTO center_dive_sites (id, diving_center_id, dive_site_id, dive_cost, currency, created_at) VALUES (...);
+-- INSERT INTO gear_rental_costs (id, diving_center_id, item_name, cost, currency, created_at) VALUES (...);
+-- INSERT INTO parsed_dive_trips (id, diving_center_id, dive_site_id, trip_date, trip_time, source_newsletter_id, extracted_at) VALUES (...);
+-- INSERT INTO newsletters (id, content, received_at) VALUES (...); 

@@ -37,7 +37,7 @@ const DivingCenters = () => {
           return value !== '' && value !== null && value !== undefined;
         })
       );
-      return api.get('/api/v1/diving-centers', { params: filteredParams });
+      return api.get('/api/v1/diving-centers/', { params: filteredParams });
     },
     {
       select: (response) => response.data,

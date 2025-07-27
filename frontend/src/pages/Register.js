@@ -42,8 +42,13 @@ const Register = () => {
   }, []);
 
   useEffect(() => {
-    // Initialize Google Sign-In button
+    // Initialize Google Sign-In button only if client ID is configured
     const initializeGoogleSignIn = async () => {
+      if (!process.env.REACT_APP_GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID === 'undefined') {
+        console.log('Google OAuth not configured - skipping Google Sign-In initialization');
+        return;
+      }
+      
       try {
         await googleAuth.initializeSignInButton(
           'google-signup-button',
@@ -261,26 +266,30 @@ const Register = () => {
             </button>
           </div>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">Or continue with</span>
-            </div>
-          </div>
-
-          <div>
-            <div
-              id="google-signup-button"
-              className="w-full flex justify-center"
-            ></div>
-            {googleLoading && (
-              <div className="mt-2 text-center text-sm text-gray-600">
-                Creating account with Google...
+          {process.env.REACT_APP_GOOGLE_CLIENT_ID && process.env.REACT_APP_GOOGLE_CLIENT_ID !== 'undefined' && (
+            <>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-gray-50 text-gray-500">Or continue with</span>
+                </div>
               </div>
-            )}
-          </div>
+
+              <div>
+                <div
+                  id="google-signup-button"
+                  className="w-full flex justify-center"
+                ></div>
+                {googleLoading && (
+                  <div className="mt-2 text-center text-sm text-gray-600">
+                    Creating account with Google...
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
             <div className="flex">
