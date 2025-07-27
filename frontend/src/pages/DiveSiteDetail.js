@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useAuth } from '../contexts/AuthContext';
@@ -106,9 +106,13 @@ const DiveSiteDetail = () => {
   );
 
   // Set initial rating to user's previous rating if available
-  React.useEffect(() => {
-    if (diveSite && diveSite.user_rating) {
-      setRating(diveSite.user_rating);
+  useEffect(() => {
+    if (diveSite) {
+      if (diveSite.user_rating) {
+        setRating(diveSite.user_rating);
+      } else {
+        setRating(0); // Reset to 0 if user hasn't rated this dive site
+      }
     }
   }, [diveSite]);
 
@@ -298,6 +302,22 @@ const DiveSiteDetail = () => {
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Safety Information</h2>
               <p className="text-gray-700">{diveSite.safety_information}</p>
+            </div>
+          )}
+
+          {/* Max Depth */}
+          {diveSite.max_depth && (
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Maximum Depth</h2>
+              <p className="text-gray-700">{diveSite.max_depth} meters</p>
+            </div>
+          )}
+
+          {/* Alternative Names */}
+          {diveSite.alternative_names && (
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Alternative Names</h2>
+              <p className="text-gray-700">{diveSite.alternative_names}</p>
             </div>
           )}
 

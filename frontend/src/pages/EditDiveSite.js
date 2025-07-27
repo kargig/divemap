@@ -33,7 +33,9 @@ const EditDiveSite = () => {
     gas_tanks_necessary: '',
     difficulty_level: '',
     marine_life: '',
-    safety_information: ''
+    safety_information: '',
+    max_depth: '',
+    alternative_names: ''
   });
 
   const [newMedia, setNewMedia] = useState({
@@ -78,7 +80,9 @@ const EditDiveSite = () => {
           gas_tanks_necessary: data.gas_tanks_necessary || '',
           difficulty_level: data.difficulty_level || '',
           marine_life: data.marine_life || '',
-          safety_information: data.safety_information || ''
+          safety_information: data.safety_information || '',
+          max_depth: data.max_depth?.toString() || '',
+          alternative_names: data.alternative_names || ''
         });
         // Set selected tags
         if (data.tags) {
@@ -253,6 +257,23 @@ const EditDiveSite = () => {
       longitude: formData.longitude ? parseFloat(formData.longitude) : null,
     };
 
+    // Ensure latitude and longitude are not empty
+    if (!formData.latitude || formData.latitude.trim() === '') {
+      toast.error('Latitude is required');
+      return;
+    }
+    if (!formData.longitude || formData.longitude.trim() === '') {
+      toast.error('Longitude is required');
+      return;
+    }
+
+    // Convert max_depth to number if provided, or set to null if empty
+    if (formData.max_depth && formData.max_depth.trim() !== '') {
+      updateData.max_depth = parseFloat(formData.max_depth);
+    } else {
+      updateData.max_depth = null;
+    }
+
     // Update the dive site first
     updateMutation.mutate(updateData, {
       onSuccess: async () => {
@@ -406,6 +427,20 @@ const EditDiveSite = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                Alternative Names
+              </label>
+              <input
+                type="text"
+                name="alternative_names"
+                value={formData.alternative_names}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., Shark Point, Koh Phi Phi"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Description *
               </label>
               <textarea
@@ -422,7 +457,7 @@ const EditDiveSite = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Latitude
+                  Latitude *
                 </label>
                 <input
                   type="number"
@@ -430,13 +465,14 @@ const EditDiveSite = () => {
                   name="latitude"
                   value={formData.latitude}
                   onChange={handleInputChange}
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Longitude
+                  Longitude *
                 </label>
                 <input
                   type="number"
@@ -444,6 +480,7 @@ const EditDiveSite = () => {
                   name="longitude"
                   value={formData.longitude}
                   onChange={handleInputChange}
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -466,19 +503,6 @@ const EditDiveSite = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Access Instructions
-                </label>
-                <textarea
-                  name="access_instructions"
-                  value={formData.access_instructions}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Gas Tanks Necessary
                 </label>
                 <input
@@ -493,11 +517,41 @@ const EditDiveSite = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                Maximum Depth (meters)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="1000"
+                name="max_depth"
+                value={formData.max_depth}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., 25.5"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Dive Plans
               </label>
               <textarea
                 name="dive_plans"
                 value={formData.dive_plans}
+                onChange={handleInputChange}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Access Instructions
+              </label>
+              <textarea
+                name="access_instructions"
+                value={formData.access_instructions}
                 onChange={handleInputChange}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

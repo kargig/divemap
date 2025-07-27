@@ -5,20 +5,22 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 ## Features
 
 - **User Management**: Registration, login, and profile management with Google OAuth support
-- **Dive Sites**: Comprehensive CRUD operations with detailed information
+- **Dive Sites**: Comprehensive CRUD operations with detailed information including maximum depth and alternative names
 - **Diving Centers**: Full management with gear rental costs and dive site associations
-- **Rating System**: Rate dive sites and diving centers (1-10 scale)
+- **Rating System**: Rate dive sites and diving centers (1-10 scale) with proper state management
 - **Comments**: User comments on dive sites and diving centers
 - **Interactive Map**: View dive sites and diving centers on an interactive map
 - **Search & Filtering**: Advanced search and filtering capabilities
 - **Media Management**: Upload and display photos and videos for dive sites
 - **Gear Rental**: Manage diving center gear rental costs with multi-currency support
 - **Multi-Currency System**: Support for 10 major world currencies with Euro (€) as default
-- **Tag System**: Comprehensive tag/label management for dive sites
+- **Tag System**: Comprehensive tag/label management for dive sites with enhanced validation
 - **Admin Dashboard**: Full administrative interface with separate management pages
 - **Mass Operations**: Bulk delete functionality for admin management
 - **Google OAuth**: Secure authentication with Google accounts
 - **Database Migrations**: Alembic-based version-controlled database schema management
+- **Enhanced Validation**: Mandatory coordinate fields with client and server-side validation
+- **Form Field Management**: Intelligent handling of optional fields with proper empty value conversion
 
 ## Tech Stack
 

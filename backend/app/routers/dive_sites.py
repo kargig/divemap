@@ -461,6 +461,19 @@ async def update_dive_site(
     
     # Update only provided fields
     update_data = dive_site_update.dict(exclude_unset=True)
+    
+    # Ensure latitude and longitude are never set to null
+    if 'latitude' in update_data and update_data['latitude'] is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Latitude cannot be empty"
+        )
+    if 'longitude' in update_data and update_data['longitude'] is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Longitude cannot be empty"
+        )
+    
     for field, value in update_data.items():
         setattr(dive_site, field, value)
     

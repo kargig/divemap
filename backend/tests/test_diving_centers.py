@@ -431,3 +431,54 @@ class TestDivingCenters:
                                headers=admin_headers)
         
         assert response.status_code == status.HTTP_200_OK  # Changed from 204 
+    
+    def test_get_diving_center_with_user_rating_success(self, client, auth_headers, admin_headers):
+        """Test getting diving center details includes user's rating when authenticated."""
+        # First create a diving center
+        diving_center_data = {
+            "name": "Test Diving Center",
+            "description": "A test diving center",
+            "latitude": 10.0,
+            "longitude": 20.0
+        }
+        
+        create_response = client.post("/api/v1/diving-centers/", json=diving_center_data, headers=admin_headers)
+        assert create_response.status_code == status.HTTP_200_OK
+        center_id = create_response.json()["id"]
+        
+        # Rate the diving center
+        rating_data = {"score": 8.0}
+        rate_response = client.post(f"/api/v1/diving-centers/{center_id}/rate", json=rating_data, headers=auth_headers)
+        assert rate_response.status_code == status.HTTP_200_OK
+        
+        # Get the diving center details and verify user_rating is included
+        get_response = client.get(f"/api/v1/diving-centers/{center_id}", headers=auth_headers)
+        assert get_response.status_code == status.HTTP_200_OK
+        
+        data = get_response.json()
+        assert data["user_rating"] == 8.0
+        assert data["average_rating"] == 8.0
+        assert data["total_ratings"] == 1 
+    
+    def test_get_diving_center_without_user_rating_success(self, client, auth_headers, admin_headers):
+        """Test getting diving center details returns null user_rating when user hasn't rated."""
+        # First create a diving center
+        diving_center_data = {
+            "name": "Test Diving Center No Rating",
+            "description": "A test diving center",
+            "latitude": 10.0,
+            "longitude": 20.0
+        }
+        
+        create_response = client.post("/api/v1/diving-centers/", json=diving_center_data, headers=admin_headers)
+        assert create_response.status_code == status.HTTP_200_OK
+        center_id = create_response.json()["id"]
+        
+        # Get the diving center details without rating it first
+        get_response = client.get(f"/api/v1/diving-centers/{center_id}", headers=auth_headers)
+        assert get_response.status_code == status.HTTP_200_OK
+        
+        data = get_response.json()
+        assert data["user_rating"] is None
+        assert data["average_rating"] is None
+        assert data["total_ratings"] == 0 

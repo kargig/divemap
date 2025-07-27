@@ -11,7 +11,7 @@ from app.schemas import (
     CenterCommentCreate, CenterCommentUpdate, CenterCommentResponse,
     DivingCenterSearchParams, CenterDiveSiteCreate, GearRentalCostCreate
 )
-from app.auth import get_current_active_user, get_current_admin_user
+from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional
 
 router = APIRouter()
 
@@ -86,7 +86,11 @@ async def create_diving_center(
     }
 
 @router.get("/{diving_center_id}", response_model=DivingCenterResponse)
-async def get_diving_center(diving_center_id: int, db: Session = Depends(get_db)):
+async def get_diving_center(
+    diving_center_id: int, 
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)  # Fix type annotation
+):
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not diving_center:
         raise HTTPException(
@@ -103,6 +107,16 @@ async def get_diving_center(diving_center_id: int, db: Session = Depends(get_db)
         CenterRating.diving_center_id == diving_center.id
     ).scalar()
     
+    # Get user's previous rating if authenticated
+    user_rating = None
+    if current_user:
+        user_rating_obj = db.query(CenterRating).filter(
+            CenterRating.diving_center_id == diving_center_id,
+            CenterRating.user_id == current_user.id
+        ).first()
+        if user_rating_obj:
+            user_rating = user_rating_obj.score
+    
     return {
         "id": diving_center.id,
         "name": diving_center.name,
@@ -115,7 +129,8 @@ async def get_diving_center(diving_center_id: int, db: Session = Depends(get_db)
         "created_at": diving_center.created_at,
         "updated_at": diving_center.updated_at,
         "average_rating": float(avg_rating) if avg_rating else None,
-        "total_ratings": total_ratings
+        "total_ratings": total_ratings,
+        "user_rating": user_rating
     }
 
 @router.put("/{diving_center_id}", response_model=DivingCenterResponse)

@@ -51,6 +51,97 @@ tags_dict = [
 - `backend/app/routers/dive_sites.py` - Tag serialization in get_dive_sites, get_dive_site, update_dive_site
 - `backend/app/schemas.py` - Updated difficulty level patterns to include 'expert'
 
+### ✅ Added: Dive Site Field Validation Testing
+
+**New Fields Added:**
+- **`max_depth`**: Maximum depth in meters (optional, 0-1000m range)
+- **`alternative_names`**: Alternative names/aliases for dive sites (optional)
+
+**Validation Tests Added:**
+```python
+# Test new fields creation
+def test_create_dive_site_with_new_fields_admin_success(self, client, admin_headers):
+    """Test creating a dive site with max_depth and alternative_names fields."""
+    dive_site_data = {
+        "name": "Test Dive Site with New Fields",
+        "description": "A test dive site with new fields",
+        "latitude": 10.0,
+        "longitude": 20.0,
+        "max_depth": 25.5,
+        "alternative_names": "Test Site, Test Location"
+    }
+    
+    response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+    assert response.status_code == status.HTTP_200_OK
+    
+    data = response.json()
+    assert data["max_depth"] == 25.5
+    assert data["alternative_names"] == "Test Site, Test Location"
+
+# Test empty string handling for optional fields
+def test_update_dive_site_with_empty_max_depth_admin_success(self, client, admin_headers):
+    """Test updating a dive site with empty max_depth field."""
+    # Create dive site with max_depth
+    dive_site_data = {
+        "name": "Test Dive Site for Empty Max Depth",
+        "description": "A test dive site",
+        "latitude": 10.0,
+        "longitude": 20.0,
+        "max_depth": 25.5
+    }
+    create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+    assert create_response.status_code == status.HTTP_200_OK
+    dive_site_id = create_response.json()["id"]
+    
+    # Update with empty max_depth
+    update_data = {
+        "name": "Updated Test Dive Site",
+        "description": "Updated description",
+        "max_depth": ""  # Empty string sent from frontend
+    }
+    update_response = client.put(f"/api/v1/dive-sites/{dive_site_id}", json=update_data, headers=admin_headers)
+    assert update_response.status_code == status.HTTP_200_OK
+    
+    data = update_response.json()
+    assert data["max_depth"] is None  # Should be null when empty string is sent
+
+# Test mandatory field validation
+def test_update_dive_site_with_null_latitude_rejected(self, client, admin_headers):
+    """Test that updating a dive site with null latitude is rejected."""
+    # Create dive site
+    dive_site_data = {
+        "name": "Test Dive Site for Null Latitude",
+        "description": "A test dive site",
+        "latitude": 10.0,
+        "longitude": 20.0
+    }
+    create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+    assert create_response.status_code == status.HTTP_200_OK
+    dive_site_id = create_response.json()["id"]
+    
+    # Try to update with null latitude
+    update_data = {
+        "name": "Updated Test Dive Site",
+        "latitude": None
+    }
+    update_response = client.put(f"/api/v1/dive-sites/{dive_site_id}", json=update_data, headers=admin_headers)
+    assert update_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert "Latitude cannot be empty" in update_response.json()["detail"]
+```
+
+**Validation Improvements:**
+- **Mandatory Fields**: Latitude and longitude are now properly enforced as required
+- **Empty String Handling**: Backend converts empty strings to `null` for optional numeric fields
+- **Client-side Validation**: Frontend prevents submission with empty required fields
+- **Error Messages**: Clear feedback for validation failures
+
+**Files Modified:**
+- `backend/tests/test_dive_sites.py` - Added comprehensive validation tests
+- `backend/app/schemas.py` - Added Pydantic validator for empty string handling
+- `backend/app/routers/dive_sites.py` - Added server-side validation for mandatory fields
+- `frontend/src/pages/EditDiveSite.js` - Added client-side validation
+- `frontend/src/pages/CreateDiveSite.js` - Added client-side validation
+
 ### ✅ Fixed: Frontend Create Pages
 
 **Root Cause:** Admin pages had "Add" buttons that navigated to `/admin/dive-sites/create` and `/admin/diving-centers/create`, but these routes didn't exist in React Router.

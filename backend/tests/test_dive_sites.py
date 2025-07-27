@@ -522,3 +522,100 @@ class TestDiveSites:
     def test_remove_diving_center_from_dive_site_site_not_found(self, client, admin_headers, test_diving_center):
         response = client.delete(f"/api/v1/dive-sites/9999/diving-centers/{test_diving_center.id}", headers=admin_headers)
         assert response.status_code == status.HTTP_404_NOT_FOUND 
+
+    def test_create_dive_site_with_new_fields_admin_success(self, client, admin_headers):
+        """Test creating a dive site with max_depth and alternative_names fields."""
+        dive_site_data = {
+            "name": "Test Dive Site with New Fields",
+            "description": "A test dive site with new fields",
+            "latitude": 10.0,
+            "longitude": 20.0,
+            "max_depth": 25.5,
+            "alternative_names": "Shark Point, Koh Phi Phi"
+        }
+        
+        response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["name"] == "Test Dive Site with New Fields"
+        assert data["max_depth"] == 25.5
+        assert data["alternative_names"] == "Shark Point, Koh Phi Phi" 
+
+    def test_update_dive_site_with_empty_max_depth_admin_success(self, client, admin_headers):
+        """Test updating a dive site with empty max_depth field."""
+        # First create a dive site
+        dive_site_data = {
+            "name": "Test Dive Site for Empty Max Depth",
+            "description": "A test dive site",
+            "latitude": 10.0,
+            "longitude": 20.0,
+            "max_depth": 25.5
+        }
+        
+        create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+        assert create_response.status_code == status.HTTP_200_OK
+        dive_site_id = create_response.json()["id"]
+        
+        # Update the dive site with empty max_depth
+        update_data = {
+            "name": "Updated Test Dive Site",
+            "description": "Updated description",
+            "max_depth": ""  # Empty string
+        }
+        
+        update_response = client.put(f"/api/v1/dive-sites/{dive_site_id}", json=update_data, headers=admin_headers)
+        assert update_response.status_code == status.HTTP_200_OK
+        
+        data = update_response.json()
+        assert data["name"] == "Updated Test Dive Site"
+        assert data["description"] == "Updated description"
+        assert data["max_depth"] is None  # Should be null when empty string is sent 
+
+    def test_update_dive_site_with_null_latitude_rejected(self, client, admin_headers):
+        """Test that updating a dive site with null latitude is rejected."""
+        # First create a dive site
+        dive_site_data = {
+            "name": "Test Dive Site for Null Latitude",
+            "description": "A test dive site",
+            "latitude": 10.0,
+            "longitude": 20.0
+        }
+        
+        create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+        assert create_response.status_code == status.HTTP_200_OK
+        dive_site_id = create_response.json()["id"]
+        
+        # Try to update with null latitude
+        update_data = {
+            "name": "Updated Test Dive Site",
+            "latitude": None
+        }
+        
+        update_response = client.put(f"/api/v1/dive-sites/{dive_site_id}", json=update_data, headers=admin_headers)
+        assert update_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert "Latitude cannot be empty" in update_response.json()["detail"]
+
+    def test_update_dive_site_with_null_longitude_rejected(self, client, admin_headers):
+        """Test that updating a dive site with null longitude is rejected."""
+        # First create a dive site
+        dive_site_data = {
+            "name": "Test Dive Site for Null Longitude",
+            "description": "A test dive site",
+            "latitude": 10.0,
+            "longitude": 20.0
+        }
+        
+        create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+        assert create_response.status_code == status.HTTP_200_OK
+        dive_site_id = create_response.json()["id"]
+        
+        # Try to update with null longitude
+        update_data = {
+            "name": "Updated Test Dive Site",
+            "longitude": None
+        }
+        
+        update_response = client.put(f"/api/v1/dive-sites/{dive_site_id}", json=update_data, headers=admin_headers)
+        assert update_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert "Longitude cannot be empty" in update_response.json()["detail"] 

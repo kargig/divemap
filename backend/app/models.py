@@ -49,6 +49,8 @@ class DiveSite(Base):
     difficulty_level = Column(Enum(DifficultyLevel), default=DifficultyLevel.intermediate, index=True)
     marine_life = Column(Text)  # Added marine life field
     safety_information = Column(Text)  # Added safety information field
+    max_depth = Column(DECIMAL(5, 2))  # Maximum depth in meters
+    alternative_names = Column(Text)  # Alternative names/aliases for the dive site
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

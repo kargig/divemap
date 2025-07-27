@@ -4,6 +4,154 @@ This document tracks recent changes, bug fixes, and improvements to the Divemap 
 
 ## Latest Changes (Latest Release)
 
+### ✅ Added: New Dive Site Fields and Validation Improvements
+
+**Feature:** Added new fields to dive sites and improved validation for mandatory fields.
+
+**New Fields Added:**
+- **`max_depth`**: Maximum depth in meters (DECIMAL(5,2), optional)
+- **`alternative_names`**: Alternative names/aliases for dive sites (TEXT, optional)
+
+**Database Changes:**
+- Added `max_depth` column to `dive_sites` table (DECIMAL(5,2), nullable)
+- Added `alternative_names` column to `dive_sites` table (TEXT, nullable)
+- Migration: `backend/migrations/versions/0002_add_max_depth_and_alternative_names.py`
+
+**API Endpoint Updates:**
+- **POST** `/api/v1/dive-sites/` - Now accepts `max_depth` and `alternative_names` fields
+- **PUT** `/api/v1/dive-sites/{id}` - Now accepts `max_depth` and `alternative_names` fields
+- **GET** `/api/v1/dive-sites/{id}` - Now returns `max_depth` and `alternative_names` fields
+- **GET** `/api/v1/dive-sites/` - Now returns `max_depth` and `alternative_names` fields
+
+**Validation Improvements:**
+- **Latitude/Longitude**: Now properly enforced as mandatory fields
+- **Empty String Handling**: Backend now properly handles empty strings for optional numeric fields
+- **Frontend Validation**: Client-side validation prevents submission with empty required fields
+- **Error Messages**: Clear error messages for validation failures
+
+**Frontend Enhancements:**
+- **Form Field Ordering**: Reorganized form fields for better user experience
+  - Alternative Names moved below Name field
+  - Maximum Depth moved above Dive Plans
+  - Access Instructions moved between Dive Plans and Marine Life
+- **Required Field Indicators**: Latitude and Longitude marked with asterisks (*)
+- **Validation Feedback**: Toast notifications for validation errors
+- **Empty Field Handling**: Proper handling of empty optional fields
+
+**Schema Updates:**
+```python
+# DiveSiteBase and DiveSiteCreate schemas
+max_depth: Optional[float] = Field(None, ge=0, le=1000)
+alternative_names: Optional[str] = None
+
+# DiveSiteUpdate schema with improved validation
+max_depth: Optional[Union[float, str]] = Field(None, ge=0, le=1000)
+
+@validator('max_depth', pre=True)
+def handle_empty_strings(cls, v):
+    if isinstance(v, str) and v.strip() == '':
+        return None
+    return v
+```
+
+**Backend Validation:**
+```python
+# Prevents latitude/longitude from being set to null
+if 'latitude' in update_data and update_data['latitude'] is None:
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail="Latitude cannot be empty"
+    )
+```
+
+**Files Modified:**
+- `backend/app/models.py` - Added max_depth and alternative_names fields
+- `backend/app/schemas.py` - Added new fields with validation
+- `backend/app/routers/dive_sites.py` - Added validation for mandatory fields
+- `frontend/src/pages/EditDiveSite.js` - Updated form with new fields and validation
+- `frontend/src/pages/CreateDiveSite.js` - Updated form with new fields and validation
+- `frontend/src/pages/DiveSiteDetail.js` - Added display for new fields
+- `backend/migrations/versions/0002_add_max_depth_and_alternative_names.py` - Database migration
+
+**Testing:**
+- Added comprehensive tests for new fields
+- Added validation tests for mandatory fields
+- Added tests for empty string handling
+- All existing tests continue to pass
+
+### ✅ Fixed: User Rating Display Bug
+
+**Issue:** When users navigated between dive sites, the rating stars would show the previous dive site's rating instead of the current dive site's rating.
+
+**Root Cause:** The `useEffect` hooks in dive site and diving center detail pages only set the rating when `user_rating` existed, but didn't reset to 0 when the user hadn't rated the current item.
+
+**Solution:**
+```javascript
+// Before (buggy):
+useEffect(() => {
+  if (diveSite && diveSite.user_rating) {
+    setRating(diveSite.user_rating);
+  }
+}, [diveSite]);
+
+// After (fixed):
+useEffect(() => {
+  if (diveSite) {
+    if (diveSite.user_rating) {
+      setRating(diveSite.user_rating);
+    } else {
+      setRating(0); // Reset to 0 if user hasn't rated this dive site
+    }
+  }
+}, [diveSite]);
+```
+
+**Files Modified:**
+- `frontend/src/pages/DiveSiteDetail.js` - Fixed rating state management
+- `frontend/src/pages/DivingCenterDetail.js` - Fixed rating state management
+
+**User Experience:**
+- Users now see empty stars when they haven't rated a dive site/diving center
+- Users see their previous rating when they have rated the current item
+- Clear visual feedback about rating status
+
+### ✅ Fixed: 422 Error When Adding Tags
+
+**Issue:** Attempting to add tags to dive sites would result in a 422 Unprocessable Entity error.
+
+**Root Cause:** The frontend was sending empty strings `""` for `max_depth` when the field was left empty, but the backend expected either a number or `null`.
+
+**Solution:**
+1. **Backend Schema Fix**: Modified `DiveSiteUpdate` schema to handle empty strings for `max_depth`
+2. **Frontend Validation**: Added proper handling of empty `max_depth` values
+3. **Pydantic Validator**: Added validator to convert empty strings to `None`
+
+**Technical Details:**
+```python
+# Backend schema update
+max_depth: Optional[Union[float, str]] = Field(None, ge=0, le=1000)
+
+@validator('max_depth', pre=True)
+def handle_empty_strings(cls, v):
+    if isinstance(v, str) and v.strip() == '':
+        return None
+    return v
+```
+
+```javascript
+// Frontend validation
+if (formData.max_depth && formData.max_depth.trim() !== '') {
+  updateData.max_depth = parseFloat(formData.max_depth);
+} else {
+  updateData.max_depth = null;
+}
+```
+
+**Testing:**
+- Added test to verify empty `max_depth` values are handled correctly
+- All existing functionality continues to work
+- Tag management now works without errors
+
 ### ✅ Added: Database Migration System (Alembic)
 
 **Feature:** Complete Alembic integration for version-controlled database schema management.

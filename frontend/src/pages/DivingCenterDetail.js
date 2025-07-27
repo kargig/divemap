@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Star, MapPin, Phone, Mail, Globe, Calendar, DollarSign, Edit } from 'lucide-react';
@@ -20,6 +20,7 @@ const DivingCenterDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [rating, setRating] = useState(0);
   const [newComment, setNewComment] = useState('');
   const [editingComment, setEditingComment] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
@@ -35,6 +36,17 @@ const DivingCenterDetail = () => {
       select: (response) => response.data
     }
   );
+
+  // Set initial rating to user's previous rating if available
+  useEffect(() => {
+    if (center) {
+      if (center.user_rating) {
+        setRating(center.user_rating);
+      } else {
+        setRating(0); // Reset to 0 if user hasn't rated this diving center
+      }
+    }
+  }, [center]);
 
   // Fetch comments
   const { data: comments, isLoading: commentsLoading } = useQuery(
@@ -52,6 +64,7 @@ const DivingCenterDetail = () => {
       onSuccess: () => {
         queryClient.invalidateQueries(['diving-center', id]);
         toast.success('Rating submitted successfully!');
+        setRating(0);
       },
       onError: (error) => {
         toast.error(error.response?.data?.detail || 'Failed to submit rating');
@@ -107,6 +120,7 @@ const DivingCenterDetail = () => {
       toast.error('Please log in to rate this diving center');
       return;
     }
+    setRating(score);
     rateMutation.mutate({ score });
   };
 
@@ -254,7 +268,7 @@ const DivingCenterDetail = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Rate this diving center</h3>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-600">Your rating:</span>
-              {renderStars(0, true)}
+              {renderStars(rating, true)}
             </div>
           </div>
         )}
@@ -301,7 +315,7 @@ const DivingCenterDetail = () => {
               <div key={comment.id} className="border-b border-gray-200 pb-4">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <span className="font-semibold text-gray-900">{comment.user.username}</span>
+                    <span className="font-semibold text-gray-900">{comment.username}</span>
                     <span className="text-sm text-gray-500 ml-2">
                       {new Date(comment.created_at).toLocaleDateString()}
                     </span>

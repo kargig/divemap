@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 import os
@@ -127,7 +127,7 @@ async def is_admin_or_moderator(current_user: User = Depends(get_current_user)) 
 
 # Optional bearer for endpoints that don't require authentication
 async def get_optional_bearer_token(
-    authorization: Optional[str] = None
+    authorization: Optional[str] = Header(None)
 ) -> Optional[str]:
     if not authorization:
         return None

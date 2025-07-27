@@ -6,6 +6,108 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 ### 🚀 Major Features
 
+#### **New Dive Site Fields and Enhanced Validation**
+- **Maximum Depth**: Added `max_depth` field to track dive site depth in meters
+- **Alternative Names**: Added `alternative_names` field for dive site aliases
+- **Mandatory Coordinates**: Improved validation to ensure latitude/longitude are always required
+- **Form Field Reorganization**: Better user experience with logical field ordering
+- **Empty Field Handling**: Proper handling of empty optional fields
+
+**New Fields:**
+- **`max_depth`**: Maximum depth in meters (optional, 0-1000m range)
+- **`alternative_names`**: Alternative names/aliases for dive sites (optional)
+
+**Form Field Ordering:**
+1. Name (with Difficulty Level)
+2. Alternative Names ← *New position*
+3. Description
+4. Location (Latitude*, Longitude*, Address)
+5. Gas Tanks Necessary
+6. Maximum Depth ← *New position*
+7. Dive Plans
+8. Access Instructions ← *New position*
+9. Marine Life
+10. Safety Information
+
+**Validation Improvements:**
+- **Client-side Validation**: Prevents submission with empty required fields
+- **Server-side Validation**: Backend rejects null latitude/longitude values
+- **Error Messages**: Clear feedback for validation failures
+- **Required Field Indicators**: Asterisks (*) mark mandatory fields
+
+**Files Modified:**
+- `backend/app/models.py` - Added new database fields
+- `backend/app/schemas.py` - Added field validation with empty string handling
+- `backend/app/routers/dive_sites.py` - Added mandatory field validation
+- `frontend/src/pages/EditDiveSite.js` - Updated form with new fields and validation
+- `frontend/src/pages/CreateDiveSite.js` - Updated form with new fields and validation
+- `frontend/src/pages/DiveSiteDetail.js` - Added display for new fields
+- `backend/migrations/versions/0002_add_max_depth_and_alternative_names.py` - Database migration
+
+**Database Migration:**
+```sql
+-- Added max_depth column
+ALTER TABLE dive_sites ADD COLUMN max_depth DECIMAL(5,2) NULL;
+
+-- Added alternative_names column  
+ALTER TABLE dive_sites ADD COLUMN alternative_names TEXT NULL;
+```
+
+#### **User Rating Display Bug Fix**
+- **Issue**: Rating stars showed previous dive site's rating when navigating between sites
+- **Solution**: Fixed `useEffect` hooks to properly reset rating state
+- **User Experience**: Users now see empty stars when they haven't rated a site
+- **Visual Feedback**: Clear indication of rating status
+
+**Technical Fix:**
+```javascript
+// Before: Only set rating if user_rating existed
+useEffect(() => {
+  if (diveSite && diveSite.user_rating) {
+    setRating(diveSite.user_rating);
+  }
+}, [diveSite]);
+
+// After: Reset to 0 if no user_rating
+useEffect(() => {
+  if (diveSite) {
+    if (diveSite.user_rating) {
+      setRating(diveSite.user_rating);
+    } else {
+      setRating(0); // Reset to 0 if user hasn't rated
+    }
+  }
+}, [diveSite]);
+```
+
+**Files Modified:**
+- `frontend/src/pages/DiveSiteDetail.js` - Fixed rating state management
+- `frontend/src/pages/DivingCenterDetail.js` - Fixed rating state management
+
+#### **Tag Management Bug Fix**
+- **Issue**: 422 error when adding tags to dive sites
+- **Root Cause**: Empty strings for `max_depth` field not handled properly
+- **Solution**: Added Pydantic validator to convert empty strings to `null`
+- **Result**: Tag management now works without errors
+
+**Technical Solution:**
+```python
+# Backend schema update
+max_depth: Optional[Union[float, str]] = Field(None, ge=0, le=1000)
+
+@validator('max_depth', pre=True)
+def handle_empty_strings(cls, v):
+    if isinstance(v, str) and v.strip() == '':
+        return None
+    return v
+```
+
+**Testing:**
+- Added comprehensive tests for new fields
+- Added validation tests for mandatory fields
+- Added tests for empty string handling
+- All existing functionality continues to work
+
 #### **Database Migration System (Alembic)**
 - **Alembic Integration**: Complete migration system for version-controlled database changes
 - **Automatic Execution**: Migrations run automatically before application startup

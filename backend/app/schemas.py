@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, EmailStr
-from typing import Optional, List
+from pydantic import BaseModel, Field, EmailStr, validator
+from typing import Optional, List, Union
 from datetime import datetime
 import re
 
@@ -87,6 +87,8 @@ class DiveSiteBase(BaseModel):
     difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
     marine_life: Optional[str] = None
     safety_information: Optional[str] = None
+    max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
+    alternative_names: Optional[str] = None  # Alternative names/aliases
 
 class DiveSiteCreate(DiveSiteBase):
     pass
@@ -103,6 +105,14 @@ class DiveSiteUpdate(BaseModel):
     difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
     marine_life: Optional[str] = None
     safety_information: Optional[str] = None
+    max_depth: Optional[Union[float, str]] = Field(None, ge=0, le=1000)  # Maximum depth in meters
+    alternative_names: Optional[str] = None  # Alternative names/aliases
+
+    @validator('max_depth', pre=True)
+    def handle_empty_strings(cls, v):
+        if isinstance(v, str) and v.strip() == '':
+            return None
+        return v
 
 class DiveSiteResponse(DiveSiteBase):
     id: int
@@ -205,6 +215,7 @@ class DivingCenterResponse(DivingCenterBase):
     updated_at: datetime
     average_rating: Optional[float] = None
     total_ratings: int = 0
+    user_rating: Optional[float] = None
 
     class Config:
         from_attributes = True

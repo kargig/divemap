@@ -19,7 +19,9 @@ const CreateDiveSite = () => {
     gas_tanks_necessary: '',
     difficulty_level: '',
     marine_life: '',
-    safety_information: ''
+    safety_information: '',
+    max_depth: '',
+    alternative_names: ''
   });
 
   const createDiveSiteMutation = useMutation(
@@ -47,12 +49,29 @@ const CreateDiveSite = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // Validate required fields
+    if (!formData.latitude || formData.latitude.trim() === '') {
+      toast.error('Latitude is required');
+      return;
+    }
+    if (!formData.longitude || formData.longitude.trim() === '') {
+      toast.error('Longitude is required');
+      return;
+    }
+    
     // Convert latitude/longitude to numbers
     const submitData = {
       ...formData,
       latitude: parseFloat(formData.latitude),
       longitude: parseFloat(formData.longitude)
     };
+
+    // Convert max_depth to number if provided, or set to null if empty
+    if (formData.max_depth && formData.max_depth.trim() !== '') {
+      submitData.max_depth = parseFloat(formData.max_depth);
+    } else {
+      submitData.max_depth = null;
+    }
 
     createDiveSiteMutation.mutate(submitData);
   };
@@ -113,6 +132,20 @@ const CreateDiveSite = () => {
                 <option value="expert">Expert</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Alternative Names
+            </label>
+            <input
+              type="text"
+              name="alternative_names"
+              value={formData.alternative_names}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., Shark Point, Koh Phi Phi"
+            />
           </div>
 
           <div>
@@ -182,20 +215,6 @@ const CreateDiveSite = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Access Instructions
-              </label>
-              <textarea
-                name="access_instructions"
-                value={formData.access_instructions}
-                onChange={handleInputChange}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="How to access this dive site"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Gas Tanks Necessary
               </label>
               <input
@@ -211,6 +230,23 @@ const CreateDiveSite = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
+              Maximum Depth (meters)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              max="1000"
+              name="max_depth"
+              value={formData.max_depth}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., 25.5"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Dive Plans
             </label>
             <textarea
@@ -220,6 +256,20 @@ const CreateDiveSite = () => {
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Recommended dive plans and routes"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Access Instructions
+            </label>
+            <textarea
+              name="access_instructions"
+              value={formData.access_instructions}
+              onChange={handleInputChange}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="How to access this dive site"
             />
           </div>
 
