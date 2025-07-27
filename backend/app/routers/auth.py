@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from slowapi.util import get_remote_address
 from slowapi import Limiter
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.models import User
@@ -16,9 +17,13 @@ from app.auth import (
     validate_password_strength,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
+from app.google_auth import authenticate_google_user
 from app.limiter import limiter
 
 router = APIRouter()
+
+class GoogleLoginRequest(BaseModel):
+    token: str
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
@@ -108,16 +113,29 @@ async def login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/google-login", response_model=Token)
-async def google_login(db: Session = Depends(get_db)):
-    """Google OAuth login endpoint (to be implemented)"""
-    # TODO: Implement Google OAuth integration
-    # This would involve:
-    # 1. Receiving Google ID token from frontend
-    # 2. Verifying the token with Google
-    # 3. Creating or updating user in database
-    # 4. Returning JWT token
+@limiter.limit("10/minute")
+async def google_login(
+    request: Request,
+    google_data: GoogleLoginRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Google OAuth login endpoint
     
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Google OAuth login not yet implemented"
-    ) 
+    Args:
+        google_data: Contains the Google ID token from frontend
+        db: Database session
+        
+    Returns:
+        JWT access token for authenticated user
+    """
+    try:
+        access_token = authenticate_google_user(google_data.token, db)
+        return {"access_token": access_token, "token_type": "bearer"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Google authentication failed"
+        ) 

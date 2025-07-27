@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import api from '../api';
+import googleAuth from '../utils/googleAuth';
 
 const AuthContext = createContext();
 
@@ -60,6 +61,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async (googleToken) => {
+    try {
+      const response = await api.post('/api/v1/auth/google-login', {
+        token: googleToken,
+      });
+      
+      const { access_token } = response.data;
+      localStorage.setItem('access_token', access_token);
+      setToken(access_token);
+      
+      await fetchUser();
+      toast.success('Google login successful!');
+      return true;
+    } catch (error) {
+      console.error('Google login error:', error);
+      const message = error.response?.data?.detail || 'Google login failed';
+      toast.error(message);
+      return false;
+    }
+  };
+
   const register = async (username, email, password) => {
     try {
       const response = await api.post('/api/v1/auth/register', {
@@ -83,10 +105,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const registerWithGoogle = async (googleToken) => {
+    try {
+      const response = await api.post('/api/v1/auth/google-login', {
+        token: googleToken,
+      });
+      
+      const { access_token } = response.data;
+      localStorage.setItem('access_token', access_token);
+      setToken(access_token);
+      
+      await fetchUser();
+      toast.success('Google registration successful!');
+      return true;
+    } catch (error) {
+      console.error('Google registration error:', error);
+      const message = error.response?.data?.detail || 'Google registration failed';
+      toast.error(message);
+      return false;
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('access_token');
     setToken(null);
     setUser(null);
+    // Also sign out from Google
+    googleAuth.signOut();
     toast.success('Logged out successfully');
   };
 
@@ -94,7 +139,9 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     login,
+    loginWithGoogle,
     register,
+    registerWithGoogle,
     logout,
   };
 

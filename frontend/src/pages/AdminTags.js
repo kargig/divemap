@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Edit, Trash2, Save, Loader, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Trash2, Edit, Plus, Search, X, Loader, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api';
 
 const AdminTags = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Tag management state
@@ -19,6 +17,8 @@ const AdminTags = () => {
     name: '',
     description: ''
   });
+  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch tags data
   const { data: tags, isLoading } = useQuery(
@@ -73,6 +73,54 @@ const AdminTags = () => {
       },
     }
   );
+
+  // Mass delete mutation
+  const massDeleteMutation = useMutation(
+    (ids) => Promise.all(ids.map(id => api.delete(`/api/v1/tags/${id}`))),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['admin-tags']);
+        setSelectedItems(new Set());
+        toast.success(`${selectedItems.size} tag(s) deleted successfully!`);
+      },
+      onError: (error) => {
+        toast.error('Failed to delete some tags');
+      },
+    }
+  );
+
+  // Selection handlers
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      // Only select tags that can be deleted (no dive sites associated)
+      const deletableTags = tags?.filter(tag => tag.dive_site_count === 0) || [];
+      setSelectedItems(new Set(deletableTags.map(tag => tag.id)));
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
+  const handleSelectItem = (id, checked) => {
+    const newSelected = new Set(selectedItems);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleMassDelete = () => {
+    if (selectedItems.size === 0) return;
+    
+    const itemNames = Array.from(selectedItems)
+      .map(id => tags?.find(tag => tag.id === id)?.name)
+      .filter(Boolean);
+    
+    if (window.confirm(`Are you sure you want to delete ${selectedItems.size} tag(s)?\n\n${itemNames.join('\n')}`)) {
+      massDeleteMutation.mutate(Array.from(selectedItems));
+    }
+  };
 
   // Tag handlers
   const handleCreateTag = () => {
@@ -146,12 +194,41 @@ const AdminTags = () => {
         </button>
       </div>
 
+      {/* Mass Delete Button */}
+      {selectedItems.size > 0 && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="text-red-800 font-medium">
+                {selectedItems.size} item(s) selected
+              </span>
+            </div>
+            <button
+              onClick={handleMassDelete}
+              disabled={massDeleteMutation.isLoading}
+              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected ({selectedItems.size})
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Tags List */}
       <div className="bg-white rounded-lg shadow-md">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={selectedItems.size === (tags?.filter(tag => tag.dive_site_count === 0).length || 0) && (tags?.filter(tag => tag.dive_site_count === 0).length || 0) > 0}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Tag Name
                 </th>
@@ -172,6 +249,15 @@ const AdminTags = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {tags?.map((tag) => (
                 <tr key={tag.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.has(tag.id)}
+                      onChange={(e) => handleSelectItem(tag.id, e.target.checked)}
+                      disabled={tag.dive_site_count > 0}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{tag.name}</div>
                   </td>

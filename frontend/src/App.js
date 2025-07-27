@@ -77,13 +77,16 @@ function App() {
         <Router>
           <div className="min-h-screen bg-gray-50">
             <Navbar />
-            <main className="container mx-auto px-4 py-8">
+            <main className="container mx-auto px-4 py-8 pt-24">
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/dive-sites" element={<DiveSites />} />
-                <Route path="/dive-sites/:id" element={<DiveSiteDetail />} />
+                <Route 
+                  path="/dive-sites/:id" 
+                  element={<DiveSiteDetail />} 
+                />
                 <Route 
                   path="/dive-sites/:id/edit" 
                   element={
@@ -93,7 +96,10 @@ function App() {
                   } 
                 />
                 <Route path="/diving-centers" element={<DivingCenters />} />
-                <Route path="/diving-centers/:id" element={<DivingCenterDetail />} />
+                <Route 
+                  path="/diving-centers/:id" 
+                  element={<DivingCenterDetail />} 
+                />
                 <Route 
                   path="/diving-centers/:id/edit" 
                   element={
@@ -168,7 +174,16 @@ function App() {
                 />
               </Routes>
             </main>
-            <Toaster position="top-right" />
+            <Toaster 
+              position="top-right" 
+              toastOptions={{
+                duration: 500,
+                style: {
+                  marginTop: '4rem', // Add top margin to appear below navbar
+                  zIndex: 9999, // Ensure it's above other elements but below navbar dropdown
+                },
+              }}
+            />
           </div>
         </Router>
       </AuthProvider>

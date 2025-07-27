@@ -13,14 +13,16 @@ This document outlines the technical design for a Python-based web application, 
 * Implement a system for parsing dive store newsletters to extract and display upcoming dive trip information on an interactive map.  
 * Provide contact mechanisms for users to book dives with centers.  
 * Design for scalability and future expansion to a mobile application.
+* Implement secure authentication with Google OAuth for enhanced user experience.
 
 ## **3\. Functional Requirements**
 
 ### **3.1. User Management**
 
-* User registration and authentication (email/password, social login \- optional in initial phase).  
+* User registration and authentication (email/password, Google OAuth).  
 * User profiles (displaying user's ratings, comments).  
 * Password reset functionality.
+* Google OAuth integration for secure authentication.
 
 ### **3.2. Dive Site Management**
 
@@ -90,6 +92,13 @@ This document outlines the technical design for a Python-based web application, 
 * Search diving centers by name, location, associated dive sites.  
 * Filter dive sites/centers by average rating.
 
+### **3.7. Admin Management System**
+
+* **Mass Operations**: Bulk delete functionality for admin management pages
+* **User Management**: Complete user CRUD with role assignment and status control
+* **Tag Management**: Comprehensive tag system with usage statistics
+* **Safety Features**: Protection against deleting used tags and self-deletion
+
 ## **4\. Non-Functional Requirements**
 
 * **Performance:**  
@@ -99,15 +108,17 @@ This document outlines the technical design for a Python-based web application, 
   * Ability to handle increasing user traffic and data volume.  
   * Support for future mobile application integration.  
 * **Security:**  
-  * User authentication and authorization.  
+  * User authentication and authorization (JWT + Google OAuth).
   * Protection against common web vulnerabilities (XSS, CSRF, SQL injection).  
   * Data encryption (especially for user credentials).  
+  * Secure Google OAuth token verification.
 * **Maintainability:**  
   * Clean, modular, and well-documented codebase.  
   * Easy to deploy and update.  
 * **Usability:**  
   * Intuitive user interface for both web and future mobile applications.  
-  * Responsive design for various screen sizes.  
+  * Responsive design for various screen sizes.
+  * Enhanced toast notifications and layout improvements.
 * **Reliability:**  
   * High availability of the platform.  
   * Robust error handling and logging.
@@ -163,15 +174,18 @@ The application will follow a microservices-oriented or a well-separated monolit
   * Interactive map display for dive trips.  
   * Responsive design.  
   * Communication with the backend via RESTful API calls.
+  * Google OAuth integration with Google Identity Services.
+  * Mass delete functionality for admin management.
 
 #### **5.2.2. Backend (API)**
 
 * **Language:** Python  
 * **Framework:** FastAPI (chosen for its high performance, modern features, and automatic OpenAPI/Swagger documentation generation).  
 * **Key Services/Modules:**  
-  * **User Service:** Handles user registration, login, authentication (JWT), profile management.  
+  * **User Service:** Handles user registration, login, authentication (JWT + Google OAuth), profile management.  
   * **Dive Site Service:** CRUD operations for dive sites, rating logic, comment management.  
   * **Diving Center Service:** CRUD operations for diving centers, rating logic, comment management, association with dive sites and pricing.  
+  * **Google OAuth Service:** Token verification and user management for Google authentication.
   * **Newsletter Parsing Service:**  
     * Receives newsletter content.  
     * Utilizes NLP techniques (e.g., SpaCy, NLTK) or rule-based parsing to extract entities (dive center names, dive site names, dates).  
@@ -192,6 +206,7 @@ The application will follow a microservices-oriented or a well-separated monolit
     * username  
     * email (unique)  
     * password\_hash  
+    * google\_id (unique, nullable) - NEW FIELD
     * created\_at  
     * updated\_at  
     * is\_admin (boolean)  
@@ -292,6 +307,7 @@ The application will follow a microservices-oriented or a well-separated monolit
 
 * /api/v1/auth/register (POST)  
 * /api/v1/auth/login (POST)  
+* /api/v1/auth/google-login (POST) - NEW ENDPOINT
 * /api/v1/users/{user\_id} (GET, PUT)  
 * /api/v1/dive-sites (GET, POST)  
 * /api/v1/dive-sites/{site\_id} (GET, PUT, DELETE)  
@@ -323,12 +339,14 @@ The application will follow a microservices-oriented or a well-separated monolit
   * Redis  
   * Requests (for external API calls if any)  
   * Pillow (for image processing \- resizing, compression)  
-  * SpaCy / NLTK (for NLP in newsletter parsing)  
+  * SpaCy / NLTK (for NLP in newsletter parsing)
+  * Google Auth (for OAuth verification) - NEW
 * **Frontend:**  
   * React / React Native  
   * Redux / Zustand / React Query (for state management and data fetching)  
   * Mapbox GL JS / Leaflet / Google Maps API (for interactive maps)  
-  * Axios (for API calls)  
+  * Axios (for API calls)
+  * Google Identity Services (for OAuth) - NEW
 * **DevOps & Deployment:**  
   * Docker / Docker Compose (for local development and deployment)  
   * Kubernetes (for container orchestration in production \- long-term)  
@@ -349,6 +367,7 @@ The application will follow a microservices-oriented or a well-separated monolit
 * **Booking Integration:** Direct booking functionality with diving centers (requires integration with their booking systems, potentially via APIs).  
 * **User-Generated Content Review Workflow:** For comments and ratings to prevent abuse.  
 * **Internationalization (i18n):** Support for multiple languages.
+* **Additional OAuth Providers:** Facebook, GitHub, etc.
 
 ## **9\. Implementation Phases (High-Level)**
 
@@ -396,7 +415,7 @@ The application will follow a microservices-oriented or a well-separated monolit
 
 ## **10\. Security Considerations**
 
-* **Authentication:** JWT (JSON Web Tokens) for stateless authentication.  
+* **Authentication:** JWT (JSON Web Tokens) for stateless authentication + Google OAuth.  
 * **Authorization:** Role-based access control (RBAC) to distinguish between regular users, administrators, and moderators.  
 * **Password Hashing:** Use strong, industry-standard hashing algorithms (e.g., bcrypt) with salts.  
 * **Input Validation:** Sanitize and validate all user inputs to prevent injection attacks (SQL injection, XSS).  
@@ -405,6 +424,7 @@ The application will follow a microservices-oriented or a well-separated monolit
 * **Rate Limiting:** Protect against brute-force attacks and API abuse.  
 * **Secret Management:** Securely store API keys and sensitive credentials (e.g., environment variables, dedicated secret management services).  
 * **Regular Security Audits:** Conduct periodic vulnerability assessments and penetration testing.
+* **Google OAuth Security:** Secure token verification with Google's servers.
 
 ## **11\. Error Handling and Logging**
 
@@ -436,12 +456,14 @@ The application will follow a microservices-oriented or a well-separated monolit
 * Integration tests for database operations
 * Authentication and authorization testing
 * Error handling and edge case testing
+* Google OAuth testing
 
 #### **B. Frontend Validation**
 * Data type validation (lat/lng as strings, ratings as numbers)
 * API endpoint connectivity testing
 * Common error prevention (array safety, type conversion)
 * User interface functionality testing
+* Google OAuth integration testing
 
 #### **C. Regression Prevention**
 * Automated testing for common frontend errors
@@ -496,7 +518,7 @@ node test_regressions.js
 * 🔄 Interactive map display of dive trips
 * 🔄 Contact details for booking (email/phone)
 
-#### **Phase 4: Refinement & Scaling 🔄 IN PROGRESS**
+#### **Phase 4: Refinement & Scaling ✅ COMPLETED**
 * ✅ Performance optimizations (caching, query tuning)
 * ✅ Robust error handling and logging
 * ✅ Security enhancements
@@ -506,31 +528,58 @@ node test_regressions.js
 
 ### **13.2 Recent Enhancements**
 
-#### **Testing Infrastructure**
+#### **Google OAuth Authentication ✅ COMPLETED**
+* ✅ Complete OAuth 2.0 integration with Google Identity Services
+* ✅ Backend token verification with Google's servers
+* ✅ Automatic user creation and account linking
+* ✅ Frontend Google Sign-In buttons
+* ✅ Environment configuration and setup guide
+* ✅ Security features (rate limiting, error handling)
+
+#### **Mass Delete Functionality ✅ COMPLETED**
+* ✅ Bulk operations for all admin management pages
+* ✅ Safety features (protection against deleting used tags and self-deletion)
+* ✅ Confirmation dialogs with item names
+* ✅ Visual feedback (loading states, success/error messages)
+* ✅ Responsive design for all screen sizes
+
+#### **Toast Notification Enhancements ✅ COMPLETED**
+* ✅ Notifications appear below navbar to prevent navigation blocking
+* ✅ Reduced duration to 500ms for quicker disappearance
+* ✅ Proper z-index management with navbar
+* ✅ Responsive design for all screen sizes
+
+#### **Layout Improvements ✅ COMPLETED**
+* ✅ Fixed navbar with proper z-index
+* ✅ Adjusted content spacing to account for fixed navbar
+* ✅ Text wrapping to prevent horizontal scrollbars
+* ✅ Increased container width for better content display
+
+#### **Testing Infrastructure ✅ COMPLETED**
 * ✅ Comprehensive backend test suite with Pytest
 * ✅ Frontend validation scripts for regression prevention
 * ✅ Data type safety testing and validation
 * ✅ Automated testing for common frontend errors
 
-#### **User Experience Improvements**
+#### **User Experience Improvements ✅ COMPLETED**
 * ✅ Rating display changed from stars to numeric format (X.X/10)
 * ✅ Enhanced dive site details with comprehensive information
 * ✅ Improved search and filtering with parameter validation
 * ✅ Better error handling and loading states
 
-#### **Admin Functionality**
+#### **Admin Functionality ✅ COMPLETED**
 * ✅ Comprehensive edit forms for dive sites and diving centers
 * ✅ Media management for dive sites
 * ✅ Gear rental cost management for diving centers
 * ✅ Protected routes for admin/moderator users
 
-#### **Data Type Safety**
+#### **Data Type Safety ✅ COMPLETED**
 * ✅ Fixed latitude/longitude type conversion issues
 * ✅ Improved array safety checks
 * ✅ API parameter filtering to prevent 422 errors
 * ✅ Comprehensive error prevention guidelines
 
-#### **Tag Management System**
+#### **Tag Management System ✅ COMPLETED**
 * ✅ Comprehensive tag/label system for dive sites
 * ✅ Tag display in dive site details page
 * ✅ Multiple tag selection in edit forms with checkboxes
@@ -538,7 +587,7 @@ node test_regressions.js
 * ✅ Create new tags functionality for admins/moderators
 * ✅ Efficient tag management with proper state handling
 
-#### **Map UI and Zoom Management**
+#### **Map UI and Zoom Management ✅ COMPLETED**
 * ✅ Interactive map display with OpenLayers integration
 * ✅ Different icons for dive sites and diving centers
 * ✅ Zoom level debugging indicator for optimal zoom configuration
@@ -550,25 +599,27 @@ node test_regressions.js
 
 ### **13.3 Technical Improvements**
 
-#### **Frontend Enhancements**
+#### **Frontend Enhancements ✅ COMPLETED**
 * ✅ Centralized API client with Axios
 * ✅ React Query for efficient data fetching
 * ✅ Comprehensive error boundaries and loading states
 * ✅ Responsive design with Tailwind CSS
+* ✅ Google OAuth integration with Google Identity Services
 
-#### **Backend Enhancements**
+#### **Backend Enhancements ✅ COMPLETED**
 * ✅ FastAPI with automatic OpenAPI documentation
 * ✅ SQLAlchemy ORM with proper relationships
 * ✅ JWT authentication with role-based access control
 * ✅ Comprehensive API validation with Pydantic
+* ✅ Google OAuth token verification
 
-#### **DevOps & Deployment**
+#### **DevOps & Deployment ✅ COMPLETED**
 * ✅ Docker Compose for local development
 * ✅ MySQL database with proper schema
 * ✅ Nginx reverse proxy configuration
 * ✅ Automated testing and validation scripts
 
-#### **Admin Management System**
+#### **Admin Management System ✅ COMPLETED**
 * ✅ Comprehensive admin dashboard with multiple management sections
 * ✅ Tag management with dive site count display
 * ✅ User management with role and status control
@@ -576,42 +627,61 @@ node test_regressions.js
 * ✅ Admin-only user creation, editing, and deletion
 * ✅ Role-based access control (User, Moderator, Admin)
 * ✅ User status management (enabled/disabled)
+* ✅ Mass delete functionality with safety features
 
-#### **User Registration and Approval System**
+#### **User Registration and Approval System ✅ COMPLETED**
 * ✅ New users created with enabled=False by default
 * ✅ Admin approval required for account activation
-* ✅ Google OAuth login button (stub implementation)
+* ✅ Google OAuth integration for secure authentication
 * ✅ Registration success message with approval notice
 * ✅ Disabled users blocked from accessing protected endpoints
 * ✅ User-friendly approval workflow
 
 ### **13.4 Recent Bug Fixes**
 
-#### **API Serialization Issues**
+#### **Google OAuth Implementation ✅ COMPLETED**
+* ✅ Fixed ModuleNotFoundError for Google packages
+* ✅ Successfully added google_id field to users table
+* ✅ Fixed dependency conflicts with pyasn1
+* ✅ Rebuilt Docker containers with new dependencies
+
+#### **Frontend Linting Issues ✅ COMPLETED**
+* ✅ Fixed missing icon imports (X, Loader, Save)
+* ✅ Fixed useEffect dependency warnings with useCallback
+* ✅ Removed unused navigate imports
+* ✅ Fixed all ESLint errors and warnings
+
+#### **Layout and UX Issues ✅ COMPLETED**
+* ✅ Fixed toast notifications appearing behind navbar
+* ✅ Prevented horizontal scrollbars with text wrapping
+* ✅ Proper z-index management for fixed navbar
+* ✅ Improved container width and spacing
+
+#### **API Serialization Issues ✅ COMPLETED**
 * ✅ Fixed dive sites API tag serialization causing 500 errors
 * ✅ Updated AvailableTag model field mapping (removed non-existent 'category' field)
 * ✅ Fixed Pydantic response validation errors for dive sites endpoint
 * ✅ Proper tag dictionary serialization in all dive site endpoints
 
-#### **Schema Validation Updates**
+#### **Schema Validation Updates ✅ COMPLETED**
 * ✅ Added 'expert' difficulty level support to all dive site schemas
 * ✅ Updated difficulty level patterns in DiveSiteBase, DiveSiteUpdate, and DiveSiteSearchParams
 * ✅ Fixed query parameter validation for difficulty level filtering
 
-#### **Frontend Create Pages**
+#### **Frontend Create Pages ✅ COMPLETED**
 * ✅ Added missing CreateDiveSite.js component with comprehensive form
 * ✅ Added missing CreateDivingCenter.js component with comprehensive form
 * ✅ Added proper React Router routes for create pages
 * ✅ Implemented form validation and error handling
 * ✅ Added proper navigation and user experience features
 
-#### **Authentication and Docker Issues**
+#### **Authentication and Docker Issues ✅ COMPLETED**
 * ✅ Resolved admin login issues with updated password requirements
 * ✅ Fixed slowapi import errors in containerized environment
 * ✅ Updated admin password to meet new security requirements
 * ✅ Rebuilt Docker images to include latest dependencies
 
-#### **Testing and Validation**
+#### **Testing and Validation ✅ COMPLETED**
 * ✅ Updated test data to include 'expert' difficulty level
 * ✅ Fixed test tag data to match actual model fields
 * ✅ Added comprehensive API response validation tests

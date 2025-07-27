@@ -10,6 +10,7 @@ const AdminDiveSites = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [selectedItems, setSelectedItems] = useState(new Set());
 
   // Fetch dive sites data
   const { data: diveSites, isLoading } = useQuery(
@@ -33,6 +34,52 @@ const AdminDiveSites = () => {
       },
     }
   );
+
+  // Mass delete mutation
+  const massDeleteMutation = useMutation(
+    (ids) => Promise.all(ids.map(id => api.delete(`/api/v1/dive-sites/${id}`))),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['admin-dive-sites']);
+        setSelectedItems(new Set());
+        toast.success(`${selectedItems.size} dive site(s) deleted successfully!`);
+      },
+      onError: (error) => {
+        toast.error('Failed to delete some dive sites');
+      },
+    }
+  );
+
+  // Selection handlers
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedItems(new Set(diveSites?.map(site => site.id) || []));
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
+  const handleSelectItem = (id, checked) => {
+    const newSelected = new Set(selectedItems);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleMassDelete = () => {
+    if (selectedItems.size === 0) return;
+    
+    const itemNames = Array.from(selectedItems)
+      .map(id => diveSites?.find(site => site.id === id)?.name)
+      .filter(Boolean);
+    
+    if (window.confirm(`Are you sure you want to delete ${selectedItems.size} dive site(s)?\n\n${itemNames.join('\n')}`)) {
+      massDeleteMutation.mutate(Array.from(selectedItems));
+    }
+  };
 
   // Edit handlers
   const handleEditDiveSite = (diveSite) => {
@@ -66,7 +113,7 @@ const AdminDiveSites = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-7xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dive Sites Management</h1>
@@ -81,12 +128,41 @@ const AdminDiveSites = () => {
         </button>
       </div>
 
+      {/* Mass Delete Button */}
+      {selectedItems.size > 0 && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="text-red-800 font-medium">
+                {selectedItems.size} item(s) selected
+              </span>
+            </div>
+            <button
+              onClick={handleMassDelete}
+              disabled={massDeleteMutation.isLoading}
+              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected ({selectedItems.size})
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Dive Sites List */}
       <div className="bg-white rounded-lg shadow-md">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={selectedItems.size === diveSites?.length && diveSites?.length > 0}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Name
                 </th>
@@ -108,8 +184,16 @@ const AdminDiveSites = () => {
               {diveSites?.map((site) => (
                 <tr key={site.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.has(site.id)}
+                      onChange={(e) => handleSelectItem(site.id, e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </td>
+                  <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900">{site.name}</div>
-                    <div className="text-sm text-gray-500">{site.description}</div>
+                    <div className="text-sm text-gray-500 break-words max-w-xs">{site.description}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -124,7 +208,7 @@ const AdminDiveSites = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {site.average_rating ? `${site.average_rating.toFixed(1)}/10` : 'No ratings'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1">
                       {site.tags?.map((tag) => (
                         <span

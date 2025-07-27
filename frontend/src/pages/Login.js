@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
+import googleAuth from '../utils/googleAuth';
+import toast from 'react-hot-toast';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -10,9 +12,47 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleSuccess = useCallback(async (credential) => {
+    setGoogleLoading(true);
+    try {
+      const success = await loginWithGoogle(credential);
+      if (success) {
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [loginWithGoogle, navigate]);
+
+  const handleGoogleError = useCallback((error) => {
+    console.error('Google Sign-In error:', error);
+    toast.error('Google Sign-In failed. Please try again.');
+    setGoogleLoading(false);
+  }, []);
+
+  useEffect(() => {
+    // Initialize Google Sign-In button
+    const initializeGoogleSignIn = async () => {
+      try {
+        await googleAuth.initializeSignInButton(
+          'google-signin-button',
+          handleGoogleSuccess,
+          handleGoogleError
+        );
+      } catch (error) {
+        console.error('Failed to initialize Google Sign-In:', error);
+      }
+    };
+
+    initializeGoogleSignIn();
+  }, [handleGoogleSuccess, handleGoogleError]);
 
   const handleChange = (e) => {
     setFormData({
@@ -110,6 +150,27 @@ const Login = () => {
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-50 text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <div>
+            <div
+              id="google-signin-button"
+              className="w-full flex justify-center"
+            ></div>
+            {googleLoading && (
+              <div className="mt-2 text-center text-sm text-gray-600">
+                Signing in with Google...
+              </div>
+            )}
           </div>
 
           <div className="text-center">

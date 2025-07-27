@@ -18,7 +18,8 @@
     "autoprefixer": "^10.4.14",
     "postcss": "^8.4.21",
     "lucide-react": "^0.263.1",
-    "ol": "^8.2.0"
+    "ol": "^8.2.0",
+    "@react-oauth/google": "^0.12.1"
   },
   "scripts": {
     "start": "react-scripts start",

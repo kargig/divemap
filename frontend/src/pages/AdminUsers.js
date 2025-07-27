@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Edit, Trash2, Save, Loader, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Trash2, Edit, Plus, Search, X, Loader, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api';
 
 const AdminUsers = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // User management state
@@ -23,6 +21,8 @@ const AdminUsers = () => {
     is_moderator: false,
     enabled: true
   });
+  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch users data
   const { data: users, isLoading } = useQuery(
@@ -92,6 +92,54 @@ const AdminUsers = () => {
     }
   );
 
+  // Mass delete mutation
+  const massDeleteMutation = useMutation(
+    (ids) => Promise.all(ids.map(id => api.delete(`/api/v1/users/admin/users/${id}`))),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['admin-users']);
+        setSelectedItems(new Set());
+        toast.success(`${selectedItems.size} user(s) deleted successfully!`);
+      },
+      onError: (error) => {
+        toast.error('Failed to delete some users');
+      },
+    }
+  );
+
+  // Selection handlers
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      // Only select users that can be deleted (not the current user)
+      const deletableUsers = users?.filter(userItem => userItem.id !== user?.id) || [];
+      setSelectedItems(new Set(deletableUsers.map(userItem => userItem.id)));
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
+  const handleSelectItem = (id, checked) => {
+    const newSelected = new Set(selectedItems);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleMassDelete = () => {
+    if (selectedItems.size === 0) return;
+    
+    const itemNames = Array.from(selectedItems)
+      .map(id => users?.find(userItem => userItem.id === id)?.username)
+      .filter(Boolean);
+    
+    if (window.confirm(`Are you sure you want to delete ${selectedItems.size} user(s)?\n\n${itemNames.join('\n')}`)) {
+      massDeleteMutation.mutate(Array.from(selectedItems));
+    }
+  };
+
   // User handlers
   const handleCreateUser = () => {
     if (!userForm.username.trim() || !userForm.email.trim() || !userForm.password.trim()) {
@@ -101,15 +149,15 @@ const AdminUsers = () => {
     createUserMutation.mutate(userForm);
   };
 
-  const handleEditUser = (user) => {
-    setEditingUser(user);
+  const handleEditUser = (userItem) => {
+    setEditingUser(userItem);
     setUserForm({
-      username: user.username,
-      email: user.email,
+      username: userItem.username,
+      email: userItem.email,
       password: '', // Don't pre-fill password for security
-      is_admin: user.is_admin,
-      is_moderator: user.is_moderator,
-      enabled: user.enabled
+      is_admin: userItem.is_admin,
+      is_moderator: userItem.is_moderator,
+      enabled: userItem.enabled
     });
     setShowEditUserModal(true);
   };
@@ -132,14 +180,14 @@ const AdminUsers = () => {
     });
   };
 
-  const handleDeleteUser = (user) => {
-    if (user.id === user?.id) {
+  const handleDeleteUser = (userItem) => {
+    if (userItem.id === user?.id) {
       toast.error('You cannot delete your own account');
       return;
     }
     
-    if (window.confirm(`Are you sure you want to delete the user "${user.username}"?`)) {
-      deleteUserMutation.mutate(user.id);
+    if (window.confirm(`Are you sure you want to delete the user "${userItem.username}"?`)) {
+      deleteUserMutation.mutate(userItem.id);
     }
   };
 
@@ -187,12 +235,41 @@ const AdminUsers = () => {
         </button>
       </div>
 
+      {/* Mass Delete Button */}
+      {selectedItems.size > 0 && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="text-red-800 font-medium">
+                {selectedItems.size} item(s) selected
+              </span>
+            </div>
+            <button
+              onClick={handleMassDelete}
+              disabled={massDeleteMutation.isLoading}
+              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected ({selectedItems.size})
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Users List */}
       <div className="bg-white rounded-lg shadow-md">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={selectedItems.size === (users?.filter(userItem => userItem.id !== user?.id).length || 0) && (users?.filter(userItem => userItem.id !== user?.id).length || 0) > 0}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Username
                 </th>
@@ -216,6 +293,15 @@ const AdminUsers = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {users?.map((userItem) => (
                 <tr key={userItem.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.has(userItem.id)}
+                      onChange={(e) => handleSelectItem(userItem.id, e.target.checked)}
+                      disabled={userItem.id === user?.id}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{userItem.username}</div>
                   </td>
