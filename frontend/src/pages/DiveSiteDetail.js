@@ -23,6 +23,11 @@ const DiveSiteDetail = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
+  // Debug logging
+  useEffect(() => {
+    console.log('DiveSiteDetail: Component mounted with ID:', id);
+  }, [id]);
+  
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [showCommentForm, setShowCommentForm] = useState(false);
@@ -35,7 +40,13 @@ const DiveSiteDetail = () => {
     ['dive-site', id],
     () => api.get(`/api/v1/dive-sites/${id}`),
     {
-      select: (response) => response.data
+      select: (response) => response.data,
+      onSuccess: (data) => {
+        console.log('DiveSiteDetail: Received dive site data:', data);
+      },
+      onError: (error) => {
+        console.error('DiveSiteDetail: Error loading dive site:', error);
+      }
     }
   );
 
@@ -150,17 +161,21 @@ const DiveSiteDetail = () => {
   }
 
   if (error) {
+    console.error('DiveSiteDetail: Error state:', error);
     return (
       <div className="text-center py-12">
         <p className="text-red-600">Error loading dive site. Please try again.</p>
+        <p className="text-sm text-gray-500 mt-2">Error: {getErrorMessage(error)}</p>
       </div>
     );
   }
 
   if (!diveSite) {
+    console.log('DiveSiteDetail: No dive site data found for ID:', id);
     return (
       <div className="text-center py-12">
         <p className="text-gray-600">Dive site not found.</p>
+        <p className="text-sm text-gray-500 mt-2">ID: {id}</p>
       </div>
     );
   }

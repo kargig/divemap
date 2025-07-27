@@ -85,11 +85,31 @@ alembic revision -m "Complex data migration"
 
 Migration files are stored in `migrations/versions/` and follow the naming convention:
 - `0001_initial.py` - Initial database schema
-- `0002_add_currency_fields.py` - Example migration
+- `0002_add_max_depth_and_alternative_names.py` - Added max_depth and alternative_names fields
+- `0003_add_country_region_fields.py` - Added country and region fields with indexes
 
 Each migration file contains:
 - `upgrade()` function - Applied when migrating forward
 - `downgrade()` function - Applied when rolling back
+
+## Recent Migrations
+
+### Migration 0003: Country and Region Fields
+
+**Purpose**: Added country and region fields to dive sites for better geographic organization.
+
+**Changes**:
+- Added `country` column (VARCHAR(100), nullable)
+- Added `region` column (VARCHAR(100), nullable)
+- Created indexes for performance: `ix_dive_sites_country`, `ix_dive_sites_region`
+
+**Features Enabled**:
+- Country and region filtering in dive sites list
+- Automatic geocoding suggestions using OpenStreetMap
+- Enhanced geographic organization of dive sites
+
+**API Endpoints Added**:
+- `GET /api/v1/dive-sites/reverse-geocode` - Get country/region from coordinates
 
 ## Best Practices
 

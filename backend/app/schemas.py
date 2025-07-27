@@ -89,6 +89,8 @@ class DiveSiteBase(BaseModel):
     safety_information: Optional[str] = None
     max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
     alternative_names: Optional[str] = None  # Alternative names/aliases
+    country: Optional[str] = Field(None, max_length=100)  # Country name
+    region: Optional[str] = Field(None, max_length=100)  # Region/state/province name
 
 class DiveSiteCreate(DiveSiteBase):
     pass
@@ -107,6 +109,8 @@ class DiveSiteUpdate(BaseModel):
     safety_information: Optional[str] = None
     max_depth: Optional[Union[float, str]] = Field(None, ge=0, le=1000)  # Maximum depth in meters
     alternative_names: Optional[str] = None  # Alternative names/aliases
+    country: Optional[str] = Field(None, max_length=100)  # Country name
+    region: Optional[str] = Field(None, max_length=100)  # Region/state/province name
 
     @validator('max_depth', pre=True)
     def handle_empty_strings(cls, v):
@@ -184,6 +188,8 @@ class DiveSiteSearchParams(BaseModel):
     min_rating: Optional[float] = Field(None, ge=0, le=10)
     max_rating: Optional[float] = Field(None, ge=0, le=10)
     tag_ids: Optional[List[int]] = None
+    country: Optional[str] = None
+    region: Optional[str] = None
     limit: int = Field(50, ge=1, le=100)
     offset: int = Field(0, ge=0)
 

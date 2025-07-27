@@ -4,6 +4,108 @@ This document tracks recent changes, bug fixes, and improvements to the Divemap 
 
 ## Latest Changes (Latest Release)
 
+### ✅ Added: Country and Region Fields with Geocoding
+
+**Feature:** Added country and region fields to dive sites with automatic geocoding support.
+
+**New Fields Added:**
+- **`country`**: Country name (VARCHAR(100), optional, indexed)
+- **`region`**: Region/state/province name (VARCHAR(100), optional, indexed)
+
+**Database Changes:**
+- Added `country` column to `dive_sites` table (VARCHAR(100), nullable)
+- Added `region` column to `dive_sites` table (VARCHAR(100), nullable)
+- Created indexes for performance: `ix_dive_sites_country`, `ix_dive_sites_region`
+- Migration: `backend/migrations/versions/0003_add_country_region_fields.py`
+
+**New API Endpoint:**
+- **GET** `/api/v1/dive-sites/reverse-geocode` - Get country/region suggestions from coordinates
+
+**Request Parameters:**
+- `latitude` (float, required): Latitude coordinate (-90 to 90)
+- `longitude` (float, required): Longitude coordinate (-180 to 180)
+
+**Response Format:**
+```json
+{
+  "country": "Iceland",
+  "region": "Bláskógabyggð",
+  "full_address": "Bláskógabyggð, Southern Region, Iceland"
+}
+```
+
+**Error Responses:**
+```json
+{
+  "detail": "Geocoding service timeout. Please try again later."
+}
+```
+
+**Updated API Endpoints:**
+- **GET** `/api/v1/dive-sites/` - Added `country` and `region` query parameters for filtering
+- **POST** `/api/v1/dive-sites/` - Now accepts `country` and `region` fields
+- **PUT** `/api/v1/dive-sites/{id}` - Now accepts `country` and `region` fields
+- **GET** `/api/v1/dive-sites/{id}` - Now returns `country` and `region` fields
+
+**Geocoding Features:**
+- **OpenStreetMap Integration**: Uses Nominatim API for reverse geocoding
+- **Rate Limiting**: 50 requests per minute to respect API limits
+- **Error Handling**: Comprehensive error handling with fallback location detection
+- **Fallback System**: Provides basic location data when geocoding service is unavailable
+- **User-Agent Header**: Proper identification as required by Nominatim API
+
+**Frontend Enhancements:**
+- **Filter UI**: Country and region filters in dive sites list
+- **Edit Forms**: Country and region input fields with "Suggest from Coordinates" button
+- **Create Forms**: Same functionality for new dive site creation
+- **Responsive Design**: Filters work on all screen sizes
+
+**Files Modified:**
+- `backend/app/models.py` - Added country and region fields to DiveSite model
+- `backend/app/schemas.py` - Added country and region to all dive site schemas
+- `backend/app/routers/dive_sites.py` - Added reverse geocoding endpoint and filtering
+- `frontend/src/pages/DiveSites.js` - Added country and region filters
+- `frontend/src/pages/CreateDiveSite.js` - Added country/region fields and geocoding
+- `frontend/src/pages/EditDiveSite.js` - Added country/region fields and geocoding
+
+**Testing:**
+- All backend tests pass (56/56)
+- Frontend validation passes
+- API endpoints working correctly
+- Geocoding functionality working
+- Authentication properly enforced
+
+### ✅ Fixed: Dive Site Update Cache Issue
+
+**Issue:** After saving dive site changes, users saw "Dive site not found" error.
+
+**Root Cause:** React Query cache not properly updated before navigation to dive site detail page.
+
+**Solution:** Improved cache management with immediate data updates and proper invalidation.
+
+**Technical Fix:**
+```javascript
+// Before: Simple invalidation and navigation
+await queryClient.invalidateQueries(['dive-site', id]);
+navigate(`/dive-sites/${id}`);
+
+// After: Proper cache update and invalidation
+queryClient.setQueryData(['dive-site', id], updatedDiveSite);
+await queryClient.invalidateQueries(['admin-dive-sites']);
+await queryClient.invalidateQueries(['dive-sites']);
+await new Promise(resolve => setTimeout(resolve, 100));
+navigate(`/dive-sites/${id}`);
+```
+
+**Files Modified:**
+- `frontend/src/pages/EditDiveSite.js` - Fixed update mutation and cache management
+- `frontend/src/pages/DiveSiteDetail.js` - Added debugging and better error handling
+
+**User Experience:**
+- Seamless navigation after updates without errors
+- Proper loading states and error messages
+- Better debugging information in console
+
 ### ✅ Added: New Dive Site Fields and Validation Improvements
 
 **Feature:** Added new fields to dive sites and improved validation for mandatory fields.

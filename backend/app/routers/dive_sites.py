@@ -14,10 +14,135 @@ from app.schemas import (
     SiteMediaCreate, SiteMediaResponse,
     DiveSiteSearchParams, CenterDiveSiteCreate
 )
+import requests
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional
 from app.limiter import limiter
 
 router = APIRouter()
+
+@router.get("/health")
+async def health_check():
+    """
+    Simple health check endpoint
+    """
+    return {"status": "healthy", "timestamp": "2025-07-27T12:56:00Z"}
+
+@router.get("/reverse-geocode")
+@limiter.limit("50/minute")
+async def reverse_geocode(
+    request: Request,
+    latitude: float = Query(..., ge=-90, le=90),
+    longitude: float = Query(..., ge=-180, le=180),
+    db: Session = Depends(get_db)
+):
+    """
+    Get country and region suggestions based on coordinates using OpenStreetMap Nominatim API
+    """
+    try:
+        # Use OpenStreetMap Nominatim API for reverse geocoding
+        url = "https://nominatim.openstreetmap.org/reverse"
+        params = {
+            "lat": latitude,
+            "lon": longitude,
+            "format": "json",
+            "addressdetails": 1,
+            "zoom": 8,  # Get more detailed results
+            "accept-language": "en"  # Request English language results
+        }
+        
+        # Add User-Agent header as required by Nominatim
+        headers = {
+            "User-Agent": "Divemap/1.0 (https://github.com/your-repo/divemap)"
+        }
+        
+        response = requests.get(url, params=params, headers=headers, timeout=15)
+        
+        # Log the response for debugging
+        print(f"Geocoding request: {url} with params {params}")
+        print(f"Response status: {response.status_code}")
+        print(f"Response content: {response.text[:500]}...")
+        
+        response.raise_for_status()
+        
+        data = response.json()
+        address = data.get("address", {})
+        
+        # Extract country and region information
+        country = address.get("country")
+        region = (
+            address.get("state") or 
+            address.get("province") or 
+            address.get("region") or 
+            address.get("county")
+        )
+        
+        return {
+            "country": country,
+            "region": region,
+            "full_address": data.get("display_name", "")
+        }
+        
+    except requests.exceptions.Timeout:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Geocoding service timeout. Please try again later."
+        )
+    except requests.exceptions.ConnectionError:
+        # Fallback to basic location detection based on coordinates
+        print("OpenStreetMap API unavailable, using fallback location detection")
+        return get_fallback_location(latitude, longitude)
+    except requests.RequestException as e:
+        # Fallback to basic location detection based on coordinates
+        print(f"OpenStreetMap API error: {e}, using fallback location detection")
+        return get_fallback_location(latitude, longitude)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unexpected error during geocoding: {str(e)}"
+        )
+
+def get_fallback_location(latitude: float, longitude: float):
+    """
+    Fallback function to provide basic location information based on coordinates
+    """
+    # Simple fallback based on coordinate ranges
+    if -90 <= latitude <= 90 and -180 <= longitude <= 180:
+        # Basic region detection based on longitude
+        if -180 <= longitude < -120:
+            region = "Western Pacific"
+        elif -120 <= longitude < -60:
+            region = "Americas"
+        elif -60 <= longitude < 0:
+            region = "Atlantic"
+        elif 0 <= longitude < 60:
+            region = "Europe/Africa"
+        elif 60 <= longitude < 120:
+            region = "Asia"
+        else:
+            region = "Western Pacific"
+        
+        # Basic country detection based on latitude
+        if -60 <= latitude < -30:
+            country = "Antarctica"
+        elif -30 <= latitude < 0:
+            country = "Southern Hemisphere"
+        elif 0 <= latitude < 30:
+            country = "Tropical Region"
+        elif 30 <= latitude < 60:
+            country = "Northern Hemisphere"
+        else:
+            country = "Arctic Region"
+        
+        return {
+            "country": country,
+            "region": region,
+            "full_address": f"Coordinates: {latitude}, {longitude}"
+        }
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid coordinates provided"
+        )
 
 @router.get("/", response_model=List[DiveSiteResponse])
 @limiter.limit("100/minute")
@@ -28,6 +153,8 @@ async def get_dive_sites(
     min_rating: Optional[float] = Query(None, ge=0, le=10),
     max_rating: Optional[float] = Query(None, ge=0, le=10),
     tag_ids: Optional[List[int]] = Query(None),
+    country: Optional[str] = Query(None, max_length=100),
+    region: Optional[str] = Query(None, max_length=100),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db)
@@ -43,6 +170,16 @@ async def get_dive_sites(
     
     if difficulty_level:
         query = query.filter(DiveSite.difficulty_level == difficulty_level)
+    
+    # Apply country filtering
+    if country:
+        sanitized_country = country.strip()[:100]
+        query = query.filter(DiveSite.country.ilike(f"%{sanitized_country}%"))
+    
+    # Apply region filtering
+    if region:
+        sanitized_region = region.strip()[:100]
+        query = query.filter(DiveSite.region.ilike(f"%{sanitized_region}%"))
     
     # Apply tag filtering
     if tag_ids:

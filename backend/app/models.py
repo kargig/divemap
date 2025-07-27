@@ -51,6 +51,8 @@ class DiveSite(Base):
     safety_information = Column(Text)  # Added safety information field
     max_depth = Column(DECIMAL(5, 2))  # Maximum depth in meters
     alternative_names = Column(Text)  # Alternative names/aliases for the dive site
+    country = Column(String(100), index=True)  # Country name
+    region = Column(String(100), index=True)  # Region/state/province name
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

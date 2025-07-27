@@ -6,6 +6,86 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 ### 🚀 Major Features
 
+#### **Country and Region Fields for Dive Sites**
+- **New Location Fields**: Added `country` and `region` fields to dive sites for better geographic organization
+- **Automatic Geocoding**: Reverse geocoding API suggests country and region based on coordinates
+- **Enhanced Filtering**: Country and region filters added to dive sites list
+- **Fallback System**: Robust fallback mechanism when geocoding service is unavailable
+- **Database Migration**: Proper migration with indexes for performance
+
+**New Fields:**
+- **`country`**: Country name (optional, max 100 characters)
+- **`region`**: Region/state/province name (optional, max 100 characters)
+
+**Geocoding Features:**
+- **OpenStreetMap Integration**: Uses Nominatim API for reverse geocoding
+- **Automatic Suggestions**: "Suggest Country & Region from Coordinates" button in edit forms
+- **Error Handling**: Comprehensive error handling with fallback location detection
+- **Rate Limiting**: 50 requests per minute to respect API limits
+
+**Frontend Enhancements:**
+- **Filter UI**: Country and region filters in dive sites list
+- **Edit Forms**: Country and region input fields with suggestion button
+- **Create Forms**: Same functionality for new dive site creation
+- **Responsive Design**: Filters work on all screen sizes
+
+**Files Added:**
+- `backend/migrations/versions/0003_add_country_region_fields.py` - Database migration
+
+**Files Modified:**
+- `backend/app/models.py` - Added country and region fields to DiveSite model
+- `backend/app/schemas.py` - Added country and region to all dive site schemas
+- `backend/app/routers/dive_sites.py` - Added reverse geocoding endpoint and filtering
+- `frontend/src/pages/DiveSites.js` - Added country and region filters
+- `frontend/src/pages/CreateDiveSite.js` - Added country/region fields and geocoding
+- `frontend/src/pages/EditDiveSite.js` - Added country/region fields and geocoding
+
+**Database Migration:**
+```sql
+-- Added country and region columns
+ALTER TABLE dive_sites ADD COLUMN country VARCHAR(100) NULL;
+ALTER TABLE dive_sites ADD COLUMN region VARCHAR(100) NULL;
+
+-- Created indexes for performance
+CREATE INDEX ix_dive_sites_country ON dive_sites(country);
+CREATE INDEX ix_dive_sites_region ON dive_sites(region);
+```
+
+**API Endpoints:**
+- `GET /api/v1/dive-sites/reverse-geocode` - Get country/region suggestions from coordinates
+- Updated `GET /api/v1/dive-sites/` - Added country and region filtering parameters
+
+#### **Dive Site Update Fix**
+- **Issue**: After saving dive site changes, users saw "Dive site not found" error
+- **Root Cause**: React Query cache not properly updated before navigation
+- **Solution**: Improved cache management with immediate data updates and proper invalidation
+- **User Experience**: Seamless navigation after updates without errors
+
+**Technical Fix:**
+```javascript
+// Before: Simple invalidation and navigation
+await queryClient.invalidateQueries(['dive-site', id]);
+navigate(`/dive-sites/${id}`);
+
+// After: Proper cache update and invalidation
+queryClient.setQueryData(['dive-site', id], updatedDiveSite);
+await queryClient.invalidateQueries(['admin-dive-sites']);
+await queryClient.invalidateQueries(['dive-sites']);
+await new Promise(resolve => setTimeout(resolve, 100));
+navigate(`/dive-sites/${id}`);
+```
+
+**Files Modified:**
+- `frontend/src/pages/EditDiveSite.js` - Fixed update mutation and cache management
+- `frontend/src/pages/DiveSiteDetail.js` - Added debugging and better error handling
+
+**Testing:**
+- All backend tests pass (56/56)
+- Frontend validation passes
+- API endpoints working correctly
+- Geocoding functionality working
+- Authentication properly enforced
+
 #### **New Dive Site Fields and Enhanced Validation**
 - **Maximum Depth**: Added `max_depth` field to track dive site depth in meters
 - **Alternative Names**: Added `alternative_names` field for dive site aliases

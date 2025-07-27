@@ -28,6 +28,8 @@ const EditDiveSite = () => {
     latitude: '',
     longitude: '',
     address: '',
+    country: '',
+    region: '',
     access_instructions: '',
     dive_plans: '',
     gas_tanks_necessary: '',
@@ -75,6 +77,8 @@ const EditDiveSite = () => {
           latitude: data.latitude?.toString() || '',
           longitude: data.longitude?.toString() || '',
           address: data.address || '',
+          country: data.country || '',
+          region: data.region || '',
           access_instructions: data.access_instructions || '',
           dive_plans: data.dive_plans || '',
           gas_tanks_necessary: data.gas_tanks_necessary || '',
@@ -194,15 +198,6 @@ const EditDiveSite = () => {
   const updateMutation = useMutation(
     (data) => api.put(`/api/v1/dive-sites/${id}`, data),
     {
-      onSuccess: async () => {
-        toast.success('Dive site updated successfully');
-        // Invalidate and refetch the dive site data before navigation
-        await queryClient.invalidateQueries(['dive-site', id]);
-        await queryClient.invalidateQueries(['admin-dive-sites']);
-        // Refetch the dive site data to ensure it's updated
-        await queryClient.refetchQueries(['dive-site', id]);
-        navigate(`/dive-sites/${id}`);
-      },
       onError: (error) => {
         toast.error(getErrorMessage(error));
       }
@@ -247,6 +242,52 @@ const EditDiveSite = () => {
     }));
   };
 
+  const suggestLocation = async () => {
+    if (!formData.latitude || !formData.longitude) {
+      toast.error('Please enter latitude and longitude first');
+      return;
+    }
+
+    try {
+      console.log('Making geocoding request for:', formData.latitude, formData.longitude);
+      
+      const response = await api.get('/api/v1/dive-sites/reverse-geocode', {
+        params: {
+          latitude: parseFloat(formData.latitude),
+          longitude: parseFloat(formData.longitude)
+        },
+        timeout: 30000 // 30 second timeout
+      });
+
+      console.log('Geocoding response:', response.data);
+      const { country, region } = response.data;
+      
+      setFormData(prev => ({
+        ...prev,
+        country: country || '',
+        region: region || ''
+      }));
+
+      if (country || region) {
+        toast.success('Location suggestions applied!');
+      } else {
+        toast.info('No location data found for these coordinates');
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      console.error('Error response:', error.response);
+      
+      let errorMessage = 'Failed to get location suggestions';
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -276,7 +317,7 @@ const EditDiveSite = () => {
 
     // Update the dive site first
     updateMutation.mutate(updateData, {
-      onSuccess: async () => {
+      onSuccess: async (updatedDiveSite) => {
         // Handle tag changes
         const currentTagIds = diveSite?.tags?.map(tag => tag.id) || [];
         const newTagIds = selectedTags;
@@ -303,9 +344,28 @@ const EditDiveSite = () => {
           }
         }
         
-        // Invalidate queries to refresh data
-        queryClient.invalidateQueries(['dive-site', id]);
-        queryClient.invalidateQueries(['available-tags']);
+        // Update the cache with the new data immediately
+        console.log('EditDiveSite: Setting query data for dive site:', id, updatedDiveSite);
+        queryClient.setQueryData(['dive-site', id], updatedDiveSite);
+        
+        // Invalidate related queries
+        console.log('EditDiveSite: Invalidating queries...');
+        await queryClient.invalidateQueries(['admin-dive-sites']);
+        await queryClient.invalidateQueries(['dive-sites']);
+        await queryClient.invalidateQueries(['available-tags']);
+        console.log('EditDiveSite: Queries invalidated successfully');
+        
+        // Wait a moment for cache updates to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Show success message
+        toast.success('Dive site updated successfully');
+        
+        // Log the navigation for debugging
+        console.log('Navigating to dive site:', id);
+        
+        // Navigate to the dive site detail page
+        navigate(`/dive-sites/${id}`);
       }
     });
   };
@@ -497,6 +557,49 @@ const EditDiveSite = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+            </div>
+
+            {/* Country and Region Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Country
+                </label>
+                <input
+                  type="text"
+                  name="country"
+                  value={formData.country}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., Australia"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Region
+                </label>
+                <input
+                  type="text"
+                  name="region"
+                  value={formData.region}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., Queensland"
+                />
+              </div>
+            </div>
+
+            {/* Location Suggestion Button */}
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={suggestLocation}
+                disabled={!formData.latitude || !formData.longitude}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                🗺️ Suggest Country & Region from Coordinates
+              </button>
             </div>
 
             {/* Additional Information */}

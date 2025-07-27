@@ -21,6 +21,8 @@ const DiveSites = () => {
       difficulty_level: searchParams.get('difficulty_level') || '',
       min_rating: searchParams.get('min_rating') || '',
       max_rating: searchParams.get('max_rating') || '',
+      country: searchParams.get('country') || '',
+      region: searchParams.get('region') || '',
       tag_ids: searchParams.getAll('tag_ids').map(id => parseInt(id)).filter(id => !isNaN(id)),
     };
   };
@@ -48,6 +50,8 @@ const DiveSites = () => {
     if (filters.difficulty_level) newSearchParams.set('difficulty_level', filters.difficulty_level);
     if (filters.min_rating) newSearchParams.set('min_rating', filters.min_rating);
     if (filters.max_rating) newSearchParams.set('max_rating', filters.max_rating);
+    if (filters.country) newSearchParams.set('country', filters.country);
+    if (filters.region) newSearchParams.set('region', filters.region);
     
     // Add tag IDs
     filters.tag_ids.forEach(tagId => {
@@ -78,6 +82,8 @@ const DiveSites = () => {
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
       if (filters.max_rating) params.append('max_rating', filters.max_rating);
+      if (filters.country) params.append('country', filters.country);
+      if (filters.region) params.append('region', filters.region);
       
       // Add array parameters (tag_ids)
       if (filters.tag_ids && filters.tag_ids.length > 0) {
@@ -108,6 +114,8 @@ const DiveSites = () => {
       difficulty_level: '',
       min_rating: '',
       max_rating: '',
+      country: '',
+      region: '',
       tag_ids: [],
     });
   };
@@ -150,7 +158,7 @@ const DiveSites = () => {
 
       {/* Search and Filter Section */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Search Sites
@@ -213,6 +221,34 @@ const DiveSites = () => {
               max="10"
               placeholder="Max rating"
               value={filters.max_rating}
+              onChange={handleSearchChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Country
+            </label>
+            <input
+              type="text"
+              name="country"
+              placeholder="Filter by country..."
+              value={filters.country}
+              onChange={handleSearchChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Region
+            </label>
+            <input
+              type="text"
+              name="region"
+              placeholder="Filter by region..."
+              value={filters.region}
               onChange={handleSearchChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
