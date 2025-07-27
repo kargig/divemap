@@ -366,7 +366,7 @@ The application will follow a microservices-oriented or a well-separated monolit
 * **Frontend:**  
   * React / React Native  
   * Redux / Zustand / React Query (for state management and data fetching)  
-  * Mapbox GL JS / Leaflet / Google Maps API (for interactive maps)  
+  * OpenLayers (for interactive maps)  
   * Axios (for API calls)
   * Google Identity Services (for OAuth) - NEW
 * **DevOps & Deployment:**  

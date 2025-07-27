@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { Star, Map, MessageCircle, Send, Play, Image, ExternalLink, Anchor, Edit } from 'lucide-react';
+import { Star, Map, MessageCircle, Send, Play, Image, ExternalLink, Anchor, Edit, Globe, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
+import MiniMap from '../components/MiniMap';
 
 // Helper function to safely extract error message
 const getErrorMessage = (error) => {
@@ -25,6 +26,7 @@ const DiveSiteDetail = () => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [showCommentForm, setShowCommentForm] = useState(false);
+  const [isMapMaximized, setIsMapMaximized] = useState(false);
 
   // Check if user has edit privileges
   const canEdit = user && (user.is_admin || user.is_moderator);
@@ -58,6 +60,15 @@ const DiveSiteDetail = () => {
     () => api.get(`/api/v1/dive-sites/${id}/diving-centers`),
     {
       select: (response) => response.data
+    }
+  );
+
+  const { data: nearbyDiveSites } = useQuery(
+    ['dive-site-nearby', id],
+    () => api.get(`/api/v1/dive-sites/${id}/nearby?limit=10`),
+    {
+      select: (response) => response.data,
+      enabled: !!diveSite && !!diveSite.latitude && !!diveSite.longitude
     }
   );
 
@@ -185,6 +196,46 @@ const DiveSiteDetail = () => {
         </div>
       </div>
 
+      {/* Navigation Bar */}
+      <div className="mb-6 bg-white p-4 rounded-lg shadow-md">
+        <div className="flex items-center justify-between">
+          {/* Back to List Button */}
+          <button
+            onClick={() => navigate('/dive-sites')}
+            className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dive Sites
+          </button>
+
+          {/* Nearby Navigation */}
+          {nearbyDiveSites && nearbyDiveSites.length > 0 && (
+            <div className="flex items-center space-x-4">
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Nearby Dive Sites:</h3>
+                <div className="flex space-x-2">
+                  {nearbyDiveSites.slice(0, 3).map((site) => (
+                    <button
+                      key={site.id}
+                      onClick={() => navigate(`/dive-sites/${site.id}`)}
+                      className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      <Map className="w-3 h-3 mr-1" />
+                      <div className="text-left">
+                        <div className="font-medium">{site.name}</div>
+                        <div className="text-xs opacity-75">
+                          {site.distance_km} km away
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
@@ -201,16 +252,35 @@ const DiveSiteDetail = () => {
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Location</h2>
               {diveSite.address && (
-                <div className="mb-2">
+                <div className="mb-4">
                   <span className="font-medium text-gray-700">Address:</span>
                   <span className="ml-2 text-gray-700">{diveSite.address}</span>
                 </div>
               )}
               {diveSite.latitude && diveSite.longitude && (
-                <div className="flex items-center text-gray-700">
-                  <Map className="h-5 w-5 mr-2" />
-                  <span>{diveSite.latitude}, {diveSite.longitude}</span>
-                </div>
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center text-gray-700">
+                      <Map className="h-5 w-5 mr-2" />
+                      <span>{diveSite.latitude}, {diveSite.longitude}</span>
+                    </div>
+                    <button
+                      onClick={() => navigate(`/dive-sites/${id}/map`)}
+                      className="flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      <Globe className="w-4 h-4 mr-1" />
+                      Full Map View
+                    </button>
+                  </div>
+                  <MiniMap
+                    latitude={diveSite.latitude}
+                    longitude={diveSite.longitude}
+                    name={diveSite.name}
+                    onMaximize={() => setIsMapMaximized(true)}
+                    isMaximized={isMapMaximized}
+                    onClose={() => setIsMapMaximized(false)}
+                  />
+                </>
               )}
             </div>
           ) : null}

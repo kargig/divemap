@@ -22,6 +22,7 @@ import AdminTags from './pages/AdminTags';
 import AdminUsers from './pages/AdminUsers';
 import CreateDiveSite from './pages/CreateDiveSite';
 import CreateDivingCenter from './pages/CreateDivingCenter';
+import DiveSiteMap from './pages/DiveSiteMap';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,6 +87,10 @@ function App() {
                 <Route 
                   path="/dive-sites/:id" 
                   element={<DiveSiteDetail />} 
+                />
+                <Route 
+                  path="/dive-sites/:id/map" 
+                  element={<DiveSiteMap />} 
                 />
                 <Route 
                   path="/dive-sites/:id/edit" 

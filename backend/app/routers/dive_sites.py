@@ -628,4 +628,119 @@ async def create_dive_site_comment(
     return {
         **db_comment.__dict__,
         "username": current_user.username
-    } 
+    }
+
+@router.get("/{dive_site_id}/nearby", response_model=List[DiveSiteResponse])
+@limiter.limit("100/minute")
+async def get_nearby_dive_sites(
+    request: Request,
+    dive_site_id: int,
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db)
+):
+    """
+    Get nearby dive sites based on geographic proximity.
+    Uses Haversine formula to calculate distances.
+    """
+    # Check if dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+    
+    # Check if dive site has coordinates
+    if not dive_site.latitude or not dive_site.longitude:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Dive site does not have location coordinates"
+        )
+    
+    # Haversine formula to calculate distances
+    # Formula: 2 * R * asin(sqrt(sin²(Δφ/2) + cos(φ1) * cos(φ2) * sin²(Δλ/2)))
+    # Where R = 6371 km (Earth's radius)
+    from sqlalchemy import text
+    
+    haversine_query = text("""
+        SELECT 
+            id, name, description, difficulty_level, latitude, longitude,
+            address, access_instructions, safety_information, marine_life,
+            dive_plans, gas_tanks_necessary, created_at, updated_at,
+            (6371 * acos(
+                cos(radians(:lat)) * cos(radians(latitude)) * 
+                cos(radians(longitude) - radians(:lng)) + 
+                sin(radians(:lat)) * sin(radians(latitude))
+            )) AS distance_km
+        FROM dive_sites 
+        WHERE id != :site_id 
+        AND latitude IS NOT NULL 
+        AND longitude IS NOT NULL
+        HAVING distance_km <= 100
+        ORDER BY distance_km ASC
+        LIMIT :limit
+    """)
+    
+    result = db.execute(
+        haversine_query,
+        {
+            "lat": dive_site.latitude,
+            "lng": dive_site.longitude,
+            "site_id": dive_site_id,
+            "limit": limit
+        }
+    ).fetchall()
+    
+    # Convert to response format
+    nearby_sites = []
+    for row in result:
+        # Get average rating and total ratings
+        avg_rating = db.query(func.avg(SiteRating.score)).filter(
+            SiteRating.dive_site_id == row.id
+        ).scalar()
+        
+        total_ratings = db.query(func.count(SiteRating.id)).filter(
+            SiteRating.dive_site_id == row.id
+        ).scalar()
+        
+        # Get tags for this dive site
+        from app.models import DiveSiteTag, AvailableTag
+        tags = db.query(AvailableTag).join(DiveSiteTag).filter(
+            DiveSiteTag.dive_site_id == row.id
+        ).all()
+        
+        # Convert tags to dictionaries
+        tags_dict = [
+            {
+                "id": tag.id,
+                "name": tag.name,
+                "description": tag.description,
+                "created_by": tag.created_by,
+                "created_at": tag.created_at
+            }
+            for tag in tags
+        ]
+        
+        site_dict = {
+            "id": row.id,
+            "name": row.name,
+            "description": row.description,
+            "difficulty_level": row.difficulty_level,
+            "latitude": row.latitude,
+            "longitude": row.longitude,
+            "address": row.address,
+            "access_instructions": row.access_instructions,
+            "safety_information": row.safety_information,
+            "marine_life": row.marine_life,
+            "dive_plans": row.dive_plans,
+            "gas_tanks_necessary": row.gas_tanks_necessary,
+            "created_at": row.created_at,
+            "updated_at": row.updated_at,
+            "average_rating": float(avg_rating) if avg_rating else None,
+            "total_ratings": total_ratings,
+            "tags": tags_dict,
+            "distance_km": round(row.distance_km, 2)
+        }
+        nearby_sites.append(site_dict)
+    
+    return nearby_sites 

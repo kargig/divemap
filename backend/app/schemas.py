@@ -112,6 +112,7 @@ class DiveSiteResponse(DiveSiteBase):
     total_ratings: int = 0
     tags: List[dict] = []
     user_rating: Optional[float] = None
+    distance_km: Optional[float] = None
 
     class Config:
         from_attributes = True

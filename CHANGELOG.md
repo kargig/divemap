@@ -97,7 +97,32 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 **Admin Pages Updated:**
 - `/admin/dive-sites` - Mass delete dive sites
-- `/admin/diving-centers` - Mass delete diving centers  
+- `/admin/diving-centers` - Mass delete diving centers
+
+#### **Interactive Maps with OpenLayers**
+- **Map Library Migration**: Replaced Leaflet with OpenLayers for better performance and consistency
+- **Mini Map Component**: Interactive mini map in dive site detail pages
+- **Full-Screen Map View**: Dedicated map page for each dive site with nearby sites
+- **Geographic Navigation**: Click on nearby dive sites to navigate between them
+- **Custom Markers**: Distinct markers for current site vs nearby sites
+- **Responsive Design**: Maps work on all screen sizes with proper scaling
+- **Error Handling**: Proper loading states and null checks to prevent runtime errors
+
+**Files Added:**
+- `frontend/src/components/MiniMap.js` - Reusable mini map component
+- `frontend/src/pages/DiveSiteMap.js` - Full-screen map view component
+
+**Files Modified:**
+- `frontend/src/pages/DiveSiteDetail.js` - Added mini map and nearby navigation
+- `frontend/src/App.js` - Added map route
+- `frontend/package.json` - Removed Leaflet dependencies, kept OpenLayers
+- `frontend/src/pages/DiveSites.js` - Preserved filter state in URL
+
+**Technical Improvements:**
+- **Duplicate Icon Fix**: Resolved "2 icons, one on top of the other" issue
+- **Runtime Error Fix**: Added proper null checks and loading states
+- **Performance**: OpenLayers provides better performance than Leaflet
+- **Consistency**: Same mapping library used across the entire application  
 - `/admin/tags` - Mass delete tags (with protection for used tags)
 - `/admin/users` - Mass delete users (with self-deletion protection)
 

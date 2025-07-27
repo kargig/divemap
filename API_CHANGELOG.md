@@ -98,6 +98,42 @@ alembic history
 - **Currency Formatting**: Automatic formatting with symbols, flags, and codes
 
 **Currency Utility Functions:**
+
+### ✅ Fixed: Interactive Maps with OpenLayers
+
+**Feature:** Migrated from Leaflet to OpenLayers for better performance and consistency.
+
+**Implementation:**
+- **Map Library Migration**: Replaced Leaflet with OpenLayers across all map components
+- **Mini Map Component**: Interactive mini map in dive site detail pages
+- **Full-Screen Map View**: Dedicated map page for each dive site with nearby sites
+- **Geographic Navigation**: Click on nearby dive sites to navigate between them
+- **Custom Markers**: Distinct markers for current site vs nearby sites
+- **Error Handling**: Proper loading states and null checks to prevent runtime errors
+
+**Technical Improvements:**
+- **Duplicate Icon Fix**: Resolved "2 icons, one on top of the other" issue
+- **Runtime Error Fix**: Added proper null checks and loading states
+- **Performance**: OpenLayers provides better performance than Leaflet
+- **Consistency**: Same mapping library used across the entire application
+
+**Frontend Components:**
+- **MiniMap**: Reusable component for displaying dive site locations
+- **DiveSiteMap**: Full-screen map view with nearby site navigation
+- **DiveSiteDetail**: Enhanced with mini map and nearby site navigation
+
+**Files Modified:**
+- `frontend/src/components/MiniMap.js` - OpenLayers implementation
+- `frontend/src/pages/DiveSiteMap.js` - OpenLayers implementation
+- `frontend/src/pages/DiveSiteDetail.js` - Added mini map integration
+- `frontend/package.json` - Removed Leaflet dependencies
+- `frontend/src/App.js` - Added map routes
+
+**API Endpoints:**
+- **GET** `/api/v1/dive-sites/{id}/nearby` - Returns nearby dive sites with distances
+- **GET** `/api/v1/dive-sites/{id}` - Returns dive site details for map display
+
+**Currency Utility Functions:**
 - `formatCost()`: Formats costs with currency symbols
 - `getCurrencyOptions()`: Provides dropdown options with flags and names
 - `getCurrencyInfo()`: Retrieves currency information by code

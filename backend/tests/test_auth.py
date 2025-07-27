@@ -63,11 +63,16 @@ class TestAuth:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     
     def test_google_oauth_endpoint(self, client):
-        """Test Google OAuth endpoint (stub implementation)."""
+        """Test Google OAuth endpoint."""
+        # Test with missing token (should return 422 validation error)
         response = client.post("/api/v1/auth/google-login", json={})
         
-        assert response.status_code == status.HTTP_501_NOT_IMPLEMENTED
-        assert "Google OAuth login not yet implemented" in response.json()["detail"]
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        
+        # Test with invalid token (should return 401)
+        response = client.post("/api/v1/auth/google-login", json={"token": "invalid_token"})
+        
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
     
     def test_login_success(self, client, test_user):
         """Test successful login."""
