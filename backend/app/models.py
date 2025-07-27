@@ -53,6 +53,7 @@ class DiveSite(Base):
     alternative_names = Column(Text)  # Alternative names/aliases for the dive site
     country = Column(String(100), index=True)  # Country name
     region = Column(String(100), index=True)  # Region/state/province name
+    view_count = Column(Integer, default=0, nullable=False)  # Number of views
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -115,6 +116,7 @@ class DivingCenter(Base):
     website = Column(String(255))
     latitude = Column(DECIMAL(10, 8))
     longitude = Column(DECIMAL(11, 8))
+    view_count = Column(Integer, default=0, nullable=False)  # Number of views
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

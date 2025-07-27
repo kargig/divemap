@@ -157,7 +157,8 @@ async def get_dive_sites(
     region: Optional[str] = Query(None, max_length=100),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional)
 ):
     
     query = db.query(DiveSite)
@@ -248,12 +249,21 @@ async def get_dive_sites(
             "difficulty_level": site.difficulty_level,
             "marine_life": site.marine_life,
             "safety_information": site.safety_information,
+            "max_depth": site.max_depth,
+            "alternative_names": site.alternative_names,
+            "country": site.country,
+            "region": site.region,
             "created_at": site.created_at,
             "updated_at": site.updated_at,
             "average_rating": float(avg_rating) if avg_rating else None,
             "total_ratings": total_ratings,
             "tags": tags_dict
         }
+        
+        # Only include view_count for admin users
+        if current_user and current_user.is_admin:
+            site_dict["view_count"] = site.view_count
+        
         result.append(site_dict)
     
     # Apply rating filters
@@ -305,6 +315,10 @@ async def get_dive_site(
             detail="Dive site not found"
         )
     
+    # Increment view count
+    dive_site.view_count += 1
+    db.commit()
+    
     # Calculate average rating
     avg_rating = db.query(func.avg(SiteRating.score)).filter(
         SiteRating.dive_site_id == dive_site.id
@@ -342,13 +356,20 @@ async def get_dive_site(
         if user_rating_obj:
             user_rating = user_rating_obj.score
     
-    return {
+    # Prepare response data
+    response_data = {
         **dive_site.__dict__,
         "average_rating": float(avg_rating) if avg_rating else None,
         "total_ratings": total_ratings,
         "tags": tags_dict,
         "user_rating": user_rating
     }
+    
+    # Only include view_count for admin users
+    if not current_user or not current_user.is_admin:
+        response_data.pop("view_count", None)
+    
+    return response_data
 
 @router.get("/{dive_site_id}/media", response_model=List[SiteMediaResponse])
 @limiter.limit("100/minute")

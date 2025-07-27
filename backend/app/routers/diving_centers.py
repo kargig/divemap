@@ -18,7 +18,8 @@ router = APIRouter()
 @router.get("/", response_model=List[DivingCenterResponse])
 async def get_diving_centers(
     search_params: DivingCenterSearchParams = Depends(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional)
 ):
     query = db.query(DivingCenter)
     
@@ -54,6 +55,11 @@ async def get_diving_centers(
             "average_rating": float(avg_rating) if avg_rating else None,
             "total_ratings": total_ratings
         }
+        
+        # Only include view_count for admin users
+        if current_user and current_user.is_admin:
+            center_dict["view_count"] = center.view_count
+        
         result.append(center_dict)
     
     # Apply rating filters
@@ -98,6 +104,10 @@ async def get_diving_center(
             detail="Diving center not found"
         )
     
+    # Increment view count
+    diving_center.view_count += 1
+    db.commit()
+    
     # Calculate average rating
     avg_rating = db.query(func.avg(CenterRating.score)).filter(
         CenterRating.diving_center_id == diving_center.id
@@ -117,7 +127,8 @@ async def get_diving_center(
         if user_rating_obj:
             user_rating = user_rating_obj.score
     
-    return {
+    # Prepare response data
+    response_data = {
         "id": diving_center.id,
         "name": diving_center.name,
         "description": diving_center.description,
@@ -132,6 +143,12 @@ async def get_diving_center(
         "total_ratings": total_ratings,
         "user_rating": user_rating
     }
+    
+    # Only include view_count for admin users
+    if current_user and current_user.is_admin:
+        response_data["view_count"] = diving_center.view_count
+    
+    return response_data
 
 @router.put("/{diving_center_id}", response_model=DivingCenterResponse)
 async def update_diving_center(

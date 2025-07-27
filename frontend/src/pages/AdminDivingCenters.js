@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, ChevronUp, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api';
@@ -11,6 +11,7 @@ const AdminDivingCenters = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedItems, setSelectedItems] = useState(new Set());
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   // Fetch diving centers data
   const { data: divingCenters, isLoading } = useQuery(
@@ -53,7 +54,7 @@ const AdminDivingCenters = () => {
   // Selection handlers
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedItems(new Set(divingCenters?.map(center => center.id) || []));
+      setSelectedItems(new Set(sortedDivingCenters?.map(center => center.id) || []));
     } else {
       setSelectedItems(new Set());
     }
@@ -95,6 +96,59 @@ const AdminDivingCenters = () => {
       deleteDivingCenterMutation.mutate(divingCenter.id);
     }
   };
+
+  // Sorting functions
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return <ChevronUp className="h-4 w-4 text-gray-400" />;
+    }
+    return sortConfig.direction === 'asc' 
+      ? <ChevronUp className="h-4 w-4 text-blue-600" />
+      : <ChevronDown className="h-4 w-4 text-blue-600" />;
+  };
+
+  // Sort diving centers
+  const sortedDivingCenters = useMemo(() => {
+    if (!divingCenters) return [];
+    
+    const sorted = [...divingCenters].sort((a, b) => {
+      if (!sortConfig.key) return 0;
+      
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+      
+      // Handle null/undefined values
+      if (aValue === null || aValue === undefined) aValue = '';
+      if (bValue === null || bValue === undefined) bValue = '';
+      
+      // Handle numeric values
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Handle string values
+      aValue = String(aValue).toLowerCase();
+      bValue = String(bValue).toLowerCase();
+      
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+    
+    return sorted;
+  }, [divingCenters, sortConfig]);
 
   if (!user?.is_admin) {
     return (
@@ -158,22 +212,49 @@ const AdminDivingCenters = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <input
                     type="checkbox"
-                    checked={selectedItems.size === divingCenters?.length && divingCenters?.length > 0}
+                    checked={selectedItems.size === sortedDivingCenters?.length && sortedDivingCenters?.length > 0}
                     onChange={(e) => handleSelectAll(e.target.checked)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center">
+                    Name
+                    {getSortIcon('name')}
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('email')}
+                >
+                  <div className="flex items-center">
+                    Contact
+                    {getSortIcon('email')}
+                  </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Location
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rating
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('average_rating')}
+                >
+                  <div className="flex items-center">
+                    Rating
+                    {getSortIcon('average_rating')}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('view_count')}
+                >
+                  <div className="flex items-center">
+                    Views
+                    {getSortIcon('view_count')}
+                  </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -181,7 +262,7 @@ const AdminDivingCenters = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {divingCenters?.map((center) => (
+              {sortedDivingCenters?.map((center) => (
                 <tr key={center.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <input
@@ -220,6 +301,9 @@ const AdminDivingCenters = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {center.average_rating ? `${center.average_rating.toFixed(1)}/10` : 'No ratings'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {center.view_count !== undefined ? center.view_count.toLocaleString() : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">

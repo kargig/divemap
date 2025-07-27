@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, ChevronUp, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api';
@@ -11,6 +11,7 @@ const AdminDiveSites = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedItems, setSelectedItems] = useState(new Set());
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   // Fetch dive sites data
   const { data: diveSites, isLoading } = useQuery(
@@ -53,7 +54,7 @@ const AdminDiveSites = () => {
   // Selection handlers
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedItems(new Set(diveSites?.map(site => site.id) || []));
+      setSelectedItems(new Set(sortedDiveSites?.map(site => site.id) || []));
     } else {
       setSelectedItems(new Set());
     }
@@ -95,6 +96,59 @@ const AdminDiveSites = () => {
       deleteDiveSiteMutation.mutate(diveSite.id);
     }
   };
+
+  // Sorting functions
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return <ChevronUp className="h-4 w-4 text-gray-400" />;
+    }
+    return sortConfig.direction === 'asc' 
+      ? <ChevronUp className="h-4 w-4 text-blue-600" />
+      : <ChevronDown className="h-4 w-4 text-blue-600" />;
+  };
+
+  // Sort dive sites
+  const sortedDiveSites = useMemo(() => {
+    if (!diveSites) return [];
+    
+    const sorted = [...diveSites].sort((a, b) => {
+      if (!sortConfig.key) return 0;
+      
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+      
+      // Handle null/undefined values
+      if (aValue === null || aValue === undefined) aValue = '';
+      if (bValue === null || bValue === undefined) bValue = '';
+      
+      // Handle numeric values
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Handle string values
+      aValue = String(aValue).toLowerCase();
+      bValue = String(bValue).toLowerCase();
+      
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+    
+    return sorted;
+  }, [diveSites, sortConfig]);
 
   if (!user?.is_admin) {
     return (
@@ -158,19 +212,46 @@ const AdminDiveSites = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <input
                     type="checkbox"
-                    checked={selectedItems.size === diveSites?.length && diveSites?.length > 0}
+                    checked={selectedItems.size === sortedDiveSites?.length && sortedDiveSites?.length > 0}
                     onChange={(e) => handleSelectAll(e.target.checked)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center">
+                    Name
+                    {getSortIcon('name')}
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Difficulty
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('difficulty_level')}
+                >
+                  <div className="flex items-center">
+                    Difficulty
+                    {getSortIcon('difficulty_level')}
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rating
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('average_rating')}
+                >
+                  <div className="flex items-center">
+                    Rating
+                    {getSortIcon('average_rating')}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('view_count')}
+                >
+                  <div className="flex items-center">
+                    Views
+                    {getSortIcon('view_count')}
+                  </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Tags
@@ -181,7 +262,7 @@ const AdminDiveSites = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {diveSites?.map((site) => (
+              {sortedDiveSites?.map((site) => (
                 <tr key={site.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <input
@@ -207,6 +288,9 @@ const AdminDiveSites = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {site.average_rating ? `${site.average_rating.toFixed(1)}/10` : 'No ratings'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {site.view_count !== undefined ? site.view_count.toLocaleString() : 'N/A'}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1">

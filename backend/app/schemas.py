@@ -124,6 +124,7 @@ class DiveSiteResponse(DiveSiteBase):
     updated_at: datetime
     average_rating: Optional[float] = None
     total_ratings: int = 0
+    view_count: Optional[int] = None  # Only included for admin users
     tags: List[dict] = []
     user_rating: Optional[float] = None
     distance_km: Optional[float] = None
@@ -221,6 +222,7 @@ class DivingCenterResponse(DivingCenterBase):
     updated_at: datetime
     average_rating: Optional[float] = None
     total_ratings: int = 0
+    view_count: Optional[int] = None  # Only included for admin users
     user_rating: Optional[float] = None
 
     class Config:
