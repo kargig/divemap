@@ -4,6 +4,42 @@ This document tracks recent changes, bug fixes, and improvements to the Divemap 
 
 ## Latest Changes (2025-07-27)
 
+### ✅ Fixed: API Endpoint Trailing Slash Issues
+
+**Issue:** Dive site detail page was not showing nearby dive sites, comments, or media due to 307 Temporary Redirect errors.
+
+**Root Cause:** Frontend was using trailing slashes in API URLs for individual resource endpoints, but backend FastAPI routes don't have trailing slashes for those endpoints. This caused 307 redirects.
+
+**Solution:** Fixed all frontend API calls to remove trailing slashes from individual resource endpoints while keeping them for list endpoints.
+
+**API Endpoint Fixes:**
+
+**Dive Sites Endpoints:**
+- **Fixed:** `/api/v1/dive-sites/{id}/comments/` → `/api/v1/dive-sites/{id}/comments`
+- **Fixed:** `/api/v1/dive-sites/{id}/media/` → `/api/v1/dive-sites/{id}/media`
+- **Fixed:** `/api/v1/dive-sites/{id}/nearby/?limit=10` → `/api/v1/dive-sites/{id}/nearby?limit=10`
+- **Fixed:** `/api/v1/dive-sites/{id}/diving-centers/` → `/api/v1/dive-sites/{id}/diving-centers`
+- **Fixed:** `/api/v1/dive-sites/reverse-geocode/` → `/api/v1/dive-sites/reverse-geocode`
+
+**Diving Centers Endpoints:**
+- **Fixed:** `/api/v1/diving-centers/{id}/comments/` → `/api/v1/diving-centers/{id}/comments`
+- **Fixed:** `/api/v1/diving-centers/{id}/gear-rental/` → `/api/v1/diving-centers/{id}/gear-rental`
+
+**Files Modified:**
+- `frontend/src/pages/DiveSiteDetail.js` - Fixed comments, media, nearby, and diving-centers endpoints
+- `frontend/src/pages/DiveSiteMap.js` - Fixed nearby endpoint
+- `frontend/src/pages/EditDiveSite.js` - Fixed diving-centers, media, and reverse-geocode endpoints
+- `frontend/src/pages/CreateDiveSite.js` - Fixed reverse-geocode endpoint
+- `frontend/src/pages/DivingCenterDetail.js` - Fixed comments endpoint
+- `frontend/src/pages/EditDivingCenter.js` - Fixed gear-rental endpoint
+
+**Testing Results:**
+- ✅ `/api/v1/dive-sites/11/comments` - Returns `[]` (no comments)
+- ✅ `/api/v1/dive-sites/11/nearby?limit=3` - Returns nearby dive sites
+- ✅ `/api/v1/dive-sites/11/media` - Returns `[]` (no media)
+
+**Deployment:** Frontend has been rebuilt and deployed to production.
+
 ### ✅ Added: Enhanced User Profile Management
 
 **New Features:** Added comprehensive user profile management with diving-specific information and secure password management.

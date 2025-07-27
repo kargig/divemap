@@ -1,12 +1,27 @@
 #!/bin/bash
 set -e
 
-# Database connection configuration
-DB_HOST="db"
-DB_PORT="3306"
+# Extract database host and port from DATABASE_URL
+if [ -z "$DATABASE_URL" ]; then
+    echo "💥 ERROR: DATABASE_URL environment variable is not set"
+    exit 1
+fi
+
+# Parse DATABASE_URL to extract host and port
+# Expected format: mysql+pymysql://user:password@host:port/database
+if [[ "$DATABASE_URL" =~ mysql\+pymysql://[^@]+@([^:]+):([^/]+)/ ]]; then
+    DB_HOST="${BASH_REMATCH[1]}"
+    DB_PORT="${BASH_REMATCH[2]}"
+    echo "✅ Successfully parsed DATABASE_URL"
+    echo "📡 Database host: $DB_HOST:$DB_PORT"
+else
+    echo "💥 ERROR: Could not parse DATABASE_URL format"
+    echo "Expected format: mysql+pymysql://user:password@host:port/database"
+    echo "Current DATABASE_URL: $DATABASE_URL"
+    exit 1
+fi
 
 echo "Waiting for database to be ready..."
-echo "📡 Database host: $DB_HOST:$DB_PORT"
 
 # Function to check database connectivity with IPv6 support
 check_db() {

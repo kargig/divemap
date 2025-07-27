@@ -25,11 +25,33 @@ fi
 # Test database connectivity (if db host is available)
 echo ""
 echo "Testing database connectivity..."
-echo "📡 Testing connection to db:3306..."
-if nc -z -w 5 db 3306 2>/dev/null; then
-    echo "✅ Database connectivity confirmed"
+
+# Extract database host and port from DATABASE_URL if available
+if [ -n "$DATABASE_URL" ]; then
+    if [[ "$DATABASE_URL" =~ mysql\+pymysql://[^@]+@([^:]+):([^/]+)/ ]]; then
+        DB_HOST="${BASH_REMATCH[1]}"
+        DB_PORT="${BASH_REMATCH[2]}"
+        echo "📡 Testing connection to $DB_HOST:$DB_PORT (from DATABASE_URL)..."
+        if nc -z -w 5 $DB_HOST $DB_PORT 2>/dev/null; then
+            echo "✅ Database connectivity confirmed"
+        else
+            echo "❌ Database connectivity failed (this is expected if database is not running)"
+        fi
+    else
+        echo "⚠️  Could not parse DATABASE_URL, testing default db:3306..."
+        if nc -z -w 5 db 3306 2>/dev/null; then
+            echo "✅ Database connectivity confirmed"
+        else
+            echo "❌ Database connectivity failed (this is expected if database is not running)"
+        fi
+    fi
 else
-    echo "❌ Database connectivity failed (this is expected if database is not running)"
+    echo "📡 Testing connection to db:3306 (default)..."
+    if nc -z -w 5 db 3306 2>/dev/null; then
+        echo "✅ Database connectivity confirmed"
+    else
+        echo "❌ Database connectivity failed (this is expected if database is not running)"
+    fi
 fi
 
 echo ""

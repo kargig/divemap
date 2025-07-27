@@ -6,6 +6,40 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 ### 🚀 Major Features
 
+#### **API Endpoint Trailing Slash Fixes**
+- **Fixed Dive Site Detail Page**: Resolved 307 redirect issues preventing display of nearby dive sites, comments, and media
+- **Consistent API Patterns**: Standardized all frontend API calls to match backend FastAPI routing expectations
+- **Improved User Experience**: Dive site detail pages now properly display all content sections
+
+**Technical Details:**
+- **Root Cause**: Frontend was using trailing slashes for individual resource endpoints, but FastAPI routes don't have trailing slashes for those endpoints
+- **Solution**: Removed trailing slashes from individual resource endpoints while keeping them for list endpoints
+- **Testing**: All endpoints now return proper responses without 307 redirects
+
+**API Endpoints Fixed:**
+- `/api/v1/dive-sites/{id}/comments/` → `/api/v1/dive-sites/{id}/comments`
+- `/api/v1/dive-sites/{id}/media/` → `/api/v1/dive-sites/{id}/media`
+- `/api/v1/dive-sites/{id}/nearby/` → `/api/v1/dive-sites/{id}/nearby`
+- `/api/v1/dive-sites/{id}/diving-centers/` → `/api/v1/dive-sites/{id}/diving-centers`
+- `/api/v1/diving-centers/{id}/comments/` → `/api/v1/diving-centers/{id}/comments`
+- `/api/v1/diving-centers/{id}/gear-rental/` → `/api/v1/diving-centers/{id}/gear-rental`
+- `/api/v1/dive-sites/reverse-geocode/` → `/api/v1/dive-sites/reverse-geocode`
+
+**Files Modified:**
+- `frontend/src/pages/DiveSiteDetail.js` - Fixed comments, media, nearby, and diving-centers endpoints
+- `frontend/src/pages/DiveSiteMap.js` - Fixed nearby endpoint
+- `frontend/src/pages/EditDiveSite.js` - Fixed diving-centers, media, and reverse-geocode endpoints
+- `frontend/src/pages/CreateDiveSite.js` - Fixed reverse-geocode endpoint
+- `frontend/src/pages/DivingCenterDetail.js` - Fixed comments endpoint
+- `frontend/src/pages/EditDivingCenter.js` - Fixed gear-rental endpoint
+
+**Testing Results:**
+- ✅ `/api/v1/dive-sites/11/comments` - Returns `[]` (no comments)
+- ✅ `/api/v1/dive-sites/11/nearby?limit=3` - Returns nearby dive sites
+- ✅ `/api/v1/dive-sites/11/media` - Returns `[]` (no media)
+
+**Deployment:** Frontend has been rebuilt and deployed to production.
+
 #### **Database Connectivity and Container Optimization**
 - **Robust Database Connectivity Check**: Backend container now waits for database availability before starting
 - **IPv6 Support for Fly.io**: Implemented netcat-openbsd with IPv6 support for cloud deployment

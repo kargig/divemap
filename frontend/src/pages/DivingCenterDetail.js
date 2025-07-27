@@ -51,7 +51,7 @@ const DivingCenterDetail = () => {
   // Fetch comments
   const { data: comments, isLoading: commentsLoading } = useQuery(
     ['diving-center-comments', id],
-    () => api.get(`/api/v1/diving-centers/${id}/comments/`),
+    () => api.get(`/api/v1/diving-centers/${id}/comments`),
     {
       select: (response) => response.data
     }

@@ -52,7 +52,7 @@ const DiveSiteDetail = () => {
 
   const { data: comments } = useQuery(
     ['dive-site-comments', id],
-    () => api.get(`/api/v1/dive-sites/${id}/comments/`),
+    () => api.get(`/api/v1/dive-sites/${id}/comments`),
     {
       select: (response) => response.data
     }
@@ -60,7 +60,7 @@ const DiveSiteDetail = () => {
 
   const { data: media } = useQuery(
     ['dive-site-media', id],
-    () => api.get(`/api/v1/dive-sites/${id}/media/`),
+    () => api.get(`/api/v1/dive-sites/${id}/media`),
     {
       select: (response) => response.data
     }
@@ -68,7 +68,7 @@ const DiveSiteDetail = () => {
 
   const { data: divingCenters } = useQuery(
     ['dive-site-diving-centers', id],
-    () => api.get(`/api/v1/dive-sites/${id}/diving-centers/`),
+    () => api.get(`/api/v1/dive-sites/${id}/diving-centers`),
     {
       select: (response) => response.data
     }
@@ -76,7 +76,7 @@ const DiveSiteDetail = () => {
 
   const { data: nearbyDiveSites } = useQuery(
     ['dive-site-nearby', id],
-    () => api.get(`/api/v1/dive-sites/${id}/nearby/?limit=10`),
+    () => api.get(`/api/v1/dive-sites/${id}/nearby?limit=10`),
     {
       select: (response) => response.data,
       enabled: !!diveSite && !!diveSite.latitude && !!diveSite.longitude
