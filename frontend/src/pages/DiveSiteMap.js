@@ -21,6 +21,7 @@ const DiveSiteMap = () => {
   const mapRef = useRef();
   const mapInstance = useRef();
   const [selectedSite, setSelectedSite] = useState(null);
+  const [currentZoom, setCurrentZoom] = useState(13);
 
   // Fetch current dive site
   const { data: diveSite, isLoading: isLoadingDiveSite } = useQuery(
@@ -54,11 +55,19 @@ const DiveSiteMap = () => {
         ],
         view: new View({
           center: fromLonLat([diveSite.longitude, diveSite.latitude]),
-          zoom: 2
+          zoom: 13
         })
       });
 
       mapInstance.current = map;
+
+      // Set up zoom level tracking
+      setCurrentZoom(map.getView().getZoom());
+      
+      // Listen for zoom changes
+      map.getView().on('change:resolution', () => {
+        setCurrentZoom(map.getView().getZoom());
+      });
 
       // Create features for all sites
       const features = [];
@@ -159,6 +168,9 @@ const DiveSiteMap = () => {
               {diveSite?.latitude?.toFixed(4) || 'Loading...'}, {diveSite?.longitude?.toFixed(4) || 'Loading...'}
             </p>
           </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-600">Zoom: {currentZoom.toFixed(1)}</span>
         </div>
       </div>
 
