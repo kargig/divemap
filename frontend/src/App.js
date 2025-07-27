@@ -20,6 +20,8 @@ import AdminDiveSites from './pages/AdminDiveSites';
 import AdminDivingCenters from './pages/AdminDivingCenters';
 import AdminTags from './pages/AdminTags';
 import AdminUsers from './pages/AdminUsers';
+import CreateDiveSite from './pages/CreateDiveSite';
+import CreateDivingCenter from './pages/CreateDivingCenter';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -125,10 +127,26 @@ function App() {
                   } 
                 />
                 <Route 
+                  path="/admin/dive-sites/create" 
+                  element={
+                    <ProtectedRoute requireAdmin={true}>
+                      <CreateDiveSite />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
                   path="/admin/diving-centers" 
                   element={
                     <ProtectedRoute requireAdmin={true}>
                       <AdminDivingCenters />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin/diving-centers/create" 
+                  element={
+                    <ProtectedRoute requireAdmin={true}>
+                      <CreateDivingCenter />
                     </ProtectedRoute>
                   } 
                 />

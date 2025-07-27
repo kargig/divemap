@@ -584,3 +584,35 @@ node test_regressions.js
 * ✅ Registration success message with approval notice
 * ✅ Disabled users blocked from accessing protected endpoints
 * ✅ User-friendly approval workflow
+
+### **13.4 Recent Bug Fixes**
+
+#### **API Serialization Issues**
+* ✅ Fixed dive sites API tag serialization causing 500 errors
+* ✅ Updated AvailableTag model field mapping (removed non-existent 'category' field)
+* ✅ Fixed Pydantic response validation errors for dive sites endpoint
+* ✅ Proper tag dictionary serialization in all dive site endpoints
+
+#### **Schema Validation Updates**
+* ✅ Added 'expert' difficulty level support to all dive site schemas
+* ✅ Updated difficulty level patterns in DiveSiteBase, DiveSiteUpdate, and DiveSiteSearchParams
+* ✅ Fixed query parameter validation for difficulty level filtering
+
+#### **Frontend Create Pages**
+* ✅ Added missing CreateDiveSite.js component with comprehensive form
+* ✅ Added missing CreateDivingCenter.js component with comprehensive form
+* ✅ Added proper React Router routes for create pages
+* ✅ Implemented form validation and error handling
+* ✅ Added proper navigation and user experience features
+
+#### **Authentication and Docker Issues**
+* ✅ Resolved admin login issues with updated password requirements
+* ✅ Fixed slowapi import errors in containerized environment
+* ✅ Updated admin password to meet new security requirements
+* ✅ Rebuilt Docker images to include latest dependencies
+
+#### **Testing and Validation**
+* ✅ Updated test data to include 'expert' difficulty level
+* ✅ Fixed test tag data to match actual model fields
+* ✅ Added comprehensive API response validation tests
+* ✅ Improved error handling and logging for debugging

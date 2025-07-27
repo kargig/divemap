@@ -1,7 +1,9 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
+from slowapi.util import get_remote_address
+from slowapi import Limiter
 
 from app.database import get_db
 from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite
@@ -13,13 +15,16 @@ from app.schemas import (
     DiveSiteSearchParams, CenterDiveSiteCreate
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional
+from app.limiter import limiter
 
 router = APIRouter()
 
 @router.get("/", response_model=List[DiveSiteResponse])
+@limiter.limit("100/minute")
 async def get_dive_sites(
-    name: Optional[str] = Query(None),
-    difficulty_level: Optional[str] = Query(None),
+    request: Request,
+    name: Optional[str] = Query(None, max_length=100),
+    difficulty_level: Optional[str] = Query(None, pattern=r"^(beginner|intermediate|advanced|expert)$"),
     min_rating: Optional[float] = Query(None, ge=0, le=10),
     max_rating: Optional[float] = Query(None, ge=0, le=10),
     tag_ids: Optional[List[int]] = Query(None),
@@ -27,11 +32,14 @@ async def get_dive_sites(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db)
 ):
+    
     query = db.query(DiveSite)
     
-    # Apply filters
+    # Apply filters with input validation
     if name:
-        query = query.filter(DiveSite.name.ilike(f"%{name}%"))
+        # Sanitize name input to prevent injection
+        sanitized_name = name.strip()[:100]
+        query = query.filter(DiveSite.name.ilike(f"%{sanitized_name}%"))
     
     if difficulty_level:
         query = query.filter(DiveSite.difficulty_level == difficulty_level)
@@ -40,6 +48,12 @@ async def get_dive_sites(
     if tag_ids:
         from app.models import DiveSiteTag
         from sqlalchemy import select
+        # Validate tag_ids to prevent injection
+        if len(tag_ids) > 20:  # Limit number of tags
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Too many tag filters"
+            )
         # Use AND logic - dive site must have ALL selected tags
         # First, get dive site IDs that have all the required tags
         tag_count = len(tag_ids)
@@ -72,6 +86,18 @@ async def get_dive_sites(
             DiveSiteTag.dive_site_id == site.id
         ).all()
         
+        # Convert tags to dictionaries
+        tags_dict = [
+            {
+                "id": tag.id,
+                "name": tag.name,
+                "description": tag.description,
+                "created_by": tag.created_by,
+                "created_at": tag.created_at
+            }
+            for tag in tags
+        ]
+        
         site_dict = {
             "id": site.id,
             "name": site.name,
@@ -89,7 +115,7 @@ async def get_dive_sites(
             "updated_at": site.updated_at,
             "average_rating": float(avg_rating) if avg_rating else None,
             "total_ratings": total_ratings,
-            "tags": tags
+            "tags": tags_dict
         }
         result.append(site_dict)
     
@@ -103,11 +129,14 @@ async def get_dive_sites(
     return result
 
 @router.post("/", response_model=DiveSiteResponse)
+@limiter.limit("10/minute")
 async def create_dive_site(
+    request: Request,
     dive_site: DiveSiteCreate,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
+    
     db_dive_site = DiveSite(**dive_site.dict())
     db.add(db_dive_site)
     db.commit()
@@ -119,15 +148,19 @@ async def create_dive_site(
         "created_at": db_dive_site.created_at,
         "updated_at": db_dive_site.updated_at,
         "average_rating": None,
-        "total_ratings": 0
+        "total_ratings": 0,
+        "tags": []
     }
 
 @router.get("/{dive_site_id}", response_model=DiveSiteResponse)
+@limiter.limit("200/minute")
 async def get_dive_site(
+    request: Request,
     dive_site_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)  # <-- new optional dependency
 ):
+    
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
         raise HTTPException(
@@ -150,6 +183,18 @@ async def get_dive_site(
         DiveSiteTag.dive_site_id == dive_site_id
     ).all()
 
+    # Convert tags to dictionaries
+    tags_dict = [
+        {
+            "id": tag.id,
+            "name": tag.name,
+            "description": tag.description,
+            "created_by": tag.created_by,
+            "created_at": tag.created_at
+        }
+        for tag in tags
+    ]
+
     # Get user's previous rating if authenticated
     user_rating = None
     if current_user:
@@ -164,12 +209,18 @@ async def get_dive_site(
         **dive_site.__dict__,
         "average_rating": float(avg_rating) if avg_rating else None,
         "total_ratings": total_ratings,
-        "tags": tags,
+        "tags": tags_dict,
         "user_rating": user_rating
     }
 
 @router.get("/{dive_site_id}/media", response_model=List[SiteMediaResponse])
-async def get_dive_site_media(dive_site_id: int, db: Session = Depends(get_db)):
+@limiter.limit("100/minute")
+async def get_dive_site_media(
+    request: Request,
+    dive_site_id: int, 
+    db: Session = Depends(get_db)
+):
+    
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
@@ -182,18 +233,28 @@ async def get_dive_site_media(dive_site_id: int, db: Session = Depends(get_db)):
     return media
 
 @router.post("/{dive_site_id}/media", response_model=SiteMediaResponse)
+@limiter.limit("20/minute")
 async def add_dive_site_media(
+    request: Request,
     dive_site_id: int,
     media: SiteMediaCreate,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
+    
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
+        )
+    
+    # Validate media URL
+    if not media.url.startswith(('http://', 'https://')):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid media URL"
         )
     
     db_media = SiteMedia(
@@ -208,12 +269,15 @@ async def add_dive_site_media(
     return db_media
 
 @router.delete("/{dive_site_id}/media/{media_id}")
+@limiter.limit("20/minute")
 async def delete_dive_site_media(
+    request: Request,
     dive_site_id: int,
     media_id: int,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
+    
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
@@ -237,8 +301,14 @@ async def delete_dive_site_media(
     return {"message": "Media deleted successfully"}
 
 @router.get("/{dive_site_id}/diving-centers")
-async def get_dive_site_diving_centers(dive_site_id: int, db: Session = Depends(get_db)):
+@limiter.limit("100/minute")
+async def get_dive_site_diving_centers(
+    request: Request,
+    dive_site_id: int, 
+    db: Session = Depends(get_db)
+):
     """Get all diving centers associated with a dive site"""
+    
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
@@ -269,13 +339,16 @@ async def get_dive_site_diving_centers(dive_site_id: int, db: Session = Depends(
     return result
 
 @router.post("/{dive_site_id}/diving-centers")
+@limiter.limit("10/minute")
 async def add_diving_center_to_dive_site(
+    request: Request,
     dive_site_id: int,
     center_assignment: CenterDiveSiteCreate,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
     """Add a diving center to a dive site (admin only)"""
+    
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
@@ -323,13 +396,16 @@ async def add_diving_center_to_dive_site(
     }
 
 @router.delete("/{dive_site_id}/diving-centers/{diving_center_id}")
+@limiter.limit("10/minute")
 async def remove_diving_center_from_dive_site(
+    request: Request,
     dive_site_id: int,
     diving_center_id: int,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
     """Remove a diving center from a dive site (admin only)"""
+    
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
@@ -364,12 +440,15 @@ async def remove_diving_center_from_dive_site(
     return {"message": "Diving center removed from dive site successfully"}
 
 @router.put("/{dive_site_id}", response_model=DiveSiteResponse)
+@limiter.limit("20/minute")
 async def update_dive_site(
+    request: Request,
     dive_site_id: int,
     dive_site_update: DiveSiteUpdate,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
+    
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
         raise HTTPException(
@@ -394,18 +473,40 @@ async def update_dive_site(
         SiteRating.dive_site_id == dive_site.id
     ).scalar()
     
+    # Get tags for this dive site
+    from app.models import DiveSiteTag, AvailableTag
+    tags = db.query(AvailableTag).join(DiveSiteTag).filter(
+        DiveSiteTag.dive_site_id == dive_site_id
+    ).all()
+
+    # Convert tags to dictionaries
+    tags_dict = [
+        {
+            "id": tag.id,
+            "name": tag.name,
+            "description": tag.description,
+            "created_by": tag.created_by,
+            "created_at": tag.created_at
+        }
+        for tag in tags
+    ]
+    
     return {
         **dive_site.__dict__,
         "average_rating": float(avg_rating) if avg_rating else None,
-        "total_ratings": total_ratings
+        "total_ratings": total_ratings,
+        "tags": tags_dict
     }
 
 @router.delete("/{dive_site_id}")
+@limiter.limit("10/minute")
 async def delete_dive_site(
+    request: Request,
     dive_site_id: int,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
+    
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
         raise HTTPException(
@@ -419,12 +520,15 @@ async def delete_dive_site(
     return {"message": "Dive site deleted successfully"}
 
 @router.post("/{dive_site_id}/rate", response_model=SiteRatingResponse)
+@limiter.limit("10/minute")
 async def rate_dive_site(
+    request: Request,
     dive_site_id: int,
     rating: SiteRatingCreate,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
@@ -457,10 +561,13 @@ async def rate_dive_site(
         return db_rating
 
 @router.get("/{dive_site_id}/comments", response_model=List[SiteCommentResponse])
+@limiter.limit("100/minute")
 async def get_dive_site_comments(
+    request: Request,
     dive_site_id: int,
     db: Session = Depends(get_db)
 ):
+    
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
@@ -489,12 +596,15 @@ async def get_dive_site_comments(
     return result
 
 @router.post("/{dive_site_id}/comments", response_model=SiteCommentResponse)
+@limiter.limit("5/minute")
 async def create_dive_site_comment(
+    request: Request,
     dive_site_id: int,
     comment: SiteCommentCreate,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:

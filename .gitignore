@@ -23,6 +23,7 @@ wheels/
 MANIFEST
 
 # Virtual environments
+divemap_venv/
 venv/
 env/
 ENV/

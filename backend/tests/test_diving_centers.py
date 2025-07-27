@@ -51,9 +51,9 @@ class TestDivingCenters:
         assert data["email"] == test_diving_center.email
         assert data["phone"] == test_diving_center.phone
         assert data["website"] == test_diving_center.website
-        # Fix: compare as strings to match API output
-        assert str(data["latitude"]) == str(test_diving_center.latitude)
-        assert str(data["longitude"]) == str(test_diving_center.longitude)
+        # Fix: compare as floats to handle decimal precision
+        assert float(data["latitude"]) == float(test_diving_center.latitude)
+        assert float(data["longitude"]) == float(test_diving_center.longitude)
         assert "average_rating" in data
         assert "total_ratings" in data
     

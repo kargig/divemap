@@ -10,7 +10,7 @@ class TestAuth:
         response = client.post("/api/v1/auth/register", json={
             "username": "newuser",
             "email": "newuser@example.com",
-            "password": "password123"
+            "password": "Password123!"
         })
         
         assert response.status_code == status.HTTP_200_OK
@@ -25,7 +25,7 @@ class TestAuth:
         response = client.post("/api/v1/auth/register", json={
             "username": "testuser",  # Already exists
             "email": "different@example.com",
-            "password": "password123"
+            "password": "Password123!"
         })
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -36,7 +36,7 @@ class TestAuth:
         response = client.post("/api/v1/auth/register", json={
             "username": "differentuser",
             "email": "test@example.com",  # Already exists
-            "password": "password123"
+            "password": "Password123!"
         })
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST

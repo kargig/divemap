@@ -50,8 +50,8 @@ class TestDiveSites:
         assert data["name"] == test_dive_site.name
         assert data["description"] == test_dive_site.description
         # Fix: compare as strings to match API output
-        assert str(data["latitude"]) == str(test_dive_site.latitude)
-        assert str(data["longitude"]) == str(test_dive_site.longitude)
+        assert float(data["latitude"]) == float(test_dive_site.latitude)
+        assert float(data["longitude"]) == float(test_dive_site.longitude)
         assert "average_rating" in data
         assert "total_ratings" in data
     
@@ -322,8 +322,7 @@ class TestDiveSites:
         media_data = {
             "media_type": "photo",  # Changed from "image"
             "url": "https://example.com/photo.jpg",
-            "description": "A beautiful photo",
-            "dive_site_id": test_dive_site.id  # Add required field
+            "description": "A beautiful photo"
         }
         
         response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/media", 
@@ -350,8 +349,7 @@ class TestDiveSites:
         media_data = {
             "media_type": "photo",  # Changed from "image"
             "url": "https://example.com/photo.jpg",
-            "description": "A beautiful photo",
-            "dive_site_id": 999  # Add required field
+            "description": "A beautiful photo"
         }
         
         response = client.post("/api/v1/dive-sites/999/media", 

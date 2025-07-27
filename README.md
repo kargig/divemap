@@ -43,6 +43,35 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 - **Node.js** - Frontend validation scripts
 - **Automated Testing** - Regression prevention and data type validation
 
+## Security
+
+This application implements comprehensive security measures to protect user data and prevent common vulnerabilities:
+
+### Security Features
+- **Authentication & Authorization**: JWT-based authentication with role-based access control
+- **Password Security**: Strong password requirements with bcrypt hashing (12 rounds)
+- **Rate Limiting**: Comprehensive rate limiting on all endpoints to prevent abuse
+- **Input Validation**: Strict input validation and sanitization using Pydantic models
+- **Security Headers**: Complete set of HTTP security headers (CSP, XSS Protection, etc.)
+- **CORS Protection**: Restrictive CORS configuration
+- **SQL Injection Prevention**: Parameterized queries and input sanitization
+- **Docker Security**: Container security with no-new-privileges and environment variables
+
+### Security Vulnerabilities Fixed
+- Updated all Python dependencies to fix known CVEs
+- Fixed Node.js package vulnerabilities with overrides
+- Implemented proper input validation and sanitization
+- Added comprehensive rate limiting
+- Enhanced authentication security
+
+### Security Best Practices
+- All secrets managed via environment variables
+- Regular security updates and dependency scanning
+- Comprehensive logging and monitoring capabilities
+- Production-ready security configuration
+
+For detailed security information, see [SECURITY.md](SECURITY.md).
+
 ## Quick Start
 
 1. **Clone the repository**
@@ -51,19 +80,28 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
    cd divemap
    ```
 
-2. **Start the application**
+2. **Set up environment variables (recommended for production)**
+   ```bash
+   # Copy and modify the example environment file
+   cp .env.example .env
+   # Edit .env with your secure passwords and secrets
+   ```
+
+3. **Start the application**
    ```bash
    docker-compose up -d
    ```
 
-3. **Access the application**
+4. **Access the application**
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000
    - API Documentation: http://localhost:8000/docs
 
-4. **Default admin credentials**
+5. **Default admin credentials**
    - Username: `admin`
-   - Password: `admin123`
+   - Password: `Admin123!`
+
+**⚠️ Security Note**: Change default passwords immediately in production environments.
 
 ## Development
 
@@ -146,6 +184,8 @@ The admin interface includes an enhanced navigation system:
 - **Smooth transitions** and hover effects
 
 ## API Endpoints
+
+For detailed API documentation and recent changes, see [API_CHANGELOG.md](API_CHANGELOG.md).
 
 ### Authentication
 - `POST /api/v1/auth/register` - User registration
@@ -285,6 +325,15 @@ See the full API documentation at http://localhost:8000/docs
 - ✅ Improved array safety checks
 - ✅ API parameter filtering to prevent 422 errors
 - ✅ Comprehensive error prevention guidelines
+
+### Recent Bug Fixes (Latest)
+- ✅ **Create Pages Implementation**: Added missing create forms for dive sites and diving centers
+- ✅ **Dive Sites API Serialization**: Fixed tag serialization issues that were causing 500 errors
+- ✅ **Difficulty Level Validation**: Updated schema to support 'expert' difficulty level  
+- ✅ **Tag Model Compatibility**: Fixed AvailableTag model field mapping (removed non-existent 'category' field)
+- ✅ **Response Validation**: Fixed Pydantic response validation errors for dive sites endpoint
+- ✅ **Admin Authentication**: Resolved admin login issues with updated password requirements
+- ✅ **Docker Dependencies**: Fixed slowapi import errors in containerized environment
 
 ## Contributing
 

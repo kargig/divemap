@@ -183,26 +183,23 @@ async function testDataTypes() {
         const center = data[0];
         
         // Test latitude/longitude types
-        if (typeof center.latitude !== 'string') {
-          throw new Error(`Expected latitude to be string, got ${typeof center.latitude}`);
+        if (typeof center.latitude !== 'number') {
+          throw new Error(`Expected latitude to be number, got ${typeof center.latitude}`);
         }
-        if (typeof center.longitude !== 'string') {
-          throw new Error(`Expected longitude to be string, got ${typeof center.longitude}`);
-        }
-        
-        // Test numeric conversion
-        const latNum = Number(center.latitude);
-        const lonNum = Number(center.longitude);
-        
-        if (isNaN(latNum)) {
-          throw new Error(`Cannot convert latitude "${center.latitude}" to number`);
-        }
-        if (isNaN(lonNum)) {
-          throw new Error(`Cannot convert longitude "${center.longitude}" to number`);
+        if (typeof center.longitude !== 'number') {
+          throw new Error(`Expected longitude to be number, got ${typeof center.longitude}`);
         }
         
-        console.log(`  ✅ Latitude: ${center.latitude} (string) -> ${latNum} (number)`);
-        console.log(`  ✅ Longitude: ${center.longitude} (string) -> ${lonNum} (number)`);
+        // Test numeric values are valid
+        if (isNaN(center.latitude)) {
+          throw new Error(`Latitude is NaN: ${center.latitude}`);
+        }
+        if (isNaN(center.longitude)) {
+          throw new Error(`Longitude is NaN: ${center.longitude}`);
+        }
+        
+        console.log(`  ✅ Latitude: ${center.latitude} (number)`);
+        console.log(`  ✅ Longitude: ${center.longitude} (number)`);
         
         // Test rating types
         if (center.average_rating !== null && typeof center.average_rating !== 'number') {
@@ -232,26 +229,23 @@ async function testDataTypes() {
         const site = data[0];
         
         // Test latitude/longitude types
-        if (typeof site.latitude !== 'string') {
-          throw new Error(`Expected latitude to be string, got ${typeof site.latitude}`);
+        if (typeof site.latitude !== 'number') {
+          throw new Error(`Expected latitude to be number, got ${typeof site.latitude}`);
         }
-        if (typeof site.longitude !== 'string') {
-          throw new Error(`Expected longitude to be string, got ${typeof site.longitude}`);
-        }
-        
-        // Test numeric conversion
-        const latNum = Number(site.latitude);
-        const lonNum = Number(site.longitude);
-        
-        if (isNaN(latNum)) {
-          throw new Error(`Cannot convert latitude "${site.latitude}" to number`);
-        }
-        if (isNaN(lonNum)) {
-          throw new Error(`Cannot convert longitude "${site.longitude}" to number`);
+        if (typeof site.longitude !== 'number') {
+          throw new Error(`Expected longitude to be number, got ${typeof site.longitude}`);
         }
         
-        console.log(`  ✅ Latitude: ${site.latitude} (string) -> ${latNum} (number)`);
-        console.log(`  ✅ Longitude: ${site.longitude} (string) -> ${lonNum} (number)`);
+        // Test numeric values are valid
+        if (isNaN(site.latitude)) {
+          throw new Error(`Latitude is NaN: ${site.latitude}`);
+        }
+        if (isNaN(site.longitude)) {
+          throw new Error(`Longitude is NaN: ${site.longitude}`);
+        }
+        
+        console.log(`  ✅ Latitude: ${site.latitude} (number)`);
+        console.log(`  ✅ Longitude: ${site.longitude} (number)`);
         
         // Test rating types
         if (site.average_rating !== null && typeof site.average_rating !== 'number') {
