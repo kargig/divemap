@@ -1,0 +1,202 @@
+# Cursor Rules for Divemap Project
+
+## Environment Management
+
+### Virtual Environment Requirements
+- **NEVER install Python packages in the system Python**
+- **ALWAYS use virtual environments for Python development**
+- **ALWAYS activate the virtual environment before installing packages**
+- **NEVER install npm packages globally**
+- **ALWAYS use project-specific node_modules**
+
+### Python Development
+```bash
+# ✅ CORRECT - Always use virtual environment
+cd backend
+source divemap_venv/bin/activate
+pip install package_name
+
+# ❌ WRONG - Never install in system Python
+pip install package_name  # This is forbidden
+```
+
+### Node.js Development
+```bash
+# ✅ CORRECT - Use local node_modules
+npm install package_name
+
+# ❌ WRONG - Never install globally
+npm install -g package_name  # This is forbidden
+```
+
+## Database Migration Rules
+
+### Alembic Migration Requirements
+- **MUST use Alembic for ALL database schema changes**
+- **NEVER modify database schema manually**
+- **ALWAYS create migrations for schema changes**
+- **ALWAYS test migrations before applying**
+
+### Migration Workflow
+```bash
+# ✅ CORRECT - Use Alembic for migrations
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+
+# Create new migration
+python create_migration.py "Description of changes"
+
+# Run migrations
+python run_migrations.py
+
+# ❌ WRONG - Never modify database manually
+# Direct SQL ALTER TABLE statements are forbidden
+```
+
+### Migration Best Practices
+- Always review auto-generated migrations
+- Test migrations on development database first
+- Backup production database before migrations
+- Use descriptive migration names
+- Handle dependencies between migrations
+
+## Git Commit Rules
+
+### Git Commit Requirements
+- **NEVER commit to git automatically**
+- **ONLY commit when explicitly requested by the user**
+- **ALWAYS ask for permission before committing**
+- **ALWAYS provide clear commit messages when requested**
+
+### Git Workflow
+```bash
+# ✅ CORRECT - Only commit when user requests
+# Wait for user to say: "commit these changes"
+
+# ❌ WRONG - Never commit automatically
+git add . && git commit -m "auto commit"  # This is forbidden
+```
+
+### Commit Guidelines (when user requests)
+- Use descriptive commit messages
+- Include affected files in commit message
+- Reference issue numbers if applicable
+- Test changes before committing
+
+## Testing Requirements
+
+### Test Environment Rules
+- **ALWAYS run tests in virtual environments**
+- **NEVER run tests in system Python**
+- **ALWAYS use project-specific test configurations**
+
+### Backend Testing
+```bash
+# ✅ CORRECT - Use virtual environment for tests
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+python -m pytest tests/ -v
+
+# ❌ WRONG - Never test in system Python
+python -m pytest  # This is forbidden
+```
+
+### Frontend Testing
+```bash
+# ✅ CORRECT - Use local node_modules
+npm test
+node validate_frontend.js
+node test_regressions.js
+
+# ❌ WRONG - Never use global packages
+npx test  # This is forbidden
+```
+
+## Development Workflow
+
+### Environment Setup
+1. Always activate virtual environment first
+2. Set PYTHONPATH for asdf Python environments
+3. Install packages only in virtual environment
+4. Test in isolated environment
+
+### Code Changes
+1. Make changes in appropriate virtual environment
+2. Test changes thoroughly
+3. Ask user before committing
+4. Provide clear documentation for changes
+
+### Database Changes
+1. Modify SQLAlchemy models
+2. Generate Alembic migration
+3. Review generated migration
+4. Test migration on development database
+5. Apply migration only after testing
+
+## Security Requirements
+
+### Package Installation
+- Never install packages globally
+- Always verify package sources
+- Use pinned versions in requirements.txt
+- Regularly update dependencies
+
+### Environment Variables
+- Never commit secrets to git
+- Use .env files for local development
+- Use environment variables in production
+- Validate environment configuration
+
+## Documentation Requirements
+
+### Code Documentation
+- Document all new features
+- Update README.md for user-facing changes
+- Update API_CHANGELOG.md for API changes
+- Update CHANGELOG.md for all changes
+
+### Migration Documentation
+- Document all database schema changes
+- Include migration files in version control
+- Provide rollback instructions
+- Test migration procedures
+
+## Error Handling
+
+### Common Issues
+- **ModuleNotFoundError**: Check PYTHONPATH and virtual environment
+- **Database Connection**: Verify database is running and accessible
+- **Migration Failures**: Check database state and migration history
+- **Package Installation**: Ensure virtual environment is activated
+
+### Troubleshooting Steps
+1. Verify virtual environment is activated
+2. Check PYTHONPATH for asdf environments
+3. Ensure database is running
+4. Check migration status with `alembic current`
+5. Verify all dependencies are installed
+
+## Compliance Checklist
+
+Before making any changes, ensure:
+- [ ] Virtual environment is activated
+- [ ] PYTHONPATH is set correctly
+- [ ] No system packages are being installed
+- [ ] Alembic is used for database changes
+- [ ] Tests run in virtual environment
+- [ ] User permission obtained before git commits
+- [ ] Documentation is updated
+- [ ] Changes are tested thoroughly
+
+## Enforcement
+
+These rules are mandatory and must be followed:
+- Violations will result in immediate correction
+- System package installations are strictly forbidden
+- Manual database changes are not allowed
+- Automatic git commits are prohibited
+- All testing must use virtual environments
+
+Remember: **Always ask for permission before committing to git!** 

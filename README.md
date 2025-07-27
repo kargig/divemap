@@ -18,6 +18,7 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 - **Admin Dashboard**: Full administrative interface with separate management pages
 - **Mass Operations**: Bulk delete functionality for admin management
 - **Google OAuth**: Secure authentication with Google accounts
+- **Database Migrations**: Alembic-based version-controlled database schema management
 
 ## Tech Stack
 
@@ -37,6 +38,7 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 - **Python** - Programming language
 - **FastAPI** - Web framework
 - **SQLAlchemy** - ORM
+- **Alembic** - Database migrations
 - **Pydantic** - Data validation
 - **JWT** - Authentication
 - **MySQL** - Database
@@ -147,6 +149,26 @@ The project includes comprehensive testing infrastructure:
 
 ### Database
 The application uses MySQL for data storage. The database is automatically initialized with sample data when the containers start.
+
+### Database Migrations
+Database schema changes are managed using Alembic migrations:
+
+```bash
+# Run migrations manually
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+python run_migrations.py
+
+# Create new migration
+python create_migration.py "Description of changes"
+
+# Check migration status
+alembic current
+alembic history
+```
+
+**Note**: Migrations run automatically before the backend starts in Docker containers.
 
 ## Admin Interface
 

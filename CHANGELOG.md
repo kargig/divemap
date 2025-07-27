@@ -6,6 +6,30 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 ### 🚀 Major Features
 
+#### **Database Migration System (Alembic)**
+- **Alembic Integration**: Complete migration system for version-controlled database changes
+- **Automatic Execution**: Migrations run automatically before application startup
+- **Environment Compatibility**: Works with both development and Docker environments
+- **Health Checks**: Database availability verification before migration execution
+- **Rollback Support**: Full migration history with downgrade capabilities
+- **Python Path Fixes**: Resolved asdf Python environment compatibility issues
+
+**Files Added:**
+- `backend/alembic.ini` - Alembic configuration
+- `backend/migrations/env.py` - Environment configuration
+- `backend/migrations/script.py.mako` - Migration template
+- `backend/migrations/versions/0001_initial.py` - Initial database schema
+- `backend/run_migrations.py` - Migration execution script
+- `backend/create_migration.py` - Migration generation script
+- `backend/run_migrations_docker.sh` - Docker migration script
+- `backend/MIGRATIONS_README.md` - User guide for migrations
+- `backend/ALEMBIC_SETUP.md` - Comprehensive setup documentation
+
+**Files Modified:**
+- `backend/app/database.py` - Added `get_database_url()` function
+- `backend/requirements.txt` - Added Alembic dependency
+- `backend/Dockerfile` - Updated to run migrations before startup
+
 #### **Multi-Currency Support System**
 - **10 World Currencies**: Support for USD, EUR, JPY, GBP, CNY, AUD, CAD, CHF, HKD, NZD
 - **Euro Default**: Euro (€) is the default currency for all cost fields

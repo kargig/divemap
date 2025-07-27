@@ -25,5 +25,9 @@ RUN mkdir -p /app/uploads
 # Expose port
 EXPOSE 8000
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 
+# Make migration scripts executable
+RUN chmod +x /app/run_migrations.py
+RUN chmod +x /app/run_migrations_docker.sh
+
+# Run migrations and then start the application
+CMD ["sh", "-c", "python run_migrations.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"] 

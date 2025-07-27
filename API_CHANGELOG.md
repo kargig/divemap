@@ -4,6 +4,69 @@ This document tracks recent changes, bug fixes, and improvements to the Divemap 
 
 ## Latest Changes (Latest Release)
 
+### ✅ Added: Database Migration System (Alembic)
+
+**Feature:** Complete Alembic integration for version-controlled database schema management.
+
+**Implementation:**
+- **Automatic Migration Execution**: Migrations run before application startup
+- **Environment Compatibility**: Works with both development and Docker environments
+- **Health Checks**: Database availability verification before migration execution
+- **Rollback Support**: Full migration history with downgrade capabilities
+- **Python Path Fixes**: Resolved asdf Python environment compatibility issues
+
+**Migration Workflow:**
+```bash
+# Development environment
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+
+# Run migrations
+python run_migrations.py
+
+# Create new migration
+python create_migration.py "Description of changes"
+
+# Check migration status
+alembic current
+alembic history
+```
+
+**Docker Integration:**
+- Migrations run automatically before backend startup
+- Database health checks ensure availability
+- Error handling and recovery procedures
+
+**Files Added:**
+- `backend/alembic.ini` - Alembic configuration
+- `backend/migrations/env.py` - Environment configuration
+- `backend/migrations/script.py.mako` - Migration template
+- `backend/migrations/versions/0001_initial.py` - Initial database schema
+- `backend/run_migrations.py` - Migration execution script
+- `backend/create_migration.py` - Migration generation script
+- `backend/run_migrations_docker.sh` - Docker migration script
+- `backend/MIGRATIONS_README.md` - User guide for migrations
+- `backend/ALEMBIC_SETUP.md` - Comprehensive setup documentation
+
+**Files Modified:**
+- `backend/app/database.py` - Added `get_database_url()` function
+- `backend/requirements.txt` - Added Alembic dependency
+- `backend/Dockerfile` - Updated to run migrations before startup
+
+**Migration Best Practices:**
+- Always review auto-generated migrations
+- Test migrations on development database first
+- Backup production database before migrations
+- Use descriptive migration names
+- Handle dependencies between migrations
+
+**Security Features:**
+- Environment variable configuration
+- Database connection validation
+- Error handling and logging
+- Rollback capabilities for failed migrations
+
 ### ✅ Added: Multi-Currency Support System
 
 **Feature:** Comprehensive currency system supporting the top 10 world currencies with Euro (€) as default.

@@ -16,6 +16,7 @@ email-validator==2.1.0
 pydantic[email]==2.5.0
 # Security additions
 slowapi==0.1.9
+alembic==1.16.4
 python-multipart==0.0.20
 # Google OAuth
 google-auth==2.40.3

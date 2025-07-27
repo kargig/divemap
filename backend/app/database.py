@@ -6,6 +6,10 @@ import os
 # Database URL from environment variable
 DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://divemap_user:divemap_password@localhost:3306/divemap")
 
+def get_database_url():
+    """Get database URL for Alembic migrations"""
+    return DATABASE_URL
+
 # Create SQLAlchemy engine
 engine = create_engine(
     DATABASE_URL,

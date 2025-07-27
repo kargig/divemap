@@ -98,6 +98,14 @@ This document outlines the technical design for a Python-based web application, 
 * **Default Currency**: Euro (€) is the default currency for all cost fields
 * **Currency Display**: Proper formatting with currency symbols and flags
 * **Flexible Input**: Users can submit costs in any supported currency
+
+### **3.8. Database Migration System**
+
+* **Alembic Integration**: All database schema changes must use Alembic for version control
+* **Automatic Migration Execution**: Migrations run automatically before application startup
+* **Environment Compatibility**: Supports both development and Docker environments
+* **Health Checks**: Database availability verification before migration execution
+* **Rollback Support**: Full migration history with downgrade capabilities
 * **Currency Validation**: 3-letter ISO currency code validation
 * **Database Storage**: Currency fields with indexes for performance
 * **API Integration**: All cost-related endpoints support currency
@@ -210,7 +218,8 @@ The application will follow a microservices-oriented or a well-separated monolit
 #### **5.2.3. Database**
 
 * **Type:** Relational Database  
-* **System:** MySQL (chosen for its robustness, reliability, rich feature set, and strong support for spatial data if needed for advanced mapping).  
+* **System:** MySQL (chosen for its robustness, reliability, rich feature set, and strong support for spatial data if needed for advanced mapping).
+* **Migration System:** Alembic for version-controlled database schema changes
 * **Schema (Conceptual):**  
   * users table:  
     * id (PK)  

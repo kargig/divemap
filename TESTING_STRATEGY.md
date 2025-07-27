@@ -93,7 +93,40 @@ difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|
 
 ## 2. Testing Infrastructure
 
-### 2.1 Validation Scripts
+### 2.1 Database Migration Testing
+
+#### Alembic Migration Testing
+- **Purpose:** Ensure database migrations work correctly
+- **Usage:** `python run_migrations.py`
+- **Environment:** Must use virtual environment with proper PYTHONPATH
+
+**Migration Test Commands:**
+```bash
+# Test migration system
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+
+# Run migrations
+python run_migrations.py
+
+# Create test migration
+python create_migration.py "Test migration"
+
+# Check migration status
+alembic current
+alembic history
+```
+
+**Migration Testing Checklist:**
+- [ ] Virtual environment activated
+- [ ] PYTHONPATH set correctly
+- [ ] Database connection working
+- [ ] Migrations run without errors
+- [ ] Rollback functionality works
+- [ ] Auto-generation creates valid migrations
+
+### 2.2 Validation Scripts
 
 #### `validate_frontend.js`
 - **Purpose:** Basic connectivity and API health checks
@@ -229,9 +262,39 @@ const filteredParams = Object.fromEntries(
 )
 ```
 
-## 5. Testing Commands
+## 5. Environment Requirements
 
-### 5.1 Backend Testing
+### 5.1 Virtual Environment Requirements
+- **NEVER install Python packages in system Python**
+- **ALWAYS use virtual environments for Python development**
+- **ALWAYS activate virtual environment before installing packages**
+- **NEVER install npm packages globally**
+- **ALWAYS use project-specific node_modules**
+
+### 5.2 Python Environment Setup
+```bash
+# ✅ CORRECT - Always use virtual environment
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+pip install package_name
+
+# ❌ WRONG - Never install in system Python
+pip install package_name  # This is forbidden
+```
+
+### 5.3 Node.js Environment Setup
+```bash
+# ✅ CORRECT - Use local node_modules
+npm install package_name
+
+# ❌ WRONG - Never install globally
+npm install -g package_name  # This is forbidden
+```
+
+## 6. Testing Commands
+
+### 6.1 Backend Testing
 
 #### Run All Backend Tests
 ```bash
@@ -270,6 +333,11 @@ python -m pytest tests/test_tags.py -v
 
 # Users tests
 python -m pytest tests/test_users.py -v
+
+# Migration tests
+python run_migrations.py
+alembic current
+alembic history
 ```
 
 ### 5.2 Frontend Testing
@@ -483,9 +551,32 @@ const cleanParams = Object.fromEntries(
 </ErrorBoundary>
 ```
 
-## 8. Monitoring and Alerting
+## 8. Git Commit Rules
 
-### 8.1 Error Tracking
+### 8.1 Git Commit Requirements
+- **NEVER commit to git automatically**
+- **ONLY commit when explicitly requested by the user**
+- **ALWAYS ask for permission before committing**
+- **ALWAYS provide clear commit messages when requested**
+
+### 8.2 Git Workflow
+```bash
+# ✅ CORRECT - Only commit when user requests
+# Wait for user to say: "commit these changes"
+
+# ❌ WRONG - Never commit automatically
+git add . && git commit -m "auto commit"  # This is forbidden
+```
+
+### 8.3 Commit Guidelines (when user requests)
+- Use descriptive commit messages
+- Include affected files in commit message
+- Reference issue numbers if applicable
+- Test changes before committing
+
+## 9. Monitoring and Alerting
+
+### 9.1 Error Tracking
 - **Console Errors:** Monitor browser console
 - **API Errors:** Track 4xx/5xx responses
 - **User Reports:** Collect user feedback
