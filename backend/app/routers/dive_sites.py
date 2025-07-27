@@ -750,12 +750,12 @@ async def get_dive_site_comments(
             detail="Dive site not found"
         )
     
-    comments = db.query(SiteComment, User.username).join(
+    comments = db.query(SiteComment, User.username, User.diving_certification, User.number_of_dives).join(
         User, SiteComment.user_id == User.id
     ).filter(SiteComment.dive_site_id == dive_site_id).all()
     
     result = []
-    for comment, username in comments:
+    for comment, username, diving_certification, number_of_dives in comments:
         comment_dict = {
             "id": comment.id,
             "dive_site_id": comment.dive_site_id,
@@ -763,7 +763,9 @@ async def get_dive_site_comments(
             "username": username,
             "comment_text": comment.comment_text,
             "created_at": comment.created_at,
-            "updated_at": comment.updated_at
+            "updated_at": comment.updated_at,
+            "user_diving_certification": diving_certification,
+            "user_number_of_dives": number_of_dives
         }
         result.append(comment_dict)
     
@@ -798,7 +800,9 @@ async def create_dive_site_comment(
     
     return {
         **db_comment.__dict__,
-        "username": current_user.username
+        "username": current_user.username,
+        "user_diving_certification": current_user.diving_certification,
+        "user_number_of_dives": current_user.number_of_dives
     }
 
 @router.get("/{dive_site_id}/nearby", response_model=List[DiveSiteResponse])

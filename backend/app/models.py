@@ -27,6 +27,8 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
     is_moderator = Column(Boolean, default=False)
     enabled = Column(Boolean, default=True)  # New field for user activation
+    diving_certification = Column(String(100), nullable=True)  # Diving certification (e.g., "PADI Open Water", "AOWD")
+    number_of_dives = Column(Integer, default=0, nullable=False)  # Number of dives completed
 
     # Relationships
     site_ratings = relationship("SiteRating", back_populates="user", cascade="all, delete-orphan")

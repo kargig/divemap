@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS users (
     is_admin BOOLEAN DEFAULT FALSE,
     is_moderator BOOLEAN DEFAULT FALSE,
     enabled BOOLEAN DEFAULT TRUE,
+    diving_certification VARCHAR(100),
+    number_of_dives INT DEFAULT 0 NOT NULL,
     INDEX idx_email (email),
     INDEX idx_username (username),
     INDEX idx_google_id (google_id)

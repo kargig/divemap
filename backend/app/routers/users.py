@@ -4,8 +4,8 @@ from typing import List
 
 from app.database import get_db
 from app.models import User
-from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse
-from app.auth import get_current_active_user, get_current_admin_user, get_password_hash
+from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, PasswordChangeRequest
+from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password
 
 router = APIRouter()
 
@@ -22,6 +22,11 @@ async def update_current_user_profile(
     # Update only provided fields
     update_data = user_update.dict(exclude_unset=True)
     
+    # Handle password update separately
+    if 'password' in update_data:
+        password = update_data.pop('password')
+        current_user.password_hash = get_password_hash(password)
+    
     for field, value in update_data.items():
         setattr(current_user, field, value)
     
@@ -29,6 +34,26 @@ async def update_current_user_profile(
     db.refresh(current_user)
     
     return current_user
+
+@router.post("/me/change-password")
+async def change_password(
+    password_change: PasswordChangeRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Change user password"""
+    # Verify current password
+    if not verify_password(password_change.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    # Update password
+    current_user.password_hash = get_password_hash(password_change.new_password)
+    db.commit()
+    
+    return {"message": "Password changed successfully"}
 
 # Admin user management endpoints
 @router.get("/admin/users", response_model=List[UserListResponse])

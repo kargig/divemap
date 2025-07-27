@@ -135,6 +135,10 @@ export const AuthProvider = ({ children }) => {
     toast.success('Logged out successfully');
   };
 
+  const updateUser = (userData) => {
+    setUser(userData);
+  };
+
   const value = {
     user,
     loading,
@@ -143,6 +147,7 @@ export const AuthProvider = ({ children }) => {
     register,
     registerWithGoogle,
     logout,
+    updateUser,
   };
 
   return (

@@ -6,6 +6,58 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 ### 🚀 Major Features
 
+#### **Enhanced User Profile Management**
+- **Diving Certification Tracking**: Users can now set and display their diving certification (e.g., "PADI Open Water", "AOWD")
+- **Dive Count Management**: Users can track their total number of completed dives
+- **Secure Password Management**: Added password change functionality with current password verification
+- **Comment Credentials Display**: User's diving information appears next to usernames in comments
+
+**New Profile Features:**
+- **Profile Form Enhancement**: Added fields for diving certification and number of dives
+- **Password Change Section**: Dedicated form with current password verification
+- **Real-time Updates**: Profile updates immediately reflect in the UI
+- **Visual Badges**: Blue badges for certification, green badges for dive count in comments
+
+**Database Schema Updates:**
+- Added `diving_certification` (VARCHAR(100), nullable) to users table
+- Added `number_of_dives` (INTEGER, default 0) to users table
+- Created migration `0005_add_user_diving_fields.py`
+
+**API Endpoints Added:**
+- `POST /api/v1/users/me/change-password` - Secure password change
+- Enhanced `PUT /api/v1/users/me` - Now supports diving fields
+- Enhanced comment responses - Include user diving information
+
+**Frontend Enhancements:**
+- **Profile Page**: Complete redesign with diving information fields
+- **Comment Display**: Updated to show user credentials with visual badges
+- **Form Validation**: Client-side validation for password requirements
+- **AuthContext**: Added `updateUser` function for real-time updates
+
+**Security Features:**
+- **Password Verification**: Current password required for password changes
+- **Password Requirements**: Minimum 8 characters with confirmation
+- **Form Validation**: Both client and server-side validation
+- **Secure Storage**: All profile data stored securely
+
+**Files Modified:**
+- `backend/app/models.py` - Added diving fields to User model
+- `backend/app/schemas.py` - Updated user schemas and comment responses
+- `backend/app/routers/users.py` - Added password change endpoint
+- `backend/app/routers/dive_sites.py` - Enhanced comment responses
+- `backend/app/routers/diving_centers.py` - Enhanced comment responses
+- `frontend/src/pages/Profile.js` - Complete profile page redesign
+- `frontend/src/contexts/AuthContext.js` - Added updateUser function
+- `frontend/src/pages/DiveSiteDetail.js` - Updated comment display
+- `frontend/src/pages/DivingCenterDetail.js` - Updated comment display
+- `database/init.sql` - Updated schema with new user fields
+
+**Testing Results:**
+- **Backend Tests**: 150/150 tests passed ✅
+- **Frontend Validation**: All systems operational ✅
+- **Regression Tests**: All tests passed ✅
+- **API Testing**: All new endpoints working correctly ✅
+
 #### **Fly.io Production Deployment**
 - **Complete Production Setup**: Successfully deployed the entire application stack to Fly.io
 - **Multi-Service Architecture**: Deployed backend, frontend, and database as separate services

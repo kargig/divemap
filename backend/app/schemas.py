@@ -14,12 +14,16 @@ class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
     email: Optional[EmailStr] = None
     password: Optional[str] = Field(None, min_length=8, max_length=128)
+    diving_certification: Optional[str] = Field(None, max_length=100)
+    number_of_dives: Optional[int] = Field(None, ge=0)
 
 class UserResponse(UserBase):
     id: int
     enabled: bool
     is_admin: bool
     is_moderator: bool
+    diving_certification: Optional[str] = None
+    number_of_dives: int = 0
     created_at: datetime
     updated_at: datetime
 
@@ -161,6 +165,8 @@ class SiteCommentResponse(BaseModel):
     comment_text: str
     created_at: datetime
     updated_at: datetime
+    user_diving_certification: Optional[str] = None
+    user_number_of_dives: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -257,6 +263,8 @@ class CenterCommentResponse(BaseModel):
     comment_text: str
     created_at: datetime
     updated_at: datetime
+    user_diving_certification: Optional[str] = None
+    user_number_of_dives: Optional[int] = None
 
     class Config:
         from_attributes = True

@@ -4,7 +4,65 @@
 
 This document outlines the comprehensive testing strategy to prevent regressions and ensure code quality.
 
-## 1. Immediate Fixes Applied
+## 1. Latest Features Added
+
+### ✅ Added: Enhanced User Profile Management Testing
+
+**New Features Added:**
+- **Diving Certification Tracking**: Users can set and display their diving certification
+- **Dive Count Management**: Users can track their total number of completed dives
+- **Secure Password Management**: Password change functionality with current password verification
+- **Comment Credentials Display**: User's diving information appears in comments
+
+**New Test Categories Added:**
+```python
+# User Profile Management Tests
+def test_update_user_profile_with_diving_info(self, client, user_headers):
+    """Test updating user profile with diving certification and dive count."""
+    
+def test_change_password_success(self, client, user_headers):
+    """Test successful password change with current password verification."""
+    
+def test_change_password_invalid_current(self, client, user_headers):
+    """Test password change with invalid current password."""
+    
+def test_get_user_profile_with_diving_info(self, client, user_headers):
+    """Test retrieving user profile with diving information."""
+```
+
+**Comment Integration Tests:**
+```python
+# Test comment responses include user diving information
+def test_dive_site_comment_with_user_diving_info(self, client, user_headers):
+    """Test that dive site comments include user diving information."""
+    
+def test_diving_center_comment_with_user_diving_info(self, client, user_headers):
+    """Test that diving center comments include user diving information."""
+```
+
+**Database Migration Tests:**
+- Migration `0005_add_user_diving_fields.py` successfully applied
+- New fields `diving_certification` and `number_of_dives` added to users table
+- Default values properly set (certification: null, dives: 0)
+
+**API Endpoint Tests:**
+- `POST /api/v1/users/me/change-password` - Password change functionality
+- Enhanced `PUT /api/v1/users/me` - Profile updates with diving fields
+- Enhanced comment responses - Include user diving information
+
+**Frontend Integration Tests:**
+- Profile page form validation and submission
+- Comment display with user credentials badges
+- Real-time profile updates in UI
+- Password change form with confirmation
+
+**Testing Results:**
+- **Backend Tests**: 150/150 tests passed ✅
+- **Frontend Validation**: All systems operational ✅
+- **Regression Tests**: All tests passed ✅
+- **API Testing**: All new endpoints working correctly ✅
+
+## 2. Immediate Fixes Applied
 
 ### ✅ Fixed: `center.latitude.toFixed is not a function` Error
 

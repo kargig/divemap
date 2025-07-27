@@ -276,9 +276,9 @@ async def get_diving_center_comments(
             detail="Diving center not found"
         )
     
-    comments = db.query(CenterComment).filter(
-        CenterComment.diving_center_id == diving_center_id
-    ).order_by(CenterComment.created_at.desc()).all()
+    comments = db.query(CenterComment, User.username, User.diving_certification, User.number_of_dives).join(
+        User, CenterComment.user_id == User.id
+    ).filter(CenterComment.diving_center_id == diving_center_id).order_by(CenterComment.created_at.desc()).all()
     
     return [
         {
@@ -288,9 +288,11 @@ async def get_diving_center_comments(
             "comment_text": comment.comment_text,
             "created_at": comment.created_at,
             "updated_at": comment.updated_at,
-            "username": comment.user.username  # Return username directly
+            "username": username,
+            "user_diving_certification": diving_certification,
+            "user_number_of_dives": number_of_dives
         }
-        for comment in comments
+        for comment, username, diving_certification, number_of_dives in comments
     ]
 
 @router.post("/{diving_center_id}/comments", response_model=CenterCommentResponse)
@@ -324,7 +326,9 @@ async def create_diving_center_comment(
         "comment_text": db_comment.comment_text,
         "created_at": db_comment.created_at,
         "updated_at": db_comment.updated_at,
-        "username": current_user.username  # Return username directly
+        "username": current_user.username,
+        "user_diving_certification": current_user.diving_certification,
+        "user_number_of_dives": current_user.number_of_dives
     }
 
 @router.put("/{diving_center_id}/comments/{comment_id}", response_model=CenterCommentResponse)
@@ -362,7 +366,9 @@ async def update_diving_center_comment(
         "comment_text": comment.comment_text,
         "created_at": comment.created_at,
         "updated_at": comment.updated_at,
-        "username": comment.user.username  # Return username directly
+        "username": comment.user.username,
+        "user_diving_certification": comment.user.diving_certification,
+        "user_number_of_dives": comment.user.number_of_dives
     }
 
 @router.delete("/{diving_center_id}/comments/{comment_id}")

@@ -44,6 +44,9 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 - **Enhanced Validation**: Mandatory coordinate fields with client and server-side validation
 - **Form Field Management**: Intelligent handling of optional fields with proper empty value conversion
 - **Cache Management**: Improved React Query cache management for seamless user experience
+- **Enhanced User Profiles**: Diving certification tracking and dive count management
+- **Password Management**: Secure password change functionality with current password verification
+- **Comment Credentials**: User diving information displayed alongside comments
 
 ## Tech Stack
 
@@ -194,6 +197,42 @@ alembic history
 ```
 
 **Note**: Migrations run automatically before the backend starts in Docker containers.
+
+## User Profile Management
+
+### Enhanced User Profiles
+The application now includes comprehensive user profile management with diving-specific information:
+
+#### **Profile Features**
+- **Diving Certification**: Users can set their diving certification (e.g., "PADI Open Water", "AOWD")
+- **Dive Count Tracking**: Users can track their total number of completed dives
+- **Password Management**: Secure password change with current password verification
+- **Profile Updates**: Real-time profile updates with immediate UI reflection
+
+#### **Comment System Integration**
+- **Diving Credentials Display**: User's diving certification and dive count appear next to usernames in comments
+- **Visual Badges**: 
+  - Blue badges for diving certification
+  - Green badges for number of dives
+- **Responsive Design**: Badges adapt to different screen sizes and comment layouts
+
+#### **Security Features**
+- **Password Change**: Requires current password verification
+- **Password Requirements**: Minimum 8 characters with confirmation
+- **Form Validation**: Client-side validation with server-side verification
+- **Secure Storage**: All profile data stored securely in the database
+
+#### **API Endpoints**
+- `GET /api/v1/users/me` - Get current user profile
+- `PUT /api/v1/users/me` - Update user profile
+- `POST /api/v1/users/me/change-password` - Change user password
+
+#### **Database Schema**
+```sql
+-- New user fields
+diving_certification VARCHAR(100),  -- User's diving certification
+number_of_dives INT DEFAULT 0,      -- Total number of dives completed
+```
 
 ## Admin Interface
 

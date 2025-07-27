@@ -509,7 +509,23 @@ const DiveSiteDetail = () => {
               {comments?.map((comment) => (
                 <div key={comment.id} className="border-b border-gray-200 pb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-gray-900">{comment.username}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium text-gray-900">{comment.username}</span>
+                      {(comment.user_diving_certification || comment.user_number_of_dives) && (
+                        <div className="flex items-center space-x-2 text-xs text-gray-500">
+                          {comment.user_diving_certification && (
+                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                              {comment.user_diving_certification}
+                            </span>
+                          )}
+                          {comment.user_number_of_dives > 0 && (
+                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                              {comment.user_number_of_dives} dives
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <span className="text-sm text-gray-500">
                       {new Date(comment.created_at).toLocaleDateString()}
                     </span>

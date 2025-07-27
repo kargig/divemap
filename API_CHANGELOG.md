@@ -4,6 +4,116 @@ This document tracks recent changes, bug fixes, and improvements to the Divemap 
 
 ## Latest Changes (2025-07-27)
 
+### ✅ Added: Enhanced User Profile Management
+
+**New Features:** Added comprehensive user profile management with diving-specific information and secure password management.
+
+#### **New API Endpoints:**
+
+**Password Change Endpoint:**
+```http
+POST /api/v1/users/me/change-password
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "current_password": "string",
+  "new_password": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Password changed successfully"
+}
+```
+
+#### **Enhanced User Endpoints:**
+
+**Updated User Profile Schema:**
+```json
+{
+  "id": 1,
+  "username": "string",
+  "email": "string",
+  "enabled": true,
+  "is_admin": false,
+  "is_moderator": false,
+  "diving_certification": "string|null",
+  "number_of_dives": 0,
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+**Enhanced PUT /api/v1/users/me:**
+```http
+PUT /api/v1/users/me
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "username": "string",
+  "email": "string",
+  "diving_certification": "string|null",
+  "number_of_dives": 0,
+  "password": "string"
+}
+```
+
+#### **Enhanced Comment Responses:**
+
+**Dive Site Comments:**
+```json
+{
+  "id": 1,
+  "dive_site_id": 1,
+  "user_id": 1,
+  "username": "string",
+  "comment_text": "string",
+  "created_at": "datetime",
+  "updated_at": "datetime",
+  "user_diving_certification": "string|null",
+  "user_number_of_dives": 0
+}
+```
+
+**Diving Center Comments:**
+```json
+{
+  "id": 1,
+  "diving_center_id": 1,
+  "user_id": 1,
+  "username": "string",
+  "comment_text": "string",
+  "created_at": "datetime",
+  "updated_at": "datetime",
+  "user_diving_certification": "string|null",
+  "user_number_of_dives": 0
+}
+```
+
+#### **Database Schema Changes:**
+```sql
+-- Added to users table
+diving_certification VARCHAR(100),  -- User's diving certification
+number_of_dives INT DEFAULT 0,      -- Total number of dives completed
+```
+
+#### **Security Features:**
+- **Password Verification**: Current password required for password changes
+- **Password Requirements**: Minimum 8 characters
+- **Form Validation**: Both client and server-side validation
+- **Secure Storage**: All profile data stored securely
+
+#### **Files Modified:**
+- `backend/app/models.py` - Added diving fields to User model
+- `backend/app/schemas.py` - Updated user schemas and comment responses
+- `backend/app/routers/users.py` - Added password change endpoint
+- `backend/app/routers/dive_sites.py` - Enhanced comment responses
+- `backend/app/routers/diving_centers.py` - Enhanced comment responses
+
 ### ✅ Fixed: API Endpoint Consistency Issues
 
 **Issue:** Frontend API calls were using inconsistent trailing slashes, causing 307 redirects and authentication failures.
