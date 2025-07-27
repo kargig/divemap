@@ -33,7 +33,7 @@ const MiniMap = ({ latitude, longitude, name, onMaximize, isMaximized = false, o
         ],
         view: new View({
           center: fromLonLat(position),
-          zoom: isExpanded ? 12 : 10
+          zoom: 2
         })
       });
 

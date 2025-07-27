@@ -54,7 +54,7 @@ const DiveSiteMap = () => {
         ],
         view: new View({
           center: fromLonLat([diveSite.longitude, diveSite.latitude]),
-          zoom: 13
+          zoom: 2
         })
       });
 
