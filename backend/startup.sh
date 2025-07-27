@@ -1,14 +1,20 @@
 #!/bin/bash
 set -e
 
+# Database connection configuration
+DB_HOST="db"
+DB_PORT="3306"
+
 echo "Waiting for database to be ready..."
+echo "📡 Database host: $DB_HOST:$DB_PORT"
 
 # Function to check database connectivity with IPv6 support
 check_db() {
     # Try IPv6 first, then fallback to IPv4
     if command -v nc >/dev/null 2>&1; then
         # Use netcat-openbsd with IPv6 support
-        nc -z -w 5 db 3306 2>/dev/null
+        echo "🔍 Attempting to connect to $DB_HOST:$DB_PORT..."
+        nc -z -w 5 $DB_HOST $DB_PORT 2>/dev/null
         return $?
     else
         echo "ERROR: netcat not found"

@@ -25,6 +25,7 @@ fi
 # Test database connectivity (if db host is available)
 echo ""
 echo "Testing database connectivity..."
+echo "📡 Testing connection to db:3306..."
 if nc -z -w 5 db 3306 2>/dev/null; then
     echo "✅ Database connectivity confirmed"
 else
