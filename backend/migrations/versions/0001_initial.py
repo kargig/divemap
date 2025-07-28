@@ -9,6 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import mysql
 from sqlalchemy import text
+from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision = '0001'
@@ -18,15 +19,10 @@ depends_on = None
 
 
 def table_exists(table_name):
-    """Check if a table exists in the database"""
+    """Check if a table exists in the database (database-agnostic)"""
     connection = op.get_bind()
-    result = connection.execute(text(f"""
-        SELECT COUNT(*)
-        FROM information_schema.tables 
-        WHERE table_schema = DATABASE() 
-        AND table_name = '{table_name}'
-    """))
-    return result.scalar() > 0
+    inspector = inspect(connection)
+    return table_name in inspector.get_table_names()
 
 
 def upgrade() -> None:
