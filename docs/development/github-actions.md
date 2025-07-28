@@ -103,9 +103,10 @@ The workflow generates multiple coverage report formats:
 
 ### Coverage Upload
 
-- **Codecov Integration**: Uploads coverage to Codecov service
+- **Codecov Integration**: Uploads coverage to Codecov service using `CODECOV_TOKEN` secret
 - **Artifact Storage**: Saves coverage reports as workflow artifacts
 - **Failure Handling**: Coverage upload doesn't fail the workflow
+- **Directory Scanning**: Automatically finds coverage files in the backend directory
 
 ## Troubleshooting
 
@@ -143,6 +144,26 @@ pip install -r requirements.txt --no-cache-dir
 **Solution**: Ensure tests use isolated SQLite databases:
 ```python
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+```
+
+#### 5. Codecov Upload Issues
+
+**Problem**: Coverage upload fails with "No coverage reports found"
+
+**Solution**: 
+1. Ensure `CODECOV_TOKEN` secret is set in repository settings
+2. Verify coverage files are generated in the correct directory
+3. Check that pytest-cov is properly installed and configured
+4. Ensure the `directory` parameter points to the correct location
+
+**Debugging Steps**:
+```bash
+# Check if coverage files exist
+ls -la backend/coverage.xml
+ls -la backend/htmlcov/
+
+# Verify pytest-cov installation
+pip list | grep coverage
 ```
 
 ### Debugging Steps
