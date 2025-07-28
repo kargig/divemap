@@ -11,12 +11,36 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/backend-tests.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test against'
+        required: false
+        default: 'ci'
+        type: choice
+        options:
+          - ci
+          - development
+          - staging
+      run_migrations:
+        description: 'Run database migrations'
+        required: false
+        default: true
+        type: boolean
+      run_tests:
+        description: 'Run test suite'
+        required: false
+        default: true
+        type: boolean
+      run_coverage:
+        description: 'Generate coverage reports'
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   test-backend:
     runs-on: ubuntu-latest
-    
-
 
     steps:
     - name: Checkout code
@@ -51,14 +75,40 @@ jobs:
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
         echo "DATABASE_URL=sqlite:///./test.db" >> $GITHUB_ENV
         echo "SECRET_KEY=test-secret-key-for-ci" >> $GITHUB_ENV
+        echo "ENVIRONMENT=${{ github.event.inputs.environment || 'ci' }}" >> $GITHUB_ENV
+
+    - name: Set up SQLite database
+      if: ${{ github.event.inputs.run_migrations != 'false' || github.event_name != 'workflow_dispatch' }}
+      run: |
+        cd backend
+        source divemap_venv/bin/activate
+        export DATABASE_URL="sqlite:///./test.db"
+        export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+        python -c "
+        from app.database import engine
+        from app.models import Base
+        Base.metadata.create_all(bind=engine)
+        print('✅ Database tables created successfully')
+        "
+
+    - name: Run database migrations
+      if: ${{ github.event.inputs.run_migrations != 'false' || github.event_name != 'workflow_dispatch' }}
+      run: |
+        cd backend
+        source divemap_venv/bin/activate
+        export DATABASE_URL="sqlite:///./test.db"
+        export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+        alembic upgrade head
 
     - name: Run backend tests
+      if: ${{ github.event.inputs.run_tests != 'false' || github.event_name != 'workflow_dispatch' }}
       run: |
         cd backend
         source divemap_venv/bin/activate
         python -m pytest tests/ -v --cov=app --cov-report=term-missing --cov-report=html --cov-report=xml
 
     - name: Upload coverage reports
+      if: ${{ (github.event.inputs.run_coverage != 'false' || github.event_name != 'workflow_dispatch') && always() }}
       uses: codecov/codecov-action@v5
       with:
         directory: ./backend/
