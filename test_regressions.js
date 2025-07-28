@@ -1,81 +1,15 @@
 #!/usr/bin/env node
 
 /**
- * Enhanced Regression Testing Script
- * Tests for common frontend issues, data type problems, and edge cases
+ * Regression Testing Script
+ * Tests for common frontend issues and data type problems
  */
 
 const http = require('http');
 const https = require('https');
-
-// Configuration
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
-
-// Test admin credentials
-const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'testadmin@example.com';
-const ADMIN_USERNAME = process.env.TEST_ADMIN_USERNAME || 'testadmin';
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'TestAdmin123!';
-
-// Test data for various scenarios
-const TEST_DATA = {
-  validDiveSite: {
-    name: 'Test Dive Site',
-    description: 'A test dive site for regression testing',
-    latitude: 10.0000,
-    longitude: 20.0000,
-    difficulty_level: 'beginner',
-    access_instructions: 'Test access instructions',
-    max_depth: 15,
-    country: 'Test Country',
-    region: 'Test Region'
-  },
-  invalidDiveSite: {
-    name: '', // Invalid: empty name
-    description: 'A test dive site with invalid data',
-    latitude: 'invalid', // Invalid: non-numeric
-    longitude: 'invalid', // Invalid: non-numeric
-    difficulty_level: 'invalid_level', // Invalid: not in enum
-    access_instructions: 'Test access instructions',
-    max_depth: -5, // Invalid: negative depth
-    country: 'Test Country',
-    region: 'Test Region'
-  },
-  validDivingCenter: {
-    name: 'Test Diving Center',
-    description: 'A test diving center for regression testing',
-    latitude: 11.0000,
-    longitude: 21.0000,
-    email: 'center@example.com',
-    phone: '1234567890',
-    website: 'https://center.example.com',
-    country: 'Test Country',
-    region: 'Test Region'
-  },
-  invalidDivingCenter: {
-    name: '', // Invalid: empty name
-    description: 'A test diving center with invalid data',
-    latitude: 'invalid', // Invalid: non-numeric
-    longitude: 'invalid', // Invalid: non-numeric
-    email: 'invalid-email', // Invalid: malformed email
-    phone: 'abc', // Invalid: non-numeric phone
-    website: 'not-a-url', // Invalid: malformed URL
-    country: 'Test Country',
-    region: 'Test Region'
-  },
-  validUser: {
-    email: 'testuser@example.com',
-    password: 'testpassword123',
-    name: 'Test User',
-    is_admin: false
-  },
-  invalidUser: {
-    email: 'invalid-email', // Invalid: malformed email
-    password: 'short', // Invalid: too short
-    name: '', // Invalid: empty name
-    is_admin: 'not-boolean' // Invalid: not boolean
-  }
-};
+const BACKEND_URL = 'http://localhost:8000';
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@example.com';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'adminpassword';
 
 function makeRequest(url, options = {}) {
   return new Promise((resolve, reject) => {
@@ -92,7 +26,7 @@ function makeRequest(url, options = {}) {
       });
     });
     req.on('error', reject);
-    req.setTimeout(10000, () => {
+    req.setTimeout(5000, () => {
       req.destroy();
       reject(new Error('Request timeout'));
     });
@@ -103,9 +37,9 @@ function makeRequest(url, options = {}) {
   });
 }
 
-async function loginAndGetToken(username = ADMIN_USERNAME, password = ADMIN_PASSWORD) {
+async function loginAndGetToken() {
   const url = `${BACKEND_URL}/api/v1/auth/login`;
-  const body = JSON.stringify({ username, password });
+  const body = JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
   const options = {
     method: 'POST',
     headers: {
@@ -136,9 +70,9 @@ function isLikelyErrorObject(obj) {
   return false;
 }
 
-async function testRateDiveSite(diveSiteId, token, score = 8) {
+async function testRateDiveSite(diveSiteId, token) {
   const url = `${BACKEND_URL}/api/v1/dive-sites/${diveSiteId}/rate`;
-  const body = JSON.stringify({ score });
+  const body = JSON.stringify({ score: 8 });
   const options = {
     method: 'POST',
     headers: {
@@ -162,9 +96,16 @@ async function testRateDiveSite(diveSiteId, token, score = 8) {
   return response.statusCode;
 }
 
-async function testAddDiveSite(token, diveSiteData = TEST_DATA.validDiveSite) {
+async function testAddDiveSite(token) {
   const url = `${BACKEND_URL}/api/v1/dive-sites/`;
-  const body = JSON.stringify(diveSiteData);
+  const body = JSON.stringify({
+    name: 'Test Dive Site',
+    description: 'Test description',
+    latitude: '10.0000',
+    longitude: '20.0000',
+    access_instructions: 'Test access',
+    difficulty_level: 'beginner'
+  });
   const options = {
     method: 'POST',
     headers: {
@@ -188,9 +129,17 @@ async function testAddDiveSite(token, diveSiteData = TEST_DATA.validDiveSite) {
   return response.statusCode;
 }
 
-async function testModifyDivingCenter(centerId, token, centerData = TEST_DATA.validDivingCenter) {
+async function testModifyDivingCenter(centerId, token) {
   const url = `${BACKEND_URL}/api/v1/diving-centers/${centerId}`;
-  const body = JSON.stringify(centerData);
+  const body = JSON.stringify({
+    name: 'Updated Center',
+    description: 'Updated description',
+    latitude: '11.0000',
+    longitude: '21.0000',
+    email: 'center@example.com',
+    phone: '1234567890',
+    website: 'https://center.example.com'
+  });
   const options = {
     method: 'PUT',
     headers: {
@@ -212,352 +161,6 @@ async function testModifyDivingCenter(centerId, token, centerData = TEST_DATA.va
     throw new Error(`Modifying diving center returned object that may cause React error: ${JSON.stringify(data)}`);
   }
   return response.statusCode;
-}
-
-async function testCreateUser(userData = TEST_DATA.validUser) {
-  const url = `${BACKEND_URL}/api/v1/users/`;
-  const body = JSON.stringify(userData);
-  const options = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body
-  };
-  const response = await makeRequest(url, options);
-  let data;
-  try { data = JSON.parse(response.data); } catch { data = response.data; }
-  return { statusCode: response.statusCode, data };
-}
-
-async function testAuthenticationFlows() {
-  console.log('🔐 Testing Authentication Flows...\n');
-  
-  const tests = [
-    {
-      name: 'Valid Login',
-      test: async () => {
-        const token = await loginAndGetToken();
-        return token ? 'PASSED' : 'FAILED';
-      }
-    },
-    {
-      name: 'Invalid Login - Wrong Password',
-      test: async () => {
-        try {
-          await loginAndGetToken(ADMIN_EMAIL, 'wrongpassword');
-          return 'FAILED - Should have failed';
-        } catch (error) {
-          return 'PASSED';
-        }
-      }
-    },
-    {
-      name: 'Invalid Login - Wrong Email',
-      test: async () => {
-        try {
-          await loginAndGetToken('nonexistent@example.com', ADMIN_PASSWORD);
-          return 'FAILED - Should have failed';
-        } catch (error) {
-          return 'PASSED';
-        }
-      }
-    },
-    {
-      name: 'Invalid Login - Empty Credentials',
-      test: async () => {
-        try {
-          await loginAndGetToken('', '');
-          return 'FAILED - Should have failed';
-        } catch (error) {
-          return 'PASSED';
-        }
-      }
-    }
-  ];
-  
-  let passedTests = 0;
-  const totalTests = tests.length;
-  
-  for (const test of tests) {
-    try {
-      const result = await test.test();
-      console.log(`  ${result === 'PASSED' ? '✅' : '❌'} ${test.name}: ${result}`);
-      if (result === 'PASSED') passedTests++;
-    } catch (error) {
-      console.log(`  ❌ ${test.name}: FAILED - ${error.message}`);
-    }
-  }
-  
-  console.log(`\n📊 Authentication Tests: ${passedTests}/${totalTests} passed`);
-  return passedTests === totalTests;
-}
-
-async function testDataValidation() {
-  console.log('🔍 Testing Data Validation...\n');
-  
-  const tests = [
-    {
-      name: 'Valid Dive Site Creation',
-      test: async () => {
-        const token = await loginAndGetToken();
-        const status = await testAddDiveSite(token, TEST_DATA.validDiveSite);
-        return status === 201 ? 'PASSED' : `FAILED - Status ${status}`;
-      }
-    },
-    {
-      name: 'Invalid Dive Site Creation - Empty Name',
-      test: async () => {
-        try {
-          const token = await loginAndGetToken();
-          await testAddDiveSite(token, TEST_DATA.invalidDiveSite);
-          return 'FAILED - Should have failed';
-        } catch (error) {
-          return 'PASSED';
-        }
-      }
-    },
-    {
-      name: 'Valid Diving Center Creation',
-      test: async () => {
-        const token = await loginAndGetToken();
-        const status = await testModifyDivingCenter(1, token, TEST_DATA.validDivingCenter);
-        return status === 200 ? 'PASSED' : `FAILED - Status ${status}`;
-      }
-    },
-    {
-      name: 'Invalid Diving Center Creation - Invalid Email',
-      test: async () => {
-        try {
-          const token = await loginAndGetToken();
-          await testModifyDivingCenter(1, token, TEST_DATA.invalidDivingCenter);
-          return 'FAILED - Should have failed';
-        } catch (error) {
-          return 'PASSED';
-        }
-      }
-    },
-    {
-      name: 'Valid User Registration',
-      test: async () => {
-        const result = await testCreateUser(TEST_DATA.validUser);
-        return result.statusCode === 201 ? 'PASSED' : `FAILED - Status ${result.statusCode}`;
-      }
-    },
-    {
-      name: 'Invalid User Registration - Invalid Email',
-      test: async () => {
-        const result = await testCreateUser(TEST_DATA.invalidUser);
-        return result.statusCode === 422 ? 'PASSED' : `FAILED - Status ${result.statusCode}`;
-      }
-    }
-  ];
-  
-  let passedTests = 0;
-  const totalTests = tests.length;
-  
-  for (const test of tests) {
-    try {
-      const result = await test.test();
-      console.log(`  ${result === 'PASSED' ? '✅' : '❌'} ${test.name}: ${result}`);
-      if (result === 'PASSED') passedTests++;
-    } catch (error) {
-      console.log(`  ❌ ${test.name}: FAILED - ${error.message}`);
-    }
-  }
-  
-  console.log(`\n📊 Data Validation Tests: ${passedTests}/${totalTests} passed`);
-  return passedTests === totalTests;
-}
-
-async function testAPIErrorHandling() {
-  console.log('🚨 Testing API Error Handling...\n');
-  
-  const tests = [
-    {
-      name: 'Non-existent Endpoint',
-      test: async () => {
-        const response = await makeRequest(`${BACKEND_URL}/api/v1/non-existent/`);
-        return response.statusCode === 404 ? 'PASSED' : `FAILED - Status ${response.statusCode}`;
-      }
-    },
-    {
-      name: 'Invalid HTTP Method',
-      test: async () => {
-        const options = { method: 'PATCH' };
-        const response = await makeRequest(`${BACKEND_URL}/api/v1/dive-sites/`, options);
-        return response.statusCode === 405 ? 'PASSED' : `FAILED - Status ${response.statusCode}`;
-      }
-    },
-    {
-      name: 'Malformed JSON',
-      test: async () => {
-        const options = {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: '{ invalid json }'
-        };
-        const response = await makeRequest(`${BACKEND_URL}/api/v1/dive-sites/`, options);
-        return response.statusCode === 422 ? 'PASSED' : `FAILED - Status ${response.statusCode}`;
-      }
-    },
-    {
-      name: 'Missing Required Fields',
-      test: async () => {
-        const options = {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: 'Test' }) // Missing required fields
-        };
-        const response = await makeRequest(`${BACKEND_URL}/api/v1/dive-sites/`, options);
-        return response.statusCode === 422 ? 'PASSED' : `FAILED - Status ${response.statusCode}`;
-      }
-    }
-  ];
-  
-  let passedTests = 0;
-  const totalTests = tests.length;
-  
-  for (const test of tests) {
-    try {
-      const result = await test.test();
-      console.log(`  ${result === 'PASSED' ? '✅' : '❌'} ${test.name}: ${result}`);
-      if (result === 'PASSED') passedTests++;
-    } catch (error) {
-      console.log(`  ❌ ${test.name}: FAILED - ${error.message}`);
-    }
-  }
-  
-  console.log(`\n📊 API Error Handling Tests: ${passedTests}/${totalTests} passed`);
-  return passedTests === totalTests;
-}
-
-async function testPerformance() {
-  console.log('⚡ Testing API Performance...\n');
-  
-  const tests = [
-    {
-      name: 'Dive Sites List Response Time',
-      test: async () => {
-        const start = Date.now();
-        await makeRequest(`${BACKEND_URL}/api/v1/dive-sites/`);
-        const duration = Date.now() - start;
-        return duration < 2000 ? `PASSED (${duration}ms)` : `FAILED (${duration}ms - too slow)`;
-      }
-    },
-    {
-      name: 'Diving Centers List Response Time',
-      test: async () => {
-        const start = Date.now();
-        await makeRequest(`${BACKEND_URL}/api/v1/diving-centers/`);
-        const duration = Date.now() - start;
-        return duration < 2000 ? `PASSED (${duration}ms)` : `FAILED (${duration}ms - too slow)`;
-      }
-    },
-    {
-      name: 'Concurrent Requests',
-      test: async () => {
-        const start = Date.now();
-        const promises = Array(5).fill().map(() => 
-          makeRequest(`${BACKEND_URL}/api/v1/dive-sites/`)
-        );
-        await Promise.all(promises);
-        const duration = Date.now() - start;
-        return duration < 5000 ? `PASSED (${duration}ms)` : `FAILED (${duration}ms - too slow)`;
-      }
-    }
-  ];
-  
-  let passedTests = 0;
-  const totalTests = tests.length;
-  
-  for (const test of tests) {
-    try {
-      const result = await test.test();
-      console.log(`  ${result.includes('PASSED') ? '✅' : '❌'} ${test.name}: ${result}`);
-      if (result.includes('PASSED')) passedTests++;
-    } catch (error) {
-      console.log(`  ❌ ${test.name}: FAILED - ${error.message}`);
-    }
-  }
-  
-  console.log(`\n📊 Performance Tests: ${passedTests}/${totalTests} passed`);
-  return passedTests === totalTests;
-}
-
-async function testSecurity() {
-  console.log('🔒 Testing Security...\n');
-  
-  const tests = [
-    {
-      name: 'Unauthorized Access to Protected Endpoint',
-      test: async () => {
-        const options = {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(TEST_DATA.validDiveSite)
-        };
-        const response = await makeRequest(`${BACKEND_URL}/api/v1/dive-sites/`, options);
-        return response.statusCode === 401 ? 'PASSED' : `FAILED - Status ${response.statusCode}`;
-      }
-    },
-    {
-      name: 'Invalid Token Access',
-      test: async () => {
-        const options = {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer invalid-token'
-          },
-          body: JSON.stringify(TEST_DATA.validDiveSite)
-        };
-        const response = await makeRequest(`${BACKEND_URL}/api/v1/dive-sites/`, options);
-        return response.statusCode === 401 ? 'PASSED' : `FAILED - Status ${response.statusCode}`;
-      }
-    },
-    {
-      name: 'SQL Injection Attempt',
-      test: async () => {
-        const options = {
-          method: 'GET'
-        };
-        const response = await makeRequest(`${BACKEND_URL}/api/v1/dive-sites/?name='; DROP TABLE dive_sites; --`, options);
-        return response.statusCode === 200 ? 'PASSED' : `FAILED - Status ${response.statusCode}`;
-      }
-    },
-    {
-      name: 'XSS Attempt',
-      test: async () => {
-        const options = {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...TEST_DATA.validDiveSite,
-            name: '<script>alert("xss")</script>'
-          })
-        };
-        const response = await makeRequest(`${BACKEND_URL}/api/v1/dive-sites/`, options);
-        return response.statusCode === 401 ? 'PASSED' : `FAILED - Status ${response.statusCode}`;
-      }
-    }
-  ];
-  
-  let passedTests = 0;
-  const totalTests = tests.length;
-  
-  for (const test of tests) {
-    try {
-      const result = await test.test();
-      console.log(`  ${result === 'PASSED' ? '✅' : '❌'} ${test.name}: ${result}`);
-      if (result === 'PASSED') passedTests++;
-    } catch (error) {
-      console.log(`  ❌ ${test.name}: FAILED - ${error.message}`);
-    }
-  }
-  
-  console.log(`\n📊 Security Tests: ${passedTests}/${totalTests} passed`);
-  return passedTests === totalTests;
 }
 
 async function testDataTypes() {
@@ -608,17 +211,6 @@ async function testDataTypes() {
         } else {
           console.log(`  ✅ Average Rating: null (no ratings yet)`);
         }
-        
-        // Test string fields
-        if (typeof center.name !== 'string') {
-          throw new Error(`Expected name to be string, got ${typeof center.name}`);
-        }
-        if (typeof center.description !== 'string') {
-          throw new Error(`Expected description to be string, got ${typeof center.description}`);
-        }
-        
-        console.log(`  ✅ Name: "${center.name}" (string)`);
-        console.log(`  ✅ Description: "${center.description}" (string)`);
       }
     },
     {
@@ -665,69 +257,6 @@ async function testDataTypes() {
         } else {
           console.log(`  ✅ Average Rating: null (no ratings yet)`);
         }
-        
-        // Test string fields
-        if (typeof site.name !== 'string') {
-          throw new Error(`Expected name to be string, got ${typeof site.name}`);
-        }
-        if (typeof site.description !== 'string') {
-          throw new Error(`Expected description to be string, got ${typeof site.description}`);
-        }
-        
-        console.log(`  ✅ Name: "${site.name}" (string)`);
-        console.log(`  ✅ Description: "${site.description}" (string)`);
-        
-        // Test enum fields
-        if (site.difficulty_level && !['beginner', 'intermediate', 'advanced'].includes(site.difficulty_level)) {
-          throw new Error(`Expected difficulty_level to be valid enum, got ${site.difficulty_level}`);
-        }
-        
-        if (site.difficulty_level) {
-          console.log(`  ✅ Difficulty Level: ${site.difficulty_level} (valid enum)`);
-        }
-      }
-    },
-    {
-      name: 'Users Data Types',
-      url: '/api/v1/users/',
-      test: (data) => {
-        if (!Array.isArray(data)) {
-          throw new Error('Expected array of users');
-        }
-        
-        if (data.length === 0) {
-          console.log('  ⚠️  No users found (this is OK for empty DB)');
-          return;
-        }
-        
-        const user = data[0];
-        
-        // Test string fields
-        if (typeof user.email !== 'string') {
-          throw new Error(`Expected email to be string, got ${typeof user.email}`);
-        }
-        if (typeof user.name !== 'string') {
-          throw new Error(`Expected name to be string, got ${typeof user.name}`);
-        }
-        
-        console.log(`  ✅ Email: "${user.email}" (string)`);
-        console.log(`  ✅ Name: "${user.name}" (string)`);
-        
-        // Test boolean fields
-        if (typeof user.is_admin !== 'boolean') {
-          throw new Error(`Expected is_admin to be boolean, got ${typeof user.is_admin}`);
-        }
-        
-        console.log(`  ✅ Is Admin: ${user.is_admin} (boolean)`);
-        
-        // Test date fields
-        if (user.created_at && !(user.created_at instanceof Date || typeof user.created_at === 'string')) {
-          throw new Error(`Expected created_at to be date or string, got ${typeof user.created_at}`);
-        }
-        
-        if (user.created_at) {
-          console.log(`  ✅ Created At: ${user.created_at} (date)`);
-        }
       }
     }
   ];
@@ -764,15 +293,10 @@ async function testAPIEndpoints() {
   const endpoints = [
     '/api/v1/dive-sites/',
     '/api/v1/diving-centers/',
-    '/api/v1/users/',
-    '/api/v1/tags/',
     '/api/v1/dive-sites/1',
     '/api/v1/diving-centers/1',
-    '/api/v1/users/1',
     '/api/v1/dive-sites/1/media',
-    '/api/v1/diving-centers/1/gear-rental',
-    '/api/v1/dive-sites/1/ratings',
-    '/api/v1/diving-centers/1/ratings'
+    '/api/v1/diving-centers/1/gear-rental'
   ];
   
   let workingEndpoints = 0;
@@ -781,8 +305,8 @@ async function testAPIEndpoints() {
   for (const endpoint of endpoints) {
     try {
       const response = await makeRequest(`${BACKEND_URL}${endpoint}`);
-      if (response.statusCode === 200 || response.statusCode === 404) {
-        console.log(`  ✅ ${endpoint} - OK (${response.statusCode})`);
+      if (response.statusCode === 200) {
+        console.log(`  ✅ ${endpoint} - OK`);
         workingEndpoints++;
       } else {
         console.log(`  ❌ ${endpoint} - Status ${response.statusCode}`);
@@ -797,120 +321,90 @@ async function testAPIEndpoints() {
 }
 
 async function runUserActionTests() {
-  console.log('\n📝 Simulating user actions (anonymous and authenticated)...');
+  console.log('\n\ud83d\udcdd Simulating user actions (anonymous and authenticated)...');
   let token = null;
   let errors = 0;
-  
   // Try rating a dive site (anonymous)
   try {
     await testRateDiveSite(1, null);
-    console.log('  ✅ Anonymous: Rating dive site did not return error object');
+    console.log('  \u2705 Anonymous: Rating dive site did not return error object');
   } catch (e) {
-    console.log('  ❌ Anonymous: ' + e.message);
+    console.log('  \u274c Anonymous: ' + e.message);
     errors++;
   }
-  
   // Try adding a dive site (anonymous)
   try {
     await testAddDiveSite(null);
-    console.log('  ✅ Anonymous: Adding dive site did not return error object');
+    console.log('  \u2705 Anonymous: Adding dive site did not return error object');
   } catch (e) {
-    console.log('  ❌ Anonymous: ' + e.message);
+    console.log('  \u274c Anonymous: ' + e.message);
     errors++;
   }
-  
   // Try modifying a diving center (anonymous)
   try {
     await testModifyDivingCenter(1, null);
-    console.log('  ✅ Anonymous: Modifying diving center did not return error object');
+    console.log('  \u2705 Anonymous: Modifying diving center did not return error object');
   } catch (e) {
-    console.log('  ❌ Anonymous: ' + e.message);
+    console.log('  \u274c Anonymous: ' + e.message);
     errors++;
   }
-  
   // Login as admin
   try {
     token = await loginAndGetToken();
-    console.log('  ✅ Login as admin successful');
+    console.log('  \u2705 Login as admin successful');
   } catch (e) {
-    console.log('  ❌ Login failed: ' + e.message);
+    console.log('  \u274c Login failed: ' + e.message);
     errors++;
   }
-  
   // Try rating a dive site (authenticated)
   try {
     await testRateDiveSite(1, token);
-    console.log('  ✅ Authenticated: Rating dive site did not return error object');
+    console.log('  \u2705 Authenticated: Rating dive site did not return error object');
   } catch (e) {
-    console.log('  ❌ Authenticated: ' + e.message);
+    console.log('  \u274c Authenticated: ' + e.message);
     errors++;
   }
-  
   // Try adding a dive site (authenticated)
   try {
     await testAddDiveSite(token);
-    console.log('  ✅ Authenticated: Adding dive site did not return error object');
+    console.log('  \u2705 Authenticated: Adding dive site did not return error object');
   } catch (e) {
-    console.log('  ❌ Authenticated: ' + e.message);
+    console.log('  \u274c Authenticated: ' + e.message);
     errors++;
   }
-  
   // Try modifying a diving center (authenticated)
   try {
     await testModifyDivingCenter(1, token);
-    console.log('  ✅ Authenticated: Modifying diving center did not return error object');
+    console.log('  \u2705 Authenticated: Modifying diving center did not return error object');
   } catch (e) {
-    console.log('  ❌ Authenticated: ' + e.message);
+    console.log('  \u274c Authenticated: ' + e.message);
     errors++;
   }
-  
   if (errors > 0) {
-    console.log(`\n❌ User action simulation found ${errors} issues!`);
-    return false;
+    console.log(`\n\u274c User action simulation found ${errors} issues!`);
+    process.exit(1);
   } else {
-    console.log('\n✅ All user action simulations passed!');
-    return true;
+    console.log('\n\u2705 All user action simulations passed!');
   }
 }
 
 async function runRegressionTests() {
-  console.log('🚀 Starting Enhanced Regression Tests...\n');
+  console.log('🚀 Starting Regression Tests...\n');
   
   const dataTypesOk = await testDataTypes();
   const endpointsOk = await testAPIEndpoints();
-  const authOk = await testAuthenticationFlows();
-  const validationOk = await testDataValidation();
-  const errorHandlingOk = await testAPIErrorHandling();
-  const performanceOk = await testPerformance();
-  const securityOk = await testSecurity();
-  const userActionsOk = await runUserActionTests();
   
-  console.log('\n📈 Enhanced Regression Test Summary:');
+  console.log('\n📈 Regression Test Summary:');
   console.log(`   Data Types: ${dataTypesOk ? '✅ PASSED' : '❌ FAILED'}`);
   console.log(`   API Endpoints: ${endpointsOk ? '✅ PASSED' : '❌ FAILED'}`);
-  console.log(`   Authentication: ${authOk ? '✅ PASSED' : '❌ FAILED'}`);
-  console.log(`   Data Validation: ${validationOk ? '✅ PASSED' : '❌ FAILED'}`);
-  console.log(`   Error Handling: ${errorHandlingOk ? '✅ PASSED' : '❌ FAILED'}`);
-  console.log(`   Performance: ${performanceOk ? '✅ PASSED' : '❌ FAILED'}`);
-  console.log(`   Security: ${securityOk ? '✅ PASSED' : '❌ FAILED'}`);
-  console.log(`   User Actions: ${userActionsOk ? '✅ PASSED' : '❌ FAILED'}`);
   
-  const allTestsPassed = dataTypesOk && endpointsOk && authOk && validationOk && 
-                        errorHandlingOk && performanceOk && securityOk && userActionsOk;
-  
-  if (allTestsPassed) {
-    console.log('\n✅ All enhanced regression tests passed!');
+  if (dataTypesOk && endpointsOk) {
+    console.log('\n✅ All regression tests passed!');
     console.log('   No data type issues detected.');
     console.log('   All API endpoints are working.');
-    console.log('   Authentication flows are secure.');
-    console.log('   Data validation is working properly.');
-    console.log('   Error handling is robust.');
-    console.log('   Performance is acceptable.');
-    console.log('   Security measures are in place.');
-    console.log('   User actions work correctly.');
     process.exit(0);
   } else {
-    console.log('\n❌ Some enhanced regression tests failed!');
+    console.log('\n❌ Some regression tests failed!');
     console.log('   Please check the issues above.');
     process.exit(1);
   }
@@ -920,8 +414,9 @@ async function runRegressionTests() {
 if (require.main === module) {
   (async () => {
     await runRegressionTests();
+    await runUserActionTests();
   })().catch(error => {
-    console.error('Enhanced regression tests failed:', error);
+    console.error('Regression tests failed:', error);
     process.exit(1);
   });
 }

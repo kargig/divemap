@@ -550,7 +550,7 @@ curl -s http://localhost:8000/api/v1/dive-sites/1 | jq '.name'
 # Test authentication
 curl -s -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"Admin123!"}' | jq '.access_token'
+  -d '{"username":"admin","password":"ADMIN_PASSWORD"}' | jq '.access_token'
 ```
 
 ### 5.5 Complete Test Suite
@@ -642,7 +642,7 @@ chmod +x run_all_tests.sh
 - [ ] Create pages work for admin users (new)
 - [ ] Search functionality works
 - [ ] No console errors
-- [ ] Admin login works (admin/Admin123!)
+- [ ] Admin login works (admin/ADMIN_PASSWORD)
 - [ ] API endpoints return expected data types
 
 ## 6. Future Improvements

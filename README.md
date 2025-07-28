@@ -2,26 +2,7 @@
 
 A comprehensive web application for scuba diving enthusiasts to discover, rate, and review dive sites and diving centers.
 
-## 🚀 Live Application
 
-**Production Deployment:** The application is now live and accessible at:
-- **Frontend:** https://divemap.fly.dev
-- **Backend API:** https://divemap-backend.fly.dev
-
-**Demo Credentials:**
-- **Admin:** `admin`
-- **Test User:** `testuser`
-
-**Features Available:**
-- ✅ User registration and authentication
-- ✅ Dive site browsing and management
-- ✅ Diving center browsing and management
-- ✅ Admin interface for content management
-- ✅ Interactive maps and geolocation
-- ✅ Search and filtering capabilities
-- ✅ Rating and review system
-- ✅ Multi-currency support
-- ✅ Tag management system
 
 ## Features
 
@@ -81,60 +62,6 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 - **Node.js** - Frontend validation scripts
 - **Automated Testing** - Regression prevention and data type validation
 
-## Database Connectivity & Container Optimization
-
-The application includes robust database connectivity checking and container optimization for reliable deployment:
-
-### Database Connectivity Features
-- **Startup Health Check**: Backend container waits for database availability before starting
-- **Retry Logic**: 10 retry attempts with random 1-5 second delays between attempts
-- **IPv6 Support**: Uses netcat-openbsd for cloud deployment compatibility
-- **Visual Logging**: Clear status indicators (✅, ❌, ⏳, 🚀) for startup process
-- **Timeout Handling**: 5-second timeout per connection attempt to prevent hanging
-
-### Container Optimization
-- **Pre-compiled Wheels**: All Python packages use pre-compiled wheels for faster builds
-- **Reduced Dependencies**: Removed gcc and default-libmysqlclient-dev (~200MB reduction)
-- **Faster Builds**: No compilation step needed, only pre-compiled wheel downloads
-- **Smaller Containers**: Reduced container size and attack surface
-- **Better Security**: Fewer installed packages reduces potential vulnerabilities
-
-### Deployment Benefits
-- **Fly.io Compatibility**: IPv6 support for cloud deployment
-- **Reliability**: Robust database connectivity ensures application stability
-- **Performance**: Faster container builds and smaller image sizes
-- **Monitoring**: Clear visual indicators for startup status
-
-## Security
-
-### Security Features
-- **Authentication & Authorization**: JWT-based authentication with role-based access control
-- **Google OAuth Integration**: Secure authentication with Google Identity Services
-- **Password Security**: Strong password requirements with bcrypt hashing (12 rounds)
-- **Rate Limiting**: Comprehensive rate limiting on all endpoints to prevent abuse
-- **Input Validation**: Strict input validation and sanitization using Pydantic models
-- **Security Headers**: Complete set of HTTP security headers (CSP, XSS Protection, etc.)
-- **CORS Protection**: Restrictive CORS configuration
-- **SQL Injection Prevention**: Parameterized queries and input sanitization
-- **Docker Security**: Container security with no-new-privileges and environment variables
-
-### Security Vulnerabilities Fixed
-- Updated all Python dependencies to fix known CVEs
-- Fixed Node.js package vulnerabilities with overrides
-- Implemented proper input validation and sanitization
-- Added comprehensive rate limiting
-- Enhanced authentication security
-- Integrated Google OAuth with secure token verification
-
-### Security Best Practices
-- All secrets managed via environment variables
-- Regular security updates and dependency scanning
-- Comprehensive logging and monitoring capabilities
-- Production-ready security configuration
-- Google OAuth token verification with Google's servers
-
-For detailed security information, see [SECURITY.md](SECURITY.md).
-
 ## Quick Start
 
 1. **Clone the repository**
@@ -150,27 +77,27 @@ For detailed security information, see [SECURITY.md](SECURITY.md).
    # Edit .env with your secure passwords and secrets
    ```
 
-3. **Configure Google OAuth (optional but recommended)**
-   ```bash
-   # Follow the setup guide for Google OAuth
-   # See GOOGLE_OAUTH_SETUP.md for detailed instructions
-   ```
-
-4. **Start the application**
+3. **Start the application**
    ```bash
    docker-compose up -d
    ```
 
-5. **Access the application**
+4. **Access the application**
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000
    - API Documentation: http://localhost:8000/docs
 
-6. **Default admin credentials**
-   - Username: `admin`
-   - Password: `Admin123!`
+## Documentation
 
-**⚠️ Security Note**: Change default passwords immediately in production environments.
+For comprehensive documentation, see the [docs/](./docs/) directory:
+
+- **[Getting Started](./docs/getting-started/README.md)** - Installation and setup guide
+- **[Development Guide](./docs/development/README.md)** - Development setup and workflow
+- **[API Documentation](./docs/development/api.md)** - API endpoints and usage
+- **[Database Guide](./docs/development/database.md)** - Database documentation and migrations
+- **[Testing Guide](./docs/development/testing.md)** - Testing procedures and best practices
+- **[Deployment Guide](./docs/deployment/README.md)** - Deployment strategies and infrastructure
+- **[Security Documentation](./docs/security/README.md)** - Security measures and best practices
 
 ## Development
 
@@ -191,15 +118,6 @@ node validate_frontend.js
 node test_regressions.js
 ```
 
-### Testing Infrastructure
-
-The project includes comprehensive testing infrastructure:
-
-- **Backend Tests**: Pytest suite with fixtures for isolated testing
-- **Frontend Validation**: Automated scripts for API health checks
-- **Regression Testing**: Prevention of common frontend errors
-- **Data Type Safety**: Validation of API response types
-
 ### Database
 The application uses MySQL for data storage. The database is automatically initialized with sample data when the containers start.
 
@@ -211,10 +129,12 @@ Database schema changes are managed using Alembic migrations:
 cd backend
 source divemap_venv/bin/activate
 export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
-python run_migrations.py
 
 # Create new migration
 python create_migration.py "Description of changes"
+
+# Run migrations
+python run_migrations.py
 
 # Check migration status
 alembic current
@@ -223,94 +143,36 @@ alembic history
 
 **Note**: Migrations run automatically before the backend starts in Docker containers.
 
-## User Profile Management
+## Recent Enhancements
 
-### Enhanced User Profiles
-The application now includes comprehensive user profile management with diving-specific information:
+### **Google OAuth Authentication**
+- **Google Sign-In Integration**: Complete OAuth 2.0 implementation
+- **Secure Token Verification**: Backend verification with Google's servers
+- **Automatic User Creation**: New users created from Google data
+- **Account Linking**: Existing users can link Google accounts
 
-#### **Profile Features**
-- **Diving Certification**: Users can set their diving certification (e.g., "PADI Open Water", "AOWD")
-- **Dive Count Tracking**: Users can track their total number of completed dives
-- **Password Management**: Secure password change with current password verification
-- **Profile Updates**: Real-time profile updates with immediate UI reflection
+### **Mass Delete Functionality**
+- **Bulk Operations**: Select multiple items for deletion
+- **Admin Management**: Available on all admin pages
+- **Safety Features**: Protection against deleting used tags and self-deletion
 
-#### **Comment System Integration**
-- **Diving Credentials Display**: User's diving certification and dive count appear next to usernames in comments
-- **Visual Badges**: 
-  - Blue badges for diving certification
-  - Green badges for number of dives
-- **Responsive Design**: Badges adapt to different screen sizes and comment layouts
+### **Enhanced Admin Management System**
+- **Separate Admin URLs**: Dedicated pages for each management area
+- **Enhanced Navigation**: Dropdown menu in navbar for admin users
+- **Modal Forms**: Inline create/edit forms for tags and users
+- **Real-time Updates**: React Query integration for instant data refresh
 
-#### **Security Features**
-- **Password Change**: Requires current password verification
-- **Password Requirements**: Minimum 8 characters with confirmation
-- **Form Validation**: Client-side validation with server-side verification
-- **Secure Storage**: All profile data stored securely in the database
+### **Comprehensive Tag Management**
+- **Full CRUD Operations**: Create, read, update, delete tags
+- **Modal Forms**: Clean create and edit interfaces
+- **Delete Protection**: Tags with associated dive sites cannot be deleted
+- **Usage Statistics**: Display dive site counts for each tag
 
-#### **API Endpoints**
-- `GET /api/v1/users/me` - Get current user profile
-- `PUT /api/v1/users/me` - Update user profile
-- `POST /api/v1/users/me/change-password` - Change user password
-
-#### **Database Schema**
-```sql
--- New user fields
-diving_certification VARCHAR(100),  -- User's diving certification
-number_of_dives INT DEFAULT 0,      -- Total number of dives completed
-```
-
-## Admin Interface
-
-### Admin Dashboard Structure
-
-The admin interface is organized into separate management pages for better organization and user experience:
-
-#### **Main Admin Dashboard** (`/admin`)
-- **Overview dashboard** with navigation cards
-- **Quick access** to all management areas
-- **System statistics** and overview information
-
-#### **Dive Sites Management** (`/admin/dive-sites`)
-- **Complete CRUD operations** for dive sites
-- **Enhanced table view** with tags and ratings
-- **Mass delete functionality** for bulk operations
-- **View, Edit, Delete** actions with confirmation
-- **Loading states** and error handling
-- **Responsive design** with hover effects
-
-#### **Diving Centers Management** (`/admin/diving-centers`)
-- **Full management** of diving centers
-- **Mass delete functionality** for bulk operations
-- **Contact information** display (email, phone, website)
-- **Location data** with coordinates
-- **Rating information** and status
-- **View, Edit, Delete** functionality
-
-#### **Tag Management** (`/admin/tags`)
-- **Complete CRUD operations** with modal forms
-- **Mass delete functionality** with protection for used tags
-- **Create and Edit** modals with validation
-- **Delete protection** for tags with associated dive sites
-- **Usage statistics** showing dive site counts
-- **Real-time updates** with React Query
-
-#### **User Management** (`/admin/users`)
-- **Complete user management** system
-- **Mass delete functionality** with self-deletion protection
-- **Create new users** with role assignment
-- **Edit user details** including roles and status
-- **Delete users** with safety checks
-- **Password management** (optional updates)
-
-### Admin Navigation
-
-The admin interface includes an enhanced navigation system:
-
-- **Dropdown menu** in the navbar for admin users
-- **Direct links** to each admin section
-- **Icon-based navigation** for better UX
-- **Click-outside** to close functionality
-- **Smooth transitions** and hover effects
+### **Advanced User Management**
+- **Complete User CRUD**: Create, edit, delete users
+- **Role Assignment**: Admin, moderator, and user roles
+- **Status Control**: Enable/disable user accounts
+- **Password Management**: Optional password updates
 
 ## API Endpoints
 
@@ -368,149 +230,6 @@ For detailed API documentation and recent changes, see [API_CHANGELOG.md](API_CH
 - `DELETE /api/v1/tags/dive-sites/{dive_site_id}/tags/{tag_id}` - Remove tag from dive site
 
 See the full API documentation at http://localhost:8000/docs
-
-## Recent Enhancements
-
-### **Google OAuth Authentication**
-- **Google Sign-In Integration**: Complete OAuth 2.0 implementation
-- **Secure Token Verification**: Backend verification with Google's servers
-- **Automatic User Creation**: New users created from Google data
-- **Account Linking**: Existing users can link Google accounts
-- **Environment Configuration**: Easy setup with environment variables
-- **Frontend Integration**: Google Sign-In buttons on login/register pages
-- **Error Handling**: Comprehensive error handling and user feedback
-- **Security**: Rate limiting and proper token validation
-
-### **Mass Delete Functionality**
-- **Bulk Operations**: Select multiple items for deletion
-- **Admin Management**: Available on all admin pages (dive sites, diving centers, tags, users)
-- **Safety Features**: Protection against deleting used tags and self-deletion
-- **Confirmation Dialogs**: Clear confirmation with item names
-- **Visual Feedback**: Loading states and success/error messages
-- **Responsive Design**: Works on all screen sizes
-
-### **Enhanced Admin Management System**
-- **Separate Admin URLs**: Dedicated pages for each management area
-  - `/admin` - Main dashboard with navigation cards
-  - `/admin/dive-sites` - Dive sites management with mass delete
-  - `/admin/diving-centers` - Diving centers management with mass delete
-  - `/admin/tags` - Tag management with full CRUD and mass delete
-  - `/admin/users` - User management with role control and mass delete
-- **Enhanced Navigation**: Dropdown menu in navbar for admin users
-- **Improved UX**: Card-based dashboard with visual icons and descriptions
-- **Modal Forms**: Inline create/edit forms for tags and users
-- **Real-time Updates**: React Query integration for instant data refresh
-
-### **Comprehensive Tag Management**
-- **Full CRUD Operations**: Create, read, update, delete tags
-- **Modal Forms**: Clean create and edit interfaces
-- **Delete Protection**: Tags with associated dive sites cannot be deleted
-- **Usage Statistics**: Display dive site counts for each tag
-- **Form Validation**: Client-side validation with user feedback
-- **Loading States**: Visual feedback during operations
-- **Mass Delete**: Bulk delete with protection for used tags
-
-### **Advanced User Management**
-- **Complete User CRUD**: Create, edit, delete users
-- **Role Assignment**: Admin, moderator, and user roles
-- **Status Control**: Enable/disable user accounts
-- **Password Management**: Optional password updates
-- **Safety Checks**: Prevent self-deletion and unauthorized actions
-- **Mass Delete**: Bulk user deletion with self-deletion protection
-
-### **Enhanced Dive Sites Management**
-- **Comprehensive Table View**: Tags, ratings, difficulty levels
-- **Action Buttons**: View, edit, delete with confirmation dialogs
-- **Loading States**: Proper loading indicators
-- **Error Handling**: Comprehensive error messages
-- **Responsive Design**: Mobile-friendly interface
-- **Mass Delete**: Bulk delete functionality for dive sites
-
-### **Improved Diving Centers Management**
-- **Contact Information**: Email, phone, website display
-- **Location Data**: Coordinates and mapping information
-- **Rating Display**: Average ratings and status
-- **Action Management**: View, edit, delete operations
-- **Enhanced UX**: Hover effects and visual feedback
-- **Mass Delete**: Bulk delete functionality for diving centers
-
-### **Toast Notification Improvements**
-- **Positioning**: Notifications appear below navbar to prevent navigation blocking
-- **Duration**: Reduced to 500ms for quicker disappearance
-- **Z-index Management**: Proper layering with navbar
-- **Responsive Design**: Works on all screen sizes
-
-### **Layout Improvements**
-- **Fixed Navbar**: Sticky navigation with proper z-index
-- **Content Spacing**: Adjusted padding to account for fixed navbar
-- **Table Responsiveness**: Text wrapping to prevent horizontal scrollbars
-- **Container Width**: Increased max-width for better content display
-
-### **Admin Management System**
-- **Comprehensive Admin Dashboard**: Tag management, user management, dive sites, and diving centers
-- **Tag Management**: View all tags with count of associated dive sites
-- **User Management**: List, edit, delete, and create users with role and status control
-- **User Approval System**: New users disabled by default, require admin approval
-- **Role-Based Access Control**: User, Moderator, and Admin roles with appropriate permissions
-
-### **User Registration and Approval**
-- **Google OAuth Integration**: Complete login and registration with Google
-- **Admin Approval Workflow**: New users must be approved by admin before accessing features
-- **User Status Management**: Enable/disable users with immediate effect
-- **Registration Feedback**: Clear messaging about approval requirements
-
-### **Map UI and Zoom Management**
-- **Zoom Level Debugging**: Real-time zoom level indicator for optimal map configuration
-- **Smart Zoom Behavior**: Keeps zoom 5 levels before maximum for better context
-- **Map Counter Positioning**: Moved to bottom-left for improved UX
-- **Configurable Max Zoom**: Set to level 18 for optimal detail without excessive zoom
-- **Map Fit Optimization**: Different zoom behavior for single vs multiple site selection
-
-### **API Endpoint Consistency**
-- ✅ Fixed 307 redirect issues with trailing slash inconsistencies
-- ✅ Standardized API patterns across all frontend components
-- ✅ Resolved dive site detail page display issues
-- ✅ Improved API reliability and user experience
-
-### **Testing Infrastructure**
-- ✅ Comprehensive backend test suite with Pytest
-- ✅ Frontend validation scripts for regression prevention
-- ✅ Data type safety testing and validation
-- ✅ Automated testing for common frontend errors
-
-### User Experience Improvements
-- ✅ Rating display changed from stars to numeric format (X.X/10)
-- ✅ Enhanced dive site details with comprehensive information
-- ✅ Improved search and filtering with parameter validation
-- ✅ Better error handling and loading states
-
-### Admin Functionality
-- ✅ Comprehensive edit forms for dive sites and diving centers
-- ✅ Media management for dive sites
-- ✅ Gear rental cost management for diving centers
-- ✅ Protected routes for admin/moderator users
-
-### Data Type Safety
-- ✅ Fixed latitude/longitude type conversion issues
-- ✅ Improved array safety checks
-- ✅ API parameter filtering to prevent 422 errors
-- ✅ Comprehensive error prevention guidelines
-
-### Recent Bug Fixes (Latest)
-- ✅ **Google OAuth Implementation**: Complete OAuth 2.0 integration with token verification
-- ✅ **Mass Delete Functionality**: Bulk operations for all admin management pages
-- ✅ **Toast Notification Fixes**: Proper positioning and duration management
-- ✅ **Layout Improvements**: Fixed navbar and responsive table design
-- ✅ **Dependency Management**: Fixed Google OAuth package conflicts
-- ✅ **Database Migration**: Added google_id field to users table
-- ✅ **Frontend Linting**: Fixed all ESLint errors and warnings
-- ✅ **Create Pages Implementation**: Added missing create forms for dive sites and diving centers
-- ✅ **Dive Sites API Serialization**: Fixed tag serialization issues that were causing 500 errors
-- ✅ **Difficulty Level Validation**: Updated schema to support 'expert' difficulty level  
-- ✅ **Tag Model Compatibility**: Fixed AvailableTag model field mapping (removed non-existent 'category' field)
-- ✅ **Response Validation**: Fixed Pydantic response validation errors for dive sites endpoint
-- ✅ **Admin Authentication**: Resolved admin login issues with updated password requirements
-- ✅ **Docker Dependencies**: Fixed slowapi import errors in containerized environment
 
 ## Contributing
 

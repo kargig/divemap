@@ -114,6 +114,76 @@ node test_regressions.js
 npx test  # This is forbidden
 ```
 
+## Documentation Requirements
+
+### Documentation Standards
+- **ALWAYS use consistent markdown formatting**
+- **ALWAYS include table of contents for files > 100 lines**
+- **ALWAYS include clear problem statements**
+- **ALWAYS provide step-by-step solutions**
+- **ALWAYS document all affected files**
+- **ALWAYS include troubleshooting sections**
+
+### Documentation Organization
+- **NEVER create documentation outside the docs/ directory**
+- **ALWAYS organize documentation by category (getting-started, development, deployment, security, maintenance)**
+- **ALWAYS update the main docs/README.md index when adding new documentation**
+- **ALWAYS use descriptive file names and clear titles**
+
+### Documentation Workflow
+- **ALWAYS test documentation procedures before committing**
+- **ALWAYS include code examples and screenshots where appropriate**
+- **ALWAYS verify links and references**
+- **ALWAYS update related documentation when making changes**
+
+### Documentation Templates
+```markdown
+# [Title]
+
+Brief description of what this document covers.
+
+## Table of Contents
+
+1. [Section 1](#section-1)
+2. [Section 2](#section-2)
+3. [Section 3](#section-3)
+
+## Section 1
+
+Content with clear explanations and examples.
+
+### Subsection
+
+Detailed information with code examples:
+
+```bash
+# Example command
+command --option value
+```
+
+## Section 2
+
+More content with proper formatting.
+
+## Troubleshooting
+
+Common issues and solutions.
+
+## Related Documentation
+
+- [Link to related doc 1](./related-doc-1.md)
+- [Link to related doc 2](./related-doc-2.md)
+```
+
+### Documentation Quality Checklist
+- [ ] All links work correctly
+- [ ] Code examples are tested and functional
+- [ ] Screenshots are up-to-date
+- [ ] Table of contents is complete
+- [ ] Related documentation is updated
+- [ ] No broken references
+- [ ] Consistent formatting throughout
+
 ## Development Workflow
 
 ### Environment Setup
@@ -134,6 +204,13 @@ npx test  # This is forbidden
 3. Review generated migration
 4. Test migration on development database
 5. Apply migration only after testing
+
+### Documentation Changes
+1. Follow documentation standards
+2. Use appropriate template
+3. Update related documentation
+4. Test all procedures
+5. Update main documentation index
 
 ## Security Requirements
 
@@ -163,6 +240,18 @@ npx test  # This is forbidden
 - Provide rollback instructions
 - Test migration procedures
 
+### API Documentation
+- Document all API endpoints
+- Include request/response examples
+- Document authentication requirements
+- Provide error handling examples
+
+### Deployment Documentation
+- Document deployment procedures
+- Include environment setup instructions
+- Document troubleshooting steps
+- Provide rollback procedures
+
 ## Error Handling
 
 ### Common Issues
@@ -189,6 +278,8 @@ Before making any changes, ensure:
 - [ ] User permission obtained before git commits
 - [ ] Documentation is updated
 - [ ] Changes are tested thoroughly
+- [ ] Documentation follows standards
+- [ ] All links and references are verified
 
 ## Enforcement
 
@@ -198,5 +289,6 @@ These rules are mandatory and must be followed:
 - Manual database changes are not allowed
 - Automatic git commits are prohibited
 - All testing must use virtual environments
+- All documentation must follow standards
 
 Remember: **Always ask for permission before committing to git!** 

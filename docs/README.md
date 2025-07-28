@@ -1,65 +1,79 @@
 # Divemap Documentation
 
-This directory contains comprehensive implementation documentation for the Divemap application.
+Welcome to the Divemap documentation. This directory contains comprehensive documentation for the Divemap scuba diving platform.
 
 ## 📚 Documentation Index
 
-### 🚀 Deployment & Infrastructure
-- **[FLY_IO_DEPLOYMENT_AND_INFRASTRUCTURE.md](./FLY_IO_DEPLOYMENT_AND_INFRASTRUCTURE.md)** - Complete Fly.io deployment guide, infrastructure setup, database connectivity, and private IPv6 configuration
+### 🚀 Getting Started
+- **[README.md](./getting-started/README.md)** - Quick start guide and setup instructions
 
-### 🔧 Implementation Guides
-- **[GOOGLE_OAUTH_SETUP.md](./GOOGLE_OAUTH_SETUP.md)** - Step-by-step guide for setting up Google OAuth authentication
-- **[TRAILING_SLASH_FIX_SUMMARY.md](./TRAILING_SLASH_FIX_SUMMARY.md)** - Detailed summary of API endpoint trailing slash fixes and testing results
-- **[VIEW_TRACKING_IMPLEMENTATION.md](./VIEW_TRACKING_IMPLEMENTATION.md)** - Implementation details for dive site and diving center view tracking
-- **[SORTING_IMPLEMENTATION.md](./SORTING_IMPLEMENTATION.md)** - Admin page sorting functionality implementation with sortable columns and visual indicators
+### 🔧 Development
+- **[README.md](./development/README.md)** - Development overview, setup, and workflow
+- **[Architecture.md](./development/architecture.md)** - System architecture and design
+- **[Database.md](./development/database.md)** - Database documentation and migrations
+- **[API.md](./development/api.md)** - API documentation and endpoints
+- **[Testing.md](./development/testing.md)** - Testing guide (see [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for comprehensive details)
 
-### 🛡️ Security Documentation
-- **[SECURITY.md](./SECURITY.md)** - Comprehensive security measures, best practices, and vulnerability management
-- **[SECURITY_AUDIT_SUMMARY.md](./SECURITY_AUDIT_SUMMARY.md)** - Detailed security audit results, vulnerability fixes, and risk assessment
+### 🚀 Deployment
+- **[README.md](./deployment/README.md)** - Deployment overview
+- **[Fly.io.md](./deployment/fly-io.md)** - Fly.io deployment guide
+- **[Docker.md](./deployment/docker.md)** - Docker setup and configuration
+- **[Infrastructure.md](./deployment/infrastructure.md)** - Infrastructure details
 
-### 🧪 Testing & Quality Assurance
-- **[TESTING_STRATEGY.md](./TESTING_STRATEGY.md)** - Comprehensive testing strategy, regression prevention, and quality assurance procedures
+### 🛡️ Security
+- **[README.md](./security/README.md)** - Security overview, measures, and best practices
+- **[OAuth Setup.md](./security/oauth-setup.md)** - Google OAuth configuration
+
+### 🔧 Maintenance
+- **[README.md](./maintenance/README.md)** - Maintenance overview and troubleshooting
+- **[Migrations.md](./maintenance/migrations.md)** - Database migrations guide
+- **[Changelog.md](./maintenance/changelog.md)** - Complete change history and API changes
+
+### 📋 Testing Strategy
+- **[TESTING_STRATEGY.md](./TESTING_STRATEGY.md)** - Comprehensive testing strategy and procedures
 
 ## 📋 Quick Reference
 
-### For Deployment
-1. Start with **[FLY_IO_DEPLOYMENT_AND_INFRASTRUCTURE.md](./FLY_IO_DEPLOYMENT_AND_INFRASTRUCTURE.md)** for complete deployment instructions
-2. Follow the step-by-step deployment process
-3. Configure private IPv6 for database security
+### For New Users
+1. Start with **[Getting Started](./getting-started/README.md)** for installation and setup
 
-### For Development
-1. **[GOOGLE_OAUTH_SETUP.md](./GOOGLE_OAUTH_SETUP.md)** - Set up authentication
-2. **[TRAILING_SLASH_FIX_SUMMARY.md](./TRAILING_SLASH_FIX_SUMMARY.md)** - Understand API endpoint patterns
-3. **[VIEW_TRACKING_IMPLEMENTATION.md](./VIEW_TRACKING_IMPLEMENTATION.md)** - Learn about analytics features
-4. **[SORTING_IMPLEMENTATION.md](./SORTING_IMPLEMENTATION.md)** - Admin interface sorting functionality
+### For Developers
+1. **[Development Overview](./development/README.md)** - Development setup and workflow
+2. **[Architecture Documentation](./development/architecture.md)** - System design and components
+3. **[API Documentation](./development/api.md)** - API endpoints and usage
+4. **[Testing Guide](./development/testing.md)** - Testing procedures (see [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for details)
+
+### For Deployment
+1. **[Deployment Overview](./deployment/README.md)** - Deployment strategies
+2. **[Fly.io Guide](./deployment/fly-io.md)** - Cloud deployment instructions
+3. **[Docker Setup](./deployment/docker.md)** - Container configuration
+4. **[Infrastructure Details](./deployment/infrastructure.md)** - Infrastructure components
 
 ### For Security
-1. **[SECURITY.md](./SECURITY.md)** - Security best practices and measures
-2. **[SECURITY_AUDIT_SUMMARY.md](./SECURITY_AUDIT_SUMMARY.md)** - Current security status and vulnerability fixes
+1. **[Security Overview](./security/README.md)** - Security measures and best practices
+2. **[OAuth Setup](./security/oauth-setup.md)** - Authentication configuration
 
-### For Testing & Quality
-1. **[TESTING_STRATEGY.md](./TESTING_STRATEGY.md)** - Comprehensive testing procedures and regression prevention
-
-### For Troubleshooting
-- Check **[FLY_IO_DEPLOYMENT_AND_INFRASTRUCTURE.md](./FLY_IO_DEPLOYMENT_AND_INFRASTRUCTURE.md)** for common issues and debug commands
-- Review **[TRAILING_SLASH_FIX_SUMMARY.md](./TRAILING_SLASH_FIX_SUMMARY.md)** for API endpoint consistency
-- Consult **[TESTING_STRATEGY.md](./TESTING_STRATEGY.md)** for testing procedures and error prevention
+### For Maintenance
+1. **[Maintenance Overview](./maintenance/README.md)** - Maintenance procedures and troubleshooting
+2. **[Database Migrations](./maintenance/migrations.md)** - Schema change management
+3. **[Changelog](./maintenance/changelog.md)** - Complete version history and API changes
 
 ## 🔗 Related Files
 
-- `API_CHANGELOG.md` - API changes and updates
-- `CHANGELOG.md` - Application changelog
-- `README.md` - Main project overview
+- `../README.md` - Main project overview
+- `../CHANGELOG.md` - Application changelog
 
 ## 📝 Documentation Standards
 
-All implementation documentation should:
+All documentation should:
 - Include clear problem statements
 - Provide step-by-step solutions
 - Include testing procedures
 - Document security considerations
 - List all affected files
 - Include troubleshooting sections
+- Use consistent markdown formatting
+- Include table of contents for files > 100 lines
 
 ## 🚀 Current Status
 
@@ -69,31 +83,50 @@ All implementation documentation should:
 - **Database:** Internal network only (`divemap-db.flycast`)
 
 **Recent Updates:**
-- ✅ Private IPv6 allocation for database security
-- ✅ API endpoint trailing slash fixes
-- ✅ View tracking implementation
-- ✅ Google OAuth integration
-- ✅ Comprehensive deployment documentation
-- ✅ Admin page sorting functionality
-- ✅ Security audit and vulnerability fixes
-- ✅ Comprehensive testing strategy
+- ✅ Documentation consolidation completed
+- ✅ Removed duplicate content across files
+- ✅ Streamlined testing documentation
+- ✅ Consolidated security measures
+- ✅ Merged troubleshooting into maintenance guide
+- ✅ Reduced total documentation files from 22 to 15
 
 ## 📊 Documentation Categories
 
-### **Deployment & Infrastructure (1 file)**
-- Complete Fly.io deployment and infrastructure setup
+### **Getting Started (1 file)**
+- Quick start guide and setup instructions
 
-### **Implementation Guides (4 files)**
-- Authentication setup
-- API endpoint fixes
-- View tracking implementation
-- Admin sorting functionality
+### **Development (5 files)**
+- Architecture, API, database, testing, and development workflow
 
-### **Security Documentation (2 files)**
-- Security measures and best practices
-- Security audit results and fixes
+### **Deployment (4 files)**
+- Deployment strategies and infrastructure
 
-### **Testing & Quality Assurance (1 file)**
+### **Security (2 files)**
+- Security measures and OAuth setup (consolidated)
+
+### **Maintenance (3 files)**
+- Migrations, changelog, and consolidated maintenance/troubleshooting
+
+### **Testing Strategy (1 file)**
 - Comprehensive testing strategy and procedures
 
-**Total Documentation Files: 8** 
+**Total Documentation Files: 16** (reduced from 22)
+
+## 🔄 Consolidation Summary
+
+### Files Removed
+- `docs/security/measures.md` - Content merged into security README
+- `docs/maintenance/troubleshooting.md` - Content merged into maintenance README
+
+### Files Streamlined
+- `docs/development/testing.md` - Now references comprehensive TESTING_STRATEGY.md
+- `docs/getting-started/README.md` - Focused on user setup, technical details moved to development
+- `docs/security/README.md` - Consolidated security measures and audit results
+- `docs/maintenance/README.md` - Merged troubleshooting procedures
+
+### Benefits Achieved
+- **Reduced Redundancy**: Eliminated duplicate content across files
+- **Improved Clarity**: Each file now has a clear, focused purpose
+- **Better Organization**: Related content grouped logically
+- **Easier Maintenance**: Fewer files to update and maintain
+- **Clearer Navigation**: Users can find information more quickly 
