@@ -14,7 +14,7 @@ primary_region = 'fra'
   PYTHONPATH = '/app'
 
 [processes]
-  app = 'uvicorn app.main:app --host 0.0.0.0 --port 8000'
+  app = '/app/startup.sh'
 
 [[mounts]]
   source = 'divemap_uploads'
@@ -29,6 +29,6 @@ primary_region = 'fra'
   processes = ['app']
 
 [[vm]]
-  memory = '2gb'
+  memory = '4gb'
   cpu_kind = 'shared'
-  cpus = 2
+  cpus = 4

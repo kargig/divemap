@@ -7,6 +7,7 @@ Create Date: 2025-07-27 16:10:00.000000
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
 revision = '0004'
@@ -15,17 +16,34 @@ branch_labels = None
 depends_on = None
 
 
+def column_exists(table_name, column_name):
+    """Check if a column exists in a table"""
+    connection = op.get_bind()
+    result = connection.execute(text(f"""
+        SELECT COUNT(*)
+        FROM information_schema.columns 
+        WHERE table_schema = DATABASE() 
+        AND table_name = '{table_name}' 
+        AND column_name = '{column_name}'
+    """))
+    return result.scalar() > 0
+
+
 def upgrade() -> None:
-    # Add view_count column to dive_sites table
-    op.add_column('dive_sites', sa.Column('view_count', sa.Integer(), nullable=False, server_default='0'))
+    # Add view_count column to dive_sites table if it doesn't exist
+    if not column_exists('dive_sites', 'view_count'):
+        op.add_column('dive_sites', sa.Column('view_count', sa.Integer(), nullable=False, server_default='0'))
     
-    # Add view_count column to diving_centers table
-    op.add_column('diving_centers', sa.Column('view_count', sa.Integer(), nullable=False, server_default='0'))
+    # Add view_count column to diving_centers table if it doesn't exist
+    if not column_exists('diving_centers', 'view_count'):
+        op.add_column('diving_centers', sa.Column('view_count', sa.Integer(), nullable=False, server_default='0'))
 
 
 def downgrade() -> None:
-    # Remove view_count column from dive_sites table
-    op.drop_column('dive_sites', 'view_count')
+    # Remove view_count column from dive_sites table if it exists
+    if column_exists('dive_sites', 'view_count'):
+        op.drop_column('dive_sites', 'view_count')
     
-    # Remove view_count column from diving_centers table
-    op.drop_column('diving_centers', 'view_count') 
+    # Remove view_count column from diving_centers table if it exists
+    if column_exists('diving_centers', 'view_count'):
+        op.drop_column('diving_centers', 'view_count') 

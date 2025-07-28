@@ -4,6 +4,38 @@ This document tracks recent changes, bug fixes, and improvements to the Divemap 
 
 ## Latest Changes (2025-07-27)
 
+### ✅ Added: Fly.io Private IPv6 Database Configuration
+
+**Infrastructure Enhancement:** Configured private IPv6 network for database connectivity in Fly.io deployment.
+
+**Private IPv6 Allocation:**
+```bash
+# Allocate private IPv6 address for database
+flyctl ips allocate-v6 --private
+```
+
+**Flycast Connectivity Setup:**
+- **Database Hostname**: `divemap-db.flycast` (Fly.io private network)
+- **Network Type**: Private IPv6 network within Fly.io
+- **Security**: Database isolated from public internet
+- **Performance**: Direct private network communication
+
+**Benefits:**
+- **Security**: Database not exposed to public internet
+- **Performance**: Direct private network communication
+- **Reliability**: Stable internal network connectivity
+- **Cost**: No additional bandwidth charges for internal traffic
+
+**Configuration:**
+- Backend connects to `divemap-db.flycast:3306`
+- Private IPv6 network ensures secure database access
+- IPv6 support in startup script handles connectivity
+
+**Files Modified:**
+- `DATABASE_CONNECTIVITY_IMPLEMENTATION.md` - Added Fly.io private IPv6 configuration
+- `backend/startup.sh` - Already supports IPv6 connectivity
+- `backend/test_netcat_ipv6.sh` - IPv6 testing for cloud deployment
+
 ### ✅ Fixed: API Endpoint Trailing Slash Issues
 
 **Issue:** Dive site detail page was not showing nearby dive sites, comments, or media due to 307 Temporary Redirect errors.

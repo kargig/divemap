@@ -6,6 +6,35 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 ### 🚀 Major Features
 
+#### **Fly.io Private IPv6 Database Configuration**
+- **Private Network Setup**: Allocated private IPv6 address for secure database connectivity
+- **Flycast Integration**: Database accessible via `divemap-db.flycast` hostname
+- **Enhanced Security**: Database isolated from public internet exposure
+- **Performance Optimization**: Direct private network communication
+
+**Technical Implementation:**
+- **Private IPv6 Allocation**: `flyctl ips allocate-v6 --private`
+- **Database Hostname**: `divemap-db.flycast` (Fly.io private network)
+- **Network Type**: Private IPv6 network within Fly.io infrastructure
+- **Connectivity**: Backend connects via private network to database
+
+**Benefits:**
+- **Security**: Database not exposed to public internet
+- **Performance**: Direct private network communication
+- **Reliability**: Stable internal network connectivity
+- **Cost**: No additional bandwidth charges for internal traffic
+
+**Infrastructure Details:**
+- Backend connects to `divemap-db.flycast:3306`
+- Private IPv6 network ensures secure database access
+- IPv6 support in startup script handles connectivity
+- Database startup triggered by backend connectivity check
+
+**Files Modified:**
+- `DATABASE_CONNECTIVITY_IMPLEMENTATION.md` - Added Fly.io private IPv6 configuration
+- `backend/startup.sh` - Already supports IPv6 connectivity
+- `backend/test_netcat_ipv6.sh` - IPv6 testing for cloud deployment
+
 #### **API Endpoint Trailing Slash Fixes**
 - **Fixed Dive Site Detail Page**: Resolved 307 redirect issues preventing display of nearby dive sites, comments, and media
 - **Consistent API Patterns**: Standardized all frontend API calls to match backend FastAPI routing expectations

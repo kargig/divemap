@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for divemap-db-damp-glitter-9794 on 2025-07-27T17:30:10+03:00
+# fly.toml app configuration file generated for divemap-db on 2025-07-27T17:30:10+03:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
@@ -8,33 +8,28 @@ primary_region = 'fra'
 
 [build]
 
-[processes]
-  app = '--datadir /data/mysql --mysql-native-password=ON'
-
-[[mounts]]
-  source = 'divemap_mysql_data'
-  destination = '/data'
-
-[http_service]
-  internal_port = 3306
-  force_https = true
-  auto_stop_machines = 'stop'
-  auto_start_machines = true
-  min_machines_running = 0
-  processes = ['app']
-
 [[services]]
-  protocol = 'tcp'
   internal_port = 3306
-  auto_stop_machines = 'stop'
+  protocol = "tcp"
+  auto_stop_machines = "stop"
   auto_start_machines = true
   min_machines_running = 0
-  processes = ['app']
-
+  processes = ["app"]
   [[services.ports]]
     port = 3306
+    handlers = []  # required for raw TCP services (like MySQL)
+    force_https = false  # optional
 
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
+
+[processes]
+  app = '--datadir /data/mysql --mysql-native-password=ON'
+
+# Add the following sections for all versions
+[mounts]
+  source = 'divemap_mysql_data'
+  destination = '/data'
+
