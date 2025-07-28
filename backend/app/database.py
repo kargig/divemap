@@ -10,13 +10,22 @@ def get_database_url():
     """Get database URL for Alembic migrations"""
     return DATABASE_URL
 
-# Create SQLAlchemy engine
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    pool_recycle=300,
-    echo=False  # Set to True for SQL query logging
-)
+# Create SQLAlchemy engine with SQLite-specific configuration
+if DATABASE_URL.startswith("sqlite"):
+    # SQLite configuration
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        echo=False  # Set to True for SQL query logging
+    )
+else:
+    # MySQL configuration
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        pool_recycle=300,
+        echo=False  # Set to True for SQL query logging
+    )
 
 # Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

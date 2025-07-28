@@ -33,6 +33,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4.2.2
 
+      - name: Set up Python
+        uses: actions/setup-python@v4.7.1
+        with:
+          python-version: '3.11'
+
       - name: Set up Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4.4.0
         with:
@@ -48,7 +53,48 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
+      - name: Cache Python dependencies
+        uses: actions/cache@v4.2.3
+        with:
+          path: |
+            ~/.cache/pip
+            backend/divemap_venv
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          python -m venv divemap_venv
+          source divemap_venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Set up SQLite database
+        run: |
+          cd backend
+          source divemap_venv/bin/activate
+          export DATABASE_URL="sqlite:///./test_divemap.db"
+          export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+          python -c "
+          from app.database import engine
+          from app.models import Base
+          Base.metadata.create_all(bind=engine)
+          print('✅ Database tables created successfully')
+          "
+
+      - name: Run database migrations
+        run: |
+          cd backend
+          source divemap_venv/bin/activate
+          export DATABASE_URL="sqlite:///./test_divemap.db"
+          export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+          # For SQLite, we don't need to wait for database availability
+          # Just run the migrations directly
+          alembic upgrade head
+
+      - name: Install frontend dependencies
         run: |
           cd frontend
           npm ci --prefer-offline --no-audit --no-fund
@@ -87,6 +133,35 @@ jobs:
         env:
           CI: true
 
+      - name: Start backend server
+        run: |
+          cd backend
+          source divemap_venv/bin/activate
+          export DATABASE_URL="sqlite:///./test_divemap.db"
+          export SECRET_KEY="test_secret_key_for_ci_environment_only"
+          export ALGORITHM="HS256"
+          export ACCESS_TOKEN_EXPIRE_MINUTES="30"
+          export GOOGLE_CLIENT_ID=""
+          export GOOGLE_CLIENT_SECRET=""
+          export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+          echo "Starting FastAPI backend server..."
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload &
+          BACKEND_PID=$!
+          echo "Backend PID: $BACKEND_PID"
+          echo "Waiting for backend to start..."
+          sleep 10
+          echo "Checking if backend is running..."
+          if curl -f http://localhost:8000/health; then
+            echo "✅ Backend server is running successfully"
+          else
+            echo "❌ Backend server failed to start"
+            echo "Checking backend process..."
+            ps aux | grep "uvicorn" || echo "No uvicorn process found"
+            echo "Checking port 8000..."
+            netstat -tlnp | grep :8000 || echo "Port 8000 not in use"
+            exit 1
+          fi
+
       - name: Start frontend development server
         run: |
           cd frontend
@@ -123,6 +198,7 @@ jobs:
         env:
           CI: true
           TEST_ACCESSIBILITY: true
+          REACT_APP_API_URL: "http://localhost:8000"
         timeout-minutes: 10
 
       - name: Run frontend integration tests
@@ -131,6 +207,7 @@ jobs:
           npm run test:frontend
         env:
           CI: true
+          REACT_APP_API_URL: "http://localhost:8000"
         timeout-minutes: 15
 
       - name: Run end-to-end tests
@@ -139,6 +216,7 @@ jobs:
           npm run test:e2e
         env:
           CI: true
+          REACT_APP_API_URL: "http://localhost:8000"
         timeout-minutes: 20
 
       - name: Upload test results
@@ -230,6 +308,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4.2.2
 
+      - name: Set up Python
+        uses: actions/setup-python@v4.7.1
+        with:
+          python-version: '3.11'
+
       - name: Set up Node.js
         uses: actions/setup-node@v4.4.0
         with:
@@ -245,10 +328,80 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
+      - name: Cache Python dependencies
+        uses: actions/cache@v4.2.3
+        with:
+          path: |
+            ~/.cache/pip
+            backend/divemap_venv
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          python -m venv divemap_venv
+          source divemap_venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Set up SQLite database
+        run: |
+          cd backend
+          source divemap_venv/bin/activate
+          export DATABASE_URL="sqlite:///./test_divemap.db"
+          export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+          python -c "
+          from app.database import engine
+          from app.models import Base
+          Base.metadata.create_all(bind=engine)
+          print('✅ Database tables created successfully')
+          "
+
+      - name: Run database migrations
+        run: |
+          cd backend
+          source divemap_venv/bin/activate
+          export DATABASE_URL="sqlite:///./test_divemap.db"
+          export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+          # For SQLite, we don't need to wait for database availability
+          # Just run the migrations directly
+          alembic upgrade head
+
+      - name: Install frontend dependencies
         run: |
           cd frontend
           npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Start backend server
+        run: |
+          cd backend
+          source divemap_venv/bin/activate
+          export DATABASE_URL="sqlite:///./test_divemap.db"
+          export SECRET_KEY="test_secret_key_for_ci_environment_only"
+          export ALGORITHM="HS256"
+          export ACCESS_TOKEN_EXPIRE_MINUTES="30"
+          export GOOGLE_CLIENT_ID=""
+          export GOOGLE_CLIENT_SECRET=""
+          export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+          echo "Starting FastAPI backend server..."
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload &
+          BACKEND_PID=$!
+          echo "Backend PID: $BACKEND_PID"
+          echo "Waiting for backend to start..."
+          sleep 10
+          echo "Checking if backend is running..."
+          if curl -f http://localhost:8000/health; then
+            echo "✅ Backend server is running successfully"
+          else
+            echo "❌ Backend server failed to start"
+            echo "Checking backend process..."
+            ps aux | grep "uvicorn" || echo "No uvicorn process found"
+            echo "Checking port 8000..."
+            netstat -tlnp | grep :8000 || echo "Port 8000 not in use"
+            exit 1
+          fi
 
       - name: Start frontend server
         run: |
@@ -286,6 +439,7 @@ jobs:
         env:
           CI: true
           TEST_ACCESSIBILITY: true
+          REACT_APP_API_URL: "http://localhost:8000"
         timeout-minutes: 10
 
       - name: Upload accessibility test results
