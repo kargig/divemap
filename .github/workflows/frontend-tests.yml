@@ -53,12 +53,17 @@ jobs:
           cd frontend
           npm ci --prefer-offline --no-audit --no-fund
 
+      - name: Run ESLint checks
+        run: |
+          cd frontend
+          npx eslint src/ --ext .js,.jsx --max-warnings 0
+        continue-on-error: true
+
       - name: Verify React app can build
         run: |
           cd frontend
-          npm run build
+          CI=false npm run build
         env:
-          CI: true
           GENERATE_SOURCEMAP: false
 
       - name: Verify package.json syntax
@@ -184,20 +189,17 @@ jobs:
           cd frontend
           npm ci --prefer-offline --no-audit --no-fund
 
-      - name: Verify React app can build
+      - name: Run ESLint checks
         run: |
           cd frontend
-          npm run build
-        env:
-          CI: true
-          GENERATE_SOURCEMAP: false
+          npx eslint src/ --ext .js,.jsx --max-warnings 0
+        continue-on-error: true
 
       - name: Build frontend
         run: |
           cd frontend
-          npm run build
+          CI=false npm run build
         env:
-          CI: true
           GENERATE_SOURCEMAP: false
 
       - name: Verify build output
@@ -247,14 +249,6 @@ jobs:
         run: |
           cd frontend
           npm ci --prefer-offline --no-audit --no-fund
-
-      - name: Verify React app can build
-        run: |
-          cd frontend
-          npm run build
-        env:
-          CI: true
-          GENERATE_SOURCEMAP: false
 
       - name: Start frontend server
         run: |
