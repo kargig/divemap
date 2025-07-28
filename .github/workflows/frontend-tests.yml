@@ -53,6 +53,14 @@ jobs:
           cd frontend
           npm ci --prefer-offline --no-audit --no-fund
 
+      - name: Verify React app can build
+        run: |
+          cd frontend
+          npm run build
+        env:
+          CI: true
+          GENERATE_SOURCEMAP: false
+
       - name: Verify package.json syntax
         run: |
           cd frontend
@@ -77,14 +85,31 @@ jobs:
       - name: Start frontend development server
         run: |
           cd frontend
+          echo "Starting React development server..."
           npm start &
+          SERVER_PID=$!
+          echo "Server PID: $SERVER_PID"
           echo "Waiting for server to start..."
           sleep 30
           echo "Checking if server is running..."
-          curl -f http://localhost:3000 || exit 1
+          if curl -f http://localhost:3000; then
+            echo "✅ Server is running successfully"
+          else
+            echo "❌ Server failed to start"
+            echo "Checking server process..."
+            ps aux | grep "react-scripts" || echo "No react-scripts process found"
+            echo "Checking port 3000..."
+            netstat -tlnp | grep :3000 || echo "Port 3000 not in use"
+            echo "Checking for any error logs..."
+            if [ -f "npm-debug.log" ]; then
+              cat npm-debug.log
+            fi
+            exit 1
+          fi
         env:
           CI: true
           BROWSER: none
+          REACT_APP_API_URL: "http://localhost:8000"
 
       - name: Run frontend validation tests
         run: |
@@ -159,6 +184,14 @@ jobs:
           cd frontend
           npm ci --prefer-offline --no-audit --no-fund
 
+      - name: Verify React app can build
+        run: |
+          cd frontend
+          npm run build
+        env:
+          CI: true
+          GENERATE_SOURCEMAP: false
+
       - name: Build frontend
         run: |
           cd frontend
@@ -215,17 +248,42 @@ jobs:
           cd frontend
           npm ci --prefer-offline --no-audit --no-fund
 
+      - name: Verify React app can build
+        run: |
+          cd frontend
+          npm run build
+        env:
+          CI: true
+          GENERATE_SOURCEMAP: false
+
       - name: Start frontend server
         run: |
           cd frontend
+          echo "Starting React development server..."
           npm start &
+          SERVER_PID=$!
+          echo "Server PID: $SERVER_PID"
           echo "Waiting for server to start..."
           sleep 30
           echo "Checking if server is running..."
-          curl -f http://localhost:3000 || exit 1
+          if curl -f http://localhost:3000; then
+            echo "✅ Server is running successfully"
+          else
+            echo "❌ Server failed to start"
+            echo "Checking server process..."
+            ps aux | grep "react-scripts" || echo "No react-scripts process found"
+            echo "Checking port 3000..."
+            netstat -tlnp | grep :3000 || echo "Port 3000 not in use"
+            echo "Checking for any error logs..."
+            if [ -f "npm-debug.log" ]; then
+              cat npm-debug.log
+            fi
+            exit 1
+          fi
         env:
           CI: true
           BROWSER: none
+          REACT_APP_API_URL: "http://localhost:8000"
 
       - name: Run accessibility tests
         run: |
