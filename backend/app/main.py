@@ -49,7 +49,31 @@ async def add_security_headers(request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+    
+    # Check if this is a documentation endpoint
+    if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
+        # More permissive CSP for documentation endpoints
+        csp_policy = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
+            "img-src 'self' https://fastapi.tiangolo.com https://cdn.jsdelivr.net https://unpkg.com data:; "
+            "font-src 'self' https://cdn.jsdelivr.net https://unpkg.com; "
+            "connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com; "
+            "frame-src 'self'"
+        )
+    else:
+        # Stricter CSP for API endpoints
+        csp_policy = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self'; "
+            "font-src 'self'; "
+            "connect-src 'self'"
+        )
+    
+    response.headers["Content-Security-Policy"] = csp_policy
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     
     return response
