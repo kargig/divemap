@@ -111,7 +111,9 @@ dist
 
 # Gatsby files
 .cache/
-public
+
+# React build output (but keep source files)
+frontend/build/
 
 # Storybook build outputs
 .out
