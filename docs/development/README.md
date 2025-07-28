@@ -11,10 +11,11 @@ This document provides a comprehensive guide for developers working on the Divem
 5. [Development Workflow](#development-workflow)
 6. [Code Standards](#code-standards)
 7. [Testing Strategy](#testing-strategy)
-8. [Recent Features](#recent-features)
-9. [API Fixes](#api-fixes)
-10. [Utility Scripts](#utility-scripts)
-11. [Deployment](#deployment)
+8. [GitHub Actions](#github-actions)
+9. [Recent Features](#recent-features)
+10. [API Fixes](#api-fixes)
+11. [Utility Scripts](#utility-scripts)
+12. [Deployment](#deployment)
 
 ## Overview
 
@@ -241,6 +242,15 @@ npm test
 docker-compose up -d
 npm run test:integration
 ```
+
+## GitHub Actions
+
+The project uses GitHub Actions for continuous integration and automated testing. See [GitHub Actions Documentation](./github-actions.md) for detailed information about:
+
+- **Backend Tests Workflow**: Automated testing on PR creation and commits
+- **Environment Setup**: Virtual environment and service container configuration
+- **Coverage Reporting**: Integration with Codecov for coverage tracking
+- **Troubleshooting**: Common issues and debugging steps
 
 ## Recent Features
 
