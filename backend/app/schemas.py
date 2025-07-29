@@ -453,6 +453,25 @@ class UserResponseWithCertifications(UserResponse):
     class Config:
         from_attributes = True
 
+# Public Profile Schemas
+class UserStats(BaseModel):
+    dive_sites_rated: int
+    comments_posted: int
+
+    class Config:
+        from_attributes = True
+
+class UserPublicProfileResponse(BaseModel):
+    username: str
+    avatar_url: Optional[str] = None
+    number_of_dives: int
+    member_since: datetime
+    certifications: List[UserCertificationResponse] = []
+    stats: UserStats
+
+    class Config:
+        from_attributes = True
+
 # Updated Diving Center Response to include organizations
 class DivingCenterResponseWithOrganizations(DivingCenterResponse):
     organizations: List[DivingCenterOrganizationResponse] = []

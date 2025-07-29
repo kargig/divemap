@@ -21,7 +21,8 @@ const PAGES_TO_TEST = [
   '/admin/users',
   '/admin/tags',
   '/create-dive-site',
-  '/create-diving-center'
+  '/create-diving-center',
+  '/user/testuser'
 ];
 
 // Test data for forms
@@ -129,6 +130,8 @@ async function testPage(browser, url) {
       await testCreateDiveSitePage(page);
     } else if (url === '/create-diving-center') {
       await testCreateDivingCenterPage(page);
+    } else if (url === '/user/testuser') {
+      await testUserProfilePage(page);
     } else if (url === '/') {
       await testHomePage(page);
     }
@@ -457,6 +460,55 @@ async function testCreateDivingCenterPage(page) {
     await emailInput.type(TEST_DIVING_CENTER.email);
     await phoneInput.type(TEST_DIVING_CENTER.phone);
     console.log('    ✓ Create diving center form working');
+  }
+}
+
+async function testUserProfilePage(page) {
+  console.log('  Testing User Profile page functionality...');
+  
+  try {
+    // Wait for the page to load
+    await page.waitForSelector('h1', { timeout: 5000 });
+    const title = await page.$eval('h1', el => el.textContent);
+    
+    if (title.includes('testuser')) {
+      console.log('    ✅ User Profile page loaded successfully');
+      
+      // Check for avatar
+      const avatar = await page.$('[data-testid="avatar"]') || await page.$('.rounded-full');
+      if (avatar) {
+        console.log('    ✅ Avatar element found');
+      }
+      
+      // Check for user stats
+      const statsElements = await page.$$('[class*="bg-blue-50"], [class*="bg-green-50"]');
+      if (statsElements.length > 0) {
+        console.log(`    ✅ Found ${statsElements.length} stats elements`);
+      }
+      
+      // Check for certifications section
+      const certSection = await page.$('h2') || await page.$('h3');
+      if (certSection) {
+        const certText = await certSection.evaluate(el => el.textContent);
+        if (certText.includes('Certifications')) {
+          console.log('    ✅ Certifications section found');
+        }
+      }
+      
+      // Check for activity stats
+      const activitySection = await page.$('h2') || await page.$('h3');
+      if (activitySection) {
+        const activityText = await activitySection.evaluate(el => el.textContent);
+        if (activityText.includes('Activity')) {
+          console.log('    ✅ Activity section found');
+        }
+      }
+      
+    } else {
+      console.log('    ⚠️  User Profile page may have loaded but title is unexpected');
+    }
+  } catch (error) {
+    console.log('    ⚠️  User Profile page test failed:', error.message);
   }
 }
 

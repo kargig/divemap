@@ -3,9 +3,10 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
-from app.models import User
-from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, PasswordChangeRequest
+from app.models import User, SiteRating, SiteComment, CenterComment
+from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, PasswordChangeRequest, UserPublicProfileResponse, UserStats
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password
+from sqlalchemy import func
 
 router = APIRouter()
 
@@ -149,4 +150,55 @@ async def delete_user(
     db.delete(db_user)
     db.commit()
     
-    return {"message": "User deleted successfully"} 
+    return {"message": "User deleted successfully"}
+
+@router.get("/{username}/public", response_model=UserPublicProfileResponse)
+async def get_user_public_profile(
+    username: str,
+    db: Session = Depends(get_db)
+):
+    """Get public profile information for a user by username"""
+    # Find user by username
+    user = db.query(User).filter(
+        User.username == username,
+        User.enabled == True
+    ).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Calculate user statistics
+    dive_sites_rated = db.query(func.count(SiteRating.id)).filter(
+        SiteRating.user_id == user.id
+    ).scalar()
+    
+    site_comments_count = db.query(func.count(SiteComment.id)).filter(
+        SiteComment.user_id == user.id
+    ).scalar()
+    
+    center_comments_count = db.query(func.count(CenterComment.id)).filter(
+        CenterComment.user_id == user.id
+    ).scalar()
+    
+    comments_posted = (site_comments_count or 0) + (center_comments_count or 0)
+    
+    # Create stats object
+    stats = UserStats(
+        dive_sites_rated=dive_sites_rated or 0,
+        comments_posted=comments_posted or 0
+    )
+    
+    # Create response object
+    response = UserPublicProfileResponse(
+        username=user.username,
+        avatar_url=user.avatar_url,
+        number_of_dives=user.number_of_dives,
+        member_since=user.created_at,
+        certifications=user.certifications,
+        stats=stats
+    )
+    
+    return response 

@@ -45,6 +45,7 @@ class User(Base):
     is_moderator = Column(Boolean, default=False)
     enabled = Column(Boolean, default=True)  # New field for user activation
     number_of_dives = Column(Integer, default=0, nullable=False)  # Number of dives completed
+    avatar_url = Column(String(500), nullable=True)  # User avatar URL
 
     # Relationships
     site_ratings = relationship("SiteRating", back_populates="user", cascade="all, delete-orphan")

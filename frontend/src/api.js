@@ -38,4 +38,14 @@ api.interceptors.response.use(
   }
 );
 
-export default api; 
+export default api;
+
+// User public profile API functions
+export const getUserPublicProfile = async (username) => {
+  try {
+    const response = await api.get(`/api/v1/users/${username}/public`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}; 

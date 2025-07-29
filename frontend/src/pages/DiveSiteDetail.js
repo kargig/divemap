@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { Star, Map, MessageCircle, Send, Play, Image, ExternalLink, Anchor, Edit, Globe, ArrowLeft } from 'lucide-react';
@@ -510,7 +510,12 @@ const DiveSiteDetail = () => {
                 <div key={comment.id} className="border-b border-gray-200 pb-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
-                      <span className="font-medium text-gray-900">{comment.username}</span>
+                      <Link 
+                        to={`/user/${comment.username}`}
+                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {comment.username}
+                      </Link>
                       {(comment.user_diving_certification || comment.user_number_of_dives) && (
                         <div className="flex items-center space-x-2 text-xs text-gray-500">
                           {comment.user_diving_certification && (

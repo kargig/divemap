@@ -420,7 +420,12 @@ const DivingCenterDetail = () => {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-gray-900">{comment.username}</span>
+                        <Link 
+                          to={`/user/${comment.username}`}
+                          className="font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {comment.username}
+                        </Link>
                         {(comment.user_diving_certification || comment.user_number_of_dives) && (
                           <div className="flex items-center space-x-2 text-xs">
                             {comment.user_diving_certification && (

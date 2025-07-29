@@ -266,4 +266,150 @@ class TestAdminUserManagement:
                                headers=admin_headers)
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "Cannot delete your own account" in response.json()["detail"] 
+        assert "Cannot delete your own account" in response.json()["detail"]
+
+
+class TestPublicUserProfile:
+    """Test public user profile endpoints."""
+    
+    def test_get_user_public_profile_success(self, client, test_user, test_diving_organization, db_session):
+        """Test getting public profile for an existing user."""
+        # Create a certification for the user
+        from app.models import UserCertification
+        certification = UserCertification(
+            user_id=test_user.id,
+            diving_organization_id=test_diving_organization.id,
+            certification_level="Advanced Open Water",
+            is_active=True
+        )
+        db_session.add(certification)
+        db_session.commit()
+        
+        response = client.get(f"/api/v1/users/{test_user.username}/public")
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Check required fields
+        assert data["username"] == test_user.username
+        assert data["avatar_url"] is None  # No avatar set
+        assert data["number_of_dives"] == test_user.number_of_dives
+        assert "member_since" in data
+        assert "certifications" in data
+        assert "stats" in data
+        
+        # Check stats structure
+        assert "dive_sites_rated" in data["stats"]
+        assert "comments_posted" in data["stats"]
+        assert isinstance(data["stats"]["dive_sites_rated"], int)
+        assert isinstance(data["stats"]["comments_posted"], int)
+        
+        # Check certifications
+        assert len(data["certifications"]) == 1
+        cert = data["certifications"][0]
+        assert cert["certification_level"] == "Advanced Open Water"
+        assert cert["is_active"] is True
+        assert "diving_organization" in cert
+        assert cert["diving_organization"]["name"] == test_diving_organization.name
+        assert cert["diving_organization"]["acronym"] == test_diving_organization.acronym
+    
+    def test_get_user_public_profile_not_found(self, client):
+        """Test getting public profile for non-existent user."""
+        response = client.get("/api/v1/users/nonexistentuser/public")
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "User not found" in response.json()["detail"]
+    
+    def test_get_user_public_profile_disabled_user(self, client, db_session):
+        """Test getting public profile for disabled user."""
+        from app.models import User
+        disabled_user = User(
+            username="disableduser",
+            email="disabled@example.com",
+            password_hash="hashed_password",
+            enabled=False
+        )
+        db_session.add(disabled_user)
+        db_session.commit()
+        
+        response = client.get("/api/v1/users/disableduser/public")
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "User not found" in response.json()["detail"]
+    
+    def test_get_user_public_profile_with_avatar(self, client, test_user, db_session):
+        """Test getting public profile for user with avatar."""
+        # Update user to have an avatar
+        test_user.avatar_url = "https://example.com/avatar.jpg"
+        db_session.commit()
+        
+        response = client.get(f"/api/v1/users/{test_user.username}/public")
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["avatar_url"] == "https://example.com/avatar.jpg"
+    
+    def test_get_user_public_profile_with_activity(self, client, test_user, test_dive_site, test_diving_center, db_session):
+        """Test getting public profile for user with activity."""
+        # Create some ratings and comments
+        from app.models import SiteRating, SiteComment, CenterComment
+        
+        # Add a site rating
+        site_rating = SiteRating(
+            dive_site_id=test_dive_site.id,
+            user_id=test_user.id,
+            score=8
+        )
+        db_session.add(site_rating)
+        
+        # Add a site comment
+        site_comment = SiteComment(
+            dive_site_id=test_dive_site.id,
+            user_id=test_user.id,
+            comment_text="Great dive site!"
+        )
+        db_session.add(site_comment)
+        
+        # Add a center comment
+        center_comment = CenterComment(
+            diving_center_id=test_diving_center.id,
+            user_id=test_user.id,
+            comment_text="Excellent service!"
+        )
+        db_session.add(center_comment)
+        
+        db_session.commit()
+        
+        response = client.get(f"/api/v1/users/{test_user.username}/public")
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Check stats
+        assert data["stats"]["dive_sites_rated"] == 1
+        assert data["stats"]["comments_posted"] == 2  # 1 site comment + 1 center comment
+    
+    def test_get_user_public_profile_no_activity(self, client, test_user):
+        """Test getting public profile for user with no activity."""
+        response = client.get(f"/api/v1/users/{test_user.username}/public")
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Check stats are zero
+        assert data["stats"]["dive_sites_rated"] == 0
+        assert data["stats"]["comments_posted"] == 0
+        assert len(data["certifications"]) == 0
+    
+    def test_get_user_public_profile_special_characters(self, client):
+        """Test getting public profile with special characters in username."""
+        response = client.get("/api/v1/users/user@123/public")
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "User not found" in response.json()["detail"]
+    
+    def test_get_user_public_profile_empty_username(self, client):
+        """Test getting public profile with empty username."""
+        response = client.get("/api/v1/users//public")
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND 

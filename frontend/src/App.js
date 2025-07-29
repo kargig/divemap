@@ -24,6 +24,7 @@ import AdminUsers from './pages/AdminUsers';
 import CreateDiveSite from './pages/CreateDiveSite';
 import CreateDivingCenter from './pages/CreateDivingCenter';
 import DiveSiteMap from './pages/DiveSiteMap';
+import UserProfile from './pages/UserProfile';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -84,6 +85,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/user/:username" element={<UserProfile />} />
                 <Route path="/dive-sites" element={<DiveSites />} />
                 <Route 
                   path="/dive-sites/:id" 
