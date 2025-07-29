@@ -151,3 +151,4 @@ backend/update_dive_site_tags.py
 backend/doc.kml 
 map/
 FLY_*
+local*sql*backup

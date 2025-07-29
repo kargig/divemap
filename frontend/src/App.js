@@ -18,6 +18,7 @@ import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import AdminDiveSites from './pages/AdminDiveSites';
 import AdminDivingCenters from './pages/AdminDivingCenters';
+import AdminDivingOrganizations from './pages/AdminDivingOrganizations';
 import AdminTags from './pages/AdminTags';
 import AdminUsers from './pages/AdminUsers';
 import CreateDiveSite from './pages/CreateDiveSite';
@@ -158,6 +159,14 @@ function App() {
                   element={
                     <ProtectedRoute requireAdmin={true}>
                       <CreateDivingCenter />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin/diving-organizations" 
+                  element={
+                    <ProtectedRoute requireAdmin={true}>
+                      <AdminDivingOrganizations />
                     </ProtectedRoute>
                   } 
                 />

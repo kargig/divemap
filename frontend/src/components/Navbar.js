@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, User, Map, Home, Settings, Building, ChevronDown, Users, MapPin, Tags } from 'lucide-react';
+import { LogOut, User, Map, Home, Settings, Building, ChevronDown, Users, MapPin, Tags, Award } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -76,6 +76,14 @@ const Navbar = () => {
                         >
                           <Building className="h-4 w-4 mr-2" />
                           Diving Centers
+                        </Link>
+                        <Link
+                          to="/admin/diving-organizations"
+                          className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <Award className="h-4 w-4 mr-2" />
+                          Diving Organizations
                         </Link>
                         <Link
                           to="/admin/tags"

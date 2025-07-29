@@ -14,9 +14,10 @@ This document provides a comprehensive guide for developers working on the Divem
 8. [Docker Configuration](#docker-configuration)
 9. [GitHub Actions](#github-actions)
 10. [Recent Features](#recent-features)
-11. [API Fixes](#api-fixes)
-12. [Utility Scripts](#utility-scripts)
-13. [Deployment](#deployment)
+11. [Diving Organizations Admin](#diving-organizations-admin)
+12. [API Fixes](#api-fixes)
+13. [Utility Scripts](#utility-scripts)
+14. [Deployment](#deployment)
 
 ## Overview
 
@@ -492,9 +493,37 @@ The project uses GitHub Actions for continuous integration and automated testing
 
 ## Recent Features
 
-### View Tracking
+### Diving Organizations Admin Management
 
-View counts are tracked for dive sites and diving centers, displayed only to admin users.
+A comprehensive CRUD interface for managing diving certification organizations has been added to the admin dashboard.
+
+**Features:**
+- **Full CRUD Operations**: Create, read, update, and delete diving organizations
+- **Search & Filtering**: Real-time search across names, acronyms, and countries
+- **Bulk Operations**: Select and delete multiple organizations at once
+- **Form Validation**: Client-side and server-side validation
+- **Admin Integration**: Seamlessly integrated into the admin dashboard
+
+**Technical Implementation:**
+- **Frontend**: New `AdminDivingOrganizations.js` component with React Query
+- **Backend**: Existing API endpoints for diving organizations
+- **Routing**: Added `/admin/diving-organizations` route with admin protection
+- **UI/UX**: Consistent with existing admin pages using Tailwind CSS
+
+**Organization Fields:**
+- Name (required)
+- Acronym (required)
+- Website URL
+- Logo URL
+- Description
+- Country
+- Founded Year
+
+**Access:** Available to admin users at `/admin/diving-organizations`
+
+For detailed documentation, see [Diving Organizations Admin Management](./diving-organizations-admin.md).
+
+### View Tracking
 
 **Implementation:**
 - **Database**: Added `view_count` column to `dive_sites` and `diving_centers` tables
@@ -636,4 +665,5 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 - **[Architecture Documentation](./architecture.md)** - System design and components
 - **[API Documentation](./api.md)** - API endpoints and usage
 - **[Database Documentation](./database.md)** - Database schema and migrations
-- **[Testing Documentation](./testing.md)** - Testing procedures and best practices 
+- **[Testing Documentation](./testing.md)** - Testing procedures and best practices
+- **[Diving Organizations Admin](./diving-organizations-admin.md)** - Diving organizations management 

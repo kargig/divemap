@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Users, MapPin, Building2, Tags, Settings, ArrowRight } from 'lucide-react';
+import { Users, MapPin, Building2, Tags, Settings, ArrowRight, Award } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Admin = () => {
@@ -29,6 +29,13 @@ const Admin = () => {
       icon: <Building2 className="h-8 w-8 text-green-600" />,
       href: '/admin/diving-centers',
       color: 'bg-green-50 border-green-200 hover:bg-green-100'
+    },
+    {
+      title: 'Diving Organizations Management',
+      description: 'Manage diving certification organizations, their details, and affiliations.',
+      icon: <Award className="h-8 w-8 text-indigo-600" />,
+      href: '/admin/diving-organizations',
+      color: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100'
     },
     {
       title: 'Tag Management',
