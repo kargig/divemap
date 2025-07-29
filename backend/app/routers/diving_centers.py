@@ -1,17 +1,18 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_
 
 from app.database import get_db
-from app.models import DivingCenter, CenterRating, CenterComment, User, CenterDiveSite, GearRentalCost
+from app.models import DivingCenter, CenterRating, CenterComment, User, CenterDiveSite, GearRentalCost, DivingCenterOrganization, DivingOrganization, UserCertification
 from app.schemas import (
     DivingCenterCreate, DivingCenterUpdate, DivingCenterResponse, 
     CenterRatingCreate, CenterRatingResponse,
     CenterCommentCreate, CenterCommentUpdate, CenterCommentResponse,
-    DivingCenterSearchParams, CenterDiveSiteCreate, GearRentalCostCreate
+    DivingCenterSearchParams, CenterDiveSiteCreate, GearRentalCostCreate,
+    DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse
 )
-from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional
+from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, is_admin_or_moderator
 
 router = APIRouter()
 
@@ -74,7 +75,7 @@ async def get_diving_centers(
 @router.post("/", response_model=DivingCenterResponse)
 async def create_diving_center(
     diving_center: DivingCenterCreate,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     db_diving_center = DivingCenter(**diving_center.dict())
@@ -154,7 +155,7 @@ async def get_diving_center(
 async def update_diving_center(
     diving_center_id: int,
     diving_center_update: DivingCenterUpdate,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
@@ -198,7 +199,7 @@ async def update_diving_center(
 @router.delete("/{diving_center_id}")
 async def delete_diving_center(
     diving_center_id: int,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
@@ -276,24 +277,45 @@ async def get_diving_center_comments(
             detail="Diving center not found"
         )
     
-    comments = db.query(CenterComment, User.username, User.diving_certification, User.number_of_dives).join(
+    # Get comments with user information and their primary certification
+    comments = db.query(
+        CenterComment, 
+        User.username, 
+        User.number_of_dives,
+        UserCertification.certification_level,
+        DivingOrganization.acronym
+    ).join(
         User, CenterComment.user_id == User.id
-    ).filter(CenterComment.diving_center_id == diving_center_id).order_by(CenterComment.created_at.desc()).all()
+    ).outerjoin(
+        UserCertification, User.id == UserCertification.user_id
+    ).outerjoin(
+        DivingOrganization, UserCertification.diving_organization_id == DivingOrganization.id
+    ).filter(
+        CenterComment.diving_center_id == diving_center_id
+    ).order_by(CenterComment.created_at.desc()).all()
     
-    return [
-        {
-            "id": comment.id,
-            "diving_center_id": comment.diving_center_id,
-            "user_id": comment.user_id,
-            "comment_text": comment.comment_text,
-            "created_at": comment.created_at,
-            "updated_at": comment.updated_at,
-            "username": username,
-            "user_diving_certification": diving_certification,
-            "user_number_of_dives": number_of_dives
-        }
-        for comment, username, diving_certification, number_of_dives in comments
-    ]
+    # Group comments by comment ID to handle multiple certifications per user
+    comment_dict = {}
+    for comment, username, number_of_dives, certification_level, org_acronym in comments:
+        if comment.id not in comment_dict:
+            # Format certification string
+            certification_str = None
+            if certification_level and org_acronym:
+                certification_str = f"{org_acronym} {certification_level}"
+            
+            comment_dict[comment.id] = {
+                "id": comment.id,
+                "diving_center_id": comment.diving_center_id,
+                "user_id": comment.user_id,
+                "comment_text": comment.comment_text,
+                "created_at": comment.created_at,
+                "updated_at": comment.updated_at,
+                "username": username,
+                "user_diving_certification": certification_str,
+                "user_number_of_dives": number_of_dives
+            }
+    
+    return list(comment_dict.values())
 
 @router.post("/{diving_center_id}/comments", response_model=CenterCommentResponse)
 async def create_diving_center_comment(
@@ -319,6 +341,21 @@ async def create_diving_center_comment(
     db.commit()
     db.refresh(db_comment)
     
+    # Get user's primary certification
+    primary_certification = db.query(
+        UserCertification.certification_level,
+        DivingOrganization.acronym
+    ).join(
+        DivingOrganization, UserCertification.diving_organization_id == DivingOrganization.id
+    ).filter(
+        UserCertification.user_id == current_user.id,
+        UserCertification.is_active == True
+    ).first()
+    
+    certification_str = None
+    if primary_certification and primary_certification[0] and primary_certification[1]:
+        certification_str = f"{primary_certification[1]} {primary_certification[0]}"
+    
     return {
         "id": db_comment.id,
         "diving_center_id": db_comment.diving_center_id,
@@ -327,7 +364,7 @@ async def create_diving_center_comment(
         "created_at": db_comment.created_at,
         "updated_at": db_comment.updated_at,
         "username": current_user.username,
-        "user_diving_certification": current_user.diving_certification,
+        "user_diving_certification": certification_str,
         "user_number_of_dives": current_user.number_of_dives
     }
 
@@ -359,6 +396,21 @@ async def update_diving_center_comment(
     db.commit()
     db.refresh(comment)
     
+    # Get user's primary certification
+    primary_certification = db.query(
+        UserCertification.certification_level,
+        DivingOrganization.acronym
+    ).join(
+        DivingOrganization, UserCertification.diving_organization_id == DivingOrganization.id
+    ).filter(
+        UserCertification.user_id == comment.user_id,
+        UserCertification.is_active == True
+    ).first()
+    
+    certification_str = None
+    if primary_certification and primary_certification[0] and primary_certification[1]:
+        certification_str = f"{primary_certification[1]} {primary_certification[0]}"
+    
     return {
         "id": comment.id,
         "diving_center_id": comment.diving_center_id,
@@ -367,7 +419,7 @@ async def update_diving_center_comment(
         "created_at": comment.created_at,
         "updated_at": comment.updated_at,
         "username": comment.user.username,
-        "user_diving_certification": comment.user.diving_certification,
+        "user_diving_certification": certification_str,
         "user_number_of_dives": comment.user.number_of_dives
     }
 
@@ -426,7 +478,7 @@ async def get_diving_center_gear_rental(diving_center_id: int, db: Session = Dep
 async def add_diving_center_gear_rental(
     diving_center_id: int,
     gear_rental: GearRentalCostCreate,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     # Check if diving center exists
@@ -452,7 +504,7 @@ async def add_diving_center_gear_rental(
 async def delete_diving_center_gear_rental(
     diving_center_id: int,
     gear_id: int,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     # Check if diving center exists
@@ -475,4 +527,129 @@ async def delete_diving_center_gear_rental(
     
     db.delete(gear_rental)
     db.commit()
-    return {"message": "Gear rental deleted successfully"} 
+    return {"message": "Gear rental deleted successfully"}
+
+# Diving Center Organization Management
+@router.get("/{diving_center_id}/organizations", response_model=List[DivingCenterOrganizationResponse])
+async def get_diving_center_organizations(
+    diving_center_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get organizations associated with a diving center."""
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+    
+    organizations = db.query(DivingCenterOrganization).options(
+        joinedload(DivingCenterOrganization.diving_organization)
+    ).filter(
+        DivingCenterOrganization.diving_center_id == diving_center_id
+    ).all()
+    return organizations
+
+@router.post("/{diving_center_id}/organizations", response_model=DivingCenterOrganizationResponse)
+async def add_diving_center_organization(
+    diving_center_id: int,
+    organization: DivingCenterOrganizationCreate,
+    current_user: User = Depends(is_admin_or_moderator),
+    db: Session = Depends(get_db)
+):
+    """Add an organization to a diving center (admin only)."""
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+    
+    # Check if diving organization exists
+    diving_org = db.query(DivingOrganization).filter(DivingOrganization.id == organization.diving_organization_id).first()
+    if not diving_org:
+        raise HTTPException(status_code=404, detail="Diving organization not found")
+    
+    # Check if organization is already associated with this center
+    existing_org = db.query(DivingCenterOrganization).filter(
+        DivingCenterOrganization.diving_center_id == diving_center_id,
+        DivingCenterOrganization.diving_organization_id == organization.diving_organization_id
+    ).first()
+    if existing_org:
+        raise HTTPException(status_code=400, detail="Organization is already associated with this diving center")
+    
+    # If this is marked as primary, unmark other primary organizations
+    if organization.is_primary:
+        db.query(DivingCenterOrganization).filter(
+            DivingCenterOrganization.diving_center_id == diving_center_id,
+            DivingCenterOrganization.is_primary == True
+        ).update({"is_primary": False})
+    
+    db_organization = DivingCenterOrganization(
+        diving_center_id=diving_center_id,
+        **organization.dict()
+    )
+    db.add(db_organization)
+    db.commit()
+    db.refresh(db_organization)
+    return db_organization
+
+@router.put("/{diving_center_id}/organizations/{organization_id}", response_model=DivingCenterOrganizationResponse)
+async def update_diving_center_organization(
+    diving_center_id: int,
+    organization_id: int,
+    organization: DivingCenterOrganizationUpdate,
+    current_user: User = Depends(is_admin_or_moderator),
+    db: Session = Depends(get_db)
+):
+    """Update an organization association for a diving center (admin only)."""
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+    
+    # Check if organization association exists
+    db_organization = db.query(DivingCenterOrganization).filter(
+        DivingCenterOrganization.id == organization_id,
+        DivingCenterOrganization.diving_center_id == diving_center_id
+    ).first()
+    if not db_organization:
+        raise HTTPException(status_code=404, detail="Organization association not found")
+    
+    # If this is being marked as primary, unmark other primary organizations
+    if organization.is_primary:
+        db.query(DivingCenterOrganization).filter(
+            DivingCenterOrganization.diving_center_id == diving_center_id,
+            DivingCenterOrganization.is_primary == True,
+            DivingCenterOrganization.id != organization_id
+        ).update({"is_primary": False})
+    
+    # Update fields
+    update_data = organization.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_organization, field, value)
+    
+    db.commit()
+    db.refresh(db_organization)
+    return db_organization
+
+@router.delete("/{diving_center_id}/organizations/{organization_id}")
+async def remove_diving_center_organization(
+    diving_center_id: int,
+    organization_id: int,
+    current_user: User = Depends(is_admin_or_moderator),
+    db: Session = Depends(get_db)
+):
+    """Remove an organization from a diving center (admin only)."""
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+    
+    # Check if organization association exists
+    db_organization = db.query(DivingCenterOrganization).filter(
+        DivingCenterOrganization.id == organization_id,
+        DivingCenterOrganization.diving_center_id == diving_center_id
+    ).first()
+    if not db_organization:
+        raise HTTPException(status_code=404, detail="Organization association not found")
+    
+    db.delete(db_organization)
+    db.commit()
+    return {"message": "Organization removed from diving center successfully"} 

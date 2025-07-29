@@ -6,7 +6,7 @@ from slowapi.util import get_remote_address
 from slowapi import Limiter
 
 from app.database import get_db
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite
+from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization
 from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse, 
     SiteRatingCreate, SiteRatingResponse,
@@ -750,26 +750,45 @@ async def get_dive_site_comments(
             detail="Dive site not found"
         )
     
-    comments = db.query(SiteComment, User.username, User.diving_certification, User.number_of_dives).join(
+    # Get comments with user information and their primary certification
+    comments = db.query(
+        SiteComment, 
+        User.username, 
+        User.number_of_dives,
+        UserCertification.certification_level,
+        DivingOrganization.acronym
+    ).join(
         User, SiteComment.user_id == User.id
-    ).filter(SiteComment.dive_site_id == dive_site_id).all()
+    ).outerjoin(
+        UserCertification, User.id == UserCertification.user_id
+    ).outerjoin(
+        DivingOrganization, UserCertification.diving_organization_id == DivingOrganization.id
+    ).filter(
+        SiteComment.dive_site_id == dive_site_id
+    ).all()
     
-    result = []
-    for comment, username, diving_certification, number_of_dives in comments:
-        comment_dict = {
-            "id": comment.id,
-            "dive_site_id": comment.dive_site_id,
-            "user_id": comment.user_id,
-            "username": username,
-            "comment_text": comment.comment_text,
-            "created_at": comment.created_at,
-            "updated_at": comment.updated_at,
-            "user_diving_certification": diving_certification,
-            "user_number_of_dives": number_of_dives
-        }
-        result.append(comment_dict)
+    # Group comments by comment ID to handle multiple certifications per user
+    comment_dict = {}
+    for comment, username, number_of_dives, certification_level, org_acronym in comments:
+        if comment.id not in comment_dict:
+            # Format certification string
+            certification_str = None
+            if certification_level and org_acronym:
+                certification_str = f"{org_acronym} {certification_level}"
+            
+            comment_dict[comment.id] = {
+                "id": comment.id,
+                "dive_site_id": comment.dive_site_id,
+                "user_id": comment.user_id,
+                "username": username,
+                "comment_text": comment.comment_text,
+                "created_at": comment.created_at,
+                "updated_at": comment.updated_at,
+                "user_diving_certification": certification_str,
+                "user_number_of_dives": number_of_dives
+            }
     
-    return result
+    return list(comment_dict.values())
 
 @router.post("/{dive_site_id}/comments", response_model=SiteCommentResponse)
 @limiter.limit("5/minute")
@@ -798,10 +817,25 @@ async def create_dive_site_comment(
     db.commit()
     db.refresh(db_comment)
     
+    # Get user's primary certification
+    primary_certification = db.query(
+        UserCertification.certification_level,
+        DivingOrganization.acronym
+    ).join(
+        DivingOrganization, UserCertification.diving_organization_id == DivingOrganization.id
+    ).filter(
+        UserCertification.user_id == current_user.id,
+        UserCertification.is_active == True
+    ).first()
+    
+    certification_str = None
+    if primary_certification and primary_certification[0] and primary_certification[1]:
+        certification_str = f"{primary_certification[1]} {primary_certification[0]}"
+    
     return {
         **db_comment.__dict__,
         "username": current_user.username,
-        "user_diving_certification": current_user.diving_certification,
+        "user_diving_certification": certification_str,
         "user_number_of_dives": current_user.number_of_dives
     }
 

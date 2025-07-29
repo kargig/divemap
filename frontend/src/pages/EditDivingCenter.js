@@ -41,6 +41,13 @@ const EditDivingCenter = () => {
 
   const [isAddingGear, setIsAddingGear] = useState(false);
 
+  // Organization management state
+  const [centerOrganizations, setCenterOrganizations] = useState([]);
+  const [newOrganization, setNewOrganization] = useState({
+    diving_organization_id: '',
+    is_primary: false
+  });
+
   // Check if user has edit privileges
   const canEdit = user && (user.is_admin || user.is_moderator);
 
@@ -68,7 +75,6 @@ const EditDivingCenter = () => {
   const { data: gearRentalData = [], isLoading: gearLoading, error: gearError } = useQuery(
     ['diving-center-gear', id],
     () => api.get(`/api/v1/diving-centers/${id}/gear-rental`).then(res => {
-      console.log('Gear rental API response:', res);
       return res.data || [];
     }),
     {
@@ -83,20 +89,31 @@ const EditDivingCenter = () => {
     }
   );
 
+  // Fetch diving organizations
+  const { data: organizations = [] } = useQuery(
+    ['diving-organizations'],
+    () => api.get('/api/v1/diving-organizations/').then(res => res.data)
+  );
+
+  // Fetch center organizations
+  const { data: centerOrganizationsData = [], isLoading: orgLoading } = useQuery(
+    ['diving-center-organizations', id],
+    () => api.get(`/api/v1/diving-centers/${id}/organizations`).then(res => res.data),
+    {
+      enabled: !!id && canEdit,
+      onSuccess: (data) => {
+        setCenterOrganizations(data);
+      }
+    }
+  );
+
   // Update mutation
   const updateMutation = useMutation(
     (data) => api.put(`/api/v1/diving-centers/${id}`, data),
     {
-      onSuccess: async () => {
-        toast.success('Diving center updated successfully');
-        // Invalidate and refetch the diving center data before navigation
-        await queryClient.invalidateQueries(['diving-center', id]);
-        await queryClient.invalidateQueries(['admin-diving-centers']);
-        // Refetch the diving center data to ensure it's updated
-        await queryClient.refetchQueries(['diving-center', id]);
-        navigate(`/diving-centers/${id}`);
-      },
       onError: (error) => {
+        console.error('Update error:', error);
+        console.error('Error response:', error.response);
         toast.error(error.response?.data?.detail || 'Failed to update diving center');
       }
     }
@@ -132,6 +149,52 @@ const EditDivingCenter = () => {
     }
   );
 
+  // Add organization mutation
+  const addOrganizationMutation = useMutation(
+    (orgData) => api.post(`/api/v1/diving-centers/${id}/organizations`, orgData),
+    {
+      onSuccess: () => {
+        toast.success('Organization added successfully');
+        queryClient.invalidateQueries(['diving-center-organizations', id]);
+        setNewOrganization({
+          diving_organization_id: '',
+          is_primary: false
+        });
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.detail || 'Failed to add organization');
+      }
+    }
+  );
+
+  // Update organization mutation
+  const updateOrganizationMutation = useMutation(
+    ({ orgId, data }) => api.put(`/api/v1/diving-centers/${id}/organizations/${orgId}`, data),
+    {
+      onSuccess: () => {
+        toast.success('Organization updated successfully');
+        queryClient.invalidateQueries(['diving-center-organizations', id]);
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.detail || 'Failed to update organization');
+      }
+    }
+  );
+
+  // Delete organization mutation
+  const deleteOrganizationMutation = useMutation(
+    (orgId) => api.delete(`/api/v1/diving-centers/${id}/organizations/${orgId}`),
+    {
+      onSuccess: () => {
+        toast.success('Organization removed successfully');
+        queryClient.invalidateQueries(['diving-center-organizations', id]);
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.detail || 'Failed to remove organization');
+      }
+    }
+  );
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -143,13 +206,38 @@ const EditDivingCenter = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // Validate required fields
+    if (!formData.name.trim() || !formData.description.trim()) {
+      toast.error('Name and description are required');
+      return;
+    }
+    
     const submitData = {
       ...formData,
       latitude: parseFloat(formData.latitude) || null,
       longitude: parseFloat(formData.longitude) || null
     };
 
-    updateMutation.mutate(submitData);
+    // Update the diving center
+    updateMutation.mutate(submitData, {
+      onSuccess: async (updatedDivingCenter) => {
+        // Update the cache with the new data immediately
+        queryClient.setQueryData(['diving-center', id], updatedDivingCenter);
+        
+        // Invalidate related queries
+        await queryClient.invalidateQueries(['diving-centers']);
+        await queryClient.invalidateQueries(['admin-diving-centers']);
+        
+        // Wait a moment for cache updates to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Show success message
+        toast.success('Diving center updated successfully');
+        
+        // Navigate to the diving center detail page
+        navigate(`/diving-centers/${id}`);
+      }
+    });
   };
 
   const handleAddGear = (e) => {
@@ -169,6 +257,52 @@ const EditDivingCenter = () => {
     if (window.confirm('Are you sure you want to delete this gear rental item?')) {
       deleteGearMutation.mutate(gearId);
     }
+  };
+
+  // Organization management functions
+  const handleOrganizationChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setNewOrganization(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleAddOrganization = () => {
+    if (!newOrganization.diving_organization_id) {
+      toast.error('Please select an organization');
+      return;
+    }
+
+    const org = organizations.find(o => o.id == newOrganization.diving_organization_id);
+    if (!org) {
+      toast.error('Invalid organization selected');
+      return;
+    }
+
+    // Check if organization is already added
+    if (centerOrganizations.some(co => co.diving_organization.id == newOrganization.diving_organization_id)) {
+      toast.error('This organization is already associated with this diving center');
+      return;
+    }
+
+    addOrganizationMutation.mutate({
+      diving_organization_id: newOrganization.diving_organization_id,
+      is_primary: newOrganization.is_primary
+    });
+  };
+
+  const handleRemoveOrganization = (orgId) => {
+    if (window.confirm('Are you sure you want to remove this organization?')) {
+      deleteOrganizationMutation.mutate(orgId);
+    }
+  };
+
+  const handleTogglePrimary = (orgId, currentPrimary) => {
+    updateOrganizationMutation.mutate({
+      orgId,
+      data: { is_primary: !currentPrimary }
+    });
   };
 
   if (!canEdit) {
@@ -337,6 +471,111 @@ const EditDivingCenter = () => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+            </div>
+
+            {/* Diving Organizations */}
+            <div className="border-t pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Diving Organizations</h3>
+              </div>
+
+              {/* Add Organization Form */}
+              <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Organization
+                    </label>
+                    <select
+                      name="diving_organization_id"
+                      value={newOrganization.diving_organization_id}
+                      onChange={handleOrganizationChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select Organization</option>
+                      {organizations.map((org) => (
+                        <option key={org.id} value={org.id}>
+                          {org.acronym} - {org.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-end">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="is_primary"
+                        checked={newOrganization.is_primary}
+                        onChange={handleOrganizationChange}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Primary Organization</span>
+                    </label>
+                  </div>
+
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={handleAddOrganization}
+                      disabled={addOrganizationMutation.isLoading}
+                      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      {addOrganizationMutation.isLoading ? 'Adding...' : 'Add Organization'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Organization List */}
+              <div className="space-y-3">
+                {orgLoading && (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-gray-600 mt-2">Loading organizations...</p>
+                  </div>
+                )}
+                {!orgLoading && centerOrganizations.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">No organizations associated yet.</p>
+                )}
+                {!orgLoading && centerOrganizations.map((org) => (
+                  <div key={org.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <span className="font-medium">
+                        {org.diving_organization.acronym} - {org.diving_organization.name}
+                      </span>
+                      {org.is_primary && (
+                        <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                          Primary
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePrimary(org.id, org.is_primary)}
+                        disabled={updateOrganizationMutation.isLoading}
+                        className={`px-2 py-1 text-xs rounded ${
+                          org.is_primary
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        } disabled:opacity-50`}
+                      >
+                        {org.is_primary ? 'Primary' : 'Set Primary'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveOrganization(org.id)}
+                        disabled={deleteOrganizationMutation.isLoading}
+                        className="p-1 text-red-500 hover:text-red-700 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 

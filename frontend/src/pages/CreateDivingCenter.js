@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from 'react-query';
+import React, { useState, useEffect } from 'react';
+import { useMutation, useQueryClient, useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, X } from 'lucide-react';
+import { ArrowLeft, Save, X, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api';
 
@@ -18,9 +18,34 @@ const CreateDivingCenter = () => {
     longitude: '',
     address: ''
   });
+  const [selectedOrganizations, setSelectedOrganizations] = useState([]);
+  const [newOrganization, setNewOrganization] = useState({
+    diving_organization_id: '',
+    is_primary: false
+  });
+
+  // Fetch diving organizations
+  const { data: organizations = [] } = useQuery(
+    ['diving-organizations'],
+    () => api.get('/api/v1/diving-organizations/').then(res => res.data)
+  );
 
   const createDivingCenterMutation = useMutation(
-    (data) => api.post('/api/v1/diving-centers/', data),
+    async (data) => {
+      // First create the diving center
+      const centerResponse = await api.post('/api/v1/diving-centers/', data);
+      const centerId = centerResponse.data.id;
+      
+      // Then add organization associations
+      for (const org of selectedOrganizations) {
+        await api.post(`/api/v1/diving-centers/${centerId}/organizations`, {
+          diving_organization_id: org.diving_organization_id,
+          is_primary: org.is_primary
+        });
+      }
+      
+      return centerResponse;
+    },
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['admin-diving-centers']);
@@ -39,6 +64,64 @@ const CreateDivingCenter = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleOrganizationChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setNewOrganization(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const addOrganization = () => {
+    if (!newOrganization.diving_organization_id) {
+      toast.error('Please select an organization');
+      return;
+    }
+
+    const org = organizations.find(o => o.id == newOrganization.diving_organization_id);
+    if (!org) {
+      toast.error('Invalid organization selected');
+      return;
+    }
+
+    // Check if organization is already added
+    if (selectedOrganizations.some(so => so.diving_organization_id == newOrganization.diving_organization_id)) {
+      toast.error('This organization is already added');
+      return;
+    }
+
+    // If this is marked as primary, unmark others
+    if (newOrganization.is_primary) {
+      setSelectedOrganizations(prev => 
+        prev.map(org => ({ ...org, is_primary: false }))
+      );
+    }
+
+    setSelectedOrganizations(prev => [...prev, {
+      ...newOrganization,
+      organization_name: org.name,
+      organization_acronym: org.acronym
+    }]);
+
+    setNewOrganization({
+      diving_organization_id: '',
+      is_primary: false
+    });
+  };
+
+  const removeOrganization = (index) => {
+    setSelectedOrganizations(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const togglePrimary = (index) => {
+    setSelectedOrganizations(prev => 
+      prev.map((org, i) => ({
+        ...org,
+        is_primary: i === index
+      }))
+    );
   };
 
   const handleSubmit = (e) => {
@@ -200,6 +283,100 @@ const CreateDivingCenter = () => {
                 placeholder="Enter address"
               />
             </div>
+          </div>
+
+          {/* Diving Organizations */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Diving Organizations</h3>
+            
+            {/* Add Organization Form */}
+            <div className="bg-gray-50 p-4 rounded-lg mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Organization
+                  </label>
+                  <select
+                    name="diving_organization_id"
+                    value={newOrganization.diving_organization_id}
+                    onChange={handleOrganizationChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select Organization</option>
+                    {organizations.map((org) => (
+                      <option key={org.id} value={org.id}>
+                        {org.acronym} - {org.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-end">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="is_primary"
+                      checked={newOrganization.is_primary}
+                      onChange={handleOrganizationChange}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Primary Organization</span>
+                  </label>
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={addOrganization}
+                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Organization
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Selected Organizations */}
+            {selectedOrganizations.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-gray-700">Selected Organizations:</h4>
+                {selectedOrganizations.map((org, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <span className="font-medium">
+                        {org.organization_acronym} - {org.organization_name}
+                      </span>
+                      {org.is_primary && (
+                        <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                          Primary
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => togglePrimary(index)}
+                        className={`px-2 py-1 text-xs rounded ${
+                          org.is_primary
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {org.is_primary ? 'Primary' : 'Set Primary'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeOrganization(index)}
+                        className="p-1 text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Form Actions */}
