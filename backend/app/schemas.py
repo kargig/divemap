@@ -14,7 +14,6 @@ class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
     email: Optional[EmailStr] = None
     password: Optional[str] = Field(None, min_length=8, max_length=128)
-    diving_certification: Optional[str] = Field(None, max_length=100)
     number_of_dives: Optional[int] = Field(None, ge=0)
 
 class UserResponse(UserBase):
@@ -22,7 +21,6 @@ class UserResponse(UserBase):
     enabled: bool
     is_admin: bool
     is_moderator: bool
-    diving_certification: Optional[str] = None
     number_of_dives: int = 0
     created_at: datetime
     updated_at: datetime
@@ -370,6 +368,94 @@ class GearRentalCostResponse(BaseModel):
     cost: float
     currency: str = "EUR"
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Diving Organization Schemas
+class DivingOrganizationBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    acronym: str = Field(..., min_length=1, max_length=20)
+    website: Optional[str] = None
+    logo_url: Optional[str] = None
+    description: Optional[str] = None
+    country: Optional[str] = Field(None, max_length=100)
+    founded_year: Optional[int] = Field(None, ge=1800, le=2100)
+
+class DivingOrganizationCreate(DivingOrganizationBase):
+    pass
+
+class DivingOrganizationUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    acronym: Optional[str] = Field(None, min_length=1, max_length=20)
+    website: Optional[str] = None
+    logo_url: Optional[str] = None
+    description: Optional[str] = None
+    country: Optional[str] = Field(None, max_length=100)
+    founded_year: Optional[int] = Field(None, ge=1800, le=2100)
+
+class DivingOrganizationResponse(DivingOrganizationBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Diving Center Organization Schemas
+class DivingCenterOrganizationBase(BaseModel):
+    diving_organization_id: int
+    is_primary: bool = False
+
+class DivingCenterOrganizationCreate(DivingCenterOrganizationBase):
+    pass
+
+class DivingCenterOrganizationUpdate(BaseModel):
+    is_primary: Optional[bool] = None
+
+class DivingCenterOrganizationResponse(DivingCenterOrganizationBase):
+    id: int
+    diving_center_id: int
+    diving_organization: DivingOrganizationResponse
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# User Certification Schemas
+class UserCertificationBase(BaseModel):
+    diving_organization_id: int
+    certification_level: str = Field(..., min_length=1, max_length=100)
+    is_active: bool = True
+
+class UserCertificationCreate(UserCertificationBase):
+    pass
+
+class UserCertificationUpdate(BaseModel):
+    diving_organization_id: Optional[int] = None
+    certification_level: Optional[str] = Field(None, min_length=1, max_length=100)
+    is_active: Optional[bool] = None
+
+class UserCertificationResponse(UserCertificationBase):
+    id: int
+    user_id: int
+    diving_organization: DivingOrganizationResponse
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Updated User Response to include certifications
+class UserResponseWithCertifications(UserResponse):
+    certifications: List[UserCertificationResponse] = []
+
+    class Config:
+        from_attributes = True
+
+# Updated Diving Center Response to include organizations
+class DivingCenterResponseWithOrganizations(DivingCenterResponse):
+    organizations: List[DivingCenterOrganizationResponse] = []
 
     class Config:
         from_attributes = True

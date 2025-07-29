@@ -1,6 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, DECIMAL, ForeignKey, Enum, Date, Time
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, DECIMAL, Enum, Date, Time, func
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 from app.database import Base
 import enum
 
@@ -13,6 +12,24 @@ class DifficultyLevel(enum.Enum):
 class MediaType(enum.Enum):
     photo = "photo"
     video = "video"
+
+class DivingOrganization(Base):
+    __tablename__ = "diving_organizations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False, index=True)
+    acronym = Column(String(20), unique=True, nullable=False, index=True)
+    website = Column(String(255))
+    logo_url = Column(String(500))
+    description = Column(Text)
+    country = Column(String(100))
+    founded_year = Column(Integer)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    diving_center_organizations = relationship("DivingCenterOrganization", back_populates="diving_organization", cascade="all, delete-orphan")
+    user_certifications = relationship("UserCertification", back_populates="diving_organization", cascade="all, delete-orphan")
 
 class User(Base):
     __tablename__ = "users"
@@ -27,7 +44,6 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
     is_moderator = Column(Boolean, default=False)
     enabled = Column(Boolean, default=True)  # New field for user activation
-    diving_certification = Column(String(100), nullable=True)  # Diving certification (e.g., "PADI Open Water", "AOWD")
     number_of_dives = Column(Integer, default=0, nullable=False)  # Number of dives completed
 
     # Relationships
@@ -35,6 +51,7 @@ class User(Base):
     site_comments = relationship("SiteComment", back_populates="user", cascade="all, delete-orphan")
     center_ratings = relationship("CenterRating", back_populates="user", cascade="all, delete-orphan")
     center_comments = relationship("CenterComment", back_populates="user", cascade="all, delete-orphan")
+    certifications = relationship("UserCertification", back_populates="user", cascade="all, delete-orphan")
 
 class DiveSite(Base):
     __tablename__ = "dive_sites"
@@ -128,6 +145,7 @@ class DivingCenter(Base):
     dive_site_relationships = relationship("CenterDiveSite", back_populates="diving_center", cascade="all, delete-orphan")
     gear_rental_costs = relationship("GearRentalCost", back_populates="diving_center", cascade="all, delete-orphan")
     dive_trips = relationship("ParsedDiveTrip", back_populates="diving_center")
+    organization_relationships = relationship("DivingCenterOrganization", back_populates="diving_center", cascade="all, delete-orphan")
 
 class CenterRating(Base):
     __tablename__ = "center_ratings"
@@ -227,4 +245,32 @@ class DiveSiteTag(Base):
 
     # Relationships
     dive_site = relationship("DiveSite", back_populates="tags")
-    tag = relationship("AvailableTag", back_populates="dive_site_tags") 
+    tag = relationship("AvailableTag", back_populates="dive_site_tags")
+
+class DivingCenterOrganization(Base):
+    __tablename__ = "diving_center_organizations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
+    diving_organization_id = Column(Integer, ForeignKey("diving_organizations.id"), nullable=False, index=True)
+    is_primary = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    diving_center = relationship("DivingCenter", back_populates="organization_relationships")
+    diving_organization = relationship("DivingOrganization", back_populates="diving_center_organizations")
+
+class UserCertification(Base):
+    __tablename__ = "user_certifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    diving_organization_id = Column(Integer, ForeignKey("diving_organizations.id"), nullable=False, index=True)
+    certification_level = Column(String(100), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="certifications")
+    diving_organization = relationship("DivingOrganization", back_populates="user_certifications") 

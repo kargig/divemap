@@ -7,7 +7,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.database import get_db, Base
-from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment
+from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment, DivingOrganization, UserCertification
 from app.auth import create_access_token
 
 # Test database URL
@@ -168,4 +168,35 @@ def admin_headers(admin_token):
 @pytest.fixture
 def moderator_headers(moderator_token):
     """Return headers with moderator authentication."""
-    return {"Authorization": f"Bearer {moderator_token}"} 
+    return {"Authorization": f"Bearer {moderator_token}"}
+
+@pytest.fixture
+def test_diving_organization(db_session):
+    """Create a test diving organization."""
+    organization = DivingOrganization(
+        name="Test Diving Organization",
+        acronym="TDO",
+        website="https://testdiving.org",
+        logo_url="https://testdiving.org/logo.png",
+        description="A test diving organization for testing",
+        country="Test Country",
+        founded_year=2020
+    )
+    db_session.add(organization)
+    db_session.commit()
+    db_session.refresh(organization)
+    return organization
+
+@pytest.fixture
+def test_user_certification(db_session, test_user, test_diving_organization):
+    """Create a test user certification."""
+    certification = UserCertification(
+        user_id=test_user.id,
+        diving_organization_id=test_diving_organization.id,
+        certification_level="Open Water Diver",
+        is_active=True
+    )
+    db_session.add(certification)
+    db_session.commit()
+    db_session.refresh(certification)
+    return certification 
