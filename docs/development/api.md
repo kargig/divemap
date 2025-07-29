@@ -754,6 +754,190 @@ Remove tag from dive site (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
+### Diving Organizations Endpoints
+
+#### GET /diving-organizations/
+Get all diving organizations.
+
+**Query Parameters:**
+- `skip`: Number of records to skip (default: 0)
+- `limit`: Number of records to return (default: 100)
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "name": "Professional Association of Diving Instructors",
+    "acronym": "PADI",
+    "website": "https://www.padi.com",
+    "logo_url": "https://www.padi.com/logo.png",
+    "description": "World-leading scuba diver training organization",
+    "country": "United States",
+    "founded_year": 1966,
+    "created_at": "2024-01-15T10:30:00Z",
+    "updated_at": "2024-01-15T10:30:00Z"
+  }
+]
+```
+
+#### GET /diving-organizations/{organization_id}
+Get diving organization by ID.
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "Professional Association of Diving Instructors",
+  "acronym": "PADI",
+  "website": "https://www.padi.com",
+  "logo_url": "https://www.padi.com/logo.png",
+  "description": "World-leading scuba diver training organization",
+  "country": "United States",
+  "founded_year": 1966,
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:30:00Z"
+}
+```
+
+#### POST /diving-organizations/
+Create new diving organization (admin only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Request Body:**
+```json
+{
+  "name": "Professional Association of Diving Instructors",
+  "acronym": "PADI",
+  "website": "https://www.padi.com",
+  "logo_url": "https://www.padi.com/logo.png",
+  "description": "World-leading scuba diver training organization",
+  "country": "United States",
+  "founded_year": 1966
+}
+```
+
+#### PUT /diving-organizations/{organization_id}
+Update diving organization (admin only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Request Body:** Same format as POST /diving-organizations/
+
+#### DELETE /diving-organizations/{organization_id}
+Delete diving organization (admin only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+### User Certifications Endpoints
+
+#### GET /user-certifications/my-certifications
+Get current user's certifications.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "diving_organization": {
+      "id": 1,
+      "name": "Professional Association of Diving Instructors",
+      "acronym": "PADI",
+      "website": "https://www.padi.com"
+    },
+    "certification_level": "Open Water Diver",
+    "is_active": true,
+    "created_at": "2024-01-15T10:30:00Z",
+    "updated_at": "2024-01-15T10:30:00Z"
+  }
+]
+```
+
+#### GET /user-certifications/users/{user_id}/certifications
+Get public certifications for a specific user.
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "diving_organization": {
+      "id": 1,
+      "name": "Professional Association of Diving Instructors",
+      "acronym": "PADI",
+      "website": "https://www.padi.com"
+    },
+    "certification_level": "Open Water Diver",
+    "is_active": true,
+    "created_at": "2024-01-15T10:30:00Z",
+    "updated_at": "2024-01-15T10:30:00Z"
+  }
+]
+```
+
+#### POST /user-certifications/my-certifications
+Add new certification for current user.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "diving_organization_id": 1,
+  "certification_level": "Open Water Diver",
+  "is_active": true
+}
+```
+
+#### PUT /user-certifications/my-certifications/{certification_id}
+Update certification for current user.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "diving_organization_id": 1,
+  "certification_level": "Advanced Open Water Diver",
+  "is_active": true
+}
+```
+
+#### PATCH /user-certifications/my-certifications/{certification_id}/toggle
+Toggle certification active status.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response:**
+```json
+{
+  "message": "Certification activated successfully",
+  "is_active": true
+}
+```
+
+#### DELETE /user-certifications/my-certifications/{certification_id}
+Delete certification for current user.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response:**
+```json
+{
+  "message": "Certification deleted successfully"
+}
+```
+
+#### DELETE /tags/dive-sites/{dive_site_id}/tags/{tag_id}
+Remove tag from dive site (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
 ## Data Models
 
 ### User Model
@@ -933,6 +1117,76 @@ curl -X POST "https://divemap-backend.fly.dev/api/v1/tags/dive-sites/1/tags" \
      -d '{
        "tag_id": 1
      }'
+```
+
+### Managing Diving Organizations
+
+```bash
+# Get all diving organizations
+curl "https://divemap-backend.fly.dev/api/v1/diving-organizations/"
+
+# Create a new diving organization (admin only)
+curl -X POST "https://divemap-backend.fly.dev/api/v1/diving-organizations/" \
+     -H "Authorization: Bearer ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "name": "Professional Association of Diving Instructors",
+       "acronym": "PADI",
+       "website": "https://www.padi.com",
+       "description": "World-leading scuba diver training organization",
+       "country": "United States",
+       "founded_year": 1966
+     }'
+
+# Update a diving organization (admin only)
+curl -X PUT "https://divemap-backend.fly.dev/api/v1/diving-organizations/1" \
+     -H "Authorization: Bearer ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "description": "Updated description"
+     }'
+
+# Delete a diving organization (admin only)
+curl -X DELETE "https://divemap-backend.fly.dev/api/v1/diving-organizations/1" \
+     -H "Authorization: Bearer ADMIN_TOKEN"
+```
+
+### Managing User Certifications
+
+```bash
+# Get user's certifications
+curl -H "Authorization: Bearer USER_TOKEN" \
+     "https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications"
+
+# Get public certifications for a user
+curl "https://divemap-backend.fly.dev/api/v1/user-certifications/users/1/certifications"
+
+# Add a new certification
+curl -X POST "https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications" \
+     -H "Authorization: Bearer USER_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "diving_organization_id": 1,
+       "certification_level": "Open Water Diver",
+       "is_active": true
+     }'
+
+# Update a certification
+curl -X PUT "https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications/1" \
+     -H "Authorization: Bearer USER_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "certification_level": "Advanced Open Water Diver",
+       "is_active": true
+     }'
+
+# Toggle certification active status
+curl -X PATCH "https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications/1/toggle" \
+     -H "Authorization: Bearer USER_TOKEN"
+
+# Delete a certification
+curl -X DELETE "https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications/1" \
+     -H "Authorization: Bearer USER_TOKEN"
 ```
 
 ## Conclusion

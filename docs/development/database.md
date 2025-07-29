@@ -88,6 +88,51 @@ CREATE TABLE diving_centers (
 );
 ```
 
+#### Diving Organizations Table
+```sql
+CREATE TABLE diving_organizations (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    acronym VARCHAR(20) UNIQUE NOT NULL,
+    website VARCHAR(255),
+    logo_url VARCHAR(500),
+    description TEXT,
+    country VARCHAR(100),
+    founded_year INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+#### User Certifications Table
+```sql
+CREATE TABLE user_certifications (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    diving_organization_id INT NOT NULL,
+    certification_level VARCHAR(100) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (diving_organization_id) REFERENCES diving_organizations(id)
+);
+```
+
+#### Diving Center Organizations Table
+```sql
+CREATE TABLE diving_center_organizations (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    diving_center_id INT NOT NULL,
+    diving_organization_id INT NOT NULL,
+    is_primary BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (diving_center_id) REFERENCES diving_centers(id),
+    FOREIGN KEY (diving_organization_id) REFERENCES diving_organizations(id),
+    UNIQUE KEY unique_center_org (diving_center_id, diving_organization_id)
+);
+```
+
 ### Related Tables
 
 - **site_media**: Media files for dive sites
@@ -98,6 +143,9 @@ CREATE TABLE diving_centers (
 - **center_dive_sites**: Association between centers and dive sites
 - **gear_rental_costs**: Gear rental pricing
 - **available_tags**: Available tags for dive sites
+- **diving_organizations**: Diving organizations (PADI, SSI, etc.)
+- **user_certifications**: User diving certifications
+- **diving_center_organizations**: Association between centers and organizations
 - **dive_site_tags**: Association between dive sites and tags
 - **parsed_dive_trips**: Extracted dive trip information
 - **newsletters**: Newsletter content for parsing
@@ -190,6 +238,8 @@ Migration files are stored in `migrations/versions/` and follow the naming conve
 - `0003_add_country_region_fields.py` - Added country and region fields with indexes
 - `0004_add_view_count_fields.py` - Added view count tracking
 - `0005_add_user_diving_fields.py` - Added user diving certification and dive count
+- `c85d7af66778_add_diving_organizations_and_user_.py` - Added diving organizations and user certifications
+- `9002229c2a67_remove_unnecessary_certification_fields_.py` - Cleaned up certification fields
 
 Each migration file contains:
 - `upgrade()` function - Applied when migrating forward
@@ -237,6 +287,42 @@ The implementation is specifically designed for fly.io deployment:
 - Random sleep intervals to prevent thundering herd
 - Proper error handling for container orchestration
 - Timeout handling for network delays
+
+## Data Population
+
+### Diving Organizations Population
+
+After running migrations, populate the database with initial diving organization data:
+
+```bash
+cd backend
+source divemap_venv/bin/activate
+
+# Populate diving organizations
+python populate_diving_organizations.py
+
+# List all diving organizations
+python populate_diving_organizations.py list
+```
+
+The script populates the database with the top 10 diving organizations:
+- **PADI** - Professional Association of Diving Instructors
+- **SSI** - Scuba Schools International
+- **GUE** - Global Underwater Explorers
+- **RAID** - Rebreather Association of International Divers
+- **CMAS** - Confédération Mondiale des Activités Subaquatiques
+- **TDI** - Technical Diving International
+- **NAUI** - National Association of Underwater Instructors
+- **BSAC** - British Sub-Aqua Club
+- **SDI** - Scuba Diving International
+- **IANTD** - International Association of Nitrox and Technical Divers
+
+### Population Script Features
+
+- **Duplicate Prevention**: Checks for existing organizations before adding
+- **Comprehensive Data**: Includes websites, descriptions, and founding years
+- **Error Handling**: Graceful error handling with rollback on failure
+- **Visual Feedback**: Clear progress indicators and status messages
 
 ## Migration Workflow
 

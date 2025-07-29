@@ -2,116 +2,112 @@
 
 This document tracks all recent changes, improvements, and bug fixes to the Divemap application.
 
-## [Latest Release] - 2025-07-27
+## [Latest Release] - 2025-07-29
 
 ### 🚀 Major Features
 
-#### **Fly.io Private IPv6 Database Configuration**
-- **Private Network Setup**: Allocated private IPv6 address for secure database connectivity
-- **Flycast Integration**: Database accessible via `divemap-db.flycast` hostname
-- **Enhanced Security**: Database isolated from public internet exposure
-- **Performance Optimization**: Direct private network communication
+#### **Diving Organizations Management System**
+- **Complete CRUD Operations**: Full create, read, update, delete functionality for diving organizations
+- **Organization Data**: Name, acronym, website, logo, description, country, and founding year
+- **Admin-Only Management**: Only administrators can create, edit, or delete diving organizations
+- **Data Validation**: Unique constraints on name and acronym to prevent duplicates
+- **Pre-populated Data**: Script to populate with top 10 diving organizations (PADI, SSI, GUE, etc.)
 
-**Benefits:**
-- **Security**: Database not exposed to public internet
-- **Performance**: Direct private network communication
-- **Reliability**: Stable internal network connectivity
-- **Cost**: No additional bandwidth charges for internal traffic
+**New API Endpoints:**
+- `GET /api/v1/diving-organizations/` - List all diving organizations
+- `GET /api/v1/diving-organizations/{id}` - Get specific organization
+- `POST /api/v1/diving-organizations/` - Create new organization (admin only)
+- `PUT /api/v1/diving-organizations/{id}` - Update organization (admin only)
+- `DELETE /api/v1/diving-organizations/{id}` - Delete organization (admin only)
 
-#### **API Endpoint Trailing Slash Fixes**
-- **Fixed Dive Site Detail Page**: Resolved 307 redirect issues preventing display of nearby dive sites, comments, and media
-- **Consistent API Patterns**: Standardized all frontend API calls to match backend FastAPI routing expectations
-- **Improved User Experience**: Dive site detail pages now properly display all content sections
+#### **User Certifications System**
+- **Certification Tracking**: Users can manage their diving certifications
+- **Organization Association**: Certifications linked to specific diving organizations
+- **Active Status Management**: Users can activate/deactivate certifications
+- **Public Profile Display**: Certifications visible on user profiles
+- **Self-Service Management**: Users can add, edit, and manage their own certifications
 
-**Fixed Endpoints:**
-- `/api/v1/dive-sites/{id}/comments/` → `/api/v1/dive-sites/{id}/comments`
-- `/api/v1/dive-sites/{id}/media/` → `/api/v1/dive-sites/{id}/media`
-- `/api/v1/dive-sites/{id}/nearby/` → `/api/v1/dive-sites/{id}/nearby`
-- `/api/v1/diving-centers/{id}/comments/` → `/api/v1/diving-centers/{id}/comments`
-- `/api/v1/diving-centers/{id}/gear-rental/` → `/api/v1/diving-centers/{id}/gear-rental`
+**New API Endpoints:**
+- `GET /api/v1/user-certifications/my-certifications` - Get user's certifications
+- `GET /api/v1/user-certifications/users/{user_id}/certifications` - Get public certifications
+- `POST /api/v1/user-certifications/my-certifications` - Add new certification
+- `PUT /api/v1/user-certifications/my-certifications/{id}` - Update certification
+- `DELETE /api/v1/user-certifications/my-certifications/{id}` - Delete certification
+- `PATCH /api/v1/user-certifications/my-certifications/{id}/toggle` - Toggle active status
 
-#### **Database Connectivity and Container Optimization**
-- **Robust Database Connectivity Check**: Backend container now waits for database availability before starting
-- **IPv6 Support for Fly.io**: Implemented netcat-openbsd with IPv6 support for cloud deployment
-- **Retry Logic**: 10 retry attempts with random 1-5 second delays between attempts
-- **Container Optimization**: Removed unnecessary build dependencies (gcc, default-libmysqlclient-dev)
-- **Pre-compiled Wheels**: All Python packages now use pre-compiled wheels for faster builds
+#### **Database Schema Enhancements**
+- **New Tables**: `diving_organizations`, `user_certifications`, `diving_center_organizations`
+- **Enhanced User Model**: Removed simple `diving_certification` field, replaced with comprehensive system
+- **Relationship Management**: Many-to-many relationships between centers and organizations
+- **Data Integrity**: Proper foreign key constraints and unique constraints
 
-**Benefits:**
-- **Faster Builds**: No compilation step needed, only pre-compiled wheel downloads
-- **Smaller Containers**: Reduced container size by ~200MB
-- **Better Security**: Fewer installed packages reduces potential vulnerabilities
-- **Consistent Behavior**: Pre-compiled wheels work identically across environments
+**Migration Files:**
+- `c85d7af66778_add_diving_organizations_and_user_.py` - Added new tables and relationships
+- `9002229c2a67_remove_unnecessary_certification_fields_.py` - Cleaned up certification fields
+
+#### **Data Population Script**
+- **Pre-populated Organizations**: Top 10 diving organizations automatically added
+- **Duplicate Prevention**: Script checks for existing data before adding
+- **Comprehensive Data**: Includes PADI, SSI, GUE, RAID, CMAS, TDI, NAUI, BSAC, SDI, IANTD
+- **Organization Details**: Complete information including websites, descriptions, and founding years
 
 ### 🔧 API Changes
 
-#### **Enhanced User Profile Management**
-- **New Password Change Endpoint**: `POST /api/v1/users/me/change-password`
-- **Enhanced Profile Fields**: Added diving experience, preferred diving type, home country/region
-- **Security Features**: Current password verification, strong password validation, rate limiting
+#### **New Schemas and Models**
+- **DivingOrganization**: Complete organization management with validation
+- **UserCertification**: User certification tracking with organization association
+- **DivingCenterOrganization**: Many-to-many relationship between centers and organizations
+- **Enhanced Responses**: Updated user and center responses to include organization data
 
-#### **View Tracking Implementation**
-- **New Feature**: Added view count tracking for dive sites and diving centers
-- **Admin Only**: View counts visible only to admin users
-- **Automatic Increment**: View counts increment on each detail page visit
-- **Database Schema**: Added `view_count` columns to dive_sites and diving_centers tables
-
-### 🏗️ Infrastructure Changes
-
-#### **Container Optimization**
-- **Removed Dependencies**: Eliminated `gcc` and `default-libmysqlclient-dev`
-- **Pre-compiled Wheels**: All Python packages use pre-compiled wheels
-- **Faster Builds**: Reduced build time and container size
-
-#### **Database Connectivity**
-- **Startup Script**: Robust database connectivity check before application startup
-- **IPv6 Support**: Full IPv6 support for cloud deployment
-- **Visual Logging**: Clear indicators for all startup states
-
-### 🔒 Security Updates
-
-#### **Dependency Updates**
-- **Python Dependencies**: Updated FastAPI, Starlette, Python-Jose, AnyIO
-- **Node.js Dependencies**: Updated React Scripts, fixed nth-check, PostCSS, SVGO vulnerabilities
-- **Security Headers**: Implemented comprehensive security headers
-
-#### **Security Headers**
-- X-Content-Type-Options: nosniff
-- X-Frame-Options: DENY
-- X-XSS-Protection: 1; mode=block
-- Strict-Transport-Security: max-age=31536000; includeSubDomains
-- Content-Security-Policy: default-src 'self'...
+#### **Enhanced User Management**
+- **Certification Display**: User profiles now show diving certifications
+- **Organization Information**: Detailed organization data in certification responses
+- **Active Status**: Users can manage which certifications are currently active
 
 ### 🗄️ Database Changes
 
-#### **Migration History**
-- `0004_add_view_count_fields.py` - Added view tracking
-- `0005_add_user_diving_fields.py` - Added user profile fields
+#### **New Tables**
+- `diving_organizations`: Store diving organization information
+- `user_certifications`: Track user certifications with organization links
+- `diving_center_organizations`: Many-to-many relationship table
+
+#### **Schema Updates**
+- **Removed**: `users.diving_certification` field (replaced with comprehensive system)
+- **Added**: Proper relationships and constraints for data integrity
+- **Enhanced**: User model with certification relationships
 
 ### 🎨 Frontend Changes
 
-#### **Admin Interface Enhancements**
-- **Sortable Columns**: All admin page columns now sortable with visual indicators
-- **View Tracking Display**: Added Views column to admin pages (admin only)
-- **Performance**: Optimized with React useMemo for better performance
-
-#### **User Experience Improvements**
-- **Profile Management**: Enhanced profile form with diving fields
-- **Password Change**: Added password change functionality
-- **Form Validation**: Improved form validation and error handling
+#### **New Admin Features** (Planned)
+- **Diving Organizations Management**: Admin interface for managing organizations
+- **User Certification Display**: Enhanced user profiles with certification information
+- **Organization Selection**: Dropdown menus for organization selection in forms
 
 ### ⚙️ Backend Changes
 
-#### **API Improvements**
-- **Endpoint Standardization**: Consistent trailing slash handling
-- **Error Responses**: Improved error responses and validation
-- **Performance**: Database query optimizations and caching improvements
+#### **New Routers**
+- **Diving Organizations Router**: Complete CRUD operations for organizations
+- **User Certifications Router**: Self-service certification management
+- **Enhanced Main App**: Updated to include new routers
 
-#### **Code Quality**
-- **Refactoring**: Improved code organization and separation of concerns
-- **Test Coverage**: Enhanced test coverage and documentation updates
+#### **Data Population**
+- **Populate Script**: `populate_diving_organizations.py` for initial data
+- **Duplicate Prevention**: Smart checking to avoid duplicate entries
+- **Comprehensive Data**: Top 10 diving organizations with complete information
 
-## [Previous Release] - 2024-01-XX
+### 📚 Documentation Updates
+
+#### **API Documentation**
+- **New Endpoints**: Complete documentation for diving organizations and certifications
+- **Schema Updates**: Updated with new models and relationships
+- **Example Usage**: Code examples for new API endpoints
+
+#### **Database Documentation**
+- **Schema Changes**: Updated with new tables and relationships
+- **Migration Guide**: Instructions for applying new migrations
+- **Data Population**: Guide for populating initial organization data
+
+## [Previous Release] - 2025-07-27
 
 ### 🚀 Major Features
 

@@ -9,6 +9,8 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 - **User Management**: Registration, login, and profile management with Google OAuth support
 - **Dive Sites**: Comprehensive CRUD operations with detailed information including maximum depth, alternative names, country, and region
 - **Diving Centers**: Full management with gear rental costs and dive site associations
+- **Diving Organizations**: Complete management system for diving organizations (PADI, SSI, GUE, etc.)
+- **User Certifications**: Comprehensive certification tracking system with organization associations
 - **Rating System**: Rate dive sites and diving centers (1-10 scale) with proper state management
 - **Comments**: User comments on dive sites and diving centers
 - **Interactive Map**: View dive sites and diving centers on an interactive map
@@ -143,7 +145,34 @@ alembic history
 
 **Note**: Migrations run automatically before the backend starts in Docker containers.
 
+### Data Population
+After running migrations, populate diving organizations with initial data:
+
+```bash
+# Populate diving organizations
+cd backend
+source divemap_venv/bin/activate
+python populate_diving_organizations.py
+
+# List diving organizations
+python populate_diving_organizations.py list
+```
+
 ## Recent Enhancements
+
+### **Diving Organizations Management**
+- **Complete Organization CRUD**: Full create, read, update, delete functionality for diving organizations
+- **Pre-populated Data**: Top 10 diving organizations (PADI, SSI, GUE, RAID, CMAS, TDI, NAUI, BSAC, SDI, IANTD)
+- **Admin-Only Management**: Only administrators can manage diving organizations
+- **Data Validation**: Unique constraints on name and acronym to prevent duplicates
+- **Comprehensive Information**: Name, acronym, website, logo, description, country, and founding year
+
+### **User Certifications System**
+- **Certification Tracking**: Users can manage their diving certifications
+- **Organization Association**: Certifications linked to specific diving organizations
+- **Active Status Management**: Users can activate/deactivate certifications
+- **Public Profile Display**: Certifications visible on user profiles
+- **Self-Service Management**: Users can add, edit, and manage their own certifications
 
 ### **Google OAuth Authentication**
 - **Google Sign-In Integration**: Complete OAuth 2.0 implementation
@@ -228,6 +257,21 @@ For detailed API documentation and recent changes, see [API_CHANGELOG.md](API_CH
 - `DELETE /api/v1/tags/{tag_id}` - Delete tag (admin/moderator)
 - `POST /api/v1/tags/dive-sites/{dive_site_id}/tags` - Add tag to dive site
 - `DELETE /api/v1/tags/dive-sites/{dive_site_id}/tags/{tag_id}` - Remove tag from dive site
+
+### Diving Organizations
+- `GET /api/v1/diving-organizations/` - Get all diving organizations
+- `GET /api/v1/diving-organizations/{id}` - Get diving organization by ID
+- `POST /api/v1/diving-organizations/` - Create diving organization (admin only)
+- `PUT /api/v1/diving-organizations/{id}` - Update diving organization (admin only)
+- `DELETE /api/v1/diving-organizations/{id}` - Delete diving organization (admin only)
+
+### User Certifications
+- `GET /api/v1/user-certifications/my-certifications` - Get user's certifications
+- `GET /api/v1/user-certifications/users/{user_id}/certifications` - Get public certifications
+- `POST /api/v1/user-certifications/my-certifications` - Add new certification
+- `PUT /api/v1/user-certifications/my-certifications/{id}` - Update certification
+- `DELETE /api/v1/user-certifications/my-certifications/{id}` - Delete certification
+- `PATCH /api/v1/user-certifications/my-certifications/{id}/toggle` - Toggle active status
 
 See the full API documentation at http://localhost:8000/docs
 
