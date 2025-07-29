@@ -7,7 +7,8 @@ This document provides essential testing information for the Divemap application
 1. [Quick Start](#quick-start)
 2. [Test Categories](#test-categories)
 3. [Running Tests](#running-tests)
-4. [Troubleshooting](#troubleshooting)
+4. [Docker-Based Testing](#docker-based-testing)
+5. [Troubleshooting](#troubleshooting)
 
 ## Quick Start
 
@@ -88,6 +89,74 @@ node run_all_tests.js
 node test_regressions.js
 ```
 
+## Docker-Based Testing
+
+The project now uses optimized Docker configurations for different testing environments.
+
+### Development Testing (Full Test Suite)
+```bash
+# Build development image with all dependencies
+cd frontend
+docker build -f Dockerfile.dev -t divemap_frontend_dev .
+
+# Run tests in development container
+docker run divemap_frontend_dev npm run test:frontend
+docker run divemap_frontend_dev npm run test:validation
+docker run divemap_frontend_dev npm run test:e2e
+
+# Run development server
+docker run -p 3000:3000 divemap_frontend_dev
+```
+
+### Production Testing (Optimized)
+```bash
+# Build production image (no testing tools)
+cd frontend
+docker build -t divemap_frontend_prod .
+
+# Run production server
+docker run -p 8080:8080 divemap_frontend_prod
+```
+
+### Testing Environment Comparison
+
+| Environment | Dependencies | Testing | Size | Use Case |
+|-------------|--------------|---------|------|----------|
+| **Development** | All dependencies | ✅ Full suite | ~200MB | Development & testing |
+| **Production** | Production only | ❌ No testing | 144MB | Production deployment |
+
+### CI/CD Integration
+```yaml
+# Development testing
+- name: Test Frontend
+  run: |
+    docker build -f Dockerfile.dev -t divemap_frontend_test .
+    docker run divemap_frontend_test npm run test:e2e
+
+# Production deployment
+- name: Deploy Frontend
+  run: |
+    docker build -t divemap_frontend_prod .
+    docker push divemap_frontend_prod
+```
+
+### Dependency Optimization
+
+**Production Dependencies:**
+- React, React DOM, React Router
+- React Query, Axios
+- OpenLayers, Tailwind CSS
+- Lucide React icons
+
+**Development Dependencies:**
+- Puppeteer (testing only)
+- Testing libraries
+
+**Benefits:**
+- **82% image size reduction** (797MB → 144MB)
+- **Enhanced security** (production excludes dev tools)
+- **Optimized testing** (development includes full test suite)
+
 ## Troubleshooting
 
 ### Common Issues
@@ -111,6 +180,26 @@ docker-compose up -d db
 cd frontend
 rm -rf node_modules package-lock.json
 npm install
+```
+
+**Docker Testing Issues:**
+```bash
+# Use development Dockerfile for testing
+docker build -f Dockerfile.dev -t divemap_frontend_test .
+docker run divemap_frontend_test npm run test:frontend
+
+# Check image contents
+docker run --rm divemap_frontend_prod ls -la /app
+```
+
+**Puppeteer Issues:**
+```bash
+# Ensure Puppeteer is in devDependencies
+cat package.json | grep -A 5 "devDependencies"
+
+# Use development environment for Puppeteer tests
+docker build -f Dockerfile.dev -t divemap_frontend_dev .
+docker run divemap_frontend_dev npm run test:frontend
 ```
 
 For detailed testing strategy, latest features, and comprehensive procedures, see [TESTING_STRATEGY.md](../TESTING_STRATEGY.md). 

@@ -1,0 +1,25 @@
+# Development stage with testing capabilities
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Set npm configuration for better reliability
+RUN npm config set registry https://registry.npmjs.org/
+RUN npm config set fetch-retries 3
+RUN npm config set fetch-retry-mintimeout 5000
+RUN npm config set fetch-retry-maxtimeout 60000
+
+# Copy package files
+COPY package*.json ./
+
+# Install ALL dependencies (including devDependencies for testing)
+RUN npm ci --timeout=300000
+
+# Copy source code
+COPY . .
+
+# Expose port for development server
+EXPOSE 3000
+
+# Start development server
+CMD ["npm", "start"] 

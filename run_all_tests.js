@@ -254,6 +254,13 @@ if (args.includes('--help') || args.includes('-h')) {
     console.log(`  - ${test.name}: ${test.description}`);
   });
   console.log('');
+  console.log('Docker-Based Testing:');
+  console.log('  For Docker-based testing, use:');
+  console.log('    docker build -f Dockerfile.dev -t divemap_frontend_test .');
+  console.log('    docker run divemap_frontend_test npm run test:frontend');
+  console.log('    docker run divemap_frontend_test npm run test:validation');
+  console.log('    docker run divemap_frontend_test npm run test:e2e');
+  console.log('');
   process.exit(0);
 }
 

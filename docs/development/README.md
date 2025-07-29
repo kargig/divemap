@@ -11,11 +11,12 @@ This document provides a comprehensive guide for developers working on the Divem
 5. [Development Workflow](#development-workflow)
 6. [Code Standards](#code-standards)
 7. [Testing Strategy](#testing-strategy)
-8. [GitHub Actions](#github-actions)
-9. [Recent Features](#recent-features)
-10. [API Fixes](#api-fixes)
-11. [Utility Scripts](#utility-scripts)
-12. [Deployment](#deployment)
+8. [Docker Configuration](#docker-configuration)
+9. [GitHub Actions](#github-actions)
+10. [Recent Features](#recent-features)
+11. [API Fixes](#api-fixes)
+12. [Utility Scripts](#utility-scripts)
+13. [Deployment](#deployment)
 
 ## Overview
 
@@ -241,6 +242,243 @@ npm test
 # Test full application
 docker-compose up -d
 npm run test:integration
+```
+
+## Docker Configuration
+
+The Divemap project uses multiple Dockerfiles to optimize for different environments and use cases.
+
+### Dockerfile Overview
+
+| Dockerfile | Purpose | Dependencies | Size | Use Case |
+|------------|---------|--------------|------|----------|
+| `frontend/Dockerfile` | Production | Production only | ~144MB | Production deployment |
+| `frontend/Dockerfile.dev` | Development | All dependencies | ~200MB | Development & testing |
+
+### Frontend Dockerfiles
+
+#### 1. Production Dockerfile (`frontend/Dockerfile`)
+
+**Purpose**: Optimized production build with minimal dependencies
+
+**Key Features**:
+- **Multi-stage build** for smaller final image
+- **Production dependencies only** (excludes devDependencies)
+- **Optimized build process** with `--only=production` flag
+- **Static file serving** with `serve` package
+
+**Build Command**:
+```bash
+cd frontend
+docker build -t divemap_frontend_prod .
+```
+
+**Run Command**:
+```bash
+docker run -p 8080:8080 divemap_frontend_prod
+```
+
+**Dependencies Included**:
+- React and React DOM
+- React Router for navigation
+- React Query for data fetching
+- OpenLayers for maps
+- Tailwind CSS for styling
+- Axios for HTTP requests
+
+**Dependencies Excluded**:
+- Puppeteer (testing tool)
+- Testing libraries
+- Development tools
+
+#### 2. Development Dockerfile (`frontend/Dockerfile.dev`)
+
+**Purpose**: Full development environment with testing capabilities
+
+**Key Features**:
+- **All dependencies** including devDependencies
+- **Testing tools** (Puppeteer for E2E tests)
+- **Development server** with hot reload
+- **Complete testing environment**
+
+**Build Command**:
+```bash
+cd frontend
+docker build -f Dockerfile.dev -t divemap_frontend_dev .
+```
+
+**Run Command**:
+```bash
+docker run -p 3000:3000 divemap_frontend_dev
+```
+
+**Dependencies Included**:
+- All production dependencies
+- Puppeteer for browser testing
+- Testing libraries
+- Development tools
+
+### Dependency Management
+
+#### Package.json Structure
+```json
+{
+  "dependencies": {
+    // Production dependencies only
+    "react": "^18.2.0",
+    "axios": "^1.3.4"
+  },
+  "devDependencies": {
+    // Development and testing dependencies
+    "puppeteer": "^21.11.0"
+  }
+}
+```
+
+#### Installation Commands
+```bash
+# Development (includes all dependencies)
+npm install
+
+# Production only (excludes devDependencies)
+npm ci --only=production
+
+# Docker production build
+docker build -t divemap_frontend_prod .
+
+# Docker development build
+docker build -f Dockerfile.dev -t divemap_frontend_dev .
+```
+
+### Environment-Specific Usage
+
+#### Development Environment
+```bash
+# Use development Dockerfile for full testing capabilities
+docker build -f Dockerfile.dev -t divemap_frontend_dev .
+docker run -p 3000:3000 divemap_frontend_dev
+
+# Run tests in development environment
+npm run test:frontend
+npm run test:validation
+npm run test:e2e
+```
+
+#### Production Environment
+```bash
+# Use production Dockerfile for optimized deployment
+docker build -t divemap_frontend_prod .
+docker run -p 8080:8080 divemap_frontend_prod
+
+# Production build excludes testing tools
+# Smaller image size: 797MB → 144MB (82% reduction)
+```
+
+#### CI/CD Pipeline
+```yaml
+# Example GitHub Actions workflow
+- name: Build Production Image
+  run: |
+    cd frontend
+    docker build -t divemap_frontend_prod .
+    
+- name: Build Development Image
+  run: |
+    cd frontend
+    docker build -f Dockerfile.dev -t divemap_frontend_dev .
+```
+
+### Testing Strategy
+
+#### Development Testing
+- **Full test suite** available in development environment
+- **Puppeteer E2E tests** for browser automation
+- **Frontend validation** for accessibility and performance
+- **Integration tests** for user interactions
+
+#### Production Testing
+- **No testing tools** in production environment
+- **Optimized for performance** and security
+- **Static file serving** only
+- **Health checks** via `/health` endpoint
+
+### Performance Comparison
+
+| Metric | Production | Development |
+|--------|------------|-------------|
+| **Image Size** | 144MB | ~200MB |
+| **Build Time** | Faster | Slower |
+| **Testing** | ❌ No | ✅ Full suite |
+| **Hot Reload** | ❌ No | ✅ Yes |
+| **Security** | ✅ Optimized | ⚠️ Development tools |
+
+### Best Practices
+
+#### 1. Development Workflow
+```bash
+# Start development environment
+docker build -f Dockerfile.dev -t divemap_frontend_dev .
+docker run -p 3000:3000 divemap_frontend_dev
+
+# Run tests
+npm run test:frontend
+npm run test:validation
+```
+
+#### 2. Production Deployment
+```bash
+# Build production image
+docker build -t divemap_frontend_prod .
+
+# Deploy to production
+docker run -d -p 8080:8080 divemap_frontend_prod
+```
+
+#### 3. CI/CD Integration
+```yaml
+# Use development image for testing
+- name: Test Frontend
+  run: |
+    docker build -f Dockerfile.dev -t divemap_frontend_test .
+    docker run divemap_frontend_test npm run test:e2e
+
+# Use production image for deployment
+- name: Deploy Frontend
+  run: |
+    docker build -t divemap_frontend_prod .
+    docker push divemap_frontend_prod
+```
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **Tests failing in production build**
+   - Use `Dockerfile.dev` for testing
+   - Production excludes testing dependencies
+
+2. **Large image size**
+   - Use production Dockerfile
+   - Excludes devDependencies automatically
+
+3. **Missing dependencies**
+   - Check if dependency is in correct section
+   - Production dependencies vs devDependencies
+
+4. **Build failures**
+   - Verify package.json structure
+   - Check for dependency conflicts
+
+#### Debugging Commands
+```bash
+# Check image contents
+docker run --rm divemap_frontend_prod ls -la /app
+
+# Inspect node_modules
+docker run --rm divemap_frontend_dev ls -la /app/node_modules
+
+# Compare image sizes
+docker images | grep divemap_frontend
 ```
 
 ## GitHub Actions

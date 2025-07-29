@@ -13,6 +13,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 - **[Database.md](./development/database.md)** - Database documentation and migrations
 - **[API.md](./development/api.md)** - API documentation and endpoints
 - **[Testing.md](./development/testing.md)** - Testing guide (see [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for comprehensive details)
+- **[Docker.md](./development/docker.md)** - Docker configuration and containerization guide
 
 ### 🚀 Deployment
 - **[README.md](./deployment/README.md)** - Deployment overview
@@ -42,6 +43,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 2. **[Architecture Documentation](./development/architecture.md)** - System design and components
 3. **[API Documentation](./development/api.md)** - API endpoints and usage
 4. **[Testing Guide](./development/testing.md)** - Testing procedures (see [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for details)
+5. **[Docker Configuration](./development/docker.md)** - Container setup and optimization
 
 ### For Deployment
 1. **[Deployment Overview](./deployment/README.md)** - Deployment strategies
