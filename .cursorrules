@@ -4,6 +4,8 @@
 
 ### Virtual Environment Requirements
 - **NEVER install Python packages in the system Python**
+- **ALWAYS use docker containers named divemap_db, divemap_frontend, divemap_backend to execute commands**
+- **NEVER try to start frontend, backend or database on the system**
 - **ALWAYS use virtual environments for Python development**
 - **ALWAYS activate the virtual environment before installing packages**
 - **NEVER install npm packages globally**
@@ -66,6 +68,7 @@ python run_migrations.py
 ### Git Commit Requirements
 - **NEVER commit to git automatically**
 - **ONLY commit when explicitly requested by the user**
+- **NEVER commit automatically after being previously asked to commit once, ALWAYS ask the user**
 - **ALWAYS ask for permission before committing**
 - **ALWAYS provide clear commit messages when requested**
 
@@ -87,9 +90,10 @@ git add . && git commit -m "auto commit"  # This is forbidden
 ## Testing Requirements
 
 ### Test Environment Rules
-- **ALWAYS run tests in virtual environments**
+- **ALWAYS run tests in virtual environments or within docker container**
 - **NEVER run tests in system Python**
 - **ALWAYS use project-specific test configurations**
+- **ALWAYS use project's testing strategy document for guidance on testing**
 
 ### Backend Testing
 ```bash
