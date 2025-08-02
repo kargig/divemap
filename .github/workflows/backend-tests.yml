@@ -41,6 +41,16 @@ on:
 jobs:
   test-backend:
     runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: divemap_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
     - name: Checkout code
@@ -67,36 +77,34 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
 
+
+
     - name: Set up environment variables
       run: |
         cd backend
         source divemap_venv/bin/activate
         export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
-        echo "DATABASE_URL=sqlite:///./test.db" >> $GITHUB_ENV
+        echo "DATABASE_URL=mysql+pymysql://root:password@localhost:3306/divemap_test" >> $GITHUB_ENV
         echo "SECRET_KEY=test-secret-key-for-ci" >> $GITHUB_ENV
         echo "ENVIRONMENT=${{ github.event.inputs.environment || 'ci' }}" >> $GITHUB_ENV
 
-    - name: Set up SQLite database
+    - name: Set up MySQL database
       if: ${{ github.event.inputs.run_migrations != 'false' || github.event_name != 'workflow_dispatch' }}
       run: |
         cd backend
         source divemap_venv/bin/activate
-        export DATABASE_URL="sqlite:///./test.db"
+        export DATABASE_URL="mysql+pymysql://root:password@localhost:3306/divemap_test"
         export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
-        python -c "
-        from app.database import engine
-        from app.models import Base
-        Base.metadata.create_all(bind=engine)
-        print('✅ Database tables created successfully')
-        "
+        # The database is already created by the MySQL service container
+        echo "✅ MySQL test database ready"
 
     - name: Run database migrations
       if: ${{ github.event.inputs.run_migrations != 'false' || github.event_name != 'workflow_dispatch' }}
       run: |
         cd backend
         source divemap_venv/bin/activate
-        export DATABASE_URL="sqlite:///./test.db"
+        export DATABASE_URL="mysql+pymysql://root:password@localhost:3306/divemap_test"
         export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
         alembic upgrade head
 
