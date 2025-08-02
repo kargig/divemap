@@ -3,7 +3,8 @@ uvicorn[standard]==0.24.0
 sqlalchemy==2.0.23
 pymysql==1.1.1
 python-multipart==0.0.20
-python-jose[cryptography]==3.5.0
+# JWT library - migrated from python-jose to PyJWT for security
+PyJWT[crypto]==2.10.1
 passlib[bcrypt]==1.7.4
 python-dotenv==1.0.0
 redis==5.0.1
@@ -23,4 +24,6 @@ google-auth-oauthlib==1.2.2
 # Updated dependencies for security
 starlette==0.47.2
 anyio==4.9.0
-pyasn1==0.6.1 
+pyasn1==0.6.1
+# Additional security packages
+cryptography==45.0.5 
