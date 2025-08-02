@@ -524,6 +524,7 @@ class DiveResponse(DiveBase):
     dive_date: str
     dive_time: Optional[str] = None
     duration: Optional[int] = None
+    view_count: Optional[int] = None
     created_at: datetime
     updated_at: datetime
     dive_site: Optional[dict] = None

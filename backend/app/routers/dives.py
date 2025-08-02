@@ -171,6 +171,7 @@ def get_all_dives_admin(
             "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
             "dive_time": dive.dive_time.strftime("%H:%M:%S") if dive.dive_time else None,
             "duration": dive.duration,
+            "view_count": dive.view_count,
             "created_at": dive.created_at,
             "updated_at": dive.updated_at,
             "dive_site": dive_site_info,
@@ -293,6 +294,7 @@ def update_dive_admin(
         "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
         "dive_time": dive.dive_time.strftime("%H:%M:%S") if dive.dive_time else None,
         "duration": dive.duration,
+        "view_count": dive.view_count,
         "created_at": dive.created_at,
         "updated_at": dive.updated_at,
         "dive_site": dive_site_info,
@@ -446,6 +448,7 @@ def create_dive(
         "dive_date": db_dive.dive_date.strftime("%Y-%m-%d"),
         "dive_time": db_dive.dive_time.strftime("%H:%M:%S") if db_dive.dive_time else None,
         "duration": db_dive.duration,
+        "view_count": db_dive.view_count,
         "created_at": db_dive.created_at,
         "updated_at": db_dive.updated_at,
         "dive_site": dive_site_info,
@@ -628,6 +631,7 @@ def get_dives(
             "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
             "dive_time": dive.dive_time.strftime("%H:%M:%S") if dive.dive_time else None,
             "duration": dive.duration,
+            "view_count": dive.view_count,
             "created_at": dive.created_at,
             "updated_at": dive.updated_at,
             "dive_site": dive_site_info,
@@ -679,6 +683,11 @@ def get_dive(
                 detail="This dive is private"
             )
     
+    # Increment view count (only for public dives or when viewing own dives)
+    if not dive.is_private or (current_user and dive.user_id == current_user.id):
+        dive.view_count += 1
+        db.commit()
+    
     # Get dive site information if available
     dive_site_info = None
     if dive.dive_site_id:
@@ -713,6 +722,7 @@ def get_dive(
         "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
         "dive_time": dive.dive_time.strftime("%H:%M:%S") if dive.dive_time else None,
         "duration": dive.duration,
+        "view_count": dive.view_count,
         "created_at": dive.created_at,
         "updated_at": dive.updated_at,
         "dive_site": dive_site_info,
@@ -764,6 +774,11 @@ def get_dive_details(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="This dive is private"
             )
+    
+    # Increment view count (only for public dives or when viewing own dives)
+    if not dive.is_private or (current_user and dive.user_id == current_user.id):
+        dive.view_count += 1
+        db.commit()
     
     # Get dive site information if available
     dive_site_info = None
@@ -829,6 +844,7 @@ def get_dive_details(
         "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
         "dive_time": dive.dive_time.strftime("%H:%M:%S") if dive.dive_time else None,
         "duration": dive.duration,
+        "view_count": dive.view_count,
         "created_at": dive.created_at,
         "updated_at": dive.updated_at,
         "dive_site": dive_site_info,
@@ -946,6 +962,7 @@ def update_dive(
         "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
         "dive_time": dive.dive_time.strftime("%H:%M:%S") if dive.dive_time else None,
         "duration": dive.duration,
+        "view_count": dive.view_count,
         "created_at": dive.created_at,
         "updated_at": dive.updated_at,
         "dive_site": dive_site_info,

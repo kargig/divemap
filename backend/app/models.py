@@ -312,6 +312,7 @@ class Dive(Base):
     dive_date = Column(Date, nullable=False)
     dive_time = Column(Time, nullable=True)
     duration = Column(Integer)  # Duration in minutes
+    view_count = Column(Integer, default=0, nullable=False)  # Number of views
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
