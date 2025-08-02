@@ -1,7 +1,7 @@
 """Add name and privacy fields to dives table
 
 Revision ID: add_dive_name_and_privacy
-Revises: add_is_active_column
+Revises: consolidated_dive_system_final
 Create Date: 2025-08-02 18:15:00.000000
 
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_dive_name_and_privacy'
-down_revision = 'add_is_active_column'
+down_revision = 'consolidated_dive_system_final'
 branch_labels = None
 depends_on = None
 
