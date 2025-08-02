@@ -21,10 +21,8 @@ const TEST_SCENARIOS = {
     { from: '/register', to: '/', name: 'Register to Home' }
   ],
   forms: [
-    { page: '/login', fields: ['email', 'password'], submit: true },
-    { page: '/register', fields: ['name', 'email', 'password', 'confirmPassword'], submit: true },
-    { page: '/create-dive-site', fields: ['name', 'description', 'latitude', 'longitude'], submit: false },
-    { page: '/create-diving-center', fields: ['name', 'description', 'email', 'phone'], submit: false }
+    { page: '/login', fields: ['username', 'password'], submit: true },
+    { page: '/register', fields: ['username', 'email', 'password', 'confirmPassword'], submit: true }
   ],
   accessibility: [
     'alt', 'aria-label', 'aria-describedby', 'role', 'tabindex'

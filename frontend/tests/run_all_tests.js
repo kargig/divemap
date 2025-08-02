@@ -16,7 +16,7 @@ const TEST_SCRIPTS = [
   },
   {
     name: 'Regression Tests',
-    script: 'test_regressions.js',
+    script: 'frontend/tests/test_regressions.js',
     description: 'Tests API endpoints, data types, and edge cases'
   },
   {
