@@ -25,6 +25,14 @@ import CreateDiveSite from './pages/CreateDiveSite';
 import CreateDivingCenter from './pages/CreateDivingCenter';
 import DiveSiteMap from './pages/DiveSiteMap';
 import UserProfile from './pages/UserProfile';
+import Dives from './pages/Dives';
+import CreateDive from './pages/CreateDive';
+import DiveDetail from './pages/DiveDetail';
+import EditDive from './pages/EditDive';
+import AdminOwnershipRequests from './pages/AdminOwnershipRequests';
+import AdminDives from './pages/AdminDives';
+import DiveMap from './pages/DiveMap';
+import DiveMapView from './pages/DiveMapView';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -185,6 +193,70 @@ function App() {
                   element={
                     <ProtectedRoute requireAdmin={true}>
                       <AdminUsers />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/dives" 
+                  element={
+                    <ProtectedRoute>
+                      <Dives />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/dives/map" 
+                  element={
+                    <ProtectedRoute>
+                      <DiveMapView />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/dives/create" 
+                  element={
+                    <ProtectedRoute>
+                      <CreateDive />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/dives/:id" 
+                  element={
+                    <ProtectedRoute>
+                      <DiveDetail />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/dives/:id/edit" 
+                  element={
+                    <ProtectedRoute>
+                      <EditDive />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin/dives" 
+                  element={
+                    <ProtectedRoute requireAdmin={true}>
+                      <AdminDives />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin/dives/map" 
+                  element={
+                    <ProtectedRoute requireAdmin={true}>
+                      <DiveMap />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin/ownership-requests" 
+                  element={
+                    <ProtectedRoute requireAdmin={true}>
+                      <AdminOwnershipRequests />
                     </ProtectedRoute>
                   } 
                 />

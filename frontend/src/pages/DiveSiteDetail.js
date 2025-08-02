@@ -83,6 +83,15 @@ const DiveSiteDetail = () => {
     }
   );
 
+  const { data: topDives } = useQuery(
+    ['dive-site-dives', id],
+    () => api.get(`/api/v1/dive-sites/${id}/dives?limit=10`),
+    {
+      select: (response) => response.data,
+      enabled: !!diveSite
+    }
+  );
+
   const rateMutation = useMutation(
     ({ score }) => {
       return api.post(`/api/v1/dive-sites/${id}/rate`, { score });
@@ -304,6 +313,116 @@ const DiveSiteDetail = () => {
             </div>
           ) : null}
 
+          {/* Top Dives */}
+          {topDives && topDives.length > 0 && (
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Top Dives</h2>
+              <div className="space-y-3">
+                {topDives.map((dive) => (
+                  <div key={dive.id} className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                    <div className="flex justify-between items-start mb-2">
+                      <Link 
+                        to={`/dives/${dive.id}`}
+                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {dive.name || dive.dive_site?.name || 'Unnamed Dive'}
+                      </Link>
+                      {dive.user_rating && (
+                        <div className="flex items-center">
+                          <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                          <span className="text-sm font-medium">{dive.user_rating}/10</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <div className="flex items-center">
+                        <span className="font-medium">Date:</span>
+                        <span className="ml-2">{new Date(dive.dive_date).toLocaleDateString()}</span>
+                        {dive.dive_time && (
+                          <span className="ml-2 text-gray-500">
+                            at {new Date(`2000-01-01T${dive.dive_time}`).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {dive.user_username && (
+                        <div className="flex items-center">
+                          <span className="font-medium">By:</span>
+                          <Link 
+                            to={`/user/${dive.user_username}`}
+                            className="ml-2 text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {dive.user_username}
+                          </Link>
+                        </div>
+                      )}
+                      
+                      {dive.max_depth && (
+                        <div className="flex items-center">
+                          <span className="font-medium">Max Depth:</span>
+                          <span className="ml-2">{dive.max_depth}m</span>
+                        </div>
+                      )}
+                      
+                      {dive.duration && (
+                        <div className="flex items-center">
+                          <span className="font-medium">Duration:</span>
+                          <span className="ml-2">{dive.duration}min</span>
+                        </div>
+                      )}
+                      
+                      {dive.difficulty_level && (
+                        <div className="flex items-center">
+                          <span className="font-medium">Level:</span>
+                          <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                            dive.difficulty_level === 'beginner' ? 'bg-green-100 text-green-800' :
+                            dive.difficulty_level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                            dive.difficulty_level === 'advanced' ? 'bg-orange-100 text-orange-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {dive.difficulty_level}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {dive.dive_information && (
+                      <p className="text-sm text-gray-700 mt-2 line-clamp-2">
+                        {dive.dive_information}
+                      </p>
+                    )}
+                    
+                    {dive.tags && dive.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {dive.tags.map((tag) => (
+                          <span
+                            key={tag.id}
+                            className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                          >
+                            {tag.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-4 text-center">
+                <Link
+                  to={`/dives?dive_site_id=${id}`}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  View All Dives at This Site →
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Access Instructions */}
           {diveSite.access_instructions && (
             <div className="bg-white p-6 rounded-lg shadow-md">
@@ -344,21 +463,7 @@ const DiveSiteDetail = () => {
             </div>
           )}
 
-          {/* Dive Plans */}
-          {diveSite.dive_plans && (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Dive Plans</h2>
-              <p className="text-gray-700">{diveSite.dive_plans}</p>
-            </div>
-          )}
 
-          {/* Gas Tanks */}
-          {diveSite.gas_tanks_necessary && (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Required Gas Tanks</h2>
-              <p className="text-gray-700">{diveSite.gas_tanks_necessary}</p>
-            </div>
-          )}
 
           {/* Media Gallery */}
           {media && media.length > 0 && (

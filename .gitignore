@@ -152,3 +152,5 @@ backend/doc.kml
 map/
 FLY_*
 local*sql*backup
+divemap_backup_*sql*
+local_testme

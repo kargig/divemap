@@ -5,7 +5,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import os
 
-from app.routers import auth, dive_sites, users, diving_centers, tags, diving_organizations, user_certifications
+from app.routers import auth, dive_sites, users, diving_centers, tags, diving_organizations, user_certifications, dives
 from app.database import engine
 from app.models import Base
 from app.limiter import limiter
@@ -87,9 +87,10 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(dive_sites.router, prefix="/api/v1/dive-sites", tags=["Dive Sites"])
 app.include_router(diving_centers.router, prefix="/api/v1/diving-centers", tags=["Diving Centers"])
-app.include_router(tags.router, tags=["Tags"])
+app.include_router(tags.router)
 app.include_router(diving_organizations.router, prefix="/api/v1/diving-organizations", tags=["Diving Organizations"])
 app.include_router(user_certifications.router, prefix="/api/v1/user-certifications", tags=["User Certifications"])
+app.include_router(dives.router, prefix="/api/v1/dives", tags=["Dives"])
 
 @app.get("/")
 async def root():

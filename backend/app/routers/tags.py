@@ -7,7 +7,7 @@ from app.models import AvailableTag, DiveSiteTag, User
 from app.schemas import TagCreate, TagResponse, TagUpdate, DiveSiteTagCreate, DiveSiteTagResponse, TagWithCountResponse
 from app.auth import get_current_user, is_admin_or_moderator
 
-router = APIRouter(prefix="/api/v1/tags", tags=["tags"])
+router = APIRouter(prefix="/api/v1/tags", tags=["Tags"])
 
 @router.get("/", response_model=List[TagResponse])
 def get_all_tags(db: Session = Depends(get_db)):

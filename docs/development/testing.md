@@ -38,6 +38,7 @@ node run_all_tests.js
 - **test_auth.py** - Authentication and authorization
 - **test_dive_sites.py** - Dive sites API endpoints
 - **test_diving_centers.py** - Diving centers API endpoints
+- **test_dives.py** - Dive logging and management
 - **test_tags.py** - Tags management
 - **test_users.py** - User management and profiles
 
@@ -45,10 +46,12 @@ node run_all_tests.js
 - **test_frontend.js** - React component tests
 - **validate_frontend.js** - Accessibility and performance
 - **run_frontend_tests.js** - Frontend test runner
+- **run_all_tests.js** - Comprehensive test suite runner
+- **test_regressions.js** - API endpoint validation and regression tests
 
 ### Regression Tests
-- **test_regressions.js** - API endpoint validation
-- **run_all_tests.js** - Comprehensive test suite
+- **test_regressions.js** - API endpoint validation and data type consistency
+- **run_all_tests.js** - Comprehensive test suite runner
 
 ## Running Tests
 
@@ -83,10 +86,10 @@ node tests/run_frontend_tests.js
 ### Comprehensive Testing
 ```bash
 # Run all tests (backend + frontend + regression)
-node run_all_tests.js
+node frontend/tests/run_all_tests.js
 
 # Run regression tests only
-node test_regressions.js
+node frontend/tests/test_regressions.js
 ```
 
 ## Docker-Based Testing

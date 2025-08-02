@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Mail, Calendar, Shield, Award, Activity, Lock, Plus, Edit, Trash2, X } from 'lucide-react';
+import { User, Mail, Calendar, Shield, Award, Activity, Lock, Plus, Edit, Trash2, X, Anchor } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api';
+import { Link } from 'react-router-dom';
 
 const Profile = () => {
   const { user, updateUser } = useAuth();
@@ -289,6 +290,19 @@ const Profile = () => {
                   <div>
                     <span className="text-sm text-gray-500">Number of Dives</span>
                     <p className="text-gray-900">{user.number_of_dives || 0}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center">
+                  <Anchor className="h-5 w-5 text-gray-400 mr-3" />
+                  <div>
+                    <span className="text-sm text-gray-500">My Dives</span>
+                    <Link 
+                      to="/dives" 
+                      className="text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      View and manage my dive logs →
+                    </Link>
                   </div>
                 </div>
 

@@ -2,7 +2,111 @@
 
 This document tracks all recent changes, improvements, and bug fixes to the Divemap application.
 
-## [Latest Release] - 2025-07-29
+## [Latest Release] - 2025-08-02
+
+### 🚀 Major Features
+
+#### **Dive Logging System**
+- **Complete Dive Management**: Full CRUD operations for user dive logs
+- **Comprehensive Dive Data**: Date, time, depth, visibility, ratings, suit type, difficulty level
+- **Media Management**: Support for photos, videos, dive plans, and external links
+- **Tag System**: Associate dives with tags for categorization
+- **Automatic Name Generation**: Dives automatically named based on dive site and date
+- **Privacy Controls**: Users can manage their own dives, admins can manage all dives
+- **Search and Filtering**: Advanced filtering by dive site, depth, date range, ratings, and more
+
+**New API Endpoints:**
+- `GET /api/v1/dives/` - List user's dives with filtering
+- `GET /api/v1/dives/{id}` - Get specific dive details
+- `POST /api/v1/dives/` - Create new dive
+- `PUT /api/v1/dives/{id}` - Update dive
+- `DELETE /api/v1/dives/{id}` - Delete dive
+- `GET /api/v1/dives/{id}/media` - Get dive media
+- `POST /api/v1/dives/{id}/media` - Add media to dive
+- `DELETE /api/v1/dives/{id}/media/{media_id}` - Delete dive media
+- `POST /api/v1/dives/{id}/tags` - Add tag to dive
+- `DELETE /api/v1/dives/{id}/tags/{tag_id}` - Remove tag from dive
+- `GET /api/v1/admin/dives` - Admin: List all dives
+- `PUT /api/v1/admin/dives/{id}` - Admin: Update any dive
+- `DELETE /api/v1/admin/dives/{id}` - Admin: Delete any dive
+
+#### **Frontend Dive Interface**
+- **Dive List Page**: View all user dives with filtering and search
+- **Dive Detail Page**: Comprehensive dive information display with media gallery
+- **Create/Edit Dive**: Full form for creating and editing dives
+- **Dive Map**: Interactive map showing dive locations
+- **Admin Dive Management**: Admin interface for managing all dives
+- **Media Gallery**: Photo and video display with external link support
+
+#### **Database Schema Enhancements**
+- **New Tables**: `dives`, `dive_media`, `dive_tags`
+- **Enhanced Relationships**: Dives linked to users and dive sites
+- **Media Support**: Comprehensive media management for dives
+- **Tag Integration**: Dives can be tagged for categorization
+
+**Migration Files:**
+- `consolidated_dive_system_final.py` - Added complete dive system tables
+- `add_dive_name_and_privacy.py` - Added dive name and privacy fields
+- `add_is_active_column.py` - Added active status for dives
+
+### 🔧 API Changes
+
+#### **New Schemas and Models**
+- **Dive**: Complete dive data model with validation
+- **DiveMedia**: Media management for dives
+- **DiveTag**: Tag associations for dives
+- **Enhanced Responses**: Updated dive responses with media and tag information
+
+#### **Enhanced Search and Filtering**
+- **Advanced Filtering**: Filter by dive site, depth, date range, ratings, difficulty
+- **Search by Name**: Search dives by dive site name
+- **Admin Overrides**: Admin can view and manage all dives regardless of privacy
+
+### 🗄️ Database Changes
+
+#### **New Tables**
+- `dives`: Store comprehensive dive information
+- `dive_media`: Media files for dives (photos, videos, plans, external links)
+- `dive_tags`: Association between dives and tags
+
+#### **Schema Updates**
+- **Added**: Complete dive logging system with media support
+- **Enhanced**: Tag system now supports dive tagging
+- **Improved**: Automatic dive name generation based on site and date
+
+### 🎨 Frontend Changes
+
+#### **New Pages and Components**
+- **Dive List Page**: `/dives` - View and manage user dives
+- **Dive Detail Page**: `/dives/{id}` - Comprehensive dive information
+- **Create Dive Page**: `/dives/create` - Create new dives
+- **Edit Dive Page**: `/dives/{id}/edit` - Edit existing dives
+- **Admin Dives Page**: `/admin/dives` - Admin dive management
+- **Dive Map Component**: Interactive map for dive locations
+- **Media Gallery**: Photo and video display with external link support
+
+#### **Enhanced User Experience**
+- **Responsive Design**: Mobile-friendly dive interface
+- **Media Upload**: Support for photos, videos, and external links
+- **Tag Management**: Add and remove tags from dives
+- **Search and Filter**: Advanced filtering capabilities
+- **Automatic Naming**: Dives automatically named based on site and date
+
+### ⚙️ Backend Changes
+
+#### **New Routers**
+- **Dives Router**: Complete CRUD operations for dives
+- **Enhanced Main App**: Updated to include dive router
+- **Media Management**: Comprehensive media upload and management
+- **Tag Integration**: Tag system extended to support dives
+
+#### **Enhanced Features**
+- **Automatic Name Generation**: Dives named based on dive site and date
+- **Privacy Controls**: Users manage their own dives, admins manage all
+- **Advanced Filtering**: Comprehensive search and filter capabilities
+- **Media Support**: Photos, videos, dive plans, and external links
+
+## [Previous Release] - 2025-07-29
 
 ### 🚀 Major Features
 

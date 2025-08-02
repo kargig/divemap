@@ -84,12 +84,9 @@ class DiveSiteBase(BaseModel):
     longitude: float = Field(..., ge=-180, le=180)
     address: Optional[str] = None
     access_instructions: Optional[str] = None
-    dive_plans: Optional[str] = None
-    gas_tanks_necessary: Optional[str] = None
     difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
     marine_life: Optional[str] = None
     safety_information: Optional[str] = None
-    max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
     alternative_names: Optional[str] = None  # Alternative names/aliases
     country: Optional[str] = Field(None, max_length=100)  # Country name
     region: Optional[str] = Field(None, max_length=100)  # Region/state/province name
@@ -104,21 +101,14 @@ class DiveSiteUpdate(BaseModel):
     longitude: Optional[float] = Field(None, ge=-180, le=180)
     address: Optional[str] = None
     access_instructions: Optional[str] = None
-    dive_plans: Optional[str] = None
-    gas_tanks_necessary: Optional[str] = None
     difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
     marine_life: Optional[str] = None
     safety_information: Optional[str] = None
-    max_depth: Optional[Union[float, str]] = Field(None, ge=0, le=1000)  # Maximum depth in meters
     alternative_names: Optional[str] = None  # Alternative names/aliases
     country: Optional[str] = Field(None, max_length=100)  # Country name
     region: Optional[str] = Field(None, max_length=100)  # Region/state/province name
 
-    @validator('max_depth', pre=True)
-    def handle_empty_strings(cls, v):
-        if isinstance(v, str) and v.strip() == '':
-            return None
-        return v
+
 
 class DiveSiteResponse(DiveSiteBase):
     id: int
@@ -228,6 +218,8 @@ class DivingCenterResponse(DivingCenterBase):
     total_ratings: int = 0
     view_count: Optional[int] = None  # Only included for admin users
     user_rating: Optional[float] = None
+    ownership_status: Optional[str] = None
+    owner_username: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -478,3 +470,132 @@ class DivingCenterResponseWithOrganizations(DivingCenterResponse):
 
     class Config:
         from_attributes = True
+
+# Dive Schemas
+class DiveBase(BaseModel):
+    dive_site_id: Optional[int] = None
+    name: Optional[str] = Field(None, max_length=255)  # Custom name/alias
+    is_private: bool = False  # Privacy control - default public
+    dive_information: Optional[str] = None
+    max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
+    average_depth: Optional[float] = Field(None, ge=0, le=1000)  # Average depth in meters
+    gas_bottles_used: Optional[str] = None
+    suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie)$")
+    difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
+    visibility_rating: Optional[int] = Field(None, ge=1, le=10)
+    user_rating: Optional[int] = Field(None, ge=1, le=10)
+    dive_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")  # YYYY-MM-DD format
+    dive_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}:\d{2}$")  # HH:MM:SS format
+    duration: Optional[int] = Field(None, ge=1, le=1440)  # Duration in minutes
+
+class DiveCreate(DiveBase):
+    pass
+
+class DiveUpdate(BaseModel):
+    dive_site_id: Optional[int] = None
+    name: Optional[str] = Field(None, max_length=255)
+    is_private: Optional[bool] = None
+    dive_information: Optional[str] = None
+    max_depth: Optional[float] = Field(None, ge=0, le=1000)
+    average_depth: Optional[float] = Field(None, ge=0, le=1000)
+    gas_bottles_used: Optional[str] = None
+    suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie)$")
+    difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
+    visibility_rating: Optional[int] = Field(None, ge=1, le=10)
+    user_rating: Optional[int] = Field(None, ge=1, le=10)
+    dive_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    dive_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}:\d{2}$")
+    duration: Optional[int] = Field(None, ge=1, le=1440)
+
+class DiveResponse(DiveBase):
+    id: int
+    user_id: int
+    dive_site_id: Optional[int] = None
+    name: Optional[str] = None
+    is_private: bool = False
+    dive_information: Optional[str] = None
+    max_depth: Optional[float] = None
+    average_depth: Optional[float] = None
+    gas_bottles_used: Optional[str] = None
+    suit_type: Optional[str] = None
+    difficulty_level: Optional[str] = None
+    visibility_rating: Optional[int] = None
+    user_rating: Optional[int] = None
+    dive_date: str
+    dive_time: Optional[str] = None
+    duration: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    dive_site: Optional[dict] = None
+    media: List[dict] = []
+    tags: List[dict] = []
+    user_username: Optional[str] = None  # For public dives
+
+    class Config:
+        from_attributes = True
+
+class DiveMediaCreate(BaseModel):
+    media_type: str = Field(..., pattern=r"^(photo|video|dive_plan|external_link)$")
+    url: str = Field(..., min_length=1, max_length=500)
+    description: Optional[str] = None
+    title: Optional[str] = Field(None, max_length=255)  # For external links
+    thumbnail_url: Optional[str] = Field(None, max_length=500)  # For external links
+
+class DiveMediaResponse(BaseModel):
+    id: int
+    dive_id: int
+    media_type: str
+    url: str
+    description: Optional[str] = None
+    title: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class DiveTagCreate(BaseModel):
+    tag_id: int
+
+class DiveTagResponse(BaseModel):
+    id: int
+    dive_id: int
+    tag_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class DiveSearchParams(BaseModel):
+    dive_site_id: Optional[int] = None
+    difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
+    suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie)$")
+    min_depth: Optional[float] = Field(None, ge=0, le=1000)
+    max_depth: Optional[float] = Field(None, ge=0, le=1000)
+    min_visibility: Optional[int] = Field(None, ge=1, le=10)
+    max_visibility: Optional[int] = Field(None, ge=1, le=10)
+    min_rating: Optional[int] = Field(None, ge=1, le=10)
+    max_rating: Optional[int] = Field(None, ge=1, le=10)
+    start_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    end_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    tag_ids: Optional[List[int]] = None
+    limit: int = Field(50, ge=1, le=100)
+    offset: int = Field(0, ge=0)
+
+# Diving Center Ownership Schemas
+class DivingCenterOwnershipClaim(BaseModel):
+    reason: str = Field(..., min_length=10, max_length=1000)
+
+class DivingCenterOwnershipResponse(BaseModel):
+    id: int
+    name: str
+    owner_id: Optional[int] = None
+    ownership_status: str
+    owner_username: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class DivingCenterOwnershipApproval(BaseModel):
+    approved: bool
+    reason: Optional[str] = Field(None, max_length=1000)

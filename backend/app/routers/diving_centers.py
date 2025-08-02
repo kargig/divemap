@@ -10,9 +10,11 @@ from app.schemas import (
     CenterRatingCreate, CenterRatingResponse,
     CenterCommentCreate, CenterCommentUpdate, CenterCommentResponse,
     DivingCenterSearchParams, CenterDiveSiteCreate, GearRentalCostCreate,
-    DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse
+    DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse,
+    DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, is_admin_or_moderator
+from app.models import OwnershipStatus
 
 router = APIRouter()
 
@@ -92,6 +94,33 @@ async def create_diving_center(
         "total_ratings": 0
     }
 
+@router.get("/ownership-requests", response_model=List[DivingCenterOwnershipResponse])
+async def get_ownership_requests(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get all diving centers with ownership requests (admin only)"""
+    diving_centers = db.query(DivingCenter).filter(
+        DivingCenter.ownership_status.in_(["claimed", "approved"])
+    ).all()
+    
+    result = []
+    for center in diving_centers:
+        owner_username = None
+        if center.owner_id:
+            owner = db.query(User).filter(User.id == center.owner_id).first()
+            owner_username = owner.username if owner else None
+        
+        result.append({
+            "id": center.id,
+            "name": center.name,
+            "owner_id": center.owner_id,
+            "ownership_status": center.ownership_status,
+            "owner_username": owner_username
+        })
+    
+    return result
+
 @router.get("/{diving_center_id}", response_model=DivingCenterResponse)
 async def get_diving_center(
     diving_center_id: int, 
@@ -142,7 +171,9 @@ async def get_diving_center(
         "updated_at": diving_center.updated_at,
         "average_rating": float(avg_rating) if avg_rating else None,
         "total_ratings": total_ratings,
-        "user_rating": user_rating
+        "user_rating": user_rating,
+        "ownership_status": diving_center.ownership_status.value if diving_center.ownership_status else None,
+        "owner_username": diving_center.owner.username if diving_center.owner else None
     }
     
     # Only include view_count for admin users
@@ -155,7 +186,7 @@ async def get_diving_center(
 async def update_diving_center(
     diving_center_id: int,
     diving_center_update: DivingCenterUpdate,
-    current_user: User = Depends(is_admin_or_moderator),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
@@ -163,6 +194,19 @@ async def update_diving_center(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Diving center not found"
+        )
+    
+    # Check if user has permission to edit (admin, moderator, or owner)
+    can_edit = (
+        current_user.is_admin or 
+        current_user.is_moderator or 
+        (diving_center.owner_id == current_user.id and diving_center.ownership_status == "approved")
+    )
+    
+    if not can_edit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to edit this diving center"
         )
     
     update_data = diving_center_update.dict(exclude_unset=True)
@@ -636,20 +680,131 @@ async def remove_diving_center_organization(
     current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
-    """Remove an organization from a diving center (admin only)."""
     # Check if diving center exists
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not diving_center:
         raise HTTPException(status_code=404, detail="Diving center not found")
     
-    # Check if organization association exists
-    db_organization = db.query(DivingCenterOrganization).filter(
+    # Check if organization relationship exists
+    organization_relationship = db.query(DivingCenterOrganization).filter(
         DivingCenterOrganization.id == organization_id,
         DivingCenterOrganization.diving_center_id == diving_center_id
     ).first()
-    if not db_organization:
-        raise HTTPException(status_code=404, detail="Organization association not found")
     
-    db.delete(db_organization)
+    if not organization_relationship:
+        raise HTTPException(status_code=404, detail="Organization relationship not found")
+    
+    db.delete(organization_relationship)
     db.commit()
-    return {"message": "Organization removed from diving center successfully"} 
+    
+    return {"message": "Organization removed from diving center successfully"}
+
+# Diving Center Ownership endpoints
+@router.post("/{diving_center_id}/claim")
+async def claim_diving_center_ownership(
+    diving_center_id: int,
+    claim: DivingCenterOwnershipClaim,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Claim ownership of a diving center"""
+    if not current_user.enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled"
+        )
+    
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+    
+    # Check if diving center is already claimed or approved
+    if diving_center.ownership_status != OwnershipStatus.unclaimed:
+        raise HTTPException(
+            status_code=400, 
+            detail="Diving center is already claimed or has an owner"
+        )
+    
+    # Update diving center ownership status
+    diving_center.ownership_status = "claimed"
+    diving_center.owner_id = current_user.id
+    
+    db.commit()
+    db.refresh(diving_center)
+    
+    return {
+        "message": "Ownership claim submitted successfully. Waiting for admin approval.",
+        "diving_center_id": diving_center_id,
+        "status": "claimed"
+    }
+
+
+@router.post("/{diving_center_id}/approve-ownership")
+async def approve_diving_center_ownership(
+    diving_center_id: int,
+    approval: DivingCenterOwnershipApproval,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Approve or deny ownership claim for a diving center (admin only)"""
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+    
+    if approval.approved:
+        # Approve the ownership claim
+        diving_center.ownership_status = "approved"
+        message = "Ownership claim approved successfully"
+    else:
+        # Deny the ownership claim
+        diving_center.ownership_status = "unclaimed"
+        diving_center.owner_id = None
+        message = "Ownership claim denied"
+    
+    db.commit()
+    db.refresh(diving_center)
+    
+    return {
+        "message": message,
+        "diving_center_id": diving_center_id,
+        "status": diving_center.ownership_status,
+        "reason": approval.reason
+    }
+
+
+
+
+
+@router.put("/{diving_center_id}/assign-owner")
+async def assign_diving_center_owner(
+    diving_center_id: int,
+    user_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Assign a user as owner of a diving center (admin only)"""
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+    
+    # Check if user exists
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Assign ownership
+    diving_center.owner_id = user_id
+    diving_center.ownership_status = "approved"
+    
+    db.commit()
+    db.refresh(diving_center)
+    
+    return {
+        "message": f"User {user.username} assigned as owner of {diving_center.name}",
+        "diving_center_id": diving_center_id,
+        "owner_id": user_id,
+        "status": "approved"
+    } 

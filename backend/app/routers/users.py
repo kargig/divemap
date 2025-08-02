@@ -10,53 +10,7 @@ from sqlalchemy import func
 
 router = APIRouter()
 
-@router.get("/me", response_model=UserResponse)
-async def get_current_user_profile(current_user: User = Depends(get_current_active_user)):
-    return current_user
-
-@router.put("/me", response_model=UserResponse)
-async def update_current_user_profile(
-    user_update: UserUpdate,
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
-):
-    # Update only provided fields
-    update_data = user_update.dict(exclude_unset=True)
-    
-    # Handle password update separately
-    if 'password' in update_data:
-        password = update_data.pop('password')
-        current_user.password_hash = get_password_hash(password)
-    
-    for field, value in update_data.items():
-        setattr(current_user, field, value)
-    
-    db.commit()
-    db.refresh(current_user)
-    
-    return current_user
-
-@router.post("/me/change-password")
-async def change_password(
-    password_change: PasswordChangeRequest,
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
-):
-    """Change user password"""
-    # Verify current password
-    if not verify_password(password_change.current_password, current_user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Current password is incorrect"
-        )
-    
-    # Update password
-    current_user.password_hash = get_password_hash(password_change.new_password)
-    db.commit()
-    
-    return {"message": "Password changed successfully"}
-
-# Admin user management endpoints
+# Admin user management endpoints - must be defined before regular routes
 @router.get("/admin/users", response_model=List[UserListResponse])
 async def list_all_users(
     current_user: User = Depends(get_current_admin_user),
@@ -110,6 +64,7 @@ async def update_user(
 ):
     """Update a user (admin only)"""
     db_user = db.query(User).filter(User.id == user_id).first()
+    
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -134,23 +89,72 @@ async def delete_user(
     db: Session = Depends(get_db)
 ):
     """Delete a user (admin only)"""
-    if user_id == current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete your own account"
-        )
-    
     db_user = db.query(User).filter(User.id == user_id).first()
+    
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
     
+    # Prevent admin from deleting themselves
+    if db_user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete your own account"
+        )
+    
     db.delete(db_user)
     db.commit()
     
     return {"message": "User deleted successfully"}
+
+# Regular user endpoints
+@router.get("/me", response_model=UserResponse)
+async def get_current_user_profile(current_user: User = Depends(get_current_active_user)):
+    return current_user
+
+@router.put("/me", response_model=UserResponse)
+async def update_current_user_profile(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    # Update only provided fields
+    update_data = user_update.dict(exclude_unset=True)
+    
+    # Handle password update separately
+    if 'password' in update_data:
+        password = update_data.pop('password')
+        current_user.password_hash = get_password_hash(password)
+    
+    for field, value in update_data.items():
+        setattr(current_user, field, value)
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return current_user
+
+@router.post("/me/change-password")
+async def change_password(
+    password_change: PasswordChangeRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Change user password"""
+    # Verify current password
+    if not verify_password(password_change.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    # Update password
+    current_user.password_hash = get_password_hash(password_change.new_password)
+    db.commit()
+    
+    return {"message": "Password changed successfully"}
 
 @router.get("/{username}/public", response_model=UserPublicProfileResponse)
 async def get_user_public_profile(

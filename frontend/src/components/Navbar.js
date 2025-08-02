@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, User, Map, Home, Settings, Building, ChevronDown, Users, MapPin, Tags, Award } from 'lucide-react';
+import { LogOut, User, Map, Home, Settings, Building, ChevronDown, Users, MapPin, Tags, Award, Anchor, Crown } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -28,6 +28,13 @@ const Navbar = () => {
               <span>Home</span>
             </Link>
             
+            {user && (
+              <Link to="/dives" className="flex items-center space-x-1 hover:text-blue-200 transition-colors">
+                <Anchor className="h-5 w-5" />
+                <span>Dives</span>
+              </Link>
+            )}
+            
             <Link to="/dive-sites" className="flex items-center space-x-1 hover:text-blue-200 transition-colors">
               <Map className="h-5 w-5" />
               <span>Dive Sites</span>
@@ -37,7 +44,7 @@ const Navbar = () => {
               <Building className="h-5 w-5" />
               <span>Diving Centers</span>
             </Link>
-
+            
             {user ? (
               <div className="flex items-center space-x-4">
                 {user.is_admin && (
@@ -86,6 +93,14 @@ const Navbar = () => {
                           Diving Organizations
                         </Link>
                         <Link
+                          to="/admin/dives"
+                          className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <Anchor className="h-4 w-4 mr-2" />
+                          Dives
+                        </Link>
+                        <Link
                           to="/admin/tags"
                           className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
                           onClick={() => setShowAdminDropdown(false)}
@@ -100,6 +115,14 @@ const Navbar = () => {
                         >
                           <Users className="h-4 w-4 mr-2" />
                           Users
+                        </Link>
+                        <Link
+                          to="/admin/ownership-requests"
+                          className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <Crown className="h-4 w-4 mr-2" />
+                          Ownership Requests
                         </Link>
                       </div>
                     )}

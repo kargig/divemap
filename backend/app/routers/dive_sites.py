@@ -1,18 +1,18 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, or_, desc, asc
 from slowapi.util import get_remote_address
 from slowapi import Limiter
 
 from app.database import get_db
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization
+from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag
 from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse, 
     SiteRatingCreate, SiteRatingResponse,
     SiteCommentCreate, SiteCommentUpdate, SiteCommentResponse,
     SiteMediaCreate, SiteMediaResponse,
-    DiveSiteSearchParams, CenterDiveSiteCreate
+    DiveSiteSearchParams, CenterDiveSiteCreate, DiveResponse
 )
 import requests
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional
@@ -237,28 +237,25 @@ async def get_dive_sites(
         ]
         
         site_dict = {
-            "id": site.id,
-            "name": site.name,
-            "description": site.description,
-            "latitude": site.latitude,
-            "longitude": site.longitude,
-            "address": site.address,
-            "access_instructions": site.access_instructions,
-            "dive_plans": site.dive_plans,
-            "gas_tanks_necessary": site.gas_tanks_necessary,
-            "difficulty_level": site.difficulty_level,
-            "marine_life": site.marine_life,
-            "safety_information": site.safety_information,
-            "max_depth": site.max_depth,
-            "alternative_names": site.alternative_names,
-            "country": site.country,
-            "region": site.region,
-            "created_at": site.created_at,
-            "updated_at": site.updated_at,
-            "average_rating": float(avg_rating) if avg_rating else None,
-            "total_ratings": total_ratings,
-            "tags": tags_dict
-        }
+                "id": site.id,
+                "name": site.name,
+                "description": site.description,
+                "latitude": site.latitude,
+                "longitude": site.longitude,
+                "address": site.address,
+                "access_instructions": site.access_instructions,
+                "difficulty_level": site.difficulty_level,
+                "marine_life": site.marine_life,
+                "safety_information": site.safety_information,
+                "alternative_names": site.alternative_names,
+                "country": site.country,
+                "region": site.region,
+                "created_at": site.created_at,
+                "updated_at": site.updated_at,
+                "average_rating": float(avg_rating) if avg_rating else None,
+                "total_ratings": total_ratings,
+                "tags": tags_dict
+            }
         
         # Only include view_count for admin users
         if current_user and current_user.is_admin:
@@ -875,7 +872,7 @@ async def get_nearby_dive_sites(
         SELECT 
             id, name, description, difficulty_level, latitude, longitude,
             address, access_instructions, safety_information, marine_life,
-            dive_plans, gas_tanks_necessary, created_at, updated_at,
+            created_at, updated_at,
             (6371 * acos(
                 cos(radians(:lat)) * cos(radians(latitude)) * 
                 cos(radians(longitude) - radians(:lng)) + 
@@ -941,8 +938,6 @@ async def get_nearby_dive_sites(
             "access_instructions": row.access_instructions,
             "safety_information": row.safety_information,
             "marine_life": row.marine_life,
-            "dive_plans": row.dive_plans,
-            "gas_tanks_necessary": row.gas_tanks_necessary,
             "created_at": row.created_at,
             "updated_at": row.updated_at,
             "average_rating": float(avg_rating) if avg_rating else None,
@@ -953,3 +948,105 @@ async def get_nearby_dive_sites(
         nearby_sites.append(site_dict)
     
     return nearby_sites 
+
+@router.get("/{dive_site_id}/dives", response_model=List[DiveResponse])
+@limiter.limit("100/minute")
+async def get_dive_site_dives(
+    request: Request,
+    dive_site_id: int,
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional)
+):
+    """
+    Get top dives for a specific dive site, ordered by rating (descending).
+    If no rating is available, returns the first 10 dives.
+    """
+    # Check if dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+    
+    # Build query for dives at this dive site
+    query = db.query(Dive).filter(Dive.dive_site_id == dive_site_id)
+    
+    # If user is not authenticated, only show public dives
+    if not current_user:
+        query = query.filter(Dive.is_private == False)
+    else:
+        # Show own dives and public dives from others
+        query = query.filter(
+            or_(
+                Dive.user_id == current_user.id,
+                and_(Dive.user_id != current_user.id, Dive.is_private == False)
+            )
+        )
+    
+    # Order by rating (descending) first, then by dive date (descending)
+    # Dives with no rating will be ordered by dive date
+    query = query.order_by(
+        desc(Dive.user_rating),  # Highest rating first
+        desc(Dive.dive_date),    # Most recent first
+        desc(Dive.dive_time)     # Most recent time first
+    )
+    
+    # Limit results
+    dives = query.limit(limit).all()
+    
+    # Convert to response format
+    dive_list = []
+    for dive in dives:
+        # Get dive site information
+        dive_site_info = None
+        if dive.dive_site_id:
+            dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
+            if dive_site:
+                dive_site_info = {
+                    "id": dive_site.id,
+                    "name": dive_site.name,
+                    "description": dive_site.description,
+                    "latitude": float(dive_site.latitude) if dive_site.latitude else None,
+                    "longitude": float(dive_site.longitude) if dive_site.longitude else None,
+                    "address": dive_site.address,
+                    "country": dive_site.country,
+                    "region": dive_site.region
+                }
+        
+        # Get tags for this dive
+        dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).all()
+        tags_list = [{"id": tag.id, "name": tag.name} for tag in dive_tags]
+        
+        # Get user information
+        user = db.query(User).filter(User.id == dive.user_id).first()
+        user_username = user.username if user else None
+        
+        dive_dict = {
+            "id": dive.id,
+            "user_id": dive.user_id,
+            "dive_site_id": dive.dive_site_id,
+            "name": dive.name,
+            "is_private": dive.is_private,
+            "dive_information": dive.dive_information,
+            "max_depth": dive.max_depth,
+            "average_depth": dive.average_depth,
+            "gas_bottles_used": dive.gas_bottles_used,
+            "suit_type": dive.suit_type,
+            "difficulty_level": dive.difficulty_level,
+            "visibility_rating": dive.visibility_rating,
+            "user_rating": dive.user_rating,
+            "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
+            "dive_time": dive.dive_time.strftime("%H:%M:%S") if dive.dive_time else None,
+            "duration": dive.duration,
+            "created_at": dive.created_at,
+            "updated_at": dive.updated_at,
+            "dive_site": dive_site_info,
+            "media": [],  # Could be expanded to include media if needed
+            "tags": tags_list,
+            "user_username": user_username
+        }
+        dive_list.append(dive_dict)
+    
+    return dive_list 

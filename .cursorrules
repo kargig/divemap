@@ -34,10 +34,12 @@ npm install -g package_name  # This is forbidden
 ## Database Migration Rules
 
 ### Alembic Migration Requirements
+- **MUST always take a full mysql backup BEFORE any database schema changes and name it according to the latest git commit**
 - **MUST use Alembic for ALL database schema changes**
 - **NEVER modify database schema manually**
 - **ALWAYS create migrations for schema changes**
 - **ALWAYS test migrations before applying**
+- **ALWAYS restore the most recent database backup when a migration script fails, and then try again with any necessary changes**
 
 ### Migration Workflow
 ```bash
@@ -118,6 +120,10 @@ node test_regressions.js
 npx test  # This is forbidden
 ```
 
+## Credentials
+
+You will find credentials for various users in `local_testme` file. Use them when necessary
+
 ## Documentation Requirements
 
 ### Documentation Standards
@@ -132,7 +138,8 @@ npx test  # This is forbidden
 - **NEVER create documentation outside the docs/ directory**
 - **ALWAYS organize documentation by category (getting-started, development, deployment, security, maintenance)**
 - **ALWAYS update the main docs/README.md index when adding new documentation**
-- **ALWAYS use descriptive file names and clear titles**
+- **ALWAYS use existing file names if the changes fit their titles**
+- **ONLY use new file names if the content and context is VERY different from existing files**
 
 ### Documentation Workflow
 - **ALWAYS test documentation procedures before committing**

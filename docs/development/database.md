@@ -133,6 +133,57 @@ CREATE TABLE diving_center_organizations (
 );
 ```
 
+#### Dives Table
+```sql
+CREATE TABLE dives (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    dive_site_id INT,
+    dive_information TEXT,
+    max_depth DECIMAL(5, 2),
+    average_depth DECIMAL(5, 2),
+    gas_bottles_used TEXT,
+    suit_type ENUM('wet_suit', 'dry_suit', 'shortie'),
+    difficulty_level ENUM('beginner', 'intermediate', 'advanced', 'expert'),
+    visibility_rating INT CHECK (visibility_rating >= 1 AND visibility_rating <= 10),
+    user_rating INT CHECK (user_rating >= 1 AND user_rating <= 10),
+    dive_date DATE NOT NULL,
+    dive_time TIME,
+    duration INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (dive_site_id) REFERENCES dive_sites(id)
+);
+```
+
+#### Dive Media Table
+```sql
+CREATE TABLE dive_media (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    dive_id INT NOT NULL,
+    media_type ENUM('photo', 'video', 'dive_plan', 'external_link') NOT NULL,
+    url VARCHAR(500) NOT NULL,
+    description TEXT,
+    title VARCHAR(255),
+    thumbnail_url VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (dive_id) REFERENCES dives(id)
+);
+```
+
+#### Dive Tags Table
+```sql
+CREATE TABLE dive_tags (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    dive_id INT NOT NULL,
+    tag_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (dive_id) REFERENCES dives(id),
+    FOREIGN KEY (tag_id) REFERENCES available_tags(id)
+);
+```
+
 ### Related Tables
 
 - **site_media**: Media files for dive sites
@@ -147,6 +198,9 @@ CREATE TABLE diving_center_organizations (
 - **user_certifications**: User diving certifications
 - **diving_center_organizations**: Association between centers and organizations
 - **dive_site_tags**: Association between dive sites and tags
+- **dives**: User dive logs with comprehensive details
+- **dive_media**: Media files for dives (photos, videos, plans, external links)
+- **dive_tags**: Association between dives and tags
 - **parsed_dive_trips**: Extracted dive trip information
 - **newsletters**: Newsletter content for parsing
 

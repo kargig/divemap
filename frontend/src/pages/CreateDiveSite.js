@@ -17,8 +17,6 @@ const CreateDiveSite = () => {
     country: '',
     region: '',
     access_instructions: '',
-    dive_plans: '',
-    gas_tanks_necessary: '',
     difficulty_level: '',
     marine_life: '',
     safety_information: '',
@@ -304,19 +302,7 @@ const CreateDiveSite = () => {
 
           {/* Dive Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Gas Tanks Necessary
-              </label>
-              <input
-                type="text"
-                name="gas_tanks_necessary"
-                value={formData.gas_tanks_necessary}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., Single tank, Double tanks"
-              />
-            </div>
+
           </div>
 
           <div>
@@ -336,19 +322,7 @@ const CreateDiveSite = () => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Dive Plans
-            </label>
-            <textarea
-              name="dive_plans"
-              value={formData.dive_plans}
-              onChange={handleInputChange}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Recommended dive plans and routes"
-            />
-          </div>
+
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

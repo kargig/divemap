@@ -2,7 +2,7 @@
 
 ## **1\. Introduction**
 
-This document outlines the technical design for a Python-based web application, with future mobile application compatibility, dedicated to scuba diving site and center reviews. The platform will allow users to rate dive sites, find detailed information about them, discover diving centers and their offerings, and view upcoming dive trips.
+This document outlines the technical design for a Python-based web application, with future mobile application compatibility, dedicated to scuba diving site and center reviews. The platform will allow users to rate dive sites, find detailed information about them, discover diving centers and their offerings, view upcoming dive trips, and log their personal dives with detailed information.
 
 ## **2\. Goals**
 
@@ -12,6 +12,8 @@ This document outlines the technical design for a Python-based web application, 
 * Offer a directory of scuba diving centers, including pricing and associated dive sites.  
 * Implement a system for parsing dive store newsletters to extract and display upcoming dive trip information on an interactive map.  
 * Provide contact mechanisms for users to book dives with centers.  
+* Enable users to log and track their personal dives with detailed information.
+* Allow users to claim ownership of diving centers with admin approval.
 * Design for scalability and future expansion to a mobile application.
 * Implement secure authentication with Google OAuth for enhanced user experience.
 
@@ -20,7 +22,7 @@ This document outlines the technical design for a Python-based web application, 
 ### **3.1. User Management**
 
 * User registration and authentication (email/password, Google OAuth).  
-* User profiles (displaying user's ratings, comments).  
+* User profiles (displaying user's ratings, comments, dives).  
 * Password reset functionality.
 * Google OAuth integration for secure authentication.
 
@@ -31,19 +33,22 @@ This document outlines the technical design for a Python-based web application, 
   * Location (GPS coordinates, address).  
   * Access instructions (shore, boat details).  
   * Example photos and videos (upload and display).  
-  * Dive plans (text, downloadable files \- e.g., PDF).  
-  * Recommended gas tanks.  
   * Difficulty level.  
   * Marine life encountered (optional, could be free text or predefined tags).  
-  * Safety information.  
+  * Safety information.
+  * Alternative names/aliases for URL routing.
 * **View Dive Site:**  
   * Display all aforementioned details.  
   * Average user rating.  
   * List of associated diving centers that visit this site.  
-  * User comments (eponymous users only).  
+  * User comments (eponymous users only).
+  * List of dives logged at this site.
 * **Rate Dive Site:**  
   * Score from 1 to 10\.  
   * One rating per user per site.
+* **URL Routing:**
+  * Access dive sites via `/dive-sites/dive-site-name` or `/dive-sites/alias`
+  * Fallback to ID-based routing for compatibility.
 
 ### **3.3. Diving Center Management**
 
@@ -63,15 +68,49 @@ This document outlines the technical design for a Python-based web application, 
 * **Rate Diving Center:**  
   * Score from 1 to 10\.  
   * One rating per user per center.
+* **Diving Center Ownership:**
+  * Users can claim ownership of a diving center.
+  * Admins must approve ownership claims.
+  * Admins can directly assign users as diving center owners.
+  * Approved owners can edit their diving center details regardless of admin status.
 
-### **3.4. Comments**
+### **3.4. Dive Logging System**
+
+* **Create/Edit Dive (User Functionality):**
+  * Link to existing dive site or create new dive site.
+  * Dive information (text form for detailed description).
+  * Dive plan media upload (PDF, JPG, PNG).
+  * Max depth (in meters/feet).
+  * Average depth (in meters/feet).
+  * Gas bottles used (type, size, pressure).
+  * Suit type used (Wet suit, Dry suit, Shortie).
+  * Difficulty level (Beginner, Intermediate, Advanced, Expert).
+  * Visibility rating (1 to 10).
+  * User rating (1 to 10).
+  * Media upload/links (pictures, videos, external links).
+  * Tags (using same categories as dive sites).
+  * Date and time of dive.
+  * Duration of dive.
+* **View Dive:**
+  * Display all dive information.
+  * Link to associated dive site.
+  * Media gallery for dive plan, photos, videos, and external links.
+  * Tag display.
+  * User can edit their own dives.
+* **Dive Management:**
+  * Users can view all their logged dives.
+  * Search and filter dives by various criteria.
+  * Export dive logs.
+  * Media management (upload, delete, organize).
+
+### **3.5. Comments**
 
 * Users can leave comments on dive sites and diving centers.  
 * Only eponymous users (logged-in users with a verified identity/profile name) can leave comments.  
 * Comments are associated with the user and the rated entity.  
 * Comments can be edited/deleted by the original author or by administrators.
 
-### **3.5. Newsletter Parsing & Dive Trip Display**
+### **3.6. Newsletter Parsing & Dive Trip Display**
 
 * **Newsletter Upload/Submission (Admin Functionality):**  
   * Mechanism to upload or submit dive store newsletters (e.g., email attachment, direct text paste).  
@@ -86,20 +125,21 @@ This document outlines the technical design for a Python-based web application, 
 * **Booking/Contact:**  
   * Link to dive center's email or phone number for booking.
 
-### **3.6. Search and Filtering**
+### **3.7. Search and Filtering**
 
 * Search dive sites by name, location, difficulty.  
 * Search diving centers by name, location, associated dive sites.  
+* Search dives by various criteria (depth, date, location, tags).
 * Filter dive sites/centers by average rating.
 
-### **3.7. Multi-Currency Support System**
+### **3.8. Multi-Currency Support System**
 
 * **Supported Currencies**: 10 major world currencies (USD, EUR, JPY, GBP, CNY, AUD, CAD, CHF, HKD, NZD)
 * **Default Currency**: Euro (€) is the default currency for all cost fields
 * **Currency Display**: Proper formatting with currency symbols and flags
 * **Flexible Input**: Users can submit costs in any supported currency
 
-### **3.8. Database Migration System**
+### **3.9. Database Migration System**
 
 * **Alembic Integration**: All database schema changes must use Alembic for version control
 * **Automatic Migration Execution**: Migrations run automatically before application startup
@@ -111,12 +151,13 @@ This document outlines the technical design for a Python-based web application, 
 * **API Integration**: All cost-related endpoints support currency
 * **Frontend Utility**: Comprehensive currency formatting and selection functions
 
-### **3.8. Admin Management System**
+### **3.10. Admin Management System**
 
 * **Mass Operations**: Bulk delete functionality for admin management pages
 * **User Management**: Complete user CRUD with role assignment and status control
 * **Tag Management**: Comprehensive tag system with usage statistics
 * **Safety Features**: Protection against deleting used tags and self-deletion
+* **Diving Center Ownership Management**: Approve/deny ownership claims and assign owners
 
 ## **4\. Non-Functional Requirements**
 
@@ -195,6 +236,8 @@ The application will follow a microservices-oriented or a well-separated monolit
   * Communication with the backend via RESTful API calls.
   * Google OAuth integration with Google Identity Services.
   * Mass delete functionality for admin management.
+  * Dive logging interface with comprehensive media upload capabilities (photos, videos, external links).
+  * Diving center ownership management interface.
 
 #### **5.2.2. Backend (API)**
 
@@ -202,8 +245,9 @@ The application will follow a microservices-oriented or a well-separated monolit
 * **Framework:** FastAPI (chosen for its high performance, modern features, and automatic OpenAPI/Swagger documentation generation).  
 * **Key Services/Modules:**  
   * **User Service:** Handles user registration, login, authentication (JWT + Google OAuth), profile management.  
-  * **Dive Site Service:** CRUD operations for dive sites, rating logic, comment management.  
-  * **Diving Center Service:** CRUD operations for diving centers, rating logic, comment management, association with dive sites and pricing.  
+  * **Dive Site Service:** CRUD operations for dive sites, rating logic, comment management, URL routing.  
+  * **Diving Center Service:** CRUD operations for diving centers, rating logic, comment management, association with dive sites and pricing, ownership management.  
+  * **Dive Service:** CRUD operations for user dives, media upload handling, dive statistics, external link management.
   * **Google OAuth Service:** Token verification and user management for Google authentication.
   * **Newsletter Parsing Service:**  
     * Receives newsletter content.  
@@ -238,11 +282,10 @@ The application will follow a microservices-oriented or a well-separated monolit
     * latitude  
     * longitude  
     * access\_instructions  
-    * dive\_plans (text or link to file)  
-    * gas\_tanks\_necessary  
     * difficulty\_level  
     * created\_at  
     * updated\_at  
+    * alternative\_names (JSON array for URL routing)
   * site\_media table:  
     * id (PK)  
     * dive\_site\_id (FK to dive\_sites)  
@@ -273,6 +316,8 @@ The application will follow a microservices-oriented or a well-separated monolit
     * longitude  
     * created\_at  
     * updated\_at  
+    * owner\_id (FK to users, nullable) - NEW FIELD
+    * ownership\_status (enum: 'unclaimed', 'claimed', 'approved') - NEW FIELD
   * center\_ratings table:  
     * id (PK)  
     * diving\_center\_id (FK to diving\_centers)  
@@ -296,6 +341,35 @@ The application will follow a microservices-oriented or a well-separated monolit
     * diving\_center\_id (FK to diving\_centers)  
     * item\_name (e.g., "Full Set", "BCD", "Regulator", "12L Tank")  
     * cost  
+  * dives table: - NEW TABLE
+    * id (PK)
+    * user\_id (FK to users)
+    * dive\_site\_id (FK to dive\_sites, nullable)
+    * dive\_information (text)
+    * max\_depth (decimal)
+    * average\_depth (decimal)
+    * gas\_bottles\_used (text)
+    * suit\_type (enum: 'wet_suit', 'dry_suit', 'shortie')
+    * difficulty\_level (enum: 'beginner', 'intermediate', 'advanced', 'expert')
+    * visibility\_rating (1-10)
+    * user\_rating (1-10)
+    * dive\_date (date)
+    * dive\_time (time)
+    * duration (integer, minutes)
+    * created\_at
+    * updated\_at
+  * dive\_media table: - NEW TABLE
+    * id (PK)
+    * dive\_id (FK to dives)
+    * media\_type (enum: 'dive_plan', 'photo', 'video', 'external_link')
+    * url (link to stored media or external URL)
+    * description (optional)
+    * title (optional, for external links)
+    * thumbnail\_url (optional, for external links)
+  * dive\_tags table: - NEW TABLE
+    * id (PK)
+    * dive\_id (FK to dives)
+    * tag\_id (FK to tags)
   * parsed\_dive\_trips table:  
     * id (PK)  
     * diving\_center\_id (FK to diving\_centers)  
@@ -334,6 +408,7 @@ The application will follow a microservices-oriented or a well-separated monolit
 * /api/v1/dive-sites/{site\_id}/rate (POST)  
 * /api/v1/dive-sites/{site\_id}/comments (GET, POST)  
 * /api/v1/dive-sites/search (GET)  
+* /api/v1/dive-sites/by-name/{name} (GET) - NEW ENDPOINT
 * /api/v1/diving-centers (GET, POST)  
 * /api/v1/diving-centers/{center\_id} (GET, PUT, DELETE)  
 * /api/v1/diving-centers/{center\_id}/rate (POST)  
@@ -341,6 +416,13 @@ The application will follow a microservices-oriented or a well-separated monolit
 * /api/v1/diving-centers/search (GET)
 * /api/v1/diving-centers/{center_id}/gear-rental (GET, POST) - Supports currency
 * /api/v1/dive-sites/{site_id}/diving-centers (GET, POST) - Supports currency  
+* /api/v1/diving-centers/{center_id}/claim (POST) - NEW ENDPOINT
+* /api/v1/diving-centers/{center_id}/approve-ownership (POST) - NEW ENDPOINT
+* /api/v1/dives (GET, POST) - NEW ENDPOINT
+* /api/v1/dives/{dive_id} (GET, PUT, DELETE) - NEW ENDPOINT
+* /api/v1/dives/{dive_id}/media (GET, POST, DELETE) - NEW ENDPOINT
+* /api/v1/dives/{dive_id}/media/{media_id} (GET, PUT, DELETE) - NEW ENDPOINT
+* /api/v1/dives/search (GET) - NEW ENDPOINT
 * /api/v1/admin/newsletters/parse (POST \- upload newsletter, trigger parsing)  
 * /api/v1/dive-trips (GET \- retrieve parsed trips for map)  
 * /api/v1/media/upload (POST \- for image/video uploads)
@@ -390,6 +472,8 @@ The application will follow a microservices-oriented or a well-separated monolit
 * **User-Generated Content Review Workflow:** For comments and ratings to prevent abuse.  
 * **Internationalization (i18n):** Support for multiple languages.
 * **Additional OAuth Providers:** Facebook, GitHub, etc.
+* **Dive Statistics and Analytics:** Advanced dive logging analytics and statistics.
+* **Dive Buddy System:** Connect divers and share dive experiences.
 
 ## **9\. Implementation Phases (High-Level)**
 
@@ -420,7 +504,29 @@ The application will follow a microservices-oriented or a well-separated monolit
 * Interactive map display of dive trips.  
 * Contact details for booking (email/phone).
 
-### **Phase 4: Refinement & Scaling**
+### **Phase 4: Dive Logging System**
+
+* CRUD for user dives with comprehensive dive information.
+* Media upload for dive plans and photos.
+* Dive statistics and analytics.
+* Search and filter dives by various criteria.
+* Integration with dive sites and tags.
+
+### **Phase 5: Diving Center Ownership**
+
+* User claiming system for diving centers.
+* Admin approval workflow for ownership claims.
+* Owner editing capabilities for diving center details.
+* Ownership management interface for admins.
+
+### **Phase 6: URL Routing & Enhanced Features**
+
+* URL routing for dive sites by name/alias.
+* Enhanced search and filtering capabilities.
+* Performance optimizations and scaling.
+* Mobile application development.
+
+### **Phase 7: Refinement & Scaling**
 
 * Performance optimizations (caching, query tuning).  
 * Robust error handling and logging.  
@@ -429,7 +535,7 @@ The application will follow a microservices-oriented or a well-separated monolit
 * Scalable deployment infrastructure (Docker/Kubernetes).  
 * User-friendly UI/UX improvements.
 
-### **Phase 5: Mobile Application (Future)**
+### **Phase 8: Mobile Application (Future)**
 
 * Design and development of the React Native mobile application.  
 * Adaptation of existing frontend components.  
@@ -447,6 +553,7 @@ The application will follow a microservices-oriented or a well-separated monolit
 * **Secret Management:** Securely store API keys and sensitive credentials (e.g., environment variables, dedicated secret management services).  
 * **Regular Security Audits:** Conduct periodic vulnerability assessments and penetration testing.
 * **Google OAuth Security:** Secure token verification with Google's servers.
+* **Media Upload Security:** Validate file types and sizes, scan for malware.
 
 ## **11\. Error Handling and Logging**
 
@@ -474,7 +581,7 @@ The application will follow a microservices-oriented or a well-separated monolit
 ### **12.3 Test Categories**
 
 #### **A. Backend API Testing**
-* Unit tests for all API endpoints (auth, users, dive sites, diving centers)
+* Unit tests for all API endpoints (auth, users, dive sites, diving centers, dives)
 * Integration tests for database operations
 * Authentication and authorization testing
 * Error handling and edge case testing
@@ -708,3 +815,27 @@ node test_regressions.js
 * ✅ Fixed test tag data to match actual model fields
 * ✅ Added comprehensive API response validation tests
 * ✅ Improved error handling and logging for debugging
+
+### **13.5 Planned Features**
+
+#### **Phase 4: Dive Logging System 🔄 PLANNED**
+* 🔄 CRUD for user dives with comprehensive dive information
+* 🔄 Media upload for dive plans, photos, videos, and external links
+* 🔄 Media management (upload, delete, organize, external link handling)
+* 🔄 Dive statistics and analytics
+* 🔄 Search and filter dives by various criteria
+* 🔄 Integration with dive sites and tags
+* 🔄 Remove gas tanks necessary and dive plans from dive sites
+* 🔄 Add alternative names/aliases to dive sites for URL routing
+
+#### **Phase 5: Diving Center Ownership 🔄 PLANNED**
+* 🔄 User claiming system for diving centers
+* 🔄 Admin approval workflow for ownership claims
+* 🔄 Owner editing capabilities for diving center details
+* 🔄 Ownership management interface for admins
+
+#### **Phase 6: URL Routing & Enhanced Features 🔄 PLANNED**
+* 🔄 URL routing for dive sites by name/alias
+* 🔄 Enhanced search and filtering capabilities
+* 🔄 Performance optimizations and scaling
+* 🔄 Mobile application development

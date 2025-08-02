@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { Star, MapPin, Phone, Mail, Globe, Calendar, DollarSign, Edit, Award } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Globe, Calendar, DollarSign, Edit, Award, Crown, AlertCircle, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api';
+import { claimDivingCenterOwnership } from '../api';
 
 // Helper function to safely extract error message
 const getErrorMessage = (error) => {
@@ -24,6 +25,8 @@ const DivingCenterDetail = () => {
   const [newComment, setNewComment] = useState('');
   const [editingComment, setEditingComment] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
+  const [showOwnershipClaim, setShowOwnershipClaim] = useState(false);
+  const [ownershipReason, setOwnershipReason] = useState('');
 
   // Check if user has edit privileges
   const canEdit = user && (user.is_admin || user.is_moderator);
@@ -137,6 +140,22 @@ const DivingCenterDetail = () => {
     }
   );
 
+  // Ownership claim mutation
+  const ownershipClaimMutation = useMutation(
+    (reason) => claimDivingCenterOwnership(id, { reason }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['diving-center', id]);
+        setShowOwnershipClaim(false);
+        setOwnershipReason('');
+        toast.success('Ownership claim submitted successfully! Waiting for admin approval.');
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.detail || 'Failed to submit ownership claim');
+      }
+    }
+  );
+
   const handleRating = (score) => {
     setRating(score);
     rateMutation.mutate({ score });
@@ -163,6 +182,15 @@ const DivingCenterDetail = () => {
     if (window.confirm('Are you sure you want to delete this comment?')) {
       deleteCommentMutation.mutate(commentId);
     }
+  };
+
+  const handleOwnershipClaim = (e) => {
+    e.preventDefault();
+    if (!ownershipReason.trim()) {
+      toast.error('Please provide a reason for your ownership claim');
+      return;
+    }
+    ownershipClaimMutation.mutate(ownershipReason);
   };
 
   const renderStars = (rating, interactive = false) => {
@@ -324,6 +352,41 @@ const DivingCenterDetail = () => {
               </div>
             )}
           </div>
+
+          {/* Ownership Status */}
+          {center?.ownership_status && (
+            <div className="border-t pt-4 mb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Crown className="h-5 w-5 text-yellow-600" />
+                  <span className="text-sm font-medium text-gray-700">Ownership Status:</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    center.ownership_status === 'approved' ? 'bg-green-100 text-green-800' :
+                    center.ownership_status === 'claimed' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {center.ownership_status === 'approved' ? 'Approved Owner' :
+                     center.ownership_status === 'claimed' ? 'Claim Pending' :
+                     'Unclaimed'}
+                  </span>
+                </div>
+                {user && center.ownership_status === 'unclaimed' && (
+                  <button
+                    onClick={() => setShowOwnershipClaim(true)}
+                    className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center space-x-2"
+                  >
+                    <Crown className="h-4 w-4" />
+                    <span>Claim Ownership</span>
+                  </button>
+                )}
+              </div>
+              {center.owner_username && (
+                <p className="text-sm text-gray-600 mt-2">
+                  Owner: {center.owner_username}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Diving Organizations */}
           {orgLoading ? (
@@ -501,6 +564,65 @@ const DivingCenterDetail = () => {
           )}
         </div>
       </div>
+
+      {/* Ownership Claim Modal */}
+      {showOwnershipClaim && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Claim Ownership</h3>
+              <button
+                onClick={() => setShowOwnershipClaim(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleOwnershipClaim}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reason for Claim *
+                </label>
+                <textarea
+                  value={ownershipReason}
+                  onChange={(e) => setOwnershipReason(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows="4"
+                  placeholder="Please explain how to verify that you are the owner of this diving center. Provide email/telephone contact details if necessary..."
+                  required
+                />
+              </div>
+              <div className="flex items-center space-x-2 mb-4">
+                <AlertCircle className="h-5 w-5 text-yellow-600" />
+                <p className="text-sm text-gray-600">
+                  Your claim will be reviewed by administrators. You'll be notified once a decision is made.
+                </p>
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowOwnershipClaim(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={ownershipClaimMutation.isLoading}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  {ownershipClaimMutation.isLoading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <Crown className="h-4 w-4" />
+                  )}
+                  <span>Submit Claim</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

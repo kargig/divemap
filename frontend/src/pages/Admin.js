@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Users, MapPin, Building2, Tags, Settings, ArrowRight, Award } from 'lucide-react';
+import { Users, MapPin, Building2, Tags, Settings, ArrowRight, Award, Crown, Anchor } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Admin = () => {
@@ -38,6 +38,13 @@ const Admin = () => {
       color: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100'
     },
     {
+      title: 'Dive Management',
+      description: 'Manage all dives, view details, edit information, and delete dives.',
+      icon: <Anchor className="h-8 w-8 text-teal-600" />,
+      href: '/admin/dives',
+      color: 'bg-teal-50 border-teal-200 hover:bg-teal-100'
+    },
+    {
       title: 'Tag Management',
       description: 'Create, edit, and delete tags used to categorize dive sites.',
       icon: <Tags className="h-8 w-8 text-purple-600" />,
@@ -50,6 +57,13 @@ const Admin = () => {
       icon: <Users className="h-8 w-8 text-orange-600" />,
       href: '/admin/users',
       color: 'bg-orange-50 border-orange-200 hover:bg-orange-100'
+    },
+    {
+      title: 'Ownership Requests',
+      description: 'Review and approve ownership claims for diving centers.',
+      icon: <Crown className="h-8 w-8 text-yellow-600" />,
+      href: '/admin/ownership-requests',
+      color: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100'
     }
   ];
 
@@ -60,7 +74,7 @@ const Admin = () => {
         <p className="text-gray-600 mt-2">Manage all aspects of the dive site platform</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {adminCards.map((card, index) => (
           <div
             key={index}

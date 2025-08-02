@@ -12,6 +12,18 @@ class DifficultyLevel(enum.Enum):
 class MediaType(enum.Enum):
     photo = "photo"
     video = "video"
+    dive_plan = "dive_plan"
+    external_link = "external_link"
+
+class SuitType(enum.Enum):
+    wet_suit = "wet_suit"
+    dry_suit = "dry_suit"
+    shortie = "shortie"
+
+class OwnershipStatus(enum.Enum):
+    unclaimed = "unclaimed"
+    claimed = "claimed"
+    approved = "approved"
 
 class DivingOrganization(Base):
     __tablename__ = "diving_organizations"
@@ -53,6 +65,8 @@ class User(Base):
     center_ratings = relationship("CenterRating", back_populates="user", cascade="all, delete-orphan")
     center_comments = relationship("CenterComment", back_populates="user", cascade="all, delete-orphan")
     certifications = relationship("UserCertification", back_populates="user", cascade="all, delete-orphan")
+    dives = relationship("Dive", back_populates="user", cascade="all, delete-orphan")
+    diving_centers = relationship("DivingCenter", back_populates="owner")
 
 class DiveSite(Base):
     __tablename__ = "dive_sites"
@@ -64,8 +78,6 @@ class DiveSite(Base):
     longitude = Column(DECIMAL(11, 8))
     address = Column(Text)  # Added address field
     access_instructions = Column(Text)
-    dive_plans = Column(Text)
-    gas_tanks_necessary = Column(Text)
     difficulty_level = Column(Enum(DifficultyLevel), default=DifficultyLevel.intermediate, index=True)
     marine_life = Column(Text)  # Added marine life field
     safety_information = Column(Text)  # Added safety information field
@@ -84,6 +96,7 @@ class DiveSite(Base):
     center_relationships = relationship("CenterDiveSite", back_populates="dive_site", cascade="all, delete-orphan")
     dive_trips = relationship("ParsedDiveTrip", back_populates="dive_site")
     tags = relationship("DiveSiteTag", back_populates="dive_site", cascade="all, delete-orphan")
+    dives = relationship("Dive", back_populates="dive_site", cascade="all, delete-orphan")
 
 class SiteMedia(Base):
     __tablename__ = "site_media"
@@ -139,6 +152,8 @@ class DivingCenter(Base):
     view_count = Column(Integer, default=0, nullable=False)  # Number of views
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True) # New field for owner
+    ownership_status = Column(Enum(OwnershipStatus), default=OwnershipStatus.unclaimed, nullable=False) # New field for ownership status
 
     # Relationships
     ratings = relationship("CenterRating", back_populates="diving_center", cascade="all, delete-orphan")
@@ -147,6 +162,7 @@ class DivingCenter(Base):
     gear_rental_costs = relationship("GearRentalCost", back_populates="diving_center", cascade="all, delete-orphan")
     dive_trips = relationship("ParsedDiveTrip", back_populates="diving_center")
     organization_relationships = relationship("DivingCenterOrganization", back_populates="diving_center", cascade="all, delete-orphan")
+    owner = relationship("User", back_populates="diving_centers") # New relationship for owner
 
 class CenterRating(Base):
     __tablename__ = "center_ratings"
@@ -235,6 +251,7 @@ class AvailableTag(Base):
 
     # Relationships
     dive_site_tags = relationship("DiveSiteTag", back_populates="tag", cascade="all, delete-orphan")
+    dive_tags = relationship("DiveTag", back_populates="tag", cascade="all, delete-orphan")
 
 class DiveSiteTag(Base):
     __tablename__ = "dive_site_tags"
@@ -274,4 +291,59 @@ class UserCertification(Base):
 
     # Relationships
     user = relationship("User", back_populates="certifications")
-    diving_organization = relationship("DivingOrganization", back_populates="user_certifications") 
+    diving_organization = relationship("DivingOrganization", back_populates="user_certifications")
+
+class Dive(Base):
+    __tablename__ = "dives"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), nullable=True)
+    name = Column(String(255), nullable=True)  # Custom name/alias provided by user
+    is_private = Column(Boolean, default=False)  # Privacy control - default public
+    dive_information = Column(Text)
+    max_depth = Column(DECIMAL(5, 2))  # Maximum depth in meters
+    average_depth = Column(DECIMAL(5, 2))  # Average depth in meters
+    gas_bottles_used = Column(Text)
+    suit_type = Column(Enum(SuitType), nullable=True)
+    difficulty_level = Column(Enum(DifficultyLevel), default=DifficultyLevel.intermediate)
+    visibility_rating = Column(Integer)  # 1-10 rating
+    user_rating = Column(Integer)  # 1-10 rating
+    dive_date = Column(Date, nullable=False)
+    dive_time = Column(Time, nullable=True)
+    duration = Column(Integer)  # Duration in minutes
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="dives")
+    dive_site = relationship("DiveSite", back_populates="dives")
+    media = relationship("DiveMedia", back_populates="dive", cascade="all, delete-orphan")
+    tags = relationship("DiveTag", back_populates="dive", cascade="all, delete-orphan")
+
+class DiveMedia(Base):
+    __tablename__ = "dive_media"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dive_id = Column(Integer, ForeignKey("dives.id"), nullable=False)
+    media_type = Column(Enum(MediaType), nullable=False)
+    url = Column(String(500), nullable=False)
+    description = Column(Text)
+    title = Column(String(255))  # For external links
+    thumbnail_url = Column(String(500))  # For external links
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    dive = relationship("Dive", back_populates="media")
+
+class DiveTag(Base):
+    __tablename__ = "dive_tags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dive_id = Column(Integer, ForeignKey("dives.id"), nullable=False)
+    tag_id = Column(Integer, ForeignKey("available_tags.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    dive = relationship("Dive", back_populates="tags")
+    tag = relationship("AvailableTag", back_populates="dive_tags") 

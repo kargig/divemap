@@ -11,15 +11,16 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 - **Diving Centers**: Full management with gear rental costs and dive site associations
 - **Diving Organizations**: Complete management system for diving organizations (PADI, SSI, GUE, etc.)
 - **User Certifications**: Comprehensive certification tracking system with organization associations
+- **Dive Logging**: Complete dive logging system with media uploads, tags, and statistics
 - **Rating System**: Rate dive sites and diving centers (1-10 scale) with proper state management
 - **Comments**: User comments on dive sites and diving centers
 - **Interactive Map**: View dive sites and diving centers on an interactive map
 - **Search & Filtering**: Advanced search and filtering capabilities including country and region filters
 - **Geocoding Integration**: Automatic country and region suggestions based on coordinates using OpenStreetMap
-- **Media Management**: Upload and display photos and videos for dive sites
+- **Media Management**: Upload and display photos and videos for dive sites and dives
 - **Gear Rental**: Manage diving center gear rental costs with multi-currency support
 - **Multi-Currency System**: Support for 10 major world currencies with Euro (€) as default
-- **Tag System**: Comprehensive tag/label management for dive sites with enhanced validation
+- **Tag System**: Comprehensive tag/label management for dive sites and dives with enhanced validation
 - **Admin Dashboard**: Full administrative interface with separate management pages
 - **Mass Operations**: Bulk delete functionality for admin management
 - **Google OAuth**: Secure authentication with Google accounts

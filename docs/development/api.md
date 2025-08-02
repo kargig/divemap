@@ -1009,6 +1009,52 @@ Remove tag from dive site (admin/moderator only).
 }
 ```
 
+### Dive Model
+```json
+{
+  "id": "integer",
+  "user_id": "integer",
+  "dive_site_id": "integer (optional)",
+  "dive_information": "string (optional)",
+  "max_depth": "decimal (optional)",
+  "average_depth": "decimal (optional)",
+  "gas_bottles_used": "string (optional)",
+  "suit_type": "enum (wet_suit, dry_suit, shortie)",
+  "difficulty_level": "enum (beginner, intermediate, advanced, expert)",
+  "visibility_rating": "integer (1-10, optional)",
+  "user_rating": "integer (1-10, optional)",
+  "dive_date": "date",
+  "dive_time": "time (optional)",
+  "duration": "integer (minutes, optional)",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+### Dive Media Model
+```json
+{
+  "id": "integer",
+  "dive_id": "integer",
+  "media_type": "enum (photo, video, dive_plan, external_link)",
+  "url": "string",
+  "description": "string (optional)",
+  "title": "string (optional)",
+  "thumbnail_url": "string (optional)",
+  "created_at": "datetime"
+}
+```
+
+### Dive Tag Model
+```json
+{
+  "id": "integer",
+  "dive_id": "integer",
+  "tag_id": "integer",
+  "created_at": "datetime"
+}
+```
+
 ## Rate Limiting
 
 The API implements rate limiting to prevent abuse:
@@ -1187,6 +1233,123 @@ curl -X PATCH "https://divemap-backend.fly.dev/api/v1/user-certifications/my-cer
 # Delete a certification
 curl -X DELETE "https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications/1" \
      -H "Authorization: Bearer USER_TOKEN"
+```
+
+### Managing Dives
+
+The dive system allows users to log their diving experiences with comprehensive details including media uploads, tags, and statistics.
+
+#### Dive Endpoints
+
+```bash
+# Get all dives for the authenticated user
+curl -H "Authorization: Bearer USER_TOKEN" \
+     "https://divemap-backend.fly.dev/api/v1/dives/"
+
+# Get a specific dive
+curl -H "Authorization: Bearer USER_TOKEN" \
+     "https://divemap-backend.fly.dev/api/v1/dives/1"
+
+# Create a new dive
+curl -X POST "https://divemap-backend.fly.dev/api/v1/dives/" \
+     -H "Authorization: Bearer USER_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "dive_date": "2024-01-15",
+       "dive_site_id": 1,
+       "max_depth": 25.5,
+       "average_depth": 18.0,
+       "dive_information": "Amazing dive with lots of marine life",
+       "suit_type": "wet_suit",
+       "difficulty_level": "intermediate",
+       "visibility_rating": 8,
+       "user_rating": 9,
+       "duration": 60
+     }'
+
+# Update a dive
+curl -X PUT "https://divemap-backend.fly.dev/api/v1/dives/1" \
+     -H "Authorization: Bearer USER_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "max_depth": 28.0,
+       "visibility_rating": 9,
+       "dive_information": "Updated dive information"
+     }'
+
+# Delete a dive
+curl -X DELETE "https://divemap-backend.fly.dev/api/v1/dives/1" \
+     -H "Authorization: Bearer USER_TOKEN"
+```
+
+#### Dive Media Management
+
+```bash
+# Add media to a dive
+curl -X POST "https://divemap-backend.fly.dev/api/v1/dives/1/media" \
+     -H "Authorization: Bearer USER_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "media_type": "photo",
+       "url": "https://example.com/photo.jpg",
+       "description": "Underwater photo from the dive"
+     }'
+
+# Get all media for a dive
+curl -H "Authorization: Bearer USER_TOKEN" \
+     "https://divemap-backend.fly.dev/api/v1/dives/1/media"
+
+# Delete media from a dive
+curl -X DELETE "https://divemap-backend.fly.dev/api/v1/dives/1/media/1" \
+     -H "Authorization: Bearer USER_TOKEN"
+```
+
+#### Dive Tags
+
+```bash
+# Add a tag to a dive
+curl -X POST "https://divemap-backend.fly.dev/api/v1/dives/1/tags" \
+     -H "Authorization: Bearer USER_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "tag_id": 1
+     }'
+
+# Remove a tag from a dive
+curl -X DELETE "https://divemap-backend.fly.dev/api/v1/dives/1/tags/1" \
+     -H "Authorization: Bearer USER_TOKEN"
+```
+
+#### Admin Dive Management
+
+```bash
+# Get all dives (admin only)
+curl -H "Authorization: Bearer ADMIN_TOKEN" \
+     "https://divemap-backend.fly.dev/api/v1/admin/dives"
+
+# Update any dive (admin only)
+curl -X PUT "https://divemap-backend.fly.dev/api/v1/admin/dives/1" \
+     -H "Authorization: Bearer ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "dive_information": "Admin updated dive information"
+     }'
+
+# Delete any dive (admin only)
+curl -X DELETE "https://divemap-backend.fly.dev/api/v1/admin/dives/1" \
+     -H "Authorization: Bearer ADMIN_TOKEN"
+```
+
+#### Dive Search and Filtering
+
+```bash
+# Search dives with filters
+curl -H "Authorization: Bearer USER_TOKEN" \
+     "https://divemap-backend.fly.dev/api/v1/dives/?dive_site_name=coral&min_depth=20&max_depth=30&difficulty_level=intermediate"
+
+# Search with date range
+curl -H "Authorization: Bearer USER_TOKEN" \
+     "https://divemap-backend.fly.dev/api/v1/dives/?start_date=2024-01-01&end_date=2024-01-31"
 ```
 
 ## Conclusion
