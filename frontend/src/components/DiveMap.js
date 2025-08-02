@@ -20,6 +20,66 @@ const DiveMap = ({ diveSites = [], divingCenters = [], viewport, onViewportChang
   const [currentZoom, setCurrentZoom] = useState(2);
   const [maxZoom, setMaxZoom] = useState(19);
 
+  // Create custom dive site icon (scuba flag)
+  const createDiveSiteIcon = () => {
+    const size = 24;
+    
+    // Create SVG scuba flag (diver down flag) - red rectangle with white diagonal stripe
+    const svg = `
+      <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Red rectangle background -->
+        <rect x="2" y="2" width="20" height="20" fill="#dc2626" stroke="white" stroke-width="1"/>
+        <!-- White diagonal stripe from top-left to bottom-right -->
+        <path d="M2 2 L22 22" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        <!-- Optional: Add small white dots for bubbles -->
+        <circle cx="6" cy="6" r="1" fill="white"/>
+        <circle cx="18" cy="18" r="1" fill="white"/>
+      </svg>
+    `;
+    
+    const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    
+    return new Icon({
+      src: dataUrl,
+      scale: 1,
+      anchor: [0.5, 0.5],
+      anchorXUnits: 'fraction',
+      anchorYUnits: 'fraction'
+    });
+  };
+
+  // Create custom diving center icon (building)
+  const createDivingCenterIcon = () => {
+    const size = 24;
+    
+    // Create SVG building icon
+    const svg = `
+      <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Building structure -->
+        <rect x="4" y="8" width="16" height="14" fill="#1f2937" stroke="white" stroke-width="1"/>
+        <!-- Roof -->
+        <path d="M4 8 L12 2 L20 8" stroke="white" stroke-width="1" fill="none"/>
+        <!-- Windows -->
+        <rect x="6" y="10" width="3" height="3" fill="#3b82f6"/>
+        <rect x="15" y="10" width="3" height="3" fill="#3b82f6"/>
+        <rect x="6" y="15" width="3" height="3" fill="#3b82f6"/>
+        <rect x="15" y="15" width="3" height="3" fill="#3b82f6"/>
+        <!-- Door -->
+        <rect x="10" y="18" width="4" height="4" fill="#3b82f6"/>
+      </svg>
+    `;
+    
+    const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    
+    return new Icon({
+      src: dataUrl,
+      scale: 1,
+      anchor: [0.5, 0.5],
+      anchorXUnits: 'fraction',
+      anchorYUnits: 'fraction'
+    });
+  };
+
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -116,16 +176,7 @@ const DiveMap = ({ diveSites = [], divingCenters = [], viewport, onViewportChang
       const diveSiteLayer = new VectorLayer({
         source: diveSiteSource,
         style: new Style({
-          image: new CircleStyle({
-            radius: 8,
-            fill: new Fill({
-              color: 'blue'
-            }),
-            stroke: new Stroke({
-              color: 'white',
-              width: 2
-            })
-          })
+          image: createDiveSiteIcon()
         })
       });
 
@@ -141,16 +192,7 @@ const DiveMap = ({ diveSites = [], divingCenters = [], viewport, onViewportChang
       const divingCenterLayer = new VectorLayer({
         source: divingCenterSource,
         style: new Style({
-          image: new CircleStyle({
-            radius: 10,
-            fill: new Fill({
-              color: 'red'
-            }),
-            stroke: new Stroke({
-              color: 'white',
-              width: 2
-            })
-          })
+          image: createDivingCenterIcon()
         })
       });
 

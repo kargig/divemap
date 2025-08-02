@@ -1,13 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import os
+from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.routers import auth, dive_sites, users, diving_centers, tags, diving_organizations, user_certifications, dives
-from app.database import engine
-from app.models import Base
+from app.database import engine, get_db
+from app.models import Base, Dive, DiveSite, SiteRating, CenterRating, DivingCenter
 from app.limiter import limiter
 
 # Create database tables
@@ -98,4 +100,36 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"} 
+    return {"status": "healthy"}
+
+@app.get("/api/v1/stats")
+async def get_statistics(db: Session = Depends(get_db)):
+    """Get platform statistics"""
+    try:
+        # Count dives (only public ones for unauthenticated users)
+        dive_count = db.query(func.count(Dive.id)).filter(Dive.is_private == False).scalar()
+        
+        # Count dive sites
+        dive_site_count = db.query(func.count(DiveSite.id)).scalar()
+        
+        # Count reviews (site ratings + center ratings)
+        site_review_count = db.query(func.count(SiteRating.id)).scalar()
+        center_review_count = db.query(func.count(CenterRating.id)).scalar()
+        total_review_count = site_review_count + center_review_count
+        
+        # Count diving centers
+        diving_center_count = db.query(func.count(DivingCenter.id)).scalar()
+        
+        return {
+            "dives": dive_count,
+            "dive_sites": dive_site_count,
+            "reviews": total_review_count,
+            "diving_centers": diving_center_count
+        }
+    except Exception as e:
+        return {
+            "dives": 0,
+            "dive_sites": 0,
+            "reviews": 0,
+            "diving_centers": 0
+        } 

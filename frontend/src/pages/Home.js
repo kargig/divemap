@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Map, Star, Anchor, Eye, EyeOff } from 'lucide-react';
+import { Map, Star, Anchor, Eye, EyeOff, BookOpen } from 'lucide-react';
 import { useQuery } from 'react-query';
 import DiveMap from '../components/DiveMap';
 import api from '../api';
@@ -23,6 +23,16 @@ const Home = () => {
   const { data: divingCenters } = useQuery(
     ['diving-centers'],
     () => api.get('/api/v1/diving-centers/'),
+    {
+      select: (response) => response.data,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+
+  // Fetch statistics
+  const { data: stats } = useQuery(
+    ['stats'],
+    () => api.get('/api/v1/stats'),
     {
       select: (response) => response.data,
       staleTime: 5 * 60 * 1000, // 5 minutes
@@ -53,6 +63,12 @@ const Home = () => {
             Explore Dive Sites
           </Link>
           <Link
+            to="/dives"
+            className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-semibold"
+          >
+            Browse Dives
+          </Link>
+          <Link
             to="/register"
             className="px-8 py-3 bg-white text-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-lg font-semibold"
           >
@@ -62,13 +78,22 @@ const Home = () => {
       </div>
 
       {/* Features Section */}
-      <div className="grid md:grid-cols-3 gap-8 py-12">
+      <div className="grid md:grid-cols-4 gap-8 py-12">
         <div className="text-center p-6 bg-white rounded-lg shadow-md">
           <Map className="h-12 w-12 text-blue-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold mb-2">Discover Sites</h3>
           <p className="text-gray-600">
             Browse through our comprehensive database of dive sites with detailed information, 
             difficulty levels, and access instructions.
+          </p>
+        </div>
+        
+        <div className="text-center p-6 bg-white rounded-lg shadow-md">
+          <BookOpen className="h-12 w-12 text-green-600 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold mb-2">Log Your Dives</h3>
+          <p className="text-gray-600">
+            Record your diving experiences, track your progress, and share your adventures 
+            with the diving community.
           </p>
         </div>
         
@@ -145,19 +170,23 @@ const Home = () => {
 
       {/* Stats Section */}
       <div className="bg-blue-600 text-white py-12 rounded-lg mb-12">
-        <div className="grid md:grid-cols-3 gap-8 text-center">
-          <div>
-            <div className="text-3xl font-bold mb-2">{diveSites?.length || 0}</div>
+        <div className="grid md:grid-cols-4 gap-8 text-center">
+          <Link to="/dives" className="hover:bg-blue-700 p-4 rounded-lg transition-colors">
+            <div className="text-3xl font-bold mb-2">{stats?.dives || 0}</div>
+            <div className="text-blue-200">Dives</div>
+          </Link>
+          <Link to="/dive-sites" className="hover:bg-blue-700 p-4 rounded-lg transition-colors">
+            <div className="text-3xl font-bold mb-2">{stats?.dive_sites || 0}</div>
             <div className="text-blue-200">Dive Sites</div>
-          </div>
-          <div>
-            <div className="text-3xl font-bold mb-2">1000+</div>
+          </Link>
+          <div className="p-4">
+            <div className="text-3xl font-bold mb-2">{stats?.reviews || 0}</div>
             <div className="text-blue-200">Reviews</div>
           </div>
-          <div>
-            <div className="text-3xl font-bold mb-2">{divingCenters?.length || 0}</div>
+          <Link to="/diving-centers" className="hover:bg-blue-700 p-4 rounded-lg transition-colors">
+            <div className="text-3xl font-bold mb-2">{stats?.diving_centers || 0}</div>
             <div className="text-blue-200">Diving Centers</div>
-          </div>
+          </Link>
         </div>
       </div>
 
@@ -181,6 +210,12 @@ const Home = () => {
             className="px-8 py-3 bg-white text-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-lg font-semibold"
           >
             Browse Sites
+          </Link>
+          <Link
+            to="/dives"
+            className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-semibold"
+          >
+            Browse Dives
           </Link>
         </div>
       </div>
