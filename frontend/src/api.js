@@ -156,7 +156,6 @@ export const removeDiveTag = async (diveId, tagId) => {
     throw error;
   }
 };
-
 // Diving Center Ownership API functions
 export const claimDivingCenterOwnership = async (divingCenterId, claimData) => {
   try {

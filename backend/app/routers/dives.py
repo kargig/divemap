@@ -11,7 +11,7 @@ from app.schemas import (
     DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse,
     DiveTagCreate, DiveTagResponse, DiveSearchParams
 )
-from app.auth import get_current_user
+from app.auth import get_current_user, get_current_user_optional
 
 router = APIRouter(tags=["dives"])
 
@@ -460,7 +460,7 @@ def create_dive(
 @router.get("/", response_model=List[DiveResponse])
 def get_dives(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
@@ -478,8 +478,9 @@ def get_dives(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0)
 ):
-    """Get dives with filtering options. Can view own dives and public dives from other users."""
-    if not current_user.enabled:
+    """Get dives with filtering options. Can view own dives and public dives from other users. Unauthenticated users can view public dives."""
+    # Check if user is authenticated and enabled
+    if current_user and not current_user.enabled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled"
@@ -490,10 +491,11 @@ def get_dives(
     
     # Filter by user if specified, otherwise show own dives and public dives from others
     if user_id:
-        # If viewing specific user's dives, only show public ones unless it's the current user
-        if user_id == current_user.id:
+        if current_user and user_id == current_user.id:
+            # Authenticated user viewing their own dives
             query = query.filter(Dive.user_id == user_id)
         else:
+            # Unauthenticated user or viewing other user's dives - only show public ones
             query = query.filter(
                 and_(
                     Dive.user_id == user_id,
@@ -501,13 +503,17 @@ def get_dives(
                 )
             )
     else:
-        # Show own dives and public dives from others
-        query = query.filter(
-            or_(
-                Dive.user_id == current_user.id,
-                and_(Dive.user_id != current_user.id, Dive.is_private == False)
+        if current_user:
+            # Authenticated user - show own dives and public dives from others
+            query = query.filter(
+                or_(
+                    Dive.user_id == current_user.id,
+                    and_(Dive.user_id != current_user.id, Dive.is_private == False)
+                )
             )
-        )
+        else:
+            # Unauthenticated user - only show public dives
+            query = query.filter(Dive.is_private == False)
     
     # Apply filters
     if dive_site_id:
@@ -638,10 +644,11 @@ def get_dives(
 def get_dive(
     dive_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """Get a specific dive by ID. Can view own dives and public dives from other users."""
-    if not current_user.enabled:
+    """Get a specific dive by ID. Can view own dives and public dives from other users. Unauthenticated users can view public dives."""
+    # Check if user is authenticated and enabled
+    if current_user and not current_user.enabled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled"
@@ -657,11 +664,20 @@ def get_dive(
         )
     
     # Check access permissions
-    if dive.user_id != current_user.id and dive.is_private:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This dive is private"
-        )
+    if current_user:
+        # Authenticated user - can see own dives and public dives from others
+        if dive.user_id != current_user.id and dive.is_private:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This dive is private"
+            )
+    else:
+        # Unauthenticated user - can only see public dives
+        if dive.is_private:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This dive is private"
+            )
     
     # Get dive site information if available
     dive_site_info = None
@@ -712,10 +728,11 @@ def get_dive(
 def get_dive_details(
     dive_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """Get detailed dive information including location and minimap data"""
-    if not current_user.enabled:
+    """Get detailed dive information including location and minimap data. Unauthenticated users can view public dives."""
+    # Check if user is authenticated and enabled
+    if current_user and not current_user.enabled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled"
@@ -733,11 +750,20 @@ def get_dive_details(
         )
     
     # Check access permissions
-    if dive.user_id != current_user.id and dive.is_private:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This dive is private"
-        )
+    if current_user:
+        # Authenticated user - can see own dives and public dives from others
+        if dive.user_id != current_user.id and dive.is_private:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This dive is private"
+            )
+    else:
+        # Unauthenticated user - can only see public dives
+        if dive.is_private:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This dive is private"
+            )
     
     # Get dive site information if available
     dive_site_info = None
@@ -961,6 +987,9 @@ def delete_dive(
     return {"message": "Dive deleted successfully"}
 
 
+
+
+
 # Dive Media endpoints
 @router.post("/{dive_id}/media", response_model=DiveMediaResponse)
 def add_dive_media(
@@ -1008,26 +1037,40 @@ def add_dive_media(
 def get_dive_media(
     dive_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """Get all media for a dive"""
-    if not current_user.enabled:
+    """Get all media for a dive. Unauthenticated users can view media for public dives."""
+    # Check if user is authenticated and enabled
+    if current_user and not current_user.enabled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled"
         )
     
-    # Verify dive exists and belongs to user
-    dive = db.query(Dive).filter(
-        Dive.id == dive_id,
-        Dive.user_id == current_user.id
-    ).first()
+    # Verify dive exists and check access permissions
+    dive = db.query(Dive).filter(Dive.id == dive_id).first()
     
     if not dive:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive not found"
         )
+    
+    # Check access permissions
+    if current_user:
+        # Authenticated user - can see own dives and public dives from others
+        if dive.user_id != current_user.id and dive.is_private:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This dive is private"
+            )
+    else:
+        # Unauthenticated user - can only see public dives
+        if dive.is_private:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This dive is private"
+            )
     
     media = db.query(DiveMedia).filter(DiveMedia.dive_id == dive_id).all()
     return media

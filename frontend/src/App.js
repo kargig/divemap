@@ -198,11 +198,7 @@ function App() {
                 />
                 <Route 
                   path="/dives" 
-                  element={
-                    <ProtectedRoute>
-                      <Dives />
-                    </ProtectedRoute>
-                  } 
+                  element={<Dives />} 
                 />
                 <Route 
                   path="/dives/map" 
@@ -222,11 +218,7 @@ function App() {
                 />
                 <Route 
                   path="/dives/:id" 
-                  element={
-                    <ProtectedRoute>
-                      <DiveDetail />
-                    </ProtectedRoute>
-                  } 
+                  element={<DiveDetail />} 
                 />
                 <Route 
                   path="/dives/:id/edit" 

@@ -15,8 +15,11 @@ const DiveDetail = () => {
 
   // Fetch dive data
   const { data: dive, isLoading, error } = useQuery(
-    ['dive', id],
-    () => getDive(id),
+    ['dive', id, user],
+    () => {
+      // Use main dives endpoint for both authenticated and unauthenticated users
+      return getDive(id);
+    },
     {
       enabled: !!id,
     }

@@ -28,12 +28,10 @@ const Navbar = () => {
               <span>Home</span>
             </Link>
             
-            {user && (
-              <Link to="/dives" className="flex items-center space-x-1 hover:text-blue-200 transition-colors">
-                <Anchor className="h-5 w-5" />
-                <span>Dives</span>
-              </Link>
-            )}
+            <Link to="/dives" className="flex items-center space-x-1 hover:text-blue-200 transition-colors">
+              <Anchor className="h-5 w-5" />
+              <span>Dives</span>
+            </Link>
             
             <Link to="/dive-sites" className="flex items-center space-x-1 hover:text-blue-200 transition-colors">
               <Map className="h-5 w-5" />

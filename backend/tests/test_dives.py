@@ -413,4 +413,99 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
         
         data = response.json()
-        assert len(data) == 0  # No dives should match 
+        assert len(data) == 0  # No dives should match
+    
+    def test_unauthenticated_user_can_access_public_dives(self, client, db_session, test_dive_site):
+        """Test that unauthenticated users can access public dives."""
+        # Create another user
+        from app.models import User
+        other_user = User(
+            username="otheruser",
+            email="other@example.com",
+            password_hash="hashed_password",
+            enabled=True
+        )
+        db_session.add(other_user)
+        db_session.commit()
+        
+        # Create a public dive by the other user
+        public_dive = Dive(
+            user_id=other_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Public Dive",
+            is_private=False,
+            dive_information="Public dive information",
+            max_depth=Decimal("18.5"),
+            average_depth=Decimal("12.0"),
+            gas_bottles_used="Air",
+            suit_type="wet_suit",
+            difficulty_level="intermediate",
+            visibility_rating=8,
+            user_rating=9,
+            dive_date=date(2025, 1, 15),
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(public_dive)
+        
+        # Create a private dive by the other user
+        private_dive = Dive(
+            user_id=other_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Private Dive",
+            is_private=True,
+            dive_information="Private dive information",
+            max_depth=Decimal("20.0"),
+            average_depth=Decimal("15.0"),
+            gas_bottles_used="Air",
+            suit_type="dry_suit",
+            difficulty_level="advanced",
+            visibility_rating=7,
+            user_rating=8,
+            dive_date=date(2025, 1, 16),
+            dive_time=datetime.strptime("11:30:00", "%H:%M:%S").time(),
+            duration=50
+        )
+        db_session.add(private_dive)
+        db_session.commit()
+        
+        # Test that unauthenticated user can access public dives list
+        response = client.get("/api/v1/dives/")
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert len(data) == 1  # Only the public dive should be visible
+        assert data[0]["name"] == "Public Dive"
+        assert data[0]["is_private"] == False
+        
+        # Test that unauthenticated user can access specific public dive
+        response = client.get(f"/api/v1/dives/{public_dive.id}")
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert data["name"] == "Public Dive"
+        assert data["is_private"] == False
+        
+        # Test that unauthenticated user cannot access private dive
+        response = client.get(f"/api/v1/dives/{private_dive.id}")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        
+        # Test that unauthenticated user can access public dive details
+        response = client.get(f"/api/v1/dives/{public_dive.id}/details")
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert data["name"] == "Public Dive"
+        assert data["is_private"] == False
+        
+        # Test that unauthenticated user cannot access private dive details
+        response = client.get(f"/api/v1/dives/{private_dive.id}/details")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        
+        # Test that unauthenticated user can access public dive media
+        response = client.get(f"/api/v1/dives/{public_dive.id}/media")
+        assert response.status_code == status.HTTP_200_OK
+        
+        # Test that unauthenticated user cannot access private dive media
+        response = client.get(f"/api/v1/dives/{private_dive.id}/media")
+        assert response.status_code == status.HTTP_403_FORBIDDEN 

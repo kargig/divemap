@@ -92,7 +92,7 @@ const Dives = () => {
 
   // Query for fetching dives
   const { data: dives = [], isLoading, error } = useQuery(
-    ['dives', filters],
+    ['dives', filters, user],
     () => {
       // Filter out empty parameters and exclude dive_site_name (handled client-side)
       const filteredParams = Object.fromEntries(
@@ -100,6 +100,8 @@ const Dives = () => {
           if (key === 'limit' || key === 'offset') return true;
           if (key === 'dive_site_name') return false; // Exclude from backend params
           if (key === 'tag_ids') return value.length > 0; // Only include if tags are selected
+          // Exclude my_dives parameter for unauthenticated users
+          if (!user && key === 'my_dives') return false;
           return value !== '' && value !== null && value !== undefined;
         })
       );
@@ -109,6 +111,7 @@ const Dives = () => {
         filteredParams.tag_ids = filters.tag_ids.join(',');
       }
       
+      // Use main dives endpoint for both authenticated and unauthenticated users
       return getDives(filteredParams);
     },
     {
@@ -504,24 +507,28 @@ const Dives = () => {
 
       {/* Action Buttons and My Dives Filter */}
       <div className="flex justify-between items-center mb-6">
-        <button
-          onClick={handleMyDivesToggle}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-            filters.my_dives
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-          }`}
-        >
-          {filters.my_dives ? '✓ My Dives' : 'My Dives'}
-        </button>
+        {user && (
+          <button
+            onClick={handleMyDivesToggle}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+              filters.my_dives
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+            }`}
+          >
+            {filters.my_dives ? '✓ My Dives' : 'My Dives'}
+          </button>
+        )}
         
-        <Link
-          to="/dives/create"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-        >
-          <Plus size={20} />
-          Log New Dive
-        </Link>
+        {user && (
+          <Link
+            to="/dives/create"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          >
+            <Plus size={20} />
+            Log New Dive
+          </Link>
+        )}
       </div>
 
       {/* Results Section */}
