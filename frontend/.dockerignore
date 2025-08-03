@@ -1,34 +1,9 @@
-# Dependencies
+# Node.js dependencies
 node_modules/
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual environments
-divemap_venv/
-venv/
-env/
-ENV/
-env.bak/
-venv.bak/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
 # Environment variables
 .env
@@ -52,14 +27,6 @@ venv.bak/
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
 
 # Runtime data
 pids
@@ -113,7 +80,7 @@ dist
 .cache/
 
 # React build output (but keep source files)
-frontend/build/
+build/
 
 # Storybook build outputs
 .out
@@ -124,7 +91,7 @@ tmp/
 temp/
 
 # Docker
-# .dockerignore - Keep this in version control for consistent builds
+.dockerignore
 
 # Database
 *.db
@@ -143,14 +110,78 @@ celerybeat.pid
 dump.rdb
 
 # Local development
-.local/ 
+.local/
 
 # Temporary import scripts (agent-created)
-backend/import_kml_dive_sites.py
-backend/update_dive_site_tags.py
-backend/doc.kml 
+import_kml_dive_sites.py
+update_dive_site_tags.py
+doc.kml
 map/
 FLY_*
 local*sql*backup
 divemap_backup_*sql*
 local_testme
+
+# Git
+.git/
+.gitignore
+
+# Documentation (not needed in production containers)
+docs/
+
+# Tests (not needed in production containers)
+tests/
+test_*.js
+test_*.py
+pytest.ini
+conftest.py
+
+# Development scripts
+create_test_admin.py
+populate_diving_organizations.py
+run_tests.py
+run_migrations.py
+create_migration.py
+
+# Docker compose (not needed inside containers)
+docker-compose.yml
+docker-compose.*.yml
+
+# Fly.io configuration (not needed in containers)
+fly.toml
+
+# License and README (not needed in containers)
+README.md
+LICENSE
+
+# Local development files
+env.example
+
+# Python files (not needed in frontend)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+divemap_venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/ 
