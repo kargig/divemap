@@ -1,6 +1,7 @@
 import pytest
 from fastapi import status
 from app.models import SiteRating, SiteComment
+from app.models import DiveSite
 
 class TestDiveSites:
     """Test dive sites endpoints."""
@@ -589,3 +590,146 @@ class TestDiveSites:
         update_response = client.put(f"/api/v1/dive-sites/{dive_site_id}", json=update_data, headers=admin_headers)
         assert update_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         assert "Longitude cannot be empty" in update_response.json()["detail"] 
+
+def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_token):
+    """Test pagination functionality for dive sites endpoint"""
+    # Create multiple dive sites
+    dive_sites = []
+    for i in range(75):  # Create 75 dive sites
+        dive_site = DiveSite(
+            name=f"Test Dive Site {i+1}",
+            description=f"Description for dive site {i+1}",
+            latitude=10.0 + (i * 0.01),
+            longitude=20.0 + (i * 0.01),
+            country="Test Country",
+            region="Test Region"
+        )
+        db_session.add(dive_site)
+        dive_sites.append(dive_site)
+    
+    db_session.commit()
+    
+    # Test page 1 with page_size 25
+    response = client.get(
+        "/api/v1/dive-sites/",
+        params={"page": 1, "page_size": 25},
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 25
+    
+    # Check pagination headers
+    assert response.headers["X-Total-Count"] == "75"
+    assert response.headers["X-Total-Pages"] == "3"
+    assert response.headers["X-Current-Page"] == "1"
+    assert response.headers["X-Page-Size"] == "25"
+    assert response.headers["X-Has-Next-Page"] == "true"
+    assert response.headers["X-Has-Prev-Page"] == "false"
+    
+    # Test page 2
+    response = client.get(
+        "/api/v1/dive-sites/",
+        params={"page": 2, "page_size": 25},
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 25
+    
+    assert response.headers["X-Current-Page"] == "2"
+    assert response.headers["X-Has-Next-Page"] == "true"
+    assert response.headers["X-Has-Prev-Page"] == "true"
+    
+    # Test page 3 (last page)
+    response = client.get(
+        "/api/v1/dive-sites/",
+        params={"page": 3, "page_size": 25},
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 25
+    
+    assert response.headers["X-Current-Page"] == "3"
+    assert response.headers["X-Has-Next-Page"] == "false"
+    assert response.headers["X-Has-Prev-Page"] == "true"
+    
+    # Test page_size 50
+    response = client.get(
+        "/api/v1/dive-sites/",
+        params={"page": 1, "page_size": 50},
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 50
+    
+    assert response.headers["X-Total-Pages"] == "2"
+    assert response.headers["X-Page-Size"] == "50"
+    
+    # Test page_size 100
+    response = client.get(
+        "/api/v1/dive-sites/",
+        params={"page": 1, "page_size": 100},
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 75  # All dive sites fit in one page
+    
+    assert response.headers["X-Total-Pages"] == "1"
+    assert response.headers["X-Page-Size"] == "100"
+
+def test_get_dive_sites_invalid_page_size(client, admin_token):
+    """Test that invalid page_size values are rejected"""
+    # Test invalid page_size
+    response = client.get(
+        "/api/v1/dive-sites/",
+        params={"page": 1, "page_size": 30},  # Invalid page size
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 400
+    assert "page_size must be one of: 25, 50, 100" in response.json()["detail"]
+
+def test_get_dive_sites_pagination_with_filters(client, db_session, test_admin_user, admin_token):
+    """Test pagination with filters applied"""
+    # Create dive sites with different countries
+    for i in range(50):
+        dive_site = DiveSite(
+            name=f"Test Dive Site {i+1}",
+            description=f"Description for dive site {i+1}",
+            latitude=10.0 + (i * 0.01),
+            longitude=20.0 + (i * 0.01),
+            country="Test Country A" if i < 30 else "Test Country B",
+            region="Test Region"
+        )
+        db_session.add(dive_site)
+    
+    db_session.commit()
+    
+    # Test pagination with country filter
+    response = client.get(
+        "/api/v1/dive-sites/",
+        params={"page": 1, "page_size": 25, "country": "Test Country A"},
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 25
+    
+    assert response.headers["X-Total-Count"] == "30"  # Only 30 sites in Test Country A
+    assert response.headers["X-Total-Pages"] == "2"
+    
+    # Test second page
+    response = client.get(
+        "/api/v1/dive-sites/",
+        params={"page": 2, "page_size": 25, "country": "Test Country A"},
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 5  # Remaining 5 sites
+    
+    assert response.headers["X-Has-Next-Page"] == "false"
+    assert response.headers["X-Has-Prev-Page"] == "true" 

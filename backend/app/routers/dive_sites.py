@@ -154,12 +154,18 @@ async def get_dive_sites(
     tag_ids: Optional[List[int]] = Query(None),
     country: Optional[str] = Query(None, max_length=100),
     region: Optional[str] = Query(None, max_length=100),
-    limit: int = Query(50, ge=1, le=100),
-    offset: int = Query(0, ge=0),
-    random: bool = Query(False, description="Return random selection of dive sites"),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(25, description="Page size (25, 50, or 100)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
+    
+    # Validate page_size to only allow 25, 50, or 100
+    if page_size not in [25, 50, 100]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="page_size must be one of: 25, 50, 100"
+        )
     
     query = db.query(DiveSite)
     
@@ -204,20 +210,18 @@ async def get_dive_sites(
         # Then filter the main query by those dive site IDs
         query = query.filter(DiveSite.id.in_(dive_site_ids_with_all_tags))
     
-    # Get dive sites with average ratings
-    if random:
-        # For random selection, first get all IDs that match the filters
-        all_matching_ids = [site.id for site in query.all()]
-        if all_matching_ids:
-            # Randomly select up to 'limit' number of IDs
-            import random as random_module
-            selected_ids = random_module.sample(all_matching_ids, min(limit, len(all_matching_ids)))
-            # Get the dive sites with the selected IDs
-            dive_sites = query.filter(DiveSite.id.in_(selected_ids)).all()
-        else:
-            dive_sites = []
-    else:
-        dive_sites = query.offset(offset).limit(limit).all()
+    # Apply alphabetical sorting by name (case-insensitive)
+    query = query.order_by(func.lower(DiveSite.name).asc())
+    
+    # Get total count for pagination
+    total_count = query.count()
+    
+    # Calculate pagination
+    offset = (page - 1) * page_size
+    total_pages = (total_count + page_size - 1) // page_size
+    
+    # Get dive sites with pagination
+    dive_sites = query.offset(offset).limit(page_size).all()
     
     # Calculate average ratings and get tags
     result = []
@@ -243,7 +247,7 @@ async def get_dive_sites(
                 "name": tag.name,
                 "description": tag.description,
                 "created_by": tag.created_by,
-                "created_at": tag.created_at
+                "created_at": tag.created_at.isoformat() if tag.created_at else None
             }
             for tag in tags
         ]
@@ -252,18 +256,18 @@ async def get_dive_sites(
                 "id": site.id,
                 "name": site.name,
                 "description": site.description,
-                "latitude": site.latitude,
-                "longitude": site.longitude,
+                "latitude": float(site.latitude) if site.latitude else None,
+                "longitude": float(site.longitude) if site.longitude else None,
                 "address": site.address,
                 "access_instructions": site.access_instructions,
-                "difficulty_level": site.difficulty_level,
+                "difficulty_level": site.difficulty_level.value if site.difficulty_level else None,
                 "marine_life": site.marine_life,
                 "safety_information": site.safety_information,
                 "alternative_names": site.alternative_names,
                 "country": site.country,
                 "region": site.region,
-                "created_at": site.created_at,
-                "updated_at": site.updated_at,
+                "created_at": site.created_at.isoformat() if site.created_at else None,
+                "updated_at": site.updated_at.isoformat() if site.updated_at else None,
                 "average_rating": float(avg_rating) if avg_rating else None,
                 "total_ratings": total_ratings,
                 "tags": tags_dict
@@ -282,7 +286,17 @@ async def get_dive_sites(
     if max_rating is not None:
         result = [site for site in result if site["average_rating"] and site["average_rating"] <= max_rating]
     
-    return result
+    # Add pagination metadata to response headers
+    from fastapi.responses import JSONResponse
+    response = JSONResponse(content=result)
+    response.headers["X-Total-Count"] = str(total_count)
+    response.headers["X-Total-Pages"] = str(total_pages)
+    response.headers["X-Current-Page"] = str(page)
+    response.headers["X-Page-Size"] = str(page_size)
+    response.headers["X-Has-Next-Page"] = str(page < total_pages).lower()
+    response.headers["X-Has-Prev-Page"] = str(page > 1).lower()
+    
+    return response
 
 @router.get("/count")
 @skip_rate_limit_for_admin("100/minute")
@@ -407,7 +421,7 @@ async def get_dive_site(
             "name": tag.name,
             "description": tag.description,
             "created_by": tag.created_by,
-            "created_at": tag.created_at
+            "created_at": tag.created_at.isoformat() if tag.created_at else None
         }
         for tag in tags
     ]
@@ -726,7 +740,7 @@ async def update_dive_site(
             "name": tag.name,
             "description": tag.description,
             "created_by": tag.created_by,
-            "created_at": tag.created_at
+            "created_at": tag.created_at.isoformat() if tag.created_at else None
         }
         for tag in tags
     ]
@@ -991,7 +1005,7 @@ async def get_nearby_dive_sites(
                 "name": tag.name,
                 "description": tag.description,
                 "created_by": tag.created_by,
-                "created_at": tag.created_at
+                "created_at": tag.created_at.isoformat() if tag.created_at else None
             }
             for tag in tags
         ]
@@ -1000,15 +1014,15 @@ async def get_nearby_dive_sites(
             "id": row.id,
             "name": row.name,
             "description": row.description,
-            "difficulty_level": row.difficulty_level,
-            "latitude": row.latitude,
-            "longitude": row.longitude,
+            "difficulty_level": row.difficulty_level.value if row.difficulty_level else None,
+            "latitude": float(row.latitude) if row.latitude else None,
+            "longitude": float(row.longitude) if row.longitude else None,
             "address": row.address,
             "access_instructions": row.access_instructions,
             "safety_information": row.safety_information,
             "marine_life": row.marine_life,
-            "created_at": row.created_at,
-            "updated_at": row.updated_at,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+            "updated_at": row.updated_at.isoformat() if row.updated_at else None,
             "average_rating": float(avg_rating) if avg_rating else None,
             "total_ratings": total_ratings,
             "tags": tags_dict,

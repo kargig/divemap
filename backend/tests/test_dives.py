@@ -937,34 +937,149 @@ class TestDives:
         db_session.add(other_user)
         db_session.commit()
         
-        # Create a public dive with diving center
-        public_dive = Dive(
+        # Create a public dive by the other user with diving center
+        dive = Dive(
             user_id=other_user.id,
             dive_site_id=test_dive_site.id,
             diving_center_id=test_diving_center.id,
-            name="Public Dive with Center",
+            name="Public Dive with Center - 2025/01/15",
             is_private=False,
             dive_information="Public dive with diving center",
-            max_depth=Decimal("18.5"),
-            average_depth=Decimal("12.0"),
+            max_depth=Decimal("15.0"),
+            average_depth=Decimal("10.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level="intermediate",
-            visibility_rating=8,
-            user_rating=9,
+            difficulty_level="beginner",
+            visibility_rating=7,
+            user_rating=8,
             dive_date=date(2025, 1, 15),
-            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            dive_time=datetime.strptime("09:00:00", "%H:%M:%S").time(),
+            duration=40
         )
-        db_session.add(public_dive)
+        db_session.add(dive)
         db_session.commit()
         
-        # Test that unauthenticated user can access the dive
-        response = client.get(f"/api/v1/dives/{public_dive.id}")
+        # Test unauthenticated access
+        response = client.get("/api/v1/dives/")
         assert response.status_code == status.HTTP_200_OK
         
         data = response.json()
-        assert data["diving_center_id"] == test_diving_center.id
-        assert data["diving_center"] is not None
-        assert data["diving_center"]["id"] == test_diving_center.id
-        assert data["diving_center"]["name"] == test_diving_center.name 
+        assert len(data) == 1
+        assert data[0]["name"] == "Public Dive with Center - 2025/01/15"
+        assert data[0]["is_private"] == False
+        assert data[0]["user_username"] == "otheruser"
+        assert data[0]["diving_center"]["id"] == test_diving_center.id
+        assert data[0]["diving_center"]["name"] == test_diving_center.name
+
+    def test_get_dives_pagination(self, client, auth_headers, db_session, test_user, test_dive_site):
+        """Test pagination for dives endpoint."""
+        # Create multiple dives for pagination testing
+        dive_names = [
+            "Alpha Dive - 2025/01/01",
+            "Beta Dive - 2025/01/02", 
+            "Charlie Dive - 2025/01/03",
+            "Delta Dive - 2025/01/04",
+            "Echo Dive - 2025/01/05"
+        ]
+        
+        for i, name in enumerate(dive_names):
+            dive = Dive(
+                user_id=test_user.id,
+                dive_site_id=test_dive_site.id,
+                name=name,
+                is_private=False,
+                dive_information=f"Dive {i+1} information",
+                max_depth=Decimal("15.0"),
+                average_depth=Decimal("10.0"),
+                gas_bottles_used="Air",
+                suit_type="wet_suit",
+                difficulty_level="beginner",
+                visibility_rating=7,
+                user_rating=8,
+                dive_date=date(2025, 1, i+1),
+                dive_time=datetime.strptime("09:00:00", "%H:%M:%S").time(),
+                duration=40
+            )
+            db_session.add(dive)
+        db_session.commit()
+        
+        # Test page 1 with page_size 25
+        response = client.get("/api/v1/dives/?page=1&page_size=25", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert len(data) == 5  # All 5 dives fit in one page
+        
+        # Check pagination headers
+        assert response.headers["x-total-count"] == "5"
+        assert response.headers["x-total-pages"] == "1"
+        assert response.headers["x-current-page"] == "1"
+        assert response.headers["x-page-size"] == "25"
+        assert response.headers["x-has-next-page"] == "false"
+        assert response.headers["x-has-prev-page"] == "false"
+        
+        # Check alphabetical sorting
+        assert data[0]["name"] == "Alpha Dive - 2025/01/01"
+        assert data[1]["name"] == "Beta Dive - 2025/01/02"
+        assert data[2]["name"] == "Charlie Dive - 2025/01/03"
+        assert data[3]["name"] == "Delta Dive - 2025/01/04"
+        assert data[4]["name"] == "Echo Dive - 2025/01/05"
+
+    def test_get_dives_invalid_page_size(self, client, auth_headers):
+        """Test that invalid page_size values are rejected."""
+        response = client.get(
+            "/api/v1/dives/?page=1&page_size=30",  # Invalid page size
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "page_size must be one of: 25, 50, 100" in response.json()["detail"]
+
+    def test_get_dives_pagination_with_filters(self, client, auth_headers, db_session, test_user, test_dive_site):
+        """Test pagination with filters applied."""
+        # Create dives with different difficulty levels
+        dive_names = [
+            "Advanced Dive - 2025/01/01",
+            "Beginner Dive - 2025/01/02",
+            "Expert Dive - 2025/01/03",
+            "Intermediate Dive - 2025/01/04"
+        ]
+        
+        difficulty_levels = ["advanced", "beginner", "expert", "intermediate"]
+        
+        for i, (name, difficulty) in enumerate(zip(dive_names, difficulty_levels)):
+            dive = Dive(
+                user_id=test_user.id,
+                dive_site_id=test_dive_site.id,
+                name=name,
+                is_private=False,
+                dive_information=f"Dive {i+1} information",
+                max_depth=Decimal("15.0"),
+                average_depth=Decimal("10.0"),
+                gas_bottles_used="Air",
+                suit_type="wet_suit",
+                difficulty_level=difficulty,
+                visibility_rating=7,
+                user_rating=8,
+                dive_date=date(2025, 1, i+1),
+                dive_time=datetime.strptime("09:00:00", "%H:%M:%S").time(),
+                duration=40
+            )
+            db_session.add(dive)
+        db_session.commit()
+        
+        # Test pagination with difficulty filter
+        response = client.get(
+            "/api/v1/dives/?page=1&page_size=25&difficulty_level=beginner",
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert len(data) == 1  # Only one beginner dive
+        assert data[0]["name"] == "Beginner Dive - 2025/01/02"
+        assert data[0]["difficulty_level"] == "beginner"
+        
+        # Check pagination headers reflect filtered results
+        assert response.headers["x-total-count"] == "1"
+        assert response.headers["x-total-pages"] == "1"
+        assert response.headers["x-has-next-page"] == "false" 

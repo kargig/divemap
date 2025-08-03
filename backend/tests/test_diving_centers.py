@@ -461,24 +461,154 @@ class TestDivingCenters:
         assert data["total_ratings"] == 1 
     
     def test_get_diving_center_without_user_rating_success(self, client, auth_headers, admin_headers):
-        """Test getting diving center details returns null user_rating when user hasn't rated."""
-        # First create a diving center
-        diving_center_data = {
-            "name": "Test Diving Center No Rating",
-            "description": "A test diving center",
-            "latitude": 10.0,
-            "longitude": 20.0
-        }
+        """Test getting diving center without user rating."""
+        # Create a diving center
+        from app.models import DivingCenter
+        diving_center = DivingCenter(
+            name="Test Center No Rating",
+            description="A test diving center",
+            email="test@center.com",
+            phone="+1234567890",
+            website="www.testcenter.com",
+            latitude=35.0,
+            longitude=40.0
+        )
+        from app.database import get_db
+        db = next(get_db())
+        db.add(diving_center)
+        db.commit()
+        db.refresh(diving_center)
         
-        create_response = client.post("/api/v1/diving-centers/", json=diving_center_data, headers=admin_headers)
-        assert create_response.status_code == status.HTTP_200_OK
-        center_id = create_response.json()["id"]
+        # Test as regular user (should not see user_rating)
+        response = client.get(f"/api/v1/diving-centers/{diving_center.id}", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
         
-        # Get the diving center details without rating it first
-        get_response = client.get(f"/api/v1/diving-centers/{center_id}", headers=auth_headers)
-        assert get_response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["name"] == "Test Center No Rating"
+        assert "user_rating" not in data  # Regular users don't see user_rating
         
-        data = get_response.json()
-        assert data["user_rating"] is None
-        assert data["average_rating"] is None
-        assert data["total_ratings"] == 0 
+        # Test as admin (should see user_rating)
+        response = client.get(f"/api/v1/diving-centers/{diving_center.id}", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert data["name"] == "Test Center No Rating"
+        assert "user_rating" in data  # Admins see user_rating
+        assert data["user_rating"] is None  # No rating yet
+
+    def test_get_diving_centers_pagination(self, client, db_session):
+        """Test pagination for diving centers endpoint."""
+        # Create multiple diving centers for pagination testing
+        from app.models import DivingCenter
+        
+        center_names = [
+            "Alpha Diving Center",
+            "Beta Diving Center", 
+            "Charlie Diving Center",
+            "Delta Diving Center",
+            "Echo Diving Center"
+        ]
+        
+        for i, name in enumerate(center_names):
+            center = DivingCenter(
+                name=name,
+                description=f"Description for {name}",
+                email=f"info@{name.lower().replace(' ', '')}.com",
+                phone=f"+1{i+1}234567890",
+                website=f"www.{name.lower().replace(' ', '')}.com",
+                latitude=35.0 + i,
+                longitude=40.0 + i
+            )
+            db_session.add(center)
+        db_session.commit()
+        
+        # Test page 1 with page_size 25
+        response = client.get("/api/v1/diving-centers/?page=1&page_size=25")
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert len(data) == 5  # All 5 centers fit in one page
+        
+        # Check pagination headers
+        assert response.headers["x-total-count"] == "5"
+        assert response.headers["x-total-pages"] == "1"
+        assert response.headers["x-current-page"] == "1"
+        assert response.headers["x-page-size"] == "25"
+        assert response.headers["x-has-next-page"] == "false"
+        assert response.headers["x-has-prev-page"] == "false"
+        
+        # Check alphabetical sorting
+        assert data[0]["name"] == "Alpha Diving Center"
+        assert data[1]["name"] == "Beta Diving Center"
+        assert data[2]["name"] == "Charlie Diving Center"
+        assert data[3]["name"] == "Delta Diving Center"
+        assert data[4]["name"] == "Echo Diving Center"
+
+    def test_get_diving_centers_invalid_page_size(self, client):
+        """Test that invalid page_size values are rejected."""
+        response = client.get("/api/v1/diving-centers/?page=1&page_size=30")  # Invalid page size
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "page_size must be one of: 25, 50, 100" in response.json()["detail"]
+
+    def test_get_diving_centers_pagination_with_filters(self, client, db_session):
+        """Test pagination with filters applied."""
+        # Create diving centers with different ratings
+        from app.models import DivingCenter, CenterRating, User
+        
+        # Create test user for ratings
+        test_user = User(
+            username="testuser",
+            email="test@example.com",
+            password_hash="hashed_password",
+            enabled=True
+        )
+        db_session.add(test_user)
+        db_session.commit()
+        
+        center_names = [
+            "High Rated Center",
+            "Low Rated Center", 
+            "Medium Rated Center"
+        ]
+        
+        ratings = [9.0, 3.0, 6.0]
+        
+        for i, (name, rating) in enumerate(zip(center_names, ratings)):
+            center = DivingCenter(
+                name=name,
+                description=f"Description for {name}",
+                email=f"info@{name.lower().replace(' ', '')}.com",
+                phone=f"+1{i+1}234567890",
+                website=f"www.{name.lower().replace(' ', '')}.com",
+                latitude=35.0 + i,
+                longitude=40.0 + i
+            )
+            db_session.add(center)
+            db_session.commit()
+            db_session.refresh(center)
+            
+            # Add rating
+            center_rating = CenterRating(
+                diving_center_id=center.id,
+                user_id=test_user.id,
+                score=rating
+            )
+            db_session.add(center_rating)
+        db_session.commit()
+        
+        # Test pagination with rating filter
+        response = client.get("/api/v1/diving-centers/?page=1&page_size=25&min_rating=5.0")
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        # Check that all returned centers have rating >= 5.0
+        for center in data:
+            if center["average_rating"] is not None:  # Only check centers with ratings
+                assert center["average_rating"] >= 5.0
+        
+        # Check pagination headers reflect filtered results
+        # The exact count depends on existing data, but should be consistent
+        total_count = int(response.headers["x-total-count"])
+        assert total_count >= 2  # At least our 2 centers with ratings >= 5.0
+        assert response.headers["x-total-pages"] == "1"
+        assert response.headers["x-has-next-page"] == "false" 

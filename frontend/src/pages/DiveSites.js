@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Map, Star, Search, Filter, List, Globe, Tag } from 'lucide-react';
+import { Map, Star, Search, Filter, List, Globe, Tag, ChevronLeft, ChevronRight } from 'lucide-react';
 import DiveSitesMap from '../components/DiveSitesMap';
 import api from '../api';
 
@@ -27,6 +27,13 @@ const DiveSites = () => {
     };
   };
 
+  const getInitialPagination = () => {
+    return {
+      page: parseInt(searchParams.get('page')) || 1,
+      page_size: parseInt(searchParams.get('page_size')) || 25,
+    };
+  };
+
   const [viewMode, setViewMode] = useState(getInitialViewMode);
   const [viewport, setViewport] = useState({
     longitude: 0,
@@ -35,8 +42,9 @@ const DiveSites = () => {
   });
   
   const [filters, setFilters] = useState(getInitialFilters);
+  const [pagination, setPagination] = useState(getInitialPagination);
 
-  // Update URL when view mode or filters change
+  // Update URL when view mode, filters, or pagination change
   useEffect(() => {
     const newSearchParams = new URLSearchParams();
     
@@ -57,10 +65,14 @@ const DiveSites = () => {
     filters.tag_ids.forEach(tagId => {
       newSearchParams.append('tag_ids', tagId.toString());
     });
+
+    // Add pagination
+    newSearchParams.set('page', pagination.page.toString());
+    newSearchParams.set('page_size', pagination.page_size.toString());
     
     // Update URL without triggering a page reload
     navigate(`?${newSearchParams.toString()}`, { replace: true });
-  }, [viewMode, filters, navigate]);
+  }, [viewMode, filters, pagination, navigate]);
 
   // Fetch available tags for filtering
   const { data: availableTags } = useQuery(
@@ -99,7 +111,7 @@ const DiveSites = () => {
   );
 
   const { data: diveSites, isLoading, error } = useQuery(
-    ['dive-sites', filters],
+    ['dive-sites', filters, pagination],
     () => {
       // Create URLSearchParams to properly handle array parameters
       const params = new URLSearchParams();
@@ -119,9 +131,9 @@ const DiveSites = () => {
         });
       }
       
-      // Use random selection for listing and map view (100 random sites)
-      params.append('random', 'true');
-      params.append('limit', '100');
+      // Add pagination parameters
+      params.append('page', pagination.page.toString());
+      params.append('page_size', pagination.page_size.toString());
       
       return api.get(`/api/v1/dive-sites/?${params.toString()}`);
     },
@@ -151,10 +163,6 @@ const DiveSites = () => {
     });
   };
 
-  const handleViewModeChange = (newViewMode) => {
-    setViewMode(newViewMode);
-  };
-
   const handleTagToggle = (tagId) => {
     setFilters(prev => ({
       ...prev,
@@ -162,6 +170,24 @@ const DiveSites = () => {
         ? prev.tag_ids.filter(id => id !== tagId)
         : [...prev.tag_ids, tagId]
     }));
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({
+      ...prev,
+      page: newPage,
+    }));
+  };
+
+  const handlePageSizeChange = (newPageSize) => {
+    setPagination(prev => ({
+      page: 1, // Reset to first page when changing page size
+      page_size: newPageSize,
+    }));
+  };
+
+  const handleViewModeChange = (newViewMode) => {
+    setViewMode(newViewMode);
   };
 
   if (isLoading) {
@@ -187,7 +213,7 @@ const DiveSites = () => {
         <p className="text-gray-600">Discover amazing dive sites around the world</p>
         {totalCount !== undefined && (
           <div className="mt-2 text-sm text-gray-500">
-            Showing {diveSites?.length || 0} random sites from {totalCount} total dive sites
+            Showing {diveSites?.length || 0} dive sites from {totalCount} total dive sites
           </div>
         )}
       </div>
@@ -375,6 +401,57 @@ const DiveSites = () => {
               Map View
             </button>
           </div>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+          {/* Page Size Selection */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Show:</label>
+            <select
+              value={pagination.page_size}
+              onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span className="text-sm text-gray-600">per page</span>
+          </div>
+
+          {/* Pagination Info */}
+          {totalCount !== undefined && (
+            <div className="text-sm text-gray-600">
+              Showing {((pagination.page - 1) * pagination.page_size) + 1} to{' '}
+              {Math.min(pagination.page * pagination.page_size, totalCount)} of {totalCount} dive sites
+            </div>
+          )}
+
+          {/* Pagination Navigation */}
+          {totalCount !== undefined && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              
+              <span className="text-sm text-gray-700">
+                Page {pagination.page} of {Math.ceil(totalCount / pagination.page_size)}
+              </span>
+              
+              <button
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={pagination.page >= Math.ceil(totalCount / pagination.page_size)}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
