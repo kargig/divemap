@@ -13,7 +13,7 @@ from app.schemas import (
 )
 from app.auth import get_current_user, get_current_user_optional
 
-router = APIRouter(tags=["dives"])
+router = APIRouter()
 
 
 def generate_dive_name(dive_site_name: str, dive_date: date) -> str:
