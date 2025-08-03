@@ -139,6 +139,7 @@ CREATE TABLE dives (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     dive_site_id INT,
+    diving_center_id INT,
     dive_information TEXT,
     max_depth DECIMAL(5, 2),
     average_depth DECIMAL(5, 2),
@@ -153,9 +154,12 @@ CREATE TABLE dives (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (dive_site_id) REFERENCES dive_sites(id)
+    FOREIGN KEY (dive_site_id) REFERENCES dive_sites(id),
+    FOREIGN KEY (diving_center_id) REFERENCES diving_centers(id)
 );
 ```
+
+**Dive-Diving Center Relationship**: The `diving_center_id` field allows dives to be associated with the diving center that organized or facilitated the dive. This relationship is optional and provides a complete record of the diving experience, including which diving center was involved.
 
 #### Dive Media Table
 ```sql

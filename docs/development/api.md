@@ -1015,6 +1015,7 @@ Remove tag from dive site (admin/moderator only).
   "id": "integer",
   "user_id": "integer",
   "dive_site_id": "integer (optional)",
+  "diving_center_id": "integer (optional)",
   "dive_information": "string (optional)",
   "max_depth": "decimal (optional)",
   "average_depth": "decimal (optional)",
@@ -1027,7 +1028,12 @@ Remove tag from dive site (admin/moderator only).
   "dive_time": "time (optional)",
   "duration": "integer (minutes, optional)",
   "created_at": "datetime",
-  "updated_at": "datetime"
+  "updated_at": "datetime",
+  "dive_site": "object (optional)",
+  "diving_center": "object (optional)",
+  "media": "array",
+  "tags": "array",
+  "user_username": "string"
 }
 ```
 
@@ -1237,7 +1243,17 @@ curl -X DELETE "https://divemap-backend.fly.dev/api/v1/user-certifications/my-ce
 
 ### Managing Dives
 
-The dive system allows users to log their diving experiences with comprehensive details including media uploads, tags, and statistics.
+The dive system allows users to log their diving experiences with comprehensive details including media uploads, tags, and statistics. Dives can be associated with both dive sites and diving centers, providing a complete record of the diving experience.
+
+#### Dive-Diving Center Relationship
+
+Dives can be associated with diving centers to track which diving center organized or facilitated the dive. This relationship is optional and can be:
+
+- **Added**: When creating or updating a dive, include `diving_center_id`
+- **Changed**: Update the `diving_center_id` to a different diving center
+- **Removed**: Set `diving_center_id` to `null`
+
+The API response includes both the diving center ID and the full diving center object with details like name, description, contact information, and location.
 
 #### Dive Endpoints
 
@@ -1257,6 +1273,7 @@ curl -X POST "https://divemap-backend.fly.dev/api/v1/dives/" \
      -d '{
        "dive_date": "2024-01-15",
        "dive_site_id": 1,
+       "diving_center_id": 1,
        "max_depth": 25.5,
        "average_depth": 18.0,
        "dive_information": "Amazing dive with lots of marine life",
@@ -1275,6 +1292,22 @@ curl -X PUT "https://divemap-backend.fly.dev/api/v1/dives/1" \
        "max_depth": 28.0,
        "visibility_rating": 9,
        "dive_information": "Updated dive information"
+     }'
+
+# Update dive to add/change diving center
+curl -X PUT "https://divemap-backend.fly.dev/api/v1/dives/1" \
+     -H "Authorization: Bearer USER_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "diving_center_id": 2
+     }'
+
+# Remove diving center from dive
+curl -X PUT "https://divemap-backend.fly.dev/api/v1/dives/1" \
+     -H "Authorization: Bearer USER_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "diving_center_id": null
      }'
 
 # Delete a dive

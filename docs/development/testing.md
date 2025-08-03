@@ -38,7 +38,7 @@ node run_all_tests.js
 - **test_auth.py** - Authentication and authorization
 - **test_dive_sites.py** - Dive sites API endpoints
 - **test_diving_centers.py** - Diving centers API endpoints
-- **test_dives.py** - Dive logging and management
+- **test_dives.py** - Dive logging and management (includes dive-diving center relationship tests)
 - **test_tags.py** - Tags management
 - **test_users.py** - User management and profiles
 
@@ -65,6 +65,9 @@ python -m pytest tests/ -v
 
 # Run specific test file
 python -m pytest tests/test_auth.py -v
+
+# Run dive center functionality tests
+python -m pytest tests/test_dives.py -k "diving_center" -v
 
 # Run with coverage
 python -m pytest tests/ --cov=app --cov-report=html

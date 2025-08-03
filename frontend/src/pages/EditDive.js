@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { getDive, updateDive, getDiveSites, getAvailableTags, addDiveMedia } from '../api';
+import { getDive, updateDive, getDiveSites, getAvailableTags, addDiveMedia, getDivingCenters } from '../api';
 import { toast } from 'react-hot-toast';
 import { Save, ArrowLeft, Plus, X, ChevronDown, Image, Video, FileText, Link } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,6 +16,9 @@ const EditDive = () => {
   const [diveSiteSearch, setDiveSiteSearch] = useState('');
   const [isDiveSiteDropdownOpen, setIsDiveSiteDropdownOpen] = useState(false);
   const diveSiteDropdownRef = useRef(null);
+  const [divingCenterSearch, setDivingCenterSearch] = useState('');
+  const [isDivingCenterDropdownOpen, setIsDivingCenterDropdownOpen] = useState(false);
+  const divingCenterDropdownRef = useRef(null);
   const [mediaUrls, setMediaUrls] = useState([]);
   const [showMediaForm, setShowMediaForm] = useState(false);
   const [newMediaUrl, setNewMediaUrl] = useState('');
@@ -37,7 +40,8 @@ const EditDive = () => {
         }
         
         setFormData({
-          dive_site_id: data.dive_site_id || '',
+          dive_site_id: data.dive_site_id ? data.dive_site_id.toString() : '',
+          diving_center_id: data.diving_center_id ? data.diving_center_id.toString() : '',
           name: data.name || '',
           is_private: data.is_private || false,
           dive_information: data.dive_information || '',
@@ -68,6 +72,9 @@ const EditDive = () => {
   // Fetch dive sites for dropdown
   const { data: diveSites = [] } = useQuery(['dive-sites'], () => getDiveSites({ limit: 100 }));
 
+  // Fetch diving centers for dropdown
+  const { data: divingCenters = [] } = useQuery(['diving-centers'], () => getDivingCenters({ limit: 100 }));
+
   // Fetch available tags
   const { data: availableTags = [] } = useQuery(['available-tags'], () => getAvailableTags());
 
@@ -76,6 +83,9 @@ const EditDive = () => {
     const handleClickOutside = (event) => {
       if (diveSiteDropdownRef.current && !diveSiteDropdownRef.current.contains(event.target)) {
         setIsDiveSiteDropdownOpen(false);
+      }
+      if (divingCenterDropdownRef.current && !divingCenterDropdownRef.current.contains(event.target)) {
+        setIsDivingCenterDropdownOpen(false);
       }
     };
 
@@ -94,6 +104,21 @@ const EditDive = () => {
       }
     }
   }, [dive, diveSites]);
+
+  // Initialize diving center search when dive data loads
+  useEffect(() => {
+    if (dive && dive.diving_center_id && Array.isArray(divingCenters) && divingCenters.length > 0) {
+      const selectedCenter = divingCenters.find(center => center.id === dive.diving_center_id);
+      if (selectedCenter) {
+        setDivingCenterSearch(selectedCenter.name);
+      }
+    }
+  }, [dive, divingCenters]);
+
+  // Monitor form data changes for debugging
+  useEffect(() => {
+    // console.log('Form data changed:', formData);
+  }, [formData]);
 
   // Update dive mutation
   const updateDiveMutation = useMutation(
@@ -137,6 +162,7 @@ const EditDive = () => {
   }
 
   const handleInputChange = (field, value) => {
+    // console.log('Form data change:', { field, value });
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -165,13 +191,28 @@ const EditDive = () => {
     site.name.toLowerCase().includes(diveSiteSearch.toLowerCase())
   ) : [];
 
+  // Filter diving centers based on search input
+  const filteredDivingCenters = Array.isArray(divingCenters) ? divingCenters.filter(center =>
+    center.name.toLowerCase().includes(divingCenterSearch.toLowerCase())
+  ) : [];
+
   // Get selected dive site name
   const selectedDiveSite = Array.isArray(diveSites) ? diveSites.find(site => site.id.toString() === formData.dive_site_id) : null;
+
+  // Get selected diving center name
+  const selectedDivingCenter = Array.isArray(divingCenters) ? divingCenters.find(center => center.id.toString() === formData.diving_center_id) : null;
 
   const handleDiveSiteSelect = (siteId, siteName) => {
     handleInputChange('dive_site_id', siteId.toString());
     setDiveSiteSearch(siteName);
     setIsDiveSiteDropdownOpen(false);
+  };
+
+  const handleDivingCenterSelect = (centerId, centerName) => {
+    // console.log('Diving center selected:', { centerId, centerName });
+    handleInputChange('diving_center_id', centerId.toString());
+    setDivingCenterSearch(centerName);
+    setIsDivingCenterDropdownOpen(false);
   };
 
   const handleDiveSiteSearchChange = (value) => {
@@ -182,9 +223,23 @@ const EditDive = () => {
     }
   };
 
+  const handleDivingCenterSearchChange = (value) => {
+    setDivingCenterSearch(value);
+    setIsDivingCenterDropdownOpen(true);
+    if (!value) {
+      handleInputChange('diving_center_id', '');
+    }
+  };
+
   const handleDiveSiteKeyDown = (e) => {
     if (e.key === 'Escape') {
       setIsDiveSiteDropdownOpen(false);
+    }
+  };
+
+  const handleDivingCenterKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setIsDivingCenterDropdownOpen(false);
     }
   };
 
@@ -233,7 +288,8 @@ const EditDive = () => {
     }
 
     const diveData = {
-      dive_site_id: parseInt(formData.dive_site_id),
+      dive_site_id: formData.dive_site_id && formData.dive_site_id !== '' ? parseInt(formData.dive_site_id) : null,
+      diving_center_id: formData.diving_center_id && formData.diving_center_id !== '' ? parseInt(formData.diving_center_id) : null,
       name: formData.name || null,
       is_private: formData.is_private || false,
       dive_information: formData.dive_information || null,
@@ -248,6 +304,8 @@ const EditDive = () => {
       dive_time: formData.dive_time && formData.dive_time !== '' ? formData.dive_time + ':00' : null,
       duration: formData.duration ? parseInt(formData.duration) : null
     };
+
+    // console.log('Submitting dive data:', diveData);
 
     try {
       await updateDiveMutation.mutateAsync({ diveId: id, diveData });
@@ -265,7 +323,7 @@ const EditDive = () => {
         
         mediaPromises.push(
           addDiveMedia(id, mediaData).catch(error => {
-            console.error('Failed to add media URL:', error);
+            // console.error('Failed to add media URL:', error);
             toast.error(`Failed to add media URL: ${mediaUrl.url}`);
           })
         );
@@ -363,7 +421,7 @@ const EditDive = () => {
 
           <div className="relative" ref={diveSiteDropdownRef}>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Dive Site <span className="text-red-500">*</span>
+              Dive Site (Optional)
             </label>
             <div className="relative">
               <input
@@ -402,6 +460,53 @@ const EditDive = () => {
                 ) : (
                   <div className="px-3 py-2 text-gray-500 text-sm">
                     No dive sites found
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="relative" ref={divingCenterDropdownRef}>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Diving Center (Optional)
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={divingCenterSearch}
+                onChange={(e) => handleDivingCenterSearchChange(e.target.value)}
+                onFocus={() => setIsDivingCenterDropdownOpen(true)}
+                onKeyDown={handleDivingCenterKeyDown}
+                placeholder="Search for a diving center..."
+                className="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                <ChevronDown 
+                  size={16} 
+                  className={`text-gray-400 transition-transform ${isDivingCenterDropdownOpen ? 'rotate-180' : ''}`}
+                />
+              </div>
+            </div>
+            
+            {/* Dropdown */}
+            {isDivingCenterDropdownOpen && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                {filteredDivingCenters.length > 0 ? (
+                  filteredDivingCenters.map((center) => (
+                    <div
+                      key={center.id}
+                      onClick={() => handleDivingCenterSelect(center.id, center.name)}
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="font-medium text-gray-900">{center.name}</div>
+                      {center.description && (
+                        <div className="text-sm text-gray-500">{center.description.substring(0, 50)}...</div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-gray-500 text-sm">
+                    No diving centers found
                   </div>
                 )}
               </div>

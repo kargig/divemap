@@ -6,6 +6,32 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 ### 🚀 Major Features
 
+#### **Dive-Diving Center Integration**
+- **Dive-Diving Center Association**: Dives can now be associated with diving centers that organized or facilitated the dive
+- **Optional Relationship**: The diving center relationship is optional and can be added, changed, or removed
+- **Complete Information**: API responses include both diving center ID and full diving center details
+- **Admin Support**: Admin endpoints support diving center management for all dives
+- **Comprehensive Testing**: Added 12 new tests covering all dive-diving center functionality
+
+**New API Features:**
+- `diving_center_id` field in dive creation and updates
+- `diving_center` object in dive responses with full details
+- Admin endpoints support diving center management
+- Validation for diving center existence
+
+**Database Changes:**
+- Added `diving_center_id` foreign key to `dives` table
+- Foreign key constraint to `diving_centers` table
+- Optional relationship (NULL allowed)
+
+**Testing Coverage:**
+- Basic dive-diving center functionality tests
+- Error handling for invalid diving centers
+- Admin endpoint tests for diving center management
+- Edge cases and validation tests
+
+### 🚀 Major Features
+
 #### **Dive Logging System**
 - **Complete Dive Management**: Full CRUD operations for user dive logs
 - **Comprehensive Dive Data**: Date, time, depth, visibility, ratings, suit type, difficulty level

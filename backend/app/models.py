@@ -163,6 +163,7 @@ class DivingCenter(Base):
     dive_trips = relationship("ParsedDiveTrip", back_populates="diving_center")
     organization_relationships = relationship("DivingCenterOrganization", back_populates="diving_center", cascade="all, delete-orphan")
     owner = relationship("User", back_populates="diving_centers") # New relationship for owner
+    dives = relationship("Dive", back_populates="diving_center", cascade="all, delete-orphan")  # New relationship for dives
 
 class CenterRating(Base):
     __tablename__ = "center_ratings"
@@ -299,6 +300,7 @@ class Dive(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), nullable=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=True)  # Link to diving center
     name = Column(String(255), nullable=True)  # Custom name/alias provided by user
     is_private = Column(Boolean, default=False)  # Privacy control - default public
     dive_information = Column(Text)
@@ -319,6 +321,7 @@ class Dive(Base):
     # Relationships
     user = relationship("User", back_populates="dives")
     dive_site = relationship("DiveSite", back_populates="dives")
+    diving_center = relationship("DivingCenter", back_populates="dives")  # New relationship
     media = relationship("DiveMedia", back_populates="dive", cascade="all, delete-orphan")
     tags = relationship("DiveTag", back_populates="dive", cascade="all, delete-orphan")
 

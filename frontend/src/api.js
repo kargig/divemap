@@ -156,6 +156,25 @@ export const removeDiveTag = async (diveId, tagId) => {
     throw error;
   }
 };
+
+// Diving Centers API functions
+export const getDivingCenters = async (params = {}) => {
+  try {
+    const response = await api.get('/api/v1/diving-centers/', { params });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getDivingCenter = async (divingCenterId) => {
+  try {
+    const response = await api.get(`/api/v1/diving-centers/${divingCenterId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
 // Diving Center Ownership API functions
 export const claimDivingCenterOwnership = async (divingCenterId, claimData) => {
   try {

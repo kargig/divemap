@@ -422,6 +422,28 @@ const DiveDetail = () => {
             </div>
           )}
 
+          {/* Diving Center Information */}
+          {dive.diving_center && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">Diving Center</h2>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <MapPin size={16} className="text-gray-500" />
+                  <span className="font-medium">{dive.diving_center.name}</span>
+                </div>
+                {dive.diving_center.description && (
+                  <p className="text-sm text-gray-600">{dive.diving_center.description}</p>
+                )}
+                <Link
+                  to={`/diving-centers/${dive.diving_center.id}`}
+                  className="text-blue-600 hover:text-blue-800 text-sm"
+                >
+                  View diving center details →
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Statistics */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Statistics</h2>

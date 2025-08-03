@@ -509,3 +509,462 @@ class TestDives:
         # Test that unauthenticated user cannot access private dive media
         response = client.get(f"/api/v1/dives/{private_dive.id}/media")
         assert response.status_code == status.HTTP_403_FORBIDDEN 
+
+    # ===== DIVE CENTER FUNCTIONALITY TESTS =====
+    
+    def test_create_dive_with_diving_center(self, client, auth_headers, test_dive_site, test_diving_center):
+        """Test creating a dive with diving center association."""
+        dive_data = {
+            "dive_site_id": test_dive_site.id,
+            "diving_center_id": test_diving_center.id,
+            "dive_date": "2025-01-15",
+            "dive_time": "10:30:00",
+            "max_depth": 18.5,
+            "average_depth": 12.0,
+            "duration": 45,
+            "visibility_rating": 8,
+            "user_rating": 9,
+            "is_private": False
+        }
+        
+        response = client.post("/api/v1/dives/", json=dive_data, headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert data["diving_center_id"] == test_diving_center.id
+        assert data["diving_center"] is not None
+        assert data["diving_center"]["id"] == test_diving_center.id
+        assert data["diving_center"]["name"] == test_diving_center.name
+        assert data["diving_center"]["description"] == test_diving_center.description
+        assert data["diving_center"]["email"] == test_diving_center.email
+        assert data["diving_center"]["phone"] == test_diving_center.phone
+        assert data["diving_center"]["website"] == test_diving_center.website
+        assert data["diving_center"]["latitude"] == float(test_diving_center.latitude)
+        assert data["diving_center"]["longitude"] == float(test_diving_center.longitude)
+    
+    def test_create_dive_with_invalid_diving_center(self, client, auth_headers, test_dive_site):
+        """Test creating a dive with non-existent diving center."""
+        dive_data = {
+            "dive_site_id": test_dive_site.id,
+            "diving_center_id": 99999,  # Non-existent diving center
+            "dive_date": "2025-01-15",
+            "dive_time": "10:30:00",
+            "max_depth": 18.5,
+            "average_depth": 12.0,
+            "duration": 45,
+            "visibility_rating": 8,
+            "user_rating": 9,
+            "is_private": False
+        }
+        
+        response = client.post("/api/v1/dives/", json=dive_data, headers=auth_headers)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "Diving center not found" in response.json()["detail"]
+    
+    def test_get_dive_with_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
+        """Test getting a dive that has diving center information."""
+        # Create a dive with diving center
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            diving_center_id=test_diving_center.id,
+            name="Test Dive with Center",
+            is_private=False,
+            dive_information="Test dive with diving center",
+            max_depth=Decimal("18.5"),
+            average_depth=Decimal("12.0"),
+            gas_bottles_used="Air",
+            suit_type="wet_suit",
+            difficulty_level="intermediate",
+            visibility_rating=8,
+            user_rating=9,
+            dive_date=date(2025, 1, 15),
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(dive)
+        db_session.commit()
+        
+        response = client.get(f"/api/v1/dives/{dive.id}", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert data["diving_center_id"] == test_diving_center.id
+        assert data["diving_center"] is not None
+        assert data["diving_center"]["id"] == test_diving_center.id
+        assert data["diving_center"]["name"] == test_diving_center.name
+        assert data["diving_center"]["description"] == test_diving_center.description
+        assert data["diving_center"]["email"] == test_diving_center.email
+        assert data["diving_center"]["phone"] == test_diving_center.phone
+        assert data["diving_center"]["website"] == test_diving_center.website
+        assert data["diving_center"]["latitude"] == float(test_diving_center.latitude)
+        assert data["diving_center"]["longitude"] == float(test_diving_center.longitude)
+    
+    def test_get_dive_without_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site):
+        """Test getting a dive that has no diving center association."""
+        # Create a dive without diving center
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            diving_center_id=None,
+            name="Test Dive without Center",
+            is_private=False,
+            dive_information="Test dive without diving center",
+            max_depth=Decimal("18.5"),
+            average_depth=Decimal("12.0"),
+            gas_bottles_used="Air",
+            suit_type="wet_suit",
+            difficulty_level="intermediate",
+            visibility_rating=8,
+            user_rating=9,
+            dive_date=date(2025, 1, 15),
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(dive)
+        db_session.commit()
+        
+        response = client.get(f"/api/v1/dives/{dive.id}", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert data["diving_center_id"] is None
+        assert data["diving_center"] is None
+    
+    def test_update_dive_add_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
+        """Test updating a dive to add diving center association."""
+        # Create a dive without diving center
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            diving_center_id=None,
+            name="Test Dive to Update",
+            is_private=False,
+            dive_information="Test dive to add diving center",
+            max_depth=Decimal("18.5"),
+            average_depth=Decimal("12.0"),
+            gas_bottles_used="Air",
+            suit_type="wet_suit",
+            difficulty_level="intermediate",
+            visibility_rating=8,
+            user_rating=9,
+            dive_date=date(2025, 1, 15),
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(dive)
+        db_session.commit()
+        
+        # Update dive to add diving center
+        update_data = {
+            "diving_center_id": test_diving_center.id
+        }
+        
+        response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert data["diving_center_id"] == test_diving_center.id
+        assert data["diving_center"] is not None
+        assert data["diving_center"]["id"] == test_diving_center.id
+        assert data["diving_center"]["name"] == test_diving_center.name
+    
+    def test_update_dive_change_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
+        """Test updating a dive to change diving center association."""
+        # Create another diving center
+        from app.models import DivingCenter
+        other_diving_center = DivingCenter(
+            name="Other Diving Center",
+            description="Another test diving center",
+            email="other@divingcenter.com",
+            phone="+1987654321",
+            website="www.otherdivingcenter.com",
+            latitude=20.0,
+            longitude=30.0
+        )
+        db_session.add(other_diving_center)
+        db_session.commit()
+        
+        # Create a dive with initial diving center
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            diving_center_id=test_diving_center.id,
+            name="Test Dive to Change Center",
+            is_private=False,
+            dive_information="Test dive to change diving center",
+            max_depth=Decimal("18.5"),
+            average_depth=Decimal("12.0"),
+            gas_bottles_used="Air",
+            suit_type="wet_suit",
+            difficulty_level="intermediate",
+            visibility_rating=8,
+            user_rating=9,
+            dive_date=date(2025, 1, 15),
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(dive)
+        db_session.commit()
+        
+        # Update dive to change diving center
+        update_data = {
+            "diving_center_id": other_diving_center.id
+        }
+        
+        response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert data["diving_center_id"] == other_diving_center.id
+        assert data["diving_center"] is not None
+        assert data["diving_center"]["id"] == other_diving_center.id
+        assert data["diving_center"]["name"] == other_diving_center.name
+    
+    def test_update_dive_remove_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
+        """Test updating a dive to remove diving center association."""
+        # Create a dive with diving center
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            diving_center_id=test_diving_center.id,
+            name="Test Dive to Remove Center",
+            is_private=False,
+            dive_information="Test dive to remove diving center",
+            max_depth=Decimal("18.5"),
+            average_depth=Decimal("12.0"),
+            gas_bottles_used="Air",
+            suit_type="wet_suit",
+            difficulty_level="intermediate",
+            visibility_rating=8,
+            user_rating=9,
+            dive_date=date(2025, 1, 15),
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(dive)
+        db_session.commit()
+        
+        # Update dive to remove diving center
+        update_data = {
+            "diving_center_id": None
+        }
+        
+        response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert data["diving_center_id"] is None
+        assert data["diving_center"] is None
+    
+    def test_update_dive_with_invalid_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site):
+        """Test updating a dive with non-existent diving center."""
+        # Create a dive
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            diving_center_id=None,
+            name="Test Dive Invalid Center",
+            is_private=False,
+            dive_information="Test dive with invalid diving center",
+            max_depth=Decimal("18.5"),
+            average_depth=Decimal("12.0"),
+            gas_bottles_used="Air",
+            suit_type="wet_suit",
+            difficulty_level="intermediate",
+            visibility_rating=8,
+            user_rating=9,
+            dive_date=date(2025, 1, 15),
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(dive)
+        db_session.commit()
+        
+        # Try to update with non-existent diving center
+        update_data = {
+            "diving_center_id": 99999
+        }
+        
+        response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "Diving center not found" in response.json()["detail"]
+    
+    def test_list_dives_with_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
+        """Test listing dives that include diving center information."""
+        # Create dives with and without diving center
+        dive_with_center = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            diving_center_id=test_diving_center.id,
+            name="Dive with Center",
+            is_private=False,
+            dive_information="Dive with diving center",
+            max_depth=Decimal("18.5"),
+            average_depth=Decimal("12.0"),
+            gas_bottles_used="Air",
+            suit_type="wet_suit",
+            difficulty_level="intermediate",
+            visibility_rating=8,
+            user_rating=9,
+            dive_date=date(2025, 1, 15),
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(dive_with_center)
+        
+        dive_without_center = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            diving_center_id=None,
+            name="Dive without Center",
+            is_private=False,
+            dive_information="Dive without diving center",
+            max_depth=Decimal("20.0"),
+            average_depth=Decimal("15.0"),
+            gas_bottles_used="Air",
+            suit_type="dry_suit",
+            difficulty_level="advanced",
+            visibility_rating=7,
+            user_rating=8,
+            dive_date=date(2025, 1, 16),
+            dive_time=datetime.strptime("11:30:00", "%H:%M:%S").time(),
+            duration=50
+        )
+        db_session.add(dive_without_center)
+        db_session.commit()
+        
+        response = client.get("/api/v1/dives/", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert len(data) == 2
+        
+        # Check dive with center
+        dive_with_center_data = next(d for d in data if d["name"] == "Dive with Center")
+        assert dive_with_center_data["diving_center_id"] == test_diving_center.id
+        assert dive_with_center_data["diving_center"] is not None
+        assert dive_with_center_data["diving_center"]["id"] == test_diving_center.id
+        assert dive_with_center_data["diving_center"]["name"] == test_diving_center.name
+        
+        # Check dive without center
+        dive_without_center_data = next(d for d in data if d["name"] == "Dive without Center")
+        assert dive_without_center_data["diving_center_id"] is None
+        assert dive_without_center_data["diving_center"] is None
+    
+    def test_admin_get_dives_with_diving_center(self, client, admin_headers, db_session, test_user, test_dive_site, test_diving_center):
+        """Test admin getting dives with diving center information."""
+        # Create a dive with diving center
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            diving_center_id=test_diving_center.id,
+            name="Admin Test Dive",
+            is_private=False,
+            dive_information="Admin test dive with diving center",
+            max_depth=Decimal("18.5"),
+            average_depth=Decimal("12.0"),
+            gas_bottles_used="Air",
+            suit_type="wet_suit",
+            difficulty_level="intermediate",
+            visibility_rating=8,
+            user_rating=9,
+            dive_date=date(2025, 1, 15),
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(dive)
+        db_session.commit()
+        
+        response = client.get("/api/v1/dives/admin/dives", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["diving_center_id"] == test_diving_center.id
+        assert data[0]["diving_center"] is not None
+        assert data[0]["diving_center"]["id"] == test_diving_center.id
+        assert data[0]["diving_center"]["name"] == test_diving_center.name
+    
+    def test_admin_update_dive_diving_center(self, client, admin_headers, db_session, test_user, test_dive_site, test_diving_center):
+        """Test admin updating dive diving center."""
+        # Create a dive
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            diving_center_id=None,
+            name="Admin Update Test Dive",
+            is_private=False,
+            dive_information="Admin update test dive",
+            max_depth=Decimal("18.5"),
+            average_depth=Decimal("12.0"),
+            gas_bottles_used="Air",
+            suit_type="wet_suit",
+            difficulty_level="intermediate",
+            visibility_rating=8,
+            user_rating=9,
+            dive_date=date(2025, 1, 15),
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(dive)
+        db_session.commit()
+        
+        # Admin updates the dive to add diving center
+        update_data = {
+            "diving_center_id": test_diving_center.id
+        }
+        
+        response = client.put(f"/api/v1/dives/admin/dives/{dive.id}", json=update_data, headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert data["diving_center_id"] == test_diving_center.id
+        assert data["diving_center"] is not None
+        assert data["diving_center"]["id"] == test_diving_center.id
+        assert data["diving_center"]["name"] == test_diving_center.name
+    
+    def test_unauthenticated_user_can_see_public_dive_with_diving_center(self, client, db_session, test_dive_site, test_diving_center):
+        """Test that unauthenticated users can see public dives with diving center."""
+        # Create another user
+        from app.models import User
+        other_user = User(
+            username="otheruser",
+            email="other@example.com",
+            password_hash="hashed_password",
+            enabled=True
+        )
+        db_session.add(other_user)
+        db_session.commit()
+        
+        # Create a public dive with diving center
+        public_dive = Dive(
+            user_id=other_user.id,
+            dive_site_id=test_dive_site.id,
+            diving_center_id=test_diving_center.id,
+            name="Public Dive with Center",
+            is_private=False,
+            dive_information="Public dive with diving center",
+            max_depth=Decimal("18.5"),
+            average_depth=Decimal("12.0"),
+            gas_bottles_used="Air",
+            suit_type="wet_suit",
+            difficulty_level="intermediate",
+            visibility_rating=8,
+            user_rating=9,
+            dive_date=date(2025, 1, 15),
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(public_dive)
+        db_session.commit()
+        
+        # Test that unauthenticated user can access the dive
+        response = client.get(f"/api/v1/dives/{public_dive.id}")
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        assert data["diving_center_id"] == test_diving_center.id
+        assert data["diving_center"] is not None
+        assert data["diving_center"]["id"] == test_diving_center.id
+        assert data["diving_center"]["name"] == test_diving_center.name 

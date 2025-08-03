@@ -6,7 +6,7 @@ from datetime import datetime, date
 import re
 
 from app.database import get_db
-from app.models import Dive, DiveMedia, DiveTag, DiveSite, AvailableTag, User
+from app.models import Dive, DiveMedia, DiveTag, DiveSite, AvailableTag, User, DivingCenter
 from app.schemas import (
     DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse,
     DiveTagCreate, DiveTagResponse, DiveSearchParams
@@ -154,10 +154,27 @@ def get_all_dives_admin(
                     "region": dive_site.region
                 }
         
+        # Get diving center information if available
+        diving_center_info = None
+        if dive.diving_center_id:
+            diving_center = db.query(DivingCenter).filter(DivingCenter.id == dive.diving_center_id).first()
+            if diving_center:
+                diving_center_info = {
+                    "id": diving_center.id,
+                    "name": diving_center.name,
+                    "description": diving_center.description,
+                    "email": diving_center.email,
+                    "phone": diving_center.phone,
+                    "website": diving_center.website,
+                    "latitude": float(diving_center.latitude) if diving_center.latitude else None,
+                    "longitude": float(diving_center.longitude) if diving_center.longitude else None
+                }
+        
         dive_dict = {
             "id": dive.id,
             "user_id": dive.user_id,
             "dive_site_id": dive.dive_site_id,
+            "diving_center_id": dive.diving_center_id,
             "name": dive.name,
             "is_private": dive.is_private,
             "dive_information": dive.dive_information,
@@ -175,6 +192,7 @@ def get_all_dives_admin(
             "created_at": dive.created_at,
             "updated_at": dive.updated_at,
             "dive_site": dive_site_info,
+            "diving_center": diving_center_info,
             "media": [],
             "tags": [],
             "user_username": dive.user.username
@@ -219,6 +237,15 @@ def update_dive_admin(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Dive site not found"
+            )
+    
+    # Validate diving center if provided
+    if dive_update.diving_center_id:
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == dive_update.diving_center_id).first()
+        if not diving_center:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Diving center not found"
             )
     
     # Parse date and time if provided
@@ -276,11 +303,28 @@ def update_dive_admin(
                 "region": dive_site.region
             }
     
+    # Get diving center information if available
+    diving_center_info = None
+    if dive.diving_center_id:
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == dive.diving_center_id).first()
+        if diving_center:
+            diving_center_info = {
+                "id": diving_center.id,
+                "name": diving_center.name,
+                "description": diving_center.description,
+                "email": diving_center.email,
+                "phone": diving_center.phone,
+                "website": diving_center.website,
+                "latitude": float(diving_center.latitude) if diving_center.latitude else None,
+                "longitude": float(diving_center.longitude) if diving_center.longitude else None
+            }
+    
     # Convert SQLAlchemy object to dictionary to avoid serialization issues
     dive_dict = {
         "id": dive.id,
         "user_id": dive.user_id,
         "dive_site_id": dive.dive_site_id,
+        "diving_center_id": dive.diving_center_id,
         "name": dive.name,
         "is_private": dive.is_private,
         "dive_information": dive.dive_information,
@@ -298,6 +342,7 @@ def update_dive_admin(
         "created_at": dive.created_at,
         "updated_at": dive.updated_at,
         "dive_site": dive_site_info,
+        "diving_center": diving_center_info,
         "media": [],
         "tags": [],
         "user_username": dive.user.username
@@ -363,6 +408,16 @@ def create_dive(
                 detail="Dive site not found"
             )
     
+    # Validate diving center if provided
+    diving_center = None
+    if dive.diving_center_id:
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == dive.diving_center_id).first()
+        if not diving_center:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Diving center not found"
+            )
+    
     # Parse date and time
     try:
         dive_date = datetime.strptime(dive.dive_date, "%Y-%m-%d").date()
@@ -392,9 +447,11 @@ def create_dive(
             dive_name = f"Dive - {dive_date.strftime('%Y/%m/%d')}"
     
     # Create dive object
+    print(f"DEBUG: Creating dive with diving_center_id: {dive.diving_center_id}")
     db_dive = Dive(
         user_id=current_user.id,
         dive_site_id=dive.dive_site_id,
+        diving_center_id=dive.diving_center_id,
         name=dive_name,
         is_private=dive.is_private,
         dive_information=dive.dive_information,
@@ -430,11 +487,28 @@ def create_dive(
                 "region": dive_site.region
             }
     
+    # Get diving center information if available
+    diving_center_info = None
+    if db_dive.diving_center_id:
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == db_dive.diving_center_id).first()
+        if diving_center:
+            diving_center_info = {
+                "id": diving_center.id,
+                "name": diving_center.name,
+                "description": diving_center.description,
+                "email": diving_center.email,
+                "phone": diving_center.phone,
+                "website": diving_center.website,
+                "latitude": float(diving_center.latitude) if diving_center.latitude else None,
+                "longitude": float(diving_center.longitude) if diving_center.longitude else None
+            }
+    
     # Convert to dict to avoid SQLAlchemy relationship serialization issues
     dive_dict = {
         "id": db_dive.id,
         "user_id": db_dive.user_id,
         "dive_site_id": db_dive.dive_site_id,
+        "diving_center_id": db_dive.diving_center_id,
         "name": db_dive.name,
         "is_private": db_dive.is_private,
         "dive_information": db_dive.dive_information,
@@ -452,6 +526,7 @@ def create_dive(
         "created_at": db_dive.created_at,
         "updated_at": db_dive.updated_at,
         "dive_site": dive_site_info,
+        "diving_center": diving_center_info,
         "media": [],
         "tags": [],
         "user_username": current_user.username
@@ -610,6 +685,22 @@ def get_dives(
                     "region": dive_site.region
                 }
         
+        # Get diving center information if available
+        diving_center_info = None
+        if dive.diving_center_id:
+            diving_center = db.query(DivingCenter).filter(DivingCenter.id == dive.diving_center_id).first()
+            if diving_center:
+                diving_center_info = {
+                    "id": diving_center.id,
+                    "name": diving_center.name,
+                    "description": diving_center.description,
+                    "email": diving_center.email,
+                    "phone": diving_center.phone,
+                    "website": diving_center.website,
+                    "latitude": float(diving_center.latitude) if diving_center.latitude else None,
+                    "longitude": float(diving_center.longitude) if diving_center.longitude else None
+                }
+        
         # Get tags for this dive
         dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).all()
         tags_list = [{"id": tag.id, "name": tag.name} for tag in dive_tags]
@@ -618,6 +709,7 @@ def get_dives(
             "id": dive.id,
             "user_id": dive.user_id,
             "dive_site_id": dive.dive_site_id,
+            "diving_center_id": dive.diving_center_id,
             "name": dive.name,
             "is_private": dive.is_private,
             "dive_information": dive.dive_information,
@@ -635,6 +727,7 @@ def get_dives(
             "created_at": dive.created_at,
             "updated_at": dive.updated_at,
             "dive_site": dive_site_info,
+            "diving_center": diving_center_info,
             "media": [],
             "tags": tags_list,
             "user_username": dive.user.username
@@ -704,11 +797,28 @@ def get_dive(
                 "region": dive_site.region
             }
     
+    # Get diving center information if available
+    diving_center_info = None
+    if dive.diving_center_id:
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == dive.diving_center_id).first()
+        if diving_center:
+            diving_center_info = {
+                "id": diving_center.id,
+                "name": diving_center.name,
+                "description": diving_center.description,
+                "email": diving_center.email,
+                "phone": diving_center.phone,
+                "website": diving_center.website,
+                "latitude": float(diving_center.latitude) if diving_center.latitude else None,
+                "longitude": float(diving_center.longitude) if diving_center.longitude else None
+            }
+    
     # Convert SQLAlchemy object to dictionary to avoid serialization issues
     dive_dict = {
         "id": dive.id,
         "user_id": dive.user_id,
         "dive_site_id": dive.dive_site_id,
+        "diving_center_id": dive.diving_center_id,
         "name": dive.name,
         "is_private": dive.is_private,
         "dive_information": dive.dive_information,
@@ -726,6 +836,7 @@ def get_dive(
         "created_at": dive.created_at,
         "updated_at": dive.updated_at,
         "dive_site": dive_site_info,
+        "diving_center": diving_center_info,
         "media": [],
         "tags": [],
         "user_username": dive.user.username
@@ -889,6 +1000,15 @@ def update_dive(
                 detail="Dive site not found"
             )
     
+    # Validate diving center if provided
+    if dive_update.diving_center_id:
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == dive_update.diving_center_id).first()
+        if not diving_center:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Diving center not found"
+            )
+    
     # Parse date and time if provided
     if dive_update.dive_date:
         try:
@@ -944,11 +1064,28 @@ def update_dive(
                 "region": dive_site.region
             }
     
+    # Get diving center information if available
+    diving_center_info = None
+    if dive.diving_center_id:
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == dive.diving_center_id).first()
+        if diving_center:
+            diving_center_info = {
+                "id": diving_center.id,
+                "name": diving_center.name,
+                "description": diving_center.description,
+                "email": diving_center.email,
+                "phone": diving_center.phone,
+                "website": diving_center.website,
+                "latitude": float(diving_center.latitude) if diving_center.latitude else None,
+                "longitude": float(diving_center.longitude) if diving_center.longitude else None
+            }
+    
     # Convert SQLAlchemy object to dictionary to avoid serialization issues
     dive_dict = {
         "id": dive.id,
         "user_id": dive.user_id,
         "dive_site_id": dive.dive_site_id,
+        "diving_center_id": dive.diving_center_id,
         "name": dive.name,
         "is_private": dive.is_private,
         "dive_information": dive.dive_information,
@@ -966,6 +1103,7 @@ def update_dive(
         "created_at": dive.created_at,
         "updated_at": dive.updated_at,
         "dive_site": dive_site_info,
+        "diving_center": diving_center_info,
         "media": [],
         "tags": [],
         "user_username": current_user.username

@@ -474,6 +474,7 @@ class DivingCenterResponseWithOrganizations(DivingCenterResponse):
 # Dive Schemas
 class DiveBase(BaseModel):
     dive_site_id: Optional[int] = None
+    diving_center_id: Optional[int] = None  # Link to diving center
     name: Optional[str] = Field(None, max_length=255)  # Custom name/alias
     is_private: bool = False  # Privacy control - default public
     dive_information: Optional[str] = None
@@ -493,6 +494,7 @@ class DiveCreate(DiveBase):
 
 class DiveUpdate(BaseModel):
     dive_site_id: Optional[int] = None
+    diving_center_id: Optional[int] = None  # Link to diving center
     name: Optional[str] = Field(None, max_length=255)
     is_private: Optional[bool] = None
     dive_information: Optional[str] = None
@@ -511,6 +513,7 @@ class DiveResponse(DiveBase):
     id: int
     user_id: int
     dive_site_id: Optional[int] = None
+    diving_center_id: Optional[int] = None  # Link to diving center
     name: Optional[str] = None
     is_private: bool = False
     dive_information: Optional[str] = None
@@ -528,6 +531,7 @@ class DiveResponse(DiveBase):
     created_at: datetime
     updated_at: datetime
     dive_site: Optional[dict] = None
+    diving_center: Optional[dict] = None  # Diving center information
     media: List[dict] = []
     tags: List[dict] = []
     user_username: Optional[str] = None  # For public dives
