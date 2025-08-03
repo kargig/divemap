@@ -99,7 +99,7 @@ async function testPage(browser, url) {
     });
 
     // Wait a bit for any dynamic content to load
-    await page.waitForTimeout(3000);
+    await new Promise(resolve => setTimeout(resolve, 3000);
 
     // Check if the page loaded successfully
     const title = await page.title();
@@ -167,7 +167,7 @@ async function testHomePage(page) {
   const searchInput = await page.$('input[placeholder*="Search"]');
   if (searchInput) {
     await searchInput.type('test');
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000);
     console.log('    ✓ Search input working');
   }
 }
@@ -183,7 +183,7 @@ async function testDiveSitesPage(page) {
   const searchInput = await page.$('input[placeholder*="Search"]');
   if (searchInput) {
     await searchInput.type('test');
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000);
     console.log('    ✓ Search input working');
   }
   
@@ -191,7 +191,7 @@ async function testDiveSitesPage(page) {
   const filterButtons = await page.$$('button[data-testid*="filter"]');
   if (filterButtons.length > 0) {
     await filterButtons[0].click();
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000);
     console.log('    ✓ Filter functionality working');
   }
   
@@ -213,7 +213,7 @@ async function testDivingCentersPage(page) {
   const searchInput = await page.$('input[placeholder*="name"]');
   if (searchInput) {
     await searchInput.type('test');
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000);
     console.log('    ✓ Search input working');
   }
   
@@ -221,7 +221,7 @@ async function testDivingCentersPage(page) {
   const sortSelect = await page.$('select[data-testid="sort"]');
   if (sortSelect) {
     await sortSelect.select('name');
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000);
     console.log('    ✓ Sort functionality working');
   }
 }
@@ -237,7 +237,7 @@ async function testLoginPage(page) {
   if (emailInput && passwordInput && submitButton) {
     // Test empty form submission
     await submitButton.click();
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000);
     
     // Check for validation messages
     const validationMessages = await page.$$('[data-testid="error-message"]');
@@ -249,7 +249,7 @@ async function testLoginPage(page) {
     await emailInput.type('invalid-email');
     await passwordInput.type('short');
     await submitButton.click();
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000);
     
     // Test with valid data
     await emailInput.clear();
@@ -279,14 +279,14 @@ async function testRegisterPage(page) {
   if (nameInput && emailInput && passwordInput && submitButton) {
     // Test empty form submission
     await submitButton.click();
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000);
     
     // Test with invalid data
     await nameInput.type('Test');
     await emailInput.type('invalid-email');
     await passwordInput.type('short');
     await submitButton.click();
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000);
     
     // Test with valid data
     await nameInput.clear();
@@ -312,7 +312,7 @@ async function testProfilePage(page) {
   const editButton = await page.$('[data-testid="edit-profile"]');
   if (editButton) {
     await editButton.click();
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000);
     console.log('    ✓ Edit profile functionality working');
   }
   
@@ -422,7 +422,7 @@ async function testCreateDiveSitePage(page) {
   if (nameInput && descriptionInput && latitudeInput && longitudeInput && submitButton) {
     // Test empty form submission
     await submitButton.click();
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000);
     
     // Test with valid data
     await nameInput.type(TEST_DIVE_SITE.name);
@@ -452,7 +452,7 @@ async function testCreateDivingCenterPage(page) {
   if (nameInput && descriptionInput && emailInput && phoneInput && submitButton) {
     // Test empty form submission
     await submitButton.click();
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000);
     
     // Test with valid data
     await nameInput.type(TEST_DIVING_CENTER.name);
@@ -523,7 +523,7 @@ async function testResponsiveDesign(page, url) {
   
   for (const viewport of viewports) {
     await page.setViewport(viewport);
-    await page.waitForTimeout(500);
+    await new Promise(resolve => setTimeout(resolve, 500);
     
     // Check for horizontal scrolling (bad for mobile)
     const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
@@ -557,7 +557,7 @@ async function testErrorHandling(page) {
   // Test 404 page
   try {
     await page.goto(`${BASE_URL}/non-existent-page`);
-    await page.waitForTimeout(2000);
+    await new Promise(resolve => setTimeout(resolve, 2000);
     
     const notFoundContent = await page.$('[data-testid="not-found"]');
     if (notFoundContent) {
