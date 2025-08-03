@@ -18,6 +18,24 @@ from app.models import OwnershipStatus
 
 router = APIRouter()
 
+@router.get("/count")
+async def get_diving_centers_count(
+    search_params: DivingCenterSearchParams = Depends(),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional)
+):
+    """Get total count of diving centers matching the filters."""
+    query = db.query(DivingCenter)
+    
+    # Apply filters
+    if search_params.name:
+        query = query.filter(DivingCenter.name.ilike(f"%{search_params.name}%"))
+    
+    # Get total count
+    total_count = query.count()
+    
+    return {"total": total_count}
+
 @router.get("/", response_model=List[DivingCenterResponse])
 async def get_diving_centers(
     search_params: DivingCenterSearchParams = Depends(),

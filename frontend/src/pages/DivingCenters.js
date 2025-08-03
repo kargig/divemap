@@ -26,6 +26,25 @@ const DivingCenters = () => {
     offset: 0
   });
 
+  // Fetch total count
+  const { data: totalCount } = useQuery(
+    ['diving-centers-count', searchParams],
+    () => {
+      // Filter out empty parameters
+      const filteredParams = Object.fromEntries(
+        Object.entries(searchParams).filter(([key, value]) => {
+          if (key === 'limit' || key === 'offset') return true;
+          return value !== '' && value !== null && value !== undefined;
+        })
+      );
+      return api.get('/api/v1/diving-centers/count', { params: filteredParams });
+    },
+    {
+      select: (response) => response.data.total,
+      keepPreviousData: true
+    }
+  );
+
   // Fetch diving centers
   const { data: divingCenters, isLoading, error } = useQuery(
     ['diving-centers', searchParams],
@@ -110,6 +129,11 @@ const DivingCenters = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">Diving Centers</h1>
         <p className="text-gray-600">Discover and rate diving centers around the world</p>
+        {totalCount !== undefined && (
+          <div className="mt-2 text-sm text-gray-500">
+            Showing {divingCenters?.length || 0} diving centers from {totalCount} total diving centers
+          </div>
+        )}
       </div>
 
       {/* Search and Filter Form */}

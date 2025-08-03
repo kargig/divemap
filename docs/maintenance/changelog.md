@@ -4,6 +4,40 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 ## [Latest Release] - 2025-08-02
 
+### 🔧 Import Script Enhancements
+
+#### **Enhanced Dive Site Import System**
+- **Smart Conflict Resolution**: Enhanced import script prefers updating existing sites over creating new ones
+- **Similarity Matching**: Uses multiple algorithms to detect similar dive site names (80% threshold)
+- **Proximity Checking**: Prevents duplicates within 200m radius
+- **Selective Updates**: Preserves existing data not present in import files
+- **Batch Processing**: Multiple modes for different import scenarios (interactive, skip-all, update-all, create-merge-all)
+- **Merge File System**: Manual review capability for complex updates
+
+**Import Script Features:**
+- **Smart Matching**: Sequence matcher, word-based similarity, and substring matching
+- **Interactive Mode**: User confirmation for each conflict
+- **Force Mode**: Skip all confirmations for batch processing
+- **Dry Run Mode**: Preview changes without making them
+- **Merge Files**: Generate files for manual review and editing
+
+**Update Behavior:**
+- **Always Updated**: name, description, latitude, longitude
+- **Preserved**: address, access_instructions, difficulty_level, marine_life, safety_information, alternative_names, country, region
+- **Selective**: Only changes fields present in import data
+
+**Usage Examples:**
+```bash
+# Update all existing sites with conflicts
+python utils/import_dive_sites_enhanced.py -f --update-all
+
+# Create merge files for manual review
+python utils/import_dive_sites_enhanced.py --create-merge-all
+
+# Import only completely new sites
+python utils/import_dive_sites_enhanced.py -f --skip-all
+```
+
 ### 🔒 Security Enhancements
 
 #### **Enhanced Rate Limiting System**

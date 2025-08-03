@@ -154,3 +154,6 @@ FLY_*
 local*sql*backup
 divemap_backup_*sql*
 local_testme
+utils/01*
+merge_*.txt
+

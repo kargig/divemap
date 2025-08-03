@@ -500,6 +500,64 @@ curl -X GET https://divemap-backend.fly.dev/health
 curl -I https://divemap.fly.dev/
 ```
 
+## Import Scripts Maintenance
+
+### Dive Site Import Scripts
+
+The application includes enhanced import scripts for managing dive site data with smart conflict resolution.
+
+#### **import_dive_sites_enhanced.py**
+- **Purpose**: Import dive sites from text files with preference for updating existing sites
+- **Strategy**: Prevents duplicate creation by checking similarity and proximity
+- **Conflict Resolution**: Offers interactive, batch, and merge file modes
+
+**Maintenance Tasks:**
+```bash
+# Verify import script functionality
+cd utils
+python import_dive_sites_enhanced.py --dry-run
+
+# Test with sample data
+python import_dive_sites_enhanced.py -f --skip-all
+
+# Create merge files for review
+python import_dive_sites_enhanced.py --create-merge-all
+```
+
+**Key Features for Maintenance:**
+- **Smart Matching**: Uses similarity algorithms to detect existing sites
+- **Proximity Checking**: 200m threshold to prevent nearby duplicates
+- **Selective Updates**: Preserves existing data not in import files
+- **Batch Processing**: Multiple modes for different import scenarios
+- **Merge Files**: Manual review capability for complex updates
+
+**Update Behavior:**
+- **Always Updated**: name, description, latitude, longitude
+- **Preserved**: address, access_instructions, difficulty_level, marine_life, safety_information, alternative_names, country, region
+- **Selective**: Only changes fields present in import data
+
+#### **import_kml_dive_sites.py**
+- **Purpose**: Import dive sites from KML files with automatic tag assignment
+- **Maintenance**: Verify icon-to-tag mapping accuracy
+
+**Maintenance Tasks:**
+```bash
+# Test KML import functionality
+python import_kml_dive_sites.py sample_dive_sites.kml
+
+# Verify tag assignments
+mysql -u divemap_user -p divemap -e "SELECT name, GROUP_CONCAT(tag_name) FROM dive_sites ds JOIN dive_site_tags dst ON ds.id = dst.dive_site_id JOIN available_tags at ON dst.tag_id = at.id GROUP BY ds.id;"
+```
+
+### Import Script Best Practices
+
+1. **Always backup database before large imports**
+2. **Use dry-run mode to preview changes**
+3. **Review merge files before applying complex updates**
+4. **Test with small datasets first**
+5. **Monitor import logs for errors**
+6. **Verify data integrity after imports**
+
 ### Recovery Procedures
 
 #### Database Recovery

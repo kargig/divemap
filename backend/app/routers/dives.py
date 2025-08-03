@@ -22,6 +22,120 @@ def generate_dive_name(dive_site_name: str, dive_date: date) -> str:
 
 
 # Admin endpoints for dive management - must be defined before regular routes
+@router.get("/admin/dives/count")
+def get_all_dives_count_admin(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
+    dive_site_id: Optional[int] = Query(None),
+    dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
+    difficulty_level: Optional[str] = Query(None, regex=r"^(beginner|intermediate|advanced|expert)$"),
+    suit_type: Optional[str] = Query(None, regex=r"^(wet_suit|dry_suit|shortie)$"),
+    min_depth: Optional[float] = Query(None, ge=0, le=1000),
+    max_depth: Optional[float] = Query(None, ge=0, le=1000),
+    min_visibility: Optional[int] = Query(None, ge=1, le=10),
+    max_visibility: Optional[int] = Query(None, ge=1, le=10),
+    min_rating: Optional[int] = Query(None, ge=1, le=10),
+    max_rating: Optional[int] = Query(None, ge=1, le=10),
+    start_date: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
+    end_date: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
+    tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
+):
+    """Get total count of dives with admin privileges."""
+    if not current_user.enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled"
+        )
+    
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required"
+        )
+    
+    # Build query - admin can see all dives
+    query = db.query(Dive).join(User, Dive.user_id == User.id)
+    
+    # Filter by user if specified
+    if user_id:
+        query = query.filter(Dive.user_id == user_id)
+    
+    # Apply filters
+    if dive_site_id:
+        query = query.filter(Dive.dive_site_id == dive_site_id)
+    
+    if dive_site_name:
+        # Join with DiveSite table to filter by dive site name
+        query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
+        # Use ILIKE for case-insensitive partial matching
+        sanitized_name = dive_site_name.strip()
+        query = query.filter(DiveSite.name.ilike(f"%{sanitized_name}%"))
+    
+    if difficulty_level:
+        query = query.filter(Dive.difficulty_level == difficulty_level)
+    
+    if suit_type:
+        query = query.filter(Dive.suit_type == suit_type)
+    
+    if min_depth is not None:
+        query = query.filter(Dive.max_depth >= min_depth)
+    
+    if max_depth is not None:
+        query = query.filter(Dive.max_depth <= max_depth)
+    
+    if min_visibility is not None:
+        query = query.filter(Dive.visibility_rating >= min_visibility)
+    
+    if max_visibility is not None:
+        query = query.filter(Dive.visibility_rating <= max_visibility)
+    
+    if min_rating is not None:
+        query = query.filter(Dive.user_rating >= min_rating)
+    
+    if max_rating is not None:
+        query = query.filter(Dive.user_rating <= max_rating)
+    
+    if start_date:
+        try:
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+            query = query.filter(Dive.dive_date >= start_date_obj)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid start_date format. Use YYYY-MM-DD"
+            )
+    
+    if end_date:
+        try:
+            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+            query = query.filter(Dive.dive_date <= end_date_obj)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid end_date format. Use YYYY-MM-DD"
+            )
+    
+    # Apply tag filtering
+    if tag_ids:
+        try:
+            tag_id_list = [int(tid.strip()) for tid in tag_ids.split(",") if tid.strip()]
+            if tag_id_list:
+                # Join with DiveTag and AvailableTag tables
+                query = query.join(DiveTag, Dive.id == DiveTag.dive_id)
+                query = query.join(AvailableTag, DiveTag.tag_id == AvailableTag.id)
+                query = query.filter(AvailableTag.id.in_(tag_id_list))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid tag_ids format. Use comma-separated integers"
+            )
+    
+    # Get total count
+    total_count = query.count()
+    
+    return {"total": total_count}
+
 @router.get("/admin/dives", response_model=List[DiveResponse])
 def get_all_dives_admin(
     db: Session = Depends(get_db),
@@ -534,6 +648,115 @@ def create_dive(
     
     return dive_dict
 
+
+@router.get("/count")
+def get_dives_count(
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
+    dive_site_id: Optional[int] = Query(None),
+    dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
+    difficulty_level: Optional[str] = Query(None, regex=r"^(beginner|intermediate|advanced|expert)$"),
+    suit_type: Optional[str] = Query(None, regex=r"^(wet_suit|dry_suit|shortie)$"),
+    min_depth: Optional[float] = Query(None, ge=0, le=1000),
+    max_depth: Optional[float] = Query(None, ge=0, le=1000),
+    min_visibility: Optional[int] = Query(None, ge=1, le=10),
+    max_visibility: Optional[int] = Query(None, ge=1, le=10),
+    min_rating: Optional[int] = Query(None, ge=1, le=10),
+    max_rating: Optional[int] = Query(None, ge=1, le=10),
+    start_date: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
+    end_date: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
+    tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
+):
+    """Get total count of dives matching the filters."""
+    query = db.query(Dive).join(User, Dive.user_id == User.id)
+    
+    # Filter by user if specified
+    if user_id:
+        query = query.filter(Dive.user_id == user_id)
+    elif not current_user or not current_user.is_admin:
+        # Non-admin users can only see their own dives and public dives
+        query = query.filter(
+            or_(
+                Dive.user_id == current_user.id if current_user else False,
+                Dive.is_private == False
+            )
+        )
+    
+    # Apply filters
+    if dive_site_id:
+        query = query.filter(Dive.dive_site_id == dive_site_id)
+    
+    if dive_site_name:
+        # Join with DiveSite table to filter by dive site name
+        query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
+        # Use ILIKE for case-insensitive partial matching
+        sanitized_name = dive_site_name.strip()
+        query = query.filter(DiveSite.name.ilike(f"%{sanitized_name}%"))
+    
+    if difficulty_level:
+        query = query.filter(Dive.difficulty_level == difficulty_level)
+    
+    if suit_type:
+        query = query.filter(Dive.suit_type == suit_type)
+    
+    if min_depth is not None:
+        query = query.filter(Dive.max_depth >= min_depth)
+    
+    if max_depth is not None:
+        query = query.filter(Dive.max_depth <= max_depth)
+    
+    if min_visibility is not None:
+        query = query.filter(Dive.visibility_rating >= min_visibility)
+    
+    if max_visibility is not None:
+        query = query.filter(Dive.visibility_rating <= max_visibility)
+    
+    if min_rating is not None:
+        query = query.filter(Dive.user_rating >= min_rating)
+    
+    if max_rating is not None:
+        query = query.filter(Dive.user_rating <= max_rating)
+    
+    if start_date:
+        try:
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+            query = query.filter(Dive.dive_date >= start_date_obj)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid start_date format. Use YYYY-MM-DD"
+            )
+    
+    if end_date:
+        try:
+            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+            query = query.filter(Dive.dive_date <= end_date_obj)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid end_date format. Use YYYY-MM-DD"
+            )
+    
+    # Apply tag filtering
+    if tag_ids:
+        try:
+            tag_id_list = [int(tid.strip()) for tid in tag_ids.split(",") if tid.strip()]
+            if tag_id_list:
+                # Join with DiveTag and AvailableTag tables
+                query = query.join(DiveTag, Dive.id == DiveTag.dive_id)
+                query = query.join(AvailableTag, DiveTag.tag_id == AvailableTag.id)
+                query = query.filter(AvailableTag.id.in_(tag_id_list))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid tag_ids format. Use comma-separated integers"
+            )
+    
+    # Get total count
+    total_count = query.count()
+    
+    return {"total": total_count}
 
 @router.get("/", response_model=List[DiveResponse])
 def get_dives(

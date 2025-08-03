@@ -90,6 +90,27 @@ const Dives = () => {
     }
   );
 
+  // Fetch total count
+  const { data: totalCount } = useQuery(
+    ['dives-count', filters, user],
+    () => {
+      // Filter out empty parameters and exclude dive_site_name (handled client-side)
+      const filteredParams = Object.fromEntries(
+        Object.entries(filters).filter(([key, value]) => {
+          if (key === 'limit' || key === 'offset') return true;
+          if (key === 'dive_site_name') return false; // Exclude dive_site_name from count
+          return value !== '' && value !== null && value !== undefined;
+        })
+      );
+      
+      return api.get('/api/v1/dives/count', { params: filteredParams });
+    },
+    {
+      select: (response) => response.data.total,
+      keepPreviousData: true,
+    }
+  );
+
   // Query for fetching dives
   const { data: dives = [], isLoading, error } = useQuery(
     ['dives', filters, user],
@@ -255,6 +276,11 @@ const Dives = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">Dives</h1>
         <p className="text-gray-600">Track and explore your diving adventures</p>
+        {totalCount !== undefined && (
+          <div className="mt-2 text-sm text-gray-500">
+            Showing {dives?.length || 0} dives from {totalCount} total dives
+          </div>
+        )}
       </div>
 
       {/* Search and Filter Section */}

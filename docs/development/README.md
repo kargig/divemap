@@ -682,6 +682,63 @@ export DATABASE_URL="mysql+pymysql://user:password@host:port/database"
 - Generated SQL files can be used to recreate database state
 - Scripts are designed to work with the current database schema
 
+### Import Scripts
+
+#### **import_dive_sites_enhanced.py**
+- **Purpose**: Import dive sites from text files with smart conflict resolution
+- **Strategy**: Prefers updating existing sites over creating new ones
+- **Features**:
+  - Smart similarity matching for dive site names
+  - Proximity checking (200m threshold)
+  - Interactive merge functionality for complex updates
+  - Batch processing modes for different workflows
+  - Dry run mode for testing
+  - Merge file generation for manual review
+
+**Usage:**
+```bash
+# Interactive mode with conflict resolution
+python utils/import_dive_sites_enhanced.py
+
+# Update all existing sites with conflicts
+python utils/import_dive_sites_enhanced.py -f --update-all
+
+# Create merge files for manual review
+python utils/import_dive_sites_enhanced.py --create-merge-all
+
+# Import only completely new sites
+python utils/import_dive_sites_enhanced.py -f --skip-all
+```
+
+**Update Behavior:**
+- **Always updated**: name, description, latitude, longitude
+- **Preserved**: address, access_instructions, difficulty_level, marine_life, safety_information, alternative_names, country, region
+- **Selective updates**: Only changes fields present in import data
+
+#### **import_kml_dive_sites.py**
+- **Purpose**: Import dive sites from KML files with automatic tag assignment
+- **Features**:
+  - Parses KML placemarks for dive site data
+  - Automatic tag assignment based on icon categories
+  - Database integration for bulk imports
+  - Support for extended data fields
+
+**Usage:**
+```bash
+# Import from KML file
+python utils/import_kml_dive_sites.py path/to/dive_sites.kml
+```
+
+**Icon to Tag Mapping:**
+- Shore Dive, Boat Dive, Wreck, Reef, Wall, Cave, Drift
+- Deep, Shallow, Night Dive, Training, Photography
+- Marine Life, Advanced, Beginner
+
+**Requirements:**
+- Backend database connection
+- KML file with proper placemark structure
+- GPS coordinates in placemarks
+
 ## Deployment
 
 ### Development Deployment
