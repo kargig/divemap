@@ -1014,7 +1014,7 @@ async def get_nearby_dive_sites(
             "id": row.id,
             "name": row.name,
             "description": row.description,
-            "difficulty_level": row.difficulty_level.value if row.difficulty_level else None,
+            "difficulty_level": row.difficulty_level if row.difficulty_level else None,
             "latitude": float(row.latitude) if row.latitude else None,
             "longitude": float(row.longitude) if row.longitude else None,
             "address": row.address,
