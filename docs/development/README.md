@@ -546,6 +546,31 @@ The project uses GitHub Actions for continuous integration and automated testing
 
 ## Recent Features
 
+### Alphabetical Pagination Implementation
+
+Added alphabetical pagination to `/dives` and `/diving-centers` endpoints, matching the existing `/dive-sites` functionality.
+
+**Features:**
+- **Alphabetical Sorting**: Case-insensitive alphabetical sorting by name for all endpoints
+- **Consistent Pagination**: Standardized pagination headers across all endpoints
+- **Frontend Integration**: Proper pagination header handling in React components
+- **URL State Management**: Pagination state preserved in URL parameters
+- **Filter Integration**: Works with existing search and filter functionality
+
+**Technical Implementation:**
+- **Backend**: Fixed header naming consistency (`X-Total-Count`, `X-Total-Pages`, etc.)
+- **Frontend**: Enhanced pagination header handling with React Query caching
+- **Files Modified**:
+  - `backend/app/routers/dives.py`
+  - `backend/app/routers/diving_centers.py`
+  - `frontend/src/pages/Dives.js`
+  - `frontend/src/pages/DivingCenters.js`
+
+**Endpoints Updated:**
+- `/api/v1/dives/` - Alphabetical sorting by dive name
+- `/api/v1/diving-centers/` - Alphabetical sorting by center name
+- `/api/v1/dive-sites/` - Already had alphabetical sorting (for comparison)
+
 ### Diving Organizations Admin Management
 
 A comprehensive CRUD interface for managing diving certification organizations has been added to the admin dashboard.

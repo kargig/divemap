@@ -776,10 +776,17 @@ def get_dives(
     start_date: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
     end_date: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$"),
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
-    limit: int = Query(50, ge=1, le=100),
-    offset: int = Query(0, ge=0)
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(25, description="Page size (25, 50, or 100)")
 ):
     """Get dives with filtering options. Can view own dives and public dives from other users. Unauthenticated users can view public dives."""
+    # Validate page_size
+    if page_size not in [25, 50, 100]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="page_size must be one of: 25, 50, 100"
+        )
+    
     # Check if user is authenticated and enabled
     if current_user and not current_user.enabled:
         raise HTTPException(
@@ -883,11 +890,20 @@ def get_dives(
                 detail="Invalid tag_ids format"
             )
     
-    # Order by dive date (newest first)
-    query = query.order_by(Dive.dive_date.desc(), Dive.dive_time.desc())
+    # Get total count for pagination headers
+    total_count = query.count()
+    
+    # Apply alphabetical sorting by dive name (case-insensitive)
+    query = query.order_by(func.lower(Dive.name).asc())
+    
+    # Calculate pagination
+    offset = (page - 1) * page_size
+    total_pages = (total_count + page_size - 1) // page_size
+    has_next_page = page < total_pages
+    has_prev_page = page > 1
     
     # Apply pagination
-    dives = query.offset(offset).limit(limit).all()
+    dives = query.offset(offset).limit(page_size).all()
     
     # Convert SQLAlchemy objects to dictionaries to avoid serialization issues
     dive_list = []
@@ -947,8 +963,8 @@ def get_dives(
             "dive_time": dive.dive_time.strftime("%H:%M:%S") if dive.dive_time else None,
             "duration": dive.duration,
             "view_count": dive.view_count,
-            "created_at": dive.created_at,
-            "updated_at": dive.updated_at,
+            "created_at": dive.created_at.isoformat() if dive.created_at else None,
+            "updated_at": dive.updated_at.isoformat() if dive.updated_at else None,
             "dive_site": dive_site_info,
             "diving_center": diving_center_info,
             "media": [],
@@ -957,7 +973,17 @@ def get_dives(
         }
         dive_list.append(dive_dict)
     
-    return dive_list
+    # Return response with pagination headers
+    from fastapi.responses import JSONResponse
+    response = JSONResponse(content=dive_list)
+    response.headers["X-Total-Count"] = str(total_count)
+    response.headers["X-Total-Pages"] = str(total_pages)
+    response.headers["X-Current-Page"] = str(page)
+    response.headers["X-Page-Size"] = str(page_size)
+    response.headers["X-Has-Next-Page"] = str(has_next_page).lower()
+    response.headers["X-Has-Prev-Page"] = str(has_prev_page).lower()
+    
+    return response
 
 
 @router.get("/{dive_id}", response_model=DiveResponse)

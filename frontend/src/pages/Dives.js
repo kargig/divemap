@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getDives, deleteDive } from '../api';
 import api from '../api';
 import { toast } from 'react-hot-toast';
-import { Plus, Edit, Trash2, Eye, Calendar, MapPin, Clock, Thermometer, Star, Map, Search, Filter, List, Globe, Tag, Lock } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Calendar, MapPin, Clock, Thermometer, Star, Map, Search, Filter, List, Globe, Tag, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 import DivesMap from '../components/DivesMap';
 
 const Dives = () => {
@@ -35,8 +35,13 @@ const Dives = () => {
       end_date: searchParams.get('end_date') || '',
       tag_ids: searchParams.getAll('tag_ids').map(id => parseInt(id)).filter(id => !isNaN(id)),
       my_dives: searchParams.get('my_dives') === 'true',
-      limit: 50,
-      offset: 0
+    };
+  };
+
+  const getInitialPagination = () => {
+    return {
+      page: parseInt(searchParams.get('page')) || 1,
+      page_size: parseInt(searchParams.get('page_size')) || 25,
     };
   };
 
@@ -48,8 +53,9 @@ const Dives = () => {
   });
   
   const [filters, setFilters] = useState(getInitialFilters);
+  const [pagination, setPagination] = useState(getInitialPagination);
 
-  // Update URL when view mode or filters change
+  // Update URL when view mode, filters, or pagination change
   useEffect(() => {
     const newSearchParams = new URLSearchParams();
     
@@ -76,10 +82,14 @@ const Dives = () => {
     filters.tag_ids.forEach(tagId => {
       newSearchParams.append('tag_ids', tagId.toString());
     });
+
+    // Add pagination
+    newSearchParams.set('page', pagination.page.toString());
+    newSearchParams.set('page_size', pagination.page_size.toString());
     
     // Update URL without triggering a page reload
     navigate(`?${newSearchParams.toString()}`, { replace: true });
-  }, [viewMode, filters, navigate]);
+  }, [viewMode, filters, pagination, navigate]);
 
   // Fetch available tags for filtering
   const { data: availableTags } = useQuery(
@@ -90,79 +100,68 @@ const Dives = () => {
     }
   );
 
-  // Fetch total count
-  const { data: totalCount } = useQuery(
-    ['dives-count', filters, user],
-    () => {
-      // Filter out empty parameters and exclude dive_site_name (handled client-side)
-      const filteredParams = Object.fromEntries(
-        Object.entries(filters).filter(([key, value]) => {
-          if (key === 'limit' || key === 'offset') return true;
-          if (key === 'dive_site_name') return false; // Exclude dive_site_name from count
-          return value !== '' && value !== null && value !== undefined;
-        })
-      );
-      
-      return api.get('/api/v1/dives/count', { params: filteredParams });
-    },
-    {
-      select: (response) => response.data.total,
-      keepPreviousData: true,
-    }
-  );
-
-  // Query for fetching dives
+  // Query for fetching dives with pagination
   const { data: dives = [], isLoading, error } = useQuery(
-    ['dives', filters, user],
+    ['dives', filters, pagination, user],
     () => {
-      // Filter out empty parameters and exclude dive_site_name (handled client-side)
-      const filteredParams = Object.fromEntries(
-        Object.entries(filters).filter(([key, value]) => {
-          if (key === 'limit' || key === 'offset') return true;
-          if (key === 'dive_site_name') return false; // Exclude from backend params
-          if (key === 'tag_ids') return value.length > 0; // Only include if tags are selected
-          // Exclude my_dives parameter for unauthenticated users
-          if (!user && key === 'my_dives') return false;
-          return value !== '' && value !== null && value !== undefined;
-        })
-      );
+      // Create URLSearchParams to properly handle array parameters
+      const params = new URLSearchParams();
       
-      // Handle tag_ids parameter - convert array to comma-separated string
+      // Add non-array parameters
+      if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
+      if (filters.dive_site_name) params.append('dive_site_name', filters.dive_site_name);
+      if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
+      if (filters.min_depth) params.append('min_depth', filters.min_depth);
+      if (filters.max_depth) params.append('max_depth', filters.max_depth);
+      if (filters.min_visibility) params.append('min_visibility', filters.min_visibility);
+      if (filters.max_visibility) params.append('max_visibility', filters.max_visibility);
+      if (filters.min_rating) params.append('min_rating', filters.min_rating);
+      if (filters.max_rating) params.append('max_rating', filters.max_rating);
+      if (filters.start_date) params.append('start_date', filters.start_date);
+      if (filters.end_date) params.append('end_date', filters.end_date);
+      
+      // Add array parameters (tag_ids)
       if (filters.tag_ids && filters.tag_ids.length > 0) {
-        filteredParams.tag_ids = filters.tag_ids.join(',');
+        filters.tag_ids.forEach(tagId => {
+          params.append('tag_ids', tagId.toString());
+        });
       }
       
-      // Use main dives endpoint for both authenticated and unauthenticated users
-      return getDives(filteredParams);
+      // Add pagination parameters
+      params.append('page', pagination.page.toString());
+      params.append('page_size', pagination.page_size.toString());
+      
+      return api.get(`/api/v1/dives/?${params.toString()}`);
     },
     {
+      select: (response) => {
+        // Store pagination info from headers
+        const paginationInfo = {
+          totalCount: parseInt(response.headers['x-total-count'] || '0'),
+          totalPages: parseInt(response.headers['x-total-pages'] || '0'),
+          currentPage: parseInt(response.headers['x-current-page'] || '1'),
+          pageSize: parseInt(response.headers['x-page-size'] || '25'),
+          hasNextPage: response.headers['x-has-next-page'] === 'true',
+          hasPrevPage: response.headers['x-has-prev-page'] === 'true'
+        };
+        // Store pagination info in the query cache
+        queryClient.setQueryData(['dives-pagination', filters, pagination], paginationInfo);
+        return response.data;
+      },
       keepPreviousData: true,
       staleTime: 5 * 60 * 1000, // 5 minutes
     }
   );
 
-  // Apply client-side filtering for dive site name and my dives (like AdminDives.js)
-  const filteredDives = dives?.filter(dive => {
-    // Apply dive site name filter
-    if (filters.dive_site_name) {
-      const diveSiteNameLower = filters.dive_site_name.toLowerCase();
-      if (!dive.dive_site?.name?.toLowerCase().includes(diveSiteNameLower)) {
-        return false;
-      }
-    }
-    
-    // Apply my dives filter
-    if (filters.my_dives && user) {
-      if (dive.user_id !== user.id) {
-        return false;
-      }
-    }
-    
-    return true;
-  }) || [];
-
-  // Use filtered dives directly (no pagination when filtering by dive site name)
-  const displayDives = filteredDives;
+  // Get pagination info from cached data
+  const paginationInfo = queryClient.getQueryData(['dives-pagination', filters, pagination]) || {
+    totalCount: 0,
+    totalPages: 0,
+    currentPage: pagination.page,
+    pageSize: pagination.page_size,
+    hasNextPage: false,
+    hasPrevPage: pagination.page > 1
+  };
 
   // Delete dive mutation
   const deleteDiveMutation = useMutation(deleteDive, {
@@ -186,8 +185,9 @@ const Dives = () => {
     setFilters(prev => ({
       ...prev,
       [name]: value,
-      offset: 0 // Reset offset when filters change
     }));
+    // Reset to first page when filters change
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const clearFilters = () => {
@@ -206,9 +206,9 @@ const Dives = () => {
       end_date: '',
       tag_ids: [],
       my_dives: false,
-      limit: 50,
-      offset: 0
     });
+    // Reset to first page when clearing filters
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleViewModeChange = (newViewMode) => {
@@ -222,13 +222,30 @@ const Dives = () => {
         ? prev.tag_ids.filter(id => id !== tagId)
         : [...prev.tag_ids, tagId]
     }));
+    // Reset to first page when filters change
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleMyDivesToggle = () => {
     setFilters(prev => ({
       ...prev,
       my_dives: !prev.my_dives,
-      offset: 0 // Reset offset when filter changes
+    }));
+    // Reset to first page when filters change
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({
+      ...prev,
+      page: newPage,
+    }));
+  };
+
+  const handlePageSizeChange = (newPageSize) => {
+    setPagination(prev => ({
+      page: 1, // Reset to first page when changing page size
+      page_size: newPageSize,
     }));
   };
 
@@ -276,9 +293,9 @@ const Dives = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">Dives</h1>
         <p className="text-gray-600">Track and explore your diving adventures</p>
-        {totalCount !== undefined && (
+        {paginationInfo.totalCount !== undefined && (
           <div className="mt-2 text-sm text-gray-500">
-            Showing {dives?.length || 0} dives from {totalCount} total dives
+            Showing {paginationInfo.totalCount} dives
           </div>
         )}
       </div>
@@ -529,6 +546,57 @@ const Dives = () => {
             </button>
           </div>
         </div>
+
+        {/* Pagination Controls */}
+        <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+          {/* Page Size Selection */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Show:</label>
+            <select
+              value={pagination.page_size}
+              onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span className="text-sm text-gray-600">per page</span>
+          </div>
+
+          {/* Pagination Info */}
+          {paginationInfo.totalCount !== undefined && (
+            <div className="text-sm text-gray-600">
+              Showing {((pagination.page - 1) * pagination.page_size) + 1} to{' '}
+              {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of {paginationInfo.totalCount} dives
+            </div>
+          )}
+
+          {/* Pagination Navigation */}
+          {paginationInfo.totalCount !== undefined && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              
+              <span className="text-sm text-gray-700">
+                Page {pagination.page} of {Math.ceil(paginationInfo.totalCount / pagination.page_size)}
+              </span>
+              
+              <button
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={pagination.page >= Math.ceil(paginationInfo.totalCount / pagination.page_size)}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Action Buttons and My Dives Filter */}
@@ -565,14 +633,14 @@ const Dives = () => {
       ) : viewMode === 'map' ? (
         <div className="mb-8">
           <DivesMap 
-            dives={displayDives}
+            dives={dives}
             viewport={viewport}
             onViewportChange={setViewport}
           />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayDives?.map((dive) => {
+          {dives?.map((dive) => {
             // Determine card styling based on ownership and privacy
             const isOwnedByUser = user?.id === dive.user_id;
             const isPrivate = dive.is_private;
@@ -701,34 +769,14 @@ const Dives = () => {
         </div>
       )}
 
-      {displayDives?.length === 0 && (
+      {dives?.length === 0 && (
         <div className="text-center py-12">
           <Map className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600">No dives found matching your criteria.</p>
         </div>
       )}
 
-      {/* Pagination */}
-      {displayDives.length > 0 && !filters.dive_site_name && viewMode === 'list' && (
-        <div className="mt-6 flex justify-center">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilters(prev => ({ ...prev, offset: Math.max(0, prev.offset - prev.limit) }))}
-              disabled={filters.offset === 0}
-              className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setFilters(prev => ({ ...prev, offset: prev.offset + prev.limit }))}
-              disabled={dives.length < filters.limit}
-              className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 };

@@ -39,17 +39,39 @@ async def get_diving_centers_count(
 @router.get("/", response_model=List[DivingCenterResponse])
 async def get_diving_centers(
     search_params: DivingCenterSearchParams = Depends(),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(25, description="Page size (25, 50, or 100)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
+    """Get diving centers with filtering and pagination."""
+    # Validate page_size
+    if page_size not in [25, 50, 100]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="page_size must be one of: 25, 50, 100"
+        )
+    
     query = db.query(DivingCenter)
     
     # Apply filters
     if search_params.name:
         query = query.filter(DivingCenter.name.ilike(f"%{search_params.name}%"))
     
-    # Get diving centers with average ratings
-    diving_centers = query.offset(search_params.offset).limit(search_params.limit).all()
+    # Get total count for pagination headers
+    total_count = query.count()
+    
+    # Apply alphabetical sorting by center name (case-insensitive)
+    query = query.order_by(func.lower(DivingCenter.name).asc())
+    
+    # Calculate pagination
+    offset = (page - 1) * page_size
+    total_pages = (total_count + page_size - 1) // page_size
+    has_next_page = page < total_pages
+    has_prev_page = page > 1
+    
+    # Get diving centers with pagination
+    diving_centers = query.offset(offset).limit(page_size).all()
     
     # Calculate average ratings
     result = []
@@ -69,10 +91,10 @@ async def get_diving_centers(
             "email": center.email,
             "phone": center.phone,
             "website": center.website,
-            "latitude": center.latitude,
-            "longitude": center.longitude,
-            "created_at": center.created_at,
-            "updated_at": center.updated_at,
+            "latitude": float(center.latitude) if center.latitude else None,
+            "longitude": float(center.longitude) if center.longitude else None,
+            "created_at": center.created_at.isoformat() if center.created_at else None,
+            "updated_at": center.updated_at.isoformat() if center.updated_at else None,
             "average_rating": float(avg_rating) if avg_rating else None,
             "total_ratings": total_ratings
         }
@@ -90,7 +112,17 @@ async def get_diving_centers(
     if search_params.max_rating is not None:
         result = [center for center in result if center["average_rating"] and center["average_rating"] <= search_params.max_rating]
     
-    return result
+    # Return response with pagination headers
+    from fastapi.responses import JSONResponse
+    response = JSONResponse(content=result)
+    response.headers["X-Total-Count"] = str(total_count)
+    response.headers["X-Total-Pages"] = str(total_pages)
+    response.headers["X-Current-Page"] = str(page)
+    response.headers["X-Page-Size"] = str(page_size)
+    response.headers["X-Has-Next-Page"] = str(has_next_page).lower()
+    response.headers["X-Has-Prev-Page"] = str(has_prev_page).lower()
+    
+    return response
 
 @router.post("/", response_model=DivingCenterResponse)
 async def create_diving_center(

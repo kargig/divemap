@@ -323,12 +323,11 @@ Get total count of dive sites matching filters.
 ```
 
 #### GET /dive-sites/
-Get dive sites with optional random selection.
+Get dive sites (alphabetically sorted).
 
 **Query Parameters:**
-- `limit`: Number of records to return (default: 50, max: 100)
-- `offset`: Number of records to skip (default: 0)
-- `random`: Return random selection of dive sites (default: false)
+- `page`: Page number (1-based, default: 1)
+- `page_size`: Page size (25, 50, or 100, default: 25)
 - `name`: Search term for dive site name
 - `difficulty_level`: Filter by difficulty (beginner, intermediate, advanced, expert)
 - `country`: Filter by country
@@ -336,6 +335,14 @@ Get dive sites with optional random selection.
 - `min_rating`: Minimum rating filter
 - `max_rating`: Maximum rating filter
 - `tag_ids`: Comma-separated tag IDs
+
+**Response Headers:**
+- `X-Total-Count`: Total number of records
+- `X-Total-Pages`: Total number of pages
+- `X-Current-Page`: Current page number
+- `X-Page-Size`: Page size
+- `X-Has-Next-Page`: Whether there's a next page
+- `X-Has-Prev-Page`: Whether there's a previous page
 
 **Response:**
 ```json
@@ -512,14 +519,22 @@ Get total count of diving centers matching filters.
 ```
 
 #### GET /diving-centers/
-Get all diving centers.
+Get all diving centers (alphabetically sorted).
 
 **Query Parameters:**
-- `limit`: Number of records to return (default: 50)
-- `offset`: Number of records to skip (default: 0)
+- `page`: Page number (1-based, default: 1)
+- `page_size`: Page size (25, 50, or 100, default: 25)
 - `name`: Search term for diving center name
 - `min_rating`: Minimum rating filter
 - `max_rating`: Maximum rating filter
+
+**Response Headers:**
+- `X-Total-Count`: Total number of records
+- `X-Total-Pages`: Total number of pages
+- `X-Current-Page`: Current page number
+- `X-Page-Size`: Page size
+- `X-Has-Next-Page`: Whether there's a next page
+- `X-Has-Prev-Page`: Whether there's a previous page
 
 **Response:**
 ```json
@@ -1337,9 +1352,9 @@ The API response includes both the diving center ID and the full diving center o
 curl -H "Authorization: Bearer USER_TOKEN" \
      "https://divemap-backend.fly.dev/api/v1/dives/count"
 
-# Get all dives for the authenticated user
+# Get all dives for the authenticated user (alphabetically sorted)
 curl -H "Authorization: Bearer USER_TOKEN" \
-     "https://divemap-backend.fly.dev/api/v1/dives/"
+     "https://divemap-backend.fly.dev/api/v1/dives/?page=1&page_size=25"
 
 # Get a specific dive
 curl -H "Authorization: Bearer USER_TOKEN" \
@@ -1455,13 +1470,13 @@ curl -X DELETE "https://divemap-backend.fly.dev/api/v1/admin/dives/1" \
 #### Dive Search and Filtering
 
 ```bash
-# Search dives with filters
+# Search dives with filters (alphabetically sorted)
 curl -H "Authorization: Bearer USER_TOKEN" \
-     "https://divemap-backend.fly.dev/api/v1/dives/?dive_site_name=coral&min_depth=20&max_depth=30&difficulty_level=intermediate"
+     "https://divemap-backend.fly.dev/api/v1/dives/?dive_site_name=coral&min_depth=20&max_depth=30&difficulty_level=intermediate&page=1&page_size=25"
 
-# Search with date range
+# Search with date range (alphabetically sorted)
 curl -H "Authorization: Bearer USER_TOKEN" \
-     "https://divemap-backend.fly.dev/api/v1/dives/?start_date=2024-01-01&end_date=2024-01-31"
+     "https://divemap-backend.fly.dev/api/v1/dives/?start_date=2024-01-01&end_date=2024-01-31&page=1&page_size=25"
 ```
 
 ## Conclusion
