@@ -58,7 +58,7 @@ const DiveMapView = () => {
   // Fetch dive sites for filter dropdown
   const { data: diveSites } = useQuery(
     ['dive-sites'],
-    () => api.get('/api/v1/dive-sites/'),
+    () => api.get('/api/v1/dive-sites/?limit=100'),
     {
       select: (response) => response.data,
     }

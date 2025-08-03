@@ -13,7 +13,7 @@ const Home = () => {
   // Fetch dive sites and diving centers for the map
   const { data: diveSites } = useQuery(
     ['dive-sites'],
-    () => api.get('/api/v1/dive-sites/'),
+    () => api.get('/api/v1/dive-sites/?limit=100'),
     {
       select: (response) => response.data,
       staleTime: 5 * 60 * 1000, // 5 minutes

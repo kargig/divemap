@@ -48,6 +48,21 @@ const AdminDives = () => {
     end_date: ''
   });
 
+  // Fetch total count
+  const { data: totalCount } = useQuery(
+    ['admin-dives-count', filters],
+    () => {
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+      return api.get(`/api/v1/dives/admin/dives/count?${params.toString()}`);
+    },
+    {
+      select: (response) => response.data.total,
+    }
+  );
+
   // Fetch dives data
   const { data: dives, isLoading } = useQuery(
     ['admin-dives', filters],
@@ -66,7 +81,7 @@ const AdminDives = () => {
   // Fetch dive sites for dropdown
   const { data: diveSites } = useQuery(
     ['dive-sites'],
-    () => api.get('/api/v1/dive-sites/'),
+    () => api.get('/api/v1/dive-sites/?limit=100'),
     {
       select: (response) => response.data,
     }
@@ -281,6 +296,9 @@ const AdminDives = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Dive Management</h1>
             <p className="text-gray-600 mt-2">Manage all dives in the system</p>
+            {totalCount !== undefined && (
+              <p className="text-sm text-gray-500 mt-1">Total dives: {totalCount}</p>
+            )}
           </div>
           <div className="flex items-center space-x-4">
             <button

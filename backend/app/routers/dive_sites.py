@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_, desc, asc
 from slowapi.util import get_remote_address
-from slowapi import Limiter
 
 from app.database import get_db
 from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag
@@ -157,6 +156,7 @@ async def get_dive_sites(
     region: Optional[str] = Query(None, max_length=100),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    random: bool = Query(False, description="Return random selection of dive sites"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
@@ -205,7 +205,19 @@ async def get_dive_sites(
         query = query.filter(DiveSite.id.in_(dive_site_ids_with_all_tags))
     
     # Get dive sites with average ratings
-    dive_sites = query.offset(offset).limit(limit).all()
+    if random:
+        # For random selection, first get all IDs that match the filters
+        all_matching_ids = [site.id for site in query.all()]
+        if all_matching_ids:
+            # Randomly select up to 'limit' number of IDs
+            import random as random_module
+            selected_ids = random_module.sample(all_matching_ids, min(limit, len(all_matching_ids)))
+            # Get the dive sites with the selected IDs
+            dive_sites = query.filter(DiveSite.id.in_(selected_ids)).all()
+        else:
+            dive_sites = []
+    else:
+        dive_sites = query.offset(offset).limit(limit).all()
     
     # Calculate average ratings and get tags
     result = []
@@ -271,6 +283,63 @@ async def get_dive_sites(
         result = [site for site in result if site["average_rating"] and site["average_rating"] <= max_rating]
     
     return result
+
+@router.get("/count")
+@skip_rate_limit_for_admin("100/minute")
+async def get_dive_sites_count(
+    request: Request,
+    name: Optional[str] = Query(None, max_length=100),
+    difficulty_level: Optional[str] = Query(None, pattern=r"^(beginner|intermediate|advanced|expert)$"),
+    min_rating: Optional[float] = Query(None, ge=0, le=10),
+    max_rating: Optional[float] = Query(None, ge=0, le=10),
+    tag_ids: Optional[List[int]] = Query(None),
+    country: Optional[str] = Query(None, max_length=100),
+    region: Optional[str] = Query(None, max_length=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional)
+):
+    """Get total count of dive sites matching the filters"""
+    query = db.query(DiveSite)
+    
+    # Apply filters with input validation
+    if name:
+        sanitized_name = name.strip()[:100]
+        query = query.filter(DiveSite.name.ilike(f"%{sanitized_name}%"))
+    
+    if difficulty_level:
+        query = query.filter(DiveSite.difficulty_level == difficulty_level)
+    
+    # Apply country filtering
+    if country:
+        sanitized_country = country.strip()[:100]
+        query = query.filter(DiveSite.country.ilike(f"%{sanitized_country}%"))
+    
+    # Apply region filtering
+    if region:
+        sanitized_region = region.strip()[:100]
+        query = query.filter(DiveSite.region.ilike(f"%{sanitized_region}%"))
+    
+    # Apply tag filtering
+    if tag_ids:
+        from app.models import DiveSiteTag
+        from sqlalchemy import select
+        if len(tag_ids) > 20:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Too many tag filters"
+            )
+        tag_count = len(tag_ids)
+        dive_site_ids_with_all_tags = select(DiveSiteTag.dive_site_id).filter(
+            DiveSiteTag.tag_id.in_(tag_ids)
+        ).group_by(DiveSiteTag.dive_site_id).having(
+            func.count(DiveSiteTag.tag_id) == tag_count
+        )
+        query = query.filter(DiveSite.id.in_(dive_site_ids_with_all_tags))
+    
+    # Get total count
+    total_count = query.count()
+    
+    return {"total": total_count}
 
 @router.post("/", response_model=DiveSiteResponse)
 @skip_rate_limit_for_admin("10/minute")

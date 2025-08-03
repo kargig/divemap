@@ -13,10 +13,19 @@ const AdminDiveSites = () => {
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
+  // Fetch total count
+  const { data: totalCount } = useQuery(
+    ['admin-dive-sites-count'],
+    () => api.get('/api/v1/dive-sites/count'),
+    {
+      select: (response) => response.data.total,
+    }
+  );
+
   // Fetch dive sites data
   const { data: diveSites, isLoading } = useQuery(
     ['admin-dive-sites'],
-    () => api.get('/api/v1/dive-sites/'),
+    () => api.get('/api/v1/dive-sites/?limit=100'),
     {
       select: (response) => response.data,
     }
@@ -172,6 +181,9 @@ const AdminDiveSites = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dive Sites Management</h1>
           <p className="text-gray-600 mt-2">Manage all dive sites in the system</p>
+          {totalCount !== undefined && (
+            <p className="text-sm text-gray-500 mt-1">Total dive sites: {totalCount}</p>
+          )}
         </div>
         <button
           onClick={() => navigate('/admin/dive-sites/create')}

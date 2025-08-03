@@ -303,18 +303,39 @@ Change user password.
 
 ### Dive Sites Endpoints
 
-#### GET /dive-sites/
-Get all dive sites.
+#### GET /dive-sites/count
+Get total count of dive sites matching filters.
 
 **Query Parameters:**
-- `skip`: Number of records to skip (default: 0)
-- `limit`: Number of records to return (default: 100)
-- `search`: Search term for name or description
+- `name`: Search term for dive site name
 - `difficulty_level`: Filter by difficulty (beginner, intermediate, advanced, expert)
 - `country`: Filter by country
 - `region`: Filter by region
-- `min_depth`: Minimum depth filter
-- `max_depth`: Maximum depth filter
+- `min_rating`: Minimum rating filter
+- `max_rating`: Maximum rating filter
+- `tag_ids`: Comma-separated tag IDs
+
+**Response:**
+```json
+{
+  "total": 74
+}
+```
+
+#### GET /dive-sites/
+Get dive sites with optional random selection.
+
+**Query Parameters:**
+- `limit`: Number of records to return (default: 50, max: 100)
+- `offset`: Number of records to skip (default: 0)
+- `random`: Return random selection of dive sites (default: false)
+- `name`: Search term for dive site name
+- `difficulty_level`: Filter by difficulty (beginner, intermediate, advanced, expert)
+- `country`: Filter by country
+- `region`: Filter by region
+- `min_rating`: Minimum rating filter
+- `max_rating`: Maximum rating filter
+- `tag_ids`: Comma-separated tag IDs
 
 **Response:**
 ```json
@@ -475,15 +496,30 @@ Add comment to dive site.
 
 ### Diving Centers Endpoints
 
+#### GET /diving-centers/count
+Get total count of diving centers matching filters.
+
+**Query Parameters:**
+- `name`: Search term for diving center name
+- `min_rating`: Minimum rating filter
+- `max_rating`: Maximum rating filter
+
+**Response:**
+```json
+{
+  "total": 15
+}
+```
+
 #### GET /diving-centers/
 Get all diving centers.
 
 **Query Parameters:**
-- `skip`: Number of records to skip (default: 0)
-- `limit`: Number of records to return (default: 100)
-- `search`: Search term for name or description
-- `country`: Filter by country
-- `region`: Filter by region
+- `limit`: Number of records to return (default: 50)
+- `offset`: Number of records to skip (default: 0)
+- `name`: Search term for diving center name
+- `min_rating`: Minimum rating filter
+- `max_rating`: Maximum rating filter
 
 **Response:**
 ```json
@@ -1297,6 +1333,10 @@ The API response includes both the diving center ID and the full diving center o
 #### Dive Endpoints
 
 ```bash
+# Get total count of dives
+curl -H "Authorization: Bearer USER_TOKEN" \
+     "https://divemap-backend.fly.dev/api/v1/dives/count"
+
 # Get all dives for the authenticated user
 curl -H "Authorization: Bearer USER_TOKEN" \
      "https://divemap-backend.fly.dev/api/v1/dives/"

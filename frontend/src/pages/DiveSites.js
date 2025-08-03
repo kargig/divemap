@@ -71,6 +71,33 @@ const DiveSites = () => {
     }
   );
 
+  // Fetch total count
+  const { data: totalCount } = useQuery(
+    ['dive-sites-count', filters],
+    () => {
+      const params = new URLSearchParams();
+      
+      if (filters.name) params.append('name', filters.name);
+      if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
+      if (filters.min_rating) params.append('min_rating', filters.min_rating);
+      if (filters.max_rating) params.append('max_rating', filters.max_rating);
+      if (filters.country) params.append('country', filters.country);
+      if (filters.region) params.append('region', filters.region);
+      
+      if (filters.tag_ids && filters.tag_ids.length > 0) {
+        filters.tag_ids.forEach(tagId => {
+          params.append('tag_ids', tagId.toString());
+        });
+      }
+      
+      return api.get(`/api/v1/dive-sites/count?${params.toString()}`);
+    },
+    {
+      select: (response) => response.data.total,
+      keepPreviousData: true,
+    }
+  );
+
   const { data: diveSites, isLoading, error } = useQuery(
     ['dive-sites', filters],
     () => {
@@ -91,6 +118,10 @@ const DiveSites = () => {
           params.append('tag_ids', tagId.toString());
         });
       }
+      
+      // Use random selection for listing and map view (100 random sites)
+      params.append('random', 'true');
+      params.append('limit', '100');
       
       return api.get(`/api/v1/dive-sites/?${params.toString()}`);
     },
@@ -154,6 +185,11 @@ const DiveSites = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">Dive Sites</h1>
         <p className="text-gray-600">Discover amazing dive sites around the world</p>
+        {totalCount !== undefined && (
+          <div className="mt-2 text-sm text-gray-500">
+            Showing {diveSites?.length || 0} random sites from {totalCount} total dive sites
+          </div>
+        )}
       </div>
 
       {/* Search and Filter Section */}
