@@ -61,6 +61,17 @@ Security is a critical aspect of the Divemap application. This document outlines
 - Comment creation: 5 requests/minute
 - Media upload: 20 requests/minute
 
+**Rate Limiting Exemptions:**
+- **Localhost Requests**: All requests from localhost IPs (127.0.0.1, ::1, localhost) are exempt from rate limiting to facilitate development and testing
+- **Admin Users**: Users with `is_admin=True` are exempt from rate limiting on authenticated endpoints, allowing administrators to perform bulk operations without being blocked
+
+**Implementation Details:**
+- Custom rate limiting decorator `@skip_rate_limit_for_admin()` with intelligent exemption logic
+- JWT token extraction and verification for admin user detection
+- Database queries to verify admin privileges
+- Robust error handling with fallback to normal rate limiting
+- Protection against API abuse while maintaining administrative functionality
+
 ### 3. Input Validation & Sanitization
 
 **API Input Validation:**

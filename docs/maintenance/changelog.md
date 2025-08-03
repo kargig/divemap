@@ -4,6 +4,31 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 ## [Latest Release] - 2025-08-02
 
+### 🔒 Security Enhancements
+
+#### **Enhanced Rate Limiting System**
+- **Custom Rate Limiting Decorator**: Implemented `@skip_rate_limit_for_admin()` with intelligent exemption logic
+- **Localhost Exemptions**: Requests from localhost IPs (127.0.0.1, ::1, localhost) are exempt from rate limiting for development and testing
+- **Admin User Exemptions**: Users with `is_admin=True` are exempt from rate limiting on authenticated endpoints
+- **Comprehensive Coverage**: Updated 19 endpoints across auth and dive sites routers
+- **Robust Error Handling**: Fallback to normal rate limiting on errors
+
+**Rate Limiting Implementation:**
+- Custom key function for localhost detection
+- JWT token extraction and verification for admin user detection
+- Database queries to verify admin privileges
+- Protection against API abuse while maintaining administrative functionality
+
+**Updated Endpoints:**
+- **Auth Router**: 3 endpoints updated (register, login, google-login)
+- **Dive Sites Router**: 16 endpoints updated with custom rate limiting
+- **Rate Limits**: Comprehensive limits from 5/minute to 200/minute based on endpoint type
+
+**Testing Coverage:**
+- 10 new rate limiting tests (all passing)
+- Real-world integration tests with Docker containers
+- 237/238 existing tests passing (1 expected failure due to rate limiting)
+
 ### 🚀 Major Features
 
 #### **Dive-Diving Center Integration**

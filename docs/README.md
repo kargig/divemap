@@ -24,6 +24,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 ### 🛡️ Security
 - **[README.md](./security/README.md)** - Security overview, measures, and best practices
 - **[OAuth Setup.md](./security/oauth-setup.md)** - Google OAuth configuration
+- **Rate Limiting** - Enhanced rate limiting with localhost and admin exemptions (see [API.md](./development/api.md#rate-limiting) and [Security README](./security/README.md#rate-limiting))
 
 ### 🔧 Maintenance
 - **[README.md](./maintenance/README.md)** - Maintenance overview and troubleshooting
@@ -95,6 +96,9 @@ All documentation should:
 - ✅ Updated API documentation with new endpoints
 - ✅ Enhanced database documentation with new schema
 - ✅ Updated changelog with latest features
+- ✅ Enhanced rate limiting documentation with localhost and admin exemptions
+- ✅ Updated security documentation with new rate limiting implementation
+- ✅ Added rate limiting section to development documentation
 
 ## 📊 Documentation Categories
 

@@ -18,7 +18,7 @@ from app.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from app.google_auth import authenticate_google_user
-from app.limiter import limiter
+from app.limiter import limiter, skip_rate_limit_for_admin
 
 router = APIRouter()
 
@@ -30,7 +30,7 @@ async def get_current_user_info(current_user: User = Depends(get_current_active_
     return current_user
 
 @router.post("/register", response_model=RegistrationResponse)
-@limiter.limit("5/minute")
+@skip_rate_limit_for_admin("5/minute")
 async def register(
     request: Request,
     user_data: UserCreate, 
@@ -90,7 +90,7 @@ async def register(
     }
 
 @router.post("/login", response_model=Token)
-@limiter.limit("10/minute")
+@skip_rate_limit_for_admin("10/minute")
 async def login(
     request: Request,
     login_data: LoginRequest, 
@@ -113,7 +113,7 @@ async def login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/google-login", response_model=Token)
-@limiter.limit("10/minute")
+@skip_rate_limit_for_admin("10/minute")
 async def google_login(
     request: Request,
     google_data: GoogleLoginRequest,

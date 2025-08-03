@@ -16,7 +16,7 @@ from app.schemas import (
 )
 import requests
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional
-from app.limiter import limiter
+from app.limiter import limiter, skip_rate_limit_for_admin
 
 router = APIRouter()
 
@@ -28,7 +28,7 @@ async def health_check():
     return {"status": "healthy", "timestamp": "2025-07-27T12:56:00Z"}
 
 @router.get("/reverse-geocode")
-@limiter.limit("50/minute")
+@skip_rate_limit_for_admin("50/minute")
 async def reverse_geocode(
     request: Request,
     latitude: float = Query(..., ge=-90, le=90),
@@ -145,7 +145,7 @@ def get_fallback_location(latitude: float, longitude: float):
         )
 
 @router.get("/", response_model=List[DiveSiteResponse])
-@limiter.limit("100/minute")
+@skip_rate_limit_for_admin("100/minute")
 async def get_dive_sites(
     request: Request,
     name: Optional[str] = Query(None, max_length=100),
@@ -273,7 +273,7 @@ async def get_dive_sites(
     return result
 
 @router.post("/", response_model=DiveSiteResponse)
-@limiter.limit("10/minute")
+@skip_rate_limit_for_admin("10/minute")
 async def create_dive_site(
     request: Request,
     dive_site: DiveSiteCreate,
@@ -297,7 +297,7 @@ async def create_dive_site(
     }
 
 @router.get("/{dive_site_id}", response_model=DiveSiteResponse)
-@limiter.limit("200/minute")
+@skip_rate_limit_for_admin("200/minute")
 async def get_dive_site(
     request: Request,
     dive_site_id: int,
@@ -369,7 +369,7 @@ async def get_dive_site(
     return response_data
 
 @router.get("/{dive_site_id}/media", response_model=List[SiteMediaResponse])
-@limiter.limit("100/minute")
+@skip_rate_limit_for_admin("100/minute")
 async def get_dive_site_media(
     request: Request,
     dive_site_id: int, 
@@ -388,7 +388,7 @@ async def get_dive_site_media(
     return media
 
 @router.post("/{dive_site_id}/media", response_model=SiteMediaResponse)
-@limiter.limit("20/minute")
+@skip_rate_limit_for_admin("20/minute")
 async def add_dive_site_media(
     request: Request,
     dive_site_id: int,
@@ -424,7 +424,7 @@ async def add_dive_site_media(
     return db_media
 
 @router.delete("/{dive_site_id}/media/{media_id}")
-@limiter.limit("20/minute")
+@skip_rate_limit_for_admin("20/minute")
 async def delete_dive_site_media(
     request: Request,
     dive_site_id: int,
@@ -456,7 +456,7 @@ async def delete_dive_site_media(
     return {"message": "Media deleted successfully"}
 
 @router.get("/{dive_site_id}/diving-centers")
-@limiter.limit("100/minute")
+@skip_rate_limit_for_admin("100/minute")
 async def get_dive_site_diving_centers(
     request: Request,
     dive_site_id: int, 
@@ -495,7 +495,7 @@ async def get_dive_site_diving_centers(
     return result
 
 @router.post("/{dive_site_id}/diving-centers")
-@limiter.limit("10/minute")
+@skip_rate_limit_for_admin("10/minute")
 async def add_diving_center_to_dive_site(
     request: Request,
     dive_site_id: int,
@@ -554,7 +554,7 @@ async def add_diving_center_to_dive_site(
     }
 
 @router.delete("/{dive_site_id}/diving-centers/{diving_center_id}")
-@limiter.limit("10/minute")
+@skip_rate_limit_for_admin("10/minute")
 async def remove_diving_center_from_dive_site(
     request: Request,
     dive_site_id: int,
@@ -598,7 +598,7 @@ async def remove_diving_center_from_dive_site(
     return {"message": "Diving center removed from dive site successfully"}
 
 @router.put("/{dive_site_id}", response_model=DiveSiteResponse)
-@limiter.limit("20/minute")
+@skip_rate_limit_for_admin("20/minute")
 async def update_dive_site(
     request: Request,
     dive_site_id: int,
@@ -670,7 +670,7 @@ async def update_dive_site(
     }
 
 @router.delete("/{dive_site_id}")
-@limiter.limit("10/minute")
+@skip_rate_limit_for_admin("10/minute")
 async def delete_dive_site(
     request: Request,
     dive_site_id: int,
@@ -691,7 +691,7 @@ async def delete_dive_site(
     return {"message": "Dive site deleted successfully"}
 
 @router.post("/{dive_site_id}/rate", response_model=SiteRatingResponse)
-@limiter.limit("10/minute")
+@skip_rate_limit_for_admin("10/minute")
 async def rate_dive_site(
     request: Request,
     dive_site_id: int,
@@ -732,7 +732,7 @@ async def rate_dive_site(
         return db_rating
 
 @router.get("/{dive_site_id}/comments", response_model=List[SiteCommentResponse])
-@limiter.limit("100/minute")
+@skip_rate_limit_for_admin("100/minute")
 async def get_dive_site_comments(
     request: Request,
     dive_site_id: int,
@@ -788,7 +788,7 @@ async def get_dive_site_comments(
     return list(comment_dict.values())
 
 @router.post("/{dive_site_id}/comments", response_model=SiteCommentResponse)
-@limiter.limit("5/minute")
+@skip_rate_limit_for_admin("5/minute")
 async def create_dive_site_comment(
     request: Request,
     dive_site_id: int,
@@ -837,7 +837,7 @@ async def create_dive_site_comment(
     }
 
 @router.get("/{dive_site_id}/nearby", response_model=List[DiveSiteResponse])
-@limiter.limit("100/minute")
+@skip_rate_limit_for_admin("100/minute")
 async def get_nearby_dive_sites(
     request: Request,
     dive_site_id: int,
@@ -950,7 +950,7 @@ async def get_nearby_dive_sites(
     return nearby_sites 
 
 @router.get("/{dive_site_id}/dives", response_model=List[DiveResponse])
-@limiter.limit("100/minute")
+@skip_rate_limit_for_admin("100/minute")
 async def get_dive_site_dives(
     request: Request,
     dive_site_id: int,

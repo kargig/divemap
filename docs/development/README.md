@@ -245,6 +245,59 @@ docker-compose up -d
 npm run test:integration
 ```
 
+## Rate Limiting Implementation
+
+The application implements a sophisticated rate limiting system with special exemptions for development and administrative operations.
+
+### Rate Limiting Features
+
+#### **Custom Rate Limiting Decorator**
+- **Decorator**: `@skip_rate_limit_for_admin()` with intelligent exemption logic
+- **Localhost Detection**: Automatically detects requests from localhost IPs
+- **Admin User Detection**: Verifies JWT tokens and checks admin privileges
+- **Fallback Protection**: Robust error handling with fallback to normal rate limiting
+
+#### **Rate Limiting Exemptions**
+
+**Localhost Requests:**
+- Exempt from all rate limiting for development and testing
+- Detects: `127.0.0.1`, `::1`, `localhost`
+- Facilitates development workflow and testing
+
+**Admin Users:**
+- Exempt from rate limiting on authenticated endpoints
+- Allows administrators to perform bulk operations
+- Only applies to endpoints requiring authentication
+
+#### **Rate Limits by Endpoint**
+
+| Endpoint Category | Rate Limit | Description |
+|------------------|------------|-------------|
+| **Dive Sites** | 100/minute | GET requests for dive site listings |
+| **Dive Site Details** | 200/minute | GET requests for individual dive sites |
+| **Dive Site Creation** | 10/minute | POST requests to create dive sites |
+| **Dive Site Updates** | 20/minute | PUT requests to update dive sites |
+| **User Registration** | 5/minute | POST requests for user registration |
+| **User Login** | 10/minute | POST requests for authentication |
+
+#### **Testing Rate Limiting**
+
+```bash
+# Run rate limiting tests
+cd backend
+python -m pytest tests/test_rate_limiting.py -v
+
+# Test with real HTTP requests
+python test_rate_limiting_real.py
+```
+
+#### **Development Considerations**
+
+- **Localhost Exemption**: Development requests from localhost are not rate limited
+- **Admin Operations**: Admin users can perform bulk operations without restrictions
+- **Error Handling**: Comprehensive error handling ensures system stability
+- **Security**: Regular users are still protected by appropriate rate limits
+
 ## Docker Configuration
 
 The Divemap project uses multiple Dockerfiles to optimize for different environments and use cases.

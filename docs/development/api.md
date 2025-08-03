@@ -1063,15 +1063,43 @@ Remove tag from dive site (admin/moderator only).
 
 ## Rate Limiting
 
-The API implements rate limiting to prevent abuse:
+The API implements comprehensive rate limiting to prevent abuse and ensure fair usage. The rate limiting system includes special exemptions for localhost requests and admin users.
 
-- **General Endpoints**: 60 requests per minute per IP
-- **Authentication Endpoints**: 10 requests per minute per IP
-- **Admin Endpoints**: 30 requests per minute per IP
+### Rate Limits by Endpoint
+
+| Endpoint Category | Rate Limit | Description |
+|------------------|------------|-------------|
+| **Dive Sites** | 100/minute | GET requests for dive site listings |
+| **Dive Site Details** | 200/minute | GET requests for individual dive sites |
+| **Dive Site Creation** | 10/minute | POST requests to create dive sites |
+| **Dive Site Updates** | 20/minute | PUT requests to update dive sites |
+| **Dive Site Deletion** | 10/minute | DELETE requests for dive sites |
+| **Dive Site Ratings** | 10/minute | POST requests to rate dive sites |
+| **Dive Site Comments** | 5/minute | POST requests to create comments |
+| **Dive Site Media** | 20/minute | POST/DELETE requests for media |
+| **Diving Centers** | 10/minute | POST requests for diving center operations |
+| **User Registration** | 5/minute | POST requests for user registration |
+| **User Login** | 10/minute | POST requests for authentication |
+| **Google OAuth** | 10/minute | POST requests for Google authentication |
+
+### Rate Limiting Exemptions
+
+#### Localhost Requests
+Requests from localhost IP addresses are exempt from rate limiting:
+- `127.0.0.1` (IPv4 localhost)
+- `::1` (IPv6 localhost)
+- `localhost` (hostname)
+
+This exemption facilitates development and testing.
+
+#### Admin Users
+Users with `is_admin=True` are exempt from rate limiting on **authenticated endpoints**. This allows administrators to perform bulk operations without being blocked.
+
+**Note**: Admin exemptions only apply to endpoints that require authentication. Public endpoints like `/register` and `/login` still apply rate limiting to all users for security reasons.
 
 ### Rate Limit Headers
 ```
-X-RateLimit-Limit: 60
+X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 45
 X-RateLimit-Reset: 1640995200
 ```
@@ -1084,6 +1112,17 @@ X-RateLimit-Reset: 1640995200
   "retry_after": 60
 }
 ```
+
+### Rate Limiting Implementation
+
+The rate limiting system uses a custom decorator `@skip_rate_limit_for_admin()` that:
+
+1. **Checks for localhost requests** and skips rate limiting
+2. **Extracts and verifies JWT tokens** for admin user detection
+3. **Queries the database** to check if the user has admin privileges
+4. **Falls back to normal rate limiting** if neither condition is met
+
+This ensures robust protection while allowing legitimate administrative operations.
 
 ## Examples
 
