@@ -114,32 +114,100 @@ This document outlines the technical design for a Python-based web application, 
 
 * **Newsletter Upload/Submission (Admin Functionality):**  
   * Mechanism to upload or submit dive store newsletters (e.g., email attachment, direct text paste).  
+  * Support for multiple newsletter formats (PDF, DOCX, TXT, HTML).
+  * Batch processing of multiple newsletters.
 * **Automated Parsing:**  
-  * Identify diving centers.  
-  * Identify dive sites.  
-  * Extract dates and times of scheduled dives.  
+  * Identify diving centers using NLP and pattern matching.
+  * Identify dive sites by matching against existing database entries.
+  * Extract dates and times of scheduled dives with natural language processing.
+  * Parse pricing information and special offers.
+  * Extract trip details (duration, difficulty level, group size).
+* **Data Validation & Storage:**
+  * Validate parsed data against existing dive sites and diving centers.
+  * Store parsed trips in `parsed_dive_trips` table with proper relationships.
+  * Handle duplicate trip detection and merging.
+  * Maintain audit trail of parsing operations.
 * **Map Integration:**  
   * Display parsed dive trips on an interactive map (e.g., Google Maps, OpenStreetMap).  
   * Markers for dive sites showing upcoming trips.  
   * Clicking a marker reveals details: dive center, date, time, cost (if available).  
+  * Color-coded markers for different diving centers.
 * **Booking/Contact:**  
   * Link to dive center's email or phone number for booking.
+  * Direct contact forms for trip inquiries.
+  * Integration with diving center booking systems (future enhancement).
 
-### **3.7. Search and Filtering**
+### **3.7. Dive Trip Calendar System**
+
+* **Calendar Interface:**
+  * Interactive calendar widget for navigating through dates.
+  * Monthly, weekly, and daily view options.
+  * Date range selection for planning multiple-day trips.
+  * Responsive design for mobile and desktop use.
+* **Trip Listing View:**
+  * Chronological list of all dive trips for selected date(s).
+  * Grouped by diving center for easy comparison.
+  * Detailed trip information display:
+    * Diving center name and contact information.
+    * Dive site name and location.
+    * Trip date and time.
+    * Duration and difficulty level.
+    * Pricing information with currency support.
+    * Group size limits and availability.
+    * Special requirements or notes.
+* **Map View Integration:**
+  * Toggle between calendar and map views.
+  * Map displays all dive trips for selected date(s).
+  * Different markers for each diving center.
+  * Click markers to view trip details and booking options.
+  * Route planning between multiple dive sites.
+* **Advanced Filtering & Search:**
+  * Filter trips by diving center, dive site, or date range.
+  * Search for specific dive sites or diving centers.
+  * Filter by difficulty level, price range, or group size.
+  * Sort by date, price, or diving center rating.
+* **Trip Management Features:**
+  * Save favorite trips for quick access.
+  * Share trip information via social media or email.
+  * Export trip calendar to personal calendar applications.
+  * Set up notifications for new trips from preferred diving centers.
+* **User Experience Enhancements:**
+  * Quick booking buttons for direct contact.
+  * Trip comparison tools for multiple options.
+  * Weather integration for trip planning.
+  * User reviews and ratings for specific trips.
+  * Photo galleries from previous trips to same sites.
+* **Admin Management:**
+  * Manual trip creation and editing interface.
+  * Bulk import of trip data from external sources.
+  * Trip approval workflow for diving center submissions.
+  * Analytics dashboard for trip popularity and booking trends.
+* **Mobile Optimization:**
+  * Touch-friendly calendar navigation.
+  * Swipe gestures for date navigation.
+  * Offline access to saved trips.
+  * Push notifications for trip updates.
+* **Integration Features:**
+  * Google Calendar integration for trip scheduling.
+  * WhatsApp/Telegram integration for direct booking.
+  * Payment processing integration (future enhancement).
+  * Weather API integration for trip planning.
+
+### **3.8. Search and Filtering**
 
 * Search dive sites by name, location, difficulty.  
 * Search diving centers by name, location, associated dive sites.  
 * Search dives by various criteria (depth, date, location, tags).
 * Filter dive sites/centers by average rating.
 
-### **3.8. Multi-Currency Support System**
+### **3.9. Multi-Currency Support System**
 
 * **Supported Currencies**: 10 major world currencies (USD, EUR, JPY, GBP, CNY, AUD, CAD, CHF, HKD, NZD)
 * **Default Currency**: Euro (€) is the default currency for all cost fields
 * **Currency Display**: Proper formatting with currency symbols and flags
 * **Flexible Input**: Users can submit costs in any supported currency
 
-### **3.9. Database Migration System**
+### **3.10. Database Migration System**
 
 * **Alembic Integration**: All database schema changes must use Alembic for version control
 * **Automatic Migration Execution**: Migrations run automatically before application startup
@@ -151,7 +219,7 @@ This document outlines the technical design for a Python-based web application, 
 * **API Integration**: All cost-related endpoints support currency
 * **Frontend Utility**: Comprehensive currency formatting and selection functions
 
-### **3.10. Admin Management System**
+### **3.11. Admin Management System**
 
 * **Mass Operations**: Bulk delete functionality for admin management pages
 * **User Management**: Complete user CRUD with role assignment and status control
@@ -376,8 +444,33 @@ The application will follow a microservices-oriented or a well-separated monolit
     * dive\_site\_id (FK to dive\_sites)  
     * trip\_date (Date)  
     * trip\_time (Time \- optional)  
+    * trip\_duration (integer, minutes)
+    * trip\_difficulty\_level (enum: 'beginner', 'intermediate', 'advanced', 'expert')
+    * trip\_price (decimal with currency support)
+    * trip\_currency (3-letter ISO currency code)
+    * group\_size\_limit (integer, nullable)
+    * current\_bookings (integer, default 0)
+    * trip\_description (text, optional)
+    * special\_requirements (text, optional)
+    * trip\_status (enum: 'scheduled', 'confirmed', 'cancelled', 'completed')
     * source\_newsletter\_id (FK to newsletters table, if storing raw newsletters)  
-    * extracted\_at  
+    * extracted\_at
+    * created\_at
+    * updated\_at
+  * trip\_favorites table: - NEW TABLE
+    * id (PK)
+    * user\_id (FK to users)
+    * trip\_id (FK to parsed\_dive\_trips)
+    * created\_at
+  * trip\_notifications table: - NEW TABLE
+    * id (PK)
+    * user\_id (FK to users)
+    * diving\_center\_id (FK to diving\_centers, nullable)
+    * dive\_site\_id (FK to dive\_sites, nullable)
+    * notification\_type (enum: 'new_trips', 'price_changes', 'cancellations')
+    * is\_active (boolean, default true)
+    * created\_at
+    * updated\_at  
   * newsletters table (optional, for storing raw newsletters for auditing/re-parsing):  
     * id (PK)  
     * content (text blob)  
@@ -425,6 +518,11 @@ The application will follow a microservices-oriented or a well-separated monolit
 * /api/v1/dives/search (GET) - NEW ENDPOINT
 * /api/v1/admin/newsletters/parse (POST \- upload newsletter, trigger parsing)  
 * /api/v1/dive-trips (GET \- retrieve parsed trips for map)  
+* /api/v1/dive-trips/calendar (GET \- retrieve trips for calendar view with date filtering)
+* /api/v1/dive-trips/{trip_id} (GET \- retrieve specific trip details)
+* /api/v1/dive-trips/search (GET \- search trips by criteria)
+* /api/v1/dive-trips/favorites (GET, POST, DELETE \- manage favorite trips)
+* /api/v1/dive-trips/export (GET \- export trips to calendar format)
 * /api/v1/media/upload (POST \- for image/video uploads)
 
 ## **7\. Technologies & Tools**
@@ -504,7 +602,19 @@ The application will follow a microservices-oriented or a well-separated monolit
 * Interactive map display of dive trips.  
 * Contact details for booking (email/phone).
 
-### **Phase 4: Dive Logging System**
+### **Phase 4: Dive Trip Calendar System**
+
+* Interactive calendar widget for date navigation.
+* Trip listing view with detailed information display.
+* Map view integration for trip visualization.
+* Advanced filtering and search capabilities.
+* Trip management features (favorites, sharing, export).
+* User experience enhancements (quick booking, trip comparison).
+* Admin management interface for trip creation and editing.
+* Mobile optimization for touch-friendly navigation.
+* Integration features (Google Calendar, messaging apps).
+
+### **Phase 5: Dive Logging System**
 
 * CRUD for user dives with comprehensive dive information.
 * Media upload for dive plans and photos.
@@ -512,21 +622,21 @@ The application will follow a microservices-oriented or a well-separated monolit
 * Search and filter dives by various criteria.
 * Integration with dive sites and tags.
 
-### **Phase 5: Diving Center Ownership**
+### **Phase 6: Diving Center Ownership**
 
 * User claiming system for diving centers.
 * Admin approval workflow for ownership claims.
 * Owner editing capabilities for diving center details.
 * Ownership management interface for admins.
 
-### **Phase 6: URL Routing & Enhanced Features**
+### **Phase 7: URL Routing & Enhanced Features**
 
 * URL routing for dive sites by name/alias.
 * Enhanced search and filtering capabilities.
 * Performance optimizations and scaling.
 * Mobile application development.
 
-### **Phase 7: Refinement & Scaling**
+### **Phase 8: Refinement & Scaling**
 
 * Performance optimizations (caching, query tuning).  
 * Robust error handling and logging.  
@@ -535,7 +645,7 @@ The application will follow a microservices-oriented or a well-separated monolit
 * Scalable deployment infrastructure (Docker/Kubernetes).  
 * User-friendly UI/UX improvements.
 
-### **Phase 8: Mobile Application (Future)**
+### **Phase 9: Mobile Application (Future)**
 
 * Design and development of the React Native mobile application.  
 * Adaptation of existing frontend components.  
@@ -647,7 +757,18 @@ node test_regressions.js
 * 🔄 Interactive map display of dive trips
 * 🔄 Contact details for booking (email/phone)
 
-#### **Phase 4: Refinement & Scaling ✅ COMPLETED**
+#### **Phase 4: Dive Trip Calendar System 🔄 PLANNED**
+* 🔄 Interactive calendar widget for date navigation
+* 🔄 Trip listing view with detailed information display
+* 🔄 Map view integration for trip visualization
+* 🔄 Advanced filtering and search capabilities
+* 🔄 Trip management features (favorites, sharing, export)
+* 🔄 User experience enhancements (quick booking, trip comparison)
+* 🔄 Admin management interface for trip creation and editing
+* 🔄 Mobile optimization for touch-friendly navigation
+* 🔄 Integration features (Google Calendar, messaging apps)
+
+#### **Phase 5: Refinement & Scaling ✅ COMPLETED**
 * ✅ Performance optimizations (caching, query tuning)
 * ✅ Robust error handling and logging
 * ✅ Security enhancements
@@ -818,7 +939,18 @@ node test_regressions.js
 
 ### **13.5 Planned Features**
 
-#### **Phase 4: Dive Logging System 🔄 PLANNED**
+#### **Phase 4: Dive Trip Calendar System 🔄 PLANNED**
+* 🔄 Interactive calendar widget for date navigation
+* 🔄 Trip listing view with detailed information display
+* 🔄 Map view integration for trip visualization
+* 🔄 Advanced filtering and search capabilities
+* 🔄 Trip management features (favorites, sharing, export)
+* 🔄 User experience enhancements (quick booking, trip comparison)
+* 🔄 Admin management interface for trip creation and editing
+* 🔄 Mobile optimization for touch-friendly navigation
+* 🔄 Integration features (Google Calendar, messaging apps)
+
+#### **Phase 5: Dive Logging System 🔄 PLANNED**
 * 🔄 CRUD for user dives with comprehensive dive information
 * 🔄 Media upload for dive plans, photos, videos, and external links
 * 🔄 Media management (upload, delete, organize, external link handling)
@@ -828,13 +960,13 @@ node test_regressions.js
 * 🔄 Remove gas tanks necessary and dive plans from dive sites
 * 🔄 Add alternative names/aliases to dive sites for URL routing
 
-#### **Phase 5: Diving Center Ownership 🔄 PLANNED**
+#### **Phase 6: Diving Center Ownership 🔄 PLANNED**
 * 🔄 User claiming system for diving centers
 * 🔄 Admin approval workflow for ownership claims
 * 🔄 Owner editing capabilities for diving center details
 * 🔄 Ownership management interface for admins
 
-#### **Phase 6: URL Routing & Enhanced Features 🔄 PLANNED**
+#### **Phase 7: URL Routing & Enhanced Features 🔄 PLANNED**
 * 🔄 URL routing for dive sites by name/alias
 * 🔄 Enhanced search and filtering capabilities
 * 🔄 Performance optimizations and scaling
