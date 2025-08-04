@@ -188,6 +188,57 @@ CREATE TABLE dive_tags (
 );
 ```
 
+#### Parsed Dive Trips Table
+```sql
+CREATE TABLE parsed_dive_trips (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    diving_center_id INT,
+    trip_date DATE NOT NULL,
+    trip_time TIME,
+    trip_duration INT,
+    trip_difficulty_level ENUM('beginner', 'intermediate', 'advanced', 'expert'),
+    trip_price DECIMAL(10, 2),
+    trip_currency VARCHAR(3) DEFAULT 'EUR',
+    group_size_limit INT,
+    current_bookings INT DEFAULT 0,
+    trip_description TEXT,
+    special_requirements TEXT,
+    trip_status ENUM('scheduled', 'confirmed', 'cancelled', 'completed') DEFAULT 'scheduled',
+    source_newsletter_id INT,
+    extracted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (diving_center_id) REFERENCES diving_centers(id),
+    FOREIGN KEY (source_newsletter_id) REFERENCES newsletters(id)
+);
+```
+
+#### Parsed Dives Table
+```sql
+CREATE TABLE parsed_dives (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    trip_id INT NOT NULL,
+    dive_site_id INT,
+    dive_number INT NOT NULL,
+    dive_time TIME,
+    dive_duration INT,
+    dive_description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (trip_id) REFERENCES parsed_dive_trips(id),
+    FOREIGN KEY (dive_site_id) REFERENCES dive_sites(id)
+);
+```
+
+#### Newsletters Table
+```sql
+CREATE TABLE newsletters (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    content TEXT NOT NULL,
+    received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
 ### Related Tables
 
 - **site_media**: Media files for dive sites
@@ -206,6 +257,7 @@ CREATE TABLE dive_tags (
 - **dive_media**: Media files for dives (photos, videos, plans, external links)
 - **dive_tags**: Association between dives and tags
 - **parsed_dive_trips**: Extracted dive trip information
+- **parsed_dives**: Individual dives within parsed trips
 - **newsletters**: Newsletter content for parsing
 
 ## Migrations with Alembic

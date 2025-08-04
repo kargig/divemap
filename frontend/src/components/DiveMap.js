@@ -12,7 +12,7 @@ import { Feature } from 'ol';
 import { Style, Circle as CircleStyle, Fill, Stroke, Icon } from 'ol/style';
 import { Link } from 'react-router-dom';
 
-const DiveMap = ({ diveSites = [], divingCenters = [], viewport, onViewportChange }) => {
+const DiveMap = ({ diveSites = [], divingCenters = [], viewport, onViewportChange, showTripInfo = false }) => {
   const mapRef = useRef();
   const mapInstance = useRef();
   const [popupInfo, setPopupInfo] = useState(null);
@@ -342,6 +342,50 @@ const DiveMap = ({ diveSites = [], divingCenters = [], viewport, onViewportChang
                 <span className="text-sm text-gray-700">
                   {popupInfo.average_rating.toFixed(1)} ⭐
                 </span>
+              </div>
+            )}
+            
+            {/* Trip Information */}
+            {showTripInfo && popupInfo.trip_date && (
+              <div className="border-t pt-2 mt-2">
+                <h4 className="font-medium text-gray-900 mb-1">Upcoming Trip</h4>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <div className="flex items-center">
+                    <span className="font-medium">Date:</span>
+                    <span className="ml-2">{new Date(popupInfo.trip_date).toLocaleDateString('en-GB')}</span>
+                  </div>
+                  {popupInfo.trip_time && (
+                    <div className="flex items-center">
+                      <span className="font-medium">Time:</span>
+                      <span className="ml-2">{popupInfo.trip_time.substring(0, 5)}</span>
+                    </div>
+                  )}
+                  {popupInfo.trip_price && (
+                    <div className="flex items-center">
+                      <span className="font-medium">Price:</span>
+                      <span className="ml-2">
+                        {new Intl.NumberFormat('en-GB', {
+                          style: 'currency',
+                          currency: popupInfo.trip_currency || 'EUR',
+                        }).format(popupInfo.trip_price)}
+                      </span>
+                    </div>
+                  )}
+                  {popupInfo.trip_status && (
+                    <div className="flex items-center">
+                      <span className="font-medium">Status:</span>
+                      <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                        popupInfo.trip_status === 'scheduled' ? 'bg-green-100 text-green-800' :
+                        popupInfo.trip_status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                        popupInfo.trip_status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                        popupInfo.trip_status === 'completed' ? 'bg-gray-100 text-gray-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {popupInfo.trip_status}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             

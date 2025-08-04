@@ -38,10 +38,10 @@ const CreateDive = () => {
   const [mediaUrls, setMediaUrls] = useState([]);
 
   // Fetch dive sites for dropdown
-  const { data: diveSites = [] } = useQuery(['dive-sites'], () => getDiveSites({ limit: 100 }));
+  const { data: diveSites = [] } = useQuery(['dive-sites'], () => getDiveSites({ page_size: 100 }));
 
   // Fetch diving centers for dropdown
-  const { data: divingCenters = [] } = useQuery(['diving-centers'], () => getDivingCenters({ limit: 100 }));
+  const { data: divingCenters = [] } = useQuery(['diving-centers'], () => getDivingCenters({ page_size: 100 }));
 
   // Fetch available tags
   const { data: availableTags = [] } = useQuery(['available-tags'], () => getAvailableTags());

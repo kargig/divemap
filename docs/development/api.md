@@ -1479,6 +1479,224 @@ curl -H "Authorization: Bearer USER_TOKEN" \
      "https://divemap-backend.fly.dev/api/v1/dives/?start_date=2024-01-01&end_date=2024-01-31&page=1&page_size=25"
 ```
 
+### Newsletter Management Endpoints
+
+#### GET /newsletters/
+Get all newsletters (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Query Parameters:**
+- `limit`: Number of records to return (default: 50)
+- `offset`: Number of records to skip (default: 0)
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "content": "Newsletter content...",
+    "received_at": "2024-01-15T10:30:00Z",
+    "trip_count": 3
+  }
+]
+```
+
+#### POST /newsletters/upload
+Upload and parse newsletter (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Request Body:** `multipart/form-data`
+- `file`: Newsletter file (required)
+- `use_openai`: Boolean to use OpenAI parsing (default: true)
+
+**Response:**
+```json
+{
+  "newsletter_id": 1,
+  "trips_created": 3,
+  "message": "Newsletter uploaded and parsed successfully"
+}
+```
+
+#### POST /newsletters/{newsletter_id}/reparse
+Re-parse existing newsletter (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Request Body:** `multipart/form-data`
+- `use_openai`: Boolean to use OpenAI parsing (default: true)
+
+**Response:**
+```json
+{
+  "newsletter_id": 1,
+  "trips_created": 3,
+  "message": "Newsletter re-parsed successfully. 2 old trips deleted, 3 new trips created."
+}
+```
+
+#### GET /newsletters/trips
+Get parsed dive trips (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Query Parameters:**
+- `start_date`: Filter by start date (YYYY-MM-DD)
+- `end_date`: Filter by end date (YYYY-MM-DD)
+- `diving_center_id`: Filter by diving center ID
+- `dive_site_id`: Filter by dive site ID
+- `trip_status`: Filter by trip status (scheduled, confirmed, cancelled, completed)
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "diving_center_id": 1,
+    "trip_date": "2024-02-15",
+    "trip_time": "09:00:00",
+    "trip_duration": 240,
+    "trip_difficulty_level": "intermediate",
+    "trip_price": 150.00,
+    "trip_currency": "EUR",
+    "group_size_limit": 8,
+    "current_bookings": 3,
+    "trip_description": "Multi-dive trip to coral reefs",
+    "special_requirements": "Advanced certification required",
+    "trip_status": "scheduled",
+    "diving_center_name": "Coral Dive Center",
+    "dives": [
+      {
+        "id": 1,
+        "trip_id": 1,
+        "dive_site_id": 1,
+        "dive_number": 1,
+        "dive_time": "09:30:00",
+        "dive_duration": 45,
+        "dive_description": "First dive at shallow reef",
+        "dive_site_name": "Coral Garden",
+        "created_at": "2024-01-15T10:30:00Z",
+        "updated_at": "2024-01-15T10:30:00Z"
+      }
+    ],
+    "extracted_at": "2024-01-15T10:30:00Z",
+    "created_at": "2024-01-15T10:30:00Z",
+    "updated_at": "2024-01-15T10:30:00Z"
+  }
+]
+```
+
+#### POST /newsletters/trips
+Create new parsed dive trip (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Request Body:**
+```json
+{
+  "diving_center_id": 1,
+  "trip_date": "2024-02-15",
+  "trip_time": "09:00:00",
+  "trip_duration": 240,
+  "trip_difficulty_level": "intermediate",
+  "trip_price": 150.00,
+  "trip_currency": "EUR",
+  "group_size_limit": 8,
+  "current_bookings": 0,
+  "trip_description": "Multi-dive trip to coral reefs",
+  "special_requirements": "Advanced certification required",
+  "trip_status": "scheduled",
+  "dives": [
+    {
+      "dive_site_id": 1,
+      "dive_number": 1,
+      "dive_time": "09:30:00",
+      "dive_duration": 45,
+      "dive_description": "First dive at shallow reef"
+    }
+  ]
+}
+```
+
+#### GET /newsletters/trips/{trip_id}
+Get specific parsed dive trip (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Response:** Same format as GET /newsletters/trips
+
+#### PUT /newsletters/trips/{trip_id}
+Update parsed dive trip (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Request Body:** Same format as POST /newsletters/trips
+
+#### DELETE /newsletters/trips/{trip_id}
+Delete parsed dive trip (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Response:**
+```json
+{
+  "message": "Trip deleted successfully"
+}
+```
+
+#### Newsletter Management Examples
+
+```bash
+# Upload newsletter
+curl -X POST "https://divemap-backend.fly.dev/api/v1/newsletters/upload" \
+     -H "Authorization: Bearer ADMIN_TOKEN" \
+     -F "file=@newsletter.pdf" \
+     -F "use_openai=true"
+
+# Re-parse newsletter
+curl -X POST "https://divemap-backend.fly.dev/api/v1/newsletters/1/reparse" \
+     -H "Authorization: Bearer ADMIN_TOKEN" \
+     -F "use_openai=true"
+
+# Get all trips
+curl -H "Authorization: Bearer ADMIN_TOKEN" \
+     "https://divemap-backend.fly.dev/api/v1/newsletters/trips"
+
+# Create new trip
+curl -X POST "https://divemap-backend.fly.dev/api/v1/newsletters/trips" \
+     -H "Authorization: Bearer ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "diving_center_id": 1,
+       "trip_date": "2024-02-15",
+       "trip_duration": 240,
+       "trip_status": "scheduled",
+       "dives": [
+         {
+           "dive_site_id": 1,
+           "dive_number": 1,
+           "dive_duration": 45,
+           "dive_description": "First dive"
+         }
+       ]
+     }'
+
+# Update trip
+curl -X PUT "https://divemap-backend.fly.dev/api/v1/newsletters/trips/1" \
+     -H "Authorization: Bearer ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "trip_status": "confirmed",
+       "current_bookings": 5
+     }'
+
+# Delete trip
+curl -X DELETE "https://divemap-backend.fly.dev/api/v1/newsletters/trips/1" \
+     -H "Authorization: Bearer ADMIN_TOKEN"
+```
+
 ## Conclusion
 
 This API documentation provides comprehensive information for integrating with the Divemap application. The API is designed to be:

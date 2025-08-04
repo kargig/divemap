@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, EmailStr, validator
 from typing import Optional, List, Union
-from datetime import datetime
+from datetime import datetime, date, time
 import re
 
 class UserBase(BaseModel):
@@ -604,3 +604,114 @@ class DivingCenterOwnershipResponse(BaseModel):
 class DivingCenterOwnershipApproval(BaseModel):
     approved: bool
     reason: Optional[str] = Field(None, max_length=1000)
+
+# ParsedDiveResponse schemas
+class ParsedDiveResponse(BaseModel):
+    id: int
+    trip_id: int
+    dive_site_id: Optional[int] = None
+    dive_number: int
+    dive_time: Optional[time] = None
+    dive_duration: Optional[int] = None
+    dive_description: Optional[str] = None
+    dive_site_name: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ParsedDiveCreate(BaseModel):
+    trip_id: int
+    dive_site_id: Optional[int] = None
+    dive_number: int = Field(..., ge=1)
+    dive_time: Optional[time] = None
+    dive_duration: Optional[int] = Field(None, ge=1, le=1440)
+    dive_description: Optional[str] = None
+
+class ParsedDiveUpdate(BaseModel):
+    dive_site_id: Optional[int] = None
+    dive_number: Optional[int] = Field(None, ge=1)
+    dive_time: Optional[time] = None
+    dive_duration: Optional[int] = Field(None, ge=1, le=1440)
+    dive_description: Optional[str] = None
+
+class ParsedDiveTripResponse(BaseModel):
+    id: int
+    diving_center_id: Optional[int] = None
+    trip_date: date
+    trip_time: Optional[time] = None
+    trip_duration: Optional[int] = None  # Total duration in minutes
+    trip_difficulty_level: Optional[str] = None
+    trip_price: Optional[float] = None
+    trip_currency: str = "EUR"
+    group_size_limit: Optional[int] = None
+    current_bookings: int = 0
+    trip_description: Optional[str] = None
+    special_requirements: Optional[str] = None
+    trip_status: str = "scheduled"
+    diving_center_name: Optional[str] = None
+    dives: List[ParsedDiveResponse] = []  # List of dives in this trip
+    extracted_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Newsletter and Parsed Dive Trip Schemas
+class NewsletterUploadResponse(BaseModel):
+    newsletter_id: int
+    trips_created: int
+    message: str
+
+# Newsletter Management Schemas
+class NewsletterResponse(BaseModel):
+    id: int
+    content: str
+    received_at: datetime
+    trips_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+class NewsletterUpdateRequest(BaseModel):
+    content: Optional[str] = None
+
+class NewsletterDeleteRequest(BaseModel):
+    newsletter_ids: List[int] = Field(..., min_items=1, max_items=100)
+
+class NewsletterDeleteResponse(BaseModel):
+    deleted_count: int
+    message: str
+
+# ParsedDiveTrip CRUD schemas
+class ParsedDiveTripCreate(BaseModel):
+    diving_center_id: Optional[int] = None
+    trip_date: date
+    trip_time: Optional[time] = None
+    trip_duration: Optional[int] = Field(None, ge=1, le=1440)  # Duration in minutes
+    trip_difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
+    trip_price: Optional[float] = Field(None, ge=0)
+    trip_currency: str = Field("EUR", min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    group_size_limit: Optional[int] = Field(None, ge=1)
+    current_bookings: int = Field(0, ge=0)
+    trip_description: Optional[str] = None
+    special_requirements: Optional[str] = None
+    trip_status: str = Field("scheduled", pattern=r"^(scheduled|confirmed|cancelled|completed)$")
+    dives: List[ParsedDiveCreate] = []
+
+class ParsedDiveTripUpdate(BaseModel):
+    diving_center_id: Optional[int] = None
+    trip_date: Optional[date] = None
+    trip_time: Optional[time] = None
+    trip_duration: Optional[int] = Field(None, ge=1, le=1440)  # Duration in minutes
+    trip_difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
+    trip_price: Optional[float] = Field(None, ge=0)
+    trip_currency: Optional[str] = Field(None, min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    group_size_limit: Optional[int] = Field(None, ge=1)
+    current_bookings: Optional[int] = Field(None, ge=0)
+    trip_description: Optional[str] = None
+    special_requirements: Optional[str] = None
+    trip_status: Optional[str] = Field(None, pattern=r"^(scheduled|confirmed|cancelled|completed)$")
+    dives: Optional[List[ParsedDiveCreate]] = None

@@ -64,13 +64,6 @@ while [ $attempt -le $max_attempts ]; do
     fi
 done
 
-echo "🚀 Starting application..."
-
-# Check if we're in development mode
-if [ "$ENVIRONMENT" = "development" ]; then
-    echo "🔄 Development mode detected - enabling auto-reload"
-    python run_migrations.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-else
-    echo "🚀 Production mode - no auto-reload"
-    python run_migrations.py && uvicorn app.main:app --host 0.0.0.0 --port 8000
-fi 
+echo "🚀 Starting application in development mode with auto-reload..."
+echo "🔄 Development mode - enabling auto-reload with enhanced directory watching"
+python run_migrations.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app --reload-dir /app/migrations 

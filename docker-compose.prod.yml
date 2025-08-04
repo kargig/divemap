@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  # Backend API with production settings
+  backend:
+    environment:
+      - ENVIRONMENT=production
+      - SECRET_KEY=${SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    # Remove volume mounts for production (code should be baked into image)
+    volumes:
+      - ./uploads:/app/uploads
+    # Use production startup script (no auto-reload)
+    command: ["/app/startup.sh"]
+
+  # Frontend with production settings
+  frontend:
+    environment:
+      - NODE_ENV=production
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
+    # Remove volume mounts for production (code should be baked into image)
+    volumes:
+      - ./uploads:/app/uploads 

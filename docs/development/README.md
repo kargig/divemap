@@ -13,11 +13,12 @@ This document provides a comprehensive guide for developers working on the Divem
 7. [Testing Strategy](#testing-strategy)
 8. [Docker Configuration](#docker-configuration)
 9. [GitHub Actions](#github-actions)
-10. [Recent Features](#recent-features)
-11. [Diving Organizations Admin](#diving-organizations-admin)
-12. [API Fixes](#api-fixes)
-13. [Utility Scripts](#utility-scripts)
-14. [Deployment](#deployment)
+10. [Auto-Reload Configuration](#auto-reload-configuration)
+11. [Recent Features](#recent-features)
+12. [Diving Organizations Admin](#diving-organizations-admin)
+13. [API Fixes](#api-fixes)
+14. [Utility Scripts](#utility-scripts)
+15. [Deployment](#deployment)
 
 ## Overview
 
@@ -404,6 +405,81 @@ docker build -t divemap_frontend_prod .
 docker build -f Dockerfile.dev -t divemap_frontend_dev .
 ```
 
+## Auto-Reload Configuration
+
+The backend supports automatic reloading of Python files during development, controlled by the `ENVIRONMENT` environment variable.
+
+### Environment-Based Auto-Reload
+
+- **Development Mode** (`ENVIRONMENT=development`): Auto-reload enabled
+- **Production Mode** (`ENVIRONMENT=production`): Auto-reload disabled
+
+### Usage Options
+
+#### 1. Default Development Setup
+```bash
+# Auto-reload enabled by default
+docker-compose up backend
+```
+
+#### 2. Enhanced Development Setup
+```bash
+# Enhanced reload with directory watching
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up backend
+```
+
+This uses `startup_dev.sh` which includes:
+- `--reload-dir /app/app` - Watch application files
+- `--reload-dir /app/migrations` - Watch migration files
+
+#### 3. Production Setup
+```bash
+# Explicitly disable auto-reload
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up backend
+```
+
+### How Auto-Reload Works
+
+When `ENVIRONMENT=development`:
+
+1. **File Monitoring**: Uvicorn watches Python files in the application directory
+2. **Change Detection**: When a `.py` file is modified, the server detects the change
+3. **Automatic Restart**: The server restarts automatically to load the new code
+4. **Fast Reload**: Only the necessary parts are restarted, not the entire application
+
+### Benefits
+
+- **Immediate Feedback**: See changes instantly without manual restart
+- **Development Speed**: Faster iteration during development
+- **No Manual Restarts**: Eliminates the need to manually restart the server
+
+### Security Considerations
+
+- **Development Only**: Auto-reload is never enabled in production
+- **File Watching**: Only watches Python files, not sensitive configuration files
+- **Performance**: Minimal overhead in development mode
+
+### Troubleshooting
+
+#### Auto-reload not working?
+1. **Check Environment**: Ensure `ENVIRONMENT=development`
+2. **Check Volumes**: Ensure backend code is mounted as a volume
+3. **Check Permissions**: Ensure the container can read the mounted files
+4. **Check Logs**: Look for reload-related messages in container logs
+
+#### Performance Issues?
+1. **Too Many Files**: The `--reload-dir` option can limit watched directories
+2. **Large Codebase**: Consider using specific directory watching
+3. **System Resources**: Monitor CPU/memory usage during development
+
+### Configuration Files
+
+- `backend/startup.sh` - Conditional reload based on environment
+- `backend/startup_dev.sh` - Enhanced development reload
+- `docker-compose.dev.yml` - Development override
+- `docker-compose.prod.yml` - Production override
+```
+
 ### Environment-Specific Usage
 
 #### Development Environment
@@ -545,6 +621,36 @@ The project uses GitHub Actions for continuous integration and automated testing
 - **Troubleshooting**: Common issues and debugging steps
 
 ## Recent Features
+
+### Newsletter Management System
+
+A comprehensive newsletter parsing and trip management system has been implemented in the admin interface.
+
+**Key Features:**
+- **Re-parse Functionality**: Re-submit existing newsletters for re-parsing with current logic
+- **CRUD Operations**: Full Create, Read, Update, Delete operations for parsed dive trips
+- **Multiple Dives Per Trip**: Each trip can contain multiple individual dives with specific details
+- **Admin Interface**: Complete management at `/admin/newsletters`
+
+**Trip Management:**
+- Trip-level information (date, time, duration, difficulty, price, status)
+- Individual dive details (dive number, time, duration, description)
+- Link to specific dive sites for each dive
+- Status tracking (scheduled/confirmed/cancelled/completed)
+
+**API Endpoints:**
+- `POST /api/v1/newsletters/{newsletter_id}/reparse` - Re-parse newsletter
+- `POST /api/v1/newsletters/trips` - Create trip with multiple dives
+- `GET /api/v1/newsletters/trips/{trip_id}` - Get trip with dive details
+- `PUT /api/v1/newsletters/trips/{trip_id}` - Update trip and dives
+- `DELETE /api/v1/newsletters/trips/{trip_id}` - Delete trip
+
+**Database Schema:**
+- `ParsedDiveTrip` model for trip-level information
+- `ParsedDive` model for individual dive details within trips
+- Relationships to diving centers, dive sites, and newsletter sources
+
+**Access:** Available to admin users at `/admin/newsletters`
 
 ### Alphabetical Pagination Implementation
 

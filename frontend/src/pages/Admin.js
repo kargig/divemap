@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Users, MapPin, Building2, Tags, Settings, ArrowRight, Award, Crown, Anchor } from 'lucide-react';
+import { Users, MapPin, Building2, Tags, Settings, ArrowRight, Award, Crown, Anchor, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Admin = () => {
@@ -64,6 +64,13 @@ const Admin = () => {
       icon: <Crown className="h-8 w-8 text-yellow-600" />,
       href: '/admin/ownership-requests',
       color: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100'
+    },
+    {
+      title: 'Newsletter Management',
+      description: 'Upload and manage dive trip newsletters, view parsed trips.',
+      icon: <FileText className="h-8 w-8 text-purple-600" />,
+      href: '/admin/newsletters',
+      color: 'bg-purple-50 border-purple-200 hover:bg-purple-100'
     }
   ];
 

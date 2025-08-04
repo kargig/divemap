@@ -257,4 +257,142 @@ export const deleteTag = async (tagId) => {
   } catch (error) {
     throw error;
   }
+};
+
+// Newsletter API functions
+export const uploadNewsletter = async (file, useOpenai = true) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('use_openai', useOpenai.toString());
+    
+    const response = await api.post('/api/v1/newsletters/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Dive Trip API functions
+export const getParsedTrips = async (params = {}) => {
+  try {
+    // Only include parameters that have values
+    const validParams = {};
+    Object.entries(params).forEach(([key, value]) => {
+      if (value && value.toString().trim() !== '') {
+        validParams[key] = value;
+      }
+    });
+    
+    const response = await api.get('/api/v1/newsletters/trips', { params: validParams });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteParsedTrip = async (tripId) => {
+  try {
+    const response = await api.delete(`/api/v1/newsletters/trips/${tripId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Newsletter Management API functions
+export const getNewsletters = async (params = {}) => {
+  try {
+    const response = await api.get('/api/v1/newsletters/', { params });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getNewsletter = async (newsletterId) => {
+  try {
+    const response = await api.get(`/api/v1/newsletters/${newsletterId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateNewsletter = async (newsletterId, newsletterData) => {
+  try {
+    const response = await api.put(`/api/v1/newsletters/${newsletterId}`, newsletterData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteNewsletter = async (newsletterId) => {
+  try {
+    const response = await api.delete(`/api/v1/newsletters/${newsletterId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteNewsletters = async (newsletterIds) => {
+  try {
+    const response = await api.delete('/api/v1/newsletters/', {
+      data: { newsletter_ids: newsletterIds }
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Re-parse newsletter
+export const reparseNewsletter = async (newsletterId, useOpenai = true) => {
+  try {
+    const formData = new FormData();
+    formData.append('use_openai', useOpenai.toString());
+    
+    const response = await api.post(`/api/v1/newsletters/${newsletterId}/reparse`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// ParsedDiveTrip CRUD operations
+export const createParsedTrip = async (tripData) => {
+  try {
+    const response = await api.post('/api/v1/newsletters/trips', tripData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getParsedTrip = async (tripId) => {
+  try {
+    const response = await api.get(`/api/v1/newsletters/trips/${tripId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateParsedTrip = async (tripId, tripData) => {
+  try {
+    const response = await api.put(`/api/v1/newsletters/trips/${tripId}`, tripData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
 }; 

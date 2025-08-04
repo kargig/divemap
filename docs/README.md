@@ -14,6 +14,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 - **[API.md](./development/api.md)** - API documentation and endpoints
 - **[Testing.md](./development/testing.md)** - Testing guide (see [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for comprehensive details)
 - **[Docker.md](./development/docker.md)** - Docker configuration and containerization guide
+- **Newsletter Management** - Newsletter parsing and trip management (see [Development README](./development/README.md#newsletter-management-system))
 - **Import Scripts** - Dive site import utilities with smart conflict resolution (see [Development README](./development/README.md#import-scripts))
 
 ### 🚀 Deployment
@@ -97,6 +98,10 @@ All documentation should:
 - ✅ Updated API documentation with new endpoints
 - ✅ Enhanced database documentation with new schema
 - ✅ Updated changelog with latest features
+- ✅ Added newsletter management system documentation
+- ✅ Integrated newsletter parsing and trip management features
+- ✅ Updated API docs with newsletter endpoints
+- ✅ Added ParsedDive and ParsedDiveTrip models to database docs
 - ✅ Enhanced rate limiting documentation with localhost and admin exemptions
 - ✅ Added count endpoints for dive sites, dives, and diving centers
 - ✅ Implemented random selection for dive sites with total count display
@@ -108,8 +113,8 @@ All documentation should:
 ### **Getting Started (1 file)**
 - Quick start guide and setup instructions
 
-### **Development (5 files)**
-- Architecture, API, database, testing, and development workflow
+### **Development (6 files)**
+- Architecture, API, database, testing, newsletter management, and development workflow
 
 ### **Deployment (4 files)**
 - Deployment strategies and infrastructure
@@ -123,7 +128,7 @@ All documentation should:
 ### **Testing Strategy (1 file)**
 - Comprehensive testing strategy and procedures
 
-**Total Documentation Files: 16** (reduced from 22)
+**Total Documentation Files: 17** (reduced from 22)
 
 ## 🔄 Consolidation Summary
 

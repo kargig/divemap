@@ -25,6 +25,12 @@ class OwnershipStatus(enum.Enum):
     claimed = "claimed"
     approved = "approved"
 
+class TripStatus(enum.Enum):
+    scheduled = "scheduled"
+    confirmed = "confirmed"
+    cancelled = "cancelled"
+    completed = "completed"
+
 class DivingOrganization(Base):
     __tablename__ = "diving_organizations"
 
@@ -94,7 +100,7 @@ class DiveSite(Base):
     ratings = relationship("SiteRating", back_populates="dive_site", cascade="all, delete-orphan")
     comments = relationship("SiteComment", back_populates="dive_site", cascade="all, delete-orphan")
     center_relationships = relationship("CenterDiveSite", back_populates="dive_site", cascade="all, delete-orphan")
-    dive_trips = relationship("ParsedDiveTrip", back_populates="dive_site")
+    parsed_dives = relationship("ParsedDive", back_populates="dive_site")
     tags = relationship("DiveSiteTag", back_populates="dive_site", cascade="all, delete-orphan")
     dives = relationship("Dive", back_populates="dive_site", cascade="all, delete-orphan")
 
@@ -224,15 +230,42 @@ class ParsedDiveTrip(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), index=True)
-    dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), index=True)
     trip_date = Column(Date, nullable=False, index=True)
     trip_time = Column(Time)
+    trip_duration = Column(Integer)  # Total duration in minutes
+    trip_difficulty_level = Column(Enum(DifficultyLevel), nullable=True)
+    trip_price = Column(DECIMAL(10, 2), nullable=True)
+    trip_currency = Column(String(3), default="EUR", nullable=False, index=True)
+    group_size_limit = Column(Integer, nullable=True)
+    current_bookings = Column(Integer, default=0, nullable=False)
+    trip_description = Column(Text, nullable=True)
+    special_requirements = Column(Text, nullable=True)
+    trip_status = Column(Enum(TripStatus), default=TripStatus.scheduled, nullable=False, index=True)
     source_newsletter_id = Column(Integer, ForeignKey("newsletters.id"))
     extracted_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
     diving_center = relationship("DivingCenter", back_populates="dive_trips")
-    dive_site = relationship("DiveSite", back_populates="dive_trips")
+    dives = relationship("ParsedDive", back_populates="trip", cascade="all, delete-orphan")
+
+class ParsedDive(Base):
+    __tablename__ = "parsed_dives"
+
+    id = Column(Integer, primary_key=True, index=True)
+    trip_id = Column(Integer, ForeignKey("parsed_dive_trips.id"), nullable=False, index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), index=True)
+    dive_number = Column(Integer, nullable=False)  # 1 for first dive, 2 for second dive, etc.
+    dive_time = Column(Time, nullable=True)  # Time for this specific dive
+    dive_duration = Column(Integer, nullable=True)  # Duration for this specific dive in minutes
+    dive_description = Column(Text, nullable=True)  # Description for this specific dive
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    trip = relationship("ParsedDiveTrip", back_populates="dives")
+    dive_site = relationship("DiveSite")
 
 class Newsletter(Base):
     __tablename__ = "newsletters"

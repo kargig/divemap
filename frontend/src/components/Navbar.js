@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, User, Map, Home, Settings, Building, ChevronDown, Users, MapPin, Tags, Award, Anchor, Crown } from 'lucide-react';
+import { LogOut, User, Map, Home, Settings, Building, ChevronDown, Users, MapPin, Tags, Award, Anchor, Crown, Calendar, FileText } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -41,6 +41,11 @@ const Navbar = () => {
             <Link to="/diving-centers" className="flex items-center space-x-1 hover:text-blue-200 transition-colors">
               <Building className="h-5 w-5" />
               <span>Diving Centers</span>
+            </Link>
+            
+            <Link to="/dive-trips" className="flex items-center space-x-1 hover:text-blue-200 transition-colors">
+              <Calendar className="h-5 w-5" />
+              <span>Dive Trips</span>
             </Link>
             
             {user ? (
@@ -121,6 +126,14 @@ const Navbar = () => {
                         >
                           <Crown className="h-4 w-4 mr-2" />
                           Ownership Requests
+                        </Link>
+                        <Link
+                          to="/admin/newsletters"
+                          className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Newsletter Management
                         </Link>
                       </div>
                     )}

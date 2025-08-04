@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Backend API with development settings
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: divemap_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-divemap_user}:${MYSQL_PASSWORD:-divemap_password}@db:3306/divemap
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - ENVIRONMENT=development
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-foobar}
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+    depends_on:
+      - db
+    networks:
+      - divemap_network
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    command: ["/app/startup_dev.sh"]
+
+  # Frontend with development settings
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: divemap_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
+      - NODE_ENV=development
+    depends_on:
+      - backend
+    networks:
+      - divemap_network
+    security_opt:
+      - no-new-privileges:true
+    read_only: false 

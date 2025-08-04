@@ -33,6 +33,8 @@ import AdminOwnershipRequests from './pages/AdminOwnershipRequests';
 import AdminDives from './pages/AdminDives';
 import DiveMap from './pages/DiveMap';
 import DiveMapView from './pages/DiveMapView';
+import AdminNewsletters from './pages/AdminNewsletters';
+import DiveTrips from './pages/DiveTrips';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -252,6 +254,15 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
+                <Route 
+                  path="/admin/newsletters" 
+                  element={
+                    <ProtectedRoute requireAdmin={true}>
+                      <AdminNewsletters />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route path="/dive-trips" element={<DiveTrips />} />
               </Routes>
             </main>
             <Toaster 
