@@ -460,7 +460,7 @@ class TestDivingCenters:
         assert data["average_rating"] == 8.0
         assert data["total_ratings"] == 1 
     
-    def test_get_diving_center_without_user_rating_success(self, client, auth_headers, admin_headers):
+    def test_get_diving_center_without_user_rating_success(self, client, auth_headers, admin_headers, db_session):
         """Test getting diving center without user rating."""
         # Create a diving center
         from app.models import DivingCenter
@@ -473,19 +473,18 @@ class TestDivingCenters:
             latitude=35.0,
             longitude=40.0
         )
-        from app.database import get_db
-        db = next(get_db())
-        db.add(diving_center)
-        db.commit()
-        db.refresh(diving_center)
+        db_session.add(diving_center)
+        db_session.commit()
+        db_session.refresh(diving_center)
         
-        # Test as regular user (should not see user_rating)
+        # Test as regular user (should see user_rating field but it should be None)
         response = client.get(f"/api/v1/diving-centers/{diving_center.id}", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         
         data = response.json()
         assert data["name"] == "Test Center No Rating"
-        assert "user_rating" not in data  # Regular users don't see user_rating
+        assert "user_rating" in data  # All users see user_rating field
+        assert data["user_rating"] is None  # No rating yet
         
         # Test as admin (should see user_rating)
         response = client.get(f"/api/v1/diving-centers/{diving_center.id}", headers=admin_headers)

@@ -70,7 +70,7 @@ async def register(
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-    except IntegrityError:
+    except IntegrityError as e:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -90,7 +90,7 @@ async def register(
     }
 
 @router.post("/login", response_model=Token)
-@skip_rate_limit_for_admin("10/minute")
+@skip_rate_limit_for_admin("20/minute")
 async def login(
     request: Request,
     login_data: LoginRequest, 
@@ -113,7 +113,7 @@ async def login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/google-login", response_model=Token)
-@skip_rate_limit_for_admin("10/minute")
+@skip_rate_limit_for_admin("20/minute")
 async def google_login(
     request: Request,
     google_data: GoogleLoginRequest,
