@@ -54,10 +54,24 @@ def client(db_session):
         finally:
             pass
     
+    # Reset rate limiter cache before each test
+    try:
+        from app.limiter import limiter
+        limiter.reset()
+    except Exception:
+        pass  # Ignore if reset fails
+    
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+    
+    # Reset rate limiter cache after each test as well
+    try:
+        from app.limiter import limiter
+        limiter.reset()
+    except Exception:
+        pass  # Ignore if reset fails
 
 @pytest.fixture
 def test_user(db_session):
