@@ -10,6 +10,18 @@
   overflow: hidden;
 }
 
+/* Mobile-friendly touch targets */
+@media (max-width: 768px) {
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  input, select, textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -28,6 +40,13 @@
   background: #a8a8a8;
 }
 
+/* Mobile-friendly scrollbar */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+}
+
 /* OpenLayers CSS overrides for better integration */
 .ol-popup {
   position: absolute;
@@ -39,6 +58,17 @@
   bottom: 12px;
   left: -50px;
   min-width: 280px;
+  max-width: 90vw; /* Mobile-friendly max width */
+}
+
+/* Mobile popup adjustments */
+@media (max-width: 768px) {
+  .ol-popup {
+    min-width: 250px;
+    max-width: 85vw;
+    padding: 12px;
+    font-size: 14px;
+  }
 }
 
 .ol-popup:after,
@@ -71,8 +101,51 @@
   position: absolute;
   top: 2px;
   right: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ol-popup-closer:after {
   content: '✖';
+  font-size: 16px;
+}
+
+/* Mobile-friendly form elements */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Improve button touch targets on mobile */
+  button,
+  .btn,
+  [role="button"] {
+    min-height: 44px;
+    padding: 12px 16px;
+  }
+  
+  /* Better spacing for mobile cards */
+  .card {
+    margin-bottom: 16px;
+  }
+  
+  /* Improve mobile table readability */
+  table {
+    font-size: 14px;
+  }
+  
+  /* Mobile-friendly modal */
+  .modal {
+    margin: 16px;
+    max-width: calc(100vw - 32px);
+  }
 }

@@ -84,13 +84,13 @@ const Login = () => {
   };
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
-      <div className='max-w-md w-full space-y-8'>
+    <div className='min-h-screen flex items-center justify-center bg-gray-50 py-8 sm:py-12 px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-md w-full space-y-6 sm:space-y-8'>
         <div>
           <div className='mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100'>
             <LogIn className='h-6 w-6 text-blue-600' />
           </div>
-          <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>
+          <h2 className='mt-6 text-center text-2xl sm:text-3xl font-extrabold text-gray-900'>
             Sign in to your account
           </h2>
           <p className='mt-2 text-center text-sm text-gray-600'>
@@ -100,10 +100,11 @@ const Login = () => {
             </Link>
           </p>
         </div>
+
         <form className='mt-8 space-y-6' onSubmit={handleSubmit}>
-          <div className='rounded-md shadow-sm -space-y-px'>
+          <div className='space-y-4'>
             <div>
-              <label htmlFor='username' className='sr-only'>
+              <label htmlFor='username' className='block text-sm font-medium text-gray-700'>
                 Username
               </label>
               <input
@@ -111,37 +112,40 @@ const Login = () => {
                 name='username'
                 type='text'
                 required
-                className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm'
-                placeholder='Username'
                 value={formData.username}
                 onChange={handleChange}
+                className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+                placeholder='Enter your username'
               />
             </div>
-            <div className='relative'>
-              <label htmlFor='password' className='sr-only'>
+
+            <div>
+              <label htmlFor='password' className='block text-sm font-medium text-gray-700'>
                 Password
               </label>
-              <input
-                id='password'
-                name='password'
-                type={showPassword ? 'text' : 'password'}
-                required
-                className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm'
-                placeholder='Password'
-                value={formData.password}
-                onChange={handleChange}
-              />
-              <button
-                type='button'
-                className='absolute inset-y-0 right-0 pr-3 flex items-center'
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff className='h-5 w-5 text-gray-400' />
-                ) : (
-                  <Eye className='h-5 w-5 text-gray-400' />
-                )}
-              </button>
+              <div className='mt-1 relative'>
+                <input
+                  id='password'
+                  name='password'
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  className='block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+                  placeholder='Enter your password'
+                />
+                <button
+                  type='button'
+                  onClick={() => setShowPassword(!showPassword)}
+                  className='absolute inset-y-0 right-0 pr-3 flex items-center'
+                >
+                  {showPassword ? (
+                    <EyeOff className='h-4 w-4 text-gray-400' />
+                  ) : (
+                    <Eye className='h-4 w-4 text-gray-400' />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -155,37 +159,17 @@ const Login = () => {
             </button>
           </div>
 
+          {/* Google Sign-In Button */}
           {process.env.REACT_APP_GOOGLE_CLIENT_ID &&
             process.env.REACT_APP_GOOGLE_CLIENT_ID !== 'undefined' && (
-              <>
-                <div className='relative'>
-                  <div className='absolute inset-0 flex items-center'>
-                    <div className='w-full border-t border-gray-300' />
-                  </div>
-                  <div className='relative flex justify-center text-sm'>
-                    <span className='px-2 bg-gray-50 text-gray-500'>Or continue with</span>
-                  </div>
-                </div>
-
-                <div>
-                  <div id='google-signin-button' className='w-full flex justify-center'></div>
-                  {googleLoading && (
-                    <div className='mt-2 text-center text-sm text-gray-600'>
-                      Signing in with Google...
-                    </div>
-                  )}
-                </div>
-              </>
+              <div className='mt-4'>
+                <div
+                  id='google-signin-button'
+                  className='w-full flex justify-center'
+                  style={{ minHeight: '40px' }}
+                ></div>
+              </div>
             )}
-
-          <div className='text-center'>
-            <p className='text-sm text-gray-600'>
-              Don't have an account?{' '}
-              <Link to='/register' className='font-medium text-blue-600 hover:text-blue-500'>
-                Sign up here
-              </Link>
-            </p>
-          </div>
         </form>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { Search, List, Globe, ChevronLeft, ChevronRight, Map } from 'lucide-react';
+import { Search, List, Globe, ChevronLeft, ChevronRight, Map, Filter, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { useNavigate, useSearchParams, Link as RouterLink } from 'react-router-dom';
@@ -47,6 +47,7 @@ const DiveSites = () => {
 
   const [filters, setFilters] = useState(getInitialFilters);
   const [pagination, setPagination] = useState(getInitialPagination);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Update URL when view mode, filters, or pagination change
   useEffect(() => {
@@ -88,7 +89,7 @@ const DiveSites = () => {
   );
 
   // Fetch total count
-  const { data: totalCount } = useQuery(
+  const { data: totalCountResponse } = useQuery(
     ['dive-sites-count', filters],
     () => {
       const params = new URLSearchParams();
@@ -100,31 +101,26 @@ const DiveSites = () => {
       if (filters.country) params.append('country', filters.country);
       if (filters.region) params.append('region', filters.region);
 
-      if (filters.tag_ids && filters.tag_ids.length > 0) {
-        filters.tag_ids.forEach(tagId => {
-          params.append('tag_ids', tagId.toString());
-        });
-      }
+      filters.tag_ids.forEach(tagId => {
+        params.append('tag_ids', tagId.toString());
+      });
 
-      return api.get(`/api/v1/dive-sites/count?${params.toString()}`);
+      return api.get(`/api/v1/dive-sites/count?${params.toString()}`).then(res => res.data);
     },
     {
-      select: response => response.data.total,
-      keepPreviousData: true,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     }
   );
 
-  const {
-    data: diveSites,
-    isLoading,
-    error,
-  } = useQuery(
+  // Extract total count from response
+  const totalCount = totalCountResponse?.total || 0;
+
+  // Fetch dive sites
+  const { data: diveSites, isLoading, error } = useQuery(
     ['dive-sites', filters, pagination],
     () => {
-      // Create URLSearchParams to properly handle array parameters
       const params = new URLSearchParams();
 
-      // Add non-array parameters
       if (filters.name) params.append('name', filters.name);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
@@ -132,22 +128,17 @@ const DiveSites = () => {
       if (filters.country) params.append('country', filters.country);
       if (filters.region) params.append('region', filters.region);
 
-      // Add array parameters (tag_ids)
-      if (filters.tag_ids && filters.tag_ids.length > 0) {
-        filters.tag_ids.forEach(tagId => {
-          params.append('tag_ids', tagId.toString());
-        });
-      }
+      filters.tag_ids.forEach(tagId => {
+        params.append('tag_ids', tagId.toString());
+      });
 
-      // Add pagination parameters
       params.append('page', pagination.page.toString());
       params.append('page_size', pagination.page_size.toString());
 
-      return api.get(`/api/v1/dive-sites/?${params.toString()}`);
+      return api.get(`/api/v1/dive-sites/?${params.toString()}`).then(res => res.data);
     },
     {
-      select: response => response.data,
-      keepPreviousData: true,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     }
   );
 
@@ -157,6 +148,18 @@ const DiveSites = () => {
       ...prev,
       [name]: value,
     }));
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handleTagChange = e => {
+    const tagId = parseInt(e.target.value);
+    setFilters(prev => ({
+      ...prev,
+      tag_ids: prev.tag_ids.includes(tagId)
+        ? prev.tag_ids.filter(id => id !== tagId)
+        : [...prev.tag_ids, tagId],
+    }));
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const clearFilters = () => {
@@ -169,33 +172,19 @@ const DiveSites = () => {
       region: '',
       tag_ids: [],
     });
-  };
-
-  const handleTagToggle = tagId => {
-    setFilters(prev => ({
-      ...prev,
-      tag_ids: prev.tag_ids.includes(tagId)
-        ? prev.tag_ids.filter(id => id !== tagId)
-        : [...prev.tag_ids, tagId],
-    }));
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handlePageChange = newPage => {
-    setPagination(prev => ({
-      ...prev,
-      page: newPage,
-    }));
+    setPagination(prev => ({ ...prev, page: newPage }));
   };
 
   const handlePageSizeChange = newPageSize => {
-    setPagination(_prev => ({
-      page: 1, // Reset to first page when changing page size
-      page_size: newPageSize,
-    }));
+    setPagination(prev => ({ ...prev, page: 1, page_size: newPageSize }));
   };
 
-  const handleViewModeChange = newViewMode => {
-    setViewMode(newViewMode);
+  const toggleFilters = () => {
+    setShowFilters(!showFilters);
   };
 
   if (isLoading) {
@@ -215,259 +204,242 @@ const DiveSites = () => {
   }
 
   return (
-    <div className='max-w-7xl mx-auto'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-gray-900 mb-4'>Dive Sites</h1>
-        <p className='text-gray-600'>Discover amazing dive sites around the world</p>
+    <div className='max-w-7xl mx-auto px-4 sm:px-6'>
+      <div className='mb-6 sm:mb-8'>
+        <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-4'>Dive Sites</h1>
+        <p className='text-sm sm:text-base text-gray-600'>Discover amazing dive sites around the world</p>
         {totalCount !== undefined && (
-          <div className='mt-2 text-sm text-gray-500'>
+          <div className='mt-2 text-xs sm:text-sm text-gray-500'>
             Showing {diveSites?.length || 0} dive sites from {totalCount} total dive sites
           </div>
         )}
       </div>
 
+      {/* Mobile Filter Toggle Button */}
+      <div className='md:hidden mb-4'>
+        <button
+          onClick={toggleFilters}
+          className='w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+        >
+          <Filter className='h-5 w-5' />
+          {showFilters ? 'Hide Filters' : 'Show Filters'}
+        </button>
+      </div>
+
       {/* Search and Filter Section */}
-      <div className='bg-white p-6 rounded-lg shadow-md mb-8'>
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4'>
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Search Sites</label>
-            <div className='relative'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
+      <div className={`bg-white rounded-lg shadow-md mb-6 sm:mb-8 ${showFilters ? 'block' : 'hidden md:block'}`}>
+        <div className='p-4 sm:p-6'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4'>
+            <div className='lg:col-span-2'>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Search Sites</label>
+              <div className='relative'>
+                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
+                <input
+                  type='text'
+                  name='name'
+                  placeholder='Search by name...'
+                  value={filters.name}
+                  onChange={handleSearchChange}
+                  className='pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Difficulty Level</label>
+              <select
+                name='difficulty_level'
+                value={filters.difficulty_level}
+                onChange={handleSearchChange}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+              >
+                <option value=''>All Levels</option>
+                <option value='beginner'>Beginner</option>
+                <option value='intermediate'>Intermediate</option>
+                <option value='advanced'>Advanced</option>
+                <option value='expert'>Expert</option>
+              </select>
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Min Rating</label>
+              <input
+                type='number'
+                name='min_rating'
+                min='1'
+                max='10'
+                placeholder='Min rating'
+                value={filters.min_rating}
+                onChange={handleSearchChange}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Max Rating</label>
+              <input
+                type='number'
+                name='max_rating'
+                min='1'
+                max='10'
+                placeholder='Max rating'
+                value={filters.max_rating}
+                onChange={handleSearchChange}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Country</label>
               <input
                 type='text'
-                name='name'
-                placeholder='Search by name...'
-                value={filters.name}
+                name='country'
+                placeholder='Filter by country...'
+                value={filters.country}
                 onChange={handleSearchChange}
-                className='pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Region</label>
+              <input
+                type='text'
+                name='region'
+                placeholder='Filter by region...'
+                value={filters.region}
+                onChange={handleSearchChange}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
               />
             </div>
           </div>
 
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Difficulty Level</label>
-            <select
-              name='difficulty_level'
-              value={filters.difficulty_level}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            >
-              <option value=''>All Levels</option>
-              <option value='beginner'>Beginner</option>
-              <option value='intermediate'>Intermediate</option>
-              <option value='advanced'>Advanced</option>
-              <option value='expert'>Expert</option>
-            </select>
-          </div>
+          {/* Tags Filter */}
+          {availableTags && availableTags.length > 0 && (
+            <div className='mt-4'>
+              <label className='block text-sm font-medium text-gray-700 mb-2'>Tags</label>
+              <div className='flex flex-wrap gap-2'>
+                {availableTags.map(tag => (
+                  <label key={tag.id} className='flex items-center space-x-2 cursor-pointer'>
+                    <input
+                      type='checkbox'
+                      checked={filters.tag_ids.includes(tag.id)}
+                      onChange={handleTagChange}
+                      value={tag.id}
+                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                    />
+                    <span className='text-sm text-gray-700'>{tag.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Min Rating</label>
-            <input
-              type='number'
-              name='min_rating'
-              min='1'
-              max='10'
-              placeholder='Min rating'
-              value={filters.min_rating}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            />
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Max Rating</label>
-            <input
-              type='number'
-              name='max_rating'
-              min='1'
-              max='10'
-              placeholder='Max rating'
-              value={filters.max_rating}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            />
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Country</label>
-            <input
-              type='text'
-              name='country'
-              placeholder='Filter by country...'
-              value={filters.country}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            />
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Region</label>
-            <input
-              type='text'
-              name='region'
-              placeholder='Filter by region...'
-              value={filters.region}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            />
-          </div>
-
-          <div className='flex items-end gap-2'>
+          {/* Filter Actions */}
+          <div className='mt-4 flex flex-col sm:flex-row gap-2 sm:gap-4'>
             <button
               onClick={clearFilters}
-              className='flex-1 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
+              className='px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-sm'
             >
-              Clear
+              Clear Filters
             </button>
+            <div className='flex flex-col sm:flex-row gap-2 sm:gap-4'>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-4 py-2 rounded-md transition-colors text-sm ${
+                  viewMode === 'list'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <List className='h-4 w-4 inline mr-2' />
+                List View
+              </button>
+              <button
+                onClick={() => setViewMode('map')}
+                className={`px-4 py-2 rounded-md transition-colors text-sm ${
+                  viewMode === 'map'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <Map className='h-4 w-4 inline mr-2' />
+                Map View
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Tag Cloud */}
-        <div className='mt-6'>
-          <label className='block text-sm font-medium text-gray-700 mb-3'>Filter by Tags</label>
-          <div className='flex flex-wrap gap-3'>
-            {availableTags && availableTags.length > 0 ? (
-              availableTags.map((tag, _index) => {
-                const isSelected = filters.tag_ids.includes(tag.id);
-                const sizes = ['text-sm', 'text-base', 'text-lg', 'text-xl'];
-                const colors = [
-                  'bg-blue-100 text-blue-800 hover:bg-blue-200',
-                  'bg-green-100 text-green-800 hover:bg-green-200',
-                  'bg-purple-100 text-purple-800 hover:bg-purple-200',
-                  'bg-orange-100 text-orange-800 hover:bg-orange-200',
-                  'bg-pink-100 text-pink-800 hover:bg-pink-200',
-                  'bg-indigo-100 text-indigo-800 hover:bg-indigo-200',
-                ];
-                const sizeClass = sizes[tag.id % sizes.length]; // Use tag.id for index
-                const colorClass = colors[tag.id % colors.length]; // Use tag.id for index
+          {/* Pagination Controls */}
+          <div className='mt-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4'>
+            {/* Page Size Selection */}
+            <div className='flex items-center gap-2'>
+              <label className='text-sm font-medium text-gray-700'>Show:</label>
+              <select
+                value={pagination.page_size}
+                onChange={e => handlePageSizeChange(parseInt(e.target.value))}
+                className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className='text-sm text-gray-600'>per page</span>
+            </div>
 
-                return (
-                  <button
-                    key={tag.id}
-                    onClick={() => handleTagToggle(tag.id)}
-                    className={`px-4 py-2 rounded-full font-medium transition-all duration-200 transform hover:scale-105 ${
-                      isSelected
-                        ? 'bg-blue-600 text-white shadow-lg scale-110'
-                        : `${colorClass} shadow-md`
-                    } ${sizeClass}`}
-                  >
-                    {tag.name}
-                  </button>
-                );
-              })
-            ) : (
-              <p className='text-gray-500 text-sm'>Loading tags...</p>
+            {/* Pagination Info */}
+            {totalCount !== undefined && (
+              <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
+                Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
+                {Math.min(pagination.page * pagination.page_size, totalCount)} of {totalCount} dive
+                sites
+              </div>
+            )}
+
+            {/* Pagination Navigation */}
+            {totalCount !== undefined && (
+              <div className='flex items-center gap-2'>
+                <button
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page <= 1}
+                  className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+                >
+                  <ChevronLeft className='h-4 w-4' />
+                </button>
+
+                <span className='text-xs sm:text-sm text-gray-700'>
+                  Page {pagination.page} of {Math.ceil(totalCount / pagination.page_size)}
+                </span>
+
+                <button
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page >= Math.ceil(totalCount / pagination.page_size)}
+                  className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+                >
+                  <ChevronRight className='h-4 w-4' />
+                </button>
+              </div>
             )}
           </div>
-          {filters.tag_ids.length > 0 && (
-            <div className='mt-3 text-sm text-gray-600'>
-              <span className='font-medium'>Selected:</span> {filters.tag_ids.length} tag
-              {filters.tag_ids.length !== 1 ? 's' : ''}
-              {filters.tag_ids.length > 1 && (
-                <span className='text-gray-500'> (showing sites with ALL selected tags)</span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* View Mode Toggle */}
-        <div className='mt-4 flex justify-center'>
-          <div className='bg-gray-100 rounded-lg p-1'>
-            <button
-              onClick={() => handleViewModeChange('list')}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <List className='h-4 w-4 inline mr-2' />
-              List View
-            </button>
-            <button
-              onClick={() => handleViewModeChange('map')}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                viewMode === 'map'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Globe className='h-4 w-4 inline mr-2' />
-              Map View
-            </button>
-          </div>
-        </div>
-
-        {/* Pagination Controls */}
-        <div className='mt-4 flex flex-col sm:flex-row justify-between items-center gap-4'>
-          {/* Page Size Selection */}
-          <div className='flex items-center gap-2'>
-            <label className='text-sm font-medium text-gray-700'>Show:</label>
-            <select
-              value={pagination.page_size}
-              onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-              className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-            <span className='text-sm text-gray-600'>per page</span>
-          </div>
-
-          {/* Pagination Info */}
-          {totalCount !== undefined && (
-            <div className='text-sm text-gray-600'>
-              Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
-              {Math.min(pagination.page * pagination.page_size, totalCount)} of {totalCount} dive
-              sites
-            </div>
-          )}
-
-          {/* Pagination Navigation */}
-          {totalCount !== undefined && (
-            <div className='flex items-center gap-2'>
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page <= 1}
-                className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-              >
-                <ChevronLeft className='h-4 w-4' />
-              </button>
-
-              <span className='text-sm text-gray-700'>
-                Page {pagination.page} of {Math.ceil(totalCount / pagination.page_size)}
-              </span>
-
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page >= Math.ceil(totalCount / pagination.page_size)}
-                className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-              >
-                <ChevronRight className='h-4 w-4' />
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
       {/* Results Section */}
       {viewMode === 'map' ? (
-        <div className='mb-8'>
+        <div className='mb-6 sm:mb-8'>
           <DiveSitesMap diveSites={diveSites} viewport={viewport} onViewportChange={setViewport} />
         </div>
       ) : (
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6'>
           {diveSites?.map(site => (
             <div
               key={site.id}
               className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow'
             >
-              <div className='p-6'>
-                <div className='flex items-start justify-between mb-4'>
-                  <h3 className='text-xl font-semibold text-gray-900'>{site.name}</h3>
+              <div className='p-4 sm:p-6'>
+                <div className='flex items-start justify-between mb-3 sm:mb-4'>
+                  <h3 className='text-lg sm:text-xl font-semibold text-gray-900 pr-2'>{site.name}</h3>
                   <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
                       site.difficulty_level === 'beginner'
                         ? 'bg-green-100 text-green-800'
                         : site.difficulty_level === 'intermediate'
@@ -482,20 +454,20 @@ const DiveSites = () => {
                 </div>
 
                 {site.description && (
-                  <p className='text-gray-600 mb-4 line-clamp-3'>{site.description}</p>
+                  <p className='text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 line-clamp-3'>{site.description}</p>
                 )}
 
                 {site.average_rating && (
-                  <div className='flex items-center mb-4'>
-                    <span className='text-sm font-semibold text-gray-700'>
+                  <div className='flex items-center mb-3 sm:mb-4'>
+                    <span className='text-xs sm:text-sm font-semibold text-gray-700'>
                       {site.average_rating.toFixed(1)}/10 ({site.total_ratings} reviews)
                     </span>
                   </div>
                 )}
 
                 {site.latitude && site.longitude && (
-                  <div className='flex items-center text-sm text-gray-500 mb-4'>
-                    <Map className='h-4 w-4 mr-1' />
+                  <div className='flex items-center text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4'>
+                    <Map className='h-3 w-3 sm:h-4 sm:w-4 mr-1' />
                     <span>
                       {site.latitude}, {site.longitude}
                     </span>
@@ -504,7 +476,7 @@ const DiveSites = () => {
 
                 {/* Tags */}
                 {site.tags && site.tags.length > 0 && (
-                  <div className='mb-4'>
+                  <div className='mb-3 sm:mb-4'>
                     <div className='flex flex-wrap gap-1'>
                       {site.tags.map(tag => (
                         <span
@@ -520,7 +492,7 @@ const DiveSites = () => {
 
                 <RouterLink
                   to={`/dive-sites/${site.id}`}
-                  className='block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+                  className='block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base'
                 >
                   View Details
                 </RouterLink>
@@ -531,9 +503,9 @@ const DiveSites = () => {
       )}
 
       {diveSites?.length === 0 && (
-        <div className='text-center py-12'>
+        <div className='text-center py-8 sm:py-12'>
           <Map className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-          <p className='text-gray-600'>No dive sites found matching your criteria.</p>
+          <p className='text-sm sm:text-base text-gray-600'>No dive sites found matching your criteria.</p>
         </div>
       )}
     </div>

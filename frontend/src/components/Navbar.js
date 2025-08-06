@@ -14,6 +14,8 @@ import {
   Crown,
   Calendar,
   FileText,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -24,22 +26,33 @@ const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showAdminDropdown, setShowAdminDropdown] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+    setShowAdminDropdown(false);
+  };
+
   return (
     <nav className='bg-blue-600 text-white shadow-lg fixed top-0 left-0 right-0 z-50'>
       <div className='container mx-auto px-4'>
         <div className='flex justify-between items-center h-16'>
-          <Link to='/' className='flex items-center space-x-2'>
+          <Link to='/' className='flex items-center space-x-2' onClick={closeMobileMenu}>
             <Map className='h-8 w-8' />
             <span className='text-xl font-bold'>Divemap</span>
           </Link>
 
-          <div className='flex items-center space-x-6'>
+          {/* Desktop Navigation */}
+          <div className='hidden md:flex items-center space-x-6'>
             <Link
               to='/'
               className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
@@ -205,7 +218,190 @@ const Navbar = () => {
               </div>
             )}
           </div>
+
+          {/* Mobile menu button */}
+          <div className='md:hidden'>
+            <button
+              onClick={toggleMobileMenu}
+              className='text-white hover:text-blue-200 transition-colors'
+            >
+              {isMobileMenuOpen ? <X className='h-6 w-6' /> : <Menu className='h-6 w-6' />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className='md:hidden bg-blue-700 border-t border-blue-500'>
+            <div className='px-2 pt-2 pb-3 space-y-1'>
+              <Link
+                to='/'
+                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                onClick={closeMobileMenu}
+              >
+                <Home className='h-5 w-5 mr-3' />
+                <span>Home</span>
+              </Link>
+
+              <Link
+                to='/dives'
+                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                onClick={closeMobileMenu}
+              >
+                <Anchor className='h-5 w-5 mr-3' />
+                <span>Dives</span>
+              </Link>
+
+              <Link
+                to='/dive-sites'
+                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                onClick={closeMobileMenu}
+              >
+                <Map className='h-5 w-5 mr-3' />
+                <span>Dive Sites</span>
+              </Link>
+
+              <Link
+                to='/diving-centers'
+                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                onClick={closeMobileMenu}
+              >
+                <Building className='h-5 w-5 mr-3' />
+                <span>Diving Centers</span>
+              </Link>
+
+              <Link
+                to='/dive-trips'
+                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                onClick={closeMobileMenu}
+              >
+                <Calendar className='h-5 w-5 mr-3' />
+                <span>Dive Trips</span>
+              </Link>
+
+              {user ? (
+                <>
+                  <div className='border-t border-blue-500 pt-2 mt-2'>
+                    <Link
+                      to='/profile'
+                      className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                      onClick={closeMobileMenu}
+                    >
+                      <User className='h-5 w-5 mr-3' />
+                      <span>{user.username}</span>
+                    </Link>
+
+                    {user.is_admin && (
+                      <div className='px-3 py-2'>
+                        <div className='text-xs text-blue-200 mb-2'>ADMIN</div>
+                        <Link
+                          to='/admin'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Settings className='h-4 w-4 mr-3' />
+                          <span>Dashboard</span>
+                        </Link>
+                        <Link
+                          to='/admin/dive-sites'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <MapPin className='h-4 w-4 mr-3' />
+                          <span>Dive Sites</span>
+                        </Link>
+                        <Link
+                          to='/admin/diving-centers'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Building className='h-4 w-4 mr-3' />
+                          <span>Diving Centers</span>
+                        </Link>
+                        <Link
+                          to='/admin/diving-organizations'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Award className='h-4 w-4 mr-3' />
+                          <span>Diving Organizations</span>
+                        </Link>
+                        <Link
+                          to='/admin/dives'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Anchor className='h-4 w-4 mr-3' />
+                          <span>Dives</span>
+                        </Link>
+                        <Link
+                          to='/admin/tags'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Tags className='h-4 w-4 mr-3' />
+                          <span>Tags</span>
+                        </Link>
+                        <Link
+                          to='/admin/users'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Users className='h-4 w-4 mr-3' />
+                          <span>Users</span>
+                        </Link>
+                        <Link
+                          to='/admin/ownership-requests'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Crown className='h-4 w-4 mr-3' />
+                          <span>Ownership Requests</span>
+                        </Link>
+                        <Link
+                          to='/admin/newsletters'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <FileText className='h-4 w-4 mr-3' />
+                          <span>Newsletter Management</span>
+                        </Link>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        closeMobileMenu();
+                      }}
+                      className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors w-full'
+                    >
+                      <LogOut className='h-5 w-5 mr-3' />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className='border-t border-blue-500 pt-2 mt-2 space-y-2'>
+                  <Link
+                    to='/login'
+                    className='block px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                    onClick={closeMobileMenu}
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to='/register'
+                    className='block px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                    onClick={closeMobileMenu}
+                  >
+                    Register
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Click outside to close dropdown */}

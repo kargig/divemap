@@ -13,6 +13,7 @@ import {
   Lock,
   ChevronLeft,
   ChevronRight,
+  Filter,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
@@ -72,6 +73,7 @@ const Dives = () => {
 
   const [filters, setFilters] = useState(getInitialFilters);
   const [pagination, setPagination] = useState(getInitialPagination);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Update URL when view mode, filters, or pagination change
   useEffect(() => {
@@ -118,18 +120,12 @@ const Dives = () => {
     }
   );
 
-  // Query for fetching dives with pagination
-  const {
-    data: dives = [],
-    isLoading,
-    error,
-  } = useQuery(
-    ['dives', filters, pagination, user],
+  // Fetch total count
+  const { data: totalCountResponse } = useQuery(
+    ['dives-count', filters],
     () => {
-      // Create URLSearchParams to properly handle array parameters
       const params = new URLSearchParams();
 
-      // Add non-array parameters
       if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
       if (filters.dive_site_name) params.append('dive_site_name', filters.dive_site_name);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
@@ -141,48 +137,113 @@ const Dives = () => {
       if (filters.max_rating) params.append('max_rating', filters.max_rating);
       if (filters.start_date) params.append('start_date', filters.start_date);
       if (filters.end_date) params.append('end_date', filters.end_date);
+      if (filters.my_dives) params.append('my_dives', 'true');
 
-      // Add array parameters (tag_ids)
-      if (filters.tag_ids && filters.tag_ids.length > 0) {
-        filters.tag_ids.forEach(tagId => {
-          params.append('tag_ids', tagId.toString());
-        });
-      }
+      filters.tag_ids.forEach(tagId => {
+        params.append('tag_ids', tagId.toString());
+      });
 
-      // Add pagination parameters
-      params.append('page', pagination.page.toString());
-      params.append('page_size', pagination.page_size.toString());
-
-      return api.get(`/api/v1/dives/?${params.toString()}`);
+      return api.get(`/api/v1/dives/count?${params.toString()}`).then(res => res.data);
     },
     {
-      select: response => {
-        // Store pagination info from headers
-        const paginationInfo = {
-          totalCount: parseInt(response.headers['x-total-count'] || '0'),
-          totalPages: parseInt(response.headers['x-total-pages'] || '0'),
-          currentPage: parseInt(response.headers['x-current-page'] || '1'),
-          pageSize: parseInt(response.headers['x-page-size'] || '25'),
-          hasNextPage: response.headers['x-has-next-page'] === 'true',
-          hasPrevPage: response.headers['x-has-prev-page'] === 'true',
-        };
-        // Store pagination info in the query cache
-        queryClient.setQueryData(['dives-pagination', filters, pagination], paginationInfo);
-        return response.data;
-      },
-      keepPreviousData: true,
       staleTime: 5 * 60 * 1000, // 5 minutes
     }
   );
 
-  // Get pagination info from cached data
-  const paginationInfo = queryClient.getQueryData(['dives-pagination', filters, pagination]) || {
-    totalCount: 0,
-    totalPages: 0,
-    currentPage: pagination.page,
-    pageSize: pagination.page_size,
-    hasNextPage: false,
-    hasPrevPage: pagination.page > 1,
+  // Extract total count from response
+  const totalCount = totalCountResponse?.total || 0;
+
+  // Fetch dives
+  const { data: dives, isLoading, error } = useQuery(
+    ['dives', filters, pagination],
+    () => {
+      const params = new URLSearchParams();
+
+      if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
+      if (filters.dive_site_name) params.append('dive_site_name', filters.dive_site_name);
+      if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
+      if (filters.min_depth) params.append('min_depth', filters.min_depth);
+      if (filters.max_depth) params.append('max_depth', filters.max_depth);
+      if (filters.min_visibility) params.append('min_visibility', filters.min_visibility);
+      if (filters.max_visibility) params.append('max_visibility', filters.max_visibility);
+      if (filters.min_rating) params.append('min_rating', filters.min_rating);
+      if (filters.max_rating) params.append('max_rating', filters.max_rating);
+      if (filters.start_date) params.append('start_date', filters.start_date);
+      if (filters.end_date) params.append('end_date', filters.end_date);
+      if (filters.my_dives) params.append('my_dives', 'true');
+
+      filters.tag_ids.forEach(tagId => {
+        params.append('tag_ids', tagId.toString());
+      });
+
+      params.append('page', pagination.page.toString());
+      params.append('page_size', pagination.page_size.toString());
+
+      return api.get(`/api/v1/dives/?${params.toString()}`).then(res => res.data);
+    },
+    {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+
+  const handleSearchChange = e => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handleTagChange = e => {
+    const tagId = parseInt(e.target.value);
+    setFilters(prev => ({
+      ...prev,
+      tag_ids: prev.tag_ids.includes(tagId)
+        ? prev.tag_ids.filter(id => id !== tagId)
+        : [...prev.tag_ids, tagId],
+    }));
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      dive_site_id: '',
+      dive_site_name: '',
+      difficulty_level: '',
+      min_depth: '',
+      max_depth: '',
+      min_visibility: '',
+      max_visibility: '',
+      min_rating: '',
+      max_rating: '',
+      start_date: '',
+      end_date: '',
+      tag_ids: [],
+      my_dives: false,
+    });
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handleMyDivesToggle = () => {
+    setFilters(prev => ({
+      ...prev,
+      my_dives: !prev.my_dives,
+    }));
+    // Reset to first page when filters change
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handlePageChange = newPage => {
+    setPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handlePageSizeChange = newPageSize => {
+    setPagination(prev => ({ ...prev, page: 1, page_size: newPageSize }));
+  };
+
+  const toggleFilters = () => {
+    setShowFilters(!showFilters);
   };
 
   // Delete dive mutation
@@ -200,73 +261,6 @@ const Dives = () => {
     if (window.confirm('Are you sure you want to delete this dive?')) {
       deleteDiveMutation.mutate(diveId);
     }
-  };
-
-  const handleSearchChange = e => {
-    const { name, value } = e.target;
-    setFilters(_prev => ({
-      ..._prev,
-      [name]: value,
-    }));
-    setPagination(_prev => ({ ..._prev, page: 1 }));
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      dive_site_id: '',
-      dive_site_name: '',
-      difficulty_level: '',
-      suit_type: '',
-      min_depth: '',
-      max_depth: '',
-      min_visibility: '',
-      max_visibility: '',
-      min_rating: '',
-      max_rating: '',
-      start_date: '',
-      end_date: '',
-      tag_ids: [],
-      my_dives: false,
-    });
-    // Reset to first page when clearing filters
-    setPagination(_prev => ({ ..._prev, page: 1 }));
-  };
-
-  const handleViewModeChange = newViewMode => {
-    setViewMode(newViewMode);
-  };
-
-  const handleTagToggle = tagId => {
-    setFilters(_prev => ({
-      ..._prev,
-      tag_ids: _prev.tag_ids.includes(tagId)
-        ? _prev.tag_ids.filter(id => id !== tagId)
-        : [..._prev.tag_ids, tagId],
-    }));
-    setPagination(_prev => ({ ..._prev, page: 1 }));
-  };
-
-  const handleMyDivesToggle = () => {
-    setFilters(prev => ({
-      ...prev,
-      my_dives: !prev.my_dives,
-    }));
-    // Reset to first page when filters change
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  const handlePageChange = newPage => {
-    setPagination(_prev => ({
-      ..._prev,
-      page: newPage,
-    }));
-  };
-
-  const handlePageSizeChange = newPageSize => {
-    setPagination(_prev => ({
-      page: 1, // Reset to first page when changing page size
-      page_size: newPageSize,
-    }));
   };
 
   const formatDate = dateString => {
@@ -309,301 +303,291 @@ const Dives = () => {
   }
 
   return (
-    <div className='max-w-7xl mx-auto'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-gray-900 mb-4'>Dives</h1>
-        <p className='text-gray-600'>Track and explore your diving adventures</p>
-        {paginationInfo.totalCount !== undefined && (
-          <div className='mt-2 text-sm text-gray-500'>
-            Showing {paginationInfo.totalCount} dives
+    <div className='max-w-7xl mx-auto px-4 sm:px-6'>
+      <div className='mb-6 sm:mb-8'>
+        <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-4'>Dives</h1>
+        <p className='text-sm sm:text-base text-gray-600'>Track and explore your diving adventures</p>
+        {totalCount !== undefined && (
+          <div className='mt-2 text-xs sm:text-sm text-gray-500'>
+            Showing {dives?.length || 0} dives from {totalCount} total dives
           </div>
         )}
       </div>
 
+      {/* Mobile Filter Toggle Button */}
+      <div className='md:hidden mb-4'>
+        <button
+          onClick={toggleFilters}
+          className='w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+        >
+          <Filter className='h-5 w-5' />
+          {showFilters ? 'Hide Filters' : 'Show Filters'}
+        </button>
+      </div>
+
       {/* Search and Filter Section */}
-      <div className='bg-white p-6 rounded-lg shadow-md mb-8'>
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4'>
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Search Dives</label>
-            <div className='relative'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-              <input
-                type='text'
-                name='dive_site_name'
-                placeholder='Search by dive site name...'
-                value={filters.dive_site_name}
+      <div className={`bg-white rounded-lg shadow-md mb-6 sm:mb-8 ${showFilters ? 'block' : 'hidden md:block'}`}>
+        <div className='p-4 sm:p-6'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4'>
+            <div className='lg:col-span-2'>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Search Dives</label>
+              <div className='relative'>
+                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
+                <input
+                  type='text'
+                  name='dive_site_name'
+                  placeholder='Search by dive site name...'
+                  value={filters.dive_site_name}
+                  onChange={handleSearchChange}
+                  className='pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Difficulty Level</label>
+              <select
+                name='difficulty_level'
+                value={filters.difficulty_level}
                 onChange={handleSearchChange}
-                className='pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+              >
+                <option value=''>All Levels</option>
+                <option value='beginner'>Beginner</option>
+                <option value='intermediate'>Intermediate</option>
+                <option value='advanced'>Advanced</option>
+                <option value='expert'>Expert</option>
+              </select>
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Min Depth (m)</label>
+              <input
+                type='number'
+                name='min_depth'
+                min='0'
+                placeholder='Min depth'
+                value={filters.min_depth}
+                onChange={handleSearchChange}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Max Depth (m)</label>
+              <input
+                type='number'
+                name='max_depth'
+                min='0'
+                placeholder='Max depth'
+                value={filters.max_depth}
+                onChange={handleSearchChange}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Min Visibility (m)</label>
+              <input
+                type='number'
+                name='min_visibility'
+                min='0'
+                placeholder='Min visibility'
+                value={filters.min_visibility}
+                onChange={handleSearchChange}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Max Visibility (m)</label>
+              <input
+                type='number'
+                name='max_visibility'
+                min='0'
+                placeholder='Max visibility'
+                value={filters.max_visibility}
+                onChange={handleSearchChange}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Min Rating</label>
+              <input
+                type='number'
+                name='min_rating'
+                min='1'
+                max='10'
+                placeholder='Min rating'
+                value={filters.min_rating}
+                onChange={handleSearchChange}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Max Rating</label>
+              <input
+                type='number'
+                name='max_rating'
+                min='1'
+                max='10'
+                placeholder='Max rating'
+                value={filters.max_rating}
+                onChange={handleSearchChange}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Start Date</label>
+              <input
+                type='date'
+                name='start_date'
+                value={filters.start_date}
+                onChange={handleSearchChange}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>End Date</label>
+              <input
+                type='date'
+                name='end_date'
+                value={filters.end_date}
+                onChange={handleSearchChange}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
               />
             </div>
           </div>
 
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Difficulty Level</label>
-            <select
-              name='difficulty_level'
-              value={filters.difficulty_level}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            >
-              <option value=''>All Levels</option>
-              <option value='beginner'>Beginner</option>
-              <option value='intermediate'>Intermediate</option>
-              <option value='advanced'>Advanced</option>
-              <option value='expert'>Expert</option>
-            </select>
-          </div>
+          {/* Tags Filter */}
+          {availableTags && availableTags.length > 0 && (
+            <div className='mt-4'>
+              <label className='block text-sm font-medium text-gray-700 mb-2'>Tags</label>
+              <div className='flex flex-wrap gap-2'>
+                {availableTags.map(tag => (
+                  <label key={tag.id} className='flex items-center space-x-2 cursor-pointer'>
+                    <input
+                      type='checkbox'
+                      checked={filters.tag_ids.includes(tag.id)}
+                      onChange={handleTagChange}
+                      value={tag.id}
+                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                    />
+                    <span className='text-sm text-gray-700'>{tag.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Min Depth (m)</label>
-            <input
-              type='number'
-              name='min_depth'
-              placeholder='Min depth'
-              value={filters.min_depth}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            />
-          </div>
+          {/* My Dives Toggle */}
+          {user && (
+            <div className='mt-4'>
+              <label className='flex items-center space-x-2 cursor-pointer'>
+                <input
+                  type='checkbox'
+                  checked={filters.my_dives}
+                  onChange={handleMyDivesToggle}
+                  className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                />
+                <span className='text-sm font-medium text-gray-700'>Show only my dives</span>
+              </label>
+            </div>
+          )}
 
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Max Depth (m)</label>
-            <input
-              type='number'
-              name='max_depth'
-              placeholder='Max depth'
-              value={filters.max_depth}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            />
-          </div>
-
-          <div className='flex items-end gap-2'>
+          {/* Filter Actions */}
+          <div className='mt-4 flex flex-col sm:flex-row gap-2 sm:gap-4'>
             <button
               onClick={clearFilters}
-              className='flex-1 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
+              className='px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-sm'
             >
-              Clear
+              Clear Filters
             </button>
-          </div>
-        </div>
-
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4'>
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Min Visibility</label>
-            <input
-              type='number'
-              name='min_visibility'
-              min='1'
-              max='10'
-              placeholder='Min visibility'
-              value={filters.min_visibility}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            />
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Max Visibility</label>
-            <input
-              type='number'
-              name='max_visibility'
-              min='1'
-              max='10'
-              placeholder='Max visibility'
-              value={filters.max_visibility}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            />
+            <div className='flex flex-col sm:flex-row gap-2 sm:gap-4'>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-4 py-2 rounded-md transition-colors text-sm ${
+                  viewMode === 'list'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <List className='h-4 w-4 inline mr-2' />
+                List View
+              </button>
+              <button
+                onClick={() => setViewMode('map')}
+                className={`px-4 py-2 rounded-md transition-colors text-sm ${
+                  viewMode === 'map'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <Map className='h-4 w-4 inline mr-2' />
+                Map View
+              </button>
+            </div>
           </div>
 
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Min Rating</label>
-            <input
-              type='number'
-              name='min_rating'
-              min='1'
-              max='10'
-              placeholder='Min rating'
-              value={filters.min_rating}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            />
-          </div>
+          {/* Pagination Controls */}
+          <div className='mt-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4'>
+            {/* Page Size Selection */}
+            <div className='flex items-center gap-2'>
+              <label className='text-sm font-medium text-gray-700'>Show:</label>
+              <select
+                value={pagination.page_size}
+                onChange={e => handlePageSizeChange(parseInt(e.target.value))}
+                className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className='text-sm text-gray-600'>per page</span>
+            </div>
 
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Max Rating</label>
-            <input
-              type='number'
-              name='max_rating'
-              min='1'
-              max='10'
-              placeholder='Max rating'
-              value={filters.max_rating}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            />
-          </div>
-        </div>
+            {/* Pagination Info */}
+            {totalCount !== undefined && (
+              <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
+                Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
+                {Math.min(pagination.page * pagination.page_size, totalCount)} of {totalCount} dives
+              </div>
+            )}
 
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Start Date</label>
-            <input
-              type='date'
-              name='start_date'
-              value={filters.start_date}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            />
-          </div>
+            {/* Pagination Navigation */}
+            {totalCount !== undefined && (
+              <div className='flex items-center gap-2'>
+                <button
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page <= 1}
+                  className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+                >
+                  <ChevronLeft className='h-4 w-4' />
+                </button>
 
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>End Date</label>
-            <input
-              type='date'
-              name='end_date'
-              value={filters.end_date}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            />
-          </div>
-        </div>
+                <span className='text-xs sm:text-sm text-gray-700'>
+                  Page {pagination.page} of {Math.ceil(totalCount / pagination.page_size)}
+                </span>
 
-        {/* Tag Cloud */}
-        <div className='mt-6'>
-          <label className='block text-sm font-medium text-gray-700 mb-3'>Filter by Tags</label>
-          <div className='flex flex-wrap gap-3'>
-            {availableTags && availableTags.length > 0 ? (
-              availableTags.map((tag, index) => {
-                const isSelected = filters.tag_ids.includes(tag.id);
-                const sizes = ['text-sm', 'text-base', 'text-lg', 'text-xl'];
-                const colors = [
-                  'bg-blue-100 text-blue-800 hover:bg-blue-200',
-                  'bg-green-100 text-green-800 hover:bg-green-200',
-                  'bg-purple-100 text-purple-800 hover:bg-purple-200',
-                  'bg-orange-100 text-orange-800 hover:bg-orange-200',
-                  'bg-pink-100 text-pink-800 hover:bg-pink-200',
-                  'bg-indigo-100 text-indigo-800 hover:bg-indigo-200',
-                ];
-                const sizeClass = sizes[index % sizes.length];
-                const colorClass = colors[index % colors.length];
-
-                return (
-                  <button
-                    key={tag.id}
-                    onClick={() => handleTagToggle(tag.id)}
-                    className={`px-4 py-2 rounded-full font-medium transition-all duration-200 transform hover:scale-105 ${
-                      isSelected
-                        ? 'bg-blue-600 text-white shadow-lg scale-110'
-                        : `${colorClass} shadow-md`
-                    } ${sizeClass}`}
-                  >
-                    {tag.name}
-                  </button>
-                );
-              })
-            ) : (
-              <p className='text-gray-500 text-sm'>Loading tags...</p>
+                <button
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page >= Math.ceil(totalCount / pagination.page_size)}
+                  className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+                >
+                  <ChevronRight className='h-4 w-4' />
+                </button>
+              </div>
             )}
           </div>
-          {filters.tag_ids.length > 0 && (
-            <div className='mt-3 text-sm text-gray-600'>
-              <span className='font-medium'>Selected:</span> {filters.tag_ids.length} tag
-              {filters.tag_ids.length !== 1 ? 's' : ''}
-              {filters.tag_ids.length > 1 && (
-                <span className='text-gray-500'> (showing dives with ALL selected tags)</span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* View Mode Toggle */}
-        <div className='mt-4 flex justify-center'>
-          <div className='bg-gray-100 rounded-lg p-1'>
-            <button
-              onClick={() => handleViewModeChange('list')}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <List className='h-4 w-4 inline mr-2' />
-              List View
-            </button>
-            <button
-              onClick={() => handleViewModeChange('map')}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                viewMode === 'map'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Globe className='h-4 w-4 inline mr-2' />
-              Map View
-            </button>
-          </div>
-        </div>
-
-        {/* Pagination Controls */}
-        <div className='mt-4 flex flex-col sm:flex-row justify-between items-center gap-4'>
-          {/* Page Size Selection */}
-          <div className='flex items-center gap-2'>
-            <label className='text-sm font-medium text-gray-700'>Show:</label>
-            <select
-              value={pagination.page_size}
-              onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-              className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-            <span className='text-sm text-gray-600'>per page</span>
-          </div>
-
-          {/* Pagination Info */}
-          {paginationInfo.totalCount !== undefined && (
-            <div className='text-sm text-gray-600'>
-              Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
-              {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of{' '}
-              {paginationInfo.totalCount} dives
-            </div>
-          )}
-
-          {/* Pagination Navigation */}
-          {paginationInfo.totalCount !== undefined && (
-            <div className='flex items-center gap-2'>
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page <= 1}
-                className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-              >
-                <ChevronLeft className='h-4 w-4' />
-              </button>
-
-              <span className='text-sm text-gray-700'>
-                Page {pagination.page} of{' '}
-                {Math.ceil(paginationInfo.totalCount / pagination.page_size)}
-              </span>
-
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={
-                  pagination.page >= Math.ceil(paginationInfo.totalCount / pagination.page_size)
-                }
-                className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-              >
-                <ChevronRight className='h-4 w-4' />
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
       {/* Action Buttons and My Dives Filter */}
-      <div className='flex justify-between items-center mb-6'>
+      <div className='flex flex-col sm:flex-row justify-between items-center mb-6 gap-4'>
         {user && (
           <button
             onClick={handleMyDivesToggle}
@@ -634,11 +618,11 @@ const Dives = () => {
           <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div>
         </div>
       ) : viewMode === 'map' ? (
-        <div className='mb-8'>
+        <div className='mb-6 sm:mb-8'>
           <DivesMap dives={dives} viewport={viewport} onViewportChange={setViewport} />
         </div>
       ) : (
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6'>
           {dives?.map(dive => {
             // Determine card styling based on ownership and privacy
             const isOwnedByUser = user?.id === dive.user_id;
@@ -658,12 +642,12 @@ const Dives = () => {
 
             return (
               <div key={dive.id} className={cardClasses}>
-                <div className='p-6'>
-                  <div className='flex justify-between items-start mb-4'>
-                    <div>
+                <div className='p-4 sm:p-6'>
+                  <div className='flex justify-between items-start mb-3 sm:mb-4'>
+                    <div className='flex-1 min-w-0'>
                       <Link
                         to={`/dives/${dive.id}`}
-                        className='text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors'
+                        className='text-lg sm:text-xl font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate block'
                       >
                         {dive.name || dive.dive_site?.name || 'Unnamed Dive Site'}
                       </Link>
@@ -672,7 +656,7 @@ const Dives = () => {
                         {dive.dive_time && ` at ${formatTime(dive.dive_time)}`}
                       </p>
                     </div>
-                    <div className='flex gap-2'>
+                    <div className='flex gap-2 flex-shrink-0'>
                       <Link
                         to={`/dives/${dive.id}`}
                         className='text-blue-600 hover:text-blue-800'
@@ -727,7 +711,7 @@ const Dives = () => {
                       </div>
                     )}
 
-                    <div className='flex items-center gap-4 text-sm text-gray-600'>
+                    <div className='flex items-center gap-4 text-xs sm:text-sm text-gray-600'>
                       {dive.max_depth && (
                         <div className='flex items-center gap-1'>
                           <Thermometer size={14} />
@@ -773,9 +757,9 @@ const Dives = () => {
       )}
 
       {dives?.length === 0 && (
-        <div className='text-center py-12'>
+        <div className='text-center py-8 sm:py-12'>
           <Map className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-          <p className='text-gray-600'>No dives found matching your criteria.</p>
+          <p className='text-sm sm:text-base text-gray-600'>No dives found matching your criteria.</p>
         </div>
       )}
     </div>

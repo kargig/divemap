@@ -176,38 +176,39 @@ const DiveDetail = () => {
   }
 
   return (
-    <div className='max-w-6xl mx-auto'>
+    <div className='max-w-6xl mx-auto px-4 sm:px-6'>
       {/* Header */}
-      <div className='flex items-center justify-between mb-6'>
-        <div className='flex items-center gap-4'>
-          <button onClick={() => navigate('/dives')} className='text-gray-600 hover:text-gray-800'>
-            <ArrowLeft size={24} />
+      <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4'>
+        <div className='flex items-center gap-3 sm:gap-4'>
+          <button onClick={() => navigate('/dives')} className='text-gray-600 hover:text-gray-800 p-1'>
+            <ArrowLeft size={20} className='sm:w-6 sm:h-6' />
           </button>
-          <div>
-            <h1 className='text-3xl font-bold text-gray-900'>
+          <div className='min-w-0 flex-1'>
+            <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate'>
               {dive.name || dive.dive_site?.name || 'Unnamed Dive Site'}
             </h1>
-            <p className='text-gray-600'>
+            <p className='text-sm sm:text-base text-gray-600'>
               {formatDate(dive.dive_date)}
               {dive.dive_time && ` at ${formatTime(dive.dive_time)}`}
             </p>
           </div>
         </div>
-        <div className='flex gap-2'>
+        <div className='flex gap-2 flex-wrap'>
           {(user?.id === dive?.user_id || user?.is_admin) && (
             <>
               <RouterLink
                 to={`/dives/${id}/edit`}
-                className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2'
+                className='inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
               >
-                <Edit size={16} />
+                <Edit className='h-4 w-4 mr-1' />
                 Edit
               </RouterLink>
               <button
                 onClick={handleDelete}
-                className='px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2'
+                disabled={deleteDiveMutation.isLoading}
+                className='inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50'
               >
-                <Trash2 size={16} />
+                <Trash2 className='h-4 w-4 mr-1' />
                 Delete
               </button>
             </>
