@@ -211,7 +211,7 @@ const AdminNewsletters = () => {
 
     setIsUploading(true);
     try {
-      await uploadMutation.mutateAsync({ file: selectedFile, useOpenai });
+      await uploadMutation.mutateAsync(selectedFile, useOpenai);
     } finally {
       setIsUploading(false);
     }
