@@ -14,6 +14,7 @@ const DiveTrips = () => {
     dive_site_id: '',
     trip_status: '',
   });
+  const [showDateFilterMessage, setShowDateFilterMessage] = useState(false);
 
   // Query for parsed trips
   const { data: trips, isLoading, error } = useQuery(
@@ -33,6 +34,13 @@ const DiveTrips = () => {
     }
   );
 
+  // Sort trips by date (newest/future first)
+  const sortedTrips = trips ? [...trips].sort((a, b) => {
+    const dateA = new Date(a.trip_date);
+    const dateB = new Date(b.trip_date);
+    return dateB - dateA; // Descending order (newest first)
+  }) : [];
+
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({
       ...prev,
@@ -50,8 +58,34 @@ const DiveTrips = () => {
     });
   };
 
+  const handleDateClick = (dateString) => {
+    // Convert the date to YYYY-MM-DD format for the filter
+    const date = new Date(dateString);
+    const formattedDate = date.toISOString().split('T')[0];
+    
+    // Set both start and end date to the same date to filter for that specific date
+    setFilters(prev => ({
+      ...prev,
+      start_date: formattedDate,
+      end_date: formattedDate,
+    }));
+    
+    // Show confirmation message
+    setShowDateFilterMessage(true);
+    setTimeout(() => setShowDateFilterMessage(false), 3000); // Hide after 3 seconds
+  };
+
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-GB');
+    const date = new Date(dateString);
+    const options = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    };
+    const formattedDate = date.toLocaleDateString('en-US', options);
+    const shortDate = date.toLocaleDateString('en-GB');
+    return `${formattedDate} (${shortDate})`;
   };
 
   const formatTime = (timeString) => {
@@ -99,7 +133,7 @@ const DiveTrips = () => {
   };
 
   // Prepare map data for dive trips
-  const mapData = trips?.map(trip => ({
+  const mapData = sortedTrips?.map(trip => ({
     id: trip.id,
     name: trip.diving_center_name || 'Unknown Center',
     description: trip.trip_description || '',
@@ -151,6 +185,18 @@ const DiveTrips = () => {
                 </Link>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Date Filter Confirmation Message */}
+      {showDateFilterMessage && (
+        <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <Calendar className="h-5 w-5 text-green-600 mr-2" />
+            <span className="text-green-800">
+              Date filter applied! Showing trips for the selected date.
+            </span>
           </div>
         </div>
       )}
@@ -233,13 +279,29 @@ const DiveTrips = () => {
           </div>
         </div>
         
-        <div className="mt-4">
+        <div className="mt-4 flex items-center justify-between">
           <button
             onClick={clearFilters}
             className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md"
           >
             Clear Filters
           </button>
+          {(filters.start_date || filters.end_date) && (
+            <div className="flex items-center text-sm text-blue-600">
+              <Calendar className="h-4 w-4 mr-1" />
+              <span>
+                Filtered by date: {filters.start_date === filters.end_date 
+                  ? new Date(filters.start_date).toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })
+                  : `${filters.start_date} to ${filters.end_date}`
+                }
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -257,16 +319,16 @@ const DiveTrips = () => {
         </div>
       )}
 
-      {trips && trips.length === 0 && !isAuthError && (
+      {sortedTrips && sortedTrips.length === 0 && !isAuthError && (
         <div className="text-center py-12">
           <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600">No dive trips found</p>
         </div>
       )}
 
-      {viewMode === 'list' && trips && trips.length > 0 && !isAuthError && (
+      {viewMode === 'list' && sortedTrips && sortedTrips.length > 0 && !isAuthError && (
         <div className="space-y-4">
-          {trips.map((trip) => (
+          {sortedTrips.map((trip) => (
             <div key={trip.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -294,7 +356,14 @@ const DiveTrips = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <div className="flex items-center text-gray-600">
                   <Calendar className="h-4 w-4 mr-2" />
-                  <span>{formatDate(trip.trip_date)}</span>
+                  <button
+                    onClick={() => handleDateClick(trip.trip_date)}
+                    className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors border border-transparent hover:border-blue-300 rounded px-1 py-0.5 flex items-center"
+                    title="Click to filter by this date"
+                  >
+                    {formatDate(trip.trip_date)}
+                    <Filter className="h-3 w-3 ml-1 opacity-60" />
+                  </button>
                 </div>
                 
                 <div className="flex items-center text-gray-600">
@@ -412,7 +481,7 @@ const DiveTrips = () => {
         </div>
       )}
 
-      {viewMode === 'map' && trips && trips.length > 0 && !isAuthError && (
+      {viewMode === 'map' && sortedTrips && sortedTrips.length > 0 && !isAuthError && (
         <div className="bg-white rounded-lg shadow-md">
           <DiveMap 
             diveSites={[]} 
