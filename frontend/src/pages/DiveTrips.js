@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from 'react-query';
-import { Calendar, MapPin, Clock, Users, Euro, Filter, Calendar as CalendarIcon, Map, Building } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, Euro, Filter, Calendar as CalendarIcon, Map, Building, LogIn } from 'lucide-react';
 import { getParsedTrips } from '../api';
 import DiveMap from '../components/DiveMap';
 import { Link } from 'react-router-dom';
@@ -113,12 +113,47 @@ const DiveTrips = () => {
     trip_status: getDisplayStatus(trip),
   })) || [];
 
+  // Check if error is a 403 Forbidden (authentication required)
+  const isAuthError = error?.response?.status === 403;
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Dive Trips</h1>
         <p className="text-gray-600 mt-2">Discover upcoming dive trips from local diving centers</p>
       </div>
+
+      {/* Authentication Required Message */}
+      {isAuthError && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+          <div className="flex items-center">
+            <LogIn className="h-8 w-8 text-blue-600 mr-4" />
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                Login Required
+              </h3>
+              <p className="text-blue-700 mb-4">
+                To view dive trips and discover upcoming diving adventures, please log in to your account.
+              </p>
+              <div className="flex space-x-3">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                >
+                  Register
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* View Mode Toggle */}
       <div className="flex justify-between items-center mb-6">
@@ -216,20 +251,20 @@ const DiveTrips = () => {
         </div>
       )}
 
-      {error && (
+      {error && !isAuthError && (
         <div className="text-center py-12">
           <p className="text-red-600">Error loading dive trips</p>
         </div>
       )}
 
-      {trips && trips.length === 0 && (
+      {trips && trips.length === 0 && !isAuthError && (
         <div className="text-center py-12">
           <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600">No dive trips found</p>
         </div>
       )}
 
-      {viewMode === 'list' && trips && trips.length > 0 && (
+      {viewMode === 'list' && trips && trips.length > 0 && !isAuthError && (
         <div className="space-y-4">
           {trips.map((trip) => (
             <div key={trip.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
@@ -377,7 +412,7 @@ const DiveTrips = () => {
         </div>
       )}
 
-      {viewMode === 'map' && trips && trips.length > 0 && (
+      {viewMode === 'map' && trips && trips.length > 0 && !isAuthError && (
         <div className="bg-white rounded-lg shadow-md">
           <DiveMap 
             diveSites={[]} 
