@@ -1,4 +1,4 @@
-import { ArrowLeft, Edit, Star, MapPin, MessageCircle, Video, Link } from 'lucide-react';
+import { ArrowLeft, Edit, Star, MapPin, MessageCircle, Video, Link, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -28,9 +28,14 @@ const DiveSiteDetail = () => {
   const [comment, setComment] = useState('');
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [isMapMaximized, setIsMapMaximized] = useState(false);
+  const [showNearbySites, setShowNearbySites] = useState(false);
 
   // Check if user has edit privileges
   const canEdit = user && (user.is_admin || user.is_moderator);
+
+  const toggleNearbySites = () => {
+    setShowNearbySites(!showNearbySites);
+  };
 
   const {
     data: diveSite,
@@ -185,22 +190,38 @@ const DiveSiteDetail = () => {
   }
 
   return (
-    <div className='max-w-4xl mx-auto'>
+    <div className='max-w-7xl mx-auto px-4 sm:px-6'>
       {/* Header */}
-      <div className='mb-8'>
-        <div className='flex items-center justify-between mb-2'>
-          <h1 className='text-3xl font-bold text-gray-900'>{diveSite.name}</h1>
-          {canEdit && (
-            <button
-              onClick={() => navigate(`/dive-sites/${id}/edit`)}
-              className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
-            >
-              <Edit className='w-4 h-4 mr-2' />
-              Edit
+      <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6'>
+        <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4'>
+          <div className='flex items-center gap-3 sm:gap-4'>
+            <button onClick={() => navigate('/dive-sites')} className='text-gray-600 hover:text-gray-800 p-1'>
+              <ArrowLeft size={20} className='sm:w-6 sm:h-6' />
             </button>
-          )}
+            <div className='min-w-0 flex-1'>
+              <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate'>
+                {diveSite.name}
+              </h1>
+              {diveSite.country && diveSite.region && (
+                <p className='text-sm sm:text-base text-gray-600'>
+                  {diveSite.region}, {diveSite.country}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className='flex gap-2 flex-wrap'>
+            {canEdit && (
+              <RouterLink
+                to={`/dive-sites/${id}/edit`}
+                className='inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+              >
+                <Edit className='h-4 w-4 mr-1' />
+                Edit
+              </RouterLink>
+            )}
+          </div>
         </div>
-        <div className='flex items-center space-x-4'>
+        <div className='flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4'>
           <span
             className={`px-3 py-1 text-sm font-medium rounded-full ${
               diveSite.difficulty_level === 'beginner'
@@ -225,58 +246,23 @@ const DiveSiteDetail = () => {
       </div>
 
       {/* Navigation Bar */}
-      <div className='mb-6 bg-white p-4 rounded-lg shadow-md'>
-        <div className='flex items-center justify-between'>
-          {/* Back to List Button */}
-          <button
-            onClick={() => navigate('/dive-sites')}
-            className='flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
-          >
-            <ArrowLeft className='w-4 h-4 mr-2' />
-            Back to Dive Sites
-          </button>
+      {/* Removed empty navigation bar - no longer needed */}
 
-          {/* Nearby Navigation */}
-          {nearbyDiveSites && nearbyDiveSites.length > 0 && (
-            <div className='flex items-center space-x-4'>
-              <div className='flex-1'>
-                <h3 className='text-sm font-medium text-gray-700 mb-2'>Nearby Dive Sites:</h3>
-                <div className='flex space-x-2'>
-                  {nearbyDiveSites.slice(0, 3).map(site => (
-                    <button
-                      key={site.id}
-                      onClick={() => navigate(`/dive-sites/${site.id}`)}
-                      className='flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm'
-                    >
-                      <MapPin className='w-3 h-3 mr-1' />
-                      <div className='text-left'>
-                        <div className='font-medium'>{site.name}</div>
-                        <div className='text-xs opacity-75'>{site.distance_km} km away</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8'>
         {/* Main Content */}
         <div className='lg:col-span-2 space-y-6'>
           {/* Description */}
           {diveSite.description && (
-            <div className='bg-white p-6 rounded-lg shadow-md'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>Description</h2>
-              <p className='text-gray-700'>{diveSite.description}</p>
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Description</h2>
+              <p className='text-gray-700 text-sm sm:text-base'>{diveSite.description}</p>
             </div>
           )}
 
           {/* Location */}
           {(diveSite.latitude && diveSite.longitude) || diveSite.address ? (
-            <div className='bg-white p-6 rounded-lg shadow-md'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>Location</h2>
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Location</h2>
               {diveSite.address && (
                 <div className='mb-4'>
                   <span className='font-medium text-gray-700'>Address:</span>
@@ -285,16 +271,16 @@ const DiveSiteDetail = () => {
               )}
               {diveSite.latitude && diveSite.longitude && (
                 <>
-                  <div className='flex items-center justify-between mb-4'>
+                  <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3'>
                     <div className='flex items-center text-gray-700'>
                       <MapPin className='h-5 w-5 mr-2' />
-                      <span>
+                      <span className='text-sm sm:text-base'>
                         {diveSite.latitude}, {diveSite.longitude}
                       </span>
                     </div>
                     <button
                       onClick={() => navigate(`/dive-sites/${id}/map`)}
-                      className='flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors'
+                      className='flex items-center justify-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors w-full sm:w-auto'
                     >
                       <Link className='w-4 h-4 mr-1' />
                       Full Map View
@@ -313,20 +299,62 @@ const DiveSiteDetail = () => {
             </div>
           ) : null}
 
+          {/* Nearby Dive Sites */}
+          {nearbyDiveSites && nearbyDiveSites.length > 0 && (
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+              <div className='flex items-center justify-between mb-3 sm:mb-4'>
+                <h2 className='text-lg sm:text-xl font-semibold text-gray-900'>Nearby Dive Sites</h2>
+                <button
+                  onClick={toggleNearbySites}
+                  className='flex items-center text-blue-600 hover:text-blue-700 md:hidden'
+                >
+                  {showNearbySites ? (
+                    <>
+                      <ChevronUp className='h-4 w-4 mr-1' />
+                      Hide
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className='h-4 w-4 mr-1' />
+                      Show
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className={`${showNearbySites ? 'block' : 'hidden'} md:block`}>
+                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
+                  {nearbyDiveSites.slice(0, 6).map(site => (
+                    <button
+                      key={site.id}
+                      onClick={() => navigate(`/dive-sites/${site.id}`)}
+                      className='flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left w-full'
+                    >
+                      <MapPin className='w-4 h-4 mr-2 flex-shrink-0 text-blue-600' />
+                      <div className='min-w-0 flex-1'>
+                        <div className='font-medium text-gray-900 truncate'>{site.name}</div>
+                        <div className='text-xs text-gray-500'>{site.distance_km} km away</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Top Dives */}
           {topDives && topDives.length > 0 && (
-            <div className='bg-white p-6 rounded-lg shadow-md'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>Top Dives</h2>
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Top Dives</h2>
               <div className='space-y-3'>
                 {topDives.map(dive => (
                   <div
                     key={dive.id}
                     className='border rounded-lg p-3 hover:bg-gray-50 transition-colors'
                   >
-                    <div className='flex justify-between items-start mb-2'>
+                    <div className='flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2'>
                       <RouterLink
                         to={`/dives/${dive.id}`}
-                        className='font-medium text-blue-600 hover:text-blue-800 hover:underline'
+                        className='font-medium text-blue-600 hover:text-blue-800 hover:underline text-sm sm:text-base'
                       >
                         {dive.name || dive.dive_site?.name || 'Unnamed Dive'}
                       </RouterLink>
@@ -338,14 +366,14 @@ const DiveSiteDetail = () => {
                       )}
                     </div>
 
-                    <div className='text-sm text-gray-600 space-y-1'>
-                      <div className='flex items-center'>
+                    <div className='text-xs sm:text-sm text-gray-600 space-y-1'>
+                      <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
                         <span className='font-medium'>Date:</span>
-                        <span className='ml-2'>
+                        <span>
                           {new Date(dive.dive_date).toLocaleDateString()}
                         </span>
                         {dive.dive_time && (
-                          <span className='ml-2 text-gray-500'>
+                          <span className='text-gray-500'>
                             at{' '}
                             {new Date(`2000-01-01T${dive.dive_time}`).toLocaleTimeString([], {
                               hour: '2-digit',
@@ -356,11 +384,11 @@ const DiveSiteDetail = () => {
                       </div>
 
                       {dive.user_username && (
-                        <div className='flex items-center'>
+                        <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
                           <span className='font-medium'>By:</span>
                           <RouterLink
                             to={`/user/${dive.user_username}`}
-                            className='ml-2 text-blue-600 hover:text-blue-800 hover:underline'
+                            className='text-blue-600 hover:text-blue-800 hover:underline'
                           >
                             {dive.user_username}
                           </RouterLink>
@@ -368,24 +396,24 @@ const DiveSiteDetail = () => {
                       )}
 
                       {dive.max_depth && (
-                        <div className='flex items-center'>
+                        <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
                           <span className='font-medium'>Max Depth:</span>
-                          <span className='ml-2'>{dive.max_depth}m</span>
+                          <span>{dive.max_depth}m</span>
                         </div>
                       )}
 
                       {dive.duration && (
-                        <div className='flex items-center'>
+                        <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
                           <span className='font-medium'>Duration:</span>
-                          <span className='ml-2'>{dive.duration}min</span>
+                          <span>{dive.duration}min</span>
                         </div>
                       )}
 
                       {dive.difficulty_level && (
-                        <div className='flex items-center'>
+                        <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
                           <span className='font-medium'>Level:</span>
                           <span
-                            className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${
                               dive.difficulty_level === 'beginner'
                                 ? 'bg-green-100 text-green-800'
                                 : dive.difficulty_level === 'intermediate'
@@ -436,49 +464,49 @@ const DiveSiteDetail = () => {
 
           {/* Access Instructions */}
           {diveSite.access_instructions && (
-            <div className='bg-white p-6 rounded-lg shadow-md'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>Access Instructions</h2>
-              <p className='text-gray-700'>{diveSite.access_instructions}</p>
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Access Instructions</h2>
+              <p className='text-gray-700 text-sm sm:text-base'>{diveSite.access_instructions}</p>
             </div>
           )}
 
           {/* Safety Information */}
           {diveSite.safety_information && (
-            <div className='bg-white p-6 rounded-lg shadow-md'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>Safety Information</h2>
-              <p className='text-gray-700'>{diveSite.safety_information}</p>
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Safety Information</h2>
+              <p className='text-gray-700 text-sm sm:text-base'>{diveSite.safety_information}</p>
             </div>
           )}
 
           {/* Max Depth */}
           {diveSite.max_depth && (
-            <div className='bg-white p-6 rounded-lg shadow-md'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>Maximum Depth</h2>
-              <p className='text-gray-700'>{diveSite.max_depth} meters</p>
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Maximum Depth</h2>
+              <p className='text-gray-700 text-sm sm:text-base'>{diveSite.max_depth} meters</p>
             </div>
           )}
 
           {/* Alternative Names */}
           {diveSite.alternative_names && (
-            <div className='bg-white p-6 rounded-lg shadow-md'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>Alternative Names</h2>
-              <p className='text-gray-700'>{diveSite.alternative_names}</p>
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Alternative Names</h2>
+              <p className='text-gray-700 text-sm sm:text-base'>{diveSite.alternative_names}</p>
             </div>
           )}
 
           {/* Marine Life */}
           {diveSite.marine_life && (
-            <div className='bg-white p-6 rounded-lg shadow-md'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>Marine Life</h2>
-              <p className='text-gray-700'>{diveSite.marine_life}</p>
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Marine Life</h2>
+              <p className='text-gray-700 text-sm sm:text-base'>{diveSite.marine_life}</p>
             </div>
           )}
 
           {/* Media Gallery */}
           {media && media.length > 0 && (
-            <div className='bg-white p-6 rounded-lg shadow-md'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>Photos & Videos</h2>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Photos & Videos</h2>
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
                 {media.map(item => (
                   <div key={item.id} className='border rounded-lg overflow-hidden'>
                     {isVideoUrl(item.url) ? (
@@ -511,7 +539,7 @@ const DiveSiteDetail = () => {
                           <img
                             src={item.url}
                             alt={item.description || 'Dive site media'}
-                            className='w-full h-48 object-cover group-hover:opacity-80 transition-opacity duration-200'
+                            className='w-full h-32 sm:h-48 object-cover group-hover:opacity-80 transition-opacity duration-200'
                           />
                           <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200'></div>
                         </a>
@@ -530,23 +558,23 @@ const DiveSiteDetail = () => {
 
           {/* Associated Diving Centers */}
           {divingCenters && divingCenters.length > 0 && (
-            <div className='bg-white p-6 rounded-lg shadow-md'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>Diving Centers</h2>
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Diving Centers</h2>
               <div className='space-y-4'>
                 {divingCenters.map(center => (
-                  <div key={center.id} className='border rounded-lg p-4'>
-                    <div className='flex justify-between items-start mb-2'>
-                      <h3 className='font-semibold text-gray-900'>{center.name}</h3>
+                  <div key={center.id} className='border rounded-lg p-3 sm:p-4'>
+                    <div className='flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2'>
+                      <h3 className='font-semibold text-gray-900 text-sm sm:text-base'>{center.name}</h3>
                       {center.dive_cost && (
-                        <span className='text-green-600 font-semibold'>
+                        <span className='text-green-600 font-semibold text-sm sm:text-base'>
                           {formatCost(center.dive_cost, center.currency || DEFAULT_CURRENCY)}
                         </span>
                       )}
                     </div>
                     {center.description && (
-                      <p className='text-gray-600 text-sm mb-2'>{center.description}</p>
+                      <p className='text-gray-600 text-xs sm:text-sm mb-2'>{center.description}</p>
                     )}
-                    <div className='flex flex-wrap gap-2 text-sm'>
+                    <div className='flex flex-wrap gap-2 text-xs sm:text-sm'>
                       {center.email && (
                         <a
                           href={`mailto:${center.email}`}
@@ -584,13 +612,13 @@ const DiveSiteDetail = () => {
           )}
 
           {/* Comments */}
-          <div className='bg-white p-6 rounded-lg shadow-md'>
-            <div className='flex items-center justify-between mb-4'>
-              <h2 className='text-xl font-semibold text-gray-900'>Comments</h2>
+          <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900'>Comments</h2>
               {user && (
                 <button
                   onClick={() => setShowCommentForm(!showCommentForm)}
-                  className='flex items-center px-3 py-1 text-blue-600 hover:text-blue-700'
+                  className='flex items-center justify-center px-3 py-1 text-blue-600 hover:text-blue-700 w-full sm:w-auto'
                 >
                   <MessageCircle className='h-4 w-4 mr-1' />
                   Add Comment
@@ -611,14 +639,14 @@ const DiveSiteDetail = () => {
                   value={comment}
                   onChange={e => setComment(e.target.value)}
                   placeholder='Share your experience...'
-                  className='w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+                  className='w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
                   rows='3'
                 />
                 <div className='flex justify-end mt-2'>
                   <button
                     type='submit'
                     disabled={commentMutation.isLoading}
-                    className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+                    className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm'
                   >
                     {commentMutation.isLoading ? 'Posting...' : 'Post Comment'}
                   </button>
@@ -629,16 +657,16 @@ const DiveSiteDetail = () => {
             <div className='space-y-4'>
               {comments?.map(comment => (
                 <div key={comment.id} className='border-b border-gray-200 pb-4'>
-                  <div className='flex items-center justify-between mb-2'>
-                    <div className='flex items-center space-x-2'>
+                  <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2'>
+                    <div className='flex flex-col sm:flex-row sm:items-center gap-2'>
                       <RouterLink
                         to={`/user/${comment.username}`}
-                        className='font-medium text-blue-600 hover:text-blue-800 hover:underline'
+                        className='font-medium text-blue-600 hover:text-blue-800 hover:underline text-sm'
                       >
                         {comment.username}
                       </RouterLink>
                       {(comment.user_diving_certification || comment.user_number_of_dives) && (
-                        <div className='flex items-center space-x-2 text-xs text-gray-500'>
+                        <div className='flex flex-wrap items-center gap-2 text-xs text-gray-500'>
                           {comment.user_diving_certification && (
                             <span className='bg-blue-100 text-blue-800 px-2 py-1 rounded'>
                               {comment.user_diving_certification}
@@ -652,16 +680,16 @@ const DiveSiteDetail = () => {
                         </div>
                       )}
                     </div>
-                    <span className='text-sm text-gray-500'>
+                    <span className='text-xs sm:text-sm text-gray-500'>
                       {new Date(comment.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className='text-gray-700'>{comment.comment_text}</p>
+                  <p className='text-gray-700 text-sm sm:text-base'>{comment.comment_text}</p>
                 </div>
               ))}
 
               {comments?.length === 0 && (
-                <p className='text-gray-500 text-center py-4'>
+                <p className='text-gray-500 text-center py-4 text-sm sm:text-base'>
                   No comments yet. Be the first to share your experience!
                 </p>
               )}
@@ -673,14 +701,14 @@ const DiveSiteDetail = () => {
         <div className='space-y-6'>
           {/* Rating Section */}
           {user && (
-            <div className='bg-white p-6 rounded-lg shadow-md'>
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
               <h3 className='text-lg font-semibold text-gray-900 mb-4'>Rate this site</h3>
-              <div className='flex items-center space-x-2 mb-4'>
+              <div className='flex items-center space-x-2 mb-4 overflow-x-auto'>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(star => (
                   <button
                     key={star}
                     onClick={() => setRating(star)}
-                    className={`p-1 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                    className={`p-1 flex-shrink-0 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
                   >
                     <Star className='h-6 w-6 fill-current' />
                   </button>
@@ -709,7 +737,7 @@ const DiveSiteDetail = () => {
           )}
 
           {/* Site Info */}
-          <div className='bg-white p-6 rounded-lg shadow-md'>
+          <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
             <h3 className='text-lg font-semibold text-gray-900 mb-4'>Site Information</h3>
             <div className='space-y-3 text-sm'>
               <div>
@@ -735,7 +763,7 @@ const DiveSiteDetail = () => {
 
           {/* Tags */}
           {diveSite.tags && diveSite.tags.length > 0 && (
-            <div className='bg-white p-6 rounded-lg shadow-md'>
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
               <h3 className='text-lg font-semibold text-gray-900 mb-4'>Tags</h3>
               <div className='flex flex-wrap gap-2'>
                 {diveSite.tags.map(tag => (
