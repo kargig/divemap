@@ -32,7 +32,7 @@
 .ol-popup {
   position: absolute;
   background-color: white;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   padding: 15px;
   border-radius: 10px;
   border: 1px solid #cccccc;
@@ -41,10 +41,11 @@
   min-width: 280px;
 }
 
-.ol-popup:after, .ol-popup:before {
+.ol-popup:after,
+.ol-popup:before {
   top: 100%;
   border: solid transparent;
-  content: " ";
+  content: ' ';
   height: 0;
   width: 0;
   position: absolute;
@@ -73,5 +74,5 @@
 }
 
 .ol-popup-closer:after {
-  content: "✖";
-} 
+  content: '✖';
+}

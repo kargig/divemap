@@ -11,7 +11,7 @@ export const SUPPORTED_CURRENCIES = [
   { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$', flag: '🇨🇦' },
   { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF', flag: '🇨🇭' },
   { code: 'HKD', name: 'Hong Kong Dollar', symbol: 'HK$', flag: '🇭🇰' },
-  { code: 'NZD', name: 'New Zealand Dollar', symbol: 'NZ$', flag: '🇳🇿' }
+  { code: 'NZD', name: 'New Zealand Dollar', symbol: 'NZ$', flag: '🇳🇿' },
 ];
 
 export const DEFAULT_CURRENCY = 'EUR';
@@ -21,7 +21,7 @@ export const DEFAULT_CURRENCY = 'EUR';
  * @param {string} code - Currency code (e.g., 'USD', 'EUR')
  * @returns {Object|null} Currency object or null if not found
  */
-export const getCurrencyInfo = (code) => {
+export const getCurrencyInfo = code => {
   return SUPPORTED_CURRENCIES.find(currency => currency.code === code) || null;
 };
 
@@ -34,38 +34,33 @@ export const getCurrencyInfo = (code) => {
  */
 export const formatCost = (cost, currencyCode = DEFAULT_CURRENCY, options = {}) => {
   if (cost === null || cost === undefined) return '';
-  
+
   const currency = getCurrencyInfo(currencyCode);
   if (!currency) {
     // Fallback to currency code if not found
     return `${cost} ${currencyCode}`;
   }
 
-  const {
-    showSymbol = true,
-    showCode = false,
-    showFlag = false,
-    decimalPlaces = 2
-  } = options;
+  const { showSymbol = true, showCode = false, showFlag = false, decimalPlaces = 2 } = options;
 
   const formattedCost = Number(cost).toFixed(decimalPlaces);
-  
+
   let result = '';
-  
+
   if (showFlag && currency.flag) {
     result += `${currency.flag} `;
   }
-  
+
   if (showSymbol) {
     result += `${currency.symbol}${formattedCost}`;
   } else {
     result += formattedCost;
   }
-  
+
   if (showCode) {
     result += ` ${currencyCode}`;
   }
-  
+
   return result;
 };
 
@@ -76,7 +71,7 @@ export const formatCost = (cost, currencyCode = DEFAULT_CURRENCY, options = {}) 
 export const getCurrencyOptions = () => {
   return SUPPORTED_CURRENCIES.map(currency => ({
     value: currency.code,
-    label: `${currency.flag} ${currency.code} - ${currency.name}`
+    label: `${currency.flag} ${currency.code} - ${currency.name}`,
   }));
 };
 
@@ -85,7 +80,7 @@ export const getCurrencyOptions = () => {
  * @param {string} code - Currency code to validate
  * @returns {boolean} True if valid, false otherwise
  */
-export const isValidCurrency = (code) => {
+export const isValidCurrency = code => {
   return SUPPORTED_CURRENCIES.some(currency => currency.code === code);
 };
 
@@ -95,4 +90,4 @@ export const isValidCurrency = (code) => {
  */
 export const getDefaultCurrency = () => {
   return getCurrencyInfo(DEFAULT_CURRENCY);
-}; 
+};

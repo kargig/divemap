@@ -1,10 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery } from 'react-query';
-import { useAuth } from '../contexts/AuthContext';
-import { User, Mail, Calendar, Shield, Award, Activity, Lock, Plus, Edit, Trash2, X, Anchor } from 'lucide-react';
+import {
+  User,
+  Mail,
+  Calendar,
+  Shield,
+  Award,
+  Activity,
+  Lock,
+  Plus,
+  Edit,
+  Trash2,
+  X,
+  Anchor,
+} from 'lucide-react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
-import api from '../api';
+import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
+
+import api from '../api';
+import { useAuth } from '../contexts/AuthContext';
 
 const Profile = () => {
   const { user, updateUser } = useAuth();
@@ -32,7 +46,7 @@ const Profile = () => {
     ['user-certifications'],
     () => api.get('/api/v1/user-certifications/my-certifications').then(res => res.data),
     {
-      enabled: !!user
+      enabled: !!user,
     }
   );
 
@@ -40,11 +54,11 @@ const Profile = () => {
     ['diving-organizations'],
     () => api.get('/api/v1/diving-organizations/').then(res => res.data),
     {
-      enabled: !!user
+      enabled: !!user,
     }
   );
 
-  const handleChange = (e) => {
+  const handleChange = e => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -52,7 +66,7 @@ const Profile = () => {
     });
   };
 
-  const handleCertificationChange = (e) => {
+  const handleCertificationChange = e => {
     const { name, value } = e.target;
     setCertificationForm({
       ...certificationForm,
@@ -60,14 +74,14 @@ const Profile = () => {
     });
   };
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = e => {
     setPasswordData({
       ...passwordData,
       [e.target.name]: e.target.value,
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
     try {
       const response = await api.put('/api/v1/users/me', formData);
@@ -79,7 +93,7 @@ const Profile = () => {
     }
   };
 
-  const handleAddCertification = async (e) => {
+  const handleAddCertification = async e => {
     e.preventDefault();
     try {
       await api.post('/api/v1/user-certifications/my-certifications', certificationForm);
@@ -95,10 +109,13 @@ const Profile = () => {
     }
   };
 
-  const handleUpdateCertification = async (e) => {
+  const handleUpdateCertification = async e => {
     e.preventDefault();
     try {
-      await api.put(`/api/v1/user-certifications/my-certifications/${editingCertification.id}`, certificationForm);
+      await api.put(
+        `/api/v1/user-certifications/my-certifications/${editingCertification.id}`,
+        certificationForm
+      );
       toast.success('Certification updated successfully!');
       setEditingCertification(null);
       setCertificationForm({
@@ -111,7 +128,7 @@ const Profile = () => {
     }
   };
 
-  const handleDeleteCertification = async (certificationId) => {
+  const handleDeleteCertification = async certificationId => {
     if (!window.confirm('Are you sure you want to delete this certification?')) {
       return;
     }
@@ -124,7 +141,7 @@ const Profile = () => {
     }
   };
 
-  const handleToggleCertification = async (certificationId) => {
+  const handleToggleCertification = async certificationId => {
     try {
       await api.patch(`/api/v1/user-certifications/my-certifications/${certificationId}/toggle`);
       toast.success('Certification status updated!');
@@ -134,7 +151,7 @@ const Profile = () => {
     }
   };
 
-  const startEditCertification = (certification) => {
+  const startEditCertification = certification => {
     setEditingCertification(certification);
     setCertificationForm({
       diving_organization_id: certification.diving_organization.id,
@@ -150,9 +167,9 @@ const Profile = () => {
     });
   };
 
-  const handlePasswordSubmit = async (e) => {
+  const handlePasswordSubmit = async e => {
     e.preventDefault();
-    
+
     if (passwordData.new_password !== passwordData.confirm_password) {
       toast.error('New passwords do not match');
       return;
@@ -182,145 +199,147 @@ const Profile = () => {
 
   if (!user) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-600">Please log in to view your profile.</p>
+      <div className='text-center py-12'>
+        <p className='text-gray-600'>Please log in to view your profile.</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Profile</h1>
-        <p className="text-gray-600">Manage your account settings and diving information</p>
+    <div className='max-w-4xl mx-auto'>
+      <div className='mb-8'>
+        <h1 className='text-3xl font-bold text-gray-900 mb-2'>Profile</h1>
+        <p className='text-gray-600'>Manage your account settings and diving information</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
         {/* Profile Information */}
-        <div className="lg:col-span-2">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">Account Information</h2>
+        <div className='lg:col-span-2'>
+          <div className='bg-white p-6 rounded-lg shadow-md'>
+            <div className='flex items-center justify-between mb-6'>
+              <h2 className='text-xl font-semibold text-gray-900'>Account Information</h2>
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium"
+                className='px-4 py-2 text-blue-600 hover:text-blue-700 font-medium'
               >
                 {isEditing ? 'Cancel' : 'Edit'}
               </button>
             </div>
 
             {isEditing ? (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className='space-y-4'>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor='username'
+                    className='block text-sm font-medium text-gray-700 mb-2'
+                  >
                     Username
                   </label>
                   <input
-                    type="text"
-                    name="username"
+                    id='username'
+                    type='text'
+                    name='username'
                     value={formData.username}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor='email' className='block text-sm font-medium text-gray-700 mb-2'>
                     Email
                   </label>
                   <input
-                    type="email"
-                    name="email"
+                    id='email'
+                    type='email'
+                    name='email'
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
                     Number of Dives
                   </label>
                   <input
-                    type="number"
-                    name="number_of_dives"
+                    type='number'
+                    name='number_of_dives'
                     value={formData.number_of_dives}
                     onChange={handleChange}
-                    min="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    min='0'
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
                   />
                 </div>
 
-                <div className="flex justify-end space-x-3">
+                <div className='flex justify-end space-x-3'>
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-700"
+                    className='px-4 py-2 text-gray-600 hover:text-gray-700'
                   >
                     Cancel
                   </button>
                   <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    type='submit'
+                    className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
                   >
                     Save Changes
                   </button>
                 </div>
               </form>
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <User className="h-5 w-5 text-gray-400 mr-3" />
+              <div className='space-y-4'>
+                <div className='flex items-center'>
+                  <User className='h-5 w-5 text-gray-400 mr-3' />
                   <div>
-                    <span className="text-sm text-gray-500">Username</span>
-                    <p className="text-gray-900">{user.username}</p>
+                    <span className='text-sm text-gray-500'>Username</span>
+                    <p className='text-gray-900'>{user.username}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center">
-                  <Mail className="h-5 w-5 text-gray-400 mr-3" />
+                <div className='flex items-center'>
+                  <Mail className='h-5 w-5 text-gray-400 mr-3' />
                   <div>
-                    <span className="text-sm text-gray-500">Email</span>
-                    <p className="text-gray-900">{user.email}</p>
+                    <span className='text-sm text-gray-500'>Email</span>
+                    <p className='text-gray-900'>{user.email}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center">
-                  <Activity className="h-5 w-5 text-gray-400 mr-3" />
+                <div className='flex items-center'>
+                  <Activity className='h-5 w-5 text-gray-400 mr-3' />
                   <div>
-                    <span className="text-sm text-gray-500">Number of Dives</span>
-                    <p className="text-gray-900">{user.number_of_dives || 0}</p>
+                    <span className='text-sm text-gray-500'>Number of Dives</span>
+                    <p className='text-gray-900'>{user.number_of_dives || 0}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center">
-                  <Anchor className="h-5 w-5 text-gray-400 mr-3" />
+                <div className='flex items-center'>
+                  <Anchor className='h-5 w-5 text-gray-400 mr-3' />
                   <div>
-                    <span className="text-sm text-gray-500">My Dives</span>
-                    <Link 
-                      to="/dives" 
-                      className="text-blue-600 hover:text-blue-800 font-medium"
-                    >
+                    <span className='text-sm text-gray-500'>My Dives</span>
+                    <Link to='/dives' className='text-blue-600 hover:text-blue-800 font-medium'>
                       View and manage my dive logs →
                     </Link>
                   </div>
                 </div>
 
-                <div className="flex items-center">
-                  <Calendar className="h-5 w-5 text-gray-400 mr-3" />
+                <div className='flex items-center'>
+                  <Calendar className='h-5 w-5 text-gray-400 mr-3' />
                   <div>
-                    <span className="text-sm text-gray-500">Member Since</span>
-                    <p className="text-gray-900">
+                    <span className='text-sm text-gray-500'>Member Since</span>
+                    <p className='text-gray-900'>
                       {new Date(user.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center">
-                  <Shield className="h-5 w-5 text-gray-400 mr-3" />
+                <div className='flex items-center'>
+                  <Shield className='h-5 w-5 text-gray-400 mr-3' />
                   <div>
-                    <span className="text-sm text-gray-500">Role</span>
-                    <p className="text-gray-900">
+                    <span className='text-sm text-gray-500'>Role</span>
+                    <p className='text-gray-900'>
                       {user.is_admin ? 'Administrator' : user.is_moderator ? 'Moderator' : 'User'}
                     </p>
                   </div>
@@ -330,34 +349,37 @@ const Profile = () => {
           </div>
 
           {/* Certifications Section */}
-          <div className="bg-white p-6 rounded-lg shadow-md mt-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">Diving Certifications</h2>
+          <div className='bg-white p-6 rounded-lg shadow-md mt-6'>
+            <div className='flex items-center justify-between mb-6'>
+              <h2 className='text-xl font-semibold text-gray-900'>Diving Certifications</h2>
               <button
                 onClick={() => setIsAddingCertification(!isAddingCertification)}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className='h-4 w-4 mr-2' />
                 Add Certification
               </button>
             </div>
 
             {isAddingCertification && (
-              <form onSubmit={handleAddCertification} className="mb-6 p-4 border border-gray-200 rounded-lg">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form
+                onSubmit={handleAddCertification}
+                className='mb-6 p-4 border border-gray-200 rounded-lg'
+              >
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
                       Diving Organization
                     </label>
                     <select
-                      name="diving_organization_id"
+                      name='diving_organization_id'
                       value={certificationForm.diving_organization_id}
                       onChange={handleCertificationChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
                     >
-                      <option value="">Select Organization</option>
-                      {organizations.map((org) => (
+                      <option value=''>Select Organization</option>
+                      {organizations.map(org => (
                         <option key={org.id} value={org.id}>
                           {org.acronym} - {org.name}
                         </option>
@@ -366,32 +388,32 @@ const Profile = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
                       Certification Level
                     </label>
                     <input
-                      type="text"
-                      name="certification_level"
+                      type='text'
+                      name='certification_level'
                       value={certificationForm.certification_level}
                       onChange={handleCertificationChange}
                       required
-                      placeholder="e.g., Open Water Diver, Advanced, Divemaster"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      placeholder='e.g., Open Water Diver, Advanced, Divemaster'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-3 mt-4">
+                <div className='flex justify-end space-x-3 mt-4'>
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => setIsAddingCertification(false)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-700"
+                    className='px-4 py-2 text-gray-600 hover:text-gray-700'
                   >
                     Cancel
                   </button>
                   <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    type='submit'
+                    className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
                   >
                     Add Certification
                   </button>
@@ -400,32 +422,35 @@ const Profile = () => {
             )}
 
             {editingCertification && (
-              <form onSubmit={handleUpdateCertification} className="mb-6 p-4 border border-gray-200 rounded-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium">Edit Certification</h3>
+              <form
+                onSubmit={handleUpdateCertification}
+                className='mb-6 p-4 border border-gray-200 rounded-lg'
+              >
+                <div className='flex items-center justify-between mb-4'>
+                  <h3 className='text-lg font-medium'>Edit Certification</h3>
                   <button
-                    type="button"
+                    type='button'
                     onClick={cancelCertificationEdit}
-                    className="text-gray-500 hover:text-gray-700"
+                    className='text-gray-500 hover:text-gray-700'
                   >
-                    <X className="h-5 w-5" />
+                    <X className='h-5 w-5' />
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
                       Diving Organization
                     </label>
                     <select
-                      name="diving_organization_id"
+                      name='diving_organization_id'
                       value={certificationForm.diving_organization_id}
                       onChange={handleCertificationChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
                     >
-                      <option value="">Select Organization</option>
-                      {organizations.map((org) => (
+                      <option value=''>Select Organization</option>
+                      {organizations.map(org => (
                         <option key={org.id} value={org.id}>
                           {org.acronym} - {org.name}
                         </option>
@@ -434,32 +459,32 @@ const Profile = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
                       Certification Level
                     </label>
                     <input
-                      type="text"
-                      name="certification_level"
+                      type='text'
+                      name='certification_level'
                       value={certificationForm.certification_level}
                       onChange={handleCertificationChange}
                       required
-                      placeholder="e.g., Open Water Diver, Advanced, Divemaster"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      placeholder='e.g., Open Water Diver, Advanced, Divemaster'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-3 mt-4">
+                <div className='flex justify-end space-x-3 mt-4'>
                   <button
-                    type="button"
+                    type='button'
                     onClick={cancelCertificationEdit}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-700"
+                    className='px-4 py-2 text-gray-600 hover:text-gray-700'
                   >
                     Cancel
                   </button>
                   <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    type='submit'
+                    className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
                   >
                     Update Certification
                   </button>
@@ -468,24 +493,26 @@ const Profile = () => {
             )}
 
             {certifications.length === 0 ? (
-              <div className="text-center py-8">
-                <Award className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No certifications added yet.</p>
-                <p className="text-sm text-gray-400">Add your first diving certification to get started.</p>
+              <div className='text-center py-8'>
+                <Award className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+                <p className='text-gray-500'>No certifications added yet.</p>
+                <p className='text-sm text-gray-400'>
+                  Add your first diving certification to get started.
+                </p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {certifications.map((cert) => (
+              <div className='space-y-4'>
+                {certifications.map(cert => (
                   <div
                     key={cert.id}
                     className={`p-4 border rounded-lg ${
                       cert.is_active ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="font-medium text-gray-900">
+                    <div className='flex items-start justify-between'>
+                      <div className='flex-1'>
+                        <div className='flex items-center space-x-2 mb-2'>
+                          <span className='font-medium text-gray-900'>
                             {cert.diving_organization.acronym} - {cert.certification_level}
                           </span>
                           <span
@@ -498,13 +525,13 @@ const Profile = () => {
                             {cert.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </div>
-                        
-                        <div className="text-sm text-gray-600 space-y-1">
+
+                        <div className='text-sm text-gray-600 space-y-1'>
                           <p>Organization: {cert.diving_organization.name}</p>
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2 ml-4">
+                      <div className='flex items-center space-x-2 ml-4'>
                         <button
                           onClick={() => handleToggleCertification(cert.id)}
                           className={`px-2 py-1 text-xs rounded ${
@@ -517,15 +544,15 @@ const Profile = () => {
                         </button>
                         <button
                           onClick={() => startEditCertification(cert)}
-                          className="p-1 text-gray-500 hover:text-blue-600"
+                          className='p-1 text-gray-500 hover:text-blue-600'
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className='h-4 w-4' />
                         </button>
                         <button
                           onClick={() => handleDeleteCertification(cert.id)}
-                          className="p-1 text-gray-500 hover:text-red-600"
+                          className='p-1 text-gray-500 hover:text-red-600'
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className='h-4 w-4' />
                         </button>
                       </div>
                     </div>
@@ -536,65 +563,65 @@ const Profile = () => {
           </div>
 
           {/* Password Change Section */}
-          <div className="bg-white p-6 rounded-lg shadow-md mt-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">Change Password</h2>
+          <div className='bg-white p-6 rounded-lg shadow-md mt-6'>
+            <div className='flex items-center justify-between mb-6'>
+              <h2 className='text-xl font-semibold text-gray-900'>Change Password</h2>
               <button
                 onClick={() => setIsChangingPassword(!isChangingPassword)}
-                className="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium"
+                className='px-4 py-2 text-blue-600 hover:text-blue-700 font-medium'
               >
                 {isChangingPassword ? 'Cancel' : 'Change Password'}
               </button>
             </div>
 
             {isChangingPassword ? (
-              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <form onSubmit={handlePasswordSubmit} className='space-y-4'>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
                     Current Password
                   </label>
                   <input
-                    type="password"
-                    name="current_password"
+                    type='password'
+                    name='current_password'
                     value={passwordData.current_password}
                     onChange={handlePasswordChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
                     New Password
                   </label>
                   <input
-                    type="password"
-                    name="new_password"
+                    type='password'
+                    name='new_password'
                     value={passwordData.new_password}
                     onChange={handlePasswordChange}
                     required
-                    minLength="8"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    minLength='8'
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
                     Confirm New Password
                   </label>
                   <input
-                    type="password"
-                    name="confirm_password"
+                    type='password'
+                    name='confirm_password'
                     value={passwordData.confirm_password}
                     onChange={handlePasswordChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
                   />
                 </div>
 
-                <div className="flex justify-end space-x-3">
+                <div className='flex justify-end space-x-3'>
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => {
                       setIsChangingPassword(false);
                       setPasswordData({
@@ -603,24 +630,24 @@ const Profile = () => {
                         confirm_password: '',
                       });
                     }}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-700"
+                    className='px-4 py-2 text-gray-600 hover:text-gray-700'
                   >
                     Cancel
                   </button>
                   <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    type='submit'
+                    className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
                   >
                     Change Password
                   </button>
                 </div>
               </form>
             ) : (
-              <div className="flex items-center">
-                <Lock className="h-5 w-5 text-gray-400 mr-3" />
+              <div className='flex items-center'>
+                <Lock className='h-5 w-5 text-gray-400 mr-3' />
                 <div>
-                  <span className="text-sm text-gray-500">Password</span>
-                  <p className="text-gray-900">••••••••</p>
+                  <span className='text-sm text-gray-500'>Password</span>
+                  <p className='text-gray-900'>••••••••</p>
                 </div>
               </div>
             )}
@@ -628,26 +655,28 @@ const Profile = () => {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className='space-y-6'>
           {/* Account Stats */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Stats</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Dive Sites Rated</span>
-                <span className="font-medium">0</span>
+          <div className='bg-white p-6 rounded-lg shadow-md'>
+            <h3 className='text-lg font-semibold text-gray-900 mb-4'>Account Stats</h3>
+            <div className='space-y-3'>
+              <div className='flex justify-between'>
+                <span className='text-gray-600'>Dive Sites Rated</span>
+                <span className='font-medium'>0</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Comments Posted</span>
-                <span className="font-medium">0</span>
+              <div className='flex justify-between'>
+                <span className='text-gray-600'>Comments Posted</span>
+                <span className='font-medium'>0</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Certifications</span>
-                <span className="font-medium">{certifications.filter(c => c.is_active).length}</span>
+              <div className='flex justify-between'>
+                <span className='text-gray-600'>Certifications</span>
+                <span className='font-medium'>
+                  {certifications.filter(c => c.is_active).length}
+                </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Member Since</span>
-                <span className="font-medium">
+              <div className='flex justify-between'>
+                <span className='text-gray-600'>Member Since</span>
+                <span className='font-medium'>
                   {new Date(user.created_at).toLocaleDateString()}
                 </span>
               </div>
@@ -655,25 +684,25 @@ const Profile = () => {
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              <button 
+          <div className='bg-white p-6 rounded-lg shadow-md'>
+            <h3 className='text-lg font-semibold text-gray-900 mb-4'>Quick Actions</h3>
+            <div className='space-y-3'>
+              <button
                 onClick={() => setIsChangingPassword(true)}
-                className="w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                className='w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
               >
                 Change Password
               </button>
-              <button 
+              <button
                 onClick={() => setIsAddingCertification(true)}
-                className="w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                className='w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
               >
                 Add Certification
               </button>
-              <button className="w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+              <button className='w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'>
                 Notification Settings
               </button>
-              <button className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors">
+              <button className='w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors'>
                 Delete Account
               </button>
             </div>
@@ -684,4 +713,4 @@ const Profile = () => {
   );
 };
 
-export default Profile; 
+export default Profile;

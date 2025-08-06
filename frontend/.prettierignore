@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+build/
+dist/
+
+# Coverage reports
+coverage/
+
+# Logs
+*.log
+
+# Environment files
+.env*
+
+# Docker files
+Dockerfile*
+
+# Fly.io config
+fly.toml
+
+# Test files (optional - you might want to format these)
+# tests/ 

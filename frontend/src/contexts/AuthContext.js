@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+
 import api from '../api';
 import googleAuth from '../utils/googleAuth';
 
@@ -45,11 +46,11 @@ export const AuthProvider = ({ children }) => {
         username,
         password,
       });
-      
+
       const { access_token } = response.data;
       localStorage.setItem('access_token', access_token);
       setToken(access_token);
-      
+
       await fetchUser();
       toast.success('Login successful!');
       return true;
@@ -61,16 +62,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const loginWithGoogle = async (googleToken) => {
+  const loginWithGoogle = async googleToken => {
     try {
       const response = await api.post('/api/v1/auth/google-login', {
         token: googleToken,
       });
-      
+
       const { access_token } = response.data;
       localStorage.setItem('access_token', access_token);
       setToken(access_token);
-      
+
       await fetchUser();
       toast.success('Google login successful!');
       return true;
@@ -89,11 +90,11 @@ export const AuthProvider = ({ children }) => {
         email,
         password,
       });
-      
+
       const { access_token } = response.data;
       localStorage.setItem('access_token', access_token);
       setToken(access_token);
-      
+
       await fetchUser();
       toast.success('Registration successful!');
       return true;
@@ -105,16 +106,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const registerWithGoogle = async (googleToken) => {
+  const registerWithGoogle = async googleToken => {
     try {
       const response = await api.post('/api/v1/auth/google-login', {
         token: googleToken,
       });
-      
+
       const { access_token } = response.data;
       localStorage.setItem('access_token', access_token);
       setToken(access_token);
-      
+
       await fetchUser();
       toast.success('Google registration successful!');
       return true;
@@ -135,7 +136,7 @@ export const AuthProvider = ({ children }) => {
     toast.success('Logged out successfully');
   };
 
-  const updateUser = (userData) => {
+  const updateUser = userData => {
     setUser(userData);
   };
 
@@ -150,9 +151,5 @@ export const AuthProvider = ({ children }) => {
     updateUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-}; 
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};

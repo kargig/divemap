@@ -1,22 +1,15 @@
-import React from 'react';
-
-const Avatar = ({ 
-  src, 
-  alt, 
-  size = 'md', 
-  className = '',
-  fallbackText = null 
-}) => {
+const Avatar = ({ src, alt, size = 'md', className = '', fallbackText = null }) => {
   const sizeClasses = {
     xs: 'w-6 h-6 text-xs',
     sm: 'w-8 h-8 text-sm',
     md: 'w-12 h-12 text-base',
     lg: 'w-16 h-16 text-lg',
     xl: 'w-20 h-20 text-xl',
-    '2xl': 'w-24 h-24 text-2xl'
+    '2xl': 'w-24 h-24 text-2xl',
   };
 
-  const baseClasses = 'rounded-full flex items-center justify-center font-semibold text-white bg-gray-500';
+  const baseClasses =
+    'rounded-full flex items-center justify-center font-semibold text-white bg-gray-500';
   const sizeClass = sizeClasses[size] || sizeClasses.md;
 
   // Generate initials from alt text or fallback text
@@ -40,11 +33,11 @@ const Avatar = ({
       'bg-indigo-500',
       'bg-yellow-500',
       'bg-red-500',
-      'bg-teal-500'
+      'bg-teal-500',
     ];
     const text = fallbackText || alt || '';
     const hash = text.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
+      a = (a << 5) - a + b.charCodeAt(0);
       return a & a;
     }, 0);
     return colors[Math.abs(hash) % colors.length];
@@ -56,7 +49,7 @@ const Avatar = ({
         src={src}
         alt={alt}
         className={`${sizeClass} ${baseClasses} ${className}`}
-        onError={(e) => {
+        onError={e => {
           // If image fails to load, show fallback
           e.target.style.display = 'none';
           e.target.nextSibling.style.display = 'flex';
@@ -72,4 +65,4 @@ const Avatar = ({
   );
 };
 
-export default Avatar; 
+export default Avatar;
