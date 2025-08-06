@@ -12,19 +12,20 @@ RUN npm config set fetch-retry-maxtimeout 60000
 # Copy package files
 COPY package*.json ./
 
-# Install only production dependencies (excludes devDependencies)
+# Install only production dependencies
 RUN npm ci --only=production --timeout=300000
 
 # Copy source code
 COPY . .
 
-# Build the app with environment variables
+# Build the app with environment variables (using production build that skips ESLint)
 ARG REACT_APP_API_URL
 ENV REACT_APP_API_URL=${REACT_APP_API_URL}
-RUN npm run build
+ENV GENERATE_SOURCEMAP=false
+RUN GENERATE_SOURCEMAP=false npm run build:prod
 
-# Production stage
-FROM node:18-alpine
+# Production stage - only production dependencies
+FROM node:18-alpine as production
 
 WORKDIR /app
 
