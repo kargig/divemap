@@ -159,135 +159,153 @@ python populate_diving_organizations.py
 python populate_diving_organizations.py list
 ```
 
-## Recent Enhancements
+## Core Features
 
-### **Diving Organizations Management**
-- **Complete Organization CRUD**: Full create, read, update, delete functionality for diving organizations
-- **Pre-populated Data**: Top 10 diving organizations (PADI, SSI, GUE, RAID, CMAS, TDI, NAUI, BSAC, SDI, IANTD)
-- **Admin-Only Management**: Only administrators can manage diving organizations
-- **Data Validation**: Unique constraints on name and acronym to prevent duplicates
-- **Comprehensive Information**: Name, acronym, website, logo, description, country, and founding year
+### **Comprehensive Dive Site Management**
+- **Complete CRUD Operations**: Full create, read, update, delete functionality for dive sites
+- **Advanced Search & Filtering**: Search by name, difficulty, country, region, and tags
+- **Geocoding Integration**: Automatic country and region suggestions based on coordinates
+- **Media Management**: Upload and display photos and videos for dive sites
+- **Rating System**: 1-10 scale rating system with user feedback
+- **Comment System**: User comments with diving credentials display
+- **Tag System**: Comprehensive tagging with usage statistics and protection
 
-### **User Certifications System**
-- **Certification Tracking**: Users can manage their diving certifications
+### **Diving Center Management**
+- **Full Center Management**: Complete CRUD operations for diving centers
+- **Gear Rental System**: Multi-currency gear rental cost management
+- **Center-Dive Site Relationships**: Link diving centers to specific dive sites
+- **Ownership System**: Claim and manage diving center ownership
+- **Rating & Review System**: User ratings and comments for diving centers
+- **Contact Information**: Email, phone, website, and location management
+
+### **Diving Organizations & Certifications**
+- **Organization Management**: Complete CRUD for diving organizations (PADI, SSI, GUE, etc.)
+- **Pre-populated Data**: Top 10 diving organizations with comprehensive information
+- **User Certification Tracking**: Users can manage their diving certifications
 - **Organization Association**: Certifications linked to specific diving organizations
 - **Active Status Management**: Users can activate/deactivate certifications
 - **Public Profile Display**: Certifications visible on user profiles
-- **Self-Service Management**: Users can add, edit, and manage their own certifications
 
-### **Google OAuth Authentication**
-- **Google Sign-In Integration**: Complete OAuth 2.0 implementation
-- **Secure Token Verification**: Backend verification with Google's servers
-- **Automatic User Creation**: New users created from Google data
-- **Account Linking**: Existing users can link Google accounts
+### **Advanced Dive Logging System**
+- **Comprehensive Dive Records**: Track dive details including depth, duration, visibility, and ratings
+- **Media Uploads**: Photo and video uploads for dive memories
+- **Tag System**: Tag dives for easy categorization and search
+- **Privacy Controls**: Public and private dive visibility options
+- **Diving Center Integration**: Link dives to specific diving centers
+- **Dive Site Association**: Connect dives to existing dive sites
+- **Statistics Tracking**: View counts, ratings, and dive statistics
 
-### **Mass Delete Functionality**
-- **Bulk Operations**: Select multiple items for deletion
-- **Admin Management**: Available on all admin pages
-- **Safety Features**: Protection against deleting used tags and self-deletion
+### **Newsletter Management System**
+- **AI-Powered Parsing**: OpenAI integration for intelligent newsletter content parsing
+- **Dive Trip Extraction**: Automatically extract dive trip information from newsletters
+- **Diving Center Matching**: Intelligent matching of diving centers from newsletter content
+- **Dive Site Recognition**: Automatic recognition and linking of dive sites
+- **Trip Management**: Create, update, and manage parsed dive trips
+- **Multi-format Support**: Support for various newsletter formats and languages
+- **Bulk Operations**: Mass upload and management of newsletter content
 
-### **Enhanced Admin Management System**
-- **Separate Admin URLs**: Dedicated pages for each management area
-- **Enhanced Navigation**: Dropdown menu in navbar for admin users
-- **Modal Forms**: Inline create/edit forms for tags and users
+### **User Management & Authentication**
+- **Google OAuth Integration**: Secure authentication with Google accounts
+- **Role-Based Access Control**: Admin, moderator, and user roles with appropriate permissions
+- **User Profile Management**: Comprehensive user profiles with diving information
+- **Password Management**: Secure password change functionality
+- **Account Status Control**: Enable/disable user accounts
+- **Diving Credentials**: Track user certifications and dive counts
+
+### **Interactive Map System**
+- **OpenLayers Integration**: High-performance interactive maps
+- **Dive Site Visualization**: Display dive sites with detailed information
+- **Diving Center Mapping**: Show diving centers with contact and service information
+- **Geographic Filtering**: Filter by location, country, and region
+- **Responsive Design**: Mobile-friendly map interface
+
+### **Advanced Search & Filtering**
+- **Multi-criteria Search**: Search by name, difficulty, location, and tags
+- **Geographic Filtering**: Filter by country and region
+- **Rating-based Filtering**: Filter by minimum and maximum ratings
+- **Tag-based Filtering**: Filter by multiple tags simultaneously
+- **Pagination Support**: Efficient handling of large datasets
+
+### **Admin Management System**
+- **Comprehensive Admin Interface**: Dedicated admin pages for all management areas
+- **Bulk Operations**: Mass delete functionality for efficient management
 - **Real-time Updates**: React Query integration for instant data refresh
+- **Modal Forms**: Clean inline create/edit interfaces
+- **Safety Features**: Protection against accidental deletions and data loss
 
-### **Comprehensive Tag Management**
-- **Full CRUD Operations**: Create, read, update, delete tags
-- **Modal Forms**: Clean create and edit interfaces
-- **Delete Protection**: Tags with associated dive sites cannot be deleted
-- **Usage Statistics**: Display dive site counts for each tag
+### **Multi-Currency Support**
+- **10 Major Currencies**: Support for EUR, USD, GBP, AUD, CAD, CHF, JPY, SEK, NOK, DKK
+- **Automatic Conversion**: Real-time currency conversion rates
+- **Flexible Pricing**: Support for different currencies across the platform
+- **User Preferences**: Currency selection based on user location
 
-### **Advanced User Management**
-- **Complete User CRUD**: Create, edit, delete users
-- **Role Assignment**: Admin, moderator, and user roles
-- **Status Control**: Enable/disable user accounts
-- **Password Management**: Optional password updates
+### **Security & Performance**
+- **JWT Authentication**: Secure token-based authentication
+- **Rate Limiting**: Comprehensive API rate limiting with admin exemptions
+- **Input Validation**: Comprehensive client and server-side validation
+- **Database Migrations**: Alembic-based version-controlled schema management
+- **Container Optimization**: Pre-compiled wheels and IPv6 support for cloud deployment
 
-## API Endpoints
+## API Documentation
 
-For detailed API documentation and recent changes, see [API_CHANGELOG.md](API_CHANGELOG.md).
+For comprehensive API documentation including all endpoints, request/response formats, authentication methods, and usage examples, see the [API Documentation](./docs/development/api.md).
 
-### Authentication
-- `POST /api/v1/auth/register` - User registration
-- `POST /api/v1/auth/login` - User login
-- `POST /api/v1/auth/google-login` - Google OAuth authentication
-- `GET /api/v1/auth/me` - Get current user info
+The API provides RESTful endpoints for:
+- **Authentication & User Management** - Registration, login, profile management
+- **Dive Sites** - CRUD operations, ratings, comments, media management
+- **Diving Centers** - Full management with gear rental costs
+- **Diving Organizations** - Complete organization management system
+- **User Certifications** - Certification tracking with organization associations
+- **Dive Logging** - Complete dive logging with media uploads and tags
+- **Newsletter Management** - Upload, parse, and manage dive trip information
+- **Tag System** - Comprehensive tag management for dive sites and dives
+- **Media Management** - Photo and video uploads for dive sites and dives
+- **Rating & Comment System** - User ratings and comments for dive sites and centers
 
-### Users
-- `GET /api/v1/users/` - Get all users (admin only)
-- `GET /api/v1/users/{user_id}` - Get user by ID
-- `PUT /api/v1/users/{user_id}` - Update user profile
-
-### Dive Sites
-- `GET /api/v1/dive-sites/` - Get all dive sites
-- `POST /api/v1/dive-sites/` - Create dive site (admin/moderator)
-- `GET /api/v1/dive-sites/{id}` - Get dive site by ID
-- `PUT /api/v1/dive-sites/{id}` - Update dive site (admin/moderator)
-- `DELETE /api/v1/dive-sites/{id}` - Delete dive site (admin/moderator)
-- `POST /api/v1/dive-sites/{id}/rate` - Rate dive site
-- `GET /api/v1/dive-sites/{id}/comments` - Get dive site comments
-- `POST /api/v1/dive-sites/{id}/comments` - Add comment to dive site
-
-### Diving Centers
-- `GET /api/v1/diving-centers/` - Get all diving centers
-- `POST /api/v1/diving-centers/` - Create diving center (admin/moderator)
-- `GET /api/v1/diving-centers/{id}` - Get diving center by ID
-- `PUT /api/v1/diving-centers/{id}` - Update diving center (admin/moderator)
-- `DELETE /api/v1/diving-centers/{id}` - Delete diving center (admin/moderator)
-- `POST /api/v1/diving-centers/{id}/rate` - Rate diving center
-- `GET /api/v1/diving-centers/{id}/comments` - Get diving center comments
-- `POST /api/v1/diving-centers/{id}/comments` - Add comment to diving center
-
-### Media Management
-- `GET /api/v1/dive-sites/{id}/media` - Get dive site media
-- `POST /api/v1/dive-sites/{id}/media` - Upload media to dive site
-- `DELETE /api/v1/dive-sites/{id}/media/{media_id}` - Delete dive site media
-
-### Gear Rental Management
-- `GET /api/v1/diving-centers/{id}/gear-rental` - Get diving center gear rental costs
-- `POST /api/v1/diving-centers/{id}/gear-rental` - Add gear rental cost
-- `PUT /api/v1/diving-centers/{id}/gear-rental/{gear_id}` - Update gear rental cost
-- `DELETE /api/v1/diving-centers/{id}/gear-rental/{gear_id}` - Delete gear rental cost
-
-### Tag Management
-- `GET /api/v1/tags/` - Get all available tags
-- `GET /api/v1/tags/with-counts` - Get tags with dive site counts
-- `POST /api/v1/tags/` - Create new tag (admin/moderator)
-- `PUT /api/v1/tags/{tag_id}` - Update tag (admin/moderator)
-- `DELETE /api/v1/tags/{tag_id}` - Delete tag (admin/moderator)
-- `POST /api/v1/tags/dive-sites/{dive_site_id}/tags` - Add tag to dive site
-- `DELETE /api/v1/tags/dive-sites/{dive_site_id}/tags/{tag_id}` - Remove tag from dive site
-
-### Diving Organizations
-- `GET /api/v1/diving-organizations/` - Get all diving organizations
-- `GET /api/v1/diving-organizations/{id}` - Get diving organization by ID
-- `POST /api/v1/diving-organizations/` - Create diving organization (admin only)
-- `PUT /api/v1/diving-organizations/{id}` - Update diving organization (admin only)
-- `DELETE /api/v1/diving-organizations/{id}` - Delete diving organization (admin only)
-
-### User Certifications
-- `GET /api/v1/user-certifications/my-certifications` - Get user's certifications
-- `GET /api/v1/user-certifications/users/{user_id}/certifications` - Get public certifications
-- `POST /api/v1/user-certifications/my-certifications` - Add new certification
-- `PUT /api/v1/user-certifications/my-certifications/{id}` - Update certification
-- `DELETE /api/v1/user-certifications/my-certifications/{id}` - Delete certification
-- `PATCH /api/v1/user-certifications/my-certifications/{id}/toggle` - Toggle active status
-
-See the full API documentation at http://localhost:8000/docs
+Interactive API documentation is available at: http://localhost:8000/docs
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Run the testing suite:
-   ```bash
-   node validate_frontend.js
-   node test_regressions.js
-   ```
-6. Submit a pull request
+We welcome contributions to Divemap! Please follow these guidelines:
+
+### Development Setup
+1. **Fork the repository** and clone it locally
+2. **Set up the development environment** following the [Development Guide](./docs/development/README.md)
+3. **Create a feature branch** for your changes
+4. **Follow the coding standards** outlined in the [Architecture Documentation](./docs/development/architecture.md)
+
+### Testing Requirements
+Before submitting changes, ensure all tests pass:
+```bash
+# Backend tests
+docker-compose exec backend python -m pytest
+
+# Frontend validation
+node validate_frontend.js
+
+# Regression testing
+node test_regressions.js
+```
+
+### Documentation
+- **API Changes**: Update the [API Documentation](./docs/development/api.md)
+- **Database Changes**: Follow the [Database Migration Guide](./docs/development/database.md)
+- **Testing**: Refer to the [Testing Guide](./docs/development/testing.md)
+- **Deployment**: Check the [Deployment Documentation](./docs/deployment/README.md)
+
+### Code Quality
+- Follow the established code style and patterns
+- Add appropriate tests for new functionality
+- Update documentation for any API or database changes
+- Ensure all tests pass before submitting
+
+### Pull Request Process
+1. **Test thoroughly** - Run all tests and validation scripts
+2. **Update documentation** - Include relevant documentation updates
+3. **Provide clear descriptions** - Explain the purpose and impact of changes
+4. **Reference issues** - Link to any related issues or discussions
+
+For detailed development guidelines, see the [Development Documentation](./docs/development/README.md).
 
 ## License
 

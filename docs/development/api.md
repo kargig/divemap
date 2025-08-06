@@ -1112,6 +1112,53 @@ Remove tag from dive site (admin/moderator only).
 }
 ```
 
+### Newsletter Model
+```json
+{
+  "id": "integer",
+  "content": "string",
+  "received_at": "datetime"
+}
+```
+
+### Parsed Dive Trip Model
+```json
+{
+  "id": "integer",
+  "diving_center_id": "integer (optional)",
+  "trip_date": "date",
+  "trip_time": "time (optional)",
+  "trip_duration": "integer (optional)",
+  "trip_difficulty_level": "enum (beginner, intermediate, advanced, expert)",
+  "trip_price": "decimal (optional)",
+  "trip_currency": "string (3 chars, default: EUR)",
+  "group_size_limit": "integer (optional)",
+  "current_bookings": "integer (default: 0)",
+  "trip_description": "string (optional)",
+  "special_requirements": "string (optional)",
+  "trip_status": "enum (scheduled, confirmed, cancelled, completed)",
+  "source_newsletter_id": "integer (optional)",
+  "extracted_at": "datetime",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+### Parsed Dive Model
+```json
+{
+  "id": "integer",
+  "trip_id": "integer",
+  "dive_site_id": "integer (optional)",
+  "dive_number": "integer",
+  "dive_time": "time (optional)",
+  "dive_duration": "integer (optional)",
+  "dive_description": "string (optional)",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
 ## Rate Limiting
 
 The API implements comprehensive rate limiting to prevent abuse and ensure fair usage. The rate limiting system includes special exemptions for localhost requests and admin users.
@@ -1481,6 +1528,8 @@ curl -H "Authorization: Bearer USER_TOKEN" \
 
 ### Newsletter Management Endpoints
 
+The newsletter system provides comprehensive functionality for uploading, parsing, and managing dive trip information from newsletter files. The system supports both OpenAI-powered parsing and basic regex parsing.
+
 #### GET /newsletters/
 Get all newsletters (admin/moderator only).
 
@@ -1497,9 +1546,68 @@ Get all newsletters (admin/moderator only).
     "id": 1,
     "content": "Newsletter content...",
     "received_at": "2024-01-15T10:30:00Z",
-    "trip_count": 3
+    "trips_count": 3
   }
 ]
+```
+
+#### GET /newsletters/{newsletter_id}
+Get specific newsletter by ID (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Response:**
+```json
+{
+  "id": 1,
+  "content": "Newsletter content...",
+  "received_at": "2024-01-15T10:30:00Z",
+  "trips_count": 3
+}
+```
+
+#### PUT /newsletters/{newsletter_id}
+Update newsletter content (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Request Body:**
+```json
+{
+  "content": "Updated newsletter content..."
+}
+```
+
+#### DELETE /newsletters/{newsletter_id}
+Delete newsletter and all associated trips (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Response:**
+```json
+{
+  "message": "Newsletter and 3 associated trips deleted successfully"
+}
+```
+
+#### DELETE /newsletters/
+Mass delete multiple newsletters (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Request Body:**
+```json
+{
+  "newsletter_ids": [1, 2, 3]
+}
+```
+
+**Response:**
+```json
+{
+  "deleted_count": 3,
+  "message": "Deleted 3 newsletters and 8 associated trips"
+}
 ```
 
 #### POST /newsletters/upload
@@ -1508,7 +1616,7 @@ Upload and parse newsletter (admin/moderator only).
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Request Body:** `multipart/form-data`
-- `file`: Newsletter file (required)
+- `file`: Newsletter file (required, .txt format)
 - `use_openai`: Boolean to use OpenAI parsing (default: true)
 
 **Response:**
@@ -1588,6 +1696,13 @@ Get parsed dive trips (admin/moderator only).
 ]
 ```
 
+#### GET /newsletters/trips/{trip_id}
+Get specific parsed dive trip (admin/moderator only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Response:** Same format as GET /newsletters/trips
+
 #### POST /newsletters/trips
 Create new parsed dive trip (admin/moderator only).
 
@@ -1620,13 +1735,6 @@ Create new parsed dive trip (admin/moderator only).
 }
 ```
 
-#### GET /newsletters/trips/{trip_id}
-Get specific parsed dive trip (admin/moderator only).
-
-**Headers:** `Authorization: Bearer <admin_token>`
-
-**Response:** Same format as GET /newsletters/trips
-
 #### PUT /newsletters/trips/{trip_id}
 Update parsed dive trip (admin/moderator only).
 
@@ -1652,7 +1760,7 @@ Delete parsed dive trip (admin/moderator only).
 # Upload newsletter
 curl -X POST "https://divemap-backend.fly.dev/api/v1/newsletters/upload" \
      -H "Authorization: Bearer ADMIN_TOKEN" \
-     -F "file=@newsletter.pdf" \
+     -F "file=@newsletter.txt" \
      -F "use_openai=true"
 
 # Re-parse newsletter
