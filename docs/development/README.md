@@ -18,7 +18,27 @@ This document provides a comprehensive guide for developers working on the Divem
 12. [Diving Organizations Admin](#diving-organizations-admin)
 13. [API Fixes](#api-fixes)
 14. [Utility Scripts](#utility-scripts)
-15. [Deployment](#deployment)
+15. [React JavaScript Linting](#react-javascript-linting)
+16. [Deployment](#deployment)
+
+## React JavaScript Linting
+
+For comprehensive React JavaScript linting setup and best practices, see the dedicated [React Linting Guide](./react-linting.md).
+
+### Quick Start
+
+```bash
+# Install dependencies
+cd frontend
+npm install
+
+# Run linting checks
+npm run lint:check
+
+# Fix issues automatically
+npm run lint:fix
+npm run format
+```
 
 ## Overview
 
