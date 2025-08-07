@@ -9,6 +9,7 @@ primary_region = 'fra'
 [build]
   [build.args]
     REACT_APP_API_URL = "https://divemap-backend.fly.dev"
+    # REACT_APP_GOOGLE_CLIENT_ID will be provided via build secrets
 
 [env]
   NODE_ENV = 'production'
