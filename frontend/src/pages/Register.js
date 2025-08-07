@@ -38,7 +38,7 @@ const Register = () => {
     [registerWithGoogle, navigate]
   );
 
-  const handleGoogleError = useCallback(error => {
+  const handleGoogleError = useCallback(_error => {
     toast.error('Google Sign-In failed. Please try again.');
     setGoogleLoading(false);
   }, []);

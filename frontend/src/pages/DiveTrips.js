@@ -424,7 +424,7 @@ const DiveTrips = () => {
                 <div className='mb-4'>
                   <h4 className='text-sm font-medium text-gray-700 mb-2'>Dives:</h4>
                   <div className='space-y-2'>
-                    {trip.dives.map((dive, index) => (
+                    {trip.dives.map((dive, _index) => (
                       <div
                         key={dive.id}
                         className='flex items-center space-x-3 p-3 bg-blue-50 rounded'

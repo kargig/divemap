@@ -24,7 +24,7 @@ const DiveMapView = () => {
   const [selectedDive, setSelectedDive] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(10);
   const [popupPosition, setPopupPosition] = useState({ top: 20, left: 16 });
-  const [useClustering, setUseClustering] = useState(true);
+  const [_useClustering, setUseClustering] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     dive_site_id: '',

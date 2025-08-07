@@ -25,7 +25,7 @@ const DiveSiteMap = () => {
   const [selectedSite, setSelectedSite] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(13);
   const [popupPosition, setPopupPosition] = useState({ top: 20, left: 16 });
-  const [useClustering, setUseClustering] = useState(false);
+  const [_useClustering, setUseClustering] = useState(false);
 
   // Fetch current dive site
   const { data: diveSite, isLoading: isLoadingDiveSite } = useQuery(

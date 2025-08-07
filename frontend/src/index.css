@@ -12,12 +12,15 @@
 
 /* Mobile-friendly touch targets */
 @media (max-width: 768px) {
-  button, a {
+  button,
+  a {
     min-height: 44px;
     min-width: 44px;
   }
-  
-  input, select, textarea {
+
+  input,
+  select,
+  textarea {
     font-size: 16px; /* Prevents zoom on iOS */
   }
 }
@@ -115,34 +118,34 @@
 
 /* Mobile-friendly form elements */
 @media (max-width: 768px) {
-  input[type="text"],
-  input[type="email"],
-  input[type="password"],
-  input[type="number"],
-  input[type="search"],
+  input[type='text'],
+  input[type='email'],
+  input[type='password'],
+  input[type='number'],
+  input[type='search'],
   select,
   textarea {
     font-size: 16px !important;
   }
-  
+
   /* Improve button touch targets on mobile */
   button,
   .btn,
-  [role="button"] {
+  [role='button'] {
     min-height: 44px;
     padding: 12px 16px;
   }
-  
+
   /* Better spacing for mobile cards */
   .card {
     margin-bottom: 16px;
   }
-  
+
   /* Improve mobile table readability */
   table {
     font-size: 14px;
   }
-  
+
   /* Mobile-friendly modal */
   .modal {
     margin: 16px;

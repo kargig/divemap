@@ -180,7 +180,10 @@ const DiveDetail = () => {
       {/* Header */}
       <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4'>
         <div className='flex items-center gap-3 sm:gap-4'>
-          <button onClick={() => navigate('/dives')} className='text-gray-600 hover:text-gray-800 p-1'>
+          <button
+            onClick={() => navigate('/dives')}
+            className='text-gray-600 hover:text-gray-800 p-1'
+          >
             <ArrowLeft size={20} className='sm:w-6 sm:h-6' />
           </button>
           <div className='min-w-0 flex-1'>

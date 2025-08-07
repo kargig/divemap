@@ -334,7 +334,7 @@ const EditDive = () => {
         };
 
         mediaPromises.push(
-          addDiveMedia(id, mediaData).catch(error => {
+          addDiveMedia(id, mediaData).catch(_error => {
             // console.error('Failed to add media URL:', error);
             toast.error(`Failed to add media URL: ${mediaUrl.url}`);
           })
@@ -368,7 +368,7 @@ const EditDive = () => {
     }
   };
 
-  const getDifficultyColor = level => {
+  const _getDifficultyColor = level => {
     const colors = {
       beginner: 'bg-green-100 text-green-800',
       intermediate: 'bg-yellow-100 text-yellow-800',
@@ -378,7 +378,7 @@ const EditDive = () => {
     return colors[level] || 'bg-gray-100 text-gray-800';
   };
 
-  const getSuitTypeColor = type => {
+  const _getSuitTypeColor = type => {
     const colors = {
       wet_suit: 'bg-blue-100 text-blue-800',
       dry_suit: 'bg-purple-100 text-purple-800',

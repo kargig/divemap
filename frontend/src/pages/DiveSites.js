@@ -1,4 +1,4 @@
-import { Search, List, Globe, ChevronLeft, ChevronRight, Map, Filter, X } from 'lucide-react';
+import { Search, List, ChevronLeft, ChevronRight, Map, Filter } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { useNavigate, useSearchParams, Link as RouterLink } from 'react-router-dom';
@@ -116,7 +116,11 @@ const DiveSites = () => {
   const totalCount = totalCountResponse?.total || 0;
 
   // Fetch dive sites
-  const { data: diveSites, isLoading, error } = useQuery(
+  const {
+    data: diveSites,
+    isLoading,
+    error,
+  } = useQuery(
     ['dive-sites', filters, pagination],
     () => {
       const params = new URLSearchParams();
@@ -207,7 +211,9 @@ const DiveSites = () => {
     <div className='max-w-7xl mx-auto px-4 sm:px-6'>
       <div className='mb-6 sm:mb-8'>
         <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-4'>Dive Sites</h1>
-        <p className='text-sm sm:text-base text-gray-600'>Discover amazing dive sites around the world</p>
+        <p className='text-sm sm:text-base text-gray-600'>
+          Discover amazing dive sites around the world
+        </p>
         {totalCount !== undefined && (
           <div className='mt-2 text-xs sm:text-sm text-gray-500'>
             Showing {diveSites?.length || 0} dive sites from {totalCount} total dive sites
@@ -227,11 +233,15 @@ const DiveSites = () => {
       </div>
 
       {/* Search and Filter Section */}
-      <div className={`bg-white rounded-lg shadow-md mb-6 sm:mb-8 ${showFilters ? 'block' : 'hidden md:block'}`}>
+      <div
+        className={`bg-white rounded-lg shadow-md mb-6 sm:mb-8 ${showFilters ? 'block' : 'hidden md:block'}`}
+      >
         <div className='p-4 sm:p-6'>
           <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4'>
             <div className='lg:col-span-2'>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Search Sites</label>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
+                Search Sites
+              </label>
               <div className='relative'>
                 <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
                 <input
@@ -246,7 +256,9 @@ const DiveSites = () => {
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Difficulty Level</label>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
+                Difficulty Level
+              </label>
               <select
                 name='difficulty_level'
                 value={filters.difficulty_level}
@@ -262,7 +274,9 @@ const DiveSites = () => {
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Min Rating</label>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
+                Min Rating
+              </label>
               <input
                 type='number'
                 name='min_rating'
@@ -276,7 +290,9 @@ const DiveSites = () => {
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Max Rating</label>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
+                Max Rating
+              </label>
               <input
                 type='number'
                 name='max_rating'
@@ -290,7 +306,9 @@ const DiveSites = () => {
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Country</label>
+              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
+                Country
+              </label>
               <input
                 type='text'
                 name='country'
@@ -437,7 +455,9 @@ const DiveSites = () => {
             >
               <div className='p-4 sm:p-6'>
                 <div className='flex items-start justify-between mb-3 sm:mb-4'>
-                  <h3 className='text-lg sm:text-xl font-semibold text-gray-900 pr-2'>{site.name}</h3>
+                  <h3 className='text-lg sm:text-xl font-semibold text-gray-900 pr-2'>
+                    {site.name}
+                  </h3>
                   <span
                     className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
                       site.difficulty_level === 'beginner'
@@ -454,7 +474,9 @@ const DiveSites = () => {
                 </div>
 
                 {site.description && (
-                  <p className='text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 line-clamp-3'>{site.description}</p>
+                  <p className='text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 line-clamp-3'>
+                    {site.description}
+                  </p>
                 )}
 
                 {site.average_rating && (
@@ -505,7 +527,9 @@ const DiveSites = () => {
       {diveSites?.length === 0 && (
         <div className='text-center py-8 sm:py-12'>
           <Map className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-          <p className='text-sm sm:text-base text-gray-600'>No dive sites found matching your criteria.</p>
+          <p className='text-sm sm:text-base text-gray-600'>
+            No dive sites found matching your criteria.
+          </p>
         </div>
       )}
     </div>

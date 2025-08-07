@@ -103,7 +103,7 @@ const EditDiveSite = () => {
   );
 
   // Fetch all diving centers
-  const { data: allDivingCenters = [], error: allDivingCentersError } = useQuery(
+  const { data: allDivingCenters = [], error: _allDivingCentersError } = useQuery(
     ['all-diving-centers'],
     () => api.get('/api/v1/diving-centers/').then(res => res.data || []),
     {
@@ -116,7 +116,7 @@ const EditDiveSite = () => {
   );
 
   // Fetch associated diving centers
-  const { data: associatedDivingCenters = [], error: associatedDivingCentersError } = useQuery(
+  const { data: associatedDivingCenters = [], error: _associatedDivingCentersError } = useQuery(
     ['dive-site-diving-centers', id],
     () => api.get(`/api/v1/dive-sites/${id}/diving-centers`).then(res => res.data || []),
     {
@@ -141,7 +141,7 @@ const EditDiveSite = () => {
       }),
     {
       enabled: !!id && canEdit,
-      onError: error => {
+      onError: _error => {
         toast.error('Failed to load media');
       },
     }

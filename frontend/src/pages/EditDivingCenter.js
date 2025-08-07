@@ -54,7 +54,7 @@ const EditDivingCenter = () => {
 
   // Fetch diving center data
   const {
-    data: divingCenter,
+    data: _divingCenter,
     isLoading,
     error,
   } = useQuery(
@@ -78,7 +78,7 @@ const EditDivingCenter = () => {
 
   // Fetch gear rental costs
   const {
-    data: gearRentalData = [],
+    data: _gearRentalData = [],
     isLoading: gearLoading,
     error: gearError,
   } = useQuery(
@@ -105,7 +105,7 @@ const EditDivingCenter = () => {
   );
 
   // Fetch center organizations
-  const { data: centerOrganizationsData = [], isLoading: orgLoading } = useQuery(
+  const { data: _centerOrganizationsData = [], isLoading: orgLoading } = useQuery(
     ['diving-center-organizations', id],
     () => api.get(`/api/v1/diving-centers/${id}/organizations`).then(res => res.data),
     {

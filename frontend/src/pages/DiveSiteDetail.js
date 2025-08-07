@@ -1,4 +1,14 @@
-import { ArrowLeft, Edit, Star, MapPin, MessageCircle, Video, Link, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  ArrowLeft,
+  Edit,
+  Star,
+  MapPin,
+  MessageCircle,
+  Video,
+  Link,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -195,7 +205,10 @@ const DiveSiteDetail = () => {
       <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6'>
         <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4'>
           <div className='flex items-center gap-3 sm:gap-4'>
-            <button onClick={() => navigate('/dive-sites')} className='text-gray-600 hover:text-gray-800 p-1'>
+            <button
+              onClick={() => navigate('/dive-sites')}
+              className='text-gray-600 hover:text-gray-800 p-1'
+            >
               <ArrowLeft size={20} className='sm:w-6 sm:h-6' />
             </button>
             <div className='min-w-0 flex-1'>
@@ -254,7 +267,9 @@ const DiveSiteDetail = () => {
           {/* Description */}
           {diveSite.description && (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Description</h2>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+                Description
+              </h2>
               <p className='text-gray-700 text-sm sm:text-base'>{diveSite.description}</p>
             </div>
           )}
@@ -262,7 +277,9 @@ const DiveSiteDetail = () => {
           {/* Location */}
           {(diveSite.latitude && diveSite.longitude) || diveSite.address ? (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Location</h2>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+                Location
+              </h2>
               {diveSite.address && (
                 <div className='mb-4'>
                   <span className='font-medium text-gray-700'>Address:</span>
@@ -303,7 +320,9 @@ const DiveSiteDetail = () => {
           {nearbyDiveSites && nearbyDiveSites.length > 0 && (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
               <div className='flex items-center justify-between mb-3 sm:mb-4'>
-                <h2 className='text-lg sm:text-xl font-semibold text-gray-900'>Nearby Dive Sites</h2>
+                <h2 className='text-lg sm:text-xl font-semibold text-gray-900'>
+                  Nearby Dive Sites
+                </h2>
                 <button
                   onClick={toggleNearbySites}
                   className='flex items-center text-blue-600 hover:text-blue-700 md:hidden'
@@ -344,7 +363,9 @@ const DiveSiteDetail = () => {
           {/* Top Dives */}
           {topDives && topDives.length > 0 && (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Top Dives</h2>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+                Top Dives
+              </h2>
               <div className='space-y-3'>
                 {topDives.map(dive => (
                   <div
@@ -369,9 +390,7 @@ const DiveSiteDetail = () => {
                     <div className='text-xs sm:text-sm text-gray-600 space-y-1'>
                       <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
                         <span className='font-medium'>Date:</span>
-                        <span>
-                          {new Date(dive.dive_date).toLocaleDateString()}
-                        </span>
+                        <span>{new Date(dive.dive_date).toLocaleDateString()}</span>
                         {dive.dive_time && (
                           <span className='text-gray-500'>
                             at{' '}
@@ -465,7 +484,9 @@ const DiveSiteDetail = () => {
           {/* Access Instructions */}
           {diveSite.access_instructions && (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Access Instructions</h2>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+                Access Instructions
+              </h2>
               <p className='text-gray-700 text-sm sm:text-base'>{diveSite.access_instructions}</p>
             </div>
           )}
@@ -473,7 +494,9 @@ const DiveSiteDetail = () => {
           {/* Safety Information */}
           {diveSite.safety_information && (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Safety Information</h2>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+                Safety Information
+              </h2>
               <p className='text-gray-700 text-sm sm:text-base'>{diveSite.safety_information}</p>
             </div>
           )}
@@ -481,7 +504,9 @@ const DiveSiteDetail = () => {
           {/* Max Depth */}
           {diveSite.max_depth && (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Maximum Depth</h2>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+                Maximum Depth
+              </h2>
               <p className='text-gray-700 text-sm sm:text-base'>{diveSite.max_depth} meters</p>
             </div>
           )}
@@ -489,7 +514,9 @@ const DiveSiteDetail = () => {
           {/* Alternative Names */}
           {diveSite.alternative_names && (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Alternative Names</h2>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+                Alternative Names
+              </h2>
               <p className='text-gray-700 text-sm sm:text-base'>{diveSite.alternative_names}</p>
             </div>
           )}
@@ -497,7 +524,9 @@ const DiveSiteDetail = () => {
           {/* Marine Life */}
           {diveSite.marine_life && (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Marine Life</h2>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+                Marine Life
+              </h2>
               <p className='text-gray-700 text-sm sm:text-base'>{diveSite.marine_life}</p>
             </div>
           )}
@@ -505,7 +534,9 @@ const DiveSiteDetail = () => {
           {/* Media Gallery */}
           {media && media.length > 0 && (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Photos & Videos</h2>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+                Photos & Videos
+              </h2>
               <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
                 {media.map(item => (
                   <div key={item.id} className='border rounded-lg overflow-hidden'>
@@ -559,12 +590,16 @@ const DiveSiteDetail = () => {
           {/* Associated Diving Centers */}
           {divingCenters && divingCenters.length > 0 && (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>Diving Centers</h2>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+                Diving Centers
+              </h2>
               <div className='space-y-4'>
                 {divingCenters.map(center => (
                   <div key={center.id} className='border rounded-lg p-3 sm:p-4'>
                     <div className='flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2'>
-                      <h3 className='font-semibold text-gray-900 text-sm sm:text-base'>{center.name}</h3>
+                      <h3 className='font-semibold text-gray-900 text-sm sm:text-base'>
+                        {center.name}
+                      </h3>
                       {center.dive_cost && (
                         <span className='text-green-600 font-semibold text-sm sm:text-base'>
                           {formatCost(center.dive_cost, center.currency || DEFAULT_CURRENCY)}

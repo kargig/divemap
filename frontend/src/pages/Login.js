@@ -13,7 +13,7 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [_googleLoading, setGoogleLoading] = useState(false);
 
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ const Login = () => {
     [loginWithGoogle, navigate]
   );
 
-  const handleGoogleError = useCallback(error => {
+  const handleGoogleError = useCallback(_error => {
     toast.error('Google Sign-In failed. Please try again.');
     setGoogleLoading(false);
   }, []);
