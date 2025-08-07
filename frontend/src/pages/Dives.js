@@ -95,7 +95,7 @@ const Dives = () => {
     if (filters.max_rating) newSearchParams.set('max_rating', filters.max_rating);
     if (filters.start_date) newSearchParams.set('start_date', filters.start_date);
     if (filters.end_date) newSearchParams.set('end_date', filters.end_date);
-    if (filters.my_dives) newSearchParams.set('my_dives', 'true');
+    if (filters.my_dives) newSearchParams.set('my_dives', filters.my_dives.toString());
 
     // Add tag IDs
     filters.tag_ids.forEach(tagId => {
@@ -136,7 +136,7 @@ const Dives = () => {
       if (filters.max_rating) params.append('max_rating', filters.max_rating);
       if (filters.start_date) params.append('start_date', filters.start_date);
       if (filters.end_date) params.append('end_date', filters.end_date);
-      if (filters.my_dives) params.append('my_dives', 'true');
+      if (filters.my_dives) params.append('my_dives', filters.my_dives.toString());
 
       filters.tag_ids.forEach(tagId => {
         params.append('tag_ids', tagId.toString());
@@ -173,7 +173,7 @@ const Dives = () => {
       if (filters.max_rating) params.append('max_rating', filters.max_rating);
       if (filters.start_date) params.append('start_date', filters.start_date);
       if (filters.end_date) params.append('end_date', filters.end_date);
-      if (filters.my_dives) params.append('my_dives', 'true');
+      if (filters.my_dives) params.append('my_dives', filters.my_dives.toString());
 
       filters.tag_ids.forEach(tagId => {
         params.append('tag_ids', tagId.toString());
@@ -577,21 +577,6 @@ const Dives = () => {
             </div>
           )}
 
-          {/* My Dives Toggle */}
-          {user && (
-            <div className='mt-4'>
-              <label className='flex items-center space-x-2 cursor-pointer'>
-                <input
-                  type='checkbox'
-                  checked={filters.my_dives}
-                  onChange={handleMyDivesToggle}
-                  className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                />
-                <span className='text-sm font-medium text-gray-700'>Show only my dives</span>
-              </label>
-            </div>
-          )}
-
           {/* Filter Actions */}
           <div className='mt-4 flex flex-col sm:flex-row gap-2 sm:gap-4'>
             <button
@@ -679,7 +664,7 @@ const Dives = () => {
         </div>
       </div>
 
-      {/* Action Buttons and My Dives Filter */}
+      {/* Action Buttons */}
       <div className='flex flex-col sm:flex-row justify-between items-center mb-6 gap-4'>
         {user && (
           <button
