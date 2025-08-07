@@ -24,49 +24,59 @@ const AdminUsers = () => {
   const [selectedItems, setSelectedItems] = useState(new Set());
 
   // Fetch users data
-  const { data: users, isLoading } = useQuery(['admin-users'], () => api.get('/api/v1/users/'), {
-    select: response => response.data,
-  });
+  const { data: users, isLoading } = useQuery(
+    ['admin-users'],
+    () => api.get('/api/v1/users/admin/users'),
+    {
+      select: response => response.data,
+    }
+  );
 
   // User mutations
-  const createUserMutation = useMutation(userData => api.post('/api/v1/users/', userData), {
-    onSuccess: () => {
-      queryClient.invalidateQueries(['admin-users']);
-      toast.success('User created successfully!');
-      setShowCreateUserModal(false);
-      setUserForm({
-        username: '',
-        email: '',
-        full_name: '',
-        is_admin: false,
-        is_active: true,
-      });
-    },
-    onError: _error => {
-      toast.error('Failed to create user');
-    },
-  });
+  const createUserMutation = useMutation(
+    userData => api.post('/api/v1/users/admin/users', userData),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['admin-users']);
+        toast.success('User created successfully!');
+        setShowCreateUserModal(false);
+        setUserForm({
+          username: '',
+          email: '',
+          full_name: '',
+          is_admin: false,
+          is_active: true,
+        });
+      },
+      onError: _error => {
+        toast.error('Failed to create user');
+      },
+    }
+  );
 
-  const updateUserMutation = useMutation(({ id, data }) => api.put(`/api/v1/users/${id}`, data), {
-    onSuccess: () => {
-      queryClient.invalidateQueries(['admin-users']);
-      toast.success('User updated successfully!');
-      setShowEditUserModal(false);
-      setEditingUser(null);
-      setUserForm({
-        username: '',
-        email: '',
-        full_name: '',
-        is_admin: false,
-        is_active: true,
-      });
-    },
-    onError: _error => {
-      toast.error('Failed to update user');
-    },
-  });
+  const updateUserMutation = useMutation(
+    ({ id, data }) => api.put(`/api/v1/users/admin/users/${id}`, data),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['admin-users']);
+        toast.success('User updated successfully!');
+        setShowEditUserModal(false);
+        setEditingUser(null);
+        setUserForm({
+          username: '',
+          email: '',
+          full_name: '',
+          is_admin: false,
+          is_active: true,
+        });
+      },
+      onError: _error => {
+        toast.error('Failed to update user');
+      },
+    }
+  );
 
-  const deleteUserMutation = useMutation(id => api.delete(`/api/v1/users/${id}`), {
+  const deleteUserMutation = useMutation(id => api.delete(`/api/v1/users/admin/users/${id}`), {
     onSuccess: () => {
       queryClient.invalidateQueries(['admin-users']);
       toast.success('User deleted successfully!');
@@ -78,7 +88,7 @@ const AdminUsers = () => {
 
   // Mass delete mutation
   const massDeleteMutation = useMutation(
-    ids => Promise.all(ids.map(id => api.delete(`/api/v1/users/${id}`))),
+    ids => Promise.all(ids.map(id => api.delete(`/api/v1/users/admin/users/${id}`))),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['admin-users']);
