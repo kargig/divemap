@@ -38,6 +38,14 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=[
+        "X-Total-Count",
+        "X-Total-Pages",
+        "X-Current-Page",
+        "X-Page-Size",
+        "X-Has-Next-Page",
+        "X-Has-Prev-Page"
+    ],
     max_age=3600,
 )
 
@@ -133,4 +141,4 @@ async def get_statistics(db: Session = Depends(get_db)):
             "dive_sites": 0,
             "reviews": 0,
             "diving_centers": 0
-        } 
+        }

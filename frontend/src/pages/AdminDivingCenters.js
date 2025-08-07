@@ -1,8 +1,17 @@
-import { Plus, Edit, Trash2, Eye, ChevronUp, ChevronDown } from 'lucide-react';
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,17 +20,102 @@ const AdminDivingCenters = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-  // Fetch diving centers data
+  // Get initial pagination from URL parameters
+  const getInitialPagination = () => {
+    return {
+      page: parseInt(searchParams.get('page')) || 1,
+      page_size: parseInt(searchParams.get('page_size')) || 25,
+    };
+  };
+
+  const [pagination, setPagination] = useState(getInitialPagination);
+
+  // Update URL when pagination changes
+  const updateURL = newPagination => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('page', newPagination.page.toString());
+    newSearchParams.set('page_size', newPagination.page_size.toString());
+    setSearchParams(newSearchParams);
+  };
+
+  // Fetch diving centers data with pagination
   const { data: divingCenters, isLoading } = useQuery(
-    ['admin-diving-centers'],
-    () => api.get('/api/v1/diving-centers/'),
+    ['admin-diving-centers', pagination],
+    () => {
+      const params = new URLSearchParams();
+      params.append('page', pagination.page.toString());
+      params.append('page_size', pagination.page_size.toString());
+      return api.get(`/api/v1/diving-centers/?${params.toString()}`);
+    },
     {
-      select: response => response.data,
+      select: response => {
+        // Try both lowercase and original case for headers
+        const getHeader = name => {
+          return (
+            response.headers[name] ||
+            response.headers[name.toLowerCase()] ||
+            response.headers[name.toUpperCase()] ||
+            '0'
+          );
+        };
+
+        // Store pagination info from headers
+        const paginationInfo = {
+          totalCount: parseInt(getHeader('x-total-count')),
+          totalPages: parseInt(getHeader('x-total-pages')),
+          currentPage: parseInt(getHeader('x-current-page')),
+          pageSize: parseInt(getHeader('x-page-size')),
+          hasNextPage: getHeader('x-has-next-page') === 'true',
+          hasPrevPage: getHeader('x-has-prev-page') === 'true',
+        };
+
+        // Fallback: if headers are not available, use response data length
+        if (paginationInfo.totalCount === 0 && response.data) {
+          paginationInfo.totalCount = response.data.length;
+          paginationInfo.totalPages = Math.ceil(response.data.length / pagination.page_size);
+          paginationInfo.currentPage = pagination.page;
+          paginationInfo.pageSize = pagination.page_size;
+          paginationInfo.hasNextPage = pagination.page < paginationInfo.totalPages;
+          paginationInfo.hasPrevPage = pagination.page > 1;
+        }
+
+        // Store pagination info in the query cache
+        queryClient.setQueryData(['admin-diving-centers-pagination', pagination], paginationInfo);
+        return response.data;
+      },
+      keepPreviousData: true,
     }
   );
+
+  // Get pagination info from cached data
+  const paginationInfo = queryClient.getQueryData([
+    'admin-diving-centers-pagination',
+    pagination,
+  ]) || {
+    totalCount: 0,
+    totalPages: 0,
+    currentPage: pagination.page,
+    pageSize: pagination.page_size,
+    hasNextPage: false,
+    hasPrevPage: pagination.page > 1,
+  };
+
+  // Pagination handlers
+  const handlePageChange = newPage => {
+    const newPagination = { ...pagination, page: newPage };
+    setPagination(newPagination);
+    updateURL(newPagination);
+  };
+
+  const handlePageSizeChange = newPageSize => {
+    const newPagination = { page: 1, page_size: newPageSize };
+    setPagination(newPagination);
+    updateURL(newPagination);
+  };
 
   // Delete mutation
   const deleteDivingCenterMutation = useMutation(id => api.delete(`/api/v1/diving-centers/${id}`), {
@@ -29,7 +123,7 @@ const AdminDivingCenters = () => {
       queryClient.invalidateQueries(['admin-diving-centers']);
       toast.success('Diving center deleted successfully!');
     },
-    onError: _error => {
+    onError: () => {
       toast.error('Failed to delete diving center');
     },
   });
@@ -43,7 +137,7 @@ const AdminDivingCenters = () => {
         setSelectedItems(new Set());
         toast.success(`${selectedItems.size} diving center(s) deleted successfully!`);
       },
-      onError: _error => {
+      onError: () => {
         toast.error('Failed to delete some diving centers');
       },
     }
@@ -178,6 +272,11 @@ const AdminDivingCenters = () => {
         <div>
           <h1 className='text-3xl font-bold text-gray-900'>Diving Centers Management</h1>
           <p className='text-gray-600 mt-2'>Manage all diving centers in the system</p>
+          {paginationInfo.totalCount !== undefined && (
+            <p className='text-sm text-gray-500 mt-1'>
+              Total diving centers: {paginationInfo.totalCount}
+            </p>
+          )}
         </div>
         <button
           onClick={() => navigate('/admin/diving-centers/create')}
@@ -208,6 +307,64 @@ const AdminDivingCenters = () => {
           </div>
         </div>
       )}
+
+      {/* Pagination Controls */}
+      <div className='mt-4 flex flex-col sm:flex-row justify-between items-center gap-4 mb-8'>
+        {/* Page Size Selection */}
+        <div className='flex items-center gap-2'>
+          <label htmlFor='page-size-select' className='text-sm font-medium text-gray-700'>
+            Show:
+          </label>
+          <select
+            id='page-size-select'
+            value={pagination.page_size}
+            onChange={e => handlePageSizeChange(parseInt(e.target.value))}
+            className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+          >
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+          <span className='text-sm text-gray-600'>per page</span>
+        </div>
+
+        {/* Pagination Info */}
+        {paginationInfo.totalCount !== undefined && (
+          <div className='text-sm text-gray-600'>
+            Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
+            {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of{' '}
+            {paginationInfo.totalCount} diving centers
+          </div>
+        )}
+
+        {/* Pagination Navigation */}
+        {paginationInfo.totalCount !== undefined && (
+          <div className='flex items-center gap-2'>
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+              className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+            >
+              <ChevronLeft className='h-4 w-4' />
+            </button>
+
+            <span className='text-sm text-gray-700'>
+              Page {pagination.page} of{' '}
+              {Math.ceil(paginationInfo.totalCount / pagination.page_size)}
+            </span>
+
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={
+                pagination.page >= Math.ceil(paginationInfo.totalCount / pagination.page_size)
+              }
+              className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+            >
+              <ChevronRight className='h-4 w-4' />
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Diving Centers List */}
       <div className='bg-white rounded-lg shadow-md'>

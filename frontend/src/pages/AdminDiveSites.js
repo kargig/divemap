@@ -1,8 +1,19 @@
-import { Plus, Edit, Trash2, Eye, ChevronUp, ChevronDown } from 'lucide-react';
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  X,
+} from 'lucide-react';
 import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,26 +22,136 @@ const AdminDiveSites = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    difficulty_level: '',
+    country: '',
+    region: '',
+    min_rating: '',
+    max_rating: '',
+  });
 
-  // Fetch total count
-  const { data: totalCount } = useQuery(
-    ['admin-dive-sites-count'],
-    () => api.get('/api/v1/dive-sites/count'),
-    {
-      select: response => response.data.total,
-    }
-  );
+  // Get initial pagination from URL parameters
+  const getInitialPagination = () => {
+    return {
+      page: parseInt(searchParams.get('page')) || 1,
+      page_size: parseInt(searchParams.get('page_size')) || 25,
+    };
+  };
 
-  // Fetch dive sites data
+  const [pagination, setPagination] = useState(getInitialPagination);
+
+  // Update URL when pagination changes
+  const updateURL = newPagination => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('page', newPagination.page.toString());
+    newSearchParams.set('page_size', newPagination.page_size.toString());
+    setSearchParams(newSearchParams);
+  };
+
+  // Fetch dive sites data with pagination
   const { data: diveSites, isLoading } = useQuery(
-    ['admin-dive-sites'],
-    () => api.get('/api/v1/dive-sites/?limit=100'),
+    ['admin-dive-sites', pagination, filters],
+    () => {
+      const params = new URLSearchParams();
+      params.append('page', pagination.page.toString());
+      params.append('page_size', pagination.page_size.toString());
+
+      // Add filters
+      if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
+      if (filters.country) params.append('country', filters.country);
+      if (filters.region) params.append('region', filters.region);
+      if (filters.min_rating) params.append('min_rating', filters.min_rating);
+      if (filters.max_rating) params.append('max_rating', filters.max_rating);
+
+      return api.get(`/api/v1/dive-sites/?${params.toString()}`);
+    },
     {
-      select: response => response.data,
+      select: response => {
+        // Try both lowercase and original case for headers
+        const getHeader = name => {
+          return (
+            response.headers[name] ||
+            response.headers[name.toLowerCase()] ||
+            response.headers[name.toUpperCase()] ||
+            '0'
+          );
+        };
+
+        // Store pagination info from headers
+        const paginationInfo = {
+          totalCount: parseInt(getHeader('x-total-count')),
+          totalPages: parseInt(getHeader('x-total-pages')),
+          currentPage: parseInt(getHeader('x-current-page')),
+          pageSize: parseInt(getHeader('x-page-size')),
+          hasNextPage: getHeader('x-has-next-page') === 'true',
+          hasPrevPage: getHeader('x-has-prev-page') === 'true',
+        };
+
+        // Fallback: if headers are not available, use response data length
+        if (paginationInfo.totalCount === 0 && response.data) {
+          paginationInfo.totalCount = response.data.length;
+          paginationInfo.totalPages = Math.ceil(response.data.length / pagination.page_size);
+          paginationInfo.currentPage = pagination.page;
+          paginationInfo.pageSize = pagination.page_size;
+          paginationInfo.hasNextPage = pagination.page < paginationInfo.totalPages;
+          paginationInfo.hasPrevPage = pagination.page > 1;
+        }
+
+        // Store pagination info in the query cache
+        queryClient.setQueryData(['admin-dive-sites-pagination', pagination], paginationInfo);
+        return response.data;
+      },
+      keepPreviousData: true,
     }
   );
+
+  // Get pagination info from cached data
+  const paginationInfo = queryClient.getQueryData(['admin-dive-sites-pagination', pagination]) || {
+    totalCount: 0,
+    totalPages: 0,
+    currentPage: pagination.page,
+    pageSize: pagination.page_size,
+    hasNextPage: false,
+    hasPrevPage: pagination.page > 1,
+  };
+
+  // Pagination handlers
+  const handlePageChange = newPage => {
+    const newPagination = { ...pagination, page: newPage };
+    setPagination(newPagination);
+    updateURL(newPagination);
+  };
+
+  const handlePageSizeChange = newPageSize => {
+    const newPagination = { page: 1, page_size: newPageSize };
+    setPagination(newPagination);
+    updateURL(newPagination);
+  };
+
+  // Filter handlers
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value,
+    }));
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      difficulty_level: '',
+      country: '',
+      region: '',
+      min_rating: '',
+      max_rating: '',
+    });
+    setSearchTerm('');
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
 
   // Delete mutation
   const deleteDiveSiteMutation = useMutation(id => api.delete(`/api/v1/dive-sites/${id}`), {
@@ -38,7 +159,7 @@ const AdminDiveSites = () => {
       queryClient.invalidateQueries(['admin-dive-sites']);
       toast.success('Dive site deleted successfully!');
     },
-    onError: _error => {
+    onError: () => {
       toast.error('Failed to delete dive site');
     },
   });
@@ -52,7 +173,7 @@ const AdminDiveSites = () => {
         setSelectedItems(new Set());
         toast.success(`${selectedItems.size} dive site(s) deleted successfully!`);
       },
-      onError: _error => {
+      onError: () => {
         toast.error('Failed to delete some dive sites');
       },
     }
@@ -128,11 +249,27 @@ const AdminDiveSites = () => {
     );
   };
 
-  // Sort dive sites
+  // Sort and filter dive sites
   const sortedDiveSites = useMemo(() => {
     if (!diveSites) return [];
 
-    const sorted = [...diveSites].sort((a, b) => {
+    let filtered = [...diveSites];
+
+    // Apply search term filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(site => {
+        return (
+          site.name?.toLowerCase().includes(searchLower) ||
+          site.description?.toLowerCase().includes(searchLower) ||
+          site.country?.toLowerCase().includes(searchLower) ||
+          site.region?.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    // Sort the filtered results
+    const sorted = filtered.sort((a, b) => {
       if (!sortConfig.key) return 0;
 
       let aValue = a[sortConfig.key];
@@ -161,7 +298,7 @@ const AdminDiveSites = () => {
     });
 
     return sorted;
-  }, [diveSites, sortConfig]);
+  }, [diveSites, sortConfig, searchTerm]);
 
   if (!user?.is_admin) {
     return (
@@ -185,8 +322,10 @@ const AdminDiveSites = () => {
         <div>
           <h1 className='text-3xl font-bold text-gray-900'>Dive Sites Management</h1>
           <p className='text-gray-600 mt-2'>Manage all dive sites in the system</p>
-          {totalCount !== undefined && (
-            <p className='text-sm text-gray-500 mt-1'>Total dive sites: {totalCount}</p>
+          {paginationInfo.totalCount !== undefined && (
+            <p className='text-sm text-gray-500 mt-1'>
+              Total dive sites: {paginationInfo.totalCount}
+            </p>
           )}
         </div>
         <button
@@ -218,6 +357,185 @@ const AdminDiveSites = () => {
           </div>
         </div>
       )}
+
+      {/* Filters */}
+      <div className='mb-6 bg-gray-50 p-4 rounded-lg'>
+        <div className='flex items-center justify-between mb-4'>
+          <h3 className='text-lg font-semibold'>Filters</h3>
+          <button onClick={clearFilters} className='text-sm text-gray-600 hover:text-gray-800'>
+            Clear Filters
+          </button>
+        </div>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4'>
+          <div>
+            <label
+              htmlFor='difficulty-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Difficulty
+            </label>
+            <select
+              id='difficulty-filter'
+              value={filters.difficulty_level}
+              onChange={e => handleFilterChange('difficulty_level', e.target.value)}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            >
+              <option value=''>All Difficulties</option>
+              <option value='beginner'>Beginner</option>
+              <option value='intermediate'>Intermediate</option>
+              <option value='advanced'>Advanced</option>
+              <option value='expert'>Expert</option>
+            </select>
+          </div>
+          <div>
+            <label
+              htmlFor='country-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Country
+            </label>
+            <input
+              id='country-filter'
+              type='text'
+              placeholder='Search by country...'
+              value={filters.country}
+              onChange={e => handleFilterChange('country', e.target.value)}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            />
+          </div>
+          <div>
+            <label htmlFor='region-filter' className='block text-sm font-medium text-gray-700 mb-1'>
+              Region
+            </label>
+            <input
+              id='region-filter'
+              type='text'
+              placeholder='Search by region...'
+              value={filters.region}
+              onChange={e => handleFilterChange('region', e.target.value)}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            />
+          </div>
+          <div>
+            <label
+              htmlFor='min-rating-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Min Rating
+            </label>
+            <input
+              id='min-rating-filter'
+              type='number'
+              min='0'
+              max='10'
+              step='0.1'
+              placeholder='0.0'
+              value={filters.min_rating}
+              onChange={e => handleFilterChange('min_rating', e.target.value)}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            />
+          </div>
+          <div>
+            <label
+              htmlFor='max-rating-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Max Rating
+            </label>
+            <input
+              id='max-rating-filter'
+              type='number'
+              min='0'
+              max='10'
+              step='0.1'
+              placeholder='10.0'
+              value={filters.max_rating}
+              onChange={e => handleFilterChange('max_rating', e.target.value)}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className='mb-6'>
+        <div className='relative'>
+          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5' />
+          <input
+            type='text'
+            placeholder='Search dive sites by name, description, country, or region...'
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+            >
+              <X className='h-4 w-4' />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className='mt-4 flex flex-col sm:flex-row justify-between items-center gap-4 mb-8'>
+        {/* Page Size Selection */}
+        <div className='flex items-center gap-2'>
+          <label htmlFor='page-size-select' className='text-sm font-medium text-gray-700'>
+            Show:
+          </label>
+          <select
+            id='page-size-select'
+            value={pagination.page_size}
+            onChange={e => handlePageSizeChange(parseInt(e.target.value))}
+            className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+          >
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+          <span className='text-sm text-gray-600'>per page</span>
+        </div>
+
+        {/* Pagination Info */}
+        {paginationInfo.totalCount !== undefined && (
+          <div className='text-sm text-gray-600'>
+            Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
+            {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of{' '}
+            {paginationInfo.totalCount} dive sites
+          </div>
+        )}
+
+        {/* Pagination Navigation */}
+        {paginationInfo.totalCount !== undefined && (
+          <div className='flex items-center gap-2'>
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+              className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+            >
+              <ChevronLeft className='h-4 w-4' />
+            </button>
+
+            <span className='text-sm text-gray-700'>
+              Page {pagination.page} of{' '}
+              {Math.ceil(paginationInfo.totalCount / pagination.page_size)}
+            </span>
+
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={
+                pagination.page >= Math.ceil(paginationInfo.totalCount / pagination.page_size)
+              }
+              className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+            >
+              <ChevronRight className='h-4 w-4' />
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Dive Sites List */}
       <div className='bg-white rounded-lg shadow-md'>
@@ -361,7 +679,7 @@ const AdminDiveSites = () => {
         </div>
       </div>
 
-      {diveSites?.length === 0 && (
+      {sortedDiveSites?.length === 0 && (
         <div className='text-center py-12'>
           <p className='text-gray-500'>No dive sites found.</p>
         </div>
