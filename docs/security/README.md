@@ -290,7 +290,9 @@ async def verify_google_token(token: str):
         raise HTTPException(status_code=400, detail="Invalid token")
 ```
 
-For detailed OAuth setup instructions, see [OAuth Setup Guide](./oauth-setup.md).
+For detailed OAuth setup instructions, see:
+- [Google OAuth Credentials Setup Guide](./google-oauth-credentials.md) - Step-by-step instructions for generating credentials
+- [OAuth Setup Guide](./oauth-setup.md) - General OAuth configuration
 
 ## Best Practices
 

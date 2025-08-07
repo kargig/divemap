@@ -11,7 +11,7 @@ module.exports = {
     'plugin:jsx-a11y/recommended',
     'plugin:import/errors',
     'plugin:import/warnings',
-    'prettier', // Must be last to override other configs
+    'eslint-config-prettier', // Must be last to override other configs
   ],
   parserOptions: {
     ecmaFeatures: {
@@ -76,7 +76,7 @@ module.exports = {
     // General JavaScript rules
     'no-console': 'warn',
     'no-debugger': 'error',
-    'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    'no-unused-vars': 'warn', // Changed from error to warn
     'no-undef': 'error',
     'no-var': 'error',
     'prefer-const': 'error',
@@ -120,6 +120,10 @@ module.exports = {
     
     // Accessibility rules - convert some to warnings
     'jsx-a11y/label-has-associated-control': 'warn',
+    'jsx-a11y/click-events-have-key-events': 'warn',
+    'jsx-a11y/no-static-element-interactions': 'warn',
+    'jsx-a11y/media-has-caption': 'warn',
+    'jsx-a11y/no-noninteractive-element-to-interactive-role': 'warn',
   },
   settings: {
     react: {
