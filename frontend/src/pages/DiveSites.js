@@ -155,16 +155,7 @@ const DiveSites = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  const handleTagChange = e => {
-    const tagId = parseInt(e.target.value);
-    setFilters(prev => ({
-      ...prev,
-      tag_ids: prev.tag_ids.includes(tagId)
-        ? prev.tag_ids.filter(id => id !== tagId)
-        : [...prev.tag_ids, tagId],
-    }));
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
+  // handleTagChange function removed as it's now handled inline in the button onClick
 
   const clearFilters = () => {
     setFilters({
@@ -185,6 +176,70 @@ const DiveSites = () => {
 
   const handlePageSizeChange = newPageSize => {
     setPagination(prev => ({ ...prev, page: 1, page_size: newPageSize }));
+  };
+
+  const getTagColor = tagName => {
+    // Create a consistent color mapping based on tag name
+    const colorMap = {
+      beginner: 'bg-green-100 text-green-800',
+      intermediate: 'bg-yellow-100 text-yellow-800',
+      advanced: 'bg-orange-100 text-orange-800',
+      expert: 'bg-red-100 text-red-800',
+      deep: 'bg-blue-100 text-blue-800',
+      shallow: 'bg-cyan-100 text-cyan-800',
+      wreck: 'bg-purple-100 text-purple-800',
+      reef: 'bg-emerald-100 text-emerald-800',
+      cave: 'bg-indigo-100 text-indigo-800',
+      wall: 'bg-slate-100 text-slate-800',
+      drift: 'bg-teal-100 text-teal-800',
+      night: 'bg-violet-100 text-violet-800',
+      photography: 'bg-pink-100 text-pink-800',
+      marine: 'bg-cyan-100 text-cyan-800',
+      training: 'bg-amber-100 text-amber-800',
+      tech: 'bg-red-100 text-red-800',
+      boat: 'bg-blue-100 text-blue-800',
+      shore: 'bg-green-100 text-green-800',
+    };
+
+    // Try exact match first
+    const lowerTagName = tagName.toLowerCase();
+    if (colorMap[lowerTagName]) {
+      return colorMap[lowerTagName];
+    }
+
+    // Try partial matches
+    for (const [key, color] of Object.entries(colorMap)) {
+      if (lowerTagName.includes(key) || key.includes(lowerTagName)) {
+        return color;
+      }
+    }
+
+    // Default color scheme based on hash of tag name
+    const colors = [
+      'bg-blue-100 text-blue-800',
+      'bg-green-100 text-green-800',
+      'bg-yellow-100 text-yellow-800',
+      'bg-orange-100 text-orange-800',
+      'bg-red-100 text-red-800',
+      'bg-purple-100 text-purple-800',
+      'bg-pink-100 text-pink-800',
+      'bg-indigo-100 text-indigo-800',
+      'bg-cyan-100 text-cyan-800',
+      'bg-teal-100 text-teal-800',
+      'bg-emerald-100 text-emerald-800',
+      'bg-amber-100 text-amber-800',
+      'bg-violet-100 text-violet-800',
+      'bg-slate-100 text-slate-800',
+    ];
+
+    // Simple hash function for consistent color assignment
+    let hash = 0;
+    for (let i = 0; i < tagName.length; i++) {
+      hash = (hash << 5) - hash + tagName.charCodeAt(i);
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+
+    return colors[Math.abs(hash) % colors.length];
   };
 
   const toggleFilters = () => {
@@ -338,16 +393,27 @@ const DiveSites = () => {
               <label className='block text-sm font-medium text-gray-700 mb-2'>Tags</label>
               <div className='flex flex-wrap gap-2'>
                 {availableTags.map(tag => (
-                  <label key={tag.id} className='flex items-center space-x-2 cursor-pointer'>
-                    <input
-                      type='checkbox'
-                      checked={filters.tag_ids.includes(tag.id)}
-                      onChange={handleTagChange}
-                      value={tag.id}
-                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                    />
-                    <span className='text-sm text-gray-700'>{tag.name}</span>
-                  </label>
+                  <button
+                    key={tag.id}
+                    type='button'
+                    onClick={() => {
+                      const tagId = parseInt(tag.id);
+                      setFilters(prev => ({
+                        ...prev,
+                        tag_ids: prev.tag_ids.includes(tagId)
+                          ? prev.tag_ids.filter(id => id !== tagId)
+                          : [...prev.tag_ids, tagId],
+                      }));
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                    className={`px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                      filters.tag_ids.includes(tag.id)
+                        ? `${getTagColor(tag.name)} border-2 border-current shadow-md`
+                        : `${getTagColor(tag.name)} opacity-60 hover:opacity-100 border-2 border-transparent`
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
                 ))}
               </div>
             </div>
@@ -503,7 +569,7 @@ const DiveSites = () => {
                       {site.tags.map(tag => (
                         <span
                           key={tag.id}
-                          className='px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium'
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getTagColor(tag.name)}`}
                         >
                           {tag.name}
                         </span>
