@@ -6,6 +6,10 @@ This document provides comprehensive information about deploying the Divemap app
 
 1. [Overview](#overview)
 2. [Deployment Strategies](#deployment-strategies)
+   - [Makefile Deployment](#1-makefile-deployment-recommended)
+   - [Docker Compose](#2-docker-compose-development)
+   - [Fly.io](#2-flyio-production)
+   - [Kubernetes](#3-kubernetes-enterprise)
 3. [Infrastructure Components](#infrastructure-components)
 4. [Environment Configuration](#environment-configuration)
 5. [Deployment Process](#deployment-process)
@@ -58,7 +62,41 @@ Divemap is designed for cloud deployment with containerized services, automated 
 
 ## Deployment Strategies
 
-### 1. Docker Compose (Development)
+### 1. Makefile Deployment (Recommended)
+
+#### Streamlined Deployment
+The project includes a Makefile that provides simplified deployment commands for both backend and frontend components.
+
+```bash
+# Deploy both backend and frontend
+make deploy
+
+# Deploy only backend
+make deploy-backend
+
+# Deploy only frontend
+make deploy-frontend
+
+# Show help and available commands
+make help
+```
+
+#### Makefile Features
+- **Sequential Deployment**: Backend deploys first, then frontend
+- **Individual Targets**: Deploy specific components as needed
+- **Clear Feedback**: Status messages and deployment URLs
+- **Error Handling**: Proper error reporting and exit codes
+
+#### Deployment URLs
+- **Frontend**: https://divemap.fly.dev/
+- **Backend**: https://divemap-backend.fly.dev/
+
+#### Prerequisites
+- Fly.io CLI installed and authenticated
+- Frontend `.env` file configured with `REACT_APP_GOOGLE_CLIENT_ID`
+- Backend environment variables configured
+
+### 2. Docker Compose (Development)
 
 #### Local Development
 ```bash

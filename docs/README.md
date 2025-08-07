@@ -18,7 +18,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 - **Import Scripts** - Dive site import utilities with smart conflict resolution (see [Development README](./development/README.md#import-scripts))
 
 ### 🚀 Deployment
-- **[README.md](./deployment/README.md)** - Deployment overview
+- **[README.md](./deployment/README.md)** - Deployment overview (includes Makefile deployment)
 - **[Fly.io.md](./deployment/fly-io.md)** - Fly.io deployment guide
 - **[Docker.md](./deployment/docker.md)** - Docker setup and configuration
 - **[Infrastructure.md](./deployment/infrastructure.md)** - Infrastructure details
@@ -49,7 +49,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 5. **[Docker Configuration](./development/docker.md)** - Container setup and optimization
 
 ### For Deployment
-1. **[Deployment Overview](./deployment/README.md)** - Deployment strategies
+1. **[Deployment Overview](./deployment/README.md)** - Deployment strategies (includes Makefile deployment)
 2. **[Fly.io Guide](./deployment/fly-io.md)** - Cloud deployment instructions
 3. **[Docker Setup](./deployment/docker.md)** - Container configuration
 4. **[Infrastructure Details](./deployment/infrastructure.md)** - Infrastructure components
