@@ -941,7 +941,7 @@ def get_dives(
                 }
         
         # Get tags for this dive
-        dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).all()
+        dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).order_by(AvailableTag.name.asc()).all()
         tags_list = [{"id": tag.id, "name": tag.name} for tag in dive_tags]
         
         dive_dict = {
@@ -1176,7 +1176,7 @@ def get_dive_details(
     # Get dive tags
     tags = db.query(AvailableTag).join(DiveTag, AvailableTag.id == DiveTag.tag_id).filter(
         DiveTag.dive_id == dive_id
-    ).all()
+    ).order_by(AvailableTag.name.asc()).all()
     tags_list = []
     for t in tags:
         tags_list.append({

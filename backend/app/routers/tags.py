@@ -12,14 +12,14 @@ router = APIRouter(prefix="/api/v1/tags", tags=["Tags"])
 @router.get("/", response_model=List[TagResponse])
 def get_all_tags(db: Session = Depends(get_db)):
     """Get all available tags"""
-    tags = db.query(AvailableTag).all()
+    tags = db.query(AvailableTag).order_by(AvailableTag.name.asc()).all()
     return tags
 
 @router.get("/with-counts", response_model=List[TagWithCountResponse])
 def get_all_tags_with_counts(db: Session = Depends(get_db)):
     """Get all available tags with count of associated dive sites"""
     # Get all tags
-    tags = db.query(AvailableTag).all()
+    tags = db.query(AvailableTag).order_by(AvailableTag.name.asc()).all()
     
     result = []
     for tag in tags:

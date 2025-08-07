@@ -238,7 +238,7 @@ async def get_dive_sites(
         from app.models import DiveSiteTag, AvailableTag
         tags = db.query(AvailableTag).join(DiveSiteTag).filter(
             DiveSiteTag.dive_site_id == site.id
-        ).all()
+        ).order_by(AvailableTag.name.asc()).all()
         
         # Convert tags to dictionaries
         tags_dict = [
@@ -412,7 +412,7 @@ async def get_dive_site(
     from app.models import DiveSiteTag, AvailableTag
     tags = db.query(AvailableTag).join(DiveSiteTag).filter(
         DiveSiteTag.dive_site_id == dive_site_id
-    ).all()
+    ).order_by(AvailableTag.name.asc()).all()
 
     # Convert tags to dictionaries
     tags_dict = [
@@ -1099,7 +1099,7 @@ async def get_dive_site_dives(
                 }
         
         # Get tags for this dive
-        dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).all()
+        dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).order_by(AvailableTag.name.asc()).all()
         tags_list = [{"id": tag.id, "name": tag.name} for tag in dive_tags]
         
         # Get user information
