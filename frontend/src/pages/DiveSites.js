@@ -427,82 +427,96 @@ const DiveSites = () => {
             >
               Clear Filters
             </button>
-            <div className='flex flex-col sm:flex-row gap-2 sm:gap-4'>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-4 py-2 rounded-md transition-colors text-sm ${
-                  viewMode === 'list'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <List className='h-4 w-4 inline mr-2' />
-                List View
-              </button>
-              <button
-                onClick={() => setViewMode('map')}
-                className={`px-4 py-2 rounded-md transition-colors text-sm ${
-                  viewMode === 'map'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <Map className='h-4 w-4 inline mr-2' />
-                Map View
-              </button>
-            </div>
           </div>
+        </div>
+      </div>
 
-          {/* Pagination Controls */}
-          <div className='mt-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4'>
-            {/* Page Size Selection */}
-            <div className='flex items-center gap-2'>
-              <label className='text-sm font-medium text-gray-700'>Show:</label>
-              <select
-                value={pagination.page_size}
-                onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-                className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-              <span className='text-sm text-gray-600'>per page</span>
+      {/* View Mode and Pagination Controls - Integrated for better UX */}
+      <div className='mb-6 sm:mb-8'>
+        <div className='bg-white rounded-lg shadow-md p-4 sm:p-6'>
+          <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
+            {/* View Mode Controls */}
+            <div className='flex flex-col sm:flex-row items-center gap-4'>
+              <div className='flex items-center gap-2'>
+                <span className='text-sm font-medium text-gray-700'>View Mode:</span>
+              </div>
+              <div className='flex gap-2'>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-6 py-3 rounded-lg transition-all duration-200 text-sm font-medium flex items-center gap-2 ${
+                    viewMode === 'list'
+                      ? 'bg-blue-600 text-white shadow-md scale-105'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
+                  }`}
+                >
+                  <List className='h-5 w-5' />
+                  List View
+                </button>
+                <button
+                  onClick={() => setViewMode('map')}
+                  className={`px-6 py-3 rounded-lg transition-all duration-200 text-sm font-medium flex items-center gap-2 ${
+                    viewMode === 'map'
+                      ? 'bg-blue-600 text-white shadow-md scale-105'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
+                  }`}
+                >
+                  <Map className='h-5 w-5' />
+                  Map View
+                </button>
+              </div>
             </div>
 
-            {/* Pagination Info */}
-            {totalCount !== undefined && (
-              <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
-                Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
-                {Math.min(pagination.page * pagination.page_size, totalCount)} of {totalCount} dive
-                sites
-              </div>
-            )}
-
-            {/* Pagination Navigation */}
-            {totalCount !== undefined && (
+            {/* Pagination Controls */}
+            <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
+              {/* Page Size Selection */}
               <div className='flex items-center gap-2'>
-                <button
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={pagination.page <= 1}
-                  className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+                <label className='text-sm font-medium text-gray-700'>Show:</label>
+                <select
+                  value={pagination.page_size}
+                  onChange={e => handlePageSizeChange(parseInt(e.target.value))}
+                  className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
                 >
-                  <ChevronLeft className='h-4 w-4' />
-                </button>
-
-                <span className='text-xs sm:text-sm text-gray-700'>
-                  Page {pagination.page} of {Math.ceil(totalCount / pagination.page_size)}
-                </span>
-
-                <button
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={pagination.page >= Math.ceil(totalCount / pagination.page_size)}
-                  className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                >
-                  <ChevronRight className='h-4 w-4' />
-                </button>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className='text-sm text-gray-600'>per page</span>
               </div>
-            )}
+
+              {/* Pagination Info */}
+              {totalCount !== undefined && (
+                <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
+                  Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
+                  {Math.min(pagination.page * pagination.page_size, totalCount)} of {totalCount}{' '}
+                  dive sites
+                </div>
+              )}
+
+              {/* Pagination Navigation */}
+              {totalCount !== undefined && (
+                <div className='flex items-center gap-2'>
+                  <button
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    disabled={pagination.page <= 1}
+                    className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+                  >
+                    <ChevronLeft className='h-4 w-4' />
+                  </button>
+
+                  <span className='text-xs sm:text-sm text-gray-700'>
+                    Page {pagination.page} of {Math.ceil(totalCount / pagination.page_size)}
+                  </span>
+
+                  <button
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    disabled={pagination.page >= Math.ceil(totalCount / pagination.page_size)}
+                    className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+                  >
+                    <ChevronRight className='h-4 w-4' />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
