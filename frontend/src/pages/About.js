@@ -112,24 +112,24 @@ const About = () => {
             </h2>
             <div className='space-y-3 text-gray-700'>
               <p>
-                <strong>Dive Site Management:</strong> Complete CRUD operations with detailed
-                information including maximum depth, aliases, country, and region.
-              </p>
-              <p>
-                <strong>Diving Centers:</strong> Full management with gear rental costs and dive
-                site associations.
-              </p>
-              <p>
-                <strong>Certifications:</strong> Track diving certifications with organization
-                associations (PADI, SSI, GUE, etc.).
-              </p>
-              <p>
                 <strong>Dive Logging:</strong> Comprehensive dive logging system with media uploads,
                 tags, and statistics.
               </p>
               <p>
-                <strong>Multi-Currency:</strong> Support for 10 major world currencies with
-                real-time conversion.
+                <strong>Dive Site Management:</strong> Complete CRUD operations with detailed
+                information including maximum depth, aliases, country, and region.
+              </p>
+              <p>
+                <strong>Diving Center Management:</strong> Full management with gear rental costs
+                and dive site associations.
+              </p>
+              <p>
+                <strong>Newsletter Parsing & Diving Trips:</strong> AI-powered newsletter parsing
+                with automatic dive trip extraction and management.
+              </p>
+              <p>
+                <strong>Ratings & Comments:</strong> Community-driven rating system with user
+                comments and diving credentials display.
               </p>
             </div>
           </div>
