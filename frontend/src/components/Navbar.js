@@ -16,6 +16,7 @@ import {
   FileText,
   Menu,
   X,
+  Info,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -91,6 +92,14 @@ const Navbar = () => {
             >
               <Calendar className='h-5 w-5' />
               <span>Dive Trips</span>
+            </Link>
+
+            <Link
+              to='/about'
+              className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
+            >
+              <Info className='h-5 w-5' />
+              <span>About</span>
             </Link>
 
             {user ? (
@@ -277,6 +286,15 @@ const Navbar = () => {
               >
                 <Calendar className='h-5 w-5 mr-3' />
                 <span>Dive Trips</span>
+              </Link>
+
+              <Link
+                to='/about'
+                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                onClick={closeMobileMenu}
+              >
+                <Info className='h-5 w-5 mr-3' />
+                <span>About</span>
               </Link>
 
               {user ? (

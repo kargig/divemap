@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'rea
 
 import Navbar from './components/Navbar';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import About from './pages/About';
 import Admin from './pages/Admin';
 import AdminDives from './pages/AdminDives';
 import AdminDiveSiteAliases from './pages/AdminDiveSiteAliases';
@@ -97,6 +98,7 @@ function App() {
             <main className='container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pt-20 sm:pt-24'>
               <Routes>
                 <Route path='/' element={<Home />} />
+                <Route path='/about' element={<About />} />
                 <Route path='/login' element={<Login />} />
                 <Route path='/register' element={<Register />} />
                 <Route path='/user/:username' element={<UserProfile />} />
