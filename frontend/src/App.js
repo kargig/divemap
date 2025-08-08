@@ -1,6 +1,6 @@
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -64,9 +64,10 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   return children;
 };
 
-// Protected route for admin/moderator
+// Protected route for admin/moderator or owner
 const ProtectedEditRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const { id } = useParams();
 
   if (loading) {
     return <div className='flex justify-center items-center h-screen'>Loading...</div>;
@@ -76,8 +77,11 @@ const ProtectedEditRoute = ({ children }) => {
     return <Navigate to='/login' replace />;
   }
 
+  // Allow admin, moderator, or owners (ownership will be checked in the component)
   if (!user.is_admin && !user.is_moderator) {
-    return <Navigate to='/' replace />;
+    // For non-admin/non-moderator users, we'll let them through
+    // The individual components will check ownership
+    return children;
   }
 
   return children;

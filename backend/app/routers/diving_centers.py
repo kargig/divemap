@@ -264,7 +264,7 @@ async def update_diving_center(
     can_edit = (
         current_user.is_admin or 
         current_user.is_moderator or 
-        (diving_center.owner_id == current_user.id and diving_center.ownership_status == "approved")
+        (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved)
     )
     
     if not can_edit:

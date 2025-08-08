@@ -1,4 +1,16 @@
-import { Star, MapPin, Phone, Mail, Globe, Edit, Award, Crown, AlertCircle, X } from 'lucide-react';
+import {
+  Star,
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
+  Edit,
+  Award,
+  Crown,
+  AlertCircle,
+  X,
+  ArrowLeft,
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -28,9 +40,6 @@ const DivingCenterDetail = () => {
   const [showOwnershipClaim, setShowOwnershipClaim] = useState(false);
   const [ownershipReason, setOwnershipReason] = useState('');
 
-  // Check if user has edit privileges
-  const canEdit = user && (user.is_admin || user.is_moderator);
-
   // Fetch diving center details
   const {
     data: center,
@@ -45,6 +54,14 @@ const DivingCenterDetail = () => {
     cacheTime: 10 * 60 * 1000, // 10 minutes,
     keepPreviousData: true, // Keep previous data while refetching
   });
+
+  // Check if user has edit privileges
+  const canEdit =
+    user &&
+    center &&
+    (user.is_admin ||
+      user.is_moderator ||
+      (center.owner_username === user.username && center.ownership_status === 'approved'));
 
   // Fetch center organizations
   const { data: organizations = [], isLoading: orgLoading } = useQuery(
@@ -281,11 +298,18 @@ const DivingCenterDetail = () => {
         {/* Header */}
         <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
           <div className='flex justify-between items-start mb-4'>
-            <div>
-              <h1 className='text-3xl font-bold text-gray-900 mb-2'>
-                {center?.name || 'Loading...'}
-              </h1>
-              {center?.description && <p className='text-gray-600 mb-4'>{center.description}</p>}
+            <div className='flex items-center gap-3 sm:gap-4'>
+              <button
+                onClick={() => navigate('/diving-centers')}
+                className='text-gray-600 hover:text-gray-800 p-1'
+              >
+                <ArrowLeft size={20} className='sm:w-6 sm:h-6' />
+              </button>
+              <div className='min-w-0 flex-1'>
+                <h1 className='text-3xl font-bold text-gray-900 mb-2'>
+                  {center?.name || 'Loading...'}
+                </h1>
+              </div>
             </div>
             <div className='flex items-center space-x-4'>
               {canEdit && (
@@ -311,6 +335,11 @@ const DivingCenterDetail = () => {
               )}
             </div>
           </div>
+          {center?.description && (
+            <div className='mb-4'>
+              <p className='text-gray-600'>{center.description}</p>
+            </div>
+          )}
 
           {/* Contact Information */}
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>

@@ -49,10 +49,29 @@ const EditDivingCenter = () => {
     is_primary: false,
   });
 
-  // Check if user has edit privileges
-  const canEdit = user && (user.is_admin || user.is_moderator);
+  // Fetch diving center data first to check ownership
+  const {
+    data: divingCenter,
+    isLoading: divingCenterLoading,
+    error: divingCenterError,
+  } = useQuery(
+    ['diving-center', id],
+    () => api.get(`/api/v1/diving-centers/${id}`).then(res => res.data),
+    {
+      enabled: !!id,
+    }
+  );
 
-  // Fetch diving center data
+  // Check if user has edit privileges
+  const canEdit =
+    user &&
+    divingCenter &&
+    (user.is_admin ||
+      user.is_moderator ||
+      (divingCenter.owner_username === user.username &&
+        divingCenter.ownership_status === 'approved'));
+
+  // Fetch diving center data for editing
   const {
     data: _divingCenter,
     isLoading,
@@ -61,7 +80,7 @@ const EditDivingCenter = () => {
     ['diving-center', id],
     () => api.get(`/api/v1/diving-centers/${id}`).then(res => res.data),
     {
-      enabled: !!id && canEdit,
+      enabled: !!id,
       onSuccess: data => {
         setFormData({
           name: data.name || '',
@@ -88,7 +107,7 @@ const EditDivingCenter = () => {
         return res.data || [];
       }),
     {
-      enabled: !!id && canEdit,
+      enabled: !!id,
       onSuccess: data => {
         setGearRental(data);
       },
@@ -109,7 +128,7 @@ const EditDivingCenter = () => {
     ['diving-center-organizations', id],
     () => api.get(`/api/v1/diving-centers/${id}/organizations`).then(res => res.data),
     {
-      enabled: !!id && canEdit,
+      enabled: !!id,
       onSuccess: data => {
         setCenterOrganizations(data);
       },
@@ -316,6 +335,7 @@ const EditDivingCenter = () => {
   };
 
   if (!canEdit) {
+    console.log('EditDivingCenter: Access Denied - canEdit is false');
     return (
       <div className='min-h-screen bg-gray-50 py-8'>
         <div className='max-w-4xl mx-auto px-4'>
@@ -328,7 +348,7 @@ const EditDivingCenter = () => {
     );
   }
 
-  if (isLoading) {
+  if (divingCenterLoading || isLoading) {
     return (
       <div className='min-h-screen bg-gray-50 py-8'>
         <div className='max-w-4xl mx-auto px-4'>
