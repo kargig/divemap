@@ -46,15 +46,50 @@ AUTH_ENDPOINT = f"{BACKEND_URL}/api/v1/auth/login"
 DIVE_SITES_ENDPOINT = f"{BACKEND_URL}/api/v1/dive-sites"
 SEARCH_ENDPOINT = f"{BACKEND_URL}/api/v1/dive-sites"
 
-# Admin credentials from local_testme
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "Admin123!"  # From local_testme file
-
 # Distance threshold for nearby dive sites (in meters)
 DISTANCE_THRESHOLD = 200
 
 # Similarity threshold for name matching (0.0 to 1.0)
 SIMILARITY_THRESHOLD = 0.8
+
+def read_credentials_from_local_testme() -> Tuple[str, str]:
+    """Read admin credentials from local_testme file"""
+    local_testme_path = Path("../local_testme")
+    if not local_testme_path.exists():
+        # Try relative to current directory
+        local_testme_path = Path("local_testme")
+        if not local_testme_path.exists():
+            raise FileNotFoundError("local_testme file not found")
+    
+    try:
+        with open(local_testme_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Parse the file to find admin credentials
+        lines = content.split('\n')
+        admin_username = None
+        admin_password = None
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith('Admin user:'):
+                # Look for the next line with credentials
+                continue
+            elif line and '/' in line and not line.startswith('Normal user:') and not line.startswith('OpenAI'):
+                # This should be a credential line like "admin/Admin123!"
+                parts = line.split('/')
+                if len(parts) == 2:
+                    admin_username = parts[0].strip()
+                    admin_password = parts[1].strip()
+                    break
+        
+        if not admin_username or not admin_password:
+            raise ValueError("Could not find admin credentials in local_testme file")
+        
+        return admin_username, admin_password
+        
+    except Exception as e:
+        raise Exception(f"Error reading credentials from local_testme: {e}")
 
 class DiveSiteImporter:
     def __init__(self, force: bool = False, dry_run: bool = False, 
@@ -80,10 +115,13 @@ class DiveSiteImporter:
     def login(self) -> bool:
         """Login to get authentication token"""
         try:
-            print(f"Attempting login with username: {ADMIN_USERNAME}")
+            # Read credentials from local_testme file
+            admin_username, admin_password = read_credentials_from_local_testme()
+            
+            print(f"Attempting login with username: {admin_username}")
             response = self.session.post(AUTH_ENDPOINT, json={
-                "username": ADMIN_USERNAME,
-                "password": ADMIN_PASSWORD
+                "username": admin_username,
+                "password": admin_password
             })
             print(f"Login response status: {response.status_code}")
             print(f"Login response: {response.text[:100]}")
@@ -91,7 +129,7 @@ class DiveSiteImporter:
             data = response.json()
             self.token = data["access_token"]
             self.session.headers.update({"Authorization": f"Bearer {self.token}"})
-            print(f"✅ Successfully logged in as {ADMIN_USERNAME}")
+            print(f"✅ Successfully logged in as {admin_username}")
             return True
         except Exception as e:
             print(f"❌ Failed to login: {e}")
