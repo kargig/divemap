@@ -59,6 +59,21 @@ const DiveTrips = () => {
       })
     : [];
 
+  // Group trips by date
+  const groupedTrips = sortedTrips.reduce((groups, trip) => {
+    const dateKey = trip.trip_date;
+    if (!groups[dateKey]) {
+      groups[dateKey] = [];
+    }
+    groups[dateKey].push(trip);
+    return groups;
+  }, {});
+
+  // Sort date groups (newest first)
+  const sortedDateGroups = Object.entries(groupedTrips).sort(([dateA], [dateB]) => {
+    return new Date(dateB) - new Date(dateA);
+  });
+
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({
       ...prev,
@@ -104,6 +119,33 @@ const DiveTrips = () => {
     const formattedDate = date.toLocaleDateString('en-US', options);
     const shortDate = date.toLocaleDateString('en-GB');
     return `${formattedDate} (${shortDate})`;
+  };
+
+  const formatDateHeader = dateString => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const isToday = date.toDateString() === today.toDateString();
+    const isTomorrow = date.toDateString() === tomorrow.toDateString();
+
+    const options = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    };
+    const formattedDate = date.toLocaleDateString('en-US', options);
+
+    let headerText = formattedDate;
+    if (isToday) {
+      headerText += ' (Today)';
+    } else if (isTomorrow) {
+      headerText += ' (Tomorrow)';
+    }
+
+    return headerText;
   };
 
   const formatTime = timeString => {
@@ -348,161 +390,182 @@ const DiveTrips = () => {
       )}
 
       {viewMode === 'list' && sortedTrips && sortedTrips.length > 0 && !isAuthError && (
-        <div className='space-y-4'>
-          {sortedTrips.map(trip => (
-            <div
-              key={trip.id}
-              className='bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow'
-            >
-              <div className='flex justify-between items-start mb-4'>
-                <div>
-                  <div className='flex items-center space-x-2 mb-2'>
-                    <Building className='h-4 w-4 text-blue-600' />
-                    {trip.diving_center_id ? (
-                      <Link
-                        to={`/diving-centers/${trip.diving_center_id}`}
-                        className='text-xl font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors'
-                      >
-                        {trip.diving_center_name || 'Unknown Center'}
-                      </Link>
-                    ) : (
-                      <h3 className='text-xl font-semibold text-gray-900'>
-                        {trip.diving_center_name || 'Unknown Center'}
-                      </h3>
-                    )}
-                  </div>
+        <div className='space-y-8'>
+          {sortedDateGroups.map(([dateKey, tripsForDate]) => (
+            <div key={dateKey} className='space-y-4'>
+              {/* Date Header */}
+              <div className='flex items-center space-x-3'>
+                <div className='flex items-center space-x-2'>
+                  <Calendar className='h-6 w-6 text-blue-600' />
+                  <h2 className='text-xl font-bold text-gray-900'>{formatDateHeader(dateKey)}</h2>
                 </div>
-                <span
-                  className={`px-3 py-1 text-sm rounded-full ${getStatusColor(getDisplayStatus(trip))}`}
-                >
-                  {getDisplayStatus(trip)}
+                <div className='flex-1 border-t border-gray-300'></div>
+                <span className='text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full'>
+                  {tripsForDate.length} trip{tripsForDate.length !== 1 ? 's' : ''}
                 </span>
               </div>
 
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4'>
-                <div className='flex items-center text-gray-600'>
-                  <Calendar className='h-4 w-4 mr-2' />
-                  <button
-                    onClick={() => handleDateClick(trip.trip_date)}
-                    className='text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors border border-transparent hover:border-blue-300 rounded px-1 py-0.5 flex items-center'
-                    title='Click to filter by this date'
+              {/* Trips for this date */}
+              <div className='space-y-4'>
+                {tripsForDate.map(trip => (
+                  <div
+                    key={trip.id}
+                    className='bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow'
                   >
-                    {formatDate(trip.trip_date)}
-                    <Filter className='h-3 w-3 ml-1 opacity-60' />
-                  </button>
-                </div>
-
-                <div className='flex items-center text-gray-600'>
-                  <Clock className='h-4 w-4 mr-2' />
-                  <span>{formatTime(trip.trip_time)}</span>
-                </div>
-
-                {trip.trip_duration && (
-                  <div className='flex items-center text-gray-600'>
-                    <Clock className='h-4 w-4 mr-2' />
-                    <span>{trip.trip_duration} min</span>
-                  </div>
-                )}
-
-                {trip.trip_price && (
-                  <div className='flex items-center text-gray-600'>
-                    <Euro className='h-4 w-4 mr-2' />
-                    <span>{formatCurrency(trip.trip_price, trip.trip_currency)}</span>
-                  </div>
-                )}
-
-                {trip.group_size_limit && (
-                  <div className='flex items-center text-gray-600'>
-                    <Users className='h-4 w-4 mr-2' />
-                    <span>Max {trip.group_size_limit} people</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Display multiple dives */}
-              {trip.dives && trip.dives.length > 0 && (
-                <div className='mb-4'>
-                  <h4 className='text-sm font-medium text-gray-700 mb-2'>Dives:</h4>
-                  <div className='space-y-2'>
-                    {trip.dives.map((dive, _index) => (
-                      <div
-                        key={dive.id}
-                        className='flex items-center space-x-3 p-3 bg-blue-50 rounded'
-                      >
-                        <div className='flex items-center'>
-                          <MapPin className='h-4 w-4 mr-2 text-blue-600' />
-                          <span className='text-sm font-medium text-gray-700'>
-                            Dive {dive.dive_number}:
-                          </span>
-                        </div>
-                        <div className='flex-1'>
-                          <span className='text-sm text-gray-600'>
-                            {dive.dive_site_name ? (
-                              dive.dive_site_id ? (
-                                <Link
-                                  to={`/dive-sites/${dive.dive_site_id}`}
-                                  className='hover:text-blue-600 hover:underline transition-colors'
-                                >
-                                  {dive.dive_site_name}
-                                </Link>
-                              ) : (
-                                dive.dive_site_name
-                              )
-                            ) : (
-                              'No dive site specified'
-                            )}
-                          </span>
-                          {dive.dive_time && (
-                            <span className='text-sm text-gray-500 ml-2'>
-                              at {formatTime(dive.dive_time)}
-                            </span>
-                          )}
-                          {dive.dive_duration && (
-                            <span className='text-sm text-gray-500 ml-2'>
-                              ({dive.dive_duration} min)
-                            </span>
+                    <div className='flex justify-between items-start mb-4'>
+                      <div>
+                        <div className='flex items-center space-x-2 mb-2'>
+                          <Building className='h-4 w-4 text-blue-600' />
+                          {trip.diving_center_id ? (
+                            <Link
+                              to={`/diving-centers/${trip.diving_center_id}`}
+                              className='text-xl font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors'
+                            >
+                              {trip.diving_center_name || 'Unknown Center'}
+                            </Link>
+                          ) : (
+                            <h3 className='text-xl font-semibold text-gray-900'>
+                              {trip.diving_center_name || 'Unknown Center'}
+                            </h3>
                           )}
                         </div>
-                        {dive.dive_description && (
-                          <div className='text-xs text-gray-500 mt-1'>{dive.dive_description}</div>
-                        )}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                      <span
+                        className={`px-3 py-1 text-sm rounded-full ${getStatusColor(getDisplayStatus(trip))}`}
+                      >
+                        {getDisplayStatus(trip)}
+                      </span>
+                    </div>
 
-              {/* Fallback for old single dive site display */}
-              {(!trip.dives || trip.dives.length === 0) && trip.dive_site_name && (
-                <div className='mb-4'>
-                  <div className='flex items-center space-x-3 p-3 bg-green-50 rounded'>
-                    <MapPin className='h-4 w-4 text-green-600' />
-                    <span className='text-sm font-medium text-gray-700'>Dive Site:</span>
-                    <div className='flex-1'>
-                      {trip.dive_site_id ? (
-                        <Link
-                          to={`/dive-sites/${trip.dive_site_id}`}
-                          className='text-sm text-gray-600 hover:text-green-600 hover:underline transition-colors'
+                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4'>
+                      <div className='flex items-center text-gray-600'>
+                        <Calendar className='h-4 w-4 mr-2' />
+                        <button
+                          onClick={() => handleDateClick(trip.trip_date)}
+                          className='text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors border border-transparent hover:border-blue-300 rounded px-1 py-0.5 flex items-center'
+                          title='Click to filter by this date'
                         >
-                          {trip.dive_site_name}
-                        </Link>
-                      ) : (
-                        <span className='text-sm text-gray-600'>{trip.dive_site_name}</span>
+                          {formatDate(trip.trip_date)}
+                          <Filter className='h-3 w-3 ml-1 opacity-60' />
+                        </button>
+                      </div>
+
+                      <div className='flex items-center text-gray-600'>
+                        <Clock className='h-4 w-4 mr-2' />
+                        <span>{formatTime(trip.trip_time)}</span>
+                      </div>
+
+                      {trip.trip_duration && (
+                        <div className='flex items-center text-gray-600'>
+                          <Clock className='h-4 w-4 mr-2' />
+                          <span>{trip.trip_duration} min</span>
+                        </div>
+                      )}
+
+                      {trip.trip_price && (
+                        <div className='flex items-center text-gray-600'>
+                          <Euro className='h-4 w-4 mr-2' />
+                          <span>{formatCurrency(trip.trip_price, trip.trip_currency)}</span>
+                        </div>
+                      )}
+
+                      {trip.group_size_limit && (
+                        <div className='flex items-center text-gray-600'>
+                          <Users className='h-4 w-4 mr-2' />
+                          <span>Max {trip.group_size_limit} people</span>
+                        </div>
                       )}
                     </div>
+
+                    {/* Display multiple dives */}
+                    {trip.dives && trip.dives.length > 0 && (
+                      <div className='mb-4'>
+                        <h4 className='text-sm font-medium text-gray-700 mb-2'>Dives:</h4>
+                        <div className='space-y-2'>
+                          {trip.dives.map((dive, _index) => (
+                            <div
+                              key={dive.id}
+                              className='flex items-center space-x-3 p-3 bg-blue-50 rounded'
+                            >
+                              <div className='flex items-center'>
+                                <MapPin className='h-4 w-4 mr-2 text-blue-600' />
+                                <span className='text-sm font-medium text-gray-700'>
+                                  Dive {dive.dive_number}:
+                                </span>
+                              </div>
+                              <div className='flex-1'>
+                                <span className='text-sm text-gray-600'>
+                                  {dive.dive_site_name ? (
+                                    dive.dive_site_id ? (
+                                      <Link
+                                        to={`/dive-sites/${dive.dive_site_id}`}
+                                        className='hover:text-blue-600 hover:underline transition-colors'
+                                      >
+                                        {dive.dive_site_name}
+                                      </Link>
+                                    ) : (
+                                      dive.dive_site_name
+                                    )
+                                  ) : (
+                                    'No dive site specified'
+                                  )}
+                                </span>
+                                {dive.dive_time && (
+                                  <span className='text-sm text-gray-500 ml-2'>
+                                    at {formatTime(dive.dive_time)}
+                                  </span>
+                                )}
+                                {dive.dive_duration && (
+                                  <span className='text-sm text-gray-500 ml-2'>
+                                    ({dive.dive_duration} min)
+                                  </span>
+                                )}
+                              </div>
+                              {dive.dive_description && (
+                                <div className='text-xs text-gray-500 mt-1'>
+                                  {dive.dive_description}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fallback for old single dive site display */}
+                    {(!trip.dives || trip.dives.length === 0) && trip.dive_site_name && (
+                      <div className='mb-4'>
+                        <div className='flex items-center space-x-3 p-3 bg-green-50 rounded'>
+                          <MapPin className='h-4 w-4 text-green-600' />
+                          <span className='text-sm font-medium text-gray-700'>Dive Site:</span>
+                          <div className='flex-1'>
+                            {trip.dive_site_id ? (
+                              <Link
+                                to={`/dive-sites/${trip.dive_site_id}`}
+                                className='text-sm text-gray-600 hover:text-green-600 hover:underline transition-colors'
+                              >
+                                {trip.dive_site_name}
+                              </Link>
+                            ) : (
+                              <span className='text-sm text-gray-600'>{trip.dive_site_name}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {trip.trip_description && (
+                      <p className='text-gray-700 mb-4'>{trip.trip_description}</p>
+                    )}
+
+                    {trip.special_requirements && (
+                      <div className='p-3 bg-yellow-50 rounded-md'>
+                        <p className='text-sm text-yellow-800'>{trip.special_requirements}</p>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-
-              {trip.trip_description && (
-                <p className='text-gray-700 mb-4'>{trip.trip_description}</p>
-              )}
-
-              {trip.special_requirements && (
-                <div className='p-3 bg-yellow-50 rounded-md'>
-                  <p className='text-sm text-yellow-800'>{trip.special_requirements}</p>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
           ))}
         </div>
