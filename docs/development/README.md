@@ -47,7 +47,7 @@ Divemap is a comprehensive web application for scuba diving enthusiasts to disco
 ### Key Features
 
 - **User Management**: Registration, login, and profile management with Google OAuth
-- **Dive Sites**: Comprehensive CRUD operations with detailed information
+- **Dive Sites**: Comprehensive CRUD operations with detailed information and aliases system
 - **Diving Centers**: Full management with gear rental costs and dive site associations
 - **Rating System**: Rate dive sites and diving centers (1-10 scale)
 - **Interactive Map**: View dive sites and diving centers on an interactive map
@@ -55,6 +55,7 @@ Divemap is a comprehensive web application for scuba diving enthusiasts to disco
 - **Admin Dashboard**: Full administrative interface with separate management pages
 - **Multi-Currency Support**: Support for 10 major world currencies
 - **Tag System**: Comprehensive tag/label management for dive sites
+- **Aliases System**: Multiple aliases per dive site for enhanced search and newsletter parsing
 
 ## Tech Stack
 
@@ -651,6 +652,7 @@ A comprehensive newsletter parsing and trip management system has been implement
 - **CRUD Operations**: Full Create, Read, Update, Delete operations for parsed dive trips
 - **Multiple Dives Per Trip**: Each trip can contain multiple individual dives with specific details
 - **Admin Interface**: Complete management at `/admin/newsletters`
+- **Aliases Integration**: Enhanced dive site matching using aliases for improved parsing accuracy
 
 **Trip Management:**
 - Trip-level information (date, time, duration, difficulty, price, status)
@@ -669,6 +671,7 @@ A comprehensive newsletter parsing and trip management system has been implement
 - `ParsedDiveTrip` model for trip-level information
 - `ParsedDive` model for individual dive details within trips
 - Relationships to diving centers, dive sites, and newsletter sources
+- Enhanced dive site matching using aliases for improved parsing accuracy
 
 **Access:** Available to admin users at `/admin/newsletters`
 
@@ -865,6 +868,50 @@ python utils/import_dive_sites_enhanced.py -f --skip-all
 - **Always updated**: name, description, latitude, longitude
 - **Preserved**: address, access_instructions, difficulty_level, marine_life, safety_information, aliases, country, region
 - **Selective updates**: Only changes fields present in import data
+
+## Aliases System
+
+### Overview
+The aliases system allows dive sites to have multiple alternative names, enhancing search functionality and newsletter parsing accuracy. This replaces the deprecated `alternative_names` field with a structured approach.
+
+### Database Schema
+- **Table**: `dive_site_aliases`
+- **Fields**: `id`, `dive_site_id`, `alias`, `created_at`
+- **Constraints**: Unique constraint on `dive_site_id` and `alias`
+- **Relationships**: Foreign key to `dive_sites` table
+
+### API Endpoints
+- **GET** `/api/v1/dive-sites/{dive_site_id}/aliases` - List aliases for a dive site
+- **POST** `/api/v1/dive-sites/{dive_site_id}/aliases` - Create new alias
+- **PUT** `/api/v1/dive-sites/{dive_site_id}/aliases/{alias_id}` - Update alias
+- **DELETE** `/api/v1/dive-sites/{dive_site_id}/aliases/{alias_id}` - Delete alias
+
+### Frontend Integration
+- **Admin Interface**: Full CRUD operations in dive site edit page
+- **Display**: Aliases shown in dive site detail and listing pages
+- **Search**: Enhanced search functionality using aliases
+- **Newsletter Parsing**: Improved dive site matching using aliases
+
+### Migration from Alternative Names
+- **Deprecated**: `alternative_names` field in `dive_sites` table
+- **Migration**: Existing data should be migrated to aliases table
+- **Backward Compatibility**: API responses updated to use aliases structure
+
+### Usage Examples
+```bash
+# Create alias for dive site
+curl -X POST "http://localhost:8000/api/v1/dive-sites/1/aliases" \
+  -H "Content-Type: application/json" \
+  -d '{"alias": "Blue Hole"}'
+
+# List aliases for dive site
+curl "http://localhost:8000/api/v1/dive-sites/1/aliases"
+
+# Update alias
+curl -X PUT "http://localhost:8000/api/v1/dive-sites/1/aliases/1" \
+  -H "Content-Type: application/json" \
+  -d '{"alias": "Blue Hole Updated"}'
+```
 
 #### **import_kml_dive_sites.py**
 - **Purpose**: Import dive sites from KML files with automatic tag assignment

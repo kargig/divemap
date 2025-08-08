@@ -36,7 +36,7 @@ node run_all_tests.js
 
 ### Backend Tests (`backend/tests/`)
 - **test_auth.py** - Authentication and authorization
-- **test_dive_sites.py** - Dive sites API endpoints
+- **test_dive_sites.py** - Dive sites API endpoints (includes aliases functionality)
 - **test_diving_centers.py** - Diving centers API endpoints
 - **test_dives.py** - Dive logging and management (includes dive-diving center relationship tests)
 - **test_tags.py** - Tags management

@@ -107,6 +107,10 @@ All documentation should:
 - ✅ Implemented random selection for dive sites with total count display
 - ✅ Updated security documentation with new rate limiting implementation
 - ✅ Added rate limiting section to development documentation
+- ✅ Implemented dive site aliases system with full CRUD operations
+- ✅ Enhanced newsletter parsing with aliases-based dive site matching
+- ✅ Updated database schema with dive_site_aliases table
+- ✅ Added comprehensive aliases documentation and testing coverage
 
 ## 📊 Documentation Categories
 

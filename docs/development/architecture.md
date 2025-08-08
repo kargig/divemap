@@ -36,7 +36,7 @@ This document outlines the technical design for a Python-based web application, 
   * Difficulty level.  
   * Marine life encountered (optional, could be free text or predefined tags).  
   * Safety information.
-  * Alternative names/aliases for URL routing.
+  * Aliases system for enhanced search and newsletter parsing.
 * **View Dive Site:**  
   * Display all aforementioned details.  
   * Average user rating.  
@@ -958,7 +958,7 @@ node test_regressions.js
 * 🔄 Search and filter dives by various criteria
 * 🔄 Integration with dive sites and tags
 * 🔄 Remove gas tanks necessary and dive plans from dive sites
-* 🔄 Add alternative names/aliases to dive sites for URL routing
+* ✅ Aliases system implemented for enhanced search and newsletter parsing
 
 #### **Phase 6: Diving Center Ownership 🔄 PLANNED**
 * 🔄 User claiming system for diving centers

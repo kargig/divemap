@@ -7,7 +7,7 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 ## Features
 
 - **User Management**: Registration, login, and profile management with Google OAuth support
-- **Dive Sites**: Comprehensive CRUD operations with detailed information including maximum depth, alternative names, country, and region
+- **Dive Sites**: Comprehensive CRUD operations with detailed information including maximum depth, aliases, country, and region
 - **Diving Centers**: Full management with gear rental costs and dive site associations
 - **Diving Organizations**: Complete management system for diving organizations (PADI, SSI, GUE, etc.)
 - **User Certifications**: Comprehensive certification tracking system with organization associations
@@ -169,6 +169,7 @@ python populate_diving_organizations.py list
 - **Rating System**: 1-10 scale rating system with user feedback
 - **Comment System**: User comments with diving credentials display
 - **Tag System**: Comprehensive tagging with usage statistics and protection
+- **Aliases System**: Multiple aliases per dive site for enhanced search and newsletter parsing
 
 ### **Diving Center Management**
 - **Full Center Management**: Complete CRUD operations for diving centers
@@ -199,7 +200,7 @@ python populate_diving_organizations.py list
 - **AI-Powered Parsing**: OpenAI integration for intelligent newsletter content parsing
 - **Dive Trip Extraction**: Automatically extract dive trip information from newsletters
 - **Diving Center Matching**: Intelligent matching of diving centers from newsletter content
-- **Dive Site Recognition**: Automatic recognition and linking of dive sites
+- **Dive Site Recognition**: Automatic recognition and linking of dive sites using aliases
 - **Trip Management**: Create, update, and manage parsed dive trips
 - **Multi-format Support**: Support for various newsletter formats and languages
 - **Bulk Operations**: Mass upload and management of newsletter content
