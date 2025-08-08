@@ -1,10 +1,21 @@
-import { Star, MapPin, Phone, Mail, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Star,
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
+  ChevronLeft,
+  ChevronRight,
+  List,
+  Map,
+} from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
+import DivingCentersMap from '../components/DivingCentersMap';
 import { useAuth } from '../contexts/AuthContext';
 
 // Helper function to safely extract error message
@@ -23,6 +34,11 @@ const DivingCenters = () => {
   const navigate = useNavigate();
 
   // Get initial values from URL parameters
+  const getInitialViewMode = () => {
+    const viewMode = searchParams.get('view');
+    return viewMode === 'map' ? 'map' : 'list';
+  };
+
   const getInitialFilters = () => {
     return {
       name: searchParams.get('name') || '',
@@ -38,6 +54,12 @@ const DivingCenters = () => {
     };
   };
 
+  const [viewMode, setViewMode] = useState(getInitialViewMode);
+  const [viewport, setViewport] = useState({
+    longitude: 0,
+    latitude: 0,
+    zoom: 2,
+  });
   const [filters, setFilters] = useState(getInitialFilters);
   const [pagination, setPagination] = useState(getInitialPagination);
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
@@ -48,10 +70,15 @@ const DivingCenters = () => {
   const debouncedUpdateURL = useCallback(
     (() => {
       let timeoutId;
-      return (newFilters, newPagination) => {
+      return (newFilters, newPagination, newViewMode) => {
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => {
           const newSearchParams = new URLSearchParams();
+
+          // Add view mode
+          if (newViewMode === 'map') {
+            newSearchParams.set('view', 'map');
+          }
 
           // Add filters
           if (newFilters.name) newSearchParams.set('name', newFilters.name);
@@ -72,8 +99,13 @@ const DivingCenters = () => {
 
   // Immediate URL update for non-search filters
   const immediateUpdateURL = useCallback(
-    (newFilters, newPagination) => {
+    (newFilters, newPagination, newViewMode) => {
       const newSearchParams = new URLSearchParams();
+
+      // Add view mode
+      if (newViewMode === 'map') {
+        newSearchParams.set('view', 'map');
+      }
 
       // Add filters
       if (newFilters.name) newSearchParams.set('name', newFilters.name);
@@ -90,14 +122,14 @@ const DivingCenters = () => {
     [navigate]
   );
 
-  // Update URL when pagination change (immediate)
+  // Update URL when view mode or pagination change (immediate)
   useEffect(() => {
-    immediateUpdateURL(filters, pagination);
-  }, [pagination, immediateUpdateURL]);
+    immediateUpdateURL(filters, pagination, viewMode);
+  }, [viewMode, pagination, immediateUpdateURL]);
 
   // Debounced URL update for search inputs
   useEffect(() => {
-    debouncedUpdateURL(filters, pagination);
+    debouncedUpdateURL(filters, pagination, viewMode);
   }, [filters.name, debouncedUpdateURL]);
 
   // Debounced search terms for query key
@@ -112,7 +144,7 @@ const DivingCenters = () => {
 
   // Immediate URL update for non-search filters
   useEffect(() => {
-    immediateUpdateURL(filters, pagination);
+    immediateUpdateURL(filters, pagination, viewMode);
   }, [filters.min_rating, filters.max_rating, immediateUpdateURL]);
 
   // Fetch diving centers with pagination
@@ -339,164 +371,209 @@ const DivingCenters = () => {
         </div>
       </form>
 
-      {/* Pagination Controls */}
+      {/* View Mode and Pagination Controls */}
       <div className='mt-4 flex flex-col sm:flex-row justify-between items-center gap-4 mb-8'>
-        {/* Page Size Selection */}
-        <div className='flex items-center gap-2'>
-          <label className='text-sm font-medium text-gray-700'>Show:</label>
-          <select
-            value={pagination.page_size}
-            onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-            className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-          >
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-          <span className='text-sm text-gray-600'>per page</span>
+        {/* View Mode Controls */}
+        <div className='flex items-center gap-4'>
+          <div className='flex items-center gap-2'>
+            <span className='text-sm font-medium text-gray-700'>View Mode:</span>
+          </div>
+          <div className='flex gap-2'>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-all duration-200 ${
+                viewMode === 'list'
+                  ? 'bg-blue-600 text-white shadow-md scale-105'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
+              }`}
+            >
+              <List className='h-4 w-4' />
+              List View
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-all duration-200 ${
+                viewMode === 'map'
+                  ? 'bg-blue-600 text-white shadow-md scale-105'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
+              }`}
+            >
+              <Map className='h-4 w-4' />
+              Map View
+            </button>
+          </div>
         </div>
 
-        {/* Pagination Info */}
-        {paginationInfo.totalCount !== undefined && (
-          <div className='text-sm text-gray-600'>
-            Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
-            {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of{' '}
-            {paginationInfo.totalCount} diving centers
-          </div>
-        )}
-
-        {/* Pagination Navigation */}
-        {paginationInfo.totalCount !== undefined && (
+        {/* Pagination Controls */}
+        <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
+          {/* Page Size Selection */}
           <div className='flex items-center gap-2'>
-            <button
-              onClick={() => handlePageChange(pagination.page - 1)}
-              disabled={pagination.page <= 1}
-              className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+            <label className='text-sm font-medium text-gray-700'>Show:</label>
+            <select
+              value={pagination.page_size}
+              onChange={e => handlePageSizeChange(parseInt(e.target.value))}
+              className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
             >
-              <ChevronLeft className='h-4 w-4' />
-            </button>
-
-            <span className='text-sm text-gray-700'>
-              Page {pagination.page} of{' '}
-              {Math.ceil(paginationInfo.totalCount / pagination.page_size)}
-            </span>
-
-            <button
-              onClick={() => handlePageChange(pagination.page + 1)}
-              disabled={
-                pagination.page >= Math.ceil(paginationInfo.totalCount / pagination.page_size)
-              }
-              className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-            >
-              <ChevronRight className='h-4 w-4' />
-            </button>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span className='text-sm text-gray-600'>per page</span>
           </div>
-        )}
+
+          {/* Pagination Info */}
+          {paginationInfo.totalCount !== undefined && (
+            <div className='text-sm text-gray-600'>
+              Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
+              {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of{' '}
+              {paginationInfo.totalCount} diving centers
+            </div>
+          )}
+
+          {/* Pagination Navigation */}
+          {paginationInfo.totalCount !== undefined && (
+            <div className='flex items-center gap-2'>
+              <button
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+                className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+              >
+                <ChevronLeft className='h-4 w-4' />
+              </button>
+
+              <span className='text-sm text-gray-700'>
+                Page {pagination.page} of{' '}
+                {Math.ceil(paginationInfo.totalCount / pagination.page_size)}
+              </span>
+
+              <button
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={
+                  pagination.page >= Math.ceil(paginationInfo.totalCount / pagination.page_size)
+                }
+                className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+              >
+                <ChevronRight className='h-4 w-4' />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Results */}
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-        {divingCenters?.map(center => (
-          <div
-            key={center.id}
-            className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow'
-          >
-            <div className='p-6'>
-              <div className='flex justify-between items-start mb-4'>
-                <h3 className='text-xl font-semibold text-gray-900 mb-2'>
-                  <Link
-                    to={`/diving-centers/${center.id}`}
-                    className='hover:text-blue-600 transition-colors'
-                  >
-                    {center.name}
-                  </Link>
-                </h3>
-                {center.average_rating && (
-                  <div className='flex items-center space-x-1'>
-                    <span className='text-sm font-semibold text-gray-700'>
-                      {center.average_rating.toFixed(1)}/10
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {center.description && (
-                <p className='text-gray-600 mb-4 line-clamp-3'>{center.description}</p>
-              )}
-
-              {/* Contact Information */}
-              <div className='space-y-2 mb-4'>
-                {center.email && (
-                  <div className='flex items-center text-sm text-gray-600'>
-                    <Mail className='h-4 w-4 mr-2' />
-                    <a href={`mailto:${center.email}`} className='hover:text-blue-600'>
-                      {center.email}
-                    </a>
-                  </div>
-                )}
-                {center.phone && (
-                  <div className='flex items-center text-sm text-gray-600'>
-                    <Phone className='h-4 w-4 mr-2' />
-                    <a href={`tel:${center.phone}`} className='hover:text-blue-600'>
-                      {center.phone}
-                    </a>
-                  </div>
-                )}
-                {center.website && (
-                  <div className='flex items-center text-sm text-gray-600'>
-                    <Globe className='h-4 w-4 mr-2' />
-                    <a
-                      href={
-                        center.website.startsWith('http')
-                          ? center.website
-                          : `https://${center.website}`
-                      }
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      className='hover:text-blue-600'
+      {/* Results Section */}
+      {viewMode === 'map' ? (
+        <div className='mb-6'>
+          <DivingCentersMap
+            key={`diving-centers-${divingCenters?.length || 0}-${divingCenters?.map(center => center.id).join('-') || ''}`}
+            divingCenters={divingCenters}
+            viewport={viewport}
+            onViewportChange={setViewport}
+          />
+        </div>
+      ) : (
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+          {divingCenters?.map(center => (
+            <div
+              key={center.id}
+              className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow'
+            >
+              <div className='p-6'>
+                <div className='flex justify-between items-start mb-4'>
+                  <h3 className='text-xl font-semibold text-gray-900 mb-2'>
+                    <Link
+                      to={`/diving-centers/${center.id}`}
+                      className='hover:text-blue-600 transition-colors'
                     >
-                      {center.website}
-                    </a>
-                  </div>
-                )}
-                {center.latitude && center.longitude && (
-                  <div className='flex items-center text-sm text-gray-600'>
-                    <MapPin className='h-4 w-4 mr-2' />
-                    <span>
-                      {Number(center.latitude).toFixed(4)}, {Number(center.longitude).toFixed(4)}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Rating Section */}
-              <div className='border-t pt-4'>
-                <div className='flex justify-between items-center'>
-                  <span className='text-sm text-gray-600'>
-                    {center.total_ratings} rating{center.total_ratings !== 1 ? 's' : ''}
-                  </span>
-                  {user && (
+                      {center.name}
+                    </Link>
+                  </h3>
+                  {center.average_rating && (
                     <div className='flex items-center space-x-1'>
-                      <span className='text-xs text-gray-500 mr-2'>Rate:</span>
-                      {renderStars(0, true, center.id)}
+                      <span className='text-sm font-semibold text-gray-700'>
+                        {center.average_rating.toFixed(1)}/10
+                      </span>
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* View Details Button */}
-              <div className='mt-4'>
-                <Link
-                  to={`/diving-centers/${center.id}`}
-                  className='block w-full text-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors'
-                >
-                  View Details
-                </Link>
+                {center.description && (
+                  <p className='text-gray-600 mb-4 line-clamp-3'>{center.description}</p>
+                )}
+
+                {/* Contact Information */}
+                <div className='space-y-2 mb-4'>
+                  {center.email && (
+                    <div className='flex items-center text-sm text-gray-600'>
+                      <Mail className='h-4 w-4 mr-2' />
+                      <a href={`mailto:${center.email}`} className='hover:text-blue-600'>
+                        {center.email}
+                      </a>
+                    </div>
+                  )}
+                  {center.phone && (
+                    <div className='flex items-center text-sm text-gray-600'>
+                      <Phone className='h-4 w-4 mr-2' />
+                      <a href={`tel:${center.phone}`} className='hover:text-blue-600'>
+                        {center.phone}
+                      </a>
+                    </div>
+                  )}
+                  {center.website && (
+                    <div className='flex items-center text-sm text-gray-600'>
+                      <Globe className='h-4 w-4 mr-2' />
+                      <a
+                        href={
+                          center.website.startsWith('http')
+                            ? center.website
+                            : `https://${center.website}`
+                        }
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='hover:text-blue-600'
+                      >
+                        {center.website}
+                      </a>
+                    </div>
+                  )}
+                  {center.latitude && center.longitude && (
+                    <div className='flex items-center text-sm text-gray-600'>
+                      <MapPin className='h-4 w-4 mr-2' />
+                      <span>
+                        {Number(center.latitude).toFixed(4)}, {Number(center.longitude).toFixed(4)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Rating Section */}
+                <div className='border-t pt-4'>
+                  <div className='flex justify-between items-center'>
+                    <span className='text-sm text-gray-600'>
+                      {center.total_ratings} rating{center.total_ratings !== 1 ? 's' : ''}
+                    </span>
+                    {user && (
+                      <div className='flex items-center space-x-1'>
+                        <span className='text-xs text-gray-500 mr-2'>Rate:</span>
+                        {renderStars(0, true, center.id)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* View Details Button */}
+                <div className='mt-4'>
+                  <Link
+                    to={`/diving-centers/${center.id}`}
+                    className='block w-full text-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors'
+                  >
+                    View Details
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {divingCenters?.length === 0 && (
         <div className='text-center py-12'>

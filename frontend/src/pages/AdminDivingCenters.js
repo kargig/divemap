@@ -514,6 +514,64 @@ const AdminDivingCenters = () => {
           <p className='text-gray-500'>No diving centers found.</p>
         </div>
       )}
+
+      {/* Bottom Pagination Controls */}
+      <div className='mt-8 flex flex-col sm:flex-row justify-between items-center gap-4'>
+        {/* Page Size Selection */}
+        <div className='flex items-center gap-2'>
+          <label htmlFor='page-size-select-bottom' className='text-sm font-medium text-gray-700'>
+            Show:
+          </label>
+          <select
+            id='page-size-select-bottom'
+            value={pagination.page_size}
+            onChange={e => handlePageSizeChange(parseInt(e.target.value))}
+            className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+          >
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+          <span className='text-sm text-gray-600'>per page</span>
+        </div>
+
+        {/* Pagination Info */}
+        {paginationInfo.totalCount !== undefined && (
+          <div className='text-sm text-gray-600'>
+            Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
+            {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of{' '}
+            {paginationInfo.totalCount} diving centers
+          </div>
+        )}
+
+        {/* Pagination Navigation */}
+        {paginationInfo.totalCount !== undefined && (
+          <div className='flex items-center gap-2'>
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+              className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+            >
+              <ChevronLeft className='h-4 w-4' />
+            </button>
+
+            <span className='text-sm text-gray-700'>
+              Page {pagination.page} of{' '}
+              {Math.ceil(paginationInfo.totalCount / pagination.page_size)}
+            </span>
+
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={
+                pagination.page >= Math.ceil(paginationInfo.totalCount / pagination.page_size)
+              }
+              className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+            >
+              <ChevronRight className='h-4 w-4' />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
