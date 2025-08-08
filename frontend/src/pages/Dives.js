@@ -844,7 +844,12 @@ const Dives = () => {
         </div>
       ) : viewMode === 'map' ? (
         <div className='mb-6 sm:mb-8'>
-          <DivesMap dives={dives} viewport={viewport} onViewportChange={setViewport} />
+          <DivesMap
+            key={`dives-${dives?.length || 0}-${JSON.stringify(filters)}`}
+            dives={dives}
+            viewport={viewport}
+            onViewportChange={setViewport}
+          />
         </div>
       ) : (
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6'>

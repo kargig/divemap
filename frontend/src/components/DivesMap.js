@@ -13,9 +13,10 @@ import View from 'ol/View';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
-const DivesMap = ({ dives = [] }) => {
+const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
   const mapRef = useRef();
   const mapInstance = useRef();
+  const hasFittedRef = useRef(false);
   const [popupInfo, setPopupInfo] = useState(null);
   const [popupPosition, setPopupPosition] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(2);
@@ -135,6 +136,215 @@ const DivesMap = ({ dives = [] }) => {
     return { x: left, y: top };
   };
 
+  // Function to fit map to show all dives
+  const fitMapToDives = (features, source, divesData) => {
+    if (!mapInstance.current || !features || features.length === 0) {
+      return;
+    }
+
+    // Check if we have valid dives data
+    if (!divesData || divesData.length === 0) {
+      return;
+    }
+
+    // Reset the fitted flag when we have new features
+    hasFittedRef.current = false;
+
+    try {
+      // Add a small delay to ensure source is properly initialized
+      setTimeout(() => {
+        try {
+          const extent = source.getExtent();
+
+          // Check if extent is valid (not empty) and has minimum size
+          const minExtentSize = 100; // minimum pixels for extent to be considered valid
+          let extentWidth = 0;
+          let extentHeight = 0;
+
+          try {
+            if (extent && extent.getWidth && extent.getHeight) {
+              extentWidth = extent.getWidth();
+              extentHeight = extent.getHeight();
+            } else if (extent && Array.isArray(extent)) {
+              // Handle array format [minX, minY, maxX, maxY]
+              extentWidth = extent[2] - extent[0];
+              extentHeight = extent[3] - extent[1];
+            }
+          } catch (error) {
+            console.error('⚠️ Error calculating extent dimensions:', error);
+          }
+
+          if (extent && extentWidth > minExtentSize && extentHeight > minExtentSize) {
+            const view = mapInstance.current.getView();
+            const maxZoom = view.getMaxZoom();
+
+            // Calculate optimal zoom level based on number of features
+            let targetZoom;
+            if (features.length === 1) {
+              // Single dive - zoom in closer
+              targetZoom = Math.min(maxZoom - 2, 15);
+            } else if (features.length <= 5) {
+              // Few dives - zoom in moderately
+              targetZoom = Math.min(maxZoom - 3, 12);
+            } else if (features.length <= 20) {
+              // Moderate number of dives
+              targetZoom = Math.min(maxZoom - 4, 10);
+            } else {
+              // Many dives - show broader view
+              targetZoom = Math.min(maxZoom - 5, 8);
+            }
+
+            // Ensure minimum zoom level
+            targetZoom = Math.max(targetZoom, 2);
+
+            // Only fit if we haven't already fitted for these features
+            if (!hasFittedRef.current) {
+              mapInstance.current.getView().fit(extent, {
+                padding: [50, 50, 50, 50],
+                duration: 1000,
+                maxZoom: targetZoom,
+              });
+              hasFittedRef.current = true;
+            }
+          } else {
+            // Fallback: calculate center and zoom manually
+
+            // Calculate center from original dives data (not transformed coordinates)
+            let minLon = Infinity,
+              maxLon = -Infinity,
+              minLat = Infinity,
+              maxLat = -Infinity;
+
+            // Use the original dives data instead of transformed coordinates
+            divesData.forEach(dive => {
+              if (dive.dive_site && dive.dive_site.longitude && dive.dive_site.latitude) {
+                const lon = parseFloat(dive.dive_site.longitude);
+                const lat = parseFloat(dive.dive_site.latitude);
+
+                if (!isNaN(lon) && !isNaN(lat)) {
+                  minLon = Math.min(minLon, lon);
+                  maxLon = Math.max(maxLon, lon);
+                  minLat = Math.min(minLat, lat);
+                  maxLat = Math.max(maxLat, lat);
+                }
+              }
+            });
+
+            // Check if we have valid coordinates
+            if (
+              minLon === Infinity ||
+              maxLon === -Infinity ||
+              minLat === Infinity ||
+              maxLat === -Infinity
+            ) {
+              return;
+            }
+
+            const centerLon = (minLon + maxLon) / 2;
+            const centerLat = (minLat + maxLat) / 2;
+
+            // Calculate zoom based on the spread of coordinates
+            const lonSpread = maxLon - minLon;
+            const latSpread = maxLat - minLat;
+            const maxSpread = Math.max(lonSpread, latSpread);
+
+            let targetZoom;
+            if (maxSpread < 0.001) {
+              // Very close dives - zoom in more
+              targetZoom = 15;
+            } else if (maxSpread < 0.01) {
+              // Close dives - moderate zoom
+              targetZoom = 12;
+            } else if (maxSpread < 0.1) {
+              // Medium spread - standard zoom
+              targetZoom = 10;
+            } else {
+              // Far spread - broader view
+              targetZoom = 8;
+            }
+
+            const view = mapInstance.current.getView();
+            view.setCenter(fromLonLat([centerLon, centerLat]));
+            view.setZoom(targetZoom);
+            hasFittedRef.current = true;
+          }
+        } catch (error) {
+          console.error('❌ Error fitting extent:', error);
+          // Fallback: calculate center and zoom manually
+
+          try {
+            // Calculate center from original dives data (not transformed coordinates)
+            let minLon = Infinity,
+              maxLon = -Infinity,
+              minLat = Infinity,
+              maxLat = -Infinity;
+
+            // Use the original dives data instead of transformed coordinates
+            divesData.forEach(dive => {
+              if (dive.dive_site && dive.dive_site.longitude && dive.dive_site.latitude) {
+                const lon = parseFloat(dive.dive_site.longitude);
+                const lat = parseFloat(dive.dive_site.latitude);
+
+                if (!isNaN(lon) && !isNaN(lat)) {
+                  minLon = Math.min(minLon, lon);
+                  maxLon = Math.max(maxLon, lon);
+                  minLat = Math.min(minLat, lat);
+                  maxLat = Math.max(maxLat, lat);
+                }
+              }
+            });
+
+            // Check if we have valid coordinates
+            if (
+              minLon === Infinity ||
+              maxLon === -Infinity ||
+              minLat === Infinity ||
+              maxLat === -Infinity
+            ) {
+              return;
+            }
+
+            const centerLon = (minLon + maxLon) / 2;
+            const centerLat = (minLat + maxLat) / 2;
+
+            // Calculate zoom based on the spread of coordinates
+            const lonSpread = maxLon - minLon;
+            const latSpread = maxLat - minLat;
+            const maxSpread = Math.max(lonSpread, latSpread);
+
+            let targetZoom;
+            if (maxSpread < 0.001) {
+              // Very close dives - zoom in more
+              targetZoom = 15;
+            } else if (maxSpread < 0.01) {
+              // Close dives - moderate zoom
+              targetZoom = 12;
+            } else if (maxSpread < 0.1) {
+              // Medium spread - standard zoom
+              targetZoom = 10;
+            } else {
+              // Far spread - broader view
+              targetZoom = 8;
+            }
+
+            const view = mapInstance.current.getView();
+            view.setCenter(fromLonLat([centerLon, centerLat]));
+            view.setZoom(targetZoom);
+            hasFittedRef.current = true;
+          } catch (fallbackError) {
+            console.error('❌ Error in fallback calculation:', fallbackError);
+            // Final fallback: use a default view
+            const view = mapInstance.current.getView();
+            view.setCenter(fromLonLat([0, 0]));
+            view.setZoom(2);
+          }
+        }
+      }, 100); // Small delay to ensure source is ready
+    } catch (error) {
+      console.error('❌ Error in fitMapToDives:', error);
+    }
+  };
+
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -169,6 +379,31 @@ const DivesMap = ({ dives = [] }) => {
 
         setUseClustering(newClusteringState);
       });
+
+      // Listen for viewport changes and notify parent
+      map.getView().on('change:center', () => {
+        if (onViewportChange) {
+          const center = map.getView().getCenter();
+          const zoom = map.getView().getZoom();
+          onViewportChange({
+            longitude: center[0],
+            latitude: center[1],
+            zoom: zoom,
+          });
+        }
+      });
+
+      map.getView().on('change:resolution', () => {
+        if (onViewportChange) {
+          const center = map.getView().getCenter();
+          const zoom = map.getView().getZoom();
+          onViewportChange({
+            longitude: center[0],
+            latitude: center[1],
+            zoom: zoom,
+          });
+        }
+      });
     } catch (error) {
       console.error('Error creating map:', error);
     }
@@ -183,7 +418,9 @@ const DivesMap = ({ dives = [] }) => {
 
   // Update map when data changes
   useEffect(() => {
-    if (!mapInstance.current || !dives) return;
+    if (!mapInstance.current || !dives) {
+      return;
+    }
 
     // Remove existing vector layer
     const layers = mapInstance.current.getLayers();
@@ -223,11 +460,16 @@ const DivesMap = ({ dives = [] }) => {
       })
       .filter(feature => feature !== null);
 
+    if (diveFeatures.length === 0) {
+      return;
+    }
+
     // Always use ClusterSource but adjust distance based on zoom
     const currentZoom = mapInstance.current.getView().getZoom();
     const shouldUseClustering = currentZoom <= 11;
     const clusterDistance = shouldUseClustering ? 50 : 0; // 0 = no clustering
     setUseClustering(shouldUseClustering);
+
     // Always use ClusterSource with dynamic distance
     const source = new ClusterSource({
       distance: clusterDistance,
@@ -244,38 +486,7 @@ const DivesMap = ({ dives = [] }) => {
     mapInstance.current.addLayer(newVectorLayer);
 
     // Fit view to show all features
-    if (diveFeatures.length > 0) {
-      // Add a small delay to ensure source is properly initialized
-      setTimeout(() => {
-        try {
-          const extent = source.getExtent();
-          // Check if extent is valid (not empty)
-          if (
-            extent &&
-            extent.getWidth &&
-            extent.getWidth() > 0 &&
-            extent.getHeight &&
-            extent.getHeight() > 0
-          ) {
-            const view = mapInstance.current.getView();
-            const maxZoom = view.getMaxZoom();
-            const targetZoom = Math.max(maxZoom - 5, 2); // Keep zoom 5 levels before max, minimum 2
-
-            mapInstance.current.getView().fit(extent, {
-              padding: [50, 50, 50, 50],
-              duration: 1000,
-              maxZoom: targetZoom,
-            });
-          } else {
-            // Fallback: use a default extent or skip fitting
-            console.warn('Empty extent from source, skipping fit');
-          }
-        } catch (error) {
-          console.warn('Error fitting extent:', error);
-          // Fallback: use a default extent or skip fitting
-        }
-      }, 100); // Small delay to ensure source is ready
-    }
+    fitMapToDives(diveFeatures, source, dives);
   }, [dives]);
 
   // Update clustering distance when zoom changes
