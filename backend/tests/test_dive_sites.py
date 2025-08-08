@@ -589,7 +589,270 @@ class TestDiveSites:
         
         update_response = client.put(f"/api/v1/dive-sites/{dive_site_id}", json=update_data, headers=admin_headers)
         assert update_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-        assert "Longitude cannot be empty" in update_response.json()["detail"] 
+        assert "Longitude cannot be empty" in update_response.json()["detail"]
+
+    # Dive Site Alias Tests
+    def test_get_dive_site_aliases_success(self, client, test_dive_site, db_session):
+        """Test getting aliases for a dive site."""
+        from app.models import DiveSiteAlias
+        
+        # Add some aliases to the test dive site
+        alias1 = DiveSiteAlias(dive_site_id=test_dive_site.id, alias="Test Alias 1")
+        alias2 = DiveSiteAlias(dive_site_id=test_dive_site.id, alias="Test Alias 2")
+        db_session.add_all([alias1, alias2])
+        db_session.commit()
+        
+        response = client.get(f"/api/v1/dive-sites/{test_dive_site.id}/aliases")
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) == 2
+        assert any(alias["alias"] == "Test Alias 1" for alias in data)
+        assert any(alias["alias"] == "Test Alias 2" for alias in data)
+
+    def test_get_dive_site_aliases_not_found(self, client):
+        """Test getting aliases for non-existent dive site."""
+        response = client.get("/api/v1/dive-sites/999/aliases")
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_get_dive_site_aliases_empty(self, client, test_dive_site):
+        """Test getting aliases for dive site with no aliases."""
+        response = client.get(f"/api/v1/dive-sites/{test_dive_site.id}/aliases")
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) == 0
+
+    def test_create_dive_site_alias_admin_success(self, client, admin_headers, test_dive_site):
+        """Test creating an alias for a dive site as admin."""
+        alias_data = {
+            "alias": "New Test Alias"
+        }
+        
+        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/aliases", 
+                             json=alias_data, headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["alias"] == "New Test Alias"
+        assert data["dive_site_id"] == test_dive_site.id
+
+    def test_create_dive_site_alias_unauthorized(self, client, test_dive_site):
+        """Test creating an alias without authentication."""
+        alias_data = {
+            "alias": "New Test Alias"
+        }
+        
+        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/aliases", json=alias_data)
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_create_dive_site_alias_not_admin(self, client, auth_headers, test_dive_site):
+        """Test creating an alias as non-admin user."""
+        alias_data = {
+            "alias": "New Test Alias"
+        }
+        
+        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/aliases", 
+                             json=alias_data, headers=auth_headers)
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_create_dive_site_alias_dive_site_not_found(self, client, admin_headers):
+        """Test creating an alias for non-existent dive site."""
+        alias_data = {
+            "alias": "New Test Alias"
+        }
+        
+        response = client.post("/api/v1/dive-sites/999/aliases", 
+                             json=alias_data, headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_create_dive_site_alias_duplicate(self, client, admin_headers, test_dive_site, db_session):
+        """Test creating a duplicate alias for the same dive site."""
+        from app.models import DiveSiteAlias
+        
+        # Create first alias
+        alias_data = {
+            "alias": "Duplicate Alias"
+        }
+        
+        response1 = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/aliases", 
+                              json=alias_data, headers=admin_headers)
+        assert response1.status_code == status.HTTP_200_OK
+        
+        # Try to create duplicate alias
+        response2 = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/aliases", 
+                              json=alias_data, headers=admin_headers)
+        assert response2.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_create_dive_site_alias_empty(self, client, admin_headers, test_dive_site):
+        """Test creating an alias with empty alias text."""
+        alias_data = {
+            "alias": ""
+        }
+        
+        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/aliases", 
+                             json=alias_data, headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_update_dive_site_alias_admin_success(self, client, admin_headers, test_dive_site, db_session):
+        """Test updating an alias as admin."""
+        from app.models import DiveSiteAlias
+        
+        # Create an alias first
+        alias = DiveSiteAlias(dive_site_id=test_dive_site.id, alias="Original Alias")
+        db_session.add(alias)
+        db_session.commit()
+        
+        update_data = {
+            "alias": "Updated Alias"
+        }
+        
+        response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}", 
+                            json=update_data, headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["alias"] == "Updated Alias"
+
+    def test_update_dive_site_alias_unauthorized(self, client, test_dive_site, db_session):
+        """Test updating an alias without authentication."""
+        from app.models import DiveSiteAlias
+        
+        # Create an alias first
+        alias = DiveSiteAlias(dive_site_id=test_dive_site.id, alias="Original Alias")
+        db_session.add(alias)
+        db_session.commit()
+        
+        update_data = {
+            "alias": "Updated Alias"
+        }
+        
+        response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}", 
+                            json=update_data)
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_update_dive_site_alias_not_admin(self, client, auth_headers, test_dive_site, db_session):
+        """Test updating an alias as non-admin user."""
+        from app.models import DiveSiteAlias
+        
+        # Create an alias first
+        alias = DiveSiteAlias(dive_site_id=test_dive_site.id, alias="Original Alias")
+        db_session.add(alias)
+        db_session.commit()
+        
+        update_data = {
+            "alias": "Updated Alias"
+        }
+        
+        response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}", 
+                            json=update_data, headers=auth_headers)
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_update_dive_site_alias_not_found(self, client, admin_headers, test_dive_site):
+        """Test updating non-existent alias."""
+        update_data = {
+            "alias": "Updated Alias"
+        }
+        
+        response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/999", 
+                            json=update_data, headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_update_dive_site_alias_dive_site_not_found(self, client, admin_headers):
+        """Test updating alias for non-existent dive site."""
+        update_data = {
+            "alias": "Updated Alias"
+        }
+        
+        response = client.put("/api/v1/dive-sites/999/aliases/1", 
+                            json=update_data, headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_delete_dive_site_alias_admin_success(self, client, admin_headers, test_dive_site, db_session):
+        """Test deleting an alias as admin."""
+        from app.models import DiveSiteAlias
+        
+        # Create an alias first
+        alias = DiveSiteAlias(dive_site_id=test_dive_site.id, alias="Test Alias")
+        db_session.add(alias)
+        db_session.commit()
+        
+        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}", 
+                               headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        
+        # Verify alias is deleted
+        aliases = db_session.query(DiveSiteAlias).filter(DiveSiteAlias.dive_site_id == test_dive_site.id).all()
+        assert len(aliases) == 0
+
+    def test_delete_dive_site_alias_unauthorized(self, client, test_dive_site, db_session):
+        """Test deleting an alias without authentication."""
+        from app.models import DiveSiteAlias
+        
+        # Create an alias first
+        alias = DiveSiteAlias(dive_site_id=test_dive_site.id, alias="Test Alias")
+        db_session.add(alias)
+        db_session.commit()
+        
+        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}")
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_delete_dive_site_alias_not_admin(self, client, auth_headers, test_dive_site, db_session):
+        """Test deleting an alias as non-admin user."""
+        from app.models import DiveSiteAlias
+        
+        # Create an alias first
+        alias = DiveSiteAlias(dive_site_id=test_dive_site.id, alias="Test Alias")
+        db_session.add(alias)
+        db_session.commit()
+        
+        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}", 
+                               headers=auth_headers)
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_delete_dive_site_alias_not_found(self, client, admin_headers, test_dive_site):
+        """Test deleting non-existent alias."""
+        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/999", 
+                               headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_delete_dive_site_alias_dive_site_not_found(self, client, admin_headers):
+        """Test deleting alias for non-existent dive site."""
+        response = client.delete("/api/v1/dive-sites/999/aliases/1", headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_dive_site_with_aliases_in_response(self, client, test_dive_site, db_session):
+        """Test that dive site detail includes aliases in response."""
+        from app.models import DiveSiteAlias
+        
+        # Add aliases to the test dive site
+        alias1 = DiveSiteAlias(dive_site_id=test_dive_site.id, alias="Alias 1")
+        alias2 = DiveSiteAlias(dive_site_id=test_dive_site.id, alias="Alias 2")
+        db_session.add_all([alias1, alias2])
+        db_session.commit()
+        
+        response = client.get(f"/api/v1/dive-sites/{test_dive_site.id}")
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "aliases" in data
+        assert len(data["aliases"]) == 2
+        assert any(alias["alias"] == "Alias 1" for alias in data["aliases"])
+        assert any(alias["alias"] == "Alias 2" for alias in data["aliases"])
 
 def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_token):
     """Test pagination functionality for dive sites endpoint"""

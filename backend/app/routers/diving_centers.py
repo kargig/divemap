@@ -791,7 +791,7 @@ async def claim_diving_center_ownership(
         )
     
     # Update diving center ownership status
-    diving_center.ownership_status = "claimed"
+    diving_center.ownership_status = OwnershipStatus.claimed
     diving_center.owner_id = current_user.id
     
     db.commit()
@@ -819,11 +819,11 @@ async def approve_diving_center_ownership(
     
     if approval.approved:
         # Approve the ownership claim
-        diving_center.ownership_status = "approved"
+        diving_center.ownership_status = OwnershipStatus.approved
         message = "Ownership claim approved successfully"
     else:
         # Deny the ownership claim
-        diving_center.ownership_status = "unclaimed"
+        diving_center.ownership_status = OwnershipStatus.unclaimed
         diving_center.owner_id = None
         message = "Ownership claim denied"
     
@@ -861,7 +861,7 @@ async def assign_diving_center_owner(
     
     # Assign ownership
     diving_center.owner_id = user_id
-    diving_center.ownership_status = "approved"
+    diving_center.ownership_status = OwnershipStatus.approved
     
     db.commit()
     db.refresh(diving_center)
