@@ -1,5 +1,5 @@
 import { Search, List, ChevronLeft, ChevronRight, Map, Filter } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from 'react-query';
 import { useNavigate, useSearchParams, Link as RouterLink } from 'react-router-dom';
 
@@ -48,36 +48,118 @@ const DiveSites = () => {
   const [filters, setFilters] = useState(getInitialFilters);
   const [pagination, setPagination] = useState(getInitialPagination);
   const [showFilters, setShowFilters] = useState(false);
+  const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
+    name: getInitialFilters().name,
+    country: getInitialFilters().country,
+    region: getInitialFilters().region,
+  });
 
-  // Update URL when view mode, filters, or pagination change
+  // Debounced URL update for search inputs
+  const debouncedUpdateURL = useCallback(
+    (() => {
+      let timeoutId;
+      return (newFilters, newPagination, newViewMode) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          const newSearchParams = new URLSearchParams();
+
+          // Add view mode
+          if (newViewMode === 'map') {
+            newSearchParams.set('view', 'map');
+          }
+
+          // Add filters
+          if (newFilters.name) newSearchParams.set('name', newFilters.name);
+          if (newFilters.difficulty_level)
+            newSearchParams.set('difficulty_level', newFilters.difficulty_level);
+          if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
+          if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
+          if (newFilters.country) newSearchParams.set('country', newFilters.country);
+          if (newFilters.region) newSearchParams.set('region', newFilters.region);
+
+          // Add tag IDs
+          newFilters.tag_ids.forEach(tagId => {
+            newSearchParams.append('tag_ids', tagId.toString());
+          });
+
+          // Add pagination
+          newSearchParams.set('page', newPagination.page.toString());
+          newSearchParams.set('page_size', newPagination.page_size.toString());
+
+          // Update URL without triggering a page reload
+          navigate(`?${newSearchParams.toString()}`, { replace: true });
+        }, 500); // 500ms debounce delay
+      };
+    })(),
+    [navigate]
+  );
+
+  // Immediate URL update for non-search filters (difficulty, ratings, tags, pagination)
+  const immediateUpdateURL = useCallback(
+    (newFilters, newPagination, newViewMode) => {
+      const newSearchParams = new URLSearchParams();
+
+      // Add view mode
+      if (newViewMode === 'map') {
+        newSearchParams.set('view', 'map');
+      }
+
+      // Add filters
+      if (newFilters.name) newSearchParams.set('name', newFilters.name);
+      if (newFilters.difficulty_level)
+        newSearchParams.set('difficulty_level', newFilters.difficulty_level);
+      if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
+      if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
+      if (newFilters.country) newSearchParams.set('country', newFilters.country);
+      if (newFilters.region) newSearchParams.set('region', newFilters.region);
+
+      // Add tag IDs
+      newFilters.tag_ids.forEach(tagId => {
+        newSearchParams.append('tag_ids', tagId.toString());
+      });
+
+      // Add pagination
+      newSearchParams.set('page', newPagination.page.toString());
+      newSearchParams.set('page_size', newPagination.page_size.toString());
+
+      // Update URL without triggering a page reload
+      navigate(`?${newSearchParams.toString()}`, { replace: true });
+    },
+    [navigate]
+  );
+
+  // Update URL when view mode or pagination change (immediate)
   useEffect(() => {
-    const newSearchParams = new URLSearchParams();
+    immediateUpdateURL(filters, pagination, viewMode);
+  }, [viewMode, pagination, immediateUpdateURL]);
 
-    // Add view mode
-    if (viewMode === 'map') {
-      newSearchParams.set('view', 'map');
-    }
+  // Debounced URL update for search inputs
+  useEffect(() => {
+    debouncedUpdateURL(filters, pagination, viewMode);
+  }, [filters.name, filters.country, filters.region, debouncedUpdateURL]);
 
-    // Add filters
-    if (filters.name) newSearchParams.set('name', filters.name);
-    if (filters.difficulty_level) newSearchParams.set('difficulty_level', filters.difficulty_level);
-    if (filters.min_rating) newSearchParams.set('min_rating', filters.min_rating);
-    if (filters.max_rating) newSearchParams.set('max_rating', filters.max_rating);
-    if (filters.country) newSearchParams.set('country', filters.country);
-    if (filters.region) newSearchParams.set('region', filters.region);
+  // Debounced search terms for query key
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchTerms({
+        name: filters.name,
+        country: filters.country,
+        region: filters.region,
+      });
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [filters.name, filters.country, filters.region]);
 
-    // Add tag IDs
-    filters.tag_ids.forEach(tagId => {
-      newSearchParams.append('tag_ids', tagId.toString());
-    });
-
-    // Add pagination
-    newSearchParams.set('page', pagination.page.toString());
-    newSearchParams.set('page_size', pagination.page_size.toString());
-
-    // Update URL without triggering a page reload
-    navigate(`?${newSearchParams.toString()}`, { replace: true });
-  }, [viewMode, filters, pagination, navigate]);
+  // Immediate URL update for non-search filters
+  useEffect(() => {
+    immediateUpdateURL(filters, pagination, viewMode);
+  }, [
+    filters.difficulty_level,
+    filters.min_rating,
+    filters.max_rating,
+    filters.tag_ids,
+    immediateUpdateURL,
+  ]);
 
   // Fetch available tags for filtering
   const { data: availableTags } = useQuery(
@@ -90,16 +172,25 @@ const DiveSites = () => {
 
   // Fetch total count
   const { data: totalCountResponse } = useQuery(
-    ['dive-sites-count', filters],
+    [
+      'dive-sites-count',
+      debouncedSearchTerms.name,
+      debouncedSearchTerms.country,
+      debouncedSearchTerms.region,
+      filters.difficulty_level,
+      filters.min_rating,
+      filters.max_rating,
+      filters.tag_ids,
+    ],
     () => {
       const params = new URLSearchParams();
 
-      if (filters.name) params.append('name', filters.name);
+      if (debouncedSearchTerms.name) params.append('name', debouncedSearchTerms.name);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
       if (filters.max_rating) params.append('max_rating', filters.max_rating);
-      if (filters.country) params.append('country', filters.country);
-      if (filters.region) params.append('region', filters.region);
+      if (debouncedSearchTerms.country) params.append('country', debouncedSearchTerms.country);
+      if (debouncedSearchTerms.region) params.append('region', debouncedSearchTerms.region);
 
       filters.tag_ids.forEach(tagId => {
         params.append('tag_ids', tagId.toString());
@@ -121,16 +212,27 @@ const DiveSites = () => {
     isLoading,
     error,
   } = useQuery(
-    ['dive-sites', filters, pagination],
+    [
+      'dive-sites',
+      debouncedSearchTerms.name,
+      debouncedSearchTerms.country,
+      debouncedSearchTerms.region,
+      filters.difficulty_level,
+      filters.min_rating,
+      filters.max_rating,
+      filters.tag_ids,
+      pagination.page,
+      pagination.page_size,
+    ],
     () => {
       const params = new URLSearchParams();
 
-      if (filters.name) params.append('name', filters.name);
+      if (debouncedSearchTerms.name) params.append('name', debouncedSearchTerms.name);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
       if (filters.max_rating) params.append('max_rating', filters.max_rating);
-      if (filters.country) params.append('country', filters.country);
-      if (filters.region) params.append('region', filters.region);
+      if (debouncedSearchTerms.country) params.append('country', debouncedSearchTerms.country);
+      if (debouncedSearchTerms.region) params.append('region', debouncedSearchTerms.region);
 
       filters.tag_ids.forEach(tagId => {
         params.append('tag_ids', tagId.toString());

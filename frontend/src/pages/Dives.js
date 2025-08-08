@@ -14,7 +14,7 @@ import {
   ChevronRight,
   Filter,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -73,42 +73,140 @@ const Dives = () => {
   const [filters, setFilters] = useState(getInitialFilters);
   const [pagination, setPagination] = useState(getInitialPagination);
   const [showFilters, setShowFilters] = useState(false);
+  const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
+    dive_site_name: getInitialFilters().dive_site_name,
+  });
 
-  // Update URL when view mode, filters, or pagination change
+  // Debounced URL update for search inputs
+  const debouncedUpdateURL = useCallback(
+    (() => {
+      let timeoutId;
+      return (newFilters, newPagination, newViewMode) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          const newSearchParams = new URLSearchParams();
+
+          // Add view mode
+          if (newViewMode === 'map') {
+            newSearchParams.set('view', 'map');
+          }
+
+          // Add filters
+          if (newFilters.dive_site_id) newSearchParams.set('dive_site_id', newFilters.dive_site_id);
+          if (newFilters.dive_site_name)
+            newSearchParams.set('dive_site_name', newFilters.dive_site_name);
+          if (newFilters.difficulty_level)
+            newSearchParams.set('difficulty_level', newFilters.difficulty_level);
+          if (newFilters.min_depth) newSearchParams.set('min_depth', newFilters.min_depth);
+          if (newFilters.max_depth) newSearchParams.set('max_depth', newFilters.max_depth);
+          if (newFilters.min_visibility)
+            newSearchParams.set('min_visibility', newFilters.min_visibility);
+          if (newFilters.max_visibility)
+            newSearchParams.set('max_visibility', newFilters.max_visibility);
+          if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
+          if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
+          if (newFilters.start_date) newSearchParams.set('start_date', newFilters.start_date);
+          if (newFilters.end_date) newSearchParams.set('end_date', newFilters.end_date);
+          if (newFilters.my_dives) newSearchParams.set('my_dives', newFilters.my_dives.toString());
+
+          // Add tag IDs
+          newFilters.tag_ids.forEach(tagId => {
+            newSearchParams.append('tag_ids', tagId.toString());
+          });
+
+          // Add pagination
+          newSearchParams.set('page', newPagination.page.toString());
+          newSearchParams.set('page_size', newPagination.page_size.toString());
+
+          // Update URL without triggering a page reload
+          navigate(`?${newSearchParams.toString()}`, { replace: true });
+        }, 500); // 500ms debounce delay
+      };
+    })(),
+    [navigate]
+  );
+
+  // Immediate URL update for non-search filters
+  const immediateUpdateURL = useCallback(
+    (newFilters, newPagination, newViewMode) => {
+      const newSearchParams = new URLSearchParams();
+
+      // Add view mode
+      if (newViewMode === 'map') {
+        newSearchParams.set('view', 'map');
+      }
+
+      // Add filters
+      if (newFilters.dive_site_id) newSearchParams.set('dive_site_id', newFilters.dive_site_id);
+      if (newFilters.dive_site_name)
+        newSearchParams.set('dive_site_name', newFilters.dive_site_name);
+      if (newFilters.difficulty_level)
+        newSearchParams.set('difficulty_level', newFilters.difficulty_level);
+      if (newFilters.min_depth) newSearchParams.set('min_depth', newFilters.min_depth);
+      if (newFilters.max_depth) newSearchParams.set('max_depth', newFilters.max_depth);
+      if (newFilters.min_visibility)
+        newSearchParams.set('min_visibility', newFilters.min_visibility);
+      if (newFilters.max_visibility)
+        newSearchParams.set('max_visibility', newFilters.max_visibility);
+      if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
+      if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
+      if (newFilters.start_date) newSearchParams.set('start_date', newFilters.start_date);
+      if (newFilters.end_date) newSearchParams.set('end_date', newFilters.end_date);
+      if (newFilters.my_dives) newSearchParams.set('my_dives', newFilters.my_dives.toString());
+
+      // Add tag IDs
+      newFilters.tag_ids.forEach(tagId => {
+        newSearchParams.append('tag_ids', tagId.toString());
+      });
+
+      // Add pagination
+      newSearchParams.set('page', newPagination.page.toString());
+      newSearchParams.set('page_size', newPagination.page_size.toString());
+
+      // Update URL without triggering a page reload
+      navigate(`?${newSearchParams.toString()}`, { replace: true });
+    },
+    [navigate]
+  );
+
+  // Update URL when view mode or pagination change (immediate)
   useEffect(() => {
-    const newSearchParams = new URLSearchParams();
+    immediateUpdateURL(filters, pagination, viewMode);
+  }, [viewMode, pagination, immediateUpdateURL]);
 
-    // Add view mode
-    if (viewMode === 'map') {
-      newSearchParams.set('view', 'map');
-    }
+  // Debounced URL update for search inputs
+  useEffect(() => {
+    debouncedUpdateURL(filters, pagination, viewMode);
+  }, [filters.dive_site_name, debouncedUpdateURL]);
 
-    // Add filters
-    if (filters.dive_site_id) newSearchParams.set('dive_site_id', filters.dive_site_id);
-    if (filters.dive_site_name) newSearchParams.set('dive_site_name', filters.dive_site_name);
-    if (filters.difficulty_level) newSearchParams.set('difficulty_level', filters.difficulty_level);
-    if (filters.min_depth) newSearchParams.set('min_depth', filters.min_depth);
-    if (filters.max_depth) newSearchParams.set('max_depth', filters.max_depth);
-    if (filters.min_visibility) newSearchParams.set('min_visibility', filters.min_visibility);
-    if (filters.max_visibility) newSearchParams.set('max_visibility', filters.max_visibility);
-    if (filters.min_rating) newSearchParams.set('min_rating', filters.min_rating);
-    if (filters.max_rating) newSearchParams.set('max_rating', filters.max_rating);
-    if (filters.start_date) newSearchParams.set('start_date', filters.start_date);
-    if (filters.end_date) newSearchParams.set('end_date', filters.end_date);
-    if (filters.my_dives) newSearchParams.set('my_dives', filters.my_dives.toString());
+  // Debounced search terms for query key
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchTerms({
+        dive_site_name: filters.dive_site_name,
+      });
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [filters.dive_site_name]);
 
-    // Add tag IDs
-    filters.tag_ids.forEach(tagId => {
-      newSearchParams.append('tag_ids', tagId.toString());
-    });
-
-    // Add pagination
-    newSearchParams.set('page', pagination.page.toString());
-    newSearchParams.set('page_size', pagination.page_size.toString());
-
-    // Update URL without triggering a page reload
-    navigate(`?${newSearchParams.toString()}`, { replace: true });
-  }, [viewMode, filters, pagination, navigate]);
+  // Immediate URL update for non-search filters
+  useEffect(() => {
+    immediateUpdateURL(filters, pagination, viewMode);
+  }, [
+    filters.dive_site_id,
+    filters.difficulty_level,
+    filters.min_depth,
+    filters.max_depth,
+    filters.min_visibility,
+    filters.max_visibility,
+    filters.min_rating,
+    filters.max_rating,
+    filters.start_date,
+    filters.end_date,
+    filters.my_dives,
+    filters.tag_ids,
+    immediateUpdateURL,
+  ]);
 
   // Fetch available tags for filtering
   const { data: availableTags } = useQuery(
@@ -121,12 +219,28 @@ const Dives = () => {
 
   // Fetch total count
   const { data: totalCountResponse } = useQuery(
-    ['dives-count', filters],
+    [
+      'dives-count',
+      debouncedSearchTerms.dive_site_name,
+      filters.dive_site_id,
+      filters.difficulty_level,
+      filters.min_depth,
+      filters.max_depth,
+      filters.min_visibility,
+      filters.max_visibility,
+      filters.min_rating,
+      filters.max_rating,
+      filters.start_date,
+      filters.end_date,
+      filters.my_dives,
+      filters.tag_ids,
+    ],
     () => {
       const params = new URLSearchParams();
 
       if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
-      if (filters.dive_site_name) params.append('dive_site_name', filters.dive_site_name);
+      if (debouncedSearchTerms.dive_site_name)
+        params.append('dive_site_name', debouncedSearchTerms.dive_site_name);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
       if (filters.min_depth) params.append('min_depth', filters.min_depth);
       if (filters.max_depth) params.append('max_depth', filters.max_depth);
@@ -158,12 +272,30 @@ const Dives = () => {
     isLoading,
     error,
   } = useQuery(
-    ['dives', filters, pagination],
+    [
+      'dives',
+      debouncedSearchTerms.dive_site_name,
+      filters.dive_site_id,
+      filters.difficulty_level,
+      filters.min_depth,
+      filters.max_depth,
+      filters.min_visibility,
+      filters.max_visibility,
+      filters.min_rating,
+      filters.max_rating,
+      filters.start_date,
+      filters.end_date,
+      filters.my_dives,
+      filters.tag_ids,
+      pagination.page,
+      pagination.page_size,
+    ],
     () => {
       const params = new URLSearchParams();
 
       if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
-      if (filters.dive_site_name) params.append('dive_site_name', filters.dive_site_name);
+      if (debouncedSearchTerms.dive_site_name)
+        params.append('dive_site_name', debouncedSearchTerms.dive_site_name);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
       if (filters.min_depth) params.append('min_depth', filters.min_depth);
       if (filters.max_depth) params.append('max_depth', filters.max_depth);

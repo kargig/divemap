@@ -1,5 +1,5 @@
 import { Star, MapPin, Phone, Mail, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
@@ -40,23 +40,80 @@ const DivingCenters = () => {
 
   const [filters, setFilters] = useState(getInitialFilters);
   const [pagination, setPagination] = useState(getInitialPagination);
+  const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
+    name: getInitialFilters().name,
+  });
 
-  // Update URL when filters or pagination change
+  // Debounced URL update for search inputs
+  const debouncedUpdateURL = useCallback(
+    (() => {
+      let timeoutId;
+      return (newFilters, newPagination) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          const newSearchParams = new URLSearchParams();
+
+          // Add filters
+          if (newFilters.name) newSearchParams.set('name', newFilters.name);
+          if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
+          if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
+
+          // Add pagination
+          newSearchParams.set('page', newPagination.page.toString());
+          newSearchParams.set('page_size', newPagination.page_size.toString());
+
+          // Update URL without triggering a page reload
+          navigate(`?${newSearchParams.toString()}`, { replace: true });
+        }, 500); // 500ms debounce delay
+      };
+    })(),
+    [navigate]
+  );
+
+  // Immediate URL update for non-search filters
+  const immediateUpdateURL = useCallback(
+    (newFilters, newPagination) => {
+      const newSearchParams = new URLSearchParams();
+
+      // Add filters
+      if (newFilters.name) newSearchParams.set('name', newFilters.name);
+      if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
+      if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
+
+      // Add pagination
+      newSearchParams.set('page', newPagination.page.toString());
+      newSearchParams.set('page_size', newPagination.page_size.toString());
+
+      // Update URL without triggering a page reload
+      navigate(`?${newSearchParams.toString()}`, { replace: true });
+    },
+    [navigate]
+  );
+
+  // Update URL when pagination change (immediate)
   useEffect(() => {
-    const newSearchParams = new URLSearchParams();
+    immediateUpdateURL(filters, pagination);
+  }, [pagination, immediateUpdateURL]);
 
-    // Add filters
-    if (filters.name) newSearchParams.set('name', filters.name);
-    if (filters.min_rating) newSearchParams.set('min_rating', filters.min_rating);
-    if (filters.max_rating) newSearchParams.set('max_rating', filters.max_rating);
+  // Debounced URL update for search inputs
+  useEffect(() => {
+    debouncedUpdateURL(filters, pagination);
+  }, [filters.name, debouncedUpdateURL]);
 
-    // Add pagination
-    newSearchParams.set('page', pagination.page.toString());
-    newSearchParams.set('page_size', pagination.page_size.toString());
+  // Debounced search terms for query key
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchTerms({
+        name: filters.name,
+      });
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [filters.name]);
 
-    // Update URL without triggering a page reload
-    navigate(`?${newSearchParams.toString()}`, { replace: true });
-  }, [filters, pagination, navigate]);
+  // Immediate URL update for non-search filters
+  useEffect(() => {
+    immediateUpdateURL(filters, pagination);
+  }, [filters.min_rating, filters.max_rating, immediateUpdateURL]);
 
   // Fetch diving centers with pagination
   const {
@@ -64,13 +121,20 @@ const DivingCenters = () => {
     isLoading,
     error,
   } = useQuery(
-    ['diving-centers', filters, pagination],
+    [
+      'diving-centers',
+      debouncedSearchTerms.name,
+      filters.min_rating,
+      filters.max_rating,
+      pagination.page,
+      pagination.page_size,
+    ],
     () => {
       // Create URLSearchParams to properly handle parameters
       const params = new URLSearchParams();
 
       // Add filter parameters
-      if (filters.name) params.append('name', filters.name);
+      if (debouncedSearchTerms.name) params.append('name', debouncedSearchTerms.name);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
       if (filters.max_rating) params.append('max_rating', filters.max_rating);
 
