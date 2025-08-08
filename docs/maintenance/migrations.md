@@ -130,7 +130,9 @@ backend/migrations/
 ├── script.py.mako        # Migration template
 └── versions/             # Migration files
     ├── 0001_initial.py
-    ├── 0002_add_max_depth_and_alternative_names.py
+    ├── 0002_add_max_depth_and_alternative_names.py (alternative_names later deprecated)
+    ├── 29fac01eff2e_add_dive_site_aliases_table_for_.py
+    ├── 75b96c8832aa_deprecate_alternative_names_column.py
     ├── 0003_add_country_region_fields.py
     ├── 0004_add_view_count_fields.py
     └── 0005_add_user_diving_fields.py

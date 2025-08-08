@@ -70,19 +70,33 @@ async def get_diving_centers(
     has_next_page = page < total_pages
     has_prev_page = page > 1
     
-    # Get diving centers with pagination
-    diving_centers = query.offset(offset).limit(page_size).all()
+    # Get diving centers with pagination and ratings in a single query
+    from sqlalchemy import func as sql_func
     
-    # Calculate average ratings
+    # Subquery to get average ratings and total ratings
+    ratings_subquery = db.query(
+        CenterRating.diving_center_id,
+        sql_func.avg(CenterRating.score).label('avg_rating'),
+        sql_func.count(CenterRating.id).label('total_ratings')
+    ).group_by(CenterRating.diving_center_id).subquery()
+    
+    # Join diving centers with ratings
+    query_with_ratings = query.outerjoin(
+        ratings_subquery,
+        DivingCenter.id == ratings_subquery.c.diving_center_id
+    ).add_columns(
+        ratings_subquery.c.avg_rating,
+        ratings_subquery.c.total_ratings
+    )
+    
+    diving_centers_with_ratings = query_with_ratings.offset(offset).limit(page_size).all()
+    
+    # Build result
     result = []
-    for center in diving_centers:
-        avg_rating = db.query(func.avg(CenterRating.score)).filter(
-            CenterRating.diving_center_id == center.id
-        ).scalar()
-        
-        total_ratings = db.query(func.count(CenterRating.id)).filter(
-            CenterRating.diving_center_id == center.id
-        ).scalar()
+    for center_data in diving_centers_with_ratings:
+        center = center_data[0]  # The diving center object
+        avg_rating = center_data[1]  # avg_rating from subquery
+        total_ratings = center_data[2]  # total_ratings from subquery
         
         center_dict = {
             "id": center.id,
@@ -96,7 +110,7 @@ async def get_diving_centers(
             "created_at": center.created_at.isoformat() if center.created_at else None,
             "updated_at": center.updated_at.isoformat() if center.updated_at else None,
             "average_rating": float(avg_rating) if avg_rating else None,
-            "total_ratings": total_ratings
+            "total_ratings": total_ratings or 0
         }
         
         # Only include view_count for admin users

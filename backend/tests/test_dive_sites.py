@@ -524,22 +524,22 @@ class TestDiveSites:
         response = client.delete(f"/api/v1/dive-sites/9999/diving-centers/{test_diving_center.id}", headers=admin_headers)
         assert response.status_code == status.HTTP_404_NOT_FOUND 
 
-    def test_create_dive_site_with_new_fields_admin_success(self, client, admin_headers):
-        """Test creating a dive site with alternative_names fields."""
+    def test_create_dive_site_with_aliases_admin_success(self, client, admin_headers):
+        """Test creating a dive site with aliases functionality."""
         dive_site_data = {
-            "name": "Test Dive Site with New Fields",
-            "description": "A test dive site with new fields",
+            "name": "Test Dive Site with Aliases",
+            "description": "A test dive site with aliases",
             "latitude": 10.0,
-            "longitude": 20.0,
-            "alternative_names": "Shark Point, Koh Phi Phi"
+            "longitude": 20.0
         }
         
         response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["name"] == "Test Dive Site with New Fields"
-        assert data["alternative_names"] == "Shark Point, Koh Phi Phi" 
+        assert data["name"] == "Test Dive Site with Aliases"
+        assert "aliases" in data
+        assert isinstance(data["aliases"], list) 
 
  
 

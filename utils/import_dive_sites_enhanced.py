@@ -294,7 +294,7 @@ class DiveSiteImporter:
   "difficulty_level": "{existing_site.get('difficulty_level', '')}",
   "marine_life": "{existing_site.get('marine_life', '')}",
   "safety_information": "{existing_site.get('safety_information', '')}",
-  "alternative_names": "{existing_site.get('alternative_names', '')}",
+  "aliases": "{existing_site.get('aliases', '')}",
   "country": "{existing_site.get('country', '')}",
   "region": "{existing_site.get('region', '')}"
 }}
@@ -382,7 +382,7 @@ class DiveSiteImporter:
             
             # Add optional fields if they exist
             optional_fields = ['address', 'access_instructions', 'difficulty_level', 
-                             'marine_life', 'safety_information', 'alternative_names',
+                             'marine_life', 'safety_information', 'aliases',
                              'country', 'region']
             for field in optional_fields:
                 if field in site_data and site_data[field]:

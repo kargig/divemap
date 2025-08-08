@@ -5,13 +5,14 @@ from sqlalchemy import func, and_, or_, desc, asc
 from slowapi.util import get_remote_address
 
 from app.database import get_db
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag
+from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias
 from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse, 
     SiteRatingCreate, SiteRatingResponse,
     SiteCommentCreate, SiteCommentUpdate, SiteCommentResponse,
     SiteMediaCreate, SiteMediaResponse,
-    DiveSiteSearchParams, CenterDiveSiteCreate, DiveResponse
+    DiveSiteSearchParams, CenterDiveSiteCreate, DiveResponse,
+    DiveSiteAliasCreate, DiveSiteAliasUpdate, DiveSiteAliasResponse
 )
 import requests
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional
@@ -252,6 +253,22 @@ async def get_dive_sites(
             for tag in tags
         ]
         
+        # Get aliases for this dive site
+        aliases = db.query(DiveSiteAlias).filter(
+            DiveSiteAlias.dive_site_id == site.id
+        ).order_by(DiveSiteAlias.alias.asc()).all()
+        
+        # Convert aliases to dictionaries
+        aliases_dict = [
+            {
+                "id": alias.id,
+                "dive_site_id": alias.dive_site_id,
+                "alias": alias.alias,
+                "created_at": alias.created_at.isoformat() if alias.created_at else None
+            }
+            for alias in aliases
+        ]
+        
         site_dict = {
                 "id": site.id,
                 "name": site.name,
@@ -263,14 +280,15 @@ async def get_dive_sites(
                 "difficulty_level": site.difficulty_level.value if site.difficulty_level else None,
                 "marine_life": site.marine_life,
                 "safety_information": site.safety_information,
-                "alternative_names": site.alternative_names,
+                "max_depth": float(site.max_depth) if site.max_depth else None,
                 "country": site.country,
                 "region": site.region,
                 "created_at": site.created_at.isoformat() if site.created_at else None,
                 "updated_at": site.updated_at.isoformat() if site.updated_at else None,
                 "average_rating": float(avg_rating) if avg_rating else None,
                 "total_ratings": total_ratings,
-                "tags": tags_dict
+                "tags": tags_dict,
+                "aliases": aliases_dict
             }
         
         # Only include view_count for admin users
@@ -426,6 +444,22 @@ async def get_dive_site(
         for tag in tags
     ]
 
+    # Get aliases for this dive site
+    aliases = db.query(DiveSiteAlias).filter(
+        DiveSiteAlias.dive_site_id == dive_site_id
+    ).all()
+
+    # Convert aliases to dictionaries
+    aliases_dict = [
+        {
+            "id": alias.id,
+            "dive_site_id": alias.dive_site_id,
+            "alias": alias.alias,
+            "created_at": alias.created_at.isoformat() if alias.created_at else None
+        }
+        for alias in aliases
+    ]
+
     # Get user's previous rating if authenticated
     user_rating = None
     if current_user:
@@ -442,6 +476,7 @@ async def get_dive_site(
         "average_rating": float(avg_rating) if avg_rating else None,
         "total_ratings": total_ratings,
         "tags": tags_dict,
+        "aliases": aliases_dict,
         "user_rating": user_rating
     }
     
@@ -1133,3 +1168,158 @@ async def get_dive_site_dives(
         dive_list.append(dive_dict)
     
     return dive_list 
+
+# Dive Site Alias Endpoints
+@router.get("/{dive_site_id}/aliases", response_model=List[DiveSiteAliasResponse])
+async def get_dive_site_aliases(
+    request: Request,
+    dive_site_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get all aliases for a specific dive site
+    """
+    # Check if dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+    
+    # Get aliases for this dive site
+    aliases = db.query(DiveSiteAlias).filter(DiveSiteAlias.dive_site_id == dive_site_id).all()
+    return aliases
+
+@router.post("/{dive_site_id}/aliases", response_model=DiveSiteAliasResponse)
+async def create_dive_site_alias(
+    request: Request,
+    dive_site_id: int,
+    alias: DiveSiteAliasCreate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new alias for a dive site
+    """
+    # Check if dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+    
+    # Check if alias already exists for this dive site
+    existing_alias = db.query(DiveSiteAlias).filter(
+        DiveSiteAlias.dive_site_id == dive_site_id,
+        DiveSiteAlias.alias == alias.alias
+    ).first()
+    
+    if existing_alias:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Alias already exists for this dive site"
+        )
+    
+    # Create new alias
+    new_alias = DiveSiteAlias(
+        dive_site_id=dive_site_id,
+        alias=alias.alias
+    )
+    
+    db.add(new_alias)
+    db.commit()
+    db.refresh(new_alias)
+    
+    return new_alias
+
+@router.put("/{dive_site_id}/aliases/{alias_id}", response_model=DiveSiteAliasResponse)
+async def update_dive_site_alias(
+    request: Request,
+    dive_site_id: int,
+    alias_id: int,
+    alias_update: DiveSiteAliasUpdate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update an existing alias for a dive site
+    """
+    # Check if dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+    
+    # Check if alias exists
+    alias = db.query(DiveSiteAlias).filter(
+        DiveSiteAlias.id == alias_id,
+        DiveSiteAlias.dive_site_id == dive_site_id
+    ).first()
+    
+    if not alias:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Alias not found"
+        )
+    
+    # Update alias fields
+    if alias_update.alias is not None:
+        # Check if new alias name already exists for this dive site
+        existing_alias = db.query(DiveSiteAlias).filter(
+            DiveSiteAlias.dive_site_id == dive_site_id,
+            DiveSiteAlias.alias == alias_update.alias,
+            DiveSiteAlias.id != alias_id
+        ).first()
+        
+        if existing_alias:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Alias already exists for this dive site"
+            )
+        
+        alias.alias = alias_update.alias
+    
+    db.commit()
+    db.refresh(alias)
+    
+    return alias
+
+@router.delete("/{dive_site_id}/aliases/{alias_id}")
+async def delete_dive_site_alias(
+    request: Request,
+    dive_site_id: int,
+    alias_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete an alias for a dive site
+    """
+    # Check if dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+    
+    # Check if alias exists
+    alias = db.query(DiveSiteAlias).filter(
+        DiveSiteAlias.id == alias_id,
+        DiveSiteAlias.dive_site_id == dive_site_id
+    ).first()
+    
+    if not alias:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Alias not found"
+        )
+    
+    db.delete(alias)
+    db.commit()
+    
+    return {"message": "Alias deleted successfully"} 

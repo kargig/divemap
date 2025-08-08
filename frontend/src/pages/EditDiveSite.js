@@ -1,4 +1,4 @@
-import { ArrowLeft, Save, Trash2, Upload, X, Tag, Building } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Upload, X, Tag, Building, Plus, Edit } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -36,7 +36,6 @@ const EditDiveSite = () => {
     marine_life: '',
     safety_information: '',
     max_depth: '',
-    alternative_names: '',
   });
 
   const [newMedia, setNewMedia] = useState({
@@ -58,6 +57,11 @@ const EditDiveSite = () => {
   const [newDiveCost, setNewDiveCost] = useState('');
   const [newDiveCurrency, setNewDiveCurrency] = useState(DEFAULT_CURRENCY);
   const [showDivingCenterForm, setShowDivingCenterForm] = useState(false);
+
+  // Aliases management state
+  const [newAlias, setNewAlias] = useState({ alias: '', language: '' });
+  const [editingAlias, setEditingAlias] = useState(null);
+  const [showAliasForm, setShowAliasForm] = useState(false);
 
   // Check if user has edit privileges
   const canEdit = user && (user.is_admin || user.is_moderator);
@@ -84,7 +88,6 @@ const EditDiveSite = () => {
         marine_life: data.marine_life || '',
         safety_information: data.safety_information || '',
         max_depth: data.max_depth?.toString() || '',
-        alternative_names: data.alternative_names || '',
       });
       // Set selected tags
       if (data.tags) {
@@ -124,6 +127,19 @@ const EditDiveSite = () => {
       onError: error => {
         console.error('Failed to fetch diving centers:', error);
         toast.error('Failed to load diving centers');
+      },
+    }
+  );
+
+  // Fetch aliases
+  const { data: aliases = [], error: _aliasesError } = useQuery(
+    ['dive-site-aliases', id],
+    () => api.get(`/api/v1/dive-sites/${id}/aliases`).then(res => res.data || []),
+    {
+      enabled: !!id && canEdit,
+      onError: error => {
+        console.error('Failed to fetch aliases:', error);
+        toast.error('Failed to load aliases');
       },
     }
   );
@@ -193,6 +209,49 @@ const EditDiveSite = () => {
     }
   );
 
+  // Aliases mutations
+  const addAliasMutation = useMutation(
+    aliasData => api.post(`/api/v1/dive-sites/${id}/aliases`, aliasData),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['dive-site-aliases', id]);
+        setNewAlias({ alias: '', language: '' });
+        setShowAliasForm(false);
+        toast.success('Alias added successfully');
+      },
+      onError: error => {
+        toast.error(getErrorMessage(error));
+      },
+    }
+  );
+
+  const updateAliasMutation = useMutation(
+    ({ aliasId, aliasData }) => api.put(`/api/v1/dive-sites/${id}/aliases/${aliasId}`, aliasData),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['dive-site-aliases', id]);
+        setEditingAlias(null);
+        toast.success('Alias updated successfully');
+      },
+      onError: error => {
+        toast.error(getErrorMessage(error));
+      },
+    }
+  );
+
+  const deleteAliasMutation = useMutation(
+    aliasId => api.delete(`/api/v1/dive-sites/${id}/aliases/${aliasId}`),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['dive-site-aliases', id]);
+        toast.success('Alias deleted successfully');
+      },
+      onError: error => {
+        toast.error(getErrorMessage(error));
+      },
+    }
+  );
+
   // Update mutation
   const updateMutation = useMutation(data => api.put(`/api/v1/dive-sites/${id}`, data), {
     onError: error => {
@@ -236,6 +295,43 @@ const EditDiveSite = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  // Aliases handlers
+  const handleAddAlias = e => {
+    e.preventDefault();
+    if (!newAlias.alias.trim()) {
+      toast.error('Alias name is required');
+      return;
+    }
+    addAliasMutation.mutate(newAlias);
+  };
+
+  const handleUpdateAlias = e => {
+    e.preventDefault();
+    if (!editingAlias.alias.trim()) {
+      toast.error('Alias name is required');
+      return;
+    }
+    updateAliasMutation.mutate({ aliasId: editingAlias.id, aliasData: editingAlias });
+  };
+
+  const handleDeleteAlias = alias => {
+    if (window.confirm(`Are you sure you want to delete the alias "${alias.alias}"?`)) {
+      deleteAliasMutation.mutate(alias.id);
+    }
+  };
+
+  const handleEditAlias = alias => {
+    setEditingAlias({
+      id: alias.id,
+      alias: alias.alias,
+      language: alias.language || '',
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAlias(null);
   };
 
   const suggestLocation = async () => {
@@ -482,22 +578,126 @@ const EditDiveSite = () => {
               </div>
             </div>
 
-            <div>
-              <label
-                htmlFor='alternative-names'
-                className='block text-sm font-medium text-gray-700 mb-2'
-              >
-                Alternative Names
-              </label>
-              <input
-                id='alternative-names'
-                type='text'
-                name='alternative_names'
-                value={formData.alternative_names}
-                onChange={handleInputChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='e.g., Shark Point, Koh Phi Phi'
-              />
+            {/* Add Alias Section */}
+            <div className='border-t pt-6 mb-6'>
+              <div className='flex items-center justify-between mb-4'>
+                <h3 className='text-lg font-semibold text-gray-900'>Aliases</h3>
+                <button
+                  type='button'
+                  onClick={() => setShowAliasForm(!showAliasForm)}
+                  className='flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700'
+                >
+                  <Plus className='w-4 h-4 mr-2' />
+                  Add Alias
+                </button>
+              </div>
+
+              {/* Add Alias Form */}
+              {showAliasForm && (
+                <div className='bg-gray-50 p-4 rounded-md mb-4'>
+                  <div className='space-y-4'>
+                    <div>
+                      <label
+                        htmlFor='new_alias_name'
+                        className='block text-sm font-medium text-gray-700 mb-1'
+                      >
+                        Alias Name *
+                      </label>
+                      <input
+                        id='new_alias_name'
+                        type='text'
+                        value={newAlias.alias}
+                        onChange={e => setNewAlias({ ...newAlias, alias: e.target.value })}
+                        required
+                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                      />
+                    </div>
+                    <div className='flex space-x-2'>
+                      <button
+                        type='button'
+                        onClick={handleAddAlias}
+                        disabled={addAliasMutation.isLoading}
+                        className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50'
+                      >
+                        {addAliasMutation.isLoading ? 'Adding...' : 'Add Alias'}
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => setShowAliasForm(false)}
+                        className='px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700'
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Aliases List */}
+              <div className='space-y-2'>
+                {Array.isArray(aliases) && aliases.length > 0 ? (
+                  aliases.map(alias => (
+                    <div
+                      key={alias.id}
+                      className='flex items-center justify-between p-3 bg-gray-50 rounded-md'
+                    >
+                      {editingAlias?.id === alias.id ? (
+                        <div className='flex-1 flex items-center space-x-2'>
+                          <input
+                            type='text'
+                            value={editingAlias.alias}
+                            onChange={e =>
+                              setEditingAlias({ ...editingAlias, alias: e.target.value })
+                            }
+                            className='flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          />
+                          <button
+                            type='button'
+                            onClick={handleUpdateAlias}
+                            disabled={updateAliasMutation.isLoading}
+                            className='text-green-600 hover:text-green-800 disabled:opacity-50'
+                            title='Save changes'
+                          >
+                            <Save className='w-4 h-4' />
+                          </button>
+                          <button
+                            type='button'
+                            onClick={handleCancelEdit}
+                            className='text-gray-600 hover:text-gray-800'
+                            title='Cancel edit'
+                          >
+                            <X className='w-4 h-4' />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className='flex items-center space-x-2'>
+                            <span className='font-medium'>{alias.alias}</span>
+                          </div>
+                          <div className='flex space-x-2'>
+                            <button
+                              onClick={() => handleEditAlias(alias)}
+                              className='text-blue-600 hover:text-blue-800'
+                              title='Edit alias'
+                            >
+                              <Edit className='w-4 h-4' />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAlias(alias)}
+                              className='text-red-600 hover:text-red-800'
+                              title='Delete alias'
+                            >
+                              <Trash2 className='w-4 h-4' />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className='text-gray-500 text-sm'>No aliases found for this dive site.</p>
+                )}
+              </div>
             </div>
 
             <div>
@@ -700,7 +900,7 @@ const EditDiveSite = () => {
               {/* Add Media Form */}
               {isAddingMedia && (
                 <div className='bg-gray-50 p-4 rounded-md mb-4'>
-                  <form onSubmit={handleAddMedia} className='space-y-4'>
+                  <div className='space-y-4'>
                     <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                       <div>
                         <label
@@ -758,7 +958,8 @@ const EditDiveSite = () => {
                     </div>
                     <div className='flex space-x-2'>
                       <button
-                        type='submit'
+                        type='button'
+                        onClick={handleAddMedia}
                         disabled={addMediaMutation.isLoading}
                         className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50'
                       >
@@ -772,7 +973,7 @@ const EditDiveSite = () => {
                         Cancel
                       </button>
                     </div>
-                  </form>
+                  </div>
                 </div>
               )}
 
@@ -846,16 +1047,7 @@ const EditDiveSite = () => {
               {/* Add Tag Form */}
               {showTagForm && (
                 <div className='bg-gray-50 p-4 rounded-md mb-4'>
-                  <form
-                    onSubmit={e => {
-                      e.preventDefault();
-                      createTagMutation.mutate({
-                        name: newTagName,
-                        description: newTagDescription,
-                      });
-                    }}
-                    className='space-y-4'
-                  >
+                  <div className='space-y-4'>
                     <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                       <div>
                         <label
@@ -891,7 +1083,13 @@ const EditDiveSite = () => {
                     </div>
                     <div className='flex space-x-2'>
                       <button
-                        type='submit'
+                        type='button'
+                        onClick={() => {
+                          createTagMutation.mutate({
+                            name: newTagName,
+                            description: newTagDescription,
+                          });
+                        }}
                         disabled={createTagMutation.isLoading}
                         className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50'
                       >
@@ -905,7 +1103,7 @@ const EditDiveSite = () => {
                         Cancel
                       </button>
                     </div>
-                  </form>
+                  </div>
                 </div>
               )}
 
@@ -996,21 +1194,7 @@ const EditDiveSite = () => {
             {/* Add Diving Center Form */}
             {showDivingCenterForm && (
               <div className='bg-gray-50 p-4 rounded-md mb-4'>
-                <form
-                  onSubmit={e => {
-                    e.preventDefault();
-                    if (!newDivingCenterId) {
-                      toast.error('Please select a diving center');
-                      return;
-                    }
-                    addDivingCenterMutation.mutate({
-                      diving_center_id: parseInt(newDivingCenterId),
-                      dive_cost: newDiveCost ? parseFloat(newDiveCost) : null,
-                      currency: newDiveCurrency,
-                    });
-                  }}
-                  className='space-y-4'
-                >
+                <div className='space-y-4'>
                   <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                     <div>
                       <label
@@ -1081,7 +1265,18 @@ const EditDiveSite = () => {
                   </div>
                   <div className='flex space-x-2'>
                     <button
-                      type='submit'
+                      type='button'
+                      onClick={() => {
+                        if (!newDivingCenterId) {
+                          toast.error('Please select a diving center');
+                          return;
+                        }
+                        addDivingCenterMutation.mutate({
+                          diving_center_id: parseInt(newDivingCenterId),
+                          dive_cost: newDiveCost ? parseFloat(newDiveCost) : null,
+                          currency: newDiveCurrency,
+                        });
+                      }}
                       disabled={addDivingCenterMutation.isLoading}
                       className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50'
                     >
@@ -1095,7 +1290,7 @@ const EditDiveSite = () => {
                       Cancel
                     </button>
                   </div>
-                </form>
+                </div>
               </div>
             )}
 

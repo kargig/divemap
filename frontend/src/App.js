@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Admin from './pages/Admin';
 import AdminDives from './pages/AdminDives';
+import AdminDiveSiteAliases from './pages/AdminDiveSiteAliases';
 import AdminDiveSites from './pages/AdminDiveSites';
 import AdminDivingCenters from './pages/AdminDivingCenters';
 import AdminDivingOrganizations from './pages/AdminDivingOrganizations';
@@ -137,6 +138,14 @@ function App() {
                   element={
                     <ProtectedRoute requireAdmin={true}>
                       <AdminDiveSites />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path='/admin/dive-sites/:diveSiteId/aliases'
+                  element={
+                    <ProtectedRoute requireAdmin={true}>
+                      <AdminDiveSiteAliases />
                     </ProtectedRoute>
                   }
                 />

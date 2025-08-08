@@ -23,7 +23,7 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 **Update Behavior:**
 - **Always Updated**: name, description, latitude, longitude
-- **Preserved**: address, access_instructions, difficulty_level, marine_life, safety_information, alternative_names, country, region
+- **Preserved**: address, access_instructions, difficulty_level, marine_life, safety_information, aliases, country, region
 - **Selective**: Only changes fields present in import data
 
 **Usage Examples:**

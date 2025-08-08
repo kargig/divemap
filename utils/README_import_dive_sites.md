@@ -30,7 +30,7 @@ gps 36.970309 25.124448
 
 When updating existing dive sites, the script **replaces** these fields with new data:
 - **Always updated**: `name`, `description`, `latitude`, `longitude`
-- **Preserved if not in new data**: `address`, `access_instructions`, `difficulty_level`, `marine_life`, `safety_information`, `alternative_names`, `country`, `region`
+- **Preserved if not in new data**: `address`, `access_instructions`, `difficulty_level`, `marine_life`, `safety_information`, `aliases`, `country`, `region`
 
 The update is **selective** - it only changes the fields that are present in the new data, preserving existing information for fields not included in the import files.
 
@@ -90,7 +90,7 @@ When the script finds conflicts, it offers these options:
 Skips all sites that have conflicts (similar names or nearby sites). Useful for importing only completely new sites.
 
 ### `--update-all`
-Updates all existing sites that have conflicts. **Always updates**: name, description, coordinates. **Preserves**: address, access_instructions, difficulty_level, marine_life, safety_information, alternative_names, country, region.
+Updates all existing sites that have conflicts. **Always updates**: name, description, coordinates. **Preserves**: address, access_instructions, difficulty_level, marine_life, safety_information, aliases, country, region.
 
 ### `--create-merge-all`
 Creates merge files for all sites that have conflicts. This is useful when you want to:

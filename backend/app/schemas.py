@@ -86,10 +86,10 @@ class DiveSiteBase(BaseModel):
     access_instructions: Optional[str] = None
     difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
     marine_life: Optional[str] = None
-    safety_information: Optional[str] = None
-    alternative_names: Optional[str] = None  # Alternative names/aliases
-    country: Optional[str] = Field(None, max_length=100)  # Country name
-    region: Optional[str] = Field(None, max_length=100)  # Region/state/province name
+    safety_information: Optional[str] = None  # Safety information
+    max_depth: Optional[float] = None  # Maximum depth in meters
+    country: Optional[str] = None  # Country name
+    region: Optional[str] = None  # Region/state/province name
 
 class DiveSiteCreate(DiveSiteBase):
     pass
@@ -103,12 +103,28 @@ class DiveSiteUpdate(BaseModel):
     access_instructions: Optional[str] = None
     difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
     marine_life: Optional[str] = None
-    safety_information: Optional[str] = None
-    alternative_names: Optional[str] = None  # Alternative names/aliases
-    country: Optional[str] = Field(None, max_length=100)  # Country name
-    region: Optional[str] = Field(None, max_length=100)  # Region/state/province name
+    safety_information: Optional[str] = None  # Safety information
+    max_depth: Optional[float] = None  # Maximum depth in meters
+    country: Optional[str] = None  # Country name
+    region: Optional[str] = None  # Region/state/province name
 
+# Dive Site Alias Schemas
+class DiveSiteAliasBase(BaseModel):
+    alias: str = Field(..., min_length=1, max_length=255)
 
+class DiveSiteAliasCreate(DiveSiteAliasBase):
+    pass
+
+class DiveSiteAliasUpdate(BaseModel):
+    alias: Optional[str] = Field(None, min_length=1, max_length=255)
+
+class DiveSiteAliasResponse(DiveSiteAliasBase):
+    id: int
+    dive_site_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 class DiveSiteResponse(DiveSiteBase):
     id: int
@@ -120,11 +136,12 @@ class DiveSiteResponse(DiveSiteBase):
     tags: List[dict] = []
     user_rating: Optional[float] = None
     distance_km: Optional[float] = None
+    aliases: List[DiveSiteAliasResponse] = []  # List of aliases for this dive site
 
     class Config:
         from_attributes = True
 
-# Rating Schemas
+# Site Rating Schemas
 class SiteRatingCreate(BaseModel):
     score: float = Field(..., ge=1, le=10)
 

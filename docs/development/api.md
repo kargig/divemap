@@ -361,7 +361,20 @@ Get dive sites (alphabetically sorted).
     "marine_life": "Coral, fish, turtles, sharks",
     "safety_information": "Follow dive safety guidelines",
     "max_depth": 30.0,
-    "alternative_names": "GBR, The Reef",
+    "aliases": [
+      {
+        "id": 1,
+        "dive_site_id": 1,
+        "alias": "GBR",
+        "created_at": "2024-01-15T10:30:00Z"
+      },
+      {
+        "id": 2,
+        "dive_site_id": 1,
+        "alias": "The Reef",
+        "created_at": "2024-01-15T10:30:00Z"
+      }
+    ],
     "country": "Australia",
     "region": "Queensland",
     "view_count": 1250,
@@ -393,7 +406,7 @@ Create new dive site (admin/moderator only).
   "marine_life": "Marine life description",
   "safety_information": "Safety guidelines",
   "max_depth": 25.0,
-  "alternative_names": "Alternative names",
+  "aliases": ["Alternative name 1", "Alternative name 2"],
   "country": "Australia",
   "region": "Queensland"
 }
@@ -418,7 +431,20 @@ Get dive site by ID.
   "marine_life": "Coral, fish, turtles, sharks",
   "safety_information": "Follow dive safety guidelines",
   "max_depth": 30.0,
-  "alternative_names": "GBR, The Reef",
+      "aliases": [
+      {
+        "id": 1,
+        "dive_site_id": 1,
+        "alias": "GBR",
+        "created_at": "2024-01-15T10:30:00Z"
+      },
+      {
+        "id": 2,
+        "dive_site_id": 1,
+        "alias": "The Reef",
+        "created_at": "2024-01-15T10:30:00Z"
+      }
+    ],
   "country": "Australia",
   "region": "Queensland",
   "view_count": 1250,
@@ -1025,7 +1051,7 @@ Remove tag from dive site (admin/moderator only).
   "marine_life": "string (optional)",
   "safety_information": "string (optional)",
   "max_depth": "float (optional)",
-  "alternative_names": "string (optional)",
+  "aliases": "array of alias objects (optional)",
   "country": "string (optional)",
   "region": "string (optional)",
   "view_count": "integer",

@@ -533,7 +533,7 @@ python import_dive_sites_enhanced.py --create-merge-all
 
 **Update Behavior:**
 - **Always Updated**: name, description, latitude, longitude
-- **Preserved**: address, access_instructions, difficulty_level, marine_life, safety_information, alternative_names, country, region
+- **Preserved**: address, access_instructions, difficulty_level, marine_life, safety_information, aliases, country, region
 - **Selective**: Only changes fields present in import data
 
 #### **import_kml_dive_sites.py**

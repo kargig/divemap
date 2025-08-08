@@ -10,7 +10,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -25,8 +25,8 @@ const AdminDiveSites = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-  const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
+    name: '',
     difficulty_level: '',
     country: '',
     region: '',
@@ -43,6 +43,21 @@ const AdminDiveSites = () => {
   };
 
   const [pagination, setPagination] = useState(getInitialPagination);
+
+  // Debounced search handler
+  const debouncedSearch = useCallback(
+    (() => {
+      let timeoutId;
+      return searchTerm => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          setFilters(prev => ({ ...prev, name: searchTerm }));
+          setPagination(prev => ({ ...prev, page: 1 }));
+        }, 500); // 500ms debounce delay
+      };
+    })(),
+    []
+  );
 
   // Update URL when pagination changes
   const updateURL = newPagination => {
@@ -61,6 +76,7 @@ const AdminDiveSites = () => {
       params.append('page_size', pagination.page_size.toString());
 
       // Add filters
+      if (filters.name) params.append('name', filters.name);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
       if (filters.country) params.append('country', filters.country);
       if (filters.region) params.append('region', filters.region);
@@ -143,13 +159,13 @@ const AdminDiveSites = () => {
 
   const clearFilters = () => {
     setFilters({
+      name: '',
       difficulty_level: '',
       country: '',
       region: '',
       min_rating: '',
       max_rating: '',
     });
-    setSearchTerm('');
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
@@ -249,27 +265,12 @@ const AdminDiveSites = () => {
     );
   };
 
-  // Sort and filter dive sites
+  // Sort dive sites
   const sortedDiveSites = useMemo(() => {
     if (!diveSites) return [];
 
-    let filtered = [...diveSites];
-
-    // Apply search term filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(site => {
-        return (
-          site.name?.toLowerCase().includes(searchLower) ||
-          site.description?.toLowerCase().includes(searchLower) ||
-          site.country?.toLowerCase().includes(searchLower) ||
-          site.region?.toLowerCase().includes(searchLower)
-        );
-      });
-    }
-
-    // Sort the filtered results
-    const sorted = filtered.sort((a, b) => {
+    // Sort the results
+    const sorted = [...diveSites].sort((a, b) => {
       if (!sortConfig.key) return 0;
 
       let aValue = a[sortConfig.key];
@@ -298,7 +299,7 @@ const AdminDiveSites = () => {
     });
 
     return sorted;
-  }, [diveSites, sortConfig, searchTerm]);
+  }, [diveSites, sortConfig]);
 
   if (!user?.is_admin) {
     return (
@@ -463,14 +464,17 @@ const AdminDiveSites = () => {
           <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5' />
           <input
             type='text'
-            placeholder='Search dive sites by name, description, country, or region...'
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            placeholder='Search dive sites by name...'
+            value={filters.name}
+            onChange={e => debouncedSearch(e.target.value)}
             className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
           />
-          {searchTerm && (
+          {filters.name && (
             <button
-              onClick={() => setSearchTerm('')}
+              onClick={() => {
+                setFilters(prev => ({ ...prev, name: '' }));
+                setPagination(prev => ({ ...prev, page: 1 }));
+              }}
               className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
             >
               <X className='h-4 w-4' />
@@ -593,6 +597,9 @@ const AdminDiveSites = () => {
                   Tags
                 </th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  Aliases
+                </th>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                   Actions
                 </th>
               </tr>
@@ -647,6 +654,21 @@ const AdminDiveSites = () => {
                       ))}
                     </div>
                   </td>
+                  <td className='px-6 py-4'>
+                    <div className='flex flex-wrap gap-1'>
+                      {site.aliases?.map(alias => (
+                        <span
+                          key={alias.id}
+                          className='px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full'
+                        >
+                          {alias.alias}
+                          {alias.language && (
+                            <span className='ml-1 text-xs text-purple-600'>({alias.language})</span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
                   <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
                     <div className='flex space-x-2'>
                       <button
@@ -663,6 +685,7 @@ const AdminDiveSites = () => {
                       >
                         <Edit className='h-4 w-4' />
                       </button>
+
                       <button
                         onClick={() => handleDeleteDiveSite(site)}
                         className='text-red-600 hover:text-red-900'

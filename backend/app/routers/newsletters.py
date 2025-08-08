@@ -48,29 +48,58 @@ def find_matching_dive_site(db: Session, site_name: str) -> Optional[int]:
     
     # Clean the site name
     site_name = site_name.strip()
+    logger.info(f"🔍 Looking for dive site match for: '{site_name}'")
     
-    # First try exact match (case insensitive)
+    # First try exact match (case insensitive) on dive site names
     exact_match = db.query(DiveSite).filter(
         DiveSite.name.ilike(site_name)
     ).first()
     if exact_match:
+        logger.info(f"✅ Exact match found on dive site name: '{site_name}' -> ID: {exact_match.id}")
         return exact_match.id
     
-    # Try partial matches
+    # Try exact match on aliases
+    from app.models import DiveSiteAlias
+    alias_match = db.query(DiveSiteAlias).filter(
+        DiveSiteAlias.alias.ilike(site_name)
+    ).first()
+    if alias_match:
+        logger.info(f"✅ Exact match found on alias: '{site_name}' -> Dive Site ID: {alias_match.dive_site_id}")
+        return alias_match.dive_site_id
+    
+    # Try partial matches on dive site names
     partial_matches = db.query(DiveSite).filter(
         DiveSite.name.ilike(f"%{site_name}%")
     ).all()
     
     if partial_matches:
         # Return the first match (most likely)
+        logger.info(f"✅ Partial match found on dive site name: '{site_name}' -> ID: {partial_matches[0].id}")
         return partial_matches[0].id
+    
+    # Try partial matches on aliases
+    alias_partial_matches = db.query(DiveSiteAlias).filter(
+        DiveSiteAlias.alias.ilike(f"%{site_name}%")
+    ).all()
+    
+    if alias_partial_matches:
+        # Return the first match (most likely)
+        logger.info(f"✅ Partial match found on alias: '{site_name}' -> Dive Site ID: {alias_partial_matches[0].dive_site_id}")
+        return alias_partial_matches[0].dive_site_id
     
     # Try reverse partial match (site_name contains dive site name)
     for dive_site in db.query(DiveSite).all():
         if dive_site.name.lower() in site_name.lower():
+            logger.info(f"✅ Reverse partial match found: '{site_name}' contains '{dive_site.name}' -> ID: {dive_site.id}")
             return dive_site.id
     
-    # Try similarity matching with threshold
+    # Try reverse partial match on aliases
+    for alias in db.query(DiveSiteAlias).all():
+        if alias.alias.lower() in site_name.lower():
+            logger.info(f"✅ Reverse partial match found on alias: '{site_name}' contains '{alias.alias}' -> Dive Site ID: {alias.dive_site_id}")
+            return alias.dive_site_id
+    
+    # Try similarity matching with threshold on dive site names
     best_match = None
     best_ratio = 0.0
     threshold = 0.6  # Minimum similarity threshold
@@ -81,10 +110,24 @@ def find_matching_dive_site(db: Session, site_name: str) -> Optional[int]:
             best_ratio = ratio
             best_match = dive_site
     
-    if best_match:
-        logger.info(f"Found dive site match: '{site_name}' -> '{best_match.name}' (similarity: {best_ratio:.2f})")
-        return best_match.id
+    # Try similarity matching on aliases
+    for alias in db.query(DiveSiteAlias).all():
+        ratio = similarity_ratio(site_name, alias.alias)
+        if ratio > best_ratio and ratio >= threshold:
+            best_ratio = ratio
+            best_match = alias.dive_site_id
+            logger.info(f"✅ Similarity match found on alias: '{site_name}' ~ '{alias.alias}' (ratio: {ratio:.2f}) -> Dive Site ID: {best_match}")
+            return best_match
     
+    if best_match:
+        if hasattr(best_match, 'id'):
+            logger.info(f"✅ Similarity match found on dive site name: '{site_name}' ~ '{best_match.name}' (ratio: {best_ratio:.2f}) -> ID: {best_match.id}")
+            return best_match.id
+        else:
+            logger.info(f"✅ Similarity match found via alias: '{site_name}' -> dive site ID {best_match} (ratio: {best_ratio:.2f})")
+            return best_match
+    
+    logger.info(f"❌ No match found for dive site: '{site_name}'")
     return None
 
 def extract_diving_center_from_headers(raw_email: str) -> Optional[str]:
@@ -247,6 +290,14 @@ CRITICAL RULES:
 - If no group size limit is mentioned, set group_size_limit to null
 - If no special requirements are mentioned, set special_requirements to null
 
+DATE EXTRACTION RULES:
+- Extract the actual date from the content if mentioned
+- If no specific date is mentioned, use today's date: {date.today().strftime('%Y-%m-%d')}
+- NEVER use placeholder dates like "YYYY-MM-DD"
+- Look for date patterns like "today", "tomorrow", "next week", or specific dates
+- If the content mentions "today", use today's date
+- If the content mentions "tomorrow", use tomorrow's date
+
 TRIP STRUCTURE RULES:
 - A single dive trip can have 1 or 2 dives
 - If the text mentions "Δεύτερη βουτιά" (second dive) or similar, create 2 dives in the same trip
@@ -254,8 +305,16 @@ TRIP STRUCTURE RULES:
 - Each dive within a trip should have a dive_number (1 for first dive, 2 for second dive)
 - Each dive can have its own dive site, time, duration, and description
 
+DIVE SITE EXTRACTION RULES:
+- ALWAYS extract dive site names from the content when mentioned
+- Look for dive site names in the text and extract them for dive_site_name
+- Common Greek dive sites include: Kyra Leni, Arzentá, Pothitos, Makronisos, Koundouros, Patris, Avantis, Petrokaravo, etc.
+- If a dive site is mentioned in the text, extract it as dive_site_name
+- If no specific dive site is mentioned for a dive, set dive_site_name to null
+- Pay attention to both English and Greek names for dive sites
+
 Field descriptions:
-- trip_date: Date of the dive trip (YYYY-MM-DD format, required)
+- trip_date: Date of the dive trip (YYYY-MM-DD format, required - use today's date if not specified)
 - trip_time: Time of departure (HH:MM format, optional - can be null if not mentioned)
 - trip_duration: Total duration in minutes (optional - can be null if not mentioned)
 - trip_description: Description of the entire dive trip (required)
@@ -265,7 +324,7 @@ Field descriptions:
 - special_requirements: Any special requirements (optional - can be null if not mentioned)
 - dives: Array of dives in this trip
   - dive_number: Number of the dive (1 for first, 2 for second)
-  - dive_site_name: Extract the specific dive site name mentioned for this dive. Look for names like "Kyra Leni", "Arzentá", "Pothitos", "Makronisos", "Koundouros", "Patris", "Avantis", "Petrokaravo", etc. (optional - can be null if not mentioned)
+  - dive_site_name: Extract the specific dive site name mentioned for this dive. Look for names like "Kyra Leni", "Arzentá", "Pothitos", "Makronisos", "Koundouros", "Patris", "Avantis", "Petrokaravo", etc. (required if mentioned in text)
   - dive_time: Time for this specific dive (HH:MM format, optional - can be null if not mentioned)
   - dive_duration: Duration for this specific dive in minutes (optional - can be null if not mentioned)
   - dive_description: Description for this specific dive (optional - can be null if not mentioned)
@@ -314,12 +373,15 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
                         if trip.get('dives'):
                             for dive in trip['dives']:
                                 if dive.get('dive_site_name'):
+                                    logger.info(f"🔍 Attempting to match dive site: '{dive['dive_site_name']}'")
                                     dive_site_id = find_matching_dive_site(db, dive['dive_site_name'])
                                     if dive_site_id:
                                         dive['dive_site_id'] = dive_site_id
-                                        logger.info(f"Matched dive site: '{dive['dive_site_name']}' -> ID: {dive_site_id}")
+                                        logger.info(f"✅ Matched dive site: '{dive['dive_site_name']}' -> ID: {dive_site_id}")
                                     else:
-                                        logger.info(f"No dive site match found for: '{dive['dive_site_name']}'")
+                                        logger.info(f"❌ No dive site match found for: '{dive['dive_site_name']}'")
+                                else:
+                                    logger.info(f"⚠️ No dive_site_name found in dive")
                     
                     logger.info(f"Successfully parsed {len(trips)} trips from OpenAI")
                     return trips
@@ -515,10 +577,30 @@ async def upload_newsletter(
             
             # Create ParsedDiveTrip records
             for trip_data in parsed_trips:
+                # Handle date parsing with better error handling
+                trip_date = None
+                if trip_data.get('trip_date'):
+                    trip_date_str = trip_data['trip_date']
+                    if isinstance(trip_date_str, str):
+                        # Skip placeholder dates like "YYYY-MM-DD"
+                        if trip_date_str == "YYYY-MM-DD" or "YYYY" in trip_date_str:
+                            logger.warning(f"Skipping placeholder date: {trip_date_str}")
+                            continue
+                        try:
+                            trip_date = datetime.strptime(trip_date_str, '%Y-%m-%d').date()
+                        except ValueError as e:
+                            logger.error(f"Invalid date format '{trip_date_str}': {e}")
+                            continue
+                    else:
+                        trip_date = trip_date_str
+                else:
+                    logger.warning("No trip_date provided, skipping trip")
+                    continue
+                
                 trip = ParsedDiveTrip(
                     source_newsletter_id=newsletter.id,
                     diving_center_id=trip_data.get('diving_center_id'),
-                    trip_date=datetime.strptime(trip_data['trip_date'], '%Y-%m-%d').date() if isinstance(trip_data['trip_date'], str) else trip_data['trip_date'],
+                    trip_date=trip_date,
                     trip_time=trip_data.get('trip_time'),
                     trip_duration=trip_data.get('trip_duration'),
                     trip_difficulty_level=trip_data.get('trip_difficulty_level'),
@@ -864,10 +946,30 @@ async def reparse_newsletter(
             
             # Create new ParsedDiveTrip records
             for trip_data in parsed_trips:
+                # Handle date parsing with better error handling
+                trip_date = None
+                if trip_data.get('trip_date'):
+                    trip_date_str = trip_data['trip_date']
+                    if isinstance(trip_date_str, str):
+                        # Skip placeholder dates like "YYYY-MM-DD"
+                        if trip_date_str == "YYYY-MM-DD" or "YYYY" in trip_date_str:
+                            logger.warning(f"Skipping placeholder date: {trip_date_str}")
+                            continue
+                        try:
+                            trip_date = datetime.strptime(trip_date_str, '%Y-%m-%d').date()
+                        except ValueError as e:
+                            logger.error(f"Invalid date format '{trip_date_str}': {e}")
+                            continue
+                    else:
+                        trip_date = trip_date_str
+                else:
+                    logger.warning("No trip_date provided, skipping trip")
+                    continue
+                
                 trip = ParsedDiveTrip(
                     source_newsletter_id=newsletter.id,
                     diving_center_id=trip_data.get('diving_center_id'),
-                    trip_date=datetime.strptime(trip_data['trip_date'], '%Y-%m-%d').date() if isinstance(trip_data['trip_date'], str) else trip_data['trip_date'],
+                    trip_date=trip_date,
                     trip_time=trip_data.get('trip_time'),
                     trip_duration=trip_data.get('trip_duration'),
                     trip_difficulty_level=trip_data.get('trip_difficulty_level'),

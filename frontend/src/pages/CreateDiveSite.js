@@ -22,7 +22,6 @@ const CreateDiveSite = () => {
     marine_life: '',
     safety_information: '',
     max_depth: '',
-    alternative_names: '',
   });
 
   const createDiveSiteMutation = useMutation(data => api.post('/api/v1/dive-sites/', data), {
@@ -178,24 +177,6 @@ const CreateDiveSite = () => {
                 <option value='expert'>Expert</option>
               </select>
             </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor='alternative-names'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Alternative Names
-            </label>
-            <input
-              id='alternative-names'
-              type='text'
-              name='alternative_names'
-              value={formData.alternative_names}
-              onChange={handleInputChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='e.g., Shark Point, Koh Phi Phi'
-            />
           </div>
 
           <div>

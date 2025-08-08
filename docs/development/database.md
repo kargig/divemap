@@ -62,7 +62,7 @@ CREATE TABLE dive_sites (
     marine_life TEXT,
     safety_information TEXT,
     max_depth DECIMAL(5, 2),
-    alternative_names TEXT,
+    alternative_names TEXT, -- DEPRECATED: This field has been replaced by the dive_site_aliases table
     country VARCHAR(100),
     region VARCHAR(100),
     view_count INT DEFAULT 0,
@@ -230,6 +230,22 @@ CREATE TABLE parsed_dives (
 );
 ```
 
+
+
+#### Dive Site Aliases Table
+```sql
+CREATE TABLE dive_site_aliases (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    dive_site_id INT NOT NULL,
+    alias VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (dive_site_id) REFERENCES dive_sites(id),
+    UNIQUE KEY _dive_site_alias_uc (dive_site_id, alias)
+);
+```
+
+**Purpose**: Stores alternative names/aliases for dive sites, used for improved search and matching during newsletter parsing.
+
 #### Newsletters Table
 ```sql
 CREATE TABLE newsletters (
@@ -253,6 +269,7 @@ CREATE TABLE newsletters (
 - **user_certifications**: User diving certifications
 - **diving_center_organizations**: Association between centers and organizations
 - **dive_site_tags**: Association between dive sites and tags
+- **dive_site_aliases**: Alternative names/aliases for dive sites
 - **dives**: User dive logs with comprehensive details
 - **dive_media**: Media files for dives (photos, videos, plans, external links)
 - **dive_tags**: Association between dives and tags
@@ -344,7 +361,9 @@ alembic revision -m "Complex data migration"
 Migration files are stored in `migrations/versions/` and follow the naming convention:
 
 - `0001_initial.py` - Initial database schema
-- `0002_add_max_depth_and_alternative_names.py` - Added max_depth and alternative_names fields
+- `0002_add_max_depth_and_alternative_names.py` - Added max_depth and alternative_names fields (alternative_names later deprecated)
+- `29fac01eff2e_add_dive_site_aliases_table_for_.py` - Added dive_site_aliases table
+- `75b96c8832aa_deprecate_alternative_names_column.py` - Removed alternative_names column
 - `0003_add_country_region_fields.py` - Added country and region fields with indexes
 - `0004_add_view_count_fields.py` - Added view count tracking
 - `0005_add_user_diving_fields.py` - Added user diving certification and dive count

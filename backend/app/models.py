@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Foreign
 from sqlalchemy.orm import relationship
 from app.database import Base
 import enum
+import sqlalchemy as sa
 
 class DifficultyLevel(enum.Enum):
     beginner = "beginner"
@@ -88,7 +89,6 @@ class DiveSite(Base):
     marine_life = Column(Text)  # Added marine life field
     safety_information = Column(Text)  # Added safety information field
     max_depth = Column(DECIMAL(5, 2))  # Maximum depth in meters
-    alternative_names = Column(Text)  # Alternative names/aliases for the dive site
     country = Column(String(100), index=True)  # Country name
     region = Column(String(100), index=True)  # Region/state/province name
     view_count = Column(Integer, default=0, nullable=False)  # Number of views
@@ -103,6 +103,23 @@ class DiveSite(Base):
     parsed_dives = relationship("ParsedDive", back_populates="dive_site")
     tags = relationship("DiveSiteTag", back_populates="dive_site", cascade="all, delete-orphan")
     dives = relationship("Dive", back_populates="dive_site", cascade="all, delete-orphan")
+    aliases = relationship("DiveSiteAlias", back_populates="dive_site", cascade="all, delete-orphan")
+
+class DiveSiteAlias(Base):
+    __tablename__ = "dive_site_aliases"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), nullable=False, index=True)
+    alias = Column(String(255), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    dive_site = relationship("DiveSite", back_populates="aliases")
+
+    # Unique constraint to prevent duplicate aliases for the same dive site
+    __table_args__ = (
+        sa.UniqueConstraint('dive_site_id', 'alias', name='_dive_site_alias_uc'),
+    )
 
 class SiteMedia(Base):
     __tablename__ = "site_media"

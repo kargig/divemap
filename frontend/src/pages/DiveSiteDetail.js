@@ -248,6 +248,21 @@ const DiveSiteDetail = () => {
           >
             {diveSite.difficulty_level}
           </span>
+
+          {/* Aliases */}
+          {diveSite.aliases && diveSite.aliases.length > 0 && (
+            <div className='flex flex-wrap gap-2'>
+              {diveSite.aliases.map(alias => (
+                <span
+                  key={alias.id}
+                  className='px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800'
+                >
+                  {alias.alias}
+                </span>
+              ))}
+            </div>
+          )}
+
           {diveSite.average_rating && (
             <div className='flex items-center'>
               <span className='text-lg font-semibold text-gray-700'>
@@ -511,16 +526,6 @@ const DiveSiteDetail = () => {
             </div>
           )}
 
-          {/* Alternative Names */}
-          {diveSite.alternative_names && (
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
-                Alternative Names
-              </h2>
-              <p className='text-gray-700 text-sm sm:text-base'>{diveSite.alternative_names}</p>
-            </div>
-          )}
-
           {/* Marine Life */}
           {diveSite.marine_life && (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
@@ -738,33 +743,51 @@ const DiveSiteDetail = () => {
           {user && (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
               <h3 className='text-lg font-semibold text-gray-900 mb-4'>Rate this site</h3>
-              <div className='flex items-center space-x-2 mb-4 overflow-x-auto'>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(star => (
-                  <button
-                    key={star}
-                    onClick={() => setRating(star)}
-                    className={`p-1 flex-shrink-0 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
-                  >
-                    <Star className='h-6 w-6 fill-current' />
-                  </button>
-                ))}
+
+              {/* Improved Rating Display */}
+              <div className='mb-4'>
+                <div className='flex items-center justify-center space-x-1 mb-3'>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(star => (
+                    <button
+                      key={star}
+                      onClick={() => setRating(star)}
+                      onMouseEnter={() => setRating(star)}
+                      onMouseLeave={() => setRating(rating)}
+                      className={`p-1 transition-colors duration-200 ${
+                        star <= rating ? 'text-yellow-400' : 'text-gray-300'
+                      } hover:text-yellow-400 hover:scale-110 transform`}
+                      title={`Rate ${star}/10`}
+                    >
+                      <Star className='h-5 w-5 fill-current' />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Rating Text */}
+                <div className='text-center'>
+                  <div className='text-2xl font-bold text-gray-900 mb-1'>
+                    {rating > 0 ? `${rating}/10` : 'Click to rate'}
+                  </div>
+                  <div className='text-sm text-gray-600'>
+                    {diveSite?.user_rating ? (
+                      <>
+                        Your previous rating:{' '}
+                        <span className='font-semibold'>{diveSite.user_rating}/10</span>
+                      </>
+                    ) : rating > 0 ? (
+                      <span className='text-blue-600 font-medium'>Ready to submit</span>
+                    ) : (
+                      'Hover over stars to preview'
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className='text-sm text-gray-600 mb-4'>
-                {diveSite?.user_rating ? (
-                  <>
-                    Your previous rating:{' '}
-                    <span className='font-bold'>{diveSite.user_rating}/10</span>
-                  </>
-                ) : rating > 0 ? (
-                  `You rated this site ${rating}/10`
-                ) : (
-                  'Click to rate'
-                )}
-              </div>
+
+              {/* Submit Button */}
               <button
                 onClick={handleRatingSubmit}
                 disabled={rating === 0 || rateMutation.isLoading}
-                className='w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                className='w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200'
               >
                 {rateMutation.isLoading ? 'Submitting...' : 'Submit Rating'}
               </button>

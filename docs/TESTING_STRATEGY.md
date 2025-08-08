@@ -183,20 +183,20 @@ RUN npm ci --timeout=300000
 
 **New Fields Added:**
 - **`max_depth`**: Maximum depth in meters (optional, 0-1000m range)
-- **`alternative_names`**: Alternative names/aliases for dive sites (optional)
+- **`aliases`**: Alternative names/aliases for dive sites (optional, structured as array of alias objects)
 
 **Validation Tests Added:**
 ```python
 # Test new fields creation
-def test_create_dive_site_with_new_fields_admin_success(self, client, admin_headers):
-    """Test creating a dive site with max_depth and alternative_names fields."""
+def test_create_dive_site_with_aliases_admin_success(self, client, admin_headers):
+    """Test creating a dive site with max_depth and aliases fields."""
     dive_site_data = {
-        "name": "Test Dive Site with New Fields",
-        "description": "A test dive site with new fields",
+        "name": "Test Dive Site with Aliases",
+        "description": "A test dive site with aliases",
         "latitude": 10.0,
         "longitude": 20.0,
         "max_depth": 25.5,
-        "alternative_names": "Test Site, Test Location"
+        "aliases": ["Test Site", "Test Location"]
     }
     
     response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
@@ -204,7 +204,177 @@ def test_create_dive_site_with_new_fields_admin_success(self, client, admin_head
     
     data = response.json()
     assert data["max_depth"] == 25.5
-    assert data["alternative_names"] == "Test Site, Test Location"
+    assert "aliases" in data
+    assert isinstance(data["aliases"], list)
+
+# Test aliases CRUD operations
+def test_create_dive_site_alias_admin_success(self, client, admin_headers):
+    """Test creating an alias for a dive site."""
+    # First create a dive site
+    dive_site_data = {
+        "name": "Test Dive Site for Aliases",
+        "description": "A test dive site",
+        "latitude": 10.0,
+        "longitude": 20.0
+    }
+    create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+    assert create_response.status_code == status.HTTP_200_OK
+    dive_site_id = create_response.json()["id"]
+    
+    # Create an alias
+    alias_data = {"alias": "Test Alias"}
+    alias_response = client.post(f"/api/v1/dive-sites/{dive_site_id}/aliases", json=alias_data, headers=admin_headers)
+    assert alias_response.status_code == status.HTTP_200_OK
+    
+    data = alias_response.json()
+    assert data["alias"] == "Test Alias"
+    assert data["dive_site_id"] == dive_site_id
+
+def test_get_dive_site_with_aliases(self, client, admin_headers):
+    """Test retrieving a dive site with its aliases."""
+    # Create dive site with aliases
+    dive_site_data = {
+        "name": "Test Dive Site with Aliases",
+        "description": "A test dive site",
+        "latitude": 10.0,
+        "longitude": 20.0
+    }
+    create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+    assert create_response.status_code == status.HTTP_200_OK
+    dive_site_id = create_response.json()["id"]
+    
+    # Add aliases
+    aliases = ["Alias 1", "Alias 2", "Alias 3"]
+    for alias in aliases:
+        alias_data = {"alias": alias}
+        client.post(f"/api/v1/dive-sites/{dive_site_id}/aliases", json=alias_data, headers=admin_headers)
+    
+    # Get dive site and verify aliases
+    get_response = client.get(f"/api/v1/dive-sites/{dive_site_id}", headers=admin_headers)
+    assert get_response.status_code == status.HTTP_200_OK
+    
+    data = get_response.json()
+    assert "aliases" in data
+    assert len(data["aliases"]) == 3
+    alias_names = [alias["alias"] for alias in data["aliases"]]
+    assert all(alias in alias_names for alias in aliases)
+
+# Test newsletter parsing with aliases
+def test_newsletter_parsing_with_aliases(self, client, admin_headers):
+    """Test that newsletter parsing correctly matches dive sites using aliases."""
+    # Create dive site with aliases
+    dive_site_data = {
+        "name": "Great Barrier Reef",
+        "description": "A famous dive site",
+        "latitude": -16.5,
+        "longitude": 145.67
+    }
+    create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+    assert create_response.status_code == status.HTTP_200_OK
+    dive_site_id = create_response.json()["id"]
+    
+    # Add aliases that might appear in newsletters
+    aliases = ["GBR", "The Reef", "Great Barrier"]
+    for alias in aliases:
+        alias_data = {"alias": alias}
+        client.post(f"/api/v1/dive-sites/{dive_site_id}/aliases", json=alias_data, headers=admin_headers)
+    
+    # Test newsletter parsing with alias matching
+    newsletter_content = "Join us for a dive trip to GBR this weekend!"
+    newsletter_data = {"content": newsletter_content}
+    
+    parse_response = client.post("/api/v1/newsletters/", json=newsletter_data, headers=admin_headers)
+    assert parse_response.status_code == status.HTTP_200_OK
+    
+    # Verify that the dive site was matched using the alias
+    data = parse_response.json()
+    assert "dive_sites" in data
+    assert len(data["dive_sites"]) > 0
+    matched_site = data["dive_sites"][0]
+    assert matched_site["name"] == "Great Barrier Reef"
+
+# Test frontend aliases functionality
+def test_frontend_aliases_display(self, client, admin_headers):
+    """Test that aliases are properly displayed in the frontend."""
+    # Create dive site with aliases
+    dive_site_data = {
+        "name": "Test Dive Site",
+        "description": "A test dive site",
+        "latitude": 10.0,
+        "longitude": 20.0
+    }
+    create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+    assert create_response.status_code == status.HTTP_200_OK
+    dive_site_id = create_response.json()["id"]
+    
+    # Add aliases
+    aliases = ["Test Alias 1", "Test Alias 2"]
+    for alias in aliases:
+        alias_data = {"alias": alias}
+        client.post(f"/api/v1/dive-sites/{dive_site_id}/aliases", json=alias_data, headers=admin_headers)
+    
+    # Get dive site and verify aliases are included
+    get_response = client.get(f"/api/v1/dive-sites/{dive_site_id}")
+    assert get_response.status_code == status.HTTP_200_OK
+    
+    data = get_response.json()
+    assert "aliases" in data
+    assert len(data["aliases"]) == 2
+    
+    # Verify alias structure
+    for alias in data["aliases"]:
+        assert "id" in alias
+        assert "dive_site_id" in alias
+        assert "alias" in alias
+        assert "created_at" in alias
+        assert alias["dive_site_id"] == dive_site_id
+
+# Test admin aliases management
+def test_admin_aliases_management(self, client, admin_headers):
+    """Test admin functionality for managing dive site aliases."""
+    # Create dive site
+    dive_site_data = {
+        "name": "Admin Test Site",
+        "description": "A test dive site for admin testing",
+        "latitude": 10.0,
+        "longitude": 20.0
+    }
+    create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+    assert create_response.status_code == status.HTTP_200_OK
+    dive_site_id = create_response.json()["id"]
+    
+    # Test creating aliases
+    aliases_to_create = ["Admin Alias 1", "Admin Alias 2", "Admin Alias 3"]
+    created_aliases = []
+    
+    for alias_name in aliases_to_create:
+        alias_data = {"alias": alias_name}
+        create_alias_response = client.post(f"/api/v1/dive-sites/{dive_site_id}/aliases", json=alias_data, headers=admin_headers)
+        assert create_alias_response.status_code == status.HTTP_200_OK
+        created_aliases.append(create_alias_response.json())
+    
+    # Test updating aliases
+    first_alias = created_aliases[0]
+    update_data = {"alias": "Updated Admin Alias"}
+    update_response = client.put(f"/api/v1/dive-sites/{dive_site_id}/aliases/{first_alias['id']}", json=update_data, headers=admin_headers)
+    assert update_response.status_code == status.HTTP_200_OK
+    assert update_response.json()["alias"] == "Updated Admin Alias"
+    
+    # Test deleting aliases
+    second_alias = created_aliases[1]
+    delete_response = client.delete(f"/api/v1/dive-sites/{dive_site_id}/aliases/{second_alias['id']}", headers=admin_headers)
+    assert delete_response.status_code == status.HTTP_200_OK
+    
+    # Verify final state
+    get_response = client.get(f"/api/v1/dive-sites/{dive_site_id}", headers=admin_headers)
+    assert get_response.status_code == status.HTTP_200_OK
+    
+    data = get_response.json()
+    assert len(data["aliases"]) == 2  # One updated, one deleted, one remaining
+    alias_names = [alias["alias"] for alias in data["aliases"]]
+    assert "Updated Admin Alias" in alias_names
+    assert "Admin Alias 3" in alias_names
+    assert "Admin Alias 2" not in alias_names  # Should be deleted
 
 # Test empty string handling for optional fields
 def test_update_dive_site_with_empty_max_depth_admin_success(self, client, admin_headers):

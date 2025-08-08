@@ -660,6 +660,22 @@ const DiveSites = () => {
                   </span>
                 </div>
 
+                {/* Aliases */}
+                {site.aliases && site.aliases.length > 0 && (
+                  <div className='mb-3 sm:mb-4'>
+                    <div className='flex flex-wrap gap-1'>
+                      {site.aliases.map(alias => (
+                        <span
+                          key={alias.id}
+                          className='px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800'
+                        >
+                          {alias.alias}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {site.description && (
                   <p className='text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 line-clamp-3'>
                     {site.description}

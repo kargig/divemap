@@ -7,6 +7,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Search,
+  X,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
@@ -23,6 +25,9 @@ const AdminDivingCenters = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [filters, setFilters] = useState({
+    name: '',
+  });
 
   // Get initial pagination from URL parameters
   const getInitialPagination = () => {
@@ -34,6 +39,22 @@ const AdminDivingCenters = () => {
 
   const [pagination, setPagination] = useState(getInitialPagination);
 
+  // Search handlers
+  const handleSearch = e => {
+    e.preventDefault();
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when searching
+  };
+
+  const handleSearchChange = e => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+    // Reset to first page when filters change
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
   // Update URL when pagination changes
   const updateURL = newPagination => {
     const newSearchParams = new URLSearchParams(searchParams);
@@ -44,11 +65,15 @@ const AdminDivingCenters = () => {
 
   // Fetch diving centers data with pagination
   const { data: divingCenters, isLoading } = useQuery(
-    ['admin-diving-centers', pagination],
+    ['admin-diving-centers', pagination, filters],
     () => {
       const params = new URLSearchParams();
       params.append('page', pagination.page.toString());
       params.append('page_size', pagination.page_size.toString());
+
+      // Add filters
+      if (filters.name) params.append('name', filters.name);
+
       return api.get(`/api/v1/diving-centers/?${params.toString()}`);
     },
     {
@@ -286,6 +311,33 @@ const AdminDivingCenters = () => {
           Add Diving Center
         </button>
       </div>
+
+      {/* Search */}
+      <form onSubmit={handleSearch} className='mb-6'>
+        <div className='relative'>
+          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5' />
+          <input
+            type='text'
+            name='name'
+            placeholder='Search diving centers by name...'
+            value={filters.name}
+            onChange={handleSearchChange}
+            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+          />
+          {filters.name && (
+            <button
+              type='button'
+              onClick={() => {
+                setFilters(prev => ({ ...prev, name: '' }));
+                setPagination(prev => ({ ...prev, page: 1 }));
+              }}
+              className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+            >
+              <X className='h-4 w-4' />
+            </button>
+          )}
+        </div>
+      </form>
 
       {/* Mass Delete Button */}
       {selectedItems.size > 0 && (

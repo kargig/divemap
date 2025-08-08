@@ -63,7 +63,9 @@ def export_data():
             marine_life_value = escape_sql_string(site.marine_life)
             safety_information_value = escape_sql_string(site.safety_information)
             max_depth_value = site.max_depth if site.max_depth else 'NULL'
-            alternative_names_value = escape_sql_string(site.alternative_names)
+            # Note: alternative_names field has been deprecated and replaced by dive_site_aliases table
+            # The aliases are now stored in a separate table and exported below
+            alternative_names_value = "NULL"
             country_value = escape_sql_string(site.country)
             region_value = escape_sql_string(site.region)
             
@@ -99,6 +101,13 @@ def export_data():
         dive_site_tags = session.execute(text("SELECT * FROM dive_site_tags"))
         for tag in dive_site_tags:
             print(f"INSERT INTO dive_site_tags (id, dive_site_id, tag_id, created_at) VALUES ({tag.id}, {tag.dive_site_id}, {tag.tag_id}, {escape_sql_string(tag.created_at)});")
+        print()
+        
+        # Export dive site aliases
+        print("-- Dive Site Aliases")
+        dive_site_aliases = session.execute(text("SELECT * FROM dive_site_aliases"))
+        for alias in dive_site_aliases:
+            print(f"INSERT INTO dive_site_aliases (id, dive_site_id, alias, created_at) VALUES ({alias.id}, {alias.dive_site_id}, {escape_sql_string(alias.alias)}, {escape_sql_string(alias.created_at)});")
         print()
         
         # Export site media
