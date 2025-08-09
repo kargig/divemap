@@ -6,6 +6,78 @@ This document outlines the comprehensive testing strategy to prevent regressions
 
 ## 1. Latest Features Added
 
+### ✅ Added: Admin Dashboard System Monitoring Testing
+
+**New Features Added:**
+- **System Overview Dashboard**: Comprehensive platform statistics and health monitoring
+- **Recent Activity Monitoring**: Real-time tracking of user actions and system changes
+- **System Health Endpoints**: Backend API endpoints for monitoring system status
+- **Real-time Activity Tracking**: Database queries for user and system activity
+
+**New Test Categories Added:**
+```python
+# System Monitoring Tests
+def test_get_system_overview(self, client, admin_headers):
+    """Test system overview endpoint returns comprehensive platform statistics."""
+
+def test_get_system_health(self, client, admin_headers):
+    """Test system health endpoint returns detailed health information."""
+
+def test_get_platform_stats(self, client, admin_headers):
+    """Test platform statistics endpoint returns detailed breakdown."""
+
+def test_get_recent_activity(self, client, admin_headers):
+    """Test recent activity endpoint returns user and system activity."""
+
+def test_activity_filtering(self, client, admin_headers):
+    """Test activity endpoint supports time and type filtering."""
+```
+
+**System Health Tests:**
+```python
+# Test system resource monitoring
+def test_system_resources_monitoring(self, client, admin_headers):
+    """Test that system health includes CPU, memory, and disk usage."""
+
+def test_database_health_check(self, client, admin_headers):
+    """Test database connection status and response time monitoring."""
+
+def test_external_services_status(self, client, admin_headers):
+    """Test external services (OAuth, geocoding) status reporting."""
+```
+
+**Activity Tracking Tests:**
+```python
+# Test activity data collection
+def test_user_registration_activity(self, client, admin_headers):
+    """Test that user registrations are tracked in activity feed."""
+
+def test_content_creation_activity(self, client, admin_headers):
+    """Test that content creation (dive sites, centers, dives) is tracked."""
+
+def test_engagement_activity(self, client, admin_headers):
+    """Test that user engagement (comments, ratings) is tracked."""
+```
+
+**Frontend Integration Tests:**
+- System Overview page loading and data display
+- Recent Activity page with filtering and real-time updates
+- Admin dashboard navigation and accessibility
+- Auto-refresh functionality and manual refresh options
+- Responsive design testing on mobile and desktop
+
+**API Endpoint Tests:**
+- `GET /api/v1/admin/system/overview` - System overview with platform statistics
+- `GET /api/v1/admin/system/health` - System health monitoring
+- `GET /api/v1/admin/system/stats` - Platform statistics breakdown
+- `GET /api/v1/admin/system/activity` - Recent activity with filtering
+
+**Testing Results:**
+- **Backend Tests**: All system monitoring endpoints working correctly ✅
+- **Frontend Validation**: System Overview and Recent Activity pages operational ✅
+- **ESLint Compliance**: All formatting issues resolved ✅
+- **API Testing**: All new monitoring endpoints functional ✅
+
 ### ✅ Added: Enhanced User Profile Management Testing
 
 **New Features Added:**

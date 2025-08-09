@@ -4,6 +4,37 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 
 ## [Latest Release] - 2025-08-09
 
+### 🚀 Major Features
+
+#### **Admin Dashboard Enhancement**
+- **System Overview Dashboard**: Comprehensive platform statistics and health monitoring
+  - Platform statistics (users, content, engagement, geographic distribution)
+  - System health monitoring (database, application, resources, external services)
+  - Real-time alerts and status indicators
+  - Auto-refresh functionality with configurable intervals
+- **Recent Activity Monitoring**: Real-time tracking of user actions and system changes
+  - User activity tracking (registrations, content creation, engagement)
+  - Time-based filtering (hour, 6 hours, day, week, month)
+  - Activity type filtering (registrations, content creation, engagement)
+  - Real-time statistics and activity list with auto-refresh
+  - Responsive design with accessibility support
+
+#### **Backend System Monitoring**
+- **System Router**: New `/api/v1/admin/system/` endpoints for monitoring
+  - `/overview` - Comprehensive system overview with platform statistics
+  - `/health` - Detailed system health information
+  - `/stats` - Platform statistics breakdown
+  - `/activity` - Recent user and system activity
+- **System Resource Monitoring**: CPU, memory, and disk usage tracking
+- **Database Health Checks**: Connection status and response time monitoring
+- **Activity Tracking**: Comprehensive logging of user actions and system changes
+
+#### **Frontend Admin Interface**
+- **Admin Dashboard Integration**: Clickable cards for System Overview and Recent Activity
+- **Navigation Updates**: Added admin menu links for new monitoring pages
+- **Real-time Updates**: Auto-refresh functionality with manual refresh options
+- **Responsive Design**: Mobile-friendly interface with proper accessibility
+
 ### 🔧 API Enhancements
 
 #### **Dive Filtering Improvements**

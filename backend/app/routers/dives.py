@@ -14,7 +14,7 @@ from app.schemas import (
     DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse,
     DiveTagCreate, DiveTagResponse, DiveSearchParams
 )
-from app.auth import get_current_user, get_current_user_optional
+from app.auth import get_current_user, get_current_user_optional, get_current_admin_user
 
 router = APIRouter()
 
@@ -28,7 +28,7 @@ def generate_dive_name(dive_site_name: str, dive_date: date) -> str:
 @router.get("/admin/dives/count")
 def get_all_dives_count_admin(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
@@ -45,18 +45,6 @@ def get_all_dives_count_admin(
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
 ):
     """Get total count of dives with admin privileges."""
-    if not current_user.enabled:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
-        )
-
-    if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required"
-        )
-
     # Build query - admin can see all dives
     query = db.query(Dive).join(User, Dive.user_id == User.id)
 
@@ -142,7 +130,7 @@ def get_all_dives_count_admin(
 @router.get("/admin/dives", response_model=List[DiveResponse])
 def get_all_dives_admin(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
@@ -324,7 +312,7 @@ def update_dive_admin(
     dive_id: int,
     dive_update: DiveUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin_user)
 ):
     """Update any dive with admin privileges"""
     if not current_user.enabled:
@@ -478,7 +466,7 @@ def update_dive_admin(
 def delete_dive_admin(
     dive_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin_user)
 ):
     """Delete any dive with admin privileges"""
     if not current_user.enabled:

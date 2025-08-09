@@ -643,6 +643,47 @@ The project uses GitHub Actions for continuous integration and automated testing
 
 ## Recent Features
 
+### Admin Dashboard System Monitoring
+
+A comprehensive system monitoring and activity tracking system has been implemented for administrators.
+
+**Key Features:**
+- **System Overview Dashboard**: Comprehensive platform statistics and health monitoring
+- **Recent Activity Monitoring**: Real-time tracking of user actions and system changes
+- **System Health Endpoints**: Backend API endpoints for monitoring system status
+- **Real-time Activity Tracking**: Database queries for user and system activity
+
+**System Overview Dashboard:**
+- Platform statistics (users, content, engagement, geographic distribution)
+- System health monitoring (database, application, resources, external services)
+- Real-time alerts and status indicators
+- Auto-refresh functionality with configurable intervals
+
+**Recent Activity Monitoring:**
+- User activity tracking (registrations, content creation, engagement)
+- Time-based filtering (hour, 6 hours, day, week, month)
+- Activity type filtering (registrations, content creation, engagement)
+- Real-time statistics and activity list with auto-refresh
+- Responsive design with accessibility support
+
+**Backend System Monitoring:**
+- System Router with `/api/v1/admin/system/` endpoints
+- System resource monitoring (CPU, memory, disk usage)
+- Database health checks (connection status, response time)
+- Activity tracking (comprehensive logging of user actions)
+
+**API Endpoints:**
+- `GET /api/v1/admin/system/overview` - System overview with platform statistics
+- `GET /api/v1/admin/system/health` - System health monitoring
+- `GET /api/v1/admin/system/stats` - Platform statistics breakdown
+- `GET /api/v1/admin/system/activity` - Recent activity with filtering
+
+**Frontend Integration:**
+- Admin dashboard integration with clickable cards
+- Navigation updates with admin menu links
+- Real-time updates with auto-refresh functionality
+- Responsive design for mobile and desktop
+
 ### Subsurface XML Import System
 
 A comprehensive dive import system has been implemented for importing dives from Subsurface XML files.

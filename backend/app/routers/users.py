@@ -13,10 +13,10 @@ router = APIRouter()
 # Admin user management endpoints - must be defined before regular routes
 @router.get("/admin/users", response_model=List[UserListResponse])
 async def list_all_users(
-    current_user: User = Depends(is_admin_or_moderator),
+    current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
-    """List all users (admin/moderator only)"""
+    """List all users (admin only)"""
     users = db.query(User).all()
     return users
 

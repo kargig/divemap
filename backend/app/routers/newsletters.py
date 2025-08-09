@@ -8,7 +8,7 @@ import os
 import requests
 from app.database import get_db
 from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, DifficultyLevel, ParsedDive
-from app.auth import get_current_user
+from app.auth import get_current_user, is_admin_or_moderator
 from app.schemas import ParsedDiveTripResponse, NewsletterUploadResponse, NewsletterResponse, NewsletterUpdateRequest, NewsletterDeleteRequest, NewsletterDeleteResponse, ParsedDiveTripCreate, ParsedDiveTripUpdate, ParsedDiveResponse
 import logging
 import openai
@@ -545,14 +545,12 @@ def parse_newsletter_content(content: str, db: Session) -> List[dict]:
 async def upload_newsletter(
     file: UploadFile = File(...),
     use_openai: str = Form("true"),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     """
     Upload a newsletter file and parse it for dive trip information.
     """
-    if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can upload newsletters")
     if not file.filename.endswith('.txt'):
         raise HTTPException(status_code=400, detail="Only .txt files are supported")
 
@@ -656,14 +654,12 @@ async def upload_newsletter(
 async def get_newsletters(
     limit: int = 50,
     offset: int = 0,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     """
     Get all newsletters with optional pagination.
     """
-    if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can view newsletters")
 
     newsletters = db.query(Newsletter).offset(offset).limit(limit).all()
 
@@ -690,7 +686,7 @@ async def get_parsed_trips(
     diving_center_id: Optional[int] = None,
     dive_site_id: Optional[int] = None,
     trip_status: Optional[str] = None,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     """
@@ -760,7 +756,7 @@ async def get_parsed_trips(
 @router.get("/{newsletter_id}", response_model=NewsletterResponse)
 async def get_newsletter(
     newsletter_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     """
@@ -788,7 +784,7 @@ async def get_newsletter(
 async def update_newsletter(
     newsletter_id: int,
     newsletter_data: NewsletterUpdateRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     if not current_user.is_admin and not current_user.is_moderator:
@@ -823,7 +819,7 @@ async def update_newsletter(
 @router.delete("/{newsletter_id}")
 async def delete_newsletter(
     newsletter_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     if not current_user.is_admin and not current_user.is_moderator:
@@ -855,7 +851,7 @@ async def delete_newsletter(
 @router.delete("/", response_model=NewsletterDeleteResponse)
 async def delete_newsletters(
     delete_request: NewsletterDeleteRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     if not current_user.is_admin and not current_user.is_moderator:
@@ -896,7 +892,7 @@ async def delete_newsletters(
 @router.delete("/trips/{trip_id}")
 async def delete_parsed_trip(
     trip_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     if not current_user.is_admin and not current_user.is_moderator:
@@ -920,7 +916,7 @@ async def delete_parsed_trip(
 async def reparse_newsletter(
     newsletter_id: int,
     use_openai: str = Form("true"),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     if not current_user.is_admin and not current_user.is_moderator:
@@ -1034,7 +1030,7 @@ async def reparse_newsletter(
 @router.post("/trips", response_model=ParsedDiveTripResponse)
 async def create_parsed_trip(
     trip_data: ParsedDiveTripCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     if not current_user.is_admin and not current_user.is_moderator:
@@ -1124,7 +1120,7 @@ async def create_parsed_trip(
 @router.get("/trips/{trip_id}", response_model=ParsedDiveTripResponse)
 async def get_parsed_trip(
     trip_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     """
@@ -1176,7 +1172,7 @@ async def get_parsed_trip(
 async def update_parsed_trip(
     trip_id: int,
     trip_data: ParsedDiveTripUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     if not current_user.is_admin and not current_user.is_moderator:
