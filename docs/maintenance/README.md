@@ -12,6 +12,7 @@ This document provides comprehensive information about maintaining the Divemap a
 6. [Security Maintenance](#security-maintenance)
 7. [Monitoring and Alerts](#monitoring-and-alerts)
 8. [Troubleshooting](#troubleshooting)
+9. [Database Export/Import](#database-exportimport)
 
 ## Overview
 
@@ -605,6 +606,18 @@ curl -f https://divemap.fly.dev/health
 - [ ] Performance optimization
 - [ ] Backup strategy review
 - [ ] Disaster recovery testing
+
+## Database Export/Import
+
+For detailed information about exporting and importing diving centers and dive sites data between local development and fly.io production databases, see:
+
+- [Database Export/Import Guide](./database-export-import.md)
+
+This includes:
+- Full backup procedures
+- Selective table export/import
+- Data integrity maintenance
+- Troubleshooting and rollback procedures
 
 ## Support
 
