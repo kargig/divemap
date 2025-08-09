@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  Upload,
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
@@ -21,6 +22,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import api, { deleteDive } from '../api';
 import DivesMap from '../components/DivesMap';
+import ImportDivesModal from '../components/ImportDivesModal';
 import { useAuth } from '../contexts/AuthContext';
 
 const Dives = () => {
@@ -28,6 +30,7 @@ const Dives = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Get initial values from URL parameters
   const getInitialViewMode = () => {
@@ -829,15 +832,34 @@ const Dives = () => {
         )}
 
         {user && (
-          <Link
-            to='/dives/create'
-            className='bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2'
-          >
-            <Plus size={20} />
-            Log New Dive
-          </Link>
+          <div className='flex flex-col sm:flex-row gap-3'>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2'
+            >
+              <Upload size={20} />
+              Import Dives
+            </button>
+            <Link
+              to='/dives/create'
+              className='bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2'
+            >
+              <Plus size={20} />
+              Log New Dive
+            </Link>
+          </div>
         )}
       </div>
+
+      {/* Import Modal */}
+      <ImportDivesModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={() => {
+          // Refresh the dives list
+          queryClient.invalidateQueries(['dives']);
+        }}
+      />
 
       {/* Results Section */}
       {isLoading ? (

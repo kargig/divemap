@@ -194,6 +194,20 @@ const DiveDetail = () => {
               {formatDate(dive.dive_date)}
               {dive.dive_time && ` at ${formatTime(dive.dive_time)}`}
             </p>
+            {/* Privacy Status */}
+            <div className='flex items-center gap-2 mt-1'>
+              {dive.is_private ? (
+                <div className='flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium'>
+                  <EyeOff size={12} />
+                  Private
+                </div>
+              ) : (
+                <div className='flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium'>
+                  <Eye size={12} />
+                  Public
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div className='flex gap-2 flex-wrap'>

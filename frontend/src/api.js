@@ -264,3 +264,21 @@ export const updateParsedTrip = async (tripId, tripData) => {
   const response = await api.put(`/api/v1/newsletters/trips/${tripId}`, tripData);
   return response.data;
 };
+
+// Subsurface XML Import API functions
+export const importSubsurfaceXML = async file => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await api.post('/api/v1/dives/import/subsurface-xml', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+export const confirmImportDives = async divesData => {
+  const response = await api.post('/api/v1/dives/import/confirm', divesData);
+  return response.data;
+};
