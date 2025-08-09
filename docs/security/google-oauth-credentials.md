@@ -374,4 +374,4 @@ If you encounter issues:
 
 - [OAuth Setup Guide](./oauth-setup.md)
 - [Security Documentation](../README.md)
-- [Development Setup](../development/README.md) 
+- [Development Setup](../development/README.md)

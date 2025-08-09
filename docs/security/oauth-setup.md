@@ -135,4 +135,4 @@ If you encounter issues:
 1. Check the browser console for JavaScript errors
 2. Check the backend logs for authentication errors
 3. Verify all environment variables are set correctly
-4. Ensure the Google Cloud Console configuration is correct 
+4. Ensure the Google Cloud Console configuration is correct

@@ -208,4 +208,4 @@ docker build -f Dockerfile.dev -t divemap_frontend_dev .
 docker run divemap_frontend_dev npm run test:frontend
 ```
 
-For detailed testing strategy, latest features, and comprehensive procedures, see [TESTING_STRATEGY.md](../TESTING_STRATEGY.md). 
+For detailed testing strategy, latest features, and comprehensive procedures, see [TESTING_STRATEGY.md](../TESTING_STRATEGY.md).

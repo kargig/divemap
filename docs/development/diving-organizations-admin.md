@@ -161,4 +161,4 @@ The frontend integrates with the following backend endpoints:
 - [Admin Dashboard](./admin-dashboard.md)
 - [User Management](./user-management.md)
 - [API Documentation](./api.md)
-- [Database Schema](./database.md) 
+- [Database Schema](./database.md)

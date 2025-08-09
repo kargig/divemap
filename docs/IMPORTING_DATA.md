@@ -270,4 +270,4 @@ The scripts handle various error conditions:
 - **File Parsing**: Handles malformed files gracefully
 - **API Errors**: Retries on rate limits
 - **Invalid Data**: Skips files with missing required fields
-- **Missing Dependencies**: Provides clear error messages for missing dive sites 
+- **Missing Dependencies**: Provides clear error messages for missing dive sites

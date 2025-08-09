@@ -208,4 +208,4 @@ get /tmp/backup.sql ./backups/
 - Application metrics
 - Database performance
 - Network latency
-- Resource usage 
+- Resource usage

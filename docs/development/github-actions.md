@@ -150,7 +150,7 @@ SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
 **Problem**: Coverage upload fails with "No coverage reports found"
 
-**Solution**: 
+**Solution**:
 1. Ensure `CODECOV_TOKEN` secret is set in repository settings
 2. Verify coverage files are generated in the correct directory
 3. Check that pytest-cov is properly installed and configured
@@ -210,4 +210,4 @@ pip list | grep coverage
 2. **Test Locally First**: Always test changes locally before pushing
 3. **Monitor Coverage**: Maintain high test coverage
 4. **Review Logs**: Check workflow logs for optimization opportunities
-5. **Document Changes**: Update this documentation when workflow changes 
+5. **Document Changes**: Update this documentation when workflow changes

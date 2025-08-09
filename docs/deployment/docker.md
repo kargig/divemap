@@ -115,4 +115,4 @@ docker volume ls
 - Set appropriate resource limits
 - Regular security updates
 - Monitor resource usage
-- Backup data regularly 
+- Backup data regularly

@@ -19,10 +19,10 @@ This guide explains how to deploy the Divemap frontend to Fly.io with proper sec
    ```bash
    # API Configuration
    REACT_APP_API_URL=http://localhost:8000
-   
+
    # Google OAuth Configuration
    REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id_here
-   
+
    # Development Settings
    REACT_APP_ENVIRONMENT=development
    ```
@@ -98,4 +98,4 @@ If the build fails:
 
 - [Google OAuth Setup](../docs/security/google-oauth-credentials.md)
 - [Fly.io Deployment](../docs/deployment/fly-io.md)
-- [Security Documentation](../docs/security/README.md) 
+- [Security Documentation](../docs/security/README.md)

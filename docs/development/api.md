@@ -1841,4 +1841,4 @@ This API documentation provides comprehensive information for integrating with t
 4. **Scalable**: Rate limiting and performance optimization
 5. **User-friendly**: Clear error messages and validation
 
-For interactive API documentation, visit: https://divemap-backend.fly.dev/docs 
+For interactive API documentation, visit: https://divemap-backend.fly.dev/docs

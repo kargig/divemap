@@ -532,7 +532,7 @@ docker run -p 8080:8080 divemap_frontend_prod
   run: |
     cd frontend
     docker build -t divemap_frontend_prod .
-    
+
 - name: Build Development Image
   run: |
     cd frontend
@@ -974,4 +974,4 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 - **[API Documentation](./api.md)** - API endpoints and usage
 - **[Database Documentation](./database.md)** - Database schema and migrations
 - **[Testing Documentation](./testing.md)** - Testing procedures and best practices
-- **[Diving Organizations Admin](./diving-organizations-admin.md)** - Diving organizations management 
+- **[Diving Organizations Admin](./diving-organizations-admin.md)** - Diving organizations management

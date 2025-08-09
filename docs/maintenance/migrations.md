@@ -143,7 +143,7 @@ backend/migrations/
 """Migration description
 
 Revision ID: 0001_initial
-Revises: 
+Revises:
 Create Date: 2023-01-01 00:00:00.000000
 
 """
@@ -215,31 +215,31 @@ from datetime import datetime
 
 def create_migration(description):
     """Create a new migration with the given description."""
-    
+
     # Format description for filename
     filename = description.lower().replace(' ', '_').replace('-', '_')
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     migration_name = f"{timestamp}_{filename}"
-    
+
     # Create migration using Alembic
     try:
         result = subprocess.run([
-            'alembic', 'revision', 
-            '--autogenerate', 
+            'alembic', 'revision',
+            '--autogenerate',
             '-m', description
         ], capture_output=True, text=True, check=True)
-        
+
         print(f"✅ Migration created successfully: {migration_name}")
         print(f"📝 Description: {description}")
-        
+
         # Show the generated migration file
-        migration_files = [f for f in os.listdir('migrations/versions') 
+        migration_files = [f for f in os.listdir('migrations/versions')
                          if f.endswith('.py') and f.startswith(timestamp)]
-        
+
         if migration_files:
             migration_file = migration_files[0]
             print(f"📄 Migration file: migrations/versions/{migration_file}")
-            
+
             # Show migration content
             with open(f'migrations/versions/{migration_file}', 'r') as f:
                 content = f.read()
@@ -247,9 +247,9 @@ def create_migration(description):
                 print("=" * 50)
                 print(content[:500] + "..." if len(content) > 500 else content)
                 print("=" * 50)
-        
+
         return True
-        
+
     except subprocess.CalledProcessError as e:
         print(f"❌ Error creating migration: {e}")
         print(f"📄 Error output: {e.stderr}")
@@ -257,19 +257,19 @@ def create_migration(description):
 
 def main():
     """Main function to handle migration creation."""
-    
+
     if len(sys.argv) != 2:
         print("Usage: python create_migration.py \"Migration description\"")
         print("Example: python create_migration.py \"Add user profile fields\"")
         sys.exit(1)
-    
+
     description = sys.argv[1]
-    
+
     print(f"🔄 Creating migration: {description}")
     print(f"⏰ Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    
+
     success = create_migration(description)
-    
+
     if success:
         print("\n✅ Migration created successfully!")
         print("\n📋 Next steps:")
@@ -334,7 +334,7 @@ def check_database_connectivity():
 def get_current_revision():
     """Get the current migration revision."""
     try:
-        result = subprocess.run(['alembic', 'current'], 
+        result = subprocess.run(['alembic', 'current'],
                               capture_output=True, text=True, check=True)
         return result.stdout.strip()
     except subprocess.CalledProcessError:
@@ -343,7 +343,7 @@ def get_current_revision():
 def get_pending_migrations():
     """Get list of pending migrations."""
     try:
-        result = subprocess.run(['alembic', 'show', 'migrations'], 
+        result = subprocess.run(['alembic', 'show', 'migrations'],
                               capture_output=True, text=True, check=True)
         return result.stdout
     except subprocess.CalledProcessError:
@@ -351,43 +351,43 @@ def get_pending_migrations():
 
 def run_migrations():
     """Run all pending migrations."""
-    
+
     print("🔄 Starting database migration process...")
     print(f"⏰ Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    
+
     # Check database connectivity
     print("\n🔍 Checking database connectivity...")
     if not check_database_connectivity():
         print("❌ Cannot connect to database. Exiting.")
         return False
-    
+
     print("✅ Database connectivity confirmed")
-    
+
     # Get current migration status
     print("\n📊 Checking current migration status...")
     current_revision = get_current_revision()
     print(f"📍 Current revision: {current_revision}")
-    
+
     # Show pending migrations
     print("\n📋 Pending migrations:")
     pending_migrations = get_pending_migrations()
     print(pending_migrations)
-    
+
     # Run migrations
     print("\n🚀 Running migrations...")
     try:
-        result = subprocess.run(['alembic', 'upgrade', 'head'], 
+        result = subprocess.run(['alembic', 'upgrade', 'head'],
                               capture_output=True, text=True, check=True)
-        
+
         print("✅ Migrations completed successfully!")
         print(f"📄 Output: {result.stdout}")
-        
+
         # Verify final status
         final_revision = get_current_revision()
         print(f"📍 Final revision: {final_revision}")
-        
+
         return True
-        
+
     except subprocess.CalledProcessError as e:
         print(f"❌ Migration failed: {e}")
         print(f"📄 Error output: {e.stderr}")
@@ -395,23 +395,23 @@ def run_migrations():
 
 def main():
     """Main function to handle migration execution."""
-    
+
     print("=" * 60)
     print("🗄️  Divemap Database Migration Runner")
     print("=" * 60)
-    
+
     # Check if we're in the right directory
     if not os.path.exists('alembic.ini'):
         print("❌ Error: alembic.ini not found. Please run from backend directory.")
         sys.exit(1)
-    
+
     # Check if virtual environment is activated
     if 'VIRTUAL_ENV' not in os.environ:
         print("⚠️  Warning: Virtual environment not detected.")
         print("   Consider activating the virtual environment for consistency.")
-    
+
     success = run_migrations()
-    
+
     if success:
         print("\n✅ Migration process completed successfully!")
         print("\n📋 Summary:")
@@ -552,7 +552,7 @@ revision = '0005_changes'
 ```python
 # ✅ Good: Safe default values
 def upgrade() -> None:
-    op.add_column('users', sa.Column('is_active', sa.Boolean(), 
+    op.add_column('users', sa.Column('is_active', sa.Boolean(),
                                     server_default='1', nullable=False))
 
 # ❌ Bad: Unsafe defaults
@@ -568,11 +568,11 @@ def upgrade() -> None:
 def upgrade() -> None:
     # Add column
     op.add_column('users', sa.Column('status', sa.String(20), nullable=True))
-    
+
     # Backfill data
     connection = op.get_bind()
     connection.execute("UPDATE users SET status = 'active' WHERE status IS NULL")
-    
+
     # Make column not null
     op.alter_column('users', 'status', nullable=False)
 
@@ -585,27 +585,27 @@ def downgrade() -> None:
 # ✅ Good: Process large datasets in batches
 def upgrade() -> None:
     connection = op.get_bind()
-    
+
     # Process in batches
     batch_size = 1000
     offset = 0
-    
+
     while True:
         result = connection.execute(
             "SELECT id FROM users WHERE status IS NULL LIMIT %s OFFSET %s",
             (batch_size, offset)
         )
-        
+
         rows = result.fetchall()
         if not rows:
             break
-            
+
         for row in rows:
             connection.execute(
                 "UPDATE users SET status = 'active' WHERE id = %s",
                 (row[0],)
             )
-        
+
         offset += batch_size
 ```
 
@@ -617,7 +617,7 @@ def upgrade() -> None:
 def upgrade() -> None:
     # Add column first
     op.add_column('dive_sites', sa.Column('rating', sa.Float(), nullable=True))
-    
+
     # Add index in separate step
     op.create_index('idx_dive_sites_rating', 'dive_sites', ['rating'])
 
@@ -900,4 +900,4 @@ This migration guide provides comprehensive procedures for managing database mig
 4. **Document Changes**: Keep detailed records of all migrations
 5. **Have Rollback Plan**: Always be prepared to rollback if needed
 
-For more detailed information about specific migration scenarios, see the troubleshooting section and individual migration files. 
+For more detailed information about specific migration scenarios, see the troubleshooting section and individual migration files.

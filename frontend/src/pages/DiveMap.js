@@ -80,7 +80,7 @@ const DiveMap = () => {
         <!-- Circle background -->
         <circle cx="12" cy="12" r="10" fill="${isPrivate ? '#dc2626' : '#2563eb'}" stroke="white" stroke-width="1"/>
         <!-- Anchor symbol -->
-        <path d="M12 4 L12 8 M8 8 L16 8 M8 8 L10 12 M14 8 L12 12 M12 12 L12 16 M10 16 L14 16" 
+        <path d="M12 4 L12 8 M8 8 L16 8 M8 8 L10 12 M14 8 L12 12 M12 12 L12 16 M10 16 L14 16"
               stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         <!-- Optional: Add small dots for bubbles -->
         <circle cx="8" cy="6" r="1" fill="white"/>

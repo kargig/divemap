@@ -95,4 +95,4 @@ docker run divemap_frontend_dev npm run test:e2e
 
 ---
 
-**💡 Tip**: Use `Dockerfile.dev` for development and testing, `Dockerfile` for production deployment. 
+**💡 Tip**: Use `Dockerfile.dev` for development and testing, `Dockerfile` for production deployment.

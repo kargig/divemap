@@ -30,35 +30,35 @@ async function runTest(scriptPath, testName) {
   return new Promise((resolve) => {
     console.log(`\n🚀 Running ${testName}...`);
     console.log('='.repeat(50));
-    
+
     const startTime = Date.now();
     const child = spawn('node', [scriptPath], {
       stdio: 'pipe',
       cwd: process.cwd()
     });
-    
+
     let output = '';
     let errorOutput = '';
-    
+
     child.stdout.on('data', (data) => {
       const text = data.toString();
       output += text;
       process.stdout.write(text);
     });
-    
+
     child.stderr.on('data', (data) => {
       const text = data.toString();
       errorOutput += text;
       process.stderr.write(text);
     });
-    
+
     child.on('close', (code) => {
       const duration = Date.now() - startTime;
       const success = code === 0;
-      
+
       console.log(`\n${'='.repeat(50)}`);
       console.log(`${success ? '✅' : '❌'} ${testName} ${success ? 'PASSED' : 'FAILED'} (${duration}ms)`);
-      
+
       resolve({
         name: testName,
         success,
@@ -68,12 +68,12 @@ async function runTest(scriptPath, testName) {
         errorOutput
       });
     });
-    
+
     child.on('error', (error) => {
       const duration = Date.now() - startTime;
       console.log(`\n${'='.repeat(50)}`);
       console.log(`❌ ${testName} ERROR: ${error.message} (${duration}ms)`);
-      
+
       resolve({
         name: testName,
         success: false,
@@ -88,35 +88,35 @@ async function runTest(scriptPath, testName) {
 
 async function checkServices() {
   console.log('🔍 Checking service availability...\n');
-  
+
   const services = [
     { name: 'Frontend', url: 'http://localhost:3000' },
     { name: 'Backend', url: 'http://localhost:8000' }
   ];
-  
+
   const http = require('http');
   const https = require('https');
-  
+
   function makeRequest(url) {
     return new Promise((resolve) => {
       const client = url.startsWith('https') ? https : http;
       const req = client.get(url, (res) => {
         resolve({ statusCode: res.statusCode, available: true });
       });
-      
+
       req.on('error', () => {
         resolve({ statusCode: 0, available: false });
       });
-      
+
       req.setTimeout(5000, () => {
         req.destroy();
         resolve({ statusCode: 0, available: false });
       });
     });
   }
-  
+
   let allServicesAvailable = true;
-  
+
   for (const service of services) {
     try {
       const result = await makeRequest(service.url);
@@ -131,34 +131,34 @@ async function checkServices() {
       allServicesAvailable = false;
     }
   }
-  
+
   return allServicesAvailable;
 }
 
 async function runAllTests() {
   console.log('🚀 Starting Comprehensive Test Suite...\n');
-  
+
   // Check if services are available
   const servicesAvailable = await checkServices();
-  
+
   if (!servicesAvailable) {
     console.log('\n⚠️  Some services are not available. Tests may fail.');
     console.log('   Please ensure frontend and backend are running:');
     console.log('   - Frontend: http://localhost:3000');
     console.log('   - Backend: http://localhost:8000');
     console.log('\n   Continue anyway? (y/N)');
-    
+
     // For automated runs, continue anyway
     console.log('   Continuing with tests...\n');
   }
-  
+
   const results = [];
   let totalDuration = 0;
-  
+
   // Run each test suite
   for (const test of TEST_SCRIPTS) {
     const scriptPath = path.join(process.cwd(), test.script);
-    
+
     try {
       const result = await runTest(scriptPath, test.name);
       results.push(result);
@@ -174,32 +174,32 @@ async function runAllTests() {
       });
     }
   }
-  
+
   // Generate comprehensive report
   console.log('\n📊 COMPREHENSIVE TEST REPORT');
   console.log('='.repeat(60));
-  
+
   const passedTests = results.filter(r => r.success).length;
   const totalTests = results.length;
-  
+
   console.log(`\n📈 Overall Results:`);
   console.log(`   Tests executed: ${totalTests}`);
   console.log(`   Tests passed: ${passedTests}`);
   console.log(`   Tests failed: ${totalTests - passedTests}`);
   console.log(`   Success rate: ${Math.round((passedTests / totalTests) * 100)}%`);
   console.log(`   Total duration: ${totalDuration}ms`);
-  
+
   console.log(`\n📋 Detailed Results:`);
   results.forEach(result => {
     const status = result.success ? '✅ PASSED' : '❌ FAILED';
     const duration = `${result.duration}ms`;
     console.log(`   ${result.name}: ${status} (${duration})`);
-    
+
     if (!result.success && result.errorOutput) {
       console.log(`      Error: ${result.errorOutput}`);
     }
   });
-  
+
   // Summary and recommendations
   console.log(`\n📝 Summary:`);
   if (passedTests === totalTests) {
@@ -213,21 +213,21 @@ async function runAllTests() {
   } else {
     console.log('   ⚠️  Some tests failed. Please review the issues above.');
     console.log('   🔧 Recommendations:');
-    
+
     const failedTests = results.filter(r => !r.success);
     failedTests.forEach(test => {
       console.log(`      - Review ${test.name} for issues`);
     });
-    
+
     if (!servicesAvailable) {
       console.log('      - Ensure all services are running');
     }
-    
+
     console.log('      - Check console output for specific errors');
     console.log('      - Verify API endpoints are accessible');
     console.log('      - Test user interactions manually');
   }
-  
+
   // Exit with appropriate code
   if (passedTests === totalTests) {
     console.log('\n✅ All tests completed successfully!');
@@ -272,4 +272,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { runAllTests }; 
+module.exports = { runAllTests };

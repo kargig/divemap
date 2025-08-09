@@ -30,7 +30,7 @@ module.exports = {
   rules: {
     // Prettier integration
     'prettier/prettier': 'error',
-    
+
     // React specific rules
     'react/prop-types': 'warn',
     'react/react-in-jsx-scope': 'off', // Not needed in React 17+
@@ -43,11 +43,11 @@ module.exports = {
     'react/jsx-no-undef': 'error',
     'react/jsx-uses-react': 'off',
     'react/no-unescaped-entities': 'warn',
-    
+
     // React Hooks rules
     'react-hooks/rules-of-hooks': 'error',
     'react-hooks/exhaustive-deps': 'warn',
-    
+
     // Import rules
     'import/no-unresolved': 'error',
     'import/named': 'error',
@@ -72,7 +72,7 @@ module.exports = {
         },
       },
     ],
-    
+
     // General JavaScript rules
     'no-console': 'warn',
     'no-debugger': 'error',
@@ -100,7 +100,7 @@ module.exports = {
     'prefer-template': 'error',
     'template-curly-spacing': 'error',
     'valid-typeof': 'error',
-    
+
     // Code quality
     'complexity': ['warn', 20],
     'max-depth': ['warn', 5],
@@ -117,7 +117,7 @@ module.exports = {
     'max-lines': ['warn', 900],
     'max-lines-per-function': ['warn', 600],
     'max-params': ['warn', 4],
-    
+
     // Accessibility rules - convert some to warnings
     'jsx-a11y/label-has-associated-control': 'warn',
     'jsx-a11y/click-events-have-key-events': 'warn',
@@ -146,4 +146,4 @@ module.exports = {
       },
     },
   ],
-}; 
+};

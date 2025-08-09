@@ -462,7 +462,7 @@ Edit models in `app/models.py`:
 ```python
 class NewTable(Base):
     __tablename__ = "new_table"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -701,4 +701,4 @@ This database system provides:
 5. **Docker Integration** - Seamless deployment with automatic migrations
 6. **Error Handling** - Robust error handling and recovery procedures
 
-The system ensures that database schema changes are version-controlled, tested, and applied consistently across all environments. 
+The system ensures that database schema changes are version-controlled, tested, and applied consistently across all environments.

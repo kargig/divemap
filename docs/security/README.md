@@ -390,4 +390,4 @@ For security issues or questions:
 
 ## Conclusion
 
-The Divemap application implements comprehensive security measures to protect user data and prevent common web application vulnerabilities. Regular security audits and updates ensure ongoing protection against emerging threats. 
+The Divemap application implements comprehensive security measures to protect user data and prevent common web application vulnerabilities. Regular security audits and updates ensure ongoing protection against emerging threats.

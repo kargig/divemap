@@ -31,9 +31,9 @@ const TEST_SCENARIOS = {
 
 async function testAccessibility(page) {
   console.log('  Testing accessibility...');
-  
+
   const issues = [];
-  
+
   // Check for alt attributes on images
   const images = await page.$$('img');
   for (const img of images) {
@@ -42,7 +42,7 @@ async function testAccessibility(page) {
       issues.push('Image missing alt attribute');
     }
   }
-  
+
   // Check for form labels
   const inputs = await page.$$('input, textarea, select');
   for (const input of inputs) {
@@ -57,7 +57,7 @@ async function testAccessibility(page) {
       }
     }
   }
-  
+
   // Check for proper heading hierarchy
   const headings = await page.$$('h1, h2, h3, h4, h5, h6');
   let previousLevel = 0;
@@ -69,40 +69,40 @@ async function testAccessibility(page) {
     }
     previousLevel = level;
   }
-  
+
   // Check for keyboard navigation
   const focusableElements = await page.$$('a, button, input, textarea, select, [tabindex]');
   if (focusableElements.length === 0) {
     issues.push('No focusable elements found');
   }
-  
+
   if (issues.length === 0) {
     console.log('    ✅ Accessibility checks passed');
   } else {
     console.log(`    ⚠️  ${issues.length} accessibility issues found:`);
     issues.forEach(issue => console.log(`      - ${issue}`));
   }
-  
+
   return issues.length === 0;
 }
 
 async function testNavigation(page) {
   console.log('  Testing navigation...');
-  
+
   let navigationErrors = 0;
-  
+
   for (const scenario of TEST_SCENARIOS.navigation) {
     try {
       // Navigate to starting page
       await page.goto(`${BASE_URL}${scenario.from}`);
       await new Promise(resolve => setTimeout(resolve, 1000);
-      
+
       // Find and click navigation link
       const link = await page.$(`a[href="${scenario.to}"]`);
       if (link) {
         await link.click();
         await new Promise(resolve => setTimeout(resolve, 2000);
-        
+
         // Check if navigation was successful
         const currentUrl = page.url();
         if (currentUrl.includes(scenario.to)) {
@@ -120,20 +120,20 @@ async function testNavigation(page) {
       navigationErrors++;
     }
   }
-  
+
   return navigationErrors === 0;
 }
 
 async function testForms(page) {
   console.log('  Testing forms...');
-  
+
   let formErrors = 0;
-  
+
   for (const form of TEST_SCENARIOS.forms) {
     try {
       await page.goto(`${BASE_URL}${form.page}`);
       await new Promise(resolve => setTimeout(resolve, 1000);
-      
+
       // Test form fields
       for (const fieldName of form.fields) {
         const field = await page.$(`input[name="${fieldName}"], textarea[name="${fieldName}"], select[name="${fieldName}"]`);
@@ -146,7 +146,7 @@ async function testForms(page) {
           formErrors++;
         }
       }
-      
+
       // Test form submission if required
       if (form.submit) {
         const submitButton = await page.$('button[type="submit"]');
@@ -159,42 +159,42 @@ async function testForms(page) {
           formErrors++;
         }
       }
-      
+
     } catch (error) {
       console.log(`    ❌ Form test failed: ${error.message}`);
       formErrors++;
     }
   }
-  
+
   return formErrors === 0;
 }
 
 async function testResponsiveDesign(page) {
   console.log('  Testing responsive design...');
-  
+
   const viewports = [
     { width: 1920, height: 1080, name: 'Desktop' },
     { width: 1024, height: 768, name: 'Tablet' },
     { width: 375, height: 667, name: 'Mobile' }
   ];
-  
+
   let responsiveIssues = 0;
-  
+
   for (const viewport of viewports) {
     await page.setViewport(viewport);
     await new Promise(resolve => setTimeout(resolve, 500);
-    
+
     // Check for horizontal scrolling
     const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
     const viewportWidth = viewport.width;
-    
+
     if (bodyWidth > viewportWidth) {
       console.log(`    ⚠️  ${viewport.name}: Horizontal scrolling detected`);
       responsiveIssues++;
     } else {
       console.log(`    ✅ ${viewport.name}: No horizontal scrolling`);
     }
-    
+
     // Check for critical elements visibility
     const navbar = await page.$('nav');
     if (navbar) {
@@ -204,7 +204,7 @@ async function testResponsiveDesign(page) {
         responsiveIssues++;
       }
     }
-    
+
     // Check for text readability
     const textElements = await page.$$('p, h1, h2, h3, h4, h5, h6');
     for (const text of textElements) {
@@ -212,30 +212,30 @@ async function testResponsiveDesign(page) {
         const style = window.getComputedStyle(el);
         return parseFloat(style.fontSize);
       });
-      
+
       if (fontSize < 12) {
         console.log(`    ⚠️  ${viewport.name}: Small text detected (${fontSize}px)`);
         responsiveIssues++;
       }
     }
   }
-  
+
   // Reset to default viewport
   await page.setViewport({ width: 1280, height: 720 });
-  
+
   return responsiveIssues === 0;
 }
 
 async function testErrorHandling(page) {
   console.log('  Testing error handling...');
-  
+
   let errorHandlingIssues = 0;
-  
+
   // Test 404 page
   try {
     await page.goto(`${BASE_URL}/non-existent-page`);
     await new Promise(resolve => setTimeout(resolve, 2000);
-    
+
     const notFoundContent = await page.$('[data-testid="not-found"], .error-page, .not-found');
     if (notFoundContent) {
       console.log('    ✅ 404 page working');
@@ -247,14 +247,14 @@ async function testErrorHandling(page) {
     console.log('    ❌ 404 page test failed');
     errorHandlingIssues++;
   }
-  
+
   // Test network error simulation
   try {
     await page.evaluate(() => {
       window.dispatchEvent(new Event('offline'));
     });
     await new Promise(resolve => setTimeout(resolve, 1000);
-    
+
     const offlineIndicator = await page.$('[data-testid="offline"], .offline-indicator');
     if (offlineIndicator) {
       console.log('    ✅ Offline handling present');
@@ -265,27 +265,27 @@ async function testErrorHandling(page) {
     console.log('    ❌ Offline test failed');
     errorHandlingIssues++;
   }
-  
+
   return errorHandlingIssues === 0;
 }
 
 async function testPerformance(page) {
   console.log('  Testing performance...');
-  
+
   let performanceIssues = 0;
-  
+
   // Test page load time
   const startTime = Date.now();
   await page.goto(`${BASE_URL}/`);
   const loadTime = Date.now() - startTime;
-  
+
   if (loadTime > 5000) {
     console.log(`    ⚠️  Slow page load: ${loadTime}ms`);
     performanceIssues++;
   } else {
     console.log(`    ✅ Page load time: ${loadTime}ms`);
   }
-  
+
   // Test resource loading
   const resources = await page.evaluate(() => {
     const entries = performance.getEntriesByType('resource');
@@ -295,7 +295,7 @@ async function testPerformance(page) {
       size: entry.transferSize
     }));
   });
-  
+
   const slowResources = resources.filter(r => r.duration > 2000);
   if (slowResources.length > 0) {
     console.log(`    ⚠️  ${slowResources.length} slow resources detected`);
@@ -303,7 +303,7 @@ async function testPerformance(page) {
   } else {
     console.log(`    ✅ All resources loaded quickly`);
   }
-  
+
   // Test memory usage
   const memoryInfo = await page.evaluate(() => {
     if (performance.memory) {
@@ -314,47 +314,47 @@ async function testPerformance(page) {
     }
     return null;
   });
-  
+
   if (memoryInfo && memoryInfo.used > 50 * 1024 * 1024) { // 50MB
     console.log(`    ⚠️  High memory usage: ${Math.round(memoryInfo.used / 1024 / 1024)}MB`);
     performanceIssues++;
   } else {
     console.log(`    ✅ Memory usage acceptable`);
   }
-  
+
   return performanceIssues === 0;
 }
 
 async function testIntegration(page) {
   console.log('  Testing backend integration...');
-  
+
   let integrationIssues = 0;
-  
+
   // Test API calls
   const apiCalls = await page.evaluate(() => {
     return new Promise((resolve) => {
       const originalFetch = window.fetch;
       const calls = [];
-      
+
       window.fetch = function(...args) {
         calls.push(args[0]);
         return originalFetch.apply(this, args);
       };
-      
+
       setTimeout(() => {
         window.fetch = originalFetch;
         resolve(calls);
       }, 3000);
     });
   });
-  
+
   if (apiCalls.length === 0) {
     console.log('    ⚠️  No API calls detected');
     integrationIssues++;
   } else {
     console.log(`    ✅ ${apiCalls.length} API calls detected`);
   }
-  
+
   // Test data loading
   const dataElements = await page.$$('[data-testid*="card"], [data-testid*="item"], .card, .item');
   if (dataElements.length === 0) {
@@ -363,15 +363,15 @@ async function testIntegration(page) {
   } else {
     console.log(`    ✅ ${dataElements.length} data elements found`);
   }
-  
+
   return integrationIssues === 0;
 }
 
 async function testUserInteractions(page) {
   console.log('  Testing user interactions...');
-  
+
   let interactionIssues = 0;
-  
+
   // Test search functionality
   const searchInput = await page.$('input[placeholder*="Search"], input[type="search"]');
   if (searchInput) {
@@ -381,7 +381,7 @@ async function testUserInteractions(page) {
   } else {
     console.log('    ⚠️  Search input not found');
   }
-  
+
   // Test filtering
   const filterButtons = await page.$$('button[data-testid*="filter"], .filter-button');
   if (filterButtons.length > 0) {
@@ -389,7 +389,7 @@ async function testUserInteractions(page) {
     await new Promise(resolve => setTimeout(resolve, 1000);
     console.log('    ✅ Filter functionality working');
   }
-  
+
   // Test sorting
   const sortSelect = await page.$('select[data-testid="sort"], select.sort-select');
   if (sortSelect) {
@@ -397,19 +397,19 @@ async function testUserInteractions(page) {
     await new Promise(resolve => setTimeout(resolve, 1000);
     console.log('    ✅ Sort functionality working');
   }
-  
+
   // Test pagination
   const pagination = await page.$('[data-testid="pagination"], .pagination');
   if (pagination) {
     console.log('    ✅ Pagination present');
   }
-  
+
   // Test modal/dialog interactions
   const modalTriggers = await page.$$('[data-testid*="modal"], .modal-trigger');
   if (modalTriggers.length > 0) {
     await modalTriggers[0].click();
     await new Promise(resolve => setTimeout(resolve, 1000);
-    
+
     const modal = await page.$('[data-testid*="modal"], .modal');
     if (modal) {
       console.log('    ✅ Modal functionality working');
@@ -418,20 +418,20 @@ async function testUserInteractions(page) {
       interactionIssues++;
     }
   }
-  
+
   return interactionIssues === 0;
 }
 
 async function runValidationTests() {
   console.log('🚀 Starting Comprehensive Frontend Validation...\n');
-  
-  const browser = await puppeteer.launch({ 
+
+  const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
   });
 
   const page = await browser.newPage();
-  
+
   // Set up error monitoring
   const errors = [];
   page.on('console', msg => {
@@ -439,18 +439,18 @@ async function runValidationTests() {
       errors.push(msg.text());
     }
   });
-  
+
   page.on('pageerror', error => {
     errors.push(error.message);
   });
-  
+
   try {
     // Navigate to home page first
     await page.goto(`${BASE_URL}/`);
     await new Promise(resolve => setTimeout(resolve, 2000);
-    
+
     console.log('📋 Running validation tests...\n');
-    
+
     const results = {
       accessibility: await testAccessibility(page),
       navigation: await testNavigation(page),
@@ -461,31 +461,31 @@ async function runValidationTests() {
       integration: await testIntegration(page),
       interactions: await testUserInteractions(page)
     };
-    
+
     await browser.close();
-    
+
     // Report results
     console.log('\n📊 Validation Results:');
     console.log('======================');
-    
+
     let passedTests = 0;
     const totalTests = Object.keys(results).length;
-    
+
     Object.entries(results).forEach(([test, passed]) => {
       const status = passed ? '✅ PASSED' : '❌ FAILED';
       console.log(`   ${test.charAt(0).toUpperCase() + test.slice(1)}: ${status}`);
       if (passed) passedTests++;
     });
-    
+
     console.log('\n📈 Summary:');
     console.log(`   Tests passed: ${passedTests}/${totalTests}`);
     console.log(`   JavaScript errors: ${errors.length}`);
-    
+
     if (errors.length > 0) {
       console.log('\n⚠️  JavaScript errors detected:');
       errors.forEach(error => console.log(`   - ${error}`));
     }
-    
+
     if (passedTests === totalTests && errors.length === 0) {
       console.log('\n✅ All validation tests passed!');
       process.exit(0);
@@ -493,7 +493,7 @@ async function runValidationTests() {
       console.log('\n⚠️  Some validation tests failed or warnings detected.');
       process.exit(1);
     }
-    
+
   } catch (error) {
     await browser.close();
     console.error('Validation failed:', error);
@@ -509,4 +509,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { runValidationTests }; 
+module.exports = { runValidationTests };

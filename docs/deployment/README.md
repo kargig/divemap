@@ -488,12 +488,12 @@ alerts:
     condition: "cpu_usage > 80%"
     duration: "5m"
     severity: "warning"
-    
+
   - name: "Database Connection Errors"
     condition: "db_connection_errors > 10"
     duration: "1m"
     severity: "critical"
-    
+
   - name: "Application Errors"
     condition: "error_rate > 5%"
     duration: "2m"
@@ -665,4 +665,4 @@ This deployment guide provides comprehensive information for deploying and maint
 3. **Secure**: Comprehensive security measures
 4. **Maintainable**: Clear procedures and documentation
 
-For specific deployment platforms, see the individual deployment guides in this directory. 
+For specific deployment platforms, see the individual deployment guides in this directory.

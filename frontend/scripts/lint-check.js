@@ -23,8 +23,8 @@ function log(message, color = 'reset') {
 function runCommand(command, description) {
   try {
     log(`📋 ${description}...`, 'blue');
-    const result = execSync(command, { 
-      encoding: 'utf8', 
+    const result = execSync(command, {
+      encoding: 'utf8',
       stdio: 'pipe',
       cwd: path.join(__dirname, '..')
     });
@@ -87,7 +87,7 @@ try {
     'grep -r "console\\.log" src/ --include="*.js" --include="*.jsx" || true',
     { encoding: 'utf8', cwd: path.join(__dirname, '..') }
   );
-  
+
   if (consoleLogs.trim()) {
     reactIssues.push('⚠️  Found console.log statements in source code');
     console.log(consoleLogs);
@@ -102,7 +102,7 @@ try {
       'grep -r "import.*from.*but never used" .eslintcache 2>/dev/null || true',
       { encoding: 'utf8', cwd: path.join(__dirname, '..') }
     );
-  
+
   if (unusedImports.trim()) {
     reactIssues.push('⚠️  Found unused imports');
   }
@@ -116,13 +116,13 @@ try {
     'find src -name "*.js" -o -name "*.jsx" | grep -v test | grep -v spec',
     { encoding: 'utf8', cwd: path.join(__dirname, '..') }
   );
-  
+
   const files = componentFiles.trim().split('\n').filter(f => f);
-  
+
   files.forEach(file => {
     const content = fs.readFileSync(file, 'utf8');
-    if (content.includes('export default') && 
-        content.includes('function') && 
+    if (content.includes('export default') &&
+        content.includes('function') &&
         !content.includes('PropTypes') &&
         !content.includes('prop-types')) {
       reactIssues.push(`⚠️  Missing PropTypes in ${file.replace('src/', '')}`);
@@ -151,22 +151,22 @@ if (eslintResult.success && prettierResult.success && reactIssues.length === 0) 
   process.exit(0);
 } else {
   log('❌ Some linting checks FAILED', 'red');
-  
+
   if (!eslintResult.success) {
     log('  - ESLint found issues that need to be fixed', 'red');
   }
-  
+
   if (!prettierResult.success) {
     log('  - Code formatting issues detected', 'red');
   }
-  
+
   if (reactIssues.length > 0) {
     log('  - React-specific issues found', 'yellow');
   }
-  
+
   log('\n💡 To fix issues:', 'blue');
   log('  npm run lint:fix    # Fix ESLint issues automatically', 'blue');
   log('  npm run format      # Fix formatting issues automatically', 'blue');
-  
+
   process.exit(1);
-} 
+}

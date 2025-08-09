@@ -19,13 +19,13 @@ This document outlines the comprehensive testing strategy to prevent regressions
 # User Profile Management Tests
 def test_update_user_profile_with_diving_info(self, client, user_headers):
     """Test updating user profile with diving certification and dive count."""
-    
+
 def test_change_password_success(self, client, user_headers):
     """Test successful password change with current password verification."""
-    
+
 def test_change_password_invalid_current(self, client, user_headers):
     """Test password change with invalid current password."""
-    
+
 def test_get_user_profile_with_diving_info(self, client, user_headers):
     """Test retrieving user profile with diving information."""
 ```
@@ -35,7 +35,7 @@ def test_get_user_profile_with_diving_info(self, client, user_headers):
 # Test comment responses include user diving information
 def test_dive_site_comment_with_user_diving_info(self, client, user_headers):
     """Test that dive site comments include user diving information."""
-    
+
 def test_diving_center_comment_with_user_diving_info(self, client, user_headers):
     """Test that diving center comments include user diving information."""
 ```
@@ -198,10 +198,10 @@ def test_create_dive_site_with_aliases_admin_success(self, client, admin_headers
         "max_depth": 25.5,
         "aliases": ["Test Site", "Test Location"]
     }
-    
+
     response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
     assert response.status_code == status.HTTP_200_OK
-    
+
     data = response.json()
     assert data["max_depth"] == 25.5
     assert "aliases" in data
@@ -220,12 +220,12 @@ def test_create_dive_site_alias_admin_success(self, client, admin_headers):
     create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
     assert create_response.status_code == status.HTTP_200_OK
     dive_site_id = create_response.json()["id"]
-    
+
     # Create an alias
     alias_data = {"alias": "Test Alias"}
     alias_response = client.post(f"/api/v1/dive-sites/{dive_site_id}/aliases", json=alias_data, headers=admin_headers)
     assert alias_response.status_code == status.HTTP_200_OK
-    
+
     data = alias_response.json()
     assert data["alias"] == "Test Alias"
     assert data["dive_site_id"] == dive_site_id
@@ -242,17 +242,17 @@ def test_get_dive_site_with_aliases(self, client, admin_headers):
     create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
     assert create_response.status_code == status.HTTP_200_OK
     dive_site_id = create_response.json()["id"]
-    
+
     # Add aliases
     aliases = ["Alias 1", "Alias 2", "Alias 3"]
     for alias in aliases:
         alias_data = {"alias": alias}
         client.post(f"/api/v1/dive-sites/{dive_site_id}/aliases", json=alias_data, headers=admin_headers)
-    
+
     # Get dive site and verify aliases
     get_response = client.get(f"/api/v1/dive-sites/{dive_site_id}", headers=admin_headers)
     assert get_response.status_code == status.HTTP_200_OK
-    
+
     data = get_response.json()
     assert "aliases" in data
     assert len(data["aliases"]) == 3
@@ -272,20 +272,20 @@ def test_newsletter_parsing_with_aliases(self, client, admin_headers):
     create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
     assert create_response.status_code == status.HTTP_200_OK
     dive_site_id = create_response.json()["id"]
-    
+
     # Add aliases that might appear in newsletters
     aliases = ["GBR", "The Reef", "Great Barrier"]
     for alias in aliases:
         alias_data = {"alias": alias}
         client.post(f"/api/v1/dive-sites/{dive_site_id}/aliases", json=alias_data, headers=admin_headers)
-    
+
     # Test newsletter parsing with alias matching
     newsletter_content = "Join us for a dive trip to GBR this weekend!"
     newsletter_data = {"content": newsletter_content}
-    
+
     parse_response = client.post("/api/v1/newsletters/", json=newsletter_data, headers=admin_headers)
     assert parse_response.status_code == status.HTTP_200_OK
-    
+
     # Verify that the dive site was matched using the alias
     data = parse_response.json()
     assert "dive_sites" in data
@@ -306,21 +306,21 @@ def test_frontend_aliases_display(self, client, admin_headers):
     create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
     assert create_response.status_code == status.HTTP_200_OK
     dive_site_id = create_response.json()["id"]
-    
+
     # Add aliases
     aliases = ["Test Alias 1", "Test Alias 2"]
     for alias in aliases:
         alias_data = {"alias": alias}
         client.post(f"/api/v1/dive-sites/{dive_site_id}/aliases", json=alias_data, headers=admin_headers)
-    
+
     # Get dive site and verify aliases are included
     get_response = client.get(f"/api/v1/dive-sites/{dive_site_id}")
     assert get_response.status_code == status.HTTP_200_OK
-    
+
     data = get_response.json()
     assert "aliases" in data
     assert len(data["aliases"]) == 2
-    
+
     # Verify alias structure
     for alias in data["aliases"]:
         assert "id" in alias
@@ -342,33 +342,33 @@ def test_admin_aliases_management(self, client, admin_headers):
     create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
     assert create_response.status_code == status.HTTP_200_OK
     dive_site_id = create_response.json()["id"]
-    
+
     # Test creating aliases
     aliases_to_create = ["Admin Alias 1", "Admin Alias 2", "Admin Alias 3"]
     created_aliases = []
-    
+
     for alias_name in aliases_to_create:
         alias_data = {"alias": alias_name}
         create_alias_response = client.post(f"/api/v1/dive-sites/{dive_site_id}/aliases", json=alias_data, headers=admin_headers)
         assert create_alias_response.status_code == status.HTTP_200_OK
         created_aliases.append(create_alias_response.json())
-    
+
     # Test updating aliases
     first_alias = created_aliases[0]
     update_data = {"alias": "Updated Admin Alias"}
     update_response = client.put(f"/api/v1/dive-sites/{dive_site_id}/aliases/{first_alias['id']}", json=update_data, headers=admin_headers)
     assert update_response.status_code == status.HTTP_200_OK
     assert update_response.json()["alias"] == "Updated Admin Alias"
-    
+
     # Test deleting aliases
     second_alias = created_aliases[1]
     delete_response = client.delete(f"/api/v1/dive-sites/{dive_site_id}/aliases/{second_alias['id']}", headers=admin_headers)
     assert delete_response.status_code == status.HTTP_200_OK
-    
+
     # Verify final state
     get_response = client.get(f"/api/v1/dive-sites/{dive_site_id}", headers=admin_headers)
     assert get_response.status_code == status.HTTP_200_OK
-    
+
     data = get_response.json()
     assert len(data["aliases"]) == 2  # One updated, one deleted, one remaining
     alias_names = [alias["alias"] for alias in data["aliases"]]
@@ -390,7 +390,7 @@ def test_update_dive_site_with_empty_max_depth_admin_success(self, client, admin
     create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
     assert create_response.status_code == status.HTTP_200_OK
     dive_site_id = create_response.json()["id"]
-    
+
     # Update with empty max_depth
     update_data = {
         "name": "Updated Test Dive Site",
@@ -399,7 +399,7 @@ def test_update_dive_site_with_empty_max_depth_admin_success(self, client, admin
     }
     update_response = client.put(f"/api/v1/dive-sites/{dive_site_id}", json=update_data, headers=admin_headers)
     assert update_response.status_code == status.HTTP_200_OK
-    
+
     data = update_response.json()
     assert data["max_depth"] is None  # Should be null when empty string is sent
 
@@ -416,7 +416,7 @@ def test_update_dive_site_with_null_latitude_rejected(self, client, admin_header
     create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
     assert create_response.status_code == status.HTTP_200_OK
     dive_site_id = create_response.json()["id"]
-    
+
     # Try to update with null latitude
     update_data = {
         "name": "Updated Test Dive Site",
@@ -1162,4 +1162,4 @@ This testing strategy ensures that:
 3. **Code quality is maintained** through validation
 4. **User experience is protected** through comprehensive testing
 
-**Remember:** Always run tests before and after making changes to prevent regressions! 
+**Remember:** Always run tests before and after making changes to prevent regressions!

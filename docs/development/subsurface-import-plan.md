@@ -71,7 +71,7 @@ weightsystem weight=4.2kg description="weight"
 # Add to Dive model in backend/app/models.py
 class Dive(Base):
     # ... existing fields ...
-    
+
     # New fields for Subsurface import
     buddy = Column(String(255))  # Dive buddy name
     cylinder_volume = Column(DECIMAL(5, 2))  # Cylinder volume in liters
@@ -81,7 +81,7 @@ class Dive(Base):
     cylinder_description = Column(String(255))  # Cylinder description
     weights_used = Column(DECIMAL(5, 2))  # Weights in kg
     weights_description = Column(String(255))  # Weight description
-    
+
     # Import metadata
     imported_from = Column(String(50), default="manual")  # "subsurface", "manual"
     import_dive_id = Column(String(100))  # Original dive ID from import source
@@ -103,7 +103,7 @@ python create_migration.py "Add Subsurface import fields to dives table"
 # Update backend/app/schemas.py
 class DiveBase(BaseModel):
     # ... existing fields ...
-    
+
     # New Subsurface fields
     buddy: Optional[str] = Field(None, max_length=255)
     cylinder_volume: Optional[float] = Field(None, ge=0, le=100)
@@ -113,7 +113,7 @@ class DiveBase(BaseModel):
     cylinder_description: Optional[str] = Field(None, max_length=255)
     weights_used: Optional[float] = Field(None, ge=0, le=50)
     weights_description: Optional[str] = Field(None, max_length=255)
-    
+
     # Import metadata
     imported_from: Optional[str] = Field(None, pattern=r"^(subsurface|manual)$")
     import_dive_id: Optional[str] = Field(None, max_length=100)
@@ -131,12 +131,12 @@ async def import_subsurface_dives(
 ):
     """Import dives from Subsurface format"""
     imported_dives = []
-    
+
     for dive_data in dives_data:
         # Process each dive
         dive = process_subsurface_dive(dive_data, current_user, db)
         imported_dives.append(dive)
-    
+
     return imported_dives
 ```
 
@@ -151,23 +151,23 @@ class SubsurfaceDiveParser:
         self.auth_token = auth_token
         self.session = requests.Session()
         self.session.headers.update({"Authorization": f"Bearer {auth_token}"})
-    
+
     def parse_duration(self, duration_str: str) -> int:
         """Convert "62:10 min" to minutes"""
         # Implementation here
-    
+
     def parse_rating(self, rating: int) -> int:
         """Convert 1-5 scale to 1-10 scale"""
         return rating * 2
-    
+
     def parse_cylinder(self, cylinder_str: str) -> dict:
         """Parse cylinder information"""
         # Implementation here
-    
+
     def parse_suit_type(self, suit_str: str) -> str:
         """Map suit type to enum"""
         # Implementation here
-    
+
     def find_dive_site_by_subsurface_id(self, subsurface_id: str) -> Optional[int]:
         """Find dive site by Subsurface ID"""
         # Implementation here
@@ -187,19 +187,19 @@ class SubsurfaceDiveImporter:
             'skipped': 0,
             'errors': 0
         }
-    
+
     def scan_dive_directories(self, base_path: str) -> List[Path]:
         """Scan for dive directories in YYYY/MM/DD-Day-HH=mm=SS format"""
         # Implementation here
-    
+
     def parse_dive_file(self, dive_file: Path) -> Optional[dict]:
         """Parse a single dive file"""
         # Implementation here
-    
+
     def import_dive(self, dive_data: dict) -> bool:
         """Import a single dive via API"""
         # Implementation here
-    
+
     def run(self, subsurface_repo_path: str):
         """Main import process"""
         # Implementation here
@@ -214,15 +214,15 @@ class DiveSiteMatcher:
     def __init__(self, db_session):
         self.db_session = db_session
         self.site_cache = {}  # Cache dive sites by name
-    
+
     def find_site_by_import_id(self, import_id: str) -> Optional[DiveSite]:
         """Find dive site by import ID"""
         # Implementation here
-    
+
     def find_site_by_name(self, name: str) -> Optional[DiveSite]:
         """Find dive site by name with fuzzy matching"""
         # Implementation here
-    
+
     def create_site_mapping(self, import_id: str, dive_site_id: int):
         """Create mapping between import ID and Divemap ID"""
         # Implementation here
@@ -235,11 +235,11 @@ class DiveSiteMatcher:
 class TagProcessor:
     def __init__(self, db_session):
         self.db_session = db_session
-    
+
     def process_tags(self, tag_string: str) -> List[int]:
         """Process comma-separated tags and return tag IDs"""
         # Implementation here
-    
+
     def create_tag_if_missing(self, tag_name: str) -> int:
         """Create tag if it doesn't exist"""
         # Implementation here

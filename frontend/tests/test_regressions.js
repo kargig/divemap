@@ -165,7 +165,7 @@ async function testModifyDivingCenter(centerId, token) {
 
 async function testDataTypes() {
   console.log('🔍 Testing Data Types and Common Issues...\n');
-  
+
   const tests = [
     {
       name: 'Diving Centers Data Types',
@@ -174,14 +174,14 @@ async function testDataTypes() {
         if (!Array.isArray(data)) {
           throw new Error('Expected array of diving centers');
         }
-        
+
         if (data.length === 0) {
           console.log('  ⚠️  No diving centers found (this is OK for empty DB)');
           return;
         }
-        
+
         const center = data[0];
-        
+
         // Test latitude/longitude types
         if (typeof center.latitude !== 'number') {
           throw new Error(`Expected latitude to be number, got ${typeof center.latitude}`);
@@ -189,7 +189,7 @@ async function testDataTypes() {
         if (typeof center.longitude !== 'number') {
           throw new Error(`Expected longitude to be number, got ${typeof center.longitude}`);
         }
-        
+
         // Test numeric values are valid
         if (isNaN(center.latitude)) {
           throw new Error(`Latitude is NaN: ${center.latitude}`);
@@ -197,15 +197,15 @@ async function testDataTypes() {
         if (isNaN(center.longitude)) {
           throw new Error(`Longitude is NaN: ${center.longitude}`);
         }
-        
+
         console.log(`  ✅ Latitude: ${center.latitude} (number)`);
         console.log(`  ✅ Longitude: ${center.longitude} (number)`);
-        
+
         // Test rating types
         if (center.average_rating !== null && typeof center.average_rating !== 'number') {
           throw new Error(`Expected average_rating to be number or null, got ${typeof center.average_rating}`);
         }
-        
+
         if (center.average_rating !== null) {
           console.log(`  ✅ Average Rating: ${center.average_rating} (number)`);
         } else {
@@ -220,14 +220,14 @@ async function testDataTypes() {
         if (!Array.isArray(data)) {
           throw new Error('Expected array of dive sites');
         }
-        
+
         if (data.length === 0) {
           console.log('  ⚠️  No dive sites found (this is OK for empty DB)');
           return;
         }
-        
+
         const site = data[0];
-        
+
         // Test latitude/longitude types
         if (typeof site.latitude !== 'number') {
           throw new Error(`Expected latitude to be number, got ${typeof site.latitude}`);
@@ -235,7 +235,7 @@ async function testDataTypes() {
         if (typeof site.longitude !== 'number') {
           throw new Error(`Expected longitude to be number, got ${typeof site.longitude}`);
         }
-        
+
         // Test numeric values are valid
         if (isNaN(site.latitude)) {
           throw new Error(`Latitude is NaN: ${site.latitude}`);
@@ -243,15 +243,15 @@ async function testDataTypes() {
         if (isNaN(site.longitude)) {
           throw new Error(`Longitude is NaN: ${site.longitude}`);
         }
-        
+
         console.log(`  ✅ Latitude: ${site.latitude} (number)`);
         console.log(`  ✅ Longitude: ${site.longitude} (number)`);
-        
+
         // Test rating types
         if (site.average_rating !== null && typeof site.average_rating !== 'number') {
           throw new Error(`Expected average_rating to be number or null, got ${typeof site.average_rating}`);
         }
-        
+
         if (site.average_rating !== null) {
           console.log(`  ✅ Average Rating: ${site.average_rating} (number)`);
         } else {
@@ -260,36 +260,36 @@ async function testDataTypes() {
       }
     }
   ];
-  
+
   let passedTests = 0;
   const totalTests = tests.length;
-  
+
   for (const test of tests) {
     try {
       console.log(`Testing: ${test.name}`);
       const response = await makeRequest(`${BACKEND_URL}${test.url}`);
-      
+
       if (response.statusCode !== 200) {
         throw new Error(`API returned status ${response.statusCode}`);
       }
-      
+
       const data = JSON.parse(response.data);
       test.test(data);
       console.log(`  ✅ ${test.name} - PASSED\n`);
       passedTests++;
-      
+
     } catch (error) {
       console.log(`  ❌ ${test.name} - FAILED: ${error.message}\n`);
     }
   }
-  
+
   console.log(`📊 Data Type Tests: ${passedTests}/${totalTests} passed`);
   return passedTests === totalTests;
 }
 
 async function testAPIEndpoints() {
   console.log('🔍 Testing API Endpoints...\n');
-  
+
   const endpoints = [
     '/api/v1/dive-sites/',
     '/api/v1/diving-centers/',
@@ -298,10 +298,10 @@ async function testAPIEndpoints() {
     '/api/v1/dive-sites/1/media',
     '/api/v1/diving-centers/1/gear-rental'
   ];
-  
+
   let workingEndpoints = 0;
   const totalEndpoints = endpoints.length;
-  
+
   for (const endpoint of endpoints) {
     try {
       const response = await makeRequest(`${BACKEND_URL}${endpoint}`);
@@ -315,7 +315,7 @@ async function testAPIEndpoints() {
       console.log(`  ❌ ${endpoint} - Error: ${error.message}`);
     }
   }
-  
+
   console.log(`\n📊 API Endpoints: ${workingEndpoints}/${totalEndpoints} working`);
   return workingEndpoints === totalEndpoints;
 }
@@ -390,14 +390,14 @@ async function runUserActionTests() {
 
 async function runRegressionTests() {
   console.log('🚀 Starting Regression Tests...\n');
-  
+
   const dataTypesOk = await testDataTypes();
   const endpointsOk = await testAPIEndpoints();
-  
+
   console.log('\n📈 Regression Test Summary:');
   console.log(`   Data Types: ${dataTypesOk ? '✅ PASSED' : '❌ FAILED'}`);
   console.log(`   API Endpoints: ${endpointsOk ? '✅ PASSED' : '❌ FAILED'}`);
-  
+
   if (dataTypesOk && endpointsOk) {
     console.log('\n✅ All regression tests passed!');
     console.log('   No data type issues detected.');
@@ -421,4 +421,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { runRegressionTests, runUserActionTests }; 
+module.exports = { runRegressionTests, runUserActionTests };

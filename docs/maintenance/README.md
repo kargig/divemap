@@ -617,4 +617,4 @@ For maintenance issues:
 
 ## Conclusion
 
-Regular maintenance ensures the Divemap application remains reliable, secure, and performant. Following these procedures helps prevent issues and maintain high availability. 
+Regular maintenance ensures the Divemap application remains reliable, secure, and performant. Following these procedures helps prevent issues and maintain high availability.

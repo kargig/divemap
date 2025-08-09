@@ -285,4 +285,4 @@ For additional help, refer to:
 - [Development Guide](../development/README.md) - Technical setup and development
 - [Deployment Guide](../deployment/README.md) - Production deployment
 - [Security Guide](../security/README.md) - Security configuration
-- [Maintenance Guide](../maintenance/README.md) - Ongoing maintenance 
+- [Maintenance Guide](../maintenance/README.md) - Ongoing maintenance

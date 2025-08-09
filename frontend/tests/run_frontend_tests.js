@@ -25,35 +25,35 @@ async function runTest(scriptPath, testName) {
   return new Promise((resolve) => {
     console.log(`\n🚀 Running ${testName}...`);
     console.log('='.repeat(50));
-    
+
     const startTime = Date.now();
     const child = spawn('node', [scriptPath], {
       stdio: 'pipe',
       cwd: process.cwd()
     });
-    
+
     let output = '';
     let errorOutput = '';
-    
+
     child.stdout.on('data', (data) => {
       const text = data.toString();
       output += text;
       process.stdout.write(text);
     });
-    
+
     child.stderr.on('data', (data) => {
       const text = data.toString();
       errorOutput += text;
       process.stderr.write(text);
     });
-    
+
     child.on('close', (code) => {
       const duration = Date.now() - startTime;
       const success = code === 0;
-      
+
       console.log(`\n${'='.repeat(50)}`);
       console.log(`${success ? '✅' : '❌'} ${testName} ${success ? 'PASSED' : 'FAILED'} (${duration}ms)`);
-      
+
       resolve({
         name: testName,
         success,
@@ -63,12 +63,12 @@ async function runTest(scriptPath, testName) {
         errorOutput
       });
     });
-    
+
     child.on('error', (error) => {
       const duration = Date.now() - startTime;
       console.log(`\n${'='.repeat(50)}`);
       console.log(`❌ ${testName} ERROR: ${error.message} (${duration}ms)`);
-      
+
       resolve({
         name: testName,
         success: false,
@@ -83,26 +83,26 @@ async function runTest(scriptPath, testName) {
 
 async function checkFrontendService() {
   console.log('🔍 Checking frontend service availability...\n');
-  
+
   const http = require('http');
-  
+
   function makeRequest(url) {
     return new Promise((resolve) => {
       const req = http.get(url, (res) => {
         resolve({ statusCode: res.statusCode, available: true });
       });
-      
+
       req.on('error', () => {
         resolve({ statusCode: 0, available: false });
       });
-      
+
       req.setTimeout(5000, () => {
         req.destroy();
         resolve({ statusCode: 0, available: false });
       });
     });
   }
-  
+
   try {
     const result = await makeRequest('http://localhost:3000');
     if (result.available && result.statusCode === 200) {
@@ -120,10 +120,10 @@ async function checkFrontendService() {
 
 async function runFrontendTests() {
   console.log('🚀 Starting Frontend Test Suite...\n');
-  
+
   // Check if frontend service is available
   const frontendAvailable = await checkFrontendService();
-  
+
   if (!frontendAvailable) {
     console.log('\n⚠️  Frontend service is not available.');
     console.log('   Please start the frontend:');
@@ -131,14 +131,14 @@ async function runFrontendTests() {
     console.log('\n   Continue anyway? (y/N)');
     console.log('   Continuing with tests...\n');
   }
-  
+
   const results = [];
   let totalDuration = 0;
-  
+
   // Run each frontend test suite
   for (const test of FRONTEND_TEST_SCRIPTS) {
     const scriptPath = path.join(process.cwd(), test.script);
-    
+
     try {
       const result = await runTest(scriptPath, test.name);
       results.push(result);
@@ -154,32 +154,32 @@ async function runFrontendTests() {
       });
     }
   }
-  
+
   // Generate report
   console.log('\n📊 FRONTEND TEST REPORT');
   console.log('='.repeat(50));
-  
+
   const passedTests = results.filter(r => r.success).length;
   const totalTests = results.length;
-  
+
   console.log(`\n📈 Results:`);
   console.log(`   Tests executed: ${totalTests}`);
   console.log(`   Tests passed: ${passedTests}`);
   console.log(`   Tests failed: ${totalTests - passedTests}`);
   console.log(`   Success rate: ${Math.round((passedTests / totalTests) * 100)}%`);
   console.log(`   Total duration: ${totalDuration}ms`);
-  
+
   console.log(`\n📋 Detailed Results:`);
   results.forEach(result => {
     const status = result.success ? '✅ PASSED' : '❌ FAILED';
     const duration = `${result.duration}ms`;
     console.log(`   ${result.name}: ${status} (${duration})`);
-    
+
     if (!result.success && result.errorOutput) {
       console.log(`      Error: ${result.errorOutput}`);
     }
   });
-  
+
   // Summary
   console.log(`\n📝 Summary:`);
   if (passedTests === totalTests) {
@@ -191,21 +191,21 @@ async function runFrontendTests() {
   } else {
     console.log('   ⚠️  Some frontend tests failed.');
     console.log('   🔧 Recommendations:');
-    
+
     const failedTests = results.filter(r => !r.success);
     failedTests.forEach(test => {
       console.log(`      - Review ${test.name} for issues`);
     });
-    
+
     if (!frontendAvailable) {
       console.log('      - Ensure frontend is running on port 3000');
     }
-    
+
     console.log('      - Check browser console for JavaScript errors');
     console.log('      - Test user interactions manually');
     console.log('      - Verify responsive design on different devices');
   }
-  
+
   // Exit with appropriate code
   if (passedTests === totalTests) {
     console.log('\n✅ All frontend tests completed successfully!');
@@ -243,4 +243,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { runFrontendTests }; 
+module.exports = { runFrontendTests };
