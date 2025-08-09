@@ -29,3 +29,5 @@ pyasn1==0.6.1
 cryptography==45.0.5
 # OpenAI integration
 openai==1.98.0
+# System monitoring
+psutil==6.1.0

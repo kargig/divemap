@@ -13,6 +13,7 @@ import AdminDivingCenters from './pages/AdminDivingCenters';
 import AdminDivingOrganizations from './pages/AdminDivingOrganizations';
 import AdminNewsletters from './pages/AdminNewsletters';
 import AdminOwnershipRequests from './pages/AdminOwnershipRequests';
+import AdminSystemOverview from './pages/AdminSystemOverview';
 import AdminTags from './pages/AdminTags';
 import AdminUsers from './pages/AdminUsers';
 import CreateDive from './pages/CreateDive';
@@ -268,6 +269,14 @@ function App() {
                   element={
                     <ProtectedRoute requireAdmin={true}>
                       <AdminNewsletters />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path='/admin/system-overview'
+                  element={
+                    <ProtectedRoute requireAdmin={true}>
+                      <AdminSystemOverview />
                     </ProtectedRoute>
                   }
                 />

@@ -410,6 +410,15 @@ Before making any changes, ensure:
 - [ ] Linting checks pass
 - [ ] Whitespace validation passes
 
+### Frontend-Specific Compliance
+- [ ] Frontend container logs checked for ESLint errors
+- [ ] ESLint validation passes in frontend container
+- [ ] Import order follows project standards
+- [ ] React hooks follow rules of hooks
+- [ ] Prettier formatting is consistent
+- [ ] No unused variables or imports
+- [ ] Component prop types validated (where applicable)
+
 ## Enforcement
 
 These rules are mandatory and must be followed:
@@ -425,6 +434,8 @@ These rules are mandatory and must be followed:
 - **Trailing whitespace is strictly forbidden**
 - **All code must pass linting checks before committing**
 - **All files must have consistent formatting**
+- **All frontend changes must pass ESLint validation in container**
+- **Frontend container logs must be checked for errors after file changes**
 
 ## Code Quality and Formatting Requirements
 
@@ -485,5 +496,55 @@ grep -r '[ \t]+$' --include="*.py" --include="*.js" --include="*.jsx" --include=
 # ❌ WRONG - Don't commit without validation
 # Always run checks before committing
 ```
+
+## Frontend Code Quality and ESLint Validation
+
+### Frontend File Change Requirements
+- **ALWAYS check frontend container logs for ESLint errors after making changes to frontend files**
+- **ALWAYS run ESLint validation within the frontend container**
+- **NEVER commit frontend changes without ESLint validation**
+- **ALWAYS fix ESLint errors before considering changes complete**
+
+### Frontend ESLint Validation Workflow
+```bash
+# ✅ CORRECT - Check frontend container logs for ESLint errors
+# After making changes to frontend files, check container logs:
+docker-compose logs divemap_frontend | grep -i "eslint\|error\|warning"
+
+# Or run ESLint directly in the frontend container:
+docker-compose exec divemap_frontend npm run lint
+
+# Check for specific file errors:
+docker-compose exec divemap_frontend npm run lint -- --fix
+
+# ❌ WRONG - Don't ignore ESLint errors in frontend container
+# Always validate frontend code quality before proceeding
+```
+
+### Frontend Code Quality Standards
+- **ALWAYS ensure all JavaScript/JSX files pass ESLint validation**
+- **ALWAYS fix import order issues (import/order)**
+- **ALWAYS fix React hooks rules violations (react-hooks/rules-of-hooks)**
+- **ALWAYS fix Prettier formatting issues (prettier/prettier)**
+- **ALWAYS remove trailing whitespace (no-trailing-spaces)**
+- **ALWAYS fix unused variables and imports (no-unused-vars)**
+- **ALWAYS validate prop types where applicable (react/prop-types)**
+
+### Frontend Error Categories to Address
+- **Critical**: ESLint errors that prevent compilation
+- **High Priority**: React hooks rules violations
+- **Medium Priority**: Import order and formatting issues
+- **Low Priority**: Unused variables and prop type warnings
+
+### Frontend Validation Checklist
+Before considering frontend changes complete:
+- [ ] ESLint validation passes in frontend container
+- [ ] No critical ESLint errors in container logs
+- [ ] Import order follows project standards
+- [ ] React hooks follow rules of hooks
+- [ ] Prettier formatting is consistent
+- [ ] No trailing whitespace in files
+- [ ] Unused variables and imports are cleaned up
+- [ ] Component prop types are validated (where applicable)
 
 Remember: **Always ask for permission before committing to git!**

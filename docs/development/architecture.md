@@ -1,5 +1,33 @@
 # **Technical Design Document: Scuba Dive Site & Center Review Platform**
 
+## **Table of Contents**
+
+1. [Introduction](#1-introduction)
+2. [Goals](#2-goals)
+3. [Functional Requirements](#3-functional-requirements)
+   - [User Management](#31-user-management)
+   - [Dive Site Management](#32-dive-site-management)
+   - [Diving Center Management](#33-diving-center-management)
+   - [Dive Logging System](#34-dive-logging-system)
+   - [Comments](#35-comments)
+   - [Newsletter Parsing & Dive Trip Display](#36-newsletter-parsing--dive-trip-display)
+   - [Dive Trip Calendar System](#37-dive-trip-calendar-system)
+   - [Search and Filtering](#38-search-and-filtering)
+   - [Multi-Currency Support System](#39-multi-currency-support-system)
+   - [Database Migration System](#310-database-migration-system)
+   - [Admin Management System](#311-admin-management-system)
+   - [Admin Dashboard Pages](#312-admin-dashboard-pages)
+4. [Non-Functional Requirements](#4-non-functional-requirements)
+5. [Architecture](#5-architecture)
+6. [API Endpoints](#6-api-endpoints-conceptual)
+7. [Technologies & Tools](#7-technologies--tools)
+8. [Future Considerations](#8-future-considerations)
+9. [Implementation Phases](#9-implementation-phases-high-level)
+10. [Security Considerations](#10-security-considerations)
+11. [Error Handling and Logging](#11-error-handling-and-logging)
+12. [Testing Infrastructure](#12-testing-infrastructure)
+13. [Current Implementation Status](#13-current-implementation-status)
+
 ## **1\. Introduction**
 
 This document outlines the technical design for a Python-based web application, with future mobile application compatibility, dedicated to scuba diving site and center reviews. The platform will allow users to rate dive sites, find detailed information about them, discover diving centers and their offerings, view upcoming dive trips, and log their personal dives with detailed information.
@@ -226,6 +254,133 @@ This document outlines the technical design for a Python-based web application, 
 * **Tag Management**: Comprehensive tag system with usage statistics
 * **Safety Features**: Protection against deleting used tags and self-deletion
 * **Diving Center Ownership Management**: Approve/deny ownership claims and assign owners
+* **System Overview Dashboard**: Comprehensive platform statistics and health monitoring
+* **Recent Activity Monitoring**: Real-time tracking of user actions and system changes
+* **Backup and Export Management**: Data export capabilities and backup management
+
+### **3.12. Admin Dashboard Pages**
+
+#### **3.12.1. System Overview Dashboard**
+
+The System Overview dashboard provides administrators with comprehensive platform statistics and health monitoring capabilities:
+
+**Platform Statistics:**
+* **User Statistics**: Total users, active users (last 30 days), new registrations (last 7/30 days), user growth rate
+* **Content Statistics**: Total dive sites, diving centers, dives, comments, ratings, media uploads
+* **Engagement Metrics**: Average ratings, comment activity, user participation rates
+* **Geographic Distribution**: Dive sites by country/region, user distribution by location
+* **System Usage**: API calls per day, peak usage times, most accessed endpoints
+
+**System Health Monitoring:**
+* **Database Performance**: Connection pool status, query response times, slow query alerts
+* **Application Health**: Response times, error rates, uptime statistics
+* **Resource Utilization**: CPU usage, memory consumption, disk space
+* **External Services**: Google OAuth status, geocoding service availability
+* **Security Metrics**: Failed login attempts, suspicious activity, rate limiting events
+
+**Real-time Alerts:**
+* **Critical Issues**: Database connection failures, high error rates, service outages
+* **Performance Warnings**: Slow response times, high resource usage
+* **Security Alerts**: Unusual login patterns, potential security threats
+* **Capacity Planning**: Storage usage trends, user growth projections
+
+**Visual Dashboard Elements:**
+* **Charts and Graphs**: User growth trends, content creation rates, system performance
+* **Status Indicators**: Service health lights (green/yellow/red)
+* **Quick Actions**: Direct links to common administrative tasks
+* **Refresh Controls**: Real-time data updates with configurable intervals
+
+#### **3.12.2. Recent Activity Monitoring**
+
+The Recent Activity page provides real-time tracking of user actions and system changes for security and operational oversight:
+
+**User Activity Tracking:**
+* **Authentication Events**: Login/logout events, failed login attempts, OAuth usage
+* **Content Creation**: New dive sites, diving centers, dives, comments, ratings
+* **Content Modifications**: Edits to existing content, ownership changes
+* **Administrative Actions**: User role changes, account approvals, content deletions
+* **Search Activity**: Popular search terms, search patterns, geographic search trends
+
+**System Activity Monitoring:**
+* **Database Operations**: Schema changes, migration executions, backup operations
+* **API Usage**: Endpoint access patterns, rate limiting events, error responses
+* **File Operations**: Media uploads, file deletions, storage usage changes
+* **External Integrations**: Newsletter parsing results, geocoding requests, OAuth verifications
+
+**Activity Details:**
+* **Timestamp**: Precise time of each activity
+* **User Information**: User ID, username, IP address, user agent
+* **Action Details**: Specific operation performed, affected resources
+* **Outcome**: Success/failure status, error messages if applicable
+* **Context**: Related actions, session information, geographic location
+
+**Filtering and Search:**
+* **Time Range**: Filter by specific time periods (last hour, day, week, month)
+* **User Filtering**: View activity for specific users or user groups
+* **Action Types**: Filter by specific activity categories
+* **Status Filtering**: View only successful, failed, or pending actions
+* **Geographic Filtering**: Filter by user location or content location
+
+**Security Features:**
+* **Suspicious Activity Detection**: Unusual patterns, potential security threats
+* **Audit Trail**: Complete history for compliance and investigation
+* **Export Capabilities**: Export activity logs for external analysis
+* **Alert Configuration**: Customizable alerts for specific activity patterns
+
+#### **3.12.3. Backup and Export Management**
+
+The Backup and Export page provides comprehensive data management capabilities for administrators:
+
+**Database Backup Management:**
+* **Automated Backups**: Scheduled daily backups with configurable retention policies
+* **Manual Backups**: On-demand backup creation with custom naming
+* **Backup Verification**: Automatic integrity checks and restoration testing
+* **Backup Storage**: Local and cloud storage options with encryption
+* **Backup History**: Complete backup log with timestamps and sizes
+* **Restore Operations**: Point-in-time restoration with rollback capabilities
+
+**Data Export Capabilities:**
+* **Full Database Export**: Complete database dump in SQL format
+* **Selective Table Export**: Export specific tables or data subsets
+* **Format Options**: SQL, CSV, JSON, XML export formats
+* **Filtered Exports**: Export data based on date ranges, user criteria, or content types
+* **Incremental Exports**: Export only changed data since last export
+* **Compression Options**: Compressed exports for large datasets
+
+**Export Categories:**
+* **User Data**: User accounts, profiles, preferences, activity history
+* **Content Data**: Dive sites, diving centers, dives, comments, ratings
+* **Media Assets**: Photos, videos, documents with metadata
+* **Configuration Data**: System settings, tags, organizations, permissions
+* **Analytics Data**: Usage statistics, performance metrics, audit logs
+
+**Export Management Features:**
+* **Scheduled Exports**: Automated exports on configurable schedules
+* **Export Queuing**: Background processing for large exports
+* **Progress Tracking**: Real-time progress indicators for export operations
+* **Notification System**: Email alerts for completed exports and failures
+* **Storage Management**: Automatic cleanup of old exports and backups
+
+**Data Privacy and Compliance:**
+* **GDPR Compliance**: User data export for data subject requests
+* **Data Anonymization**: Option to anonymize sensitive data in exports
+* **Access Controls**: Role-based access to backup and export functions
+* **Audit Logging**: Complete audit trail of all backup and export operations
+* **Encryption**: Encrypted exports for sensitive data protection
+
+**Integration Features:**
+* **Cloud Storage**: Direct integration with AWS S3, Google Cloud Storage
+* **FTP/SFTP**: Secure file transfer for backup distribution
+* **Email Integration**: Automated email delivery of export files
+* **API Access**: Programmatic access to backup and export functions
+* **Monitoring Integration**: Integration with system monitoring tools
+
+**Operational Features:**
+* **Health Checks**: Verification of backup integrity and accessibility
+* **Performance Monitoring**: Export and backup performance metrics
+* **Error Handling**: Comprehensive error reporting and recovery procedures
+* **Documentation**: Automatic generation of backup and export reports
+* **Disaster Recovery**: Complete disaster recovery procedures and testing
 
 ## **4\. Non-Functional Requirements**
 
@@ -524,6 +679,11 @@ The application will follow a microservices-oriented or a well-separated monolit
 * /api/v1/dive-trips/favorites (GET, POST, DELETE \- manage favorite trips)
 * /api/v1/dive-trips/export (GET \- export trips to calendar format)
 * /api/v1/media/upload (POST \- for image/video uploads)
+* /api/v1/admin/system/overview (GET \- platform statistics and health)
+* /api/v1/admin/system/activity (GET \- recent user and system activity)
+* /api/v1/admin/system/backup (POST \- create database backup)
+* /api/v1/admin/system/export (GET \- export data in various formats)
+* /api/v1/admin/system/health (GET \- system health check)
 
 ## **7\. Technologies & Tools**
 
@@ -878,6 +1038,7 @@ node test_regressions.js
 * ✅ Role-based access control (User, Moderator, Admin)
 * ✅ User status management (enabled/disabled)
 * ✅ Mass delete functionality with safety features
+* ✅ Quick Actions section with System Overview, Recent Activity, and Backup & Export placeholders
 
 #### **User Registration and Approval System ✅ COMPLETED**
 * ✅ New users created with enabled=False by default
@@ -971,3 +1132,11 @@ node test_regressions.js
 * 🔄 Enhanced search and filtering capabilities
 * 🔄 Performance optimizations and scaling
 * 🔄 Mobile application development
+
+#### **Phase 8: Admin Dashboard Enhancement 🔄 PLANNED**
+* 🔄 System Overview Dashboard with comprehensive platform statistics and health monitoring
+* 🔄 Recent Activity Monitoring with real-time user and system activity tracking
+* 🔄 Backup and Export Management with automated backup and data export capabilities
+* 🔄 Advanced analytics and reporting features
+* 🔄 Real-time alerts and notification system
+* 🔄 Performance monitoring and capacity planning tools

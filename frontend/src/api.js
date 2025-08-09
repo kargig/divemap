@@ -282,3 +282,19 @@ export const confirmImportDives = async divesData => {
   const response = await api.post('/api/v1/dives/import/confirm', divesData);
   return response.data;
 };
+
+// System Overview API functions
+export const getSystemOverview = async () => {
+  const response = await api.get('/api/v1/admin/system/overview');
+  return response.data;
+};
+
+export const getSystemHealth = async () => {
+  const response = await api.get('/api/v1/admin/system/health');
+  return response.data;
+};
+
+export const getPlatformStats = async () => {
+  const response = await api.get('/api/v1/admin/system/stats');
+  return response.data;
+};

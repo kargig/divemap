@@ -18,6 +18,7 @@ import {
   X,
   Info,
   HelpCircle,
+  Activity,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -199,6 +200,14 @@ const Navbar = () => {
                         >
                           <Crown className='h-4 w-4 mr-2' />
                           Ownership Requests
+                        </Link>
+                        <Link
+                          to='/admin/system-overview'
+                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <Activity className='h-4 w-4 mr-2' />
+                          System Overview
                         </Link>
                         <Link
                           to='/admin/users'
@@ -397,6 +406,14 @@ const Navbar = () => {
                         >
                           <Crown className='h-4 w-4 mr-3' />
                           <span>Ownership Requests</span>
+                        </Link>
+                        <Link
+                          to='/admin/system-overview'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Activity className='h-4 w-4 mr-3' />
+                          <span>System Overview</span>
                         </Link>
                         <Link
                           to='/admin/users'

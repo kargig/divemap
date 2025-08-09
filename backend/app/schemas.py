@@ -732,3 +732,95 @@ class ParsedDiveTripUpdate(BaseModel):
     special_requirements: Optional[str] = None
     trip_status: Optional[str] = Field(None, pattern=r"^(scheduled|confirmed|cancelled|completed)$")
     dives: Optional[List[ParsedDiveCreate]] = None
+
+# System Overview Schemas
+class UserStats(BaseModel):
+    total: int
+    active_30d: int
+    new_7d: int
+    new_30d: int
+    growth_rate: float
+
+class ContentStats(BaseModel):
+    dive_sites: int
+    diving_centers: int
+    dives: int
+    comments: int
+    ratings: int
+    media_uploads: int
+
+class EngagementStats(BaseModel):
+    avg_site_rating: float
+    avg_center_rating: float
+    recent_comments_24h: int
+    recent_ratings_24h: int
+    recent_dives_24h: int
+
+class GeographicStats(BaseModel):
+    dive_sites_by_country: List[dict]
+
+class SystemUsageStats(BaseModel):
+    api_calls_today: int
+    peak_usage_time: str
+    most_accessed_endpoint: str
+
+class PlatformStats(BaseModel):
+    users: UserStats
+    content: ContentStats
+    engagement: EngagementStats
+    geographic: GeographicStats
+    system_usage: SystemUsageStats
+
+class DatabaseHealth(BaseModel):
+    status: str
+    response_time: str
+
+class ApplicationHealth(BaseModel):
+    status: str
+    uptime: str
+    response_time: str
+
+class ResourceHealth(BaseModel):
+    cpu_usage: float
+    memory_usage: float
+    disk_usage: float
+
+class ExternalServicesHealth(BaseModel):
+    google_oauth: str
+    geocoding_service: str
+
+class SecurityHealth(BaseModel):
+    failed_logins_24h: int
+    suspicious_activity: str
+
+class SystemHealth(BaseModel):
+    database: DatabaseHealth
+    application: ApplicationHealth
+    resources: ResourceHealth
+    external_services: ExternalServicesHealth
+    security: SecurityHealth
+
+class Alerts(BaseModel):
+    critical: List[str]
+    warnings: List[str]
+    info: List[str]
+
+class SystemOverviewResponse(BaseModel):
+    platform_stats: PlatformStats
+    system_health: SystemHealth
+    alerts: Alerts
+    last_updated: str
+
+class SystemHealthResponse(BaseModel):
+    status: str
+    database: dict
+    resources: dict
+    services: dict
+    timestamp: str
+
+class PlatformStatsResponse(BaseModel):
+    users: dict
+    content: dict
+    media: dict
+    trips: dict
+    timestamp: str

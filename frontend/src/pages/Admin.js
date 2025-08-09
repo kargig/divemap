@@ -136,7 +136,18 @@ const Admin = () => {
           <h3 className='text-lg font-semibold text-gray-900'>Quick Actions</h3>
         </div>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-          <div className='bg-white p-4 rounded-lg border'>
+          <div
+            onClick={() => navigate('/admin/system-overview')}
+            onKeyDown={event => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                navigate('/admin/system-overview');
+              }
+            }}
+            role='button'
+            tabIndex={0}
+            className='bg-white p-4 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors'
+          >
             <h4 className='font-medium text-gray-900 mb-2'>System Overview</h4>
             <p className='text-sm text-gray-600'>View platform statistics and system health</p>
           </div>
