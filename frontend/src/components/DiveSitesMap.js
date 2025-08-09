@@ -15,7 +15,6 @@ import { Link } from 'react-router-dom';
 const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
   const mapRef = useRef();
   const mapInstance = useRef();
-  const hasFittedRef = useRef(false);
   const [popupInfo, setPopupInfo] = useState(null);
   const [popupPosition, setPopupPosition] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(2);
@@ -146,9 +145,6 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
       return;
     }
 
-    // Reset the fitted flag when we have new features
-    hasFittedRef.current = false;
-
     try {
       // Add a small delay to ensure source is properly initialized
       setTimeout(() => {
@@ -196,15 +192,12 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
             // Ensure minimum zoom level
             targetZoom = Math.max(targetZoom, 2);
 
-            // Only fit if we haven't already fitted for these features
-            if (!hasFittedRef.current) {
-              mapInstance.current.getView().fit(extent, {
-                padding: [50, 50, 50, 50],
-                duration: 1000,
-                maxZoom: targetZoom,
-              });
-              hasFittedRef.current = true;
-            }
+            // Always fit to show all dive sites (removed hasFittedRef check)
+            mapInstance.current.getView().fit(extent, {
+              padding: [50, 50, 50, 50],
+              duration: 1000,
+              maxZoom: targetZoom,
+            });
           } else {
             // Fallback: calculate center and zoom manually
 
@@ -263,7 +256,6 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
             const view = mapInstance.current.getView();
             view.setCenter(fromLonLat([centerLon, centerLat]));
             view.setZoom(targetZoom);
-            hasFittedRef.current = true;
           }
         } catch (error) {
           console.error('❌ Error fitting extent:', error);
@@ -325,7 +317,6 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
             const view = mapInstance.current.getView();
             view.setCenter(fromLonLat([centerLon, centerLat]));
             view.setZoom(targetZoom);
-            hasFittedRef.current = true;
           } catch (fallbackError) {
             console.error('❌ Error in fallback calculation:', fallbackError);
             // Final fallback: use a default view
@@ -473,7 +464,7 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
 
   // Force fit when component mounts with dive sites
   useEffect(() => {
-    if (mapInstance.current && diveSites && diveSites.length > 0 && !hasFittedRef.current) {
+    if (mapInstance.current && diveSites && diveSites.length > 0) {
       // Get the current vector layer
       const layers = mapInstance.current.getLayers();
       const existingVectorLayer = layers.getArray().find(layer => layer instanceof VectorLayer);
