@@ -95,8 +95,8 @@ class TestDiveSites:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN  # Changed from 401
 
-    def test_create_dive_site_not_admin(self, client, auth_headers):
-        """Test creating dive site as non-admin user."""
+    def test_create_dive_site_regular_user_success(self, client, auth_headers):
+        """Test creating dive site as regular authenticated user."""
         dive_site_data = {
             "name": "New Dive Site",
             "description": "A new dive site",
@@ -107,7 +107,12 @@ class TestDiveSites:
         response = client.post("/api/v1/dive-sites/",
                              json=dive_site_data, headers=auth_headers)
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["name"] == "New Dive Site"
+        assert data["description"] == "A new dive site"
+        assert str(data["latitude"]) == "25.0"
+        assert str(data["longitude"]) == "30.0"
 
     def test_create_dive_site_invalid_data(self, client, admin_headers):
         """Test creating dive site with invalid data."""
