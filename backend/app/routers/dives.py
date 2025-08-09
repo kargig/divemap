@@ -663,6 +663,7 @@ def get_dives_count(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
+    my_dives: Optional[bool] = Query(None, description="Filter to show only current user's dives"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
     difficulty_level: Optional[str] = Query(None, regex=r"^(beginner|intermediate|advanced|expert)$"),
@@ -683,6 +684,14 @@ def get_dives_count(
     # Filter by user if specified
     if user_id:
         query = query.filter(Dive.user_id == user_id)
+    elif my_dives:
+        # Filter to show only current user's dives
+        if not current_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to filter by my_dives"
+            )
+        query = query.filter(Dive.user_id == current_user.id)
     elif not current_user or not current_user.is_admin:
         # Non-admin users can only see their own dives and public dives
         query = query.filter(
@@ -772,6 +781,7 @@ def get_dives(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
+    my_dives: Optional[bool] = Query(None, description="Filter to show only current user's dives"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
     difficulty_level: Optional[str] = Query(None, regex=r"^(beginner|intermediate|advanced|expert)$"),
@@ -819,6 +829,14 @@ def get_dives(
                     Dive.is_private == False
                 )
             )
+    elif my_dives:
+        # Filter to show only current user's dives
+        if not current_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to filter by my_dives"
+            )
+        query = query.filter(Dive.user_id == current_user.id)
     else:
         if current_user:
             # Authenticated user - show own dives and public dives from others
