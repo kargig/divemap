@@ -1,4 +1,4 @@
-import { Search, List, ChevronLeft, ChevronRight, Map, Filter } from 'lucide-react';
+import { Search, List, ChevronLeft, ChevronRight, Map, Filter, Plus } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from 'react-query';
 import { useNavigate, useSearchParams, Link as RouterLink } from 'react-router-dom';
@@ -566,6 +566,17 @@ const DiveSites = () => {
                   Map View
                 </button>
               </div>
+            </div>
+
+            {/* Create Dive Site Button */}
+            <div className='flex items-center gap-2'>
+              <button
+                onClick={() => navigate('/dive-sites/create')}
+                className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-2'
+              >
+                <Plus className='h-4 w-4' />
+                Create Dive Site
+              </button>
             </div>
 
             {/* Pagination Controls */}

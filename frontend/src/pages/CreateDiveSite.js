@@ -27,8 +27,11 @@ const CreateDiveSite = () => {
   const createDiveSiteMutation = useMutation(data => api.post('/api/v1/dive-sites/', data), {
     onSuccess: () => {
       queryClient.invalidateQueries(['admin-dive-sites']);
+      queryClient.invalidateQueries(['dive-sites']);
       toast.success('Dive site created successfully!');
-      navigate('/admin/dive-sites');
+      // Navigate to dive sites list for regular users, admin panel for admins
+      const isAdminRoute = window.location.pathname.includes('/admin/');
+      navigate(isAdminRoute ? '/admin/dive-sites' : '/dive-sites');
     },
     onError: error => {
       toast.error(error.response?.data?.detail || 'Failed to create dive site');
@@ -74,7 +77,9 @@ const CreateDiveSite = () => {
   };
 
   const handleCancel = () => {
-    navigate('/admin/dive-sites');
+    // Navigate back to dive sites list for regular users, admin panel for admins
+    const isAdminRoute = window.location.pathname.includes('/admin/');
+    navigate(isAdminRoute ? '/admin/dive-sites' : '/dive-sites');
   };
 
   const suggestLocation = async () => {

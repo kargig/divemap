@@ -106,6 +106,14 @@ function App() {
                 <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />
                 <Route path='/dive-sites/:id/map' element={<DiveSiteMap />} />
                 <Route
+                  path='/dive-sites/create'
+                  element={
+                    <ProtectedRoute>
+                      <CreateDiveSite />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path='/dive-sites/:id/edit'
                   element={
                     <ProtectedEditRoute>
