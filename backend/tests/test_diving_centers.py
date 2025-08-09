@@ -654,8 +654,38 @@ class TestDivingCenters:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_get_ownership_requests_not_admin(self, client, auth_headers):
-        """Test getting ownership requests as non-admin user."""
+    def test_get_ownership_requests_moderator_success(self, client, moderator_headers, db_session):
+        """Test getting ownership requests as moderator."""
+        from app.models import User, OwnershipStatus
+
+        # Create a user and set diving center as claimed
+        user = User(username="testuser", email="test@example.com", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        # Create a diving center with claimed status
+        from app.models import DivingCenter
+        diving_center = DivingCenter(
+            name="Claimed Diving Center",
+            description="A claimed diving center",
+            email="claimed@divingcenter.com",
+            owner_id=user.id,
+            ownership_status=OwnershipStatus.claimed
+        )
+        db_session.add(diving_center)
+        db_session.commit()
+
+        response = client.get("/api/v1/diving-centers/ownership-requests", headers=moderator_headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["name"] == "Claimed Diving Center"
+        assert data[0]["owner_username"] == "testuser"
+
+    def test_get_ownership_requests_not_admin_or_moderator(self, client, auth_headers):
+        """Test getting ownership requests as regular user."""
         response = client.get("/api/v1/diving-centers/ownership-requests", headers=auth_headers)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -777,8 +807,34 @@ class TestDivingCenters:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_approve_diving_center_ownership_not_admin(self, client, auth_headers, test_diving_center):
-        """Test approving ownership claim as non-admin user."""
+    def test_approve_diving_center_ownership_moderator_success(self, client, moderator_headers, test_diving_center, db_session):
+        """Test approving ownership claim as moderator."""
+        from app.models import User, OwnershipStatus
+
+        # Create a user and set diving center as claimed
+        user = User(username="testuser", email="test@example.com", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        test_diving_center.owner_id = user.id
+        test_diving_center.ownership_status = OwnershipStatus.claimed
+        db_session.commit()
+
+        approval_data = {
+            "approved": True,
+            "reason": "Valid ownership claim"
+        }
+
+        response = client.post(f"/api/v1/diving-centers/{test_diving_center.id}/approve-ownership",
+                             json=approval_data, headers=moderator_headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "message" in data
+        assert "Ownership claim approved successfully" in data["message"]
+
+    def test_approve_diving_center_ownership_not_admin_or_moderator(self, client, auth_headers, test_diving_center):
+        """Test approving ownership claim as regular user."""
         approval_data = {
             "approved": True,
             "reason": "Valid ownership claim"

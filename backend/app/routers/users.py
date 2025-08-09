@@ -5,7 +5,7 @@ from typing import List
 from app.database import get_db
 from app.models import User, SiteRating, SiteComment, CenterComment
 from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, PasswordChangeRequest, UserPublicProfileResponse, UserStats
-from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password
+from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
 from sqlalchemy import func
 
 router = APIRouter()
@@ -13,10 +13,10 @@ router = APIRouter()
 # Admin user management endpoints - must be defined before regular routes
 @router.get("/admin/users", response_model=List[UserListResponse])
 async def list_all_users(
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
-    """List all users (admin only)"""
+    """List all users (admin/moderator only)"""
     users = db.query(User).all()
     return users
 

@@ -7,7 +7,7 @@ from app.models import DivingOrganization
 from app.schemas import (
     DivingOrganizationCreate, DivingOrganizationUpdate, DivingOrganizationResponse
 )
-from app.auth import get_current_admin_user, get_current_user_optional
+from app.auth import get_current_admin_user, get_current_user_optional, is_admin_or_moderator
 
 router = APIRouter()
 
@@ -36,9 +36,9 @@ async def get_diving_organization(
 async def create_diving_organization(
     organization: DivingOrganizationCreate,
     db: Session = Depends(get_db),
-    current_admin: dict = Depends(get_current_admin_user)
+    current_admin: dict = Depends(is_admin_or_moderator)
 ):
-    """Create a new diving organization (admin only)."""
+    """Create a new diving organization (admin/moderator only)."""
     # Check if organization with same acronym already exists
     existing_org = db.query(DivingOrganization).filter(
         DivingOrganization.acronym == organization.acronym
@@ -64,9 +64,9 @@ async def update_diving_organization(
     organization_id: int,
     organization: DivingOrganizationUpdate,
     db: Session = Depends(get_db),
-    current_admin: dict = Depends(get_current_admin_user)
+    current_admin: dict = Depends(is_admin_or_moderator)
 ):
-    """Update a diving organization (admin only)."""
+    """Update a diving organization (admin/moderator only)."""
     db_organization = db.query(DivingOrganization).filter(DivingOrganization.id == organization_id).first()
     if not db_organization:
         raise HTTPException(status_code=404, detail="Diving organization not found")
@@ -99,9 +99,9 @@ async def update_diving_organization(
 async def delete_diving_organization(
     organization_id: int,
     db: Session = Depends(get_db),
-    current_admin: dict = Depends(get_current_admin_user)
+    current_admin: dict = Depends(is_admin_or_moderator)
 ):
-    """Delete a diving organization (admin only)."""
+    """Delete a diving organization (admin/moderator only)."""
     db_organization = db.query(DivingOrganization).filter(DivingOrganization.id == organization_id).first()
     if not db_organization:
         raise HTTPException(status_code=404, detail="Diving organization not found")

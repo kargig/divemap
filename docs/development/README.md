@@ -975,3 +975,4 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 - **[Database Documentation](./database.md)** - Database schema and migrations
 - **[Testing Documentation](./testing.md)** - Testing procedures and best practices
 - **[Diving Organizations Admin](./diving-organizations-admin.md)** - Diving organizations management
+- **[Permissions Documentation](./permissions.md)** - User permissions and access control

@@ -70,8 +70,34 @@ class TestDivingOrganizations:
         assert "created_at" in data
         assert "updated_at" in data
 
-    def test_create_diving_organization_non_admin(self, client, auth_headers):
-        """Test creating a diving organization as non-admin user."""
+    def test_create_diving_organization_moderator_success(self, client, moderator_headers):
+        """Test creating a diving organization as moderator."""
+        organization_data = {
+            "name": "Test Diving Organization",
+            "acronym": "TDO",
+            "website": "https://testdiving.org",
+            "logo_url": "https://testdiving.org/logo.png",
+            "description": "A test diving organization",
+            "country": "Test Country",
+            "founded_year": 2020
+        }
+
+        response = client.post("/api/v1/diving-organizations/",
+                             json=organization_data, headers=moderator_headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["name"] == organization_data["name"]
+        assert data["acronym"] == organization_data["acronym"]
+        assert data["website"] == organization_data["website"]
+        assert data["country"] == organization_data["country"]
+        assert data["founded_year"] == organization_data["founded_year"]
+        assert "id" in data
+        assert "created_at" in data
+        assert "updated_at" in data
+
+    def test_create_diving_organization_regular_user(self, client, auth_headers):
+        """Test creating a diving organization as regular user."""
         organization_data = {
             "name": "Test Diving Organization",
             "acronym": "TDO",
@@ -154,8 +180,20 @@ class TestDivingOrganizations:
         assert data["website"] == update_data["website"]
         assert data["acronym"] == test_diving_organization.acronym  # Should remain unchanged
 
-    def test_update_diving_organization_non_admin(self, client, auth_headers, test_diving_organization):
-        """Test updating a diving organization as non-admin user."""
+    def test_update_diving_organization_moderator_success(self, client, moderator_headers, test_diving_organization):
+        """Test updating a diving organization as moderator."""
+        update_data = {"name": "Updated Name"}
+
+        response = client.put(f"/api/v1/diving-organizations/{test_diving_organization.id}",
+                            json=update_data, headers=moderator_headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["name"] == "Updated Name"
+        assert data["acronym"] == test_diving_organization.acronym  # Should remain unchanged
+
+    def test_update_diving_organization_regular_user(self, client, auth_headers, test_diving_organization):
+        """Test updating a diving organization as regular user."""
         update_data = {"name": "Updated Name"}
 
         response = client.put(f"/api/v1/diving-organizations/{test_diving_organization.id}",
@@ -224,8 +262,20 @@ class TestDivingOrganizations:
         get_response = client.get(f"/api/v1/diving-organizations/{test_diving_organization.id}")
         assert get_response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_delete_diving_organization_non_admin(self, client, auth_headers, test_diving_organization):
-        """Test deleting a diving organization as non-admin user."""
+    def test_delete_diving_organization_moderator_success(self, client, moderator_headers, test_diving_organization):
+        """Test deleting a diving organization as moderator."""
+        response = client.delete(f"/api/v1/diving-organizations/{test_diving_organization.id}",
+                               headers=moderator_headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "Diving organization deleted successfully" in response.json()["message"]
+
+        # Verify it's actually deleted
+        get_response = client.get(f"/api/v1/diving-organizations/{test_diving_organization.id}")
+        assert get_response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_delete_diving_organization_regular_user(self, client, auth_headers, test_diving_organization):
+        """Test deleting a diving organization as regular user."""
         response = client.delete(f"/api/v1/diving-organizations/{test_diving_organization.id}",
                                headers=auth_headers)
 

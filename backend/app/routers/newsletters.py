@@ -551,6 +551,8 @@ async def upload_newsletter(
     """
     Upload a newsletter file and parse it for dive trip information.
     """
+    if not current_user.is_admin and not current_user.is_moderator:
+        raise HTTPException(status_code=403, detail="Only admins and moderators can upload newsletters")
     if not file.filename.endswith('.txt'):
         raise HTTPException(status_code=400, detail="Only .txt files are supported")
 
@@ -789,6 +791,8 @@ async def update_newsletter(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if not current_user.is_admin and not current_user.is_moderator:
+        raise HTTPException(status_code=403, detail="Only admins and moderators can update newsletters")
     """
     Update a newsletter's content.
     """
@@ -822,6 +826,8 @@ async def delete_newsletter(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if not current_user.is_admin and not current_user.is_moderator:
+        raise HTTPException(status_code=403, detail="Only admins and moderators can delete newsletters")
     """
     Delete a newsletter and all its associated trips.
     """
@@ -852,6 +858,8 @@ async def delete_newsletters(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if not current_user.is_admin and not current_user.is_moderator:
+        raise HTTPException(status_code=403, detail="Only admins and moderators can delete newsletters")
     """
     Mass delete multiple newsletters and their associated trips.
     """
@@ -891,6 +899,8 @@ async def delete_parsed_trip(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if not current_user.is_admin and not current_user.is_moderator:
+        raise HTTPException(status_code=403, detail="Only admins and moderators can delete dive trips")
     """
     Delete a parsed dive trip. Only admins and moderators can delete trips.
     """
@@ -913,6 +923,8 @@ async def reparse_newsletter(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if not current_user.is_admin and not current_user.is_moderator:
+        raise HTTPException(status_code=403, detail="Only admins and moderators can reparse newsletters")
     """
     Re-parse a previously uploaded newsletter for dive trip information.
     This will delete existing parsed trips and create new ones.
@@ -1025,6 +1037,8 @@ async def create_parsed_trip(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if not current_user.is_admin and not current_user.is_moderator:
+        raise HTTPException(status_code=403, detail="Only admins and moderators can create dive trips")
     """
     Create a new parsed dive trip manually.
     """
@@ -1165,6 +1179,8 @@ async def update_parsed_trip(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if not current_user.is_admin and not current_user.is_moderator:
+        raise HTTPException(status_code=403, detail="Only admins and moderators can update dive trips")
     """
     Update a parsed dive trip.
     """

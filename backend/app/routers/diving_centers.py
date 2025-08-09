@@ -160,10 +160,10 @@ async def create_diving_center(
 
 @router.get("/ownership-requests", response_model=List[DivingCenterOwnershipResponse])
 async def get_ownership_requests(
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
-    """Get all diving centers with ownership requests (admin only)"""
+    """Get all diving centers with ownership requests (admin/moderator only)"""
     diving_centers = db.query(DivingCenter).filter(
         DivingCenter.ownership_status.in_(["claimed", "approved"])
     ).all()
@@ -808,7 +808,7 @@ async def claim_diving_center_ownership(
 async def approve_diving_center_ownership(
     diving_center_id: int,
     approval: DivingCenterOwnershipApproval,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     """Approve or deny ownership claim for a diving center (admin only)"""
@@ -845,7 +845,7 @@ async def approve_diving_center_ownership(
 async def assign_diving_center_owner(
     diving_center_id: int,
     user_id: int,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     """Assign a user as owner of a diving center (admin only)"""
