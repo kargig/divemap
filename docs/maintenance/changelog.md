@@ -2,7 +2,52 @@
 
 This document tracks all recent changes, improvements, and bug fixes to the Divemap application.
 
-## [Latest Release] - 2025-08-02
+## [Latest Release] - 2025-08-09
+
+### 🔧 API Enhancements
+
+#### **Dive Filtering Improvements**
+- **my_dives Parameter**: Added `my_dives=true` parameter to dives endpoint for filtering user's own dives
+- **Authentication Required**: `my_dives` parameter requires authentication and returns 401 for unauthenticated requests
+- **User-Specific Filtering**: Returns only current user's dives (both private and public)
+- **Empty Results**: Returns empty array for users with no dives
+- **Count Endpoint Support**: Added `my_dives` parameter to `/api/v1/dives/count` endpoint
+
+#### **Dive Site Creation for Regular Users**
+- **User Dive Site Creation**: Regular users can now create dive sites (previously admin/moderator only)
+- **Ownership Tracking**: Added `created_by` field to dive sites table to track ownership
+- **My Dive Sites Filter**: Added `my_dive_sites=true` parameter to filter dive sites created by current user
+- **UI Improvements**: Enhanced dive site creation interface with better layout and user feedback
+
+### 🚀 Major Features
+
+#### **Subsurface XML Import System**
+- **Frontend Import Modal**: Complete UI for uploading and reviewing Subsurface XML files
+- **Backend API Endpoints**: Comprehensive API for XML parsing and dive confirmation
+- **Dive Site Matching**: Enhanced matching with similarity detection and user selection
+- **Privacy Controls**: Users can set privacy settings for imported dives
+- **Skip Functionality**: Individual dive skip options during import process
+- **Visual Indicators**: Privacy indicators on dive detail pages
+
+#### **Moderator Permission Enhancements**
+- **Ownership Management**: Moderators can now approve diving center ownership requests
+- **Diving Organizations**: Full CRUD permissions for diving organizations
+- **Newsletter Management**: Complete newsletter and dive trip management capabilities
+- **User Listing**: Moderators can view all users in the system
+- **Comprehensive Testing**: 136 new tests covering all moderator permissions
+
+### 🐛 Bug Fixes
+
+#### **Dive Name Regeneration**
+- **Empty Name Handling**: Fixed dive name regeneration when users delete dive names
+- **Automatic Naming**: System now properly regenerates names based on dive site and date
+- **Frontend Integration**: Fixed data processing to preserve empty strings for backend regeneration
+
+#### **Map View Improvements**
+- **Automatic Fitting**: Map now automatically fits to show all dive sites matching search filters
+- **Dynamic Zoom**: Removed fixed zoom level, map adapts to current dive sites data
+
+## [Previous Release] - 2025-08-02
 
 ### 🔧 Import Script Enhancements
 

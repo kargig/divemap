@@ -335,6 +335,7 @@ Get dive sites (alphabetically sorted).
 - `min_rating`: Minimum rating filter
 - `max_rating`: Maximum rating filter
 - `tag_ids`: Comma-separated tag IDs
+- `my_dive_sites`: Filter to show only dive sites created by the current user
 
 **Response Headers:**
 - `X-Total-Count`: Total number of records
@@ -1428,6 +1429,10 @@ curl -H "Authorization: Bearer USER_TOKEN" \
 # Get all dives for the authenticated user (alphabetically sorted)
 curl -H "Authorization: Bearer USER_TOKEN" \
      "https://divemap-backend.fly.dev/api/v1/dives/?page=1&page_size=25"
+
+# Get only current user's dives
+curl -H "Authorization: Bearer USER_TOKEN" \
+     "https://divemap-backend.fly.dev/api/v1/dives/?my_dives=true&page=1&page_size=25"
 
 # Get a specific dive
 curl -H "Authorization: Bearer USER_TOKEN" \

@@ -643,6 +643,77 @@ The project uses GitHub Actions for continuous integration and automated testing
 
 ## Recent Features
 
+### Subsurface XML Import System
+
+A comprehensive dive import system has been implemented for importing dives from Subsurface XML files.
+
+**Key Features:**
+- **Frontend Import Modal**: Complete UI for uploading and reviewing Subsurface XML files
+- **Backend API Endpoints**: Comprehensive API for XML parsing and dive confirmation
+- **Dive Site Matching**: Enhanced matching with similarity detection and user selection
+- **Privacy Controls**: Users can set privacy settings for imported dives
+- **Skip Functionality**: Individual dive skip options during import process
+- **Visual Indicators**: Privacy indicators on dive detail pages
+
+**API Endpoints:**
+- `POST /api/v1/dives/import/subsurface-xml` - Upload and parse XML file
+- `POST /api/v1/dives/import/confirm` - Confirm and import selected dives
+
+**Import Process:**
+1. User uploads Subsurface XML file
+2. System parses dive sites and dives
+3. User reviews and selects dives to import
+4. User sets privacy settings for each dive
+5. System imports selected dives with user confirmation
+
+### Dive Filtering Enhancements
+
+Enhanced dive filtering capabilities with user-specific filtering options.
+
+**New Parameters:**
+- **`my_dives=true`**: Filter to show only current user's dives (requires authentication)
+- **`my_dive_sites=true`**: Filter dive sites to show only those created by current user
+
+**Features:**
+- **Authentication Required**: `my_dives` parameter requires authentication
+- **User-Specific Results**: Returns only current user's content
+- **Empty Results**: Returns empty array for users with no content
+- **Count Support**: Both parameters work with count endpoints
+
+**API Endpoints Updated:**
+- `GET /api/v1/dives/` - Added `my_dives` parameter
+- `GET /api/v1/dives/count` - Added `my_dives` parameter
+- `GET /api/v1/dive-sites/` - Added `my_dive_sites` parameter
+
+### Dive Site Creation for Regular Users
+
+Regular users can now create dive sites, with ownership tracking and filtering.
+
+**Features:**
+- **User Creation**: Regular users can create dive sites (previously admin/moderator only)
+- **Ownership Tracking**: Added `created_by` field to track dive site ownership
+- **My Dive Sites Filter**: Filter to show only user's created dive sites
+- **UI Improvements**: Enhanced dive site creation interface
+
+**Database Changes:**
+- Added `created_by` foreign key to `dive_sites` table
+- Migration 0019: `add_created_by_field_to_dive_sites_table.py`
+
+### Moderator Permission Enhancements
+
+Enhanced moderator capabilities for improved content management.
+
+**New Moderator Permissions:**
+- **Ownership Management**: Approve diving center ownership requests
+- **Diving Organizations**: Full CRUD permissions for diving organizations
+- **Newsletter Management**: Complete newsletter and dive trip management
+- **User Listing**: View all users in the system
+
+**Testing Coverage:**
+- 136 new tests covering all moderator permissions
+- Comprehensive permission validation
+- All tests passing
+
 ### Newsletter Management System
 
 A comprehensive newsletter parsing and trip management system has been implemented in the admin interface.
