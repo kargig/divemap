@@ -131,6 +131,74 @@ git add . && git commit -m "auto commit"  # This is forbidden
 - Reference issue numbers if applicable
 - Test changes before committing
 
+### The Seven Rules of Great Git Commit Messages
+Based on [Chris Beams' guidelines](https://gist.github.com/julienbourdeau/e605e4b8b47da97c249a0f72598529c8), all commit messages MUST follow these 7 rules:
+
+1. **Separate subject from body with a blank line**
+   - Subject line should be followed by a blank line
+   - Body should start after the blank line
+
+2. **Limit the subject line to 50 characters**
+   - Keep subject line concise and under 50 characters
+   - Use body for detailed explanation
+
+3. **Capitalize the subject line**
+   - Start subject line with a capital letter
+   - Use title case for clarity
+
+4. **Do not end the subject line with a period**
+   - Subject line should not end with punctuation
+   - Keep it clean and direct
+
+5. **Use the imperative mood in the subject line**
+   - Use commands like "Add", "Fix", "Update", "Remove"
+   - Write as if giving instructions
+
+6. **Wrap the body at 72 characters**
+   - Keep body text readable in terminal
+   - Use line breaks at 72 characters
+
+7. **Use the body to explain what and why vs. how**
+   - Focus on what changed and why it was needed
+   - Avoid explaining how the change was implemented
+
+### Commit Message Examples
+```bash
+# ✅ CORRECT - Following all 7 rules
+Add user authentication endpoint
+
+Implement OAuth2 authentication flow for Google login.
+This allows users to sign in using their Google accounts
+instead of creating separate credentials.
+
+Fixes #123
+
+# ✅ CORRECT - Good subject line
+Fix database connection timeout
+
+Increase connection pool size and add retry logic to
+handle high traffic periods.
+
+# ❌ WRONG - Violates multiple rules
+fixed the bug with user login that was causing problems
+when users tried to log in with google accounts.
+
+# ❌ WRONG - Subject too long, no blank line
+Add comprehensive user authentication system with OAuth2 support for Google login and session management
+```
+
+### Commit Message Template
+```bash
+# Template to follow:
+<imperative verb> <what was changed>
+
+<Detailed explanation of what and why, wrapped at 72 characters>
+<Additional context if needed>
+
+<Optional: Fixes #issue_number>
+<Optional: Related to #issue_number>
+```
+
 ## Testing Requirements
 
 ### Test Environment Rules
@@ -332,6 +400,7 @@ Before making any changes, ensure:
 - [ ] Migration filenames follow numerical ordering (0001_, 0002_, etc.)
 - [ ] Tests run in virtual environment
 - [ ] User permission obtained before git commits
+- [ ] Commit messages follow the 7 rules of great git commits
 - [ ] Documentation is updated
 - [ ] Changes are tested thoroughly
 - [ ] Documentation follows standards
@@ -352,6 +421,7 @@ These rules are mandatory and must be followed:
 - All documentation must follow standards
 - All migration filenames must follow numerical ordering
 - Hash-based or non-numerical migration filenames are strictly forbidden
+- **All commit messages must follow the 7 rules of great git commits**
 - **Trailing whitespace is strictly forbidden**
 - **All code must pass linting checks before committing**
 - **All files must have consistent formatting**
