@@ -525,6 +525,7 @@ class DiveUpdate(BaseModel):
     dive_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     dive_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}:\d{2}$")
     duration: Optional[int] = Field(None, ge=1, le=1440)
+    tags: Optional[List[int]] = None  # List of tag IDs
 
 class DiveResponse(DiveBase):
     id: int

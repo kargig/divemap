@@ -69,7 +69,7 @@ const EditDive = () => {
     },
     onError: error => {
       if (error.response?.status === 404) {
-        toast.error('Dive not found');
+        toast.error('Dive not found or you do not have permission to edit it');
         navigate('/dives');
       } else {
         toast.error('Failed to load dive');
@@ -141,7 +141,9 @@ const EditDive = () => {
     },
     onError: error => {
       let errorMessage = 'Failed to update dive';
-      if (error.response?.data?.detail) {
+      if (error.response?.status === 404) {
+        errorMessage = 'You can only edit your own dives. This dive belongs to another user.';
+      } else if (error.response?.data?.detail) {
         if (Array.isArray(error.response.data.detail)) {
           // Handle validation errors array
           const firstError = error.response.data.detail[0];
@@ -317,6 +319,7 @@ const EditDive = () => {
       dive_time:
         formData.dive_time && formData.dive_time !== '' ? `${formData.dive_time}:00` : null,
       duration: formData.duration ? parseInt(formData.duration) : null,
+      tags: formData.selectedTags || [],
     };
 
     try {

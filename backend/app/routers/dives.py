@@ -391,8 +391,34 @@ def update_dive_admin(
 
     # Update other fields
     for field, value in dive_update.dict(exclude_unset=True).items():
-        if field not in ['dive_date', 'dive_time', 'name']:
+        if field not in ['dive_date', 'dive_time', 'name', 'tags']:
             setattr(dive, field, value)
+
+    # Handle tag updates if provided
+    if dive_update.tags is not None:
+        # Get current tags for this dive
+        current_tags = db.query(DiveTag).filter(DiveTag.dive_id == dive_id).all()
+        current_tag_ids = [tag.tag_id for tag in current_tags]
+        
+        # Add new tags
+        for tag_id in dive_update.tags:
+            if tag_id not in current_tag_ids:
+                # Verify tag exists
+                available_tag = db.query(AvailableTag).filter(AvailableTag.id == tag_id).first()
+                if not available_tag:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Tag with ID {tag_id} not found"
+                    )
+                
+                # Create new dive tag
+                new_dive_tag = DiveTag(dive_id=dive_id, tag_id=tag_id)
+                db.add(new_dive_tag)
+        
+        # Remove tags that are no longer selected
+        for current_tag in current_tags:
+            if current_tag.tag_id not in dive_update.tags:
+                db.delete(current_tag)
 
     dive.updated_at = datetime.utcnow()
     db.commit()
@@ -430,6 +456,19 @@ def update_dive_admin(
                 "longitude": float(diving_center.longitude) if diving_center.longitude else None
             }
 
+    # Get tags for this dive
+    dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).order_by(AvailableTag.name.asc()).all()
+    tags_dict = [
+        {
+            "id": tag.id,
+            "name": tag.name,
+            "description": tag.description,
+            "created_by": tag.created_by,
+            "created_at": tag.created_at.isoformat() if tag.created_at else None
+        }
+        for tag in dive_tags
+    ]
+
     # Convert SQLAlchemy object to dictionary to avoid serialization issues
     dive_dict = {
         "id": dive.id,
@@ -455,7 +494,7 @@ def update_dive_admin(
         "dive_site": dive_site_info,
         "diving_center": diving_center_info,
         "media": [],
-        "tags": [],
+        "tags": tags_dict,
         "user_username": dive.user.username
     }
 
@@ -1077,6 +1116,19 @@ def get_dive(
                 "longitude": float(diving_center.longitude) if diving_center.longitude else None
             }
 
+    # Get tags for this dive
+    dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).order_by(AvailableTag.name.asc()).all()
+    tags_dict = [
+        {
+            "id": tag.id,
+            "name": tag.name,
+            "description": tag.description,
+            "created_by": tag.created_by,
+            "created_at": tag.created_at.isoformat() if tag.created_at else None
+        }
+        for tag in dive_tags
+    ]
+
     # Convert SQLAlchemy object to dictionary to avoid serialization issues
     dive_dict = {
         "id": dive.id,
@@ -1102,7 +1154,7 @@ def get_dive(
         "dive_site": dive_site_info,
         "diving_center": diving_center_info,
         "media": [],
-        "tags": [],
+        "tags": tags_dict,
         "user_username": dive.user.username
     }
 
@@ -1244,10 +1296,16 @@ def update_dive(
             detail="Account is disabled"
         )
 
-    dive = db.query(Dive).filter(
-        Dive.id == dive_id,
-        Dive.user_id == current_user.id
-    ).first()
+    # Check if user is admin or owns the dive
+    if current_user.is_admin:
+        # Admins can edit any dive
+        dive = db.query(Dive).filter(Dive.id == dive_id).first()
+    else:
+        # Regular users can only edit their own dives
+        dive = db.query(Dive).filter(
+            Dive.id == dive_id,
+            Dive.user_id == current_user.id
+        ).first()
 
     if not dive:
         raise HTTPException(
@@ -1311,8 +1369,34 @@ def update_dive(
 
     # Update other fields
     for field, value in dive_update.dict(exclude_unset=True).items():
-        if field not in ['dive_date', 'dive_time', 'name']:
+        if field not in ['dive_date', 'dive_time', 'name', 'tags']:
             setattr(dive, field, value)
+
+    # Handle tag updates if provided
+    if dive_update.tags is not None:
+        # Get current tags for this dive
+        current_tags = db.query(DiveTag).filter(DiveTag.dive_id == dive_id).all()
+        current_tag_ids = [tag.tag_id for tag in current_tags]
+        
+        # Add new tags
+        for tag_id in dive_update.tags:
+            if tag_id not in current_tag_ids:
+                # Verify tag exists
+                available_tag = db.query(AvailableTag).filter(AvailableTag.id == tag_id).first()
+                if not available_tag:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Tag with ID {tag_id} not found"
+                    )
+                
+                # Create new dive tag
+                new_dive_tag = DiveTag(dive_id=dive_id, tag_id=tag_id)
+                db.add(new_dive_tag)
+        
+        # Remove tags that are no longer selected
+        for current_tag in current_tags:
+            if current_tag.tag_id not in dive_update.tags:
+                db.delete(current_tag)
 
     dive.updated_at = datetime.utcnow()
     db.commit()
@@ -1350,6 +1434,19 @@ def update_dive(
                 "longitude": float(diving_center.longitude) if diving_center.longitude else None
             }
 
+    # Get tags for this dive
+    dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).order_by(AvailableTag.name.asc()).all()
+    tags_dict = [
+        {
+            "id": tag.id,
+            "name": tag.name,
+            "description": tag.description,
+            "created_by": tag.created_by,
+            "created_at": tag.created_at.isoformat() if tag.created_at else None
+        }
+        for tag in dive_tags
+    ]
+
     # Convert SQLAlchemy object to dictionary to avoid serialization issues
     dive_dict = {
         "id": dive.id,
@@ -1375,7 +1472,7 @@ def update_dive(
         "dive_site": dive_site_info,
         "diving_center": diving_center_info,
         "media": [],
-        "tags": [],
+        "tags": tags_dict,
         "user_username": current_user.username
     }
 
