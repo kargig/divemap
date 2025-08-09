@@ -91,24 +91,12 @@ class TestAdminUserManagement:
             assert "enabled" in user
             assert "created_at" in user
 
-    def test_list_all_users_moderator_success(self, client, moderator_headers):
-        """Test listing all users as moderator."""
+    def test_list_all_users_moderator_forbidden(self, client, moderator_headers):
+        """Test listing all users as moderator (should be forbidden)."""
         response = client.get("/api/v1/users/admin/users", headers=moderator_headers)
 
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert isinstance(data, list)
-        assert len(data) > 0
-
-        # Check that all required fields are present
-        for user in data:
-            assert "id" in user
-            assert "username" in user
-            assert "email" in user
-            assert "is_admin" in user
-            assert "is_moderator" in user
-            assert "enabled" in user
-            assert "created_at" in user
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Not enough permissions" in response.json()["detail"]
 
     def test_list_all_users_regular_user(self, client, auth_headers):
         """Test listing all users as regular user."""

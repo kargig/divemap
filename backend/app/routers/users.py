@@ -4,7 +4,7 @@ from typing import List
 
 from app.database import get_db
 from app.models import User, SiteRating, SiteComment, CenterComment
-from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, PasswordChangeRequest, UserPublicProfileResponse, UserStats
+from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
 from sqlalchemy import func
 
@@ -190,7 +190,7 @@ async def get_user_public_profile(
     comments_posted = (site_comments_count or 0) + (center_comments_count or 0)
 
     # Create stats object
-    stats = UserStats(
+    stats = UserProfileStats(
         dive_sites_rated=dive_sites_rated or 0,
         comments_posted=comments_posted or 0
     )

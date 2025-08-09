@@ -463,7 +463,7 @@ class UserResponseWithCertifications(UserResponse):
         from_attributes = True
 
 # Public Profile Schemas
-class UserStats(BaseModel):
+class UserProfileStats(BaseModel):
     dive_sites_rated: int
     comments_posted: int
 
@@ -476,7 +476,7 @@ class UserPublicProfileResponse(BaseModel):
     number_of_dives: int
     member_since: datetime
     certifications: List[UserCertificationResponse] = []
-    stats: UserStats
+    stats: UserProfileStats
 
     class Config:
         from_attributes = True
