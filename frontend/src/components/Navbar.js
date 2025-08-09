@@ -19,6 +19,7 @@ import {
   Info,
   HelpCircle,
   Activity,
+  Clock,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -208,6 +209,14 @@ const Navbar = () => {
                         >
                           <Activity className='h-4 w-4 mr-2' />
                           System Overview
+                        </Link>
+                        <Link
+                          to='/admin/recent-activity'
+                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <Clock className='h-4 w-4 mr-2' />
+                          Recent Activity
                         </Link>
                         <Link
                           to='/admin/users'
@@ -414,6 +423,14 @@ const Navbar = () => {
                         >
                           <Activity className='h-4 w-4 mr-3' />
                           <span>System Overview</span>
+                        </Link>
+                        <Link
+                          to='/admin/recent-activity'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Clock className='h-4 w-4 mr-3' />
+                          <span>Recent Activity</span>
                         </Link>
                         <Link
                           to='/admin/users'

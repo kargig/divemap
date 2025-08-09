@@ -298,3 +298,8 @@ export const getPlatformStats = async () => {
   const response = await api.get('/api/v1/admin/system/stats');
   return response.data;
 };
+
+export const getRecentActivity = async (hours = 24, limit = 100) => {
+  const response = await api.get(`/api/v1/admin/system/activity?hours=${hours}&limit=${limit}`);
+  return response.data;
+};

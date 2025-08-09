@@ -151,7 +151,18 @@ const Admin = () => {
             <h4 className='font-medium text-gray-900 mb-2'>System Overview</h4>
             <p className='text-sm text-gray-600'>View platform statistics and system health</p>
           </div>
-          <div className='bg-white p-4 rounded-lg border'>
+          <div
+            onClick={() => navigate('/admin/recent-activity')}
+            onKeyDown={event => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                navigate('/admin/recent-activity');
+              }
+            }}
+            role='button'
+            tabIndex={0}
+            className='bg-white p-4 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors'
+          >
             <h4 className='font-medium text-gray-900 mb-2'>Recent Activity</h4>
             <p className='text-sm text-gray-600'>Monitor recent user actions and changes</p>
           </div>

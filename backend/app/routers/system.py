@@ -299,3 +299,122 @@ async def get_platform_stats(
         },
         "timestamp": datetime.utcnow().isoformat()
     }
+
+@router.get("/activity", response_model=List[dict])
+async def get_recent_activity(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+    hours: int = 24,
+    limit: int = 100
+):
+    """Get recent user and system activity"""
+    
+    # Calculate time range
+    end_time = datetime.utcnow()
+    start_time = end_time - timedelta(hours=hours)
+    
+    activities = []
+    
+    # User registrations
+    new_users = db.query(User).filter(
+        User.created_at >= start_time
+    ).order_by(desc(User.created_at)).limit(limit).all()
+    
+    for user in new_users:
+        activities.append({
+            "timestamp": user.created_at.isoformat(),
+            "type": "user_registration",
+            "user_id": user.id,
+            "username": user.username,
+            "action": "User registered",
+            "details": f"New user {user.username} joined the platform",
+            "status": "success"
+        })
+    
+    # Content creation - Dive Sites
+    new_dive_sites = db.query(DiveSite).filter(
+        DiveSite.created_at >= start_time
+    ).order_by(desc(DiveSite.created_at)).limit(limit).all()
+    
+    for site in new_dive_sites:
+        activities.append({
+            "timestamp": site.created_at.isoformat(),
+            "type": "content_creation",
+            "user_id": site.created_by if hasattr(site, 'created_by') else None,
+            "username": None,  # Would need to join with User table
+            "action": "Dive site created",
+            "details": f"New dive site: {site.name}",
+            "status": "success"
+        })
+    
+    # Content creation - Diving Centers
+    new_diving_centers = db.query(DivingCenter).filter(
+        DivingCenter.created_at >= start_time
+    ).order_by(desc(DivingCenter.created_at)).limit(limit).all()
+    
+    for center in new_diving_centers:
+        activities.append({
+            "timestamp": center.created_at.isoformat(),
+            "type": "content_creation",
+            "user_id": center.created_by if hasattr(center, 'created_by') else None,
+            "username": None,
+            "action": "Diving center created",
+            "details": f"New diving center: {center.name}",
+            "status": "success"
+        })
+    
+    # Content creation - Dives
+    new_dives = db.query(Dive).filter(
+        Dive.created_at >= start_time
+    ).order_by(desc(Dive.created_at)).limit(limit).all()
+    
+    for dive in new_dives:
+        activities.append({
+            "timestamp": dive.created_at.isoformat(),
+            "type": "content_creation",
+            "user_id": dive.user_id,
+            "username": None,
+            "action": "Dive logged",
+            "details": f"New dive logged: {dive.name or 'Unnamed dive'}",
+            "status": "success"
+        })
+    
+    # Comments
+    new_comments = db.query(SiteComment).filter(
+        SiteComment.created_at >= start_time
+    ).order_by(desc(SiteComment.created_at)).limit(limit).all()
+    
+    for comment in new_comments:
+        activities.append({
+            "timestamp": comment.created_at.isoformat(),
+            "type": "engagement",
+            "user_id": comment.user_id,
+            "username": None,
+            "action": "Comment posted",
+            "details": f"Comment on dive site",
+            "status": "success"
+        })
+    
+    # Ratings
+    new_ratings = db.query(SiteRating).filter(
+        SiteRating.created_at >= start_time
+    ).order_by(desc(SiteRating.created_at)).limit(limit).all()
+    
+    for rating in new_ratings:
+        activities.append({
+            "timestamp": rating.created_at.isoformat(),
+            "type": "engagement",
+            "user_id": rating.user_id,
+            "username": None,
+            "action": "Rating submitted",
+            "details": f"Rating: {rating.score}/10",
+            "status": "success"
+        })
+    
+    # Sort all activities by timestamp (most recent first)
+    activities.sort(key=lambda x: x["timestamp"], reverse=True)
+    
+    # Limit the total number of activities
+    activities = activities[:limit]
+    
+    return activities
