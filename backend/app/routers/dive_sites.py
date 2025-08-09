@@ -332,11 +332,16 @@ async def get_dive_sites_count(
     tag_ids: Optional[List[int]] = Query(None),
     country: Optional[str] = Query(None, max_length=100),
     region: Optional[str] = Query(None, max_length=100),
+    my_dive_sites: Optional[bool] = Query(None, description="Filter to show only dive sites created by the current user"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
     """Get total count of dive sites matching the filters"""
     query = db.query(DiveSite)
+
+    # Apply my_dive_sites filtering
+    if my_dive_sites and current_user:
+        query = query.filter(DiveSite.created_by == current_user.id)
 
     # Apply filters with input validation
     if name:

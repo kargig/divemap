@@ -58,6 +58,25 @@ const Profile = () => {
     }
   );
 
+  // Fetch user statistics
+  const { data: userStats } = useQuery(
+    ['user-stats'],
+    async () => {
+      const [divesResponse, diveSitesResponse] = await Promise.all([
+        api.get('/api/v1/dives/count?my_dives=true'),
+        api.get('/api/v1/dive-sites/count?my_dive_sites=true'),
+      ]);
+      return {
+        divesCreated: divesResponse.data.total,
+        diveSitesCreated: diveSitesResponse.data.total,
+      };
+    },
+    {
+      enabled: !!user,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+
   const handleChange = e => {
     const { name, value } = e.target;
     setFormData({
@@ -318,10 +337,30 @@ const Profile = () => {
                 <div className='flex items-center'>
                   <Anchor className='h-5 w-5 text-gray-400 mr-3' />
                   <div>
-                    <span className='text-sm text-gray-500'>My Dives</span>
-                    <Link to='/dives' className='text-blue-600 hover:text-blue-800 font-medium'>
-                      View and manage my dive logs →
-                    </Link>
+                    <span className='text-sm text-gray-500'>Dives Created</span>
+                    <div className='mt-1'>
+                      <Link
+                        to='/dives'
+                        className='text-blue-600 hover:text-blue-800 font-medium text-lg'
+                      >
+                        {userStats?.divesCreated || 0}
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
+                <div className='flex items-center'>
+                  <Anchor className='h-5 w-5 text-gray-400 mr-3' />
+                  <div>
+                    <span className='text-sm text-gray-500'>Dive Sites Created</span>
+                    <div className='mt-1'>
+                      <Link
+                        to='/dive-sites?my_dive_sites=true'
+                        className='text-blue-600 hover:text-blue-800 font-medium text-lg'
+                      >
+                        {userStats?.diveSitesCreated || 0}
+                      </Link>
+                    </div>
                   </div>
                 </div>
 
@@ -660,6 +699,21 @@ const Profile = () => {
           <div className='bg-white p-6 rounded-lg shadow-md'>
             <h3 className='text-lg font-semibold text-gray-900 mb-4'>Account Stats</h3>
             <div className='space-y-3'>
+              <div className='flex justify-between items-center'>
+                <span className='text-gray-600'>Dives Created</span>
+                <Link to='/dives' className='font-medium text-blue-600 hover:text-blue-800'>
+                  {userStats?.divesCreated || 0}
+                </Link>
+              </div>
+              <div className='flex justify-between items-center'>
+                <span className='text-gray-600'>Dive Sites Created</span>
+                <Link
+                  to='/dive-sites?my_dive_sites=true'
+                  className='font-medium text-blue-600 hover:text-blue-800'
+                >
+                  {userStats?.diveSitesCreated || 0}
+                </Link>
+              </div>
               <div className='flex justify-between'>
                 <span className='text-gray-600'>Dive Sites Rated</span>
                 <span className='font-medium'>0</span>
