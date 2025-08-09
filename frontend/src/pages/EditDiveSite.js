@@ -822,9 +822,9 @@ const EditDiveSite = () => {
               <input
                 id='max_depth'
                 type='number'
-                step='0.01'
                 min='0'
                 max='1000'
+                step='any'
                 name='max_depth'
                 value={formData.max_depth}
                 onChange={handleInputChange}

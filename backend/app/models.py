@@ -88,7 +88,7 @@ class DiveSite(Base):
     difficulty_level = Column(Enum(DifficultyLevel), default=DifficultyLevel.intermediate, index=True)
     marine_life = Column(Text)  # Added marine life field
     safety_information = Column(Text)  # Added safety information field
-    max_depth = Column(DECIMAL(5, 2))  # Maximum depth in meters
+    max_depth = Column(DECIMAL(6, 3))  # Maximum depth in meters
     country = Column(String(100), index=True)  # Country name
     region = Column(String(100), index=True)  # Region/state/province name
     view_count = Column(Integer, default=0, nullable=False)  # Number of views
@@ -354,8 +354,8 @@ class Dive(Base):
     name = Column(String(255), nullable=True)  # Custom name/alias provided by user
     is_private = Column(Boolean, default=False)  # Privacy control - default public
     dive_information = Column(Text)
-    max_depth = Column(DECIMAL(5, 2))  # Maximum depth in meters
-    average_depth = Column(DECIMAL(5, 2))  # Average depth in meters
+    max_depth = Column(DECIMAL(6, 3))  # Maximum depth in meters
+    average_depth = Column(DECIMAL(6, 3))  # Average depth in meters
     gas_bottles_used = Column(Text)
     suit_type = Column(Enum(SuitType), nullable=True)
     difficulty_level = Column(Enum(DifficultyLevel), default=DifficultyLevel.intermediate)

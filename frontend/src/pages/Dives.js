@@ -566,6 +566,7 @@ const Dives = () => {
                 type='number'
                 name='min_depth'
                 min='0'
+                step='any'
                 placeholder='Min depth'
                 value={filters.min_depth}
                 onChange={handleSearchChange}
@@ -581,6 +582,7 @@ const Dives = () => {
                 type='number'
                 name='max_depth'
                 min='0'
+                step='any'
                 placeholder='Max depth'
                 value={filters.max_depth}
                 onChange={handleSearchChange}

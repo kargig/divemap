@@ -693,7 +693,7 @@ const AdminDives = () => {
                 <input
                   id='edit-max-depth'
                   type='number'
-                  step='0.1'
+                  step='any'
                   value={diveForm.max_depth}
                   onChange={e => setDiveForm({ ...diveForm, max_depth: e.target.value })}
                   className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'

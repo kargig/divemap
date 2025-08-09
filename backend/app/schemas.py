@@ -87,7 +87,7 @@ class DiveSiteBase(BaseModel):
     difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
     marine_life: Optional[str] = None
     safety_information: Optional[str] = None  # Safety information
-    max_depth: Optional[float] = None  # Maximum depth in meters
+    max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
     country: Optional[str] = None  # Country name
     region: Optional[str] = None  # Region/state/province name
 
@@ -104,7 +104,7 @@ class DiveSiteUpdate(BaseModel):
     difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
     marine_life: Optional[str] = None
     safety_information: Optional[str] = None  # Safety information
-    max_depth: Optional[float] = None  # Maximum depth in meters
+    max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
     country: Optional[str] = None  # Country name
     region: Optional[str] = None  # Region/state/province name
 

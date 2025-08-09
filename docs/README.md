@@ -18,6 +18,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 - **Import Scripts** - Dive site import utilities with smart conflict resolution (see [Development README](./development/README.md#import-scripts))
 - **[Importing Data](./IMPORTING_DATA.md)** - Comprehensive guide for importing dive sites and dives from Subsurface
 - **[Subsurface Import Plan](./development/subsurface-import-plan.md)** - Comprehensive plan for importing dives from Subsurface
+- **[Subsurface XML Import](./import-subsurface-xml.md)** - Import dive data from Subsurface XML files
 
 ### 🚀 Deployment
 - **[README.md](./deployment/README.md)** - Deployment overview (includes Makefile deployment)
