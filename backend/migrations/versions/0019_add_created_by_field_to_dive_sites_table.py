@@ -18,7 +18,7 @@ depends_on = None
 def upgrade() -> None:
     # Add created_by column to dive_sites table
     op.add_column('dive_sites', sa.Column('created_by', sa.Integer(), nullable=True))
-    
+
     # Add foreign key constraint
     op.create_foreign_key(
         'fk_dive_sites_created_by_users',
@@ -30,6 +30,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     # Remove foreign key constraint
     op.drop_constraint('fk_dive_sites_created_by_users', 'dive_sites', type_='foreignkey')
-    
+
     # Remove created_by column
     op.drop_column('dive_sites', 'created_by')

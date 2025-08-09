@@ -94,12 +94,12 @@ The script supports the standard Subsurface XML format with the following struct
     </site>
   </divesites>
   <dives>
-    <dive number='321' rating='3' visibility='3' sac='12.844 l/min' 
-          otu='38' cns='16%' tags='Scubalife, Wreck' divesiteid='31db931b' 
+    <dive number='321' rating='3' visibility='3' sac='12.844 l/min'
+          otu='38' cns='16%' tags='Scubalife, Wreck' divesiteid='31db931b'
           date='2025-04-12' time='15:00:14' duration='53:00 min'>
       <buddy>Diver Name</buddy>
       <suit>DrySuit Rofos</suit>
-      <cylinder size='15.0 l' workpressure='232.0 bar' description='15ℓ 232 bar' 
+      <cylinder size='15.0 l' workpressure='232.0 bar' description='15ℓ 232 bar'
                 o2='31.0%' start='210.0 bar' end='80.0 bar' depth='41.454 m' />
       <weightsystem weight='6.2 kg' description='weight' />
       <divecomputer model='Shearwater Perdix AI' deviceid='8a66df8d' diveid='232b0017'>

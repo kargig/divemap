@@ -11,7 +11,7 @@ PYTHON_FILES=$(find . -name "*.py" -not -path "./venv/*" -not -path "./divemap_v
 JS_FILES=$(find . -name "*.js" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./htmlcov/*" -not -path "./frontend/node_modules/*" -not -path "./backend/divemap_venv/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
 JSX_FILES=$(find . -name "*.jsx" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./htmlcov/*" -not -path "./frontend/node_modules/*" -not -path "./backend/divemap_venv/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
 MD_FILES=$(find . -name "*.md" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./htmlcov/*" -not -path "./frontend/node_modules/*" -not -path "./backend/divemap_venv/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
-TXT_FILES=$(find . -name "*.txt" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./htmlcov/*" -not -path "./frontend/node_modules/*" -not -path "./backend/divemap_venv/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
+TXT_FILES=$(find . -name "*.txt" -not -path "./venv/*" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./htmlcov/*" -not -path "./frontend/node_modules/*" -not -path "./backend/divemap_venv/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
 
 # Function to fix trailing whitespace in files
 fix_whitespace() {

@@ -216,7 +216,7 @@ The following permission changes were implemented to provide moderators with enh
 
 #### 2. Diving Organizations Management
 - **Moderators can create diving organizations** - Previously admin-only
-- **Moderators can update diving organizations** - Previously admin-only  
+- **Moderators can update diving organizations** - Previously admin-only
 - **Moderators can delete diving organizations** - Previously admin-only
 
 #### 3. Newsletter and Trip Management

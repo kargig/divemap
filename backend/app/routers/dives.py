@@ -1675,38 +1675,38 @@ async def import_subsurface_xml(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File must be an XML file"
         )
-    
+
     try:
         # Read and parse XML file
         content = await file.read()
         root = ET.fromstring(content.decode('utf-8'))
-        
+
         # Extract dive sites
         dive_sites = {}
         for site_elem in root.findall('.//divesites/site'):
             site_id = site_elem.get('uuid')
             site_name = site_elem.get('name')
             gps = site_elem.get('gps')
-            
+
             if site_id and site_name:
                 dive_sites[site_id] = {
                     'name': site_name,
                     'gps': gps
                 }
-        
+
         # Extract dives
         parsed_dives = []
         for dive_elem in root.findall('.//dives/dive'):
             dive_data = parse_dive_element(dive_elem, dive_sites, db)
             if dive_data:
                 parsed_dives.append(dive_data)
-        
+
         if not parsed_dives:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No valid dives found in XML file"
             )
-        
+
         # Get all available dive sites for selection
         available_dive_sites = db.query(DiveSite).all()
         dive_sites_for_selection = [
@@ -1718,14 +1718,14 @@ async def import_subsurface_xml(
             }
             for site in available_dive_sites
         ]
-        
+
         return {
             "message": f"Successfully parsed {len(parsed_dives)} dives",
             "dives": parsed_dives,
             "total_count": len(parsed_dives),
             "available_dive_sites": dive_sites_for_selection
         }
-        
+
     except ET.ParseError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1752,17 +1752,17 @@ async def confirm_import_dives(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No dives to import"
         )
-    
+
     imported_dives = []
     errors = []
-    
+
     for i, dive_data in enumerate(dives_data):
         try:
             # Validate required fields
             if not dive_data.get('dive_date'):
                 errors.append(f"Dive {i+1}: Missing dive date")
                 continue
-            
+
             # Create dive
             dive_create = DiveCreate(
                 dive_site_id=dive_data.get('dive_site_id'),
@@ -1781,13 +1781,13 @@ async def confirm_import_dives(
                 dive_time=dive_data.get('dive_time'),
                 duration=dive_data.get('duration')
             )
-            
+
             # Create the dive
             dive = Dive(
                 user_id=current_user.id,
                 **dive_create.dict(exclude_unset=True)
             )
-            
+
             # Generate name if not provided
             if not dive.name:
                 if dive.dive_site_id:
@@ -1798,27 +1798,27 @@ async def confirm_import_dives(
                         dive.name = generate_dive_name(dive_site.name, dive_date_obj)
                 else:
                     dive.name = f"Dive - {dive.dive_date}"
-            
+
             db.add(dive)
             db.flush()  # Get the dive ID
-            
+
             # Get dive site name for response
             dive_site_name = None
             if dive.dive_site_id:
                 dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
                 if dive_site:
                     dive_site_name = dive_site.name
-            
+
             imported_dives.append({
                 "id": dive.id,
                 "name": dive.name,
                 "dive_date": dive.dive_date,
                 "dive_site_name": dive_site_name
             })
-            
+
         except Exception as e:
             errors.append(f"Dive {i+1}: {str(e)}")
-    
+
     if errors:
         # Rollback any successful imports if there are errors
         db.rollback()
@@ -1826,10 +1826,10 @@ async def confirm_import_dives(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Import failed: {'; '.join(errors)}"
         )
-    
+
     # Commit all imports
     db.commit()
-    
+
     return {
         "message": f"Successfully imported {len(imported_dives)} dives",
         "imported_dives": imported_dives
@@ -1851,33 +1851,33 @@ def parse_dive_element(dive_elem, dive_sites, db):
         dive_date = dive_elem.get('date')
         dive_time = dive_elem.get('time')
         duration = dive_elem.get('duration')
-        
+
         # Parse buddy information
         buddy_elem = dive_elem.find('buddy')
         buddy = buddy_elem.text if buddy_elem is not None else None
-        
+
         # Parse suit information
         suit_elem = dive_elem.find('suit')
         suit = suit_elem.text if suit_elem is not None else None
-        
+
         # Parse cylinders
         cylinders = []
         for cylinder_elem in dive_elem.findall('cylinder'):
             cylinder_data = parse_cylinder(cylinder_elem)
             cylinders.append(cylinder_data)
-        
+
         # Parse weight systems
         weights = []
         for weights_elem in dive_elem.findall('weightsystem'):
             weights_data = parse_weightsystem(weights_elem)
             weights.append(weights_data)
-        
+
         # Parse dive computer
         computer_data = None
         computer_elem = dive_elem.find('divecomputer')
         if computer_elem is not None:
             computer_data = parse_divecomputer(computer_elem)
-        
+
         # Convert to Divemap format
         divemap_dive = convert_to_divemap_format(
             dive_number, rating, visibility, sac, otu, cns, tags,
@@ -1885,9 +1885,9 @@ def parse_dive_element(dive_elem, dive_sites, db):
             buddy, suit, cylinders, weights, computer_data,
             dive_sites, db
         )
-        
+
         return divemap_dive
-        
+
     except Exception as e:
         print(f"Error parsing dive element: {e}")
         return None
@@ -1896,7 +1896,7 @@ def parse_dive_element(dive_elem, dive_sites, db):
 def parse_cylinder(cylinder_elem):
     """Parse cylinder information from XML element"""
     cylinder_data = {}
-    
+
     # Extract cylinder attributes
     cylinder_data['size'] = cylinder_elem.get('size')
     cylinder_data['workpressure'] = cylinder_elem.get('workpressure')
@@ -1905,51 +1905,51 @@ def parse_cylinder(cylinder_elem):
     cylinder_data['start'] = cylinder_elem.get('start')
     cylinder_data['end'] = cylinder_elem.get('end')
     cylinder_data['depth'] = cylinder_elem.get('depth')
-    
+
     return cylinder_data
 
 
 def parse_weightsystem(weights_elem):
     """Parse weight system information from XML element"""
     weights_data = {}
-    
+
     # Extract weight system attributes
     weights_data['weight'] = weights_elem.get('weight')
     weights_data['description'] = weights_elem.get('description')
-    
+
     return weights_data
 
 
 def parse_divecomputer(computer_elem):
     """Parse dive computer information from XML element"""
     computer_data = {}
-    
+
     # Extract basic computer info
     computer_data['model'] = computer_elem.get('model')
     computer_data['deviceid'] = computer_elem.get('deviceid')
     computer_data['diveid'] = computer_elem.get('diveid')
-    
+
     # Parse depth information
     depth_elem = computer_elem.find('depth')
     if depth_elem is not None:
         computer_data['max_depth'] = depth_elem.get('max')
         computer_data['mean_depth'] = depth_elem.get('mean')
-    
+
     # Parse temperature information
     temp_elem = computer_elem.find('temperature')
     if temp_elem is not None:
         computer_data['water_temp'] = temp_elem.get('water')
-    
+
     # Parse surface pressure
     surface_pressure_elem = computer_elem.find('surface pressure')
     if surface_pressure_elem is not None:
         computer_data['surface_pressure'] = surface_pressure_elem.get('surface pressure')
-    
+
     # Parse water salinity
     salinity_elem = computer_elem.find('water salinity')
     if salinity_elem is not None:
         computer_data['water_salinity'] = salinity_elem.get('water salinity')
-    
+
     # Parse extradata - only keep "Deco model"
     extradata_list = []
     for extradata_elem in computer_elem.findall('extradata'):
@@ -1957,9 +1957,9 @@ def parse_divecomputer(computer_elem):
         value = extradata_elem.get('value')
         if key == 'Deco model':
             extradata_list.append({'key': key, 'value': value})
-    
+
     computer_data['extradata'] = extradata_list
-    
+
     return computer_data
 
 
@@ -2036,8 +2036,8 @@ def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
             if best_match:
                 print(f"Found similar dive site: '{dive_site_name}' matches '{best_match.name}' with {best_similarity:.2f} similarity")
                 return {
-                    "id": best_match.id, 
-                    "match_type": "similarity", 
+                    "id": best_match.id,
+                    "match_type": "similarity",
                     "similarity": best_similarity,
                     "proposed_sites": [{"id": best_match.id, "name": best_match.name, "similarity": best_similarity, "original_name": dive_site_name}]
                 }
@@ -2056,8 +2056,8 @@ def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
         if best_match:
             print(f"Found similar dive site: '{import_site_id}' matches '{best_match.name}' with {best_similarity:.2f} similarity")
             return {
-                "id": best_match.id, 
-                "match_type": "similarity", 
+                "id": best_match.id,
+                "match_type": "similarity",
                 "similarity": best_similarity,
                 "proposed_sites": [{"id": best_match.id, "name": best_match.name, "similarity": best_similarity, "original_name": import_site_id}]
             }
@@ -2101,7 +2101,7 @@ def parse_rating(rating):
     if not isinstance(rating, int) or rating < 1 or rating > 5:
         print(f"Invalid rating value: {rating}, defaulting to 5")
         rating = 5
-    
+
     # Convert 1-5 scale to 1-10 scale
     return rating * 2
 
@@ -2110,7 +2110,7 @@ def parse_suit_type(suit_str):
     """Parse suit type from Subsurface format"""
     if not suit_str:
         return None
-        
+
     suit_mapping = {
         "wet": "wet_suit",
         "dry": "dry_suit",
@@ -2122,14 +2122,14 @@ def parse_suit_type(suit_str):
         "wet suit": "wet_suit",
         "rofos": "dry_suit"
     }
-    
+
     suit_lower = suit_str.lower()
-    
+
     # Check for exact matches first
     for key, value in suit_mapping.items():
         if key in suit_lower:
             return value
-    
+
     # If no match found, return None
     print(f"Unknown suit type: {suit_str}")
     return None
@@ -2140,33 +2140,33 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
                              buddy, suit, cylinders, weights, computer_data,
                              dive_sites, db):
     """Convert Subsurface dive data to Divemap format"""
-    
+
     # Parse date and time
     parsed_date = None
     parsed_time = None
-    
+
     if dive_date:
         try:
             parsed_date = datetime.strptime(dive_date, '%Y-%m-%d').date()
         except ValueError:
             print(f"Invalid date format: {dive_date}")
-    
+
     if dive_time:
         try:
             parsed_time = datetime.strptime(dive_time, '%H:%M:%S').time()
         except ValueError:
             print(f"Invalid time format: {dive_time}")
-    
+
     # Parse duration
     parsed_duration = None
     if duration:
         parsed_duration = parse_duration(duration)
-    
+
     # Parse suit type
     parsed_suit_type = None
     if suit:
         parsed_suit_type = parse_suit_type(suit)
-    
+
     # Parse ratings
     parsed_rating = None
     if rating:
@@ -2174,29 +2174,29 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
             parsed_rating = parse_rating(int(rating))
         except ValueError:
             print(f"Invalid rating: {rating}")
-    
+
     parsed_visibility = None
     if visibility:
         try:
             parsed_visibility = parse_rating(int(visibility))
         except ValueError:
             print(f"Invalid visibility rating: {visibility}")
-    
+
     # Build dive information text
     dive_info_parts = []
-    
+
     if buddy:
         dive_info_parts.append(f"Buddy: {buddy}")
-    
+
     if sac:
         dive_info_parts.append(f"SAC: {sac}")
-    
+
     if otu:
         dive_info_parts.append(f"OTU: {otu}")
-    
+
     if cns:
         dive_info_parts.append(f"CNS: {cns}")
-    
+
     if computer_data:
         if computer_data.get('max_depth'):
             dive_info_parts.append(f"Max Depth: {computer_data['max_depth']}")
@@ -2208,12 +2208,12 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
             dive_info_parts.append(f"Surface Pressure: {computer_data['surface_pressure']}")
         if computer_data.get('water_salinity'):
             dive_info_parts.append(f"Salinity: {computer_data['water_salinity']}")
-        
+
         # Add deco model from extradata
         for extradata in computer_data.get('extradata', []):
             if extradata['key'] == 'Deco model':
                 dive_info_parts.append(f"Deco Model: {extradata['value']}")
-    
+
     # Add weight system information
     for weight in weights:
         weight_info = []
@@ -2223,18 +2223,18 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
             weight_info.append(weight['description'])
         if weight_info:
             dive_info_parts.append(f"Weights: {' '.join(weight_info)}")
-    
+
     dive_information = "\n".join(dive_info_parts) if dive_info_parts else None
-    
+
     # Build gas bottles information
     gas_bottles_parts = []
     for cylinder in cylinders:
         cylinder_info = []
-        
+
         # Format: size + workpressure (e.g., "15.0l 232 bar")
         size = cylinder.get('size', '').replace(' l', 'l')  # Remove space before 'l'
         workpressure = cylinder.get('workpressure', '')
-        
+
         if size and workpressure:
             # Extract numeric value from workpressure (e.g., "232.0 bar" -> "232")
             wp_value = workpressure.replace(' bar', '').strip()
@@ -2246,26 +2246,26 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
                     wp_value = str(wp_float)
             except ValueError:
                 wp_value = workpressure
-            
+
             cylinder_info.append(f"{size} {wp_value} bar")
         elif size:
             cylinder_info.append(size)
-        
+
         # Add O2 percentage
         if cylinder.get('o2'):
             cylinder_info.append(f"O2: {cylinder['o2']}")
-        
+
         # Add pressure range
         if cylinder.get('start') and cylinder.get('end'):
             start_pressure = cylinder['start'].replace(' bar', '').strip()
             end_pressure = cylinder['end'].replace(' bar', '').strip()
             cylinder_info.append(f"{start_pressure} bar→{end_pressure} bar")
-        
+
         if cylinder_info:
             gas_bottles_parts.append(" | ".join(cylinder_info))
-    
+
     gas_bottles_used = "\n".join(gas_bottles_parts) if gas_bottles_parts else None
-    
+
     # Find dive site
     dive_site_id = None
     unmatched_dive_site = None
@@ -2289,7 +2289,7 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
                 'gps': site_data.get('gps')
             }
             print(f"Dive site not found: {site_data['name']} (ID: {divesiteid})")
-    
+
     # Build Divemap dive data
     divemap_dive = {
         'dive_site_id': dive_site_id,
@@ -2309,7 +2309,7 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
         'unmatched_dive_site': unmatched_dive_site,
         'proposed_dive_sites': proposed_dive_sites
     }
-    
+
     # Set depths from computer data
     if computer_data:
         if computer_data.get('max_depth'):
@@ -2319,7 +2319,7 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
                 divemap_dive['max_depth'] = float(max_depth_str)
             except ValueError:
                 print(f"Invalid max depth: {computer_data['max_depth']}")
-        
+
         if computer_data.get('mean_depth'):
             try:
                 # Extract numeric value from "16.849 m"
@@ -2327,5 +2327,5 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
                 divemap_dive['average_depth'] = float(mean_depth_str)
             except ValueError:
                 print(f"Invalid mean depth: {computer_data['mean_depth']}")
-    
+
     return divemap_dive

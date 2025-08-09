@@ -389,7 +389,7 @@ async def create_dive_site(
 
     dive_site_data = dive_site.dict()
     dive_site_data['created_by'] = current_user.id
-    
+
     db_dive_site = DiveSite(**dive_site_data)
     db.add(db_dive_site)
     db.commit()

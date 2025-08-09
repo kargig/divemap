@@ -56,7 +56,7 @@ class TestNewsletters:
         """Test uploading newsletter as admin."""
         # Create a simple text file content
         content = "Test newsletter content for parsing"
-        
+
         response = client.post(
             "/api/v1/newsletters/upload",
             files={"file": ("test.txt", content, "text/plain")},
@@ -74,7 +74,7 @@ class TestNewsletters:
         """Test uploading newsletter as moderator."""
         # Create a simple text file content
         content = "Test newsletter content for parsing"
-        
+
         response = client.post(
             "/api/v1/newsletters/upload",
             files={"file": ("test.txt", content, "text/plain")},
@@ -91,7 +91,7 @@ class TestNewsletters:
     def test_upload_newsletter_regular_user_forbidden(self, client, auth_headers):
         """Test uploading newsletter as regular user."""
         content = "Test newsletter content for parsing"
-        
+
         response = client.post(
             "/api/v1/newsletters/upload",
             files={"file": ("test.txt", content, "text/plain")},
@@ -235,7 +235,7 @@ class TestNewsletters:
         # Check if it's a validation error, print details for debugging
         if response.status_code == 422:
             print(f"Validation error: {response.json()}")
-            
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["diving_center_id"] == diving_center.id
@@ -272,7 +272,7 @@ class TestNewsletters:
         # Check if it's a validation error, print details for debugging
         if response.status_code == 422:
             print(f"Validation error: {response.json()}")
-            
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["diving_center_id"] == diving_center.id

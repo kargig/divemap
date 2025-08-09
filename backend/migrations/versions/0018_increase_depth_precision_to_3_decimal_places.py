@@ -22,12 +22,12 @@ def upgrade() -> None:
                existing_type=mysql.DECIMAL(precision=5, scale=2),
                type_=sa.DECIMAL(precision=6, scale=3),
                existing_nullable=True)
-    
+
     op.alter_column('dives', 'average_depth',
                existing_type=mysql.DECIMAL(precision=5, scale=2),
                type_=sa.DECIMAL(precision=6, scale=3),
                existing_nullable=True)
-    
+
     # Change max_depth precision in dive_sites table
     op.alter_column('dive_sites', 'max_depth',
                existing_type=mysql.DECIMAL(precision=5, scale=2),
@@ -41,12 +41,12 @@ def downgrade() -> None:
                existing_type=sa.DECIMAL(precision=6, scale=3),
                type_=mysql.DECIMAL(precision=5, scale=2),
                existing_nullable=True)
-    
+
     op.alter_column('dives', 'average_depth',
                existing_type=sa.DECIMAL(precision=6, scale=3),
                type_=mysql.DECIMAL(precision=5, scale=2),
                existing_nullable=True)
-    
+
     # Revert max_depth precision in dive_sites table
     op.alter_column('dive_sites', 'max_depth',
                existing_type=sa.DECIMAL(precision=6, scale=3),
