@@ -29,13 +29,13 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 **Usage Examples:**
 ```bash
 # Update all existing sites with conflicts
-python utils/import_dive_sites_enhanced.py -f --update-all
+python utils/import_subsurface_divesite.py -f --update-all
 
 # Create merge files for manual review
-python utils/import_dive_sites_enhanced.py --create-merge-all
+python utils/import_subsurface_divesite.py --create-merge-all
 
 # Import only completely new sites
-python utils/import_dive_sites_enhanced.py -f --skip-all
+python utils/import_subsurface_divesite.py -f --skip-all
 ```
 
 ### 🔒 Security Enhancements

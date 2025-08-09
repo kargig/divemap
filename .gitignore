@@ -156,5 +156,6 @@ local*sql*backup
 divemap_backup_*sql*
 local_testme
 utils/01*
+utils/Subsurface/
 merge_*.txt
 

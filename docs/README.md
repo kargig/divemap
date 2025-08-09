@@ -16,6 +16,8 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 - **[Docker.md](./development/docker.md)** - Docker configuration and containerization guide
 - **Newsletter Management** - Newsletter parsing and trip management (see [Development README](./development/README.md#newsletter-management-system))
 - **Import Scripts** - Dive site import utilities with smart conflict resolution (see [Development README](./development/README.md#import-scripts))
+- **[Importing Data](./IMPORTING_DATA.md)** - Comprehensive guide for importing dive sites and dives from Subsurface
+- **[Subsurface Import Plan](./development/subsurface-import-plan.md)** - Comprehensive plan for importing dives from Subsurface
 
 ### 🚀 Deployment
 - **[README.md](./deployment/README.md)** - Deployment overview (includes Makefile deployment)
@@ -47,6 +49,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 3. **[API Documentation](./development/api.md)** - API endpoints and usage
 4. **[Testing Guide](./development/testing.md)** - Testing procedures (see [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for details)
 5. **[Docker Configuration](./development/docker.md)** - Container setup and optimization
+6. **[Importing Data](./IMPORTING_DATA.md)** - Guide for importing dive sites and dives from Subsurface
 
 ### For Deployment
 1. **[Deployment Overview](./deployment/README.md)** - Deployment strategies (includes Makefile deployment)
@@ -93,7 +96,7 @@ All documentation should:
 - ✅ Streamlined testing documentation
 - ✅ Consolidated security measures
 - ✅ Merged troubleshooting into maintenance guide
-- ✅ Reduced total documentation files from 22 to 15
+- ✅ Reduced total documentation files from 22 to 16
 - ✅ Added diving organizations and user certifications documentation
 - ✅ Updated API documentation with new endpoints
 - ✅ Enhanced database documentation with new schema
@@ -117,8 +120,8 @@ All documentation should:
 ### **Getting Started (1 file)**
 - Quick start guide and setup instructions
 
-### **Development (6 files)**
-- Architecture, API, database, testing, newsletter management, and development workflow
+### **Development (7 files)**
+- Architecture, API, database, testing, newsletter management, development workflow, and Subsurface import plan
 
 ### **Deployment (4 files)**
 - Deployment strategies and infrastructure
@@ -132,7 +135,7 @@ All documentation should:
 ### **Testing Strategy (1 file)**
 - Comprehensive testing strategy and procedures
 
-**Total Documentation Files: 17** (reduced from 22)
+**Total Documentation Files: 18** (reduced from 22)
 
 ## 🔄 Consolidation Summary
 

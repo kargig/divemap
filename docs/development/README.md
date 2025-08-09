@@ -838,7 +838,7 @@ export DATABASE_URL="mysql+pymysql://user:password@host:port/database"
 
 ### Import Scripts
 
-#### **import_dive_sites_enhanced.py**
+#### **import_subsurface_divesite.py**
 - **Purpose**: Import dive sites from text files with smart conflict resolution
 - **Strategy**: Prefers updating existing sites over creating new ones
 - **Features**:
@@ -852,16 +852,16 @@ export DATABASE_URL="mysql+pymysql://user:password@host:port/database"
 **Usage:**
 ```bash
 # Interactive mode with conflict resolution
-python utils/import_dive_sites_enhanced.py
+python utils/import_subsurface_divesite.py
 
 # Update all existing sites with conflicts
-python utils/import_dive_sites_enhanced.py -f --update-all
+python utils/import_subsurface_divesite.py -f --update-all
 
 # Create merge files for manual review
-python utils/import_dive_sites_enhanced.py --create-merge-all
+python utils/import_subsurface_divesite.py --create-merge-all
 
 # Import only completely new sites
-python utils/import_dive_sites_enhanced.py -f --skip-all
+python utils/import_subsurface_divesite.py -f --skip-all
 ```
 
 **Update Behavior:**

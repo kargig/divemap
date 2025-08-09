@@ -506,7 +506,7 @@ curl -I https://divemap.fly.dev/
 
 The application includes enhanced import scripts for managing dive site data with smart conflict resolution.
 
-#### **import_dive_sites_enhanced.py**
+#### **import_subsurface_divesite.py**
 - **Purpose**: Import dive sites from text files with preference for updating existing sites
 - **Strategy**: Prevents duplicate creation by checking similarity and proximity
 - **Conflict Resolution**: Offers interactive, batch, and merge file modes
@@ -515,13 +515,13 @@ The application includes enhanced import scripts for managing dive site data wit
 ```bash
 # Verify import script functionality
 cd utils
-python import_dive_sites_enhanced.py --dry-run
+python import_subsurface_divesite.py --dry-run
 
 # Test with sample data
-python import_dive_sites_enhanced.py -f --skip-all
+python import_subsurface_divesite.py -f --skip-all
 
 # Create merge files for review
-python import_dive_sites_enhanced.py --create-merge-all
+python import_subsurface_divesite.py --create-merge-all
 ```
 
 **Key Features for Maintenance:**

@@ -16,7 +16,7 @@ Features:
 - Automatic skipping of files without GPS coordinates
 
 Usage:
-    python import_dive_sites_enhanced.py [-f] [--dry-run] [--skip-all] [--update-all] [--create-merge-all] [--import-merge FILE]
+    python import_subsurface_divesite.py [-f] [--dry-run] [--skip-all] [--update-all] [--create-merge-all] [--import-merge FILE]
 
 Options:
     -f, --force: Skip confirmation prompts
@@ -76,7 +76,7 @@ def read_credentials_from_local_testme() -> Tuple[str, str]:
                 # Look for the next line with credentials
                 continue
             elif line and '/' in line and not line.startswith('Normal user:') and not line.startswith('OpenAI'):
-                # This should be a credential line like "admin/Admin123!"
+                # This should be a credential line like "user/password"
                 parts = line.split('/')
                 if len(parts) == 2:
                     admin_username = parts[0].strip()
@@ -321,7 +321,7 @@ class DiveSiteImporter:
 
 --final--
 # Edit the section below with the final merged data
-# Then run: python import_dive_sites_enhanced.py --import-merge this_file.txt
+# Then run: python import_subsurface_divesite.py --import-merge this_file.txt
 {{
   "name": "{new_site['name']}",
   "description": "{new_site.get('description', existing_site.get('description', ''))}",
@@ -563,7 +563,7 @@ class DiveSiteImporter:
         
         return success
 
-    def run(self):
+    def run(self, specific_file: str = None):
         """Main execution method"""
         print("🚀 Enhanced Dive Site Import Script")
         print("=" * 50)
@@ -571,6 +571,35 @@ class DiveSiteImporter:
         # Login
         if not self.login():
             return False
+        
+        # Handle specific file import
+        if specific_file:
+            # Check if file exists in the default directory
+            sites_dir = Path("utils/01-Divesites")
+            specific_file_path = sites_dir / specific_file
+            
+            if not specific_file_path.exists():
+                print(f"❌ File not found: {specific_file_path}")
+                print(f"   Make sure the file exists in {sites_dir}")
+                return False
+            
+            print(f"📄 Processing specific file: {specific_file}")
+            self.stats['processed'] += 1
+            success = self.process_dive_site(specific_file_path)
+            
+            # Print summary for single file
+            print("\n" + "=" * 50)
+            print("📊 Import Summary:")
+            print(f"   Processed: {self.stats['processed']}")
+            print(f"   Created: {self.stats['created']}")
+            print(f"   Updated: {self.stats['updated']}")
+            print(f"   Skipped (similar name): {self.stats['skipped_similar_name']}")
+            print(f"   Skipped (nearby): {self.stats['skipped_nearby']}")
+            print(f"   Skipped (no GPS): {self.stats['skipped_no_gps']}")
+            print(f"   Merge files created: {self.stats['merge_files_created']}")
+            print(f"   Errors: {self.stats['errors']}")
+            
+            return self.stats['errors'] == 0
         
         # Find dive site files
         sites_dir = Path("utils/01-Divesites")
@@ -633,6 +662,8 @@ def main():
                        help="Create merge files for all sites that can be updated")
     parser.add_argument("--import-merge", type=str,
                        help="Import merge file to apply final changes")
+    parser.add_argument("--file", type=str,
+                       help="Import a specific dive site file (e.g., Site-12345)")
     
     args = parser.parse_args()
     
@@ -664,7 +695,7 @@ def main():
         update_all=args.update_all,
         create_merge_all=args.create_merge_all
     )
-    success = importer.run()
+    success = importer.run(specific_file=args.file)
     
     return 0 if success else 1
 
