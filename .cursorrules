@@ -336,6 +336,10 @@ Before making any changes, ensure:
 - [ ] Changes are tested thoroughly
 - [ ] Documentation follows standards
 - [ ] All links and references are verified
+- [ ] No trailing whitespace in any files
+- [ ] Code formatting is consistent
+- [ ] Linting checks pass
+- [ ] Whitespace validation passes
 
 ## Enforcement
 
@@ -348,5 +352,68 @@ These rules are mandatory and must be followed:
 - All documentation must follow standards
 - All migration filenames must follow numerical ordering
 - Hash-based or non-numerical migration filenames are strictly forbidden
+- **Trailing whitespace is strictly forbidden**
+- **All code must pass linting checks before committing**
+- **All files must have consistent formatting**
 
-Remember: **Always ask for permission before committing to git!** 
+## Code Quality and Formatting Requirements
+
+### Trailing Whitespace Prevention
+- **NEVER create files with trailing whitespace**
+- **ALWAYS remove trailing whitespace before committing**
+- **ALWAYS run whitespace checks before committing**
+- **ALWAYS use linting tools to catch whitespace issues**
+- **NEVER leave trailing spaces or tabs at the end of lines**
+
+### Code Formatting Standards
+- **ALWAYS use consistent indentation (4 spaces for Python, 2 spaces for JavaScript)**
+- **ALWAYS remove trailing whitespace from all lines**
+- **ALWAYS ensure files end with a single newline**
+- **ALWAYS use proper line endings (LF for Unix/Linux)**
+- **NEVER use mixed tabs and spaces**
+
+### Whitespace Checking Workflow
+```bash
+# ✅ CORRECT - Check for trailing whitespace before committing
+# Check Python files
+grep -r '[ \t]+$' --include="*.py" .
+
+# Check JavaScript/JSX files
+grep -r '[ \t]+$' --include="*.js" --include="*.jsx" .
+
+# Check all text files
+grep -r '[ \t]+$' --include="*.py" --include="*.js" --include="*.jsx" --include="*.md" --include="*.txt" .
+
+# ❌ WRONG - Don't commit files with trailing whitespace
+# Always clean whitespace before committing
+```
+
+### Automated Linting Setup
+- **ALWAYS configure pre-commit hooks for whitespace checking**
+- **ALWAYS use editor configurations to prevent trailing whitespace**
+- **ALWAYS run linting as part of the testing process**
+- **ALWAYS fix whitespace issues before running tests**
+
+### Editor Configuration Requirements
+- **ALWAYS configure editors to trim trailing whitespace on save**
+- **ALWAYS configure editors to show whitespace characters**
+- **ALWAYS use consistent line ending settings**
+- **ALWAYS enable automatic formatting on save**
+
+### Pre-commit Validation
+```bash
+# ✅ CORRECT - Validate code quality before committing
+# Run whitespace check
+./utils/check_whitespace.sh
+
+# Run linting
+./utils/lint_code.sh
+
+# Run tests
+./utils/run_tests.sh
+
+# ❌ WRONG - Don't commit without validation
+# Always run checks before committing
+```
+
+Remember: **Always ask for permission before committing to git!**
