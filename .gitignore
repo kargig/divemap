@@ -159,4 +159,5 @@ utils/01*
 utils/Subsurface/
 utils/samples/
 merge_*.txt
-
+database_backups/
+wg-*.conf
