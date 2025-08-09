@@ -65,6 +65,48 @@ python run_migrations.py
 - Use descriptive migration names
 - Handle dependencies between migrations
 
+### Migration Filename Requirements
+- **MUST always use numerical ordering for migration filenames**
+- **MUST follow the format: `####_descriptive_name.py` where #### is a 4-digit number**
+- **MUST ensure sequential numbering (0001, 0002, 0003, etc.)**
+- **MUST use descriptive names that clearly indicate the migration purpose**
+- **NEVER use hash-based filenames (like `abc123_description.py`)**
+- **NEVER use non-numerical prefixes or random strings**
+- **ALWAYS check existing migration numbers before creating new ones**
+- **ALWAYS rename any migration files that don't follow this pattern**
+
+### Migration Filename Examples
+```bash
+# ✅ CORRECT - Numerical ordering with descriptive names
+0001_initial.py
+0002_add_max_depth_and_alternative_names.py
+0003_add_country_region_fields.py
+0004_add_view_count_fields.py
+0005_add_user_diving_fields.py
+0006_add_diving_organizations_and_user_certifications.py
+0007_remove_unnecessary_certification_fields.py
+
+# ❌ WRONG - Hash-based or non-numerical filenames
+c85d7af66778_add_diving_organizations_and_user_.py
+abc123_description.py
+add_dive_name_and_privacy.py
+consolidated_dive_system_final.py
+```
+
+### Migration Filename Workflow
+```bash
+# ✅ CORRECT - Check existing migrations before creating new ones
+cd backend/migrations/versions
+ls -la *.py | grep -E '^[0-9]{4}_' | sort
+
+# Find the next available number
+# If highest is 0017, use 0018 for the next migration
+
+# ❌ WRONG - Don't use random or hash-based names
+# Don't create: abc123_description.py
+# Don't create: add_something.py
+```
+
 ## Git Commit Rules
 
 ### Git Commit Requirements
@@ -213,8 +255,10 @@ Common issues and solutions.
 1. Modify SQLAlchemy models
 2. Generate Alembic migration
 3. Review generated migration
-4. Test migration on development database
-5. Apply migration only after testing
+4. **ALWAYS rename migration file to follow numerical ordering if needed**
+5. **ALWAYS check existing migration numbers before creating new ones**
+6. Test migration on development database
+7. Apply migration only after testing
 
 ### Documentation Changes
 1. Follow documentation standards
@@ -285,6 +329,7 @@ Before making any changes, ensure:
 - [ ] PYTHONPATH is set correctly
 - [ ] No system packages are being installed
 - [ ] Alembic is used for database changes
+- [ ] Migration filenames follow numerical ordering (0001_, 0002_, etc.)
 - [ ] Tests run in virtual environment
 - [ ] User permission obtained before git commits
 - [ ] Documentation is updated
@@ -301,5 +346,7 @@ These rules are mandatory and must be followed:
 - Automatic git commits are prohibited
 - All testing must use virtual environments
 - All documentation must follow standards
+- All migration filenames must follow numerical ordering
+- Hash-based or non-numerical migration filenames are strictly forbidden
 
 Remember: **Always ask for permission before committing to git!** 
