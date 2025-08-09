@@ -31,6 +31,7 @@ import DivingCenters from './pages/DivingCenters';
 import EditDive from './pages/EditDive';
 import EditDiveSite from './pages/EditDiveSite';
 import EditDivingCenter from './pages/EditDivingCenter';
+import Help from './pages/Help';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
@@ -99,6 +100,7 @@ function App() {
               <Routes>
                 <Route path='/' element={<Home />} />
                 <Route path='/about' element={<About />} />
+                <Route path='/help' element={<Help />} />
                 <Route path='/login' element={<Login />} />
                 <Route path='/register' element={<Register />} />
                 <Route path='/user/:username' element={<UserProfile />} />

@@ -28,6 +28,14 @@ const Admin = () => {
 
   const adminCards = [
     {
+      id: 'dives',
+      title: 'Dive Management',
+      description: 'Manage all dives, view details, edit information, and delete dives.',
+      icon: <Anchor className='h-8 w-8 text-teal-600' />,
+      href: '/admin/dives',
+      color: 'bg-teal-50 border-teal-200 hover:bg-teal-100',
+    },
+    {
       id: 'dive-sites',
       title: 'Dive Sites Management',
       description: 'Manage all dive sites, view details, edit information, and delete sites.',
@@ -44,22 +52,6 @@ const Admin = () => {
       color: 'bg-green-50 border-green-200 hover:bg-green-100',
     },
     {
-      id: 'diving-organizations',
-      title: 'Diving Organizations Management',
-      description: 'Manage diving certification organizations, their details, and affiliations.',
-      icon: <Award className='h-8 w-8 text-indigo-600' />,
-      href: '/admin/diving-organizations',
-      color: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100',
-    },
-    {
-      id: 'dives',
-      title: 'Dive Management',
-      description: 'Manage all dives, view details, edit information, and delete dives.',
-      icon: <Anchor className='h-8 w-8 text-teal-600' />,
-      href: '/admin/dives',
-      color: 'bg-teal-50 border-teal-200 hover:bg-teal-100',
-    },
-    {
       id: 'tags',
       title: 'Tag Management',
       description: 'Create, edit, and delete tags used to categorize dive sites.',
@@ -68,12 +60,12 @@ const Admin = () => {
       color: 'bg-purple-50 border-purple-200 hover:bg-purple-100',
     },
     {
-      id: 'users',
-      title: 'User Management',
-      description: 'Manage user accounts, roles, permissions, and account status.',
-      icon: <Users className='h-8 w-8 text-orange-600' />,
-      href: '/admin/users',
-      color: 'bg-orange-50 border-orange-200 hover:bg-orange-100',
+      id: 'newsletters',
+      title: 'Newsletter Management',
+      description: 'Upload and manage dive trip newsletters, view parsed trips.',
+      icon: <FileText className='h-8 w-8 text-purple-600' />,
+      href: '/admin/newsletters',
+      color: 'bg-purple-50 border-purple-200 hover:bg-purple-100',
     },
     {
       id: 'ownership-requests',
@@ -84,12 +76,12 @@ const Admin = () => {
       color: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100',
     },
     {
-      id: 'newsletters',
-      title: 'Newsletter Management',
-      description: 'Upload and manage dive trip newsletters, view parsed trips.',
-      icon: <FileText className='h-8 w-8 text-purple-600' />,
-      href: '/admin/newsletters',
-      color: 'bg-purple-50 border-purple-200 hover:bg-purple-100',
+      id: 'users',
+      title: 'User Management',
+      description: 'Manage user accounts, roles, permissions, and account status.',
+      icon: <Users className='h-8 w-8 text-orange-600' />,
+      href: '/admin/users',
+      color: 'bg-orange-50 border-orange-200 hover:bg-orange-100',
     },
   ];
 

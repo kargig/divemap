@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   Info,
+  HelpCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -27,6 +28,7 @@ const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showAdminDropdown, setShowAdminDropdown] = useState(false);
+  const [showInfoDropdown, setShowInfoDropdown] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
@@ -41,6 +43,7 @@ const Navbar = () => {
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
     setShowAdminDropdown(false);
+    setShowInfoDropdown(false);
   };
 
   return (
@@ -94,13 +97,37 @@ const Navbar = () => {
               <span>Dive Trips</span>
             </Link>
 
-            <Link
-              to='/about'
-              className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
-            >
-              <Info className='h-5 w-5' />
-              <span>About</span>
-            </Link>
+            <div className='relative'>
+              <button
+                onClick={() => setShowInfoDropdown(!showInfoDropdown)}
+                className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
+              >
+                <Info className='h-5 w-5' />
+                <span>Info</span>
+                <ChevronDown className='h-4 w-4' />
+              </button>
+
+              {showInfoDropdown && (
+                <div className='absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50'>
+                  <Link
+                    to='/about'
+                    className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
+                    onClick={() => setShowInfoDropdown(false)}
+                  >
+                    <Info className='h-4 w-4 mr-2' />
+                    About
+                  </Link>
+                  <Link
+                    to='/help'
+                    className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
+                    onClick={() => setShowInfoDropdown(false)}
+                  >
+                    <HelpCircle className='h-4 w-4 mr-2' />
+                    Help
+                  </Link>
+                </div>
+              )}
+            </div>
 
             {user ? (
               <div className='flex items-center space-x-4'>
@@ -126,6 +153,14 @@ const Navbar = () => {
                           Dashboard
                         </Link>
                         <Link
+                          to='/admin/dives'
+                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <Anchor className='h-4 w-4 mr-2' />
+                          Dives
+                        </Link>
+                        <Link
                           to='/admin/dive-sites'
                           className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
                           onClick={() => setShowAdminDropdown(false)}
@@ -142,22 +177,6 @@ const Navbar = () => {
                           Diving Centers
                         </Link>
                         <Link
-                          to='/admin/diving-organizations'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <Award className='h-4 w-4 mr-2' />
-                          Diving Organizations
-                        </Link>
-                        <Link
-                          to='/admin/dives'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <Anchor className='h-4 w-4 mr-2' />
-                          Dives
-                        </Link>
-                        <Link
                           to='/admin/tags'
                           className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
                           onClick={() => setShowAdminDropdown(false)}
@@ -166,12 +185,12 @@ const Navbar = () => {
                           Tags
                         </Link>
                         <Link
-                          to='/admin/users'
+                          to='/admin/newsletters'
                           className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
                           onClick={() => setShowAdminDropdown(false)}
                         >
-                          <Users className='h-4 w-4 mr-2' />
-                          Users
+                          <FileText className='h-4 w-4 mr-2' />
+                          Newsletter Management
                         </Link>
                         <Link
                           to='/admin/ownership-requests'
@@ -182,12 +201,12 @@ const Navbar = () => {
                           Ownership Requests
                         </Link>
                         <Link
-                          to='/admin/newsletters'
+                          to='/admin/users'
                           className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
                           onClick={() => setShowAdminDropdown(false)}
                         >
-                          <FileText className='h-4 w-4 mr-2' />
-                          Newsletter Management
+                          <Users className='h-4 w-4 mr-2' />
+                          Users
                         </Link>
                       </div>
                     )}
@@ -288,14 +307,25 @@ const Navbar = () => {
                 <span>Dive Trips</span>
               </Link>
 
-              <Link
-                to='/about'
-                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                onClick={closeMobileMenu}
-              >
-                <Info className='h-5 w-5 mr-3' />
-                <span>About</span>
-              </Link>
+              <div className='px-3 py-2'>
+                <div className='text-xs text-blue-200 mb-2'>INFO</div>
+                <Link
+                  to='/about'
+                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                  onClick={closeMobileMenu}
+                >
+                  <Info className='h-4 w-4 mr-3' />
+                  <span>About</span>
+                </Link>
+                <Link
+                  to='/help'
+                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                  onClick={closeMobileMenu}
+                >
+                  <HelpCircle className='h-4 w-4 mr-3' />
+                  <span>Help</span>
+                </Link>
+              </div>
 
               {user ? (
                 <>
@@ -321,6 +351,14 @@ const Navbar = () => {
                           <span>Dashboard</span>
                         </Link>
                         <Link
+                          to='/admin/dives'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Anchor className='h-4 w-4 mr-3' />
+                          <span>Dives</span>
+                        </Link>
+                        <Link
                           to='/admin/dive-sites'
                           className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
                           onClick={closeMobileMenu}
@@ -337,22 +375,6 @@ const Navbar = () => {
                           <span>Diving Centers</span>
                         </Link>
                         <Link
-                          to='/admin/diving-organizations'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Award className='h-4 w-4 mr-3' />
-                          <span>Diving Organizations</span>
-                        </Link>
-                        <Link
-                          to='/admin/dives'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Anchor className='h-4 w-4 mr-3' />
-                          <span>Dives</span>
-                        </Link>
-                        <Link
                           to='/admin/tags'
                           className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
                           onClick={closeMobileMenu}
@@ -361,12 +383,12 @@ const Navbar = () => {
                           <span>Tags</span>
                         </Link>
                         <Link
-                          to='/admin/users'
+                          to='/admin/newsletters'
                           className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
                           onClick={closeMobileMenu}
                         >
-                          <Users className='h-4 w-4 mr-3' />
-                          <span>Users</span>
+                          <FileText className='h-4 w-4 mr-3' />
+                          <span>Newsletter Management</span>
                         </Link>
                         <Link
                           to='/admin/ownership-requests'
@@ -377,12 +399,12 @@ const Navbar = () => {
                           <span>Ownership Requests</span>
                         </Link>
                         <Link
-                          to='/admin/newsletters'
+                          to='/admin/users'
                           className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
                           onClick={closeMobileMenu}
                         >
-                          <FileText className='h-4 w-4 mr-3' />
-                          <span>Newsletter Management</span>
+                          <Users className='h-4 w-4 mr-3' />
+                          <span>Users</span>
                         </Link>
                       </div>
                     )}
@@ -422,14 +444,18 @@ const Navbar = () => {
         )}
       </div>
 
-      {/* Click outside to close dropdown */}
-      {showAdminDropdown && (
+      {/* Click outside to close dropdowns */}
+      {(showAdminDropdown || showInfoDropdown) && (
         <div
           className='fixed inset-0 z-40'
-          onClick={() => setShowAdminDropdown(false)}
+          onClick={() => {
+            setShowAdminDropdown(false);
+            setShowInfoDropdown(false);
+          }}
           onKeyDown={event => {
             if (event.key === 'Escape') {
               setShowAdminDropdown(false);
+              setShowInfoDropdown(false);
             }
           }}
           role='button'
