@@ -31,13 +31,13 @@ async def create_user(
     existing_user = db.query(User).filter(
         (User.username == user_data.username) | (User.email == user_data.email)
     ).first()
-    
+
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username or email already registered"
         )
-    
+
     # Create new user
     hashed_password = get_password_hash(user_data.password)
     db_user = User(
@@ -48,11 +48,11 @@ async def create_user(
         is_moderator=user_data.is_moderator,
         enabled=user_data.enabled
     )
-    
+
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    
+
     return db_user
 
 @router.put("/admin/users/{user_id}", response_model=UserListResponse)
@@ -64,22 +64,22 @@ async def update_user(
 ):
     """Update a user (admin only)"""
     db_user = db.query(User).filter(User.id == user_id).first()
-    
+
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
+
     # Update only provided fields
     update_data = user_update.dict(exclude_unset=True)
-    
+
     for field, value in update_data.items():
         setattr(db_user, field, value)
-    
+
     db.commit()
     db.refresh(db_user)
-    
+
     return db_user
 
 @router.delete("/admin/users/{user_id}")
@@ -90,23 +90,23 @@ async def delete_user(
 ):
     """Delete a user (admin only)"""
     db_user = db.query(User).filter(User.id == user_id).first()
-    
+
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
+
     # Prevent admin from deleting themselves
     if db_user.id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot delete your own account"
         )
-    
+
     db.delete(db_user)
     db.commit()
-    
+
     return {"message": "User deleted successfully"}
 
 # Regular user endpoints
@@ -122,18 +122,18 @@ async def update_current_user_profile(
 ):
     # Update only provided fields
     update_data = user_update.dict(exclude_unset=True)
-    
+
     # Handle password update separately
     if 'password' in update_data:
         password = update_data.pop('password')
         current_user.password_hash = get_password_hash(password)
-    
+
     for field, value in update_data.items():
         setattr(current_user, field, value)
-    
+
     db.commit()
     db.refresh(current_user)
-    
+
     return current_user
 
 @router.post("/me/change-password")
@@ -149,11 +149,11 @@ async def change_password(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Current password is incorrect"
         )
-    
+
     # Update password
     current_user.password_hash = get_password_hash(password_change.new_password)
     db.commit()
-    
+
     return {"message": "Password changed successfully"}
 
 @router.get("/{username}/public", response_model=UserPublicProfileResponse)
@@ -167,34 +167,34 @@ async def get_user_public_profile(
         User.username == username,
         User.enabled == True
     ).first()
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
+
     # Calculate user statistics
     dive_sites_rated = db.query(func.count(SiteRating.id)).filter(
         SiteRating.user_id == user.id
     ).scalar()
-    
+
     site_comments_count = db.query(func.count(SiteComment.id)).filter(
         SiteComment.user_id == user.id
     ).scalar()
-    
+
     center_comments_count = db.query(func.count(CenterComment.id)).filter(
         CenterComment.user_id == user.id
     ).scalar()
-    
+
     comments_posted = (site_comments_count or 0) + (center_comments_count or 0)
-    
+
     # Create stats object
     stats = UserStats(
         dive_sites_rated=dive_sites_rated or 0,
         comments_posted=comments_posted or 0
     )
-    
+
     # Create response object
     response = UserPublicProfileResponse(
         username=user.username,
@@ -204,5 +204,5 @@ async def get_user_public_profile(
         certifications=user.certifications,
         stats=stats
     )
-    
-    return response 
+
+    return response

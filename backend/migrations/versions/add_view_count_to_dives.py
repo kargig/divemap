@@ -22,4 +22,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Remove view_count column from dives table
-    op.drop_column('dives', 'view_count') 
+    op.drop_column('dives', 'view_count')

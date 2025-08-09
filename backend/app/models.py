@@ -400,4 +400,4 @@ class DiveTag(Base):
 
     # Relationships
     dive = relationship("Dive", back_populates="tags")
-    tag = relationship("AvailableTag", back_populates="dive_tags") 
+    tag = relationship("AvailableTag", back_populates="dive_tags")

@@ -18,7 +18,7 @@ depends_on = None
 def upgrade() -> None:
     # Add diving_center_id column to dives table
     op.add_column('dives', sa.Column('diving_center_id', sa.Integer(), nullable=True))
-    
+
     # Create foreign key constraint
     op.create_foreign_key(
         'fk_dives_diving_center_id',
@@ -30,6 +30,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     # Drop foreign key constraint
     op.drop_constraint('fk_dives_diving_center_id', 'dives', type_='foreignkey')
-    
+
     # Drop diving_center_id column
-    op.drop_column('dives', 'diving_center_id') 
+    op.drop_column('dives', 'diving_center_id')

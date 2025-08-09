@@ -33,7 +33,7 @@ async def get_user_certifications(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     certifications = db.query(UserCertification).filter(
         UserCertification.user_id == user_id,
         UserCertification.is_active == True
@@ -53,7 +53,7 @@ async def create_my_certification(
     ).first()
     if not organization:
         raise HTTPException(status_code=404, detail="Diving organization not found")
-    
+
     # Check if certification already exists for this user and organization
     existing_cert = db.query(UserCertification).filter(
         UserCertification.user_id == current_user.id,
@@ -62,7 +62,7 @@ async def create_my_certification(
     ).first()
     if existing_cert:
         raise HTTPException(status_code=400, detail="Certification already exists for this organization and level")
-    
+
     db_certification = UserCertification(**certification.dict(), user_id=current_user.id)
     db.add(db_certification)
     db.commit()
@@ -83,7 +83,7 @@ async def update_my_certification(
     ).first()
     if not db_certification:
         raise HTTPException(status_code=404, detail="Certification not found")
-    
+
     # Check if diving organization exists if being updated
     if certification.diving_organization_id:
         organization = db.query(DivingOrganization).filter(
@@ -91,12 +91,12 @@ async def update_my_certification(
         ).first()
         if not organization:
             raise HTTPException(status_code=404, detail="Diving organization not found")
-    
+
     # Update fields
     update_data = certification.dict(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_certification, field, value)
-    
+
     db.commit()
     db.refresh(db_certification)
     return db_certification
@@ -114,7 +114,7 @@ async def delete_my_certification(
     ).first()
     if not db_certification:
         raise HTTPException(status_code=404, detail="Certification not found")
-    
+
     db.delete(db_certification)
     db.commit()
     return {"message": "Certification deleted successfully"}
@@ -132,12 +132,12 @@ async def toggle_certification_status(
     ).first()
     if not db_certification:
         raise HTTPException(status_code=404, detail="Certification not found")
-    
+
     db_certification.is_active = not db_certification.is_active
     db.commit()
     db.refresh(db_certification)
-    
+
     return {
         "message": f"Certification {'activated' if db_certification.is_active else 'deactivated'} successfully",
         "is_active": db_certification.is_active
-    } 
+    }

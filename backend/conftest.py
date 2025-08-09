@@ -35,7 +35,7 @@ def db_session():
     """Create a fresh database session for each test."""
     # Create tables
     Base.metadata.create_all(bind=engine)
-    
+
     # Create session
     session = TestingSessionLocal()
     try:
@@ -53,19 +53,19 @@ def client(db_session):
             yield db_session
         finally:
             pass
-    
+
     # Reset rate limiter cache before each test
     try:
         from app.limiter import limiter
         limiter.reset()
     except Exception:
         pass  # Ignore if reset fails
-    
+
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
-    
+
     # Reset rate limiter cache after each test as well
     try:
         from app.limiter import limiter
@@ -213,4 +213,4 @@ def test_user_certification(db_session, test_user, test_diving_organization):
     db_session.add(certification)
     db_session.commit()
     db_session.refresh(certification)
-    return certification 
+    return certification

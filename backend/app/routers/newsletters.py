@@ -31,25 +31,25 @@ def parse_greek_date(day: str, month: str, year: str = None) -> date:
         'Μαΐου': 5, 'Ιουνίου': 6, 'Ιουλίου': 7, 'Αυγούστου': 8,
         'Σεπτεμβρίου': 9, 'Οκτωβρίου': 10, 'Νοεμβρίου': 11, 'Δεκεμβρίου': 12
     }
-    
+
     month_num = month_map.get(month)
     if not month_num:
         return date.today()
-    
+
     day_num = int(day)
     year_num = int(year) if year else date.today().year
-    
+
     return date(year_num, month_num, day_num)
 
 def find_matching_dive_site(db: Session, site_name: str) -> Optional[int]:
     """Find matching dive site in database by name similarity"""
     if not site_name:
         return None
-    
+
     # Clean the site name
     site_name = site_name.strip()
     logger.info(f"🔍 Looking for dive site match for: '{site_name}'")
-    
+
     # First try exact match (case insensitive) on dive site names
     exact_match = db.query(DiveSite).filter(
         DiveSite.name.ilike(site_name)
@@ -57,7 +57,7 @@ def find_matching_dive_site(db: Session, site_name: str) -> Optional[int]:
     if exact_match:
         logger.info(f"✅ Exact match found on dive site name: '{site_name}' -> ID: {exact_match.id}")
         return exact_match.id
-    
+
     # Try exact match on aliases
     from app.models import DiveSiteAlias
     alias_match = db.query(DiveSiteAlias).filter(
@@ -66,50 +66,50 @@ def find_matching_dive_site(db: Session, site_name: str) -> Optional[int]:
     if alias_match:
         logger.info(f"✅ Exact match found on alias: '{site_name}' -> Dive Site ID: {alias_match.dive_site_id}")
         return alias_match.dive_site_id
-    
+
     # Try partial matches on dive site names
     partial_matches = db.query(DiveSite).filter(
         DiveSite.name.ilike(f"%{site_name}%")
     ).all()
-    
+
     if partial_matches:
         # Return the first match (most likely)
         logger.info(f"✅ Partial match found on dive site name: '{site_name}' -> ID: {partial_matches[0].id}")
         return partial_matches[0].id
-    
+
     # Try partial matches on aliases
     alias_partial_matches = db.query(DiveSiteAlias).filter(
         DiveSiteAlias.alias.ilike(f"%{site_name}%")
     ).all()
-    
+
     if alias_partial_matches:
         # Return the first match (most likely)
         logger.info(f"✅ Partial match found on alias: '{site_name}' -> Dive Site ID: {alias_partial_matches[0].dive_site_id}")
         return alias_partial_matches[0].dive_site_id
-    
+
     # Try reverse partial match (site_name contains dive site name)
     for dive_site in db.query(DiveSite).all():
         if dive_site.name.lower() in site_name.lower():
             logger.info(f"✅ Reverse partial match found: '{site_name}' contains '{dive_site.name}' -> ID: {dive_site.id}")
             return dive_site.id
-    
+
     # Try reverse partial match on aliases
     for alias in db.query(DiveSiteAlias).all():
         if alias.alias.lower() in site_name.lower():
             logger.info(f"✅ Reverse partial match found on alias: '{site_name}' contains '{alias.alias}' -> Dive Site ID: {alias.dive_site_id}")
             return alias.dive_site_id
-    
+
     # Try similarity matching with threshold on dive site names
     best_match = None
     best_ratio = 0.0
     threshold = 0.6  # Minimum similarity threshold
-    
+
     for dive_site in db.query(DiveSite).all():
         ratio = similarity_ratio(site_name, dive_site.name)
         if ratio > best_ratio and ratio >= threshold:
             best_ratio = ratio
             best_match = dive_site
-    
+
     # Try similarity matching on aliases
     for alias in db.query(DiveSiteAlias).all():
         ratio = similarity_ratio(site_name, alias.alias)
@@ -118,7 +118,7 @@ def find_matching_dive_site(db: Session, site_name: str) -> Optional[int]:
             best_match = alias.dive_site_id
             logger.info(f"✅ Similarity match found on alias: '{site_name}' ~ '{alias.alias}' (ratio: {ratio:.2f}) -> Dive Site ID: {best_match}")
             return best_match
-    
+
     if best_match:
         if hasattr(best_match, 'id'):
             logger.info(f"✅ Similarity match found on dive site name: '{site_name}' ~ '{best_match.name}' (ratio: {best_ratio:.2f}) -> ID: {best_match.id}")
@@ -126,7 +126,7 @@ def find_matching_dive_site(db: Session, site_name: str) -> Optional[int]:
         else:
             logger.info(f"✅ Similarity match found via alias: '{site_name}' -> dive site ID {best_match} (ratio: {best_ratio:.2f})")
             return best_match
-    
+
     logger.info(f"❌ No match found for dive site: '{site_name}'")
     return None
 
@@ -135,7 +135,7 @@ def extract_diving_center_from_headers(raw_email: str) -> Optional[str]:
     try:
         # Parse email headers
         email_message = message_from_bytes(raw_email.encode('utf-8'))
-        
+
         # Check From header
         from_header = email_message.get('From', '')
         if from_header:
@@ -144,7 +144,7 @@ def extract_diving_center_from_headers(raw_email: str) -> Optional[str]:
                 name_part = from_header.split('<')[0].strip()
                 if name_part:
                     return name_part
-        
+
         # Check Reply-To header
         reply_to = email_message.get('Reply-To', '')
         if reply_to:
@@ -152,7 +152,7 @@ def extract_diving_center_from_headers(raw_email: str) -> Optional[str]:
                 name_part = reply_to.split('<')[0].strip()
                 if name_part:
                     return name_part
-        
+
         # Check Subject for diving center name patterns
         subject = email_message.get('Subject', '')
         if subject:
@@ -167,7 +167,7 @@ def extract_diving_center_from_headers(raw_email: str) -> Optional[str]:
                 match = re.search(pattern, subject, re.IGNORECASE)
                 if match:
                     return match.group(1).strip()
-        
+
         return None
     except Exception as e:
         logger.error(f"Error extracting diving center from headers: {e}")
@@ -177,31 +177,31 @@ def find_matching_diving_center(db: Session, center_name: str) -> Optional[int]:
     """Find matching diving center in database by name similarity"""
     if not center_name:
         return None
-    
+
     # Clean the center name
     center_name = center_name.strip()
-    
+
     # First try exact match
     exact_match = db.query(DivingCenter).filter(
         DivingCenter.name.ilike(center_name)
     ).first()
     if exact_match:
         return exact_match.id
-    
+
     # Try partial matches
     partial_matches = db.query(DivingCenter).filter(
         DivingCenter.name.ilike(f"%{center_name}%")
     ).all()
-    
+
     if partial_matches:
         # Return the first match (most likely)
         return partial_matches[0].id
-    
+
     # Try reverse partial match (center_name contains diving center name)
     for diving_center in db.query(DivingCenter).all():
         if diving_center.name.lower() in center_name.lower():
             return diving_center.id
-    
+
     return None
 
 def parse_newsletter_with_openai(content: str, db: Session) -> List[dict]:
@@ -210,7 +210,7 @@ def parse_newsletter_with_openai(content: str, db: Session) -> List[dict]:
         # Extract subject and clean content from raw email
         email_message = message_from_bytes(content.encode('utf-8'))
         subject = email_message.get('Subject', '')
-        
+
         # Get the text content
         clean_content = ""
         if email_message.is_multipart():
@@ -224,21 +224,21 @@ def parse_newsletter_with_openai(content: str, db: Session) -> List[dict]:
             payload = email_message.get_payload(decode=True)
             if payload:
                 clean_content = payload.decode('utf-8', errors='ignore')
-        
+
         # Decode quoted-printable if necessary
         if '=3D' in clean_content or '=20' in clean_content:
             try:
                 clean_content = quopri.decodestring(clean_content).decode('utf-8', errors='ignore')
             except:
                 pass
-        
+
         # Extract diving center from headers
         diving_center_name = extract_diving_center_from_headers(content)
         diving_center_id = None
         if diving_center_name:
             diving_center_id = find_matching_diving_center(db, diving_center_name)
             logger.info(f"Extracted diving center: {diving_center_name} -> ID: {diving_center_id}")
-        
+
         # Prepare prompt for OpenAI
         prompt = f"""
 Parse the following newsletter content and extract dive trip information. Return a JSON array of dive trips.
@@ -333,7 +333,7 @@ IMPORTANT: For dive_site_name, extract the specific dive site name from the trip
 
 Return ONLY the JSON array, no markdown formatting, no explanations.
 """
-        
+
         # Call OpenAI API
         openai.api_key = os.getenv("OPENAI_API_KEY")
         client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -345,14 +345,14 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
             ],
             temperature=0.1
         )
-        
+
         if response:
             content = response.choices[0].message.content
-            
+
             # Log the OpenAI response for debugging
             logger.info(f"OpenAI response: {content}")
             print(f"DEBUG - OpenAI response: {content}")
-            
+
             # Try to parse the JSON response
             try:
                 # Remove markdown code blocks if present
@@ -360,7 +360,7 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
                     content = content.replace('```json', '').replace('```', '').strip()
                 elif content.startswith('```'):
                     content = content.replace('```', '').strip()
-                
+
                 trips = json.loads(content)
                 if isinstance(trips, list):
                     # Add diving center ID to each trip if found
@@ -368,7 +368,7 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
                         if diving_center_id:
                             trip['diving_center_id'] = diving_center_id
                             trip['diving_center_name'] = diving_center_name
-                        
+
                         # Try to match dive site if name is provided
                         if trip.get('dives'):
                             for dive in trip['dives']:
@@ -382,7 +382,7 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
                                         logger.info(f"❌ No dive site match found for: '{dive['dive_site_name']}'")
                                 else:
                                     logger.info(f"⚠️ No dive_site_name found in dive")
-                    
+
                     logger.info(f"Successfully parsed {len(trips)} trips from OpenAI")
                     return trips
                 else:
@@ -395,7 +395,7 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
         else:
             logger.error(f"OpenAI API error: {response}")
             return parse_newsletter_content(clean_content, db)
-            
+
     except Exception as e:
         logger.error(f"Error in OpenAI parsing: {e}")
         return parse_newsletter_content(clean_content, db)
@@ -406,7 +406,7 @@ def parse_newsletter_content(content: str, db: Session) -> List[dict]:
         # Extract subject and clean content from raw email
         email_message = message_from_bytes(content.encode('utf-8'))
         subject = email_message.get('Subject', '')
-        
+
         # Get the text content
         clean_content = ""
         if email_message.is_multipart():
@@ -420,21 +420,21 @@ def parse_newsletter_content(content: str, db: Session) -> List[dict]:
             payload = email_message.get_payload(decode=True)
             if payload:
                 clean_content = payload.decode('utf-8', errors='ignore')
-        
+
         # Decode quoted-printable if necessary
         if '=3D' in clean_content or '=20' in clean_content:
             try:
                 clean_content = quopri.decodestring(clean_content).decode('utf-8', errors='ignore')
             except:
                 pass
-        
+
         # Extract diving center from headers
         diving_center_name = extract_diving_center_from_headers(content)
         diving_center_id = None
         if diving_center_name:
             diving_center_id = find_matching_diving_center(db, diving_center_name)
             logger.info(f"Extracted diving center: {diving_center_name} -> ID: {diving_center_id}")
-        
+
         # Improved regex patterns for Greek dates and times
         date_patterns = [
             r'(\d{1,2})\s+(Ιανουαρίου|Φεβρουαρίου|Μαρτίου|Απριλίου|Μαΐου|Ιουνίου|Ιουλίου|Αυγούστου|Σεπτεμβρίου|Οκτωβρίου|Νοεμβρίου|Δεκεμβρίου)(?:\s+(\d{4}))?',
@@ -442,21 +442,21 @@ def parse_newsletter_content(content: str, db: Session) -> List[dict]:
             r'(\d{1,2})-(\d{1,2})-(\d{4})',
             r'(\d{1,2})\.(\d{1,2})\.(\d{4})'
         ]
-        
+
         time_patterns = [
             r'(\d{1,2}):(\d{2})',
             r'(\d{1,2})\.(\d{2})',
             r'(\d{1,2}) (\d{2})'
         ]
-        
+
         # Keywords that indicate dive trips
         dive_keywords = [
             'βουτάμε', 'βουτιά', 'καταδύσεις', 'dive', 'diving', 'snorkel', 'snorkeling',
             'ραντεβού', 'ραντεβού', 'departure', 'meeting', 'rendezvous'
         ]
-        
+
         trips = []
-        
+
         # Look for date patterns in the content
         for date_pattern in date_patterns:
             matches = re.finditer(date_pattern, clean_content, re.IGNORECASE)
@@ -465,27 +465,27 @@ def parse_newsletter_content(content: str, db: Session) -> List[dict]:
                 start_pos = max(0, match.start() - 200)
                 end_pos = min(len(clean_content), match.end() + 200)
                 context = clean_content[start_pos:end_pos]
-                
+
                 has_dive_keywords = any(keyword.lower() in context.lower() for keyword in dive_keywords)
-                
+
                 if has_dive_keywords:
                     # Parse the date
                     groups = match.groups()
                     trip_date = date.today()  # Default
-                    
+
                     if len(groups) >= 2:
                         if len(groups) == 3 and groups[2]:  # Has year
                             trip_date = parse_greek_date(groups[0], groups[1], groups[2])
                         else:  # No year, use current year
                             trip_date = parse_greek_date(groups[0], groups[1])
-                    
+
                     # Extract time if available
                     time_match = re.search(r'(\d{1,2}):(\d{2})', context)
                     trip_time = None
                     if time_match:
                         hour, minute = time_match.groups()
                         trip_time = time(int(hour), int(minute))
-                    
+
                     # Extract dive site names from context
                     dive_site_names = []
                     # Common Greek dive site patterns
@@ -502,14 +502,14 @@ def parse_newsletter_content(content: str, db: Session) -> List[dict]:
                         r'dive\s+at\s+([A-Za-z\s]+?)(?:\s+of|\s+in|\s+at|\s*[,\n]|\s*\.)',
                         r'wreck\s+of\s+([A-Za-z\s]+?)(?:\s+of|\s+in|\s+at|\s*[,\n]|\s*\.)',
                     ]
-                    
+
                     for pattern in dive_site_patterns:
                         matches = re.findall(pattern, context, re.IGNORECASE)
                         for match in matches:
                             site_name = match.strip()
                             if len(site_name) > 2:  # Filter out very short matches
                                 dive_site_names.append(site_name)
-                    
+
                     # Try to match dive sites
                     dive_site_id = None
                     dive_site_name = None
@@ -520,7 +520,7 @@ def parse_newsletter_content(content: str, db: Session) -> List[dict]:
                                 dive_site_id = matched_id
                                 dive_site_name = site_name
                                 break
-                    
+
                     # Create trip dictionary
                     trip = {
                         'trip_date': trip_date,
@@ -531,12 +531,12 @@ def parse_newsletter_content(content: str, db: Session) -> List[dict]:
                         'dive_site_id': dive_site_id,
                         'dive_site_name': dive_site_name
                     }
-                    
+
                     trips.append(trip)
-        
+
         logger.info(f"Basic parsing found {len(trips)} trips")
         return trips
-        
+
     except Exception as e:
         logger.error(f"Error in basic parsing: {e}")
         return []
@@ -553,11 +553,11 @@ async def upload_newsletter(
     """
     if not file.filename.endswith('.txt'):
         raise HTTPException(status_code=400, detail="Only .txt files are supported")
-    
+
     try:
         content = await file.read()
         content_str = content.decode('utf-8')
-        
+
         # Create newsletter record
         newsletter = Newsletter(
             content=content_str
@@ -565,16 +565,16 @@ async def upload_newsletter(
         db.add(newsletter)
         db.commit()
         db.refresh(newsletter)
-        
+
         # Parse the newsletter content
         try:
             if use_openai.lower() == 'true':
                 parsed_trips = parse_newsletter_with_openai(content_str, db)
             else:
                 parsed_trips = parse_newsletter_content(content_str, db)
-            
+
             created_trips = []
-            
+
             # Create ParsedDiveTrip records
             for trip_data in parsed_trips:
                 # Handle date parsing with better error handling
@@ -596,7 +596,7 @@ async def upload_newsletter(
                 else:
                     logger.warning("No trip_date provided, skipping trip")
                     continue
-                
+
                 trip = ParsedDiveTrip(
                     source_newsletter_id=newsletter.id,
                     diving_center_id=trip_data.get('diving_center_id'),
@@ -614,7 +614,7 @@ async def upload_newsletter(
                 )
                 db.add(trip)
                 db.flush()  # Get the trip ID
-                
+
                 # Create ParsedDive records for each dive in the trip
                 if trip_data.get('dives'):
                     for dive_data in trip_data['dives']:
@@ -627,17 +627,17 @@ async def upload_newsletter(
                             dive_description=dive_data.get('dive_description')
                         )
                         db.add(dive)
-                
+
                 created_trips.append(trip)
-            
+
             db.commit()
-            
+
             return NewsletterUploadResponse(
                 newsletter_id=newsletter.id,
                 trips_created=len(created_trips),
                 message="Newsletter uploaded and parsed successfully"
             )
-            
+
         except Exception as e:
             logger.error(f"Error parsing newsletter: {e}")
             return NewsletterUploadResponse(
@@ -645,7 +645,7 @@ async def upload_newsletter(
                 trips_created=0,
                 message=f"Newsletter uploaded but parsing failed: {str(e)}"
             )
-            
+
     except Exception as e:
         logger.error(f"Error uploading newsletter: {e}")
         raise HTTPException(status_code=500, detail=f"Error uploading newsletter: {str(e)}")
@@ -662,23 +662,23 @@ async def get_newsletters(
     """
     if not current_user.is_admin and not current_user.is_moderator:
         raise HTTPException(status_code=403, detail="Only admins and moderators can view newsletters")
-    
+
     newsletters = db.query(Newsletter).offset(offset).limit(limit).all()
-    
+
     # Add trip count for each newsletter
     result = []
     for newsletter in newsletters:
         trip_count = db.query(ParsedDiveTrip).filter(
             ParsedDiveTrip.source_newsletter_id == newsletter.id
         ).count()
-        
+
         result.append({
             "id": newsletter.id,
             "content": newsletter.content,
             "received_at": newsletter.received_at,
             "trips_count": trip_count
         })
-    
+
     return result
 
 @router.get("/trips", response_model=List[ParsedDiveTripResponse])
@@ -695,28 +695,28 @@ async def get_parsed_trips(
     Get parsed dive trips with optional filtering.
     """
     query = db.query(ParsedDiveTrip)
-    
+
     if start_date:
         query = query.filter(ParsedDiveTrip.trip_date >= start_date)
-    
+
     if end_date:
         query = query.filter(ParsedDiveTrip.trip_date <= end_date)
-    
+
     if diving_center_id:
         query = query.filter(ParsedDiveTrip.diving_center_id == diving_center_id)
-    
+
     if dive_site_id:
         query = query.filter(ParsedDiveTrip.dive_site_id == dive_site_id)
-    
+
     if trip_status:
         try:
             status = TripStatus(trip_status)
             query = query.filter(ParsedDiveTrip.trip_status == status)
         except:
             pass  # Invalid status, ignore filter
-    
+
     trips = query.all()
-    
+
     return [
         ParsedDiveTripResponse(
             id=trip.id,
@@ -766,15 +766,15 @@ async def get_newsletter(
     """
     if not current_user.is_admin and not current_user.is_moderator:
         raise HTTPException(status_code=403, detail="Only admins and moderators can view newsletters")
-    
+
     newsletter = db.query(Newsletter).filter(Newsletter.id == newsletter_id).first()
     if not newsletter:
         raise HTTPException(status_code=404, detail="Newsletter not found")
-    
+
     trip_count = db.query(ParsedDiveTrip).filter(
         ParsedDiveTrip.source_newsletter_id == newsletter.id
     ).count()
-    
+
     return {
         "id": newsletter.id,
         "content": newsletter.content,
@@ -794,21 +794,21 @@ async def update_newsletter(
     """
     if not current_user.is_admin and not current_user.is_moderator:
         raise HTTPException(status_code=403, detail="Only admins and moderators can update newsletters")
-    
+
     newsletter = db.query(Newsletter).filter(Newsletter.id == newsletter_id).first()
     if not newsletter:
         raise HTTPException(status_code=404, detail="Newsletter not found")
-    
+
     if newsletter_data.content is not None:
         newsletter.content = newsletter_data.content
-    
+
     db.commit()
     db.refresh(newsletter)
-    
+
     trip_count = db.query(ParsedDiveTrip).filter(
         ParsedDiveTrip.source_newsletter_id == newsletter.id
     ).count()
-    
+
     return {
         "id": newsletter.id,
         "content": newsletter.content,
@@ -827,23 +827,23 @@ async def delete_newsletter(
     """
     if not current_user.is_admin and not current_user.is_moderator:
         raise HTTPException(status_code=403, detail="Only admins and moderators can delete newsletters")
-    
+
     newsletter = db.query(Newsletter).filter(Newsletter.id == newsletter_id).first()
     if not newsletter:
         raise HTTPException(status_code=404, detail="Newsletter not found")
-    
+
     # Delete associated trips first
     trips = db.query(ParsedDiveTrip).filter(
         ParsedDiveTrip.source_newsletter_id == newsletter_id
     ).all()
-    
+
     for trip in trips:
         db.delete(trip)
-    
+
     # Delete the newsletter
     db.delete(newsletter)
     db.commit()
-    
+
     return {"message": f"Newsletter and {len(trips)} associated trips deleted successfully"}
 
 @router.delete("/", response_model=NewsletterDeleteResponse)
@@ -857,10 +857,10 @@ async def delete_newsletters(
     """
     if not current_user.is_admin and not current_user.is_moderator:
         raise HTTPException(status_code=403, detail="Only admins and moderators can delete newsletters")
-    
+
     deleted_count = 0
     total_trips_deleted = 0
-    
+
     for newsletter_id in delete_request.newsletter_ids:
         newsletter = db.query(Newsletter).filter(Newsletter.id == newsletter_id).first()
         if newsletter:
@@ -868,18 +868,18 @@ async def delete_newsletters(
             trips = db.query(ParsedDiveTrip).filter(
                 ParsedDiveTrip.source_newsletter_id == newsletter_id
             ).all()
-            
+
             for trip in trips:
                 db.delete(trip)
-            
+
             total_trips_deleted += len(trips)
-            
+
             # Delete the newsletter
             db.delete(newsletter)
             deleted_count += 1
-    
+
     db.commit()
-    
+
     return NewsletterDeleteResponse(
         deleted_count=deleted_count,
         message=f"Deleted {deleted_count} newsletters and {total_trips_deleted} associated trips"
@@ -896,15 +896,15 @@ async def delete_parsed_trip(
     """
     if not current_user.is_admin and not current_user.is_moderator:
         raise HTTPException(status_code=403, detail="Only admins and moderators can delete trips")
-    
+
     trip = db.query(ParsedDiveTrip).filter(ParsedDiveTrip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
-    
+
     db.delete(trip)
     db.commit()
-    
-    return {"message": "Trip deleted successfully"} 
+
+    return {"message": "Trip deleted successfully"}
 
 @router.post("/{newsletter_id}/reparse")
 async def reparse_newsletter(
@@ -919,31 +919,31 @@ async def reparse_newsletter(
     """
     if not current_user.is_admin and not current_user.is_moderator:
         raise HTTPException(status_code=403, detail="Only admins and moderators can reparse newsletters")
-    
+
     newsletter = db.query(Newsletter).filter(Newsletter.id == newsletter_id).first()
     if not newsletter:
         raise HTTPException(status_code=404, detail="Newsletter not found")
-    
+
     try:
         # Delete existing parsed trips for this newsletter
         existing_trips = db.query(ParsedDiveTrip).filter(
             ParsedDiveTrip.source_newsletter_id == newsletter_id
         ).all()
-        
+
         for trip in existing_trips:
             db.delete(trip)
-        
+
         db.commit()
-        
+
         # Parse the newsletter content again
         try:
             if use_openai.lower() == 'true':
                 parsed_trips = parse_newsletter_with_openai(newsletter.content, db)
             else:
                 parsed_trips = parse_newsletter_content(newsletter.content, db)
-            
+
             created_trips = []
-            
+
             # Create new ParsedDiveTrip records
             for trip_data in parsed_trips:
                 # Handle date parsing with better error handling
@@ -965,7 +965,7 @@ async def reparse_newsletter(
                 else:
                     logger.warning("No trip_date provided, skipping trip")
                     continue
-                
+
                 trip = ParsedDiveTrip(
                     source_newsletter_id=newsletter.id,
                     diving_center_id=trip_data.get('diving_center_id'),
@@ -983,7 +983,7 @@ async def reparse_newsletter(
                 )
                 db.add(trip)
                 db.flush()  # Get the trip ID
-                
+
                 # Create ParsedDive records for each dive in the trip
                 if trip_data.get('dives'):
                     for dive_data in trip_data['dives']:
@@ -996,17 +996,17 @@ async def reparse_newsletter(
                             dive_description=dive_data.get('dive_description')
                         )
                         db.add(dive)
-                
+
                 created_trips.append(trip)
-            
+
             db.commit()
-            
+
             return NewsletterUploadResponse(
                 newsletter_id=newsletter.id,
                 trips_created=len(created_trips),
                 message=f"Newsletter re-parsed successfully. {len(existing_trips)} old trips deleted, {len(created_trips)} new trips created."
             )
-            
+
         except Exception as e:
             logger.error(f"Error re-parsing newsletter: {e}")
             return NewsletterUploadResponse(
@@ -1014,7 +1014,7 @@ async def reparse_newsletter(
                 trips_created=0,
                 message=f"Newsletter re-parsing failed: {str(e)}"
             )
-            
+
     except Exception as e:
         logger.error(f"Error re-parsing newsletter: {e}")
         raise HTTPException(status_code=500, detail=f"Error re-parsing newsletter: {str(e)}")
@@ -1030,7 +1030,7 @@ async def create_parsed_trip(
     """
     if not current_user.is_admin and not current_user.is_moderator:
         raise HTTPException(status_code=403, detail="Only admins and moderators can create trips")
-    
+
     try:
         trip = ParsedDiveTrip(
             diving_center_id=trip_data.diving_center_id,
@@ -1048,7 +1048,7 @@ async def create_parsed_trip(
         )
         db.add(trip)
         db.flush()  # Get the trip ID
-        
+
         # Create the associated dives
         dives = []
         for dive_data in trip_data.dives:
@@ -1062,10 +1062,10 @@ async def create_parsed_trip(
             )
             db.add(dive)
             dives.append(dive)
-        
+
         db.commit()
         db.refresh(trip)
-        
+
         # Build the response with dives
         dive_responses = []
         for dive in dives:
@@ -1081,7 +1081,7 @@ async def create_parsed_trip(
                 created_at=dive.created_at,
                 updated_at=dive.updated_at
             ))
-        
+
         return ParsedDiveTripResponse(
             id=trip.id,
             diving_center_id=trip.diving_center_id,
@@ -1102,7 +1102,7 @@ async def create_parsed_trip(
             created_at=trip.created_at,
             updated_at=trip.updated_at
         )
-        
+
     except Exception as e:
         logger.error(f"Error creating parsed trip: {e}")
         raise HTTPException(status_code=500, detail=f"Error creating trip: {str(e)}")
@@ -1118,11 +1118,11 @@ async def get_parsed_trip(
     """
     if not current_user.is_admin and not current_user.is_moderator:
         raise HTTPException(status_code=403, detail="Only admins and moderators can view trips")
-    
+
     trip = db.query(ParsedDiveTrip).filter(ParsedDiveTrip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
-    
+
     return ParsedDiveTripResponse(
         id=trip.id,
         diving_center_id=trip.diving_center_id,
@@ -1170,11 +1170,11 @@ async def update_parsed_trip(
     """
     if not current_user.is_admin and not current_user.is_moderator:
         raise HTTPException(status_code=403, detail="Only admins and moderators can update trips")
-    
+
     trip = db.query(ParsedDiveTrip).filter(ParsedDiveTrip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
-    
+
     try:
         # Update trip fields if provided
         if trip_data.diving_center_id is not None:
@@ -1201,12 +1201,12 @@ async def update_parsed_trip(
             trip.special_requirements = trip_data.special_requirements
         if trip_data.trip_status is not None:
             trip.trip_status = trip_data.trip_status
-        
+
         # Handle dives if provided
         if trip_data.dives is not None:
             # Delete existing dives
             db.query(ParsedDive).filter(ParsedDive.trip_id == trip_id).delete()
-            
+
             # Create new dives
             for dive_data in trip_data.dives:
                 dive = ParsedDive(
@@ -1218,10 +1218,10 @@ async def update_parsed_trip(
                     dive_description=dive_data.dive_description
                 )
                 db.add(dive)
-        
+
         db.commit()
         db.refresh(trip)
-        
+
         # Build the response with dives
         dive_responses = []
         for dive in trip.dives:
@@ -1237,7 +1237,7 @@ async def update_parsed_trip(
                 created_at=dive.created_at,
                 updated_at=dive.updated_at
             ))
-        
+
         return ParsedDiveTripResponse(
             id=trip.id,
             diving_center_id=trip.diving_center_id,
@@ -1258,7 +1258,7 @@ async def update_parsed_trip(
             created_at=trip.created_at,
             updated_at=trip.updated_at
         )
-        
+
     except Exception as e:
         logger.error(f"Error updating parsed trip: {e}")
-        raise HTTPException(status_code=500, detail=f"Error updating trip: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Error updating trip: {str(e)}")

@@ -116,30 +116,30 @@ def populate_diving_organizations():
             return
 
         print("🚀 Populating diving organizations table...")
-        
+
         for org_data in DIVING_ORGANIZATIONS:
             # Check if organization already exists
             existing_org = db.query(DivingOrganization).filter(
                 DivingOrganization.acronym == org_data["acronym"]
             ).first()
-            
+
             if existing_org:
                 print(f"⚠️  Organization {org_data['acronym']} already exists, skipping...")
                 continue
-            
+
             # Create new organization
             org = DivingOrganization(**org_data)
             db.add(org)
             print(f"✅ Added {org_data['acronym']} - {org_data['name']}")
-        
+
         # Commit all changes
         db.commit()
         print(f"🎉 Successfully populated {len(DIVING_ORGANIZATIONS)} diving organizations!")
-        
+
         # Display summary
         total_orgs = db.query(DivingOrganization).count()
         print(f"📊 Total diving organizations in database: {total_orgs}")
-        
+
     except Exception as e:
         print(f"❌ Error populating diving organizations: {e}")
         db.rollback()
@@ -152,21 +152,21 @@ def list_diving_organizations():
     db = SessionLocal()
     try:
         organizations = db.query(DivingOrganization).order_by(DivingOrganization.acronym).all()
-        
+
         if not organizations:
             print("📭 No diving organizations found in the database.")
             return
-        
+
         print(f"📋 Found {len(organizations)} diving organizations:")
         print("-" * 80)
-        
+
         for org in organizations:
             print(f"🔹 {org.acronym} - {org.name}")
             print(f"   Website: {org.website}")
             print(f"   Country: {org.country}")
             print(f"   Founded: {org.founded_year}")
             print()
-        
+
     except Exception as e:
         print(f"❌ Error listing diving organizations: {e}")
         raise
@@ -177,4 +177,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "list":
         list_diving_organizations()
     else:
-        populate_diving_organizations() 
+        populate_diving_organizations()

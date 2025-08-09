@@ -22,4 +22,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Remove avatar_url column from users table
-    op.drop_column('users', 'avatar_url') 
+    op.drop_column('users', 'avatar_url')

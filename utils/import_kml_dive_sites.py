@@ -20,7 +20,7 @@ from app.models import Base, DiveSite, AvailableTag, DiveSiteTag, SiteMedia
 # Icon to tag mapping based on the KML file analysis
 ICON_TO_TAG_MAPPING = {
     "icon-1.png": "Shore Dive",
-    "icon-2.png": "Boat Dive", 
+    "icon-2.png": "Boat Dive",
     "icon-3.png": "Wreck",
     "icon-4.png": "Reef",
     "icon-5.png": "Wall",
@@ -42,23 +42,23 @@ def parse_kml_file(kml_file_path: str) -> List[Dict]:
     """Parse the KML file and extract dive site information."""
     tree = ET.parse(kml_file_path)
     root = tree.getroot()
-    
+
     # Define the namespace
     ns = {'kml': 'http://www.opengis.net/kml/2.2'}
-    
+
     dive_sites = []
-    
+
     # Find all Placemark elements
     for placemark in root.findall('.//kml:Placemark', ns):
         site_data = {}
-        
+
         # Get name
         name_elem = placemark.find('kml:name', ns)
         if name_elem is not None:
             site_data['name'] = name_elem.text.strip()
         else:
             continue  # Skip if no name
-        
+
         # Get coordinates
         coords_elem = placemark.find('.//kml:coordinates', ns)
         if coords_elem is not None:
@@ -68,7 +68,7 @@ def parse_kml_file(kml_file_path: str) -> List[Dict]:
             if len(coords) >= 2:
                 site_data['longitude'] = Decimal(coords[0])
                 site_data['latitude'] = Decimal(coords[1])
-        
+
         # Get style URL to determine icon/tag
         style_elem = placemark.find('kml:styleUrl', ns)
         if style_elem is not None:
@@ -79,7 +79,7 @@ def parse_kml_file(kml_file_path: str) -> List[Dict]:
                 icon_num = icon_match.group(1)
                 icon_name = f"icon-{icon_num}.png"
                 site_data['icon'] = icon_name
-        
+
         # Get ExtendedData for additional information
         extended_data = placemark.find('kml:ExtendedData', ns)
         if extended_data is not None:
@@ -91,18 +91,18 @@ def parse_kml_file(kml_file_path: str) -> List[Dict]:
                     # Only add non-empty values
                     if value:
                         site_data[name_attr.lower()] = value
-        
+
         # Set description from ExtendedData, or empty string if not available
         site_data['description'] = site_data.get('description', '')
-        
+
         dive_sites.append(site_data)
-    
+
     return dive_sites
 
 def create_tags(db_session) -> Dict[str, int]:
     """Create tags in the database and return a mapping of tag names to IDs."""
     tag_mapping = {}
-    
+
     for tag_name in set(ICON_TO_TAG_MAPPING.values()):
         # Check if tag already exists
         existing_tag = db_session.query(AvailableTag).filter(AvailableTag.name == tag_name).first()
@@ -115,24 +115,24 @@ def create_tags(db_session) -> Dict[str, int]:
             db_session.commit()
             db_session.refresh(new_tag)
             tag_mapping[tag_name] = new_tag.id
-    
+
     return tag_mapping
 
 def import_dive_sites(dive_sites: List[Dict], db_session) -> None:
     """Import dive sites into the database."""
     # First, create all tags
     tag_mapping = create_tags(db_session)
-    
+
     # Create icon to tag mapping
     icon_to_tag = {}
     for icon, tag_name in ICON_TO_TAG_MAPPING.items():
         if tag_name in tag_mapping:
             icon_to_tag[icon] = tag_mapping[tag_name]
-    
+
     imported_count = 0
     updated_count = 0
     skipped_count = 0
-    
+
     for site_data in dive_sites:
         # Check if dive site already exists (by name and coordinates)
         existing_site = db_session.query(DiveSite).filter(
@@ -140,7 +140,7 @@ def import_dive_sites(dive_sites: List[Dict], db_session) -> None:
             DiveSite.latitude == site_data.get('latitude'),
             DiveSite.longitude == site_data.get('longitude')
         ).first()
-        
+
         if existing_site:
             # Update existing site with proper description if it's empty or malformed
             if not existing_site.description or existing_site.description.startswith('description: <br>'):
@@ -152,7 +152,7 @@ def import_dive_sites(dive_sites: List[Dict], db_session) -> None:
                 print(f"Skipping existing dive site: {site_data['name']}")
                 skipped_count += 1
             continue
-        
+
         # Create new dive site
         dive_site = DiveSite(
             name=site_data['name'],
@@ -162,11 +162,11 @@ def import_dive_sites(dive_sites: List[Dict], db_session) -> None:
             access_instructions=site_data.get('directions', ''),
             difficulty_level='intermediate'  # Default difficulty
         )
-        
+
         db_session.add(dive_site)
         db_session.commit()
         db_session.refresh(dive_site)
-        
+
         # Add tag if available
         icon = site_data.get('icon')
         if icon and icon in icon_to_tag:
@@ -176,7 +176,7 @@ def import_dive_sites(dive_sites: List[Dict], db_session) -> None:
                 tag_id=tag_id
             )
             db_session.add(site_tag)
-        
+
         # Add media links if available
         media_links = site_data.get('gx_media_links', '')
         if media_links:
@@ -190,11 +190,11 @@ def import_dive_sites(dive_sites: List[Dict], db_session) -> None:
                     description=f"Media for {dive_site.name}"
                 )
                 db_session.add(media)
-        
+
         db_session.commit()
         imported_count += 1
         print(f"Imported: {site_data['name']} (lat: {site_data.get('latitude')}, lng: {site_data.get('longitude')})")
-    
+
     print(f"\nImport completed:")
     print(f"  - Imported: {imported_count} dive sites")
     print(f"  - Updated: {updated_count} existing dive sites")
@@ -204,7 +204,7 @@ def import_dive_sites(dive_sites: List[Dict], db_session) -> None:
 def update_existing_descriptions(dive_sites: List[Dict], db_session) -> None:
     """Update descriptions for existing dive sites that have malformed descriptions."""
     updated_count = 0
-    
+
     for site_data in dive_sites:
         # Find existing site by name and coordinates
         existing_site = db_session.query(DiveSite).filter(
@@ -212,7 +212,7 @@ def update_existing_descriptions(dive_sites: List[Dict], db_session) -> None:
             DiveSite.latitude == site_data.get('latitude'),
             DiveSite.longitude == site_data.get('longitude')
         ).first()
-        
+
         if existing_site:
             # Check if description is malformed or empty
             if not existing_site.description or existing_site.description.startswith('description: <br>'):
@@ -220,25 +220,25 @@ def update_existing_descriptions(dive_sites: List[Dict], db_session) -> None:
                 db_session.commit()
                 print(f"Updated description for: {site_data['name']}")
                 updated_count += 1
-    
+
     print(f"\nDescription update completed:")
     print(f"  - Updated: {updated_count} dive sites")
 
 def main():
     """Main function to run the import."""
     kml_file_path = "map/doc.kml"
-    
+
     if not os.path.exists(kml_file_path):
         print(f"Error: KML file not found at {kml_file_path}")
         return
-    
+
     print("Parsing KML file...")
     dive_sites = parse_kml_file(kml_file_path)
     print(f"Found {len(dive_sites)} dive sites in KML file")
-    
+
     # Create database tables
     Base.metadata.create_all(bind=engine)
-    
+
     # Check command line arguments
     if len(sys.argv) > 1 and sys.argv[1] == "--update-descriptions":
         # Just update descriptions for existing sites
@@ -256,4 +256,4 @@ def main():
             db_session.close()
 
 if __name__ == "__main__":
-    main() 
+    main()

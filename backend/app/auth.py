@@ -82,15 +82,15 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     token_data = verify_token(credentials.credentials)
     if token_data is None:
         raise credentials_exception
-    
+
     user = db.query(User).filter(User.username == token_data.username).first()
     if user is None:
         raise credentials_exception
-    
+
     return user
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
@@ -124,7 +124,7 @@ async def is_admin_or_moderator(current_user: User = Depends(get_current_user)) 
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
         )
-    return current_user 
+    return current_user
 
 # Optional bearer for endpoints that don't require authentication
 async def get_optional_bearer_token(
@@ -149,4 +149,4 @@ async def get_current_user_optional(
         user = db.query(User).filter(User.username == token_data.username).first()
         return user
     except Exception:
-        return None 
+        return None

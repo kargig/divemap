@@ -17,14 +17,14 @@ def custom_key_func(request: Request) -> str:
     # Get client IP address
     client_ip = get_remote_address(request)
     print(f"[RATE_LIMIT] Key function - Client IP: {client_ip}")
-    
+
     # Skip rate limiting for localhost only
     if client_ip in ["127.0.0.1", "::1", "localhost"]:
         print(f"[RATE_LIMIT] Skipping rate limiting for IP: {client_ip}")
         elapsed = time.time() - start_time
         print(f"[RATE_LIMIT] Key function completed in {elapsed:.4f}s")
         return "localhost"  # Special key that won't be rate limited
-    
+
     # For all other requests, use IP address as key
     print(f"[RATE_LIMIT] Applying rate limiting for IP: {client_ip}")
     elapsed = time.time() - start_time
@@ -42,42 +42,42 @@ def skip_rate_limit_for_admin(limit_string: str):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             start_time = time.time()
-            
+
             # Get the request object from the function arguments
             request = None
             for arg in args:
                 if isinstance(arg, Request):
                     request = arg
                     break
-            
+
             # Also check kwargs for request
             if not request and 'request' in kwargs:
                 request = kwargs['request']
-            
+
             if request:
                 client_ip = get_remote_address(request)
-                
+
                 # Try to get current user by extracting token from headers
                 try:
                     # Extract authorization header
                     auth_header = request.headers.get("authorization")
-                    
+
                     if auth_header and auth_header.startswith("Bearer "):
                         token = auth_header[7:]  # Remove "Bearer " prefix
-                        
+
                         # Verify token and get user
                         token_data = verify_token(token)
-                        
+
                         if token_data:
                             # Get database session
-                            
+
                             # Properly manage database session
                             db = None
                             try:
                                 db = next(get_db())
-                                
+
                                 user = db.query(User).filter(User.username == token_data.username).first()
-                                
+
                                 if user:
                                     # Skip rate limiting for admin users
                                     if user.is_admin:
@@ -97,10 +97,10 @@ def skip_rate_limit_for_admin(limit_string: str):
                 except Exception as e:
                     # If there's any error, continue with normal rate limiting
                     pass
-                
+
             # Apply normal rate limiting using the limiter
             rate_limited_func = limiter.limit(limit_string)(func)
             return await rate_limited_func(*args, **kwargs)
-        
+
         return wrapper
-    return decorator 
+    return decorator

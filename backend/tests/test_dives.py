@@ -8,7 +8,7 @@ from app.models import Dive, DiveSite, DiveMedia, DiveTag, AvailableTag
 
 class TestDives:
     """Test dives endpoints."""
-    
+
     def test_create_dive_with_automatic_name(self, client, auth_headers, test_dive_site):
         """Test creating a dive with automatic name generation."""
         dive_data = {
@@ -22,16 +22,16 @@ class TestDives:
             "user_rating": 9,
             "is_private": False
         }
-        
+
         response = client.post("/api/v1/dives/", json=dive_data, headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["dive_site_id"] == test_dive_site.id
         assert data["name"] == f"{test_dive_site.name} - 2025/01/15"
         assert data["is_private"] == False
         assert data["user_username"] == "testuser"
-    
+
     def test_create_dive_with_custom_name(self, client, auth_headers, test_dive_site):
         """Test creating a dive with custom name."""
         dive_data = {
@@ -46,14 +46,14 @@ class TestDives:
             "user_rating": 9,
             "is_private": True
         }
-        
+
         response = client.post("/api/v1/dives/", json=dive_data, headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["name"] == "My Custom Dive Name"
         assert data["is_private"] == True
-    
+
     def test_get_own_dives(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test getting user's own dives."""
         # Create a dive for the test user
@@ -76,14 +76,14 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         response = client.get("/api/v1/dives/", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 1
         assert data[0]["user_username"] == test_user.username
-    
+
     def test_get_public_dives_from_other_user(self, client, auth_headers, db_session, test_dive_site):
         """Test getting public dives from another user."""
         # Create another user
@@ -96,7 +96,7 @@ class TestDives:
         )
         db_session.add(other_user)
         db_session.commit()
-        
+
         # Create a public dive by the other user
         other_dive = Dive(
             user_id=other_user.id,
@@ -109,14 +109,14 @@ class TestDives:
         )
         db_session.add(other_dive)
         db_session.commit()
-        
+
         response = client.get("/api/v1/dives/", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 1
         assert data[0]["user_username"] == other_user.username
-    
+
     def test_cannot_access_private_dive_from_other_user(self, client, auth_headers, db_session, test_dive_site):
         """Test that users cannot access private dives from other users."""
         # Create another user
@@ -129,7 +129,7 @@ class TestDives:
         )
         db_session.add(other_user)
         db_session.commit()
-        
+
         # Create a private dive by the other user
         private_dive = Dive(
             user_id=other_user.id,
@@ -142,13 +142,13 @@ class TestDives:
         )
         db_session.add(private_dive)
         db_session.commit()
-        
+
         response = client.get("/api/v1/dives/", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 0  # Should not see the private dive
-    
+
     def test_get_dive_details(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test getting detailed dive information."""
         # Create a dive
@@ -171,10 +171,10 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         response = client.get(f"/api/v1/dives/{dive.id}/details", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["id"] == dive.id
         assert data["name"] == dive.name
@@ -183,7 +183,7 @@ class TestDives:
         assert data["dive_site"]["name"] == test_dive_site.name
         assert data["dive_site"]["latitude"] == float(test_dive_site.latitude)
         assert data["dive_site"]["longitude"] == float(test_dive_site.longitude)
-    
+
     def test_update_dive_name(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test updating dive name."""
         # Create a dive
@@ -198,17 +198,17 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         update_data = {
             "name": "Updated Dive Name"
         }
-        
+
         response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["name"] == "Updated Dive Name"
-    
+
     def test_update_dive_privacy(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test updating dive privacy setting."""
         # Create a dive
@@ -223,17 +223,17 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         update_data = {
             "is_private": True
         }
-        
+
         response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["is_private"] == True
-    
+
     def test_filter_dives_by_user(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test filtering dives by user ID."""
         # Create a dive
@@ -248,14 +248,14 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         response = client.get(f"/api/v1/dives/?user_id={test_user.id}", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == dive.id
-    
+
     def test_filter_dives_by_date_range(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test filtering dives by date range."""
         # Create a dive
@@ -270,14 +270,14 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         response = client.get("/api/v1/dives/?start_date=2025-01-01&end_date=2025-01-31", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == dive.id
-    
+
     def test_filter_dives_by_depth(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test filtering dives by depth range."""
         # Create a dive
@@ -293,14 +293,14 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         response = client.get("/api/v1/dives/?min_depth=10&max_depth=20", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == dive.id
-    
+
     def test_delete_dive(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test deleting a dive."""
         # Create a dive
@@ -315,14 +315,14 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         response = client.delete(f"/api/v1/dives/{dive.id}", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         # Verify dive is deleted
         response = client.get(f"/api/v1/dives/{dive.id}", headers=auth_headers)
         assert response.status_code == status.HTTP_404_NOT_FOUND
-    
+
     def test_cannot_delete_other_users_dive(self, client, auth_headers, db_session, test_dive_site):
         """Test that users cannot delete dives from other users."""
         # Create another user
@@ -335,7 +335,7 @@ class TestDives:
         )
         db_session.add(other_user)
         db_session.commit()
-        
+
         # Create a dive by the other user
         other_dive = Dive(
             user_id=other_user.id,
@@ -348,10 +348,10 @@ class TestDives:
         )
         db_session.add(other_dive)
         db_session.commit()
-        
+
         response = client.delete(f"/api/v1/dives/{other_dive.id}", headers=auth_headers)
-        assert response.status_code == status.HTTP_404_NOT_FOUND  # Should not find the dive since it's not owned by test_user 
-    
+        assert response.status_code == status.HTTP_404_NOT_FOUND  # Should not find the dive since it's not owned by test_user
+
     def test_filter_dives_by_dive_site_name(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test filtering dives by dive site name."""
         # Create another dive site with a different name
@@ -367,7 +367,7 @@ class TestDives:
         )
         db_session.add(other_dive_site)
         db_session.commit()
-        
+
         # Create a dive with the original dive site
         dive1 = Dive(
             user_id=test_user.id,
@@ -379,7 +379,7 @@ class TestDives:
             duration=45
         )
         db_session.add(dive1)
-        
+
         # Create a dive with the other dive site
         dive2 = Dive(
             user_id=test_user.id,
@@ -392,29 +392,29 @@ class TestDives:
         )
         db_session.add(dive2)
         db_session.commit()
-        
+
         # Test filtering by dive site name (partial match)
         response = client.get(f"/api/v1/dives/?dive_site_name=Test", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 2  # Both dives should match since both dive sites contain "Test"
-        
+
         # Test filtering by specific dive site name
         response = client.get(f"/api/v1/dives/?dive_site_name={test_dive_site.name}", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 1
         assert data[0]["dive_site_id"] == test_dive_site.id
-        
+
         # Test filtering by non-matching dive site name
         response = client.get("/api/v1/dives/?dive_site_name=NonExistent", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 0  # No dives should match
-    
+
     def test_unauthenticated_user_can_access_public_dives(self, client, db_session, test_dive_site):
         """Test that unauthenticated users can access public dives."""
         # Create another user
@@ -427,7 +427,7 @@ class TestDives:
         )
         db_session.add(other_user)
         db_session.commit()
-        
+
         # Create a public dive by the other user
         public_dive = Dive(
             user_id=other_user.id,
@@ -447,7 +447,7 @@ class TestDives:
             duration=45
         )
         db_session.add(public_dive)
-        
+
         # Create a private dive by the other user
         private_dive = Dive(
             user_id=other_user.id,
@@ -468,50 +468,50 @@ class TestDives:
         )
         db_session.add(private_dive)
         db_session.commit()
-        
+
         # Test that unauthenticated user can access public dives list
         response = client.get("/api/v1/dives/")
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 1  # Only the public dive should be visible
         assert data[0]["name"] == "Public Dive"
         assert data[0]["is_private"] == False
-        
+
         # Test that unauthenticated user can access specific public dive
         response = client.get(f"/api/v1/dives/{public_dive.id}")
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["name"] == "Public Dive"
         assert data["is_private"] == False
-        
+
         # Test that unauthenticated user cannot access private dive
         response = client.get(f"/api/v1/dives/{private_dive.id}")
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        
+
         # Test that unauthenticated user can access public dive details
         response = client.get(f"/api/v1/dives/{public_dive.id}/details")
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["name"] == "Public Dive"
         assert data["is_private"] == False
-        
+
         # Test that unauthenticated user cannot access private dive details
         response = client.get(f"/api/v1/dives/{private_dive.id}/details")
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        
+
         # Test that unauthenticated user can access public dive media
         response = client.get(f"/api/v1/dives/{public_dive.id}/media")
         assert response.status_code == status.HTTP_200_OK
-        
+
         # Test that unauthenticated user cannot access private dive media
         response = client.get(f"/api/v1/dives/{private_dive.id}/media")
-        assert response.status_code == status.HTTP_403_FORBIDDEN 
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     # ===== DIVE CENTER FUNCTIONALITY TESTS =====
-    
+
     def test_create_dive_with_diving_center(self, client, auth_headers, test_dive_site, test_diving_center):
         """Test creating a dive with diving center association."""
         dive_data = {
@@ -526,10 +526,10 @@ class TestDives:
             "user_rating": 9,
             "is_private": False
         }
-        
+
         response = client.post("/api/v1/dives/", json=dive_data, headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["diving_center_id"] == test_diving_center.id
         assert data["diving_center"] is not None
@@ -541,7 +541,7 @@ class TestDives:
         assert data["diving_center"]["website"] == test_diving_center.website
         assert data["diving_center"]["latitude"] == float(test_diving_center.latitude)
         assert data["diving_center"]["longitude"] == float(test_diving_center.longitude)
-    
+
     def test_create_dive_with_invalid_diving_center(self, client, auth_headers, test_dive_site):
         """Test creating a dive with non-existent diving center."""
         dive_data = {
@@ -556,11 +556,11 @@ class TestDives:
             "user_rating": 9,
             "is_private": False
         }
-        
+
         response = client.post("/api/v1/dives/", json=dive_data, headers=auth_headers)
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "Diving center not found" in response.json()["detail"]
-    
+
     def test_get_dive_with_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test getting a dive that has diving center information."""
         # Create a dive with diving center
@@ -584,10 +584,10 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         response = client.get(f"/api/v1/dives/{dive.id}", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["diving_center_id"] == test_diving_center.id
         assert data["diving_center"] is not None
@@ -599,7 +599,7 @@ class TestDives:
         assert data["diving_center"]["website"] == test_diving_center.website
         assert data["diving_center"]["latitude"] == float(test_diving_center.latitude)
         assert data["diving_center"]["longitude"] == float(test_diving_center.longitude)
-    
+
     def test_get_dive_without_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test getting a dive that has no diving center association."""
         # Create a dive without diving center
@@ -623,14 +623,14 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         response = client.get(f"/api/v1/dives/{dive.id}", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["diving_center_id"] is None
         assert data["diving_center"] is None
-    
+
     def test_update_dive_add_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test updating a dive to add diving center association."""
         # Create a dive without diving center
@@ -654,21 +654,21 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         # Update dive to add diving center
         update_data = {
             "diving_center_id": test_diving_center.id
         }
-        
+
         response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["diving_center_id"] == test_diving_center.id
         assert data["diving_center"] is not None
         assert data["diving_center"]["id"] == test_diving_center.id
         assert data["diving_center"]["name"] == test_diving_center.name
-    
+
     def test_update_dive_change_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test updating a dive to change diving center association."""
         # Create another diving center
@@ -684,7 +684,7 @@ class TestDives:
         )
         db_session.add(other_diving_center)
         db_session.commit()
-        
+
         # Create a dive with initial diving center
         dive = Dive(
             user_id=test_user.id,
@@ -706,21 +706,21 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         # Update dive to change diving center
         update_data = {
             "diving_center_id": other_diving_center.id
         }
-        
+
         response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["diving_center_id"] == other_diving_center.id
         assert data["diving_center"] is not None
         assert data["diving_center"]["id"] == other_diving_center.id
         assert data["diving_center"]["name"] == other_diving_center.name
-    
+
     def test_update_dive_remove_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test updating a dive to remove diving center association."""
         # Create a dive with diving center
@@ -744,19 +744,19 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         # Update dive to remove diving center
         update_data = {
             "diving_center_id": None
         }
-        
+
         response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["diving_center_id"] is None
         assert data["diving_center"] is None
-    
+
     def test_update_dive_with_invalid_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test updating a dive with non-existent diving center."""
         # Create a dive
@@ -780,16 +780,16 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         # Try to update with non-existent diving center
         update_data = {
             "diving_center_id": 99999
         }
-        
+
         response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "Diving center not found" in response.json()["detail"]
-    
+
     def test_list_dives_with_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test listing dives that include diving center information."""
         # Create dives with and without diving center
@@ -812,7 +812,7 @@ class TestDives:
             duration=45
         )
         db_session.add(dive_with_center)
-        
+
         dive_without_center = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
@@ -833,25 +833,25 @@ class TestDives:
         )
         db_session.add(dive_without_center)
         db_session.commit()
-        
+
         response = client.get("/api/v1/dives/", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 2
-        
+
         # Check dive with center
         dive_with_center_data = next(d for d in data if d["name"] == "Dive with Center")
         assert dive_with_center_data["diving_center_id"] == test_diving_center.id
         assert dive_with_center_data["diving_center"] is not None
         assert dive_with_center_data["diving_center"]["id"] == test_diving_center.id
         assert dive_with_center_data["diving_center"]["name"] == test_diving_center.name
-        
+
         # Check dive without center
         dive_without_center_data = next(d for d in data if d["name"] == "Dive without Center")
         assert dive_without_center_data["diving_center_id"] is None
         assert dive_without_center_data["diving_center"] is None
-    
+
     def test_admin_get_dives_with_diving_center(self, client, admin_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test admin getting dives with diving center information."""
         # Create a dive with diving center
@@ -875,17 +875,17 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         response = client.get("/api/v1/dives/admin/dives", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 1
         assert data[0]["diving_center_id"] == test_diving_center.id
         assert data[0]["diving_center"] is not None
         assert data[0]["diving_center"]["id"] == test_diving_center.id
         assert data[0]["diving_center"]["name"] == test_diving_center.name
-    
+
     def test_admin_update_dive_diving_center(self, client, admin_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test admin updating dive diving center."""
         # Create a dive
@@ -909,21 +909,21 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         # Admin updates the dive to add diving center
         update_data = {
             "diving_center_id": test_diving_center.id
         }
-        
+
         response = client.put(f"/api/v1/dives/admin/dives/{dive.id}", json=update_data, headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["diving_center_id"] == test_diving_center.id
         assert data["diving_center"] is not None
         assert data["diving_center"]["id"] == test_diving_center.id
         assert data["diving_center"]["name"] == test_diving_center.name
-    
+
     def test_unauthenticated_user_can_see_public_dive_with_diving_center(self, client, db_session, test_dive_site, test_diving_center):
         """Test that unauthenticated users can see public dives with diving center."""
         # Create another user
@@ -936,7 +936,7 @@ class TestDives:
         )
         db_session.add(other_user)
         db_session.commit()
-        
+
         # Create a public dive by the other user with diving center
         dive = Dive(
             user_id=other_user.id,
@@ -958,11 +958,11 @@ class TestDives:
         )
         db_session.add(dive)
         db_session.commit()
-        
+
         # Test unauthenticated access
         response = client.get("/api/v1/dives/")
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 1
         assert data[0]["name"] == "Public Dive with Center - 2025/01/15"
@@ -976,12 +976,12 @@ class TestDives:
         # Create multiple dives for pagination testing
         dive_names = [
             "Alpha Dive - 2025/01/01",
-            "Beta Dive - 2025/01/02", 
+            "Beta Dive - 2025/01/02",
             "Charlie Dive - 2025/01/03",
             "Delta Dive - 2025/01/04",
             "Echo Dive - 2025/01/05"
         ]
-        
+
         for i, name in enumerate(dive_names):
             dive = Dive(
                 user_id=test_user.id,
@@ -1002,14 +1002,14 @@ class TestDives:
             )
             db_session.add(dive)
         db_session.commit()
-        
+
         # Test page 1 with page_size 25
         response = client.get("/api/v1/dives/?page=1&page_size=25", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 5  # All 5 dives fit in one page
-        
+
         # Check pagination headers
         assert response.headers["x-total-count"] == "5"
         assert response.headers["x-total-pages"] == "1"
@@ -1017,7 +1017,7 @@ class TestDives:
         assert response.headers["x-page-size"] == "25"
         assert response.headers["x-has-next-page"] == "false"
         assert response.headers["x-has-prev-page"] == "false"
-        
+
         # Check alphabetical sorting
         assert data[0]["name"] == "Alpha Dive - 2025/01/01"
         assert data[1]["name"] == "Beta Dive - 2025/01/02"
@@ -1043,9 +1043,9 @@ class TestDives:
             "Expert Dive - 2025/01/03",
             "Intermediate Dive - 2025/01/04"
         ]
-        
+
         difficulty_levels = ["advanced", "beginner", "expert", "intermediate"]
-        
+
         for i, (name, difficulty) in enumerate(zip(dive_names, difficulty_levels)):
             dive = Dive(
                 user_id=test_user.id,
@@ -1066,20 +1066,20 @@ class TestDives:
             )
             db_session.add(dive)
         db_session.commit()
-        
+
         # Test pagination with difficulty filter
         response = client.get(
             "/api/v1/dives/?page=1&page_size=25&difficulty_level=beginner",
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert len(data) == 1  # Only one beginner dive
         assert data[0]["name"] == "Beginner Dive - 2025/01/02"
         assert data[0]["difficulty_level"] == "beginner"
-        
+
         # Check pagination headers reflect filtered results
         assert response.headers["x-total-count"] == "1"
         assert response.headers["x-total-pages"] == "1"
-        assert response.headers["x-has-next-page"] == "false" 
+        assert response.headers["x-has-next-page"] == "false"

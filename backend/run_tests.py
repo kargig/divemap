@@ -10,20 +10,20 @@ import os
 def run_tests(test_path=None, verbose=False, coverage=True):
     """Run the test suite."""
     cmd = ["python", "-m", "pytest"]
-    
+
     if test_path:
         cmd.append(test_path)
     else:
         cmd.append("tests/")
-    
+
     if verbose:
         cmd.append("-v")
-    
+
     if coverage:
         cmd.extend(["--cov=app", "--cov-report=term-missing", "--cov-report=html"])
-    
+
     print(f"Running tests with command: {' '.join(cmd)}")
-    
+
     try:
         result = subprocess.run(cmd, check=True)
         print("\n✅ All tests passed!")
@@ -44,7 +44,7 @@ def main():
     """Main function to handle command line arguments."""
     if len(sys.argv) > 1:
         command = sys.argv[1]
-        
+
         if command == "all":
             run_tests(verbose=True)
         elif command == "auth":
@@ -76,4 +76,4 @@ Test Runner Usage:
         run_tests(verbose=True)
 
 if __name__ == "__main__":
-    main() 
+    main()

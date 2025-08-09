@@ -22,10 +22,10 @@ def upgrade() -> None:
     op.alter_column('user_certifications', 'certification_level',
                existing_type=mysql.VARCHAR(length=100),
                nullable=False)
-    
+
     # Drop the certification_name index
     op.drop_index(op.f('ix_user_certifications_certification_name'), table_name='user_certifications')
-    
+
     # Remove the unnecessary columns
     op.drop_column('user_certifications', 'certification_number')
     op.drop_column('user_certifications', 'certification_date')
@@ -37,11 +37,11 @@ def downgrade() -> None:
     op.add_column('user_certifications', sa.Column('certification_name', mysql.VARCHAR(length=100), nullable=False))
     op.add_column('user_certifications', sa.Column('certification_date', sa.DATE(), nullable=True))
     op.add_column('user_certifications', sa.Column('certification_number', mysql.VARCHAR(length=100), nullable=True))
-    
+
     # Recreate the certification_name index
     op.create_index(op.f('ix_user_certifications_certification_name'), 'user_certifications', ['certification_name'], unique=False)
-    
+
     # Make certification_level nullable again
     op.alter_column('user_certifications', 'certification_level',
                existing_type=mysql.VARCHAR(length=100),
-               nullable=True) 
+               nullable=True)

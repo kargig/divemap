@@ -45,14 +45,14 @@ async def create_diving_organization(
     ).first()
     if existing_org:
         raise HTTPException(status_code=400, detail="Organization with this acronym already exists")
-    
+
     # Check if organization with same name already exists
     existing_org = db.query(DivingOrganization).filter(
         DivingOrganization.name == organization.name
     ).first()
     if existing_org:
         raise HTTPException(status_code=400, detail="Organization with this name already exists")
-    
+
     db_organization = DivingOrganization(**organization.dict())
     db.add(db_organization)
     db.commit()
@@ -70,7 +70,7 @@ async def update_diving_organization(
     db_organization = db.query(DivingOrganization).filter(DivingOrganization.id == organization_id).first()
     if not db_organization:
         raise HTTPException(status_code=404, detail="Diving organization not found")
-    
+
     # Check for conflicts if acronym or name is being updated
     if organization.acronym and organization.acronym != db_organization.acronym:
         existing_org = db.query(DivingOrganization).filter(
@@ -78,19 +78,19 @@ async def update_diving_organization(
         ).first()
         if existing_org:
             raise HTTPException(status_code=400, detail="Organization with this acronym already exists")
-    
+
     if organization.name and organization.name != db_organization.name:
         existing_org = db.query(DivingOrganization).filter(
             DivingOrganization.name == organization.name
         ).first()
         if existing_org:
             raise HTTPException(status_code=400, detail="Organization with this name already exists")
-    
+
     # Update fields
     update_data = organization.dict(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_organization, field, value)
-    
+
     db.commit()
     db.refresh(db_organization)
     return db_organization
@@ -105,7 +105,7 @@ async def delete_diving_organization(
     db_organization = db.query(DivingOrganization).filter(DivingOrganization.id == organization_id).first()
     if not db_organization:
         raise HTTPException(status_code=404, detail="Diving organization not found")
-    
+
     db.delete(db_organization)
     db.commit()
-    return {"message": "Diving organization deleted successfully"} 
+    return {"message": "Diving organization deleted successfully"}

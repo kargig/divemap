@@ -23,4 +23,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Add back the alternative_names column (for rollback)
-    op.add_column('dive_sites', sa.Column('alternative_names', sa.Text(), nullable=True)) 
+    op.add_column('dive_sites', sa.Column('alternative_names', sa.Text(), nullable=True))

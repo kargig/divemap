@@ -14,13 +14,13 @@ from pathlib import Path
 def wait_for_database(max_retries=30, delay=2):
     """Wait for database to be available"""
     print("Waiting for database to be available...")
-    
+
     # Add the backend directory to Python path
     backend_dir = Path(__file__).parent
     sys.path.insert(0, str(backend_dir))
-    
+
     from app.database import engine
-    
+
     for attempt in range(max_retries):
         try:
             # Try to connect to the database
@@ -32,14 +32,14 @@ def wait_for_database(max_retries=30, delay=2):
             print(f"⏳ Database not ready (attempt {attempt + 1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
                 time.sleep(delay)
-    
+
     print("❌ Database is not available after maximum retries")
     return False
 
 def run_migrations():
     """Run Alembic migrations"""
     print("Running database migrations...")
-    
+
     try:
         # Run alembic upgrade head
         result = subprocess.run(
@@ -65,16 +65,16 @@ def run_migrations():
 def main():
     """Main function to run migrations"""
     print("🚀 Starting database migration process...")
-    
+
     # Wait for database to be available
     if not wait_for_database():
         sys.exit(1)
-    
+
     # Run migrations
     if not run_migrations():
         sys.exit(1)
-    
+
     print("✅ Database migration process completed successfully!")
 
 if __name__ == "__main__":
-    main() 
+    main()

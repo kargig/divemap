@@ -20,12 +20,12 @@ def get_all_tags_with_counts(db: Session = Depends(get_db)):
     """Get all available tags with count of associated dive sites"""
     # Get all tags
     tags = db.query(AvailableTag).order_by(AvailableTag.name.asc()).all()
-    
+
     result = []
     for tag in tags:
         # Count associated dive sites for this tag
         dive_site_count = db.query(DiveSiteTag).filter(DiveSiteTag.tag_id == tag.id).count()
-        
+
         tag_dict = {
             "id": tag.id,
             "name": tag.name,
@@ -35,7 +35,7 @@ def get_all_tags_with_counts(db: Session = Depends(get_db)):
             "dive_site_count": dive_site_count
         }
         result.append(tag_dict)
-    
+
     return result
 
 @router.post("/", response_model=TagResponse)
@@ -52,7 +52,7 @@ def create_tag(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Tag with this name already exists"
         )
-    
+
     db_tag = AvailableTag(
         name=tag.name,
         description=tag.description,
@@ -77,7 +77,7 @@ def update_tag(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Tag not found"
         )
-    
+
     if tag_update.name is not None:
         # Check if new name conflicts with existing tag
         existing_tag = db.query(AvailableTag).filter(
@@ -90,10 +90,10 @@ def update_tag(
                 detail="Tag with this name already exists"
             )
         db_tag.name = tag_update.name
-    
+
     if tag_update.description is not None:
         db_tag.description = tag_update.description
-    
+
     db.commit()
     db.refresh(db_tag)
     return db_tag
@@ -111,7 +111,7 @@ def delete_tag(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Tag not found"
         )
-    
+
     db.delete(db_tag)
     db.commit()
     return {"message": "Tag deleted successfully"}
@@ -132,7 +132,7 @@ def add_tag_to_dive_site(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
         )
-    
+
     # Verify tag exists
     tag = db.query(AvailableTag).filter(AvailableTag.id == tag_assignment.tag_id).first()
     if not tag:
@@ -140,19 +140,19 @@ def add_tag_to_dive_site(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Tag not found"
         )
-    
+
     # Check if tag is already assigned to this dive site
     existing_assignment = db.query(DiveSiteTag).filter(
         DiveSiteTag.dive_site_id == dive_site_id,
         DiveSiteTag.tag_id == tag_assignment.tag_id
     ).first()
-    
+
     if existing_assignment:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Tag is already assigned to this dive site"
         )
-    
+
     db_tag_assignment = DiveSiteTag(
         dive_site_id=dive_site_id,
         tag_id=tag_assignment.tag_id
@@ -174,13 +174,13 @@ def remove_tag_from_dive_site(
         DiveSiteTag.dive_site_id == dive_site_id,
         DiveSiteTag.tag_id == tag_id
     ).first()
-    
+
     if not tag_assignment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Tag assignment not found"
         )
-    
+
     db.delete(tag_assignment)
     db.commit()
-    return {"message": "Tag removed from dive site successfully"} 
+    return {"message": "Tag removed from dive site successfully"}

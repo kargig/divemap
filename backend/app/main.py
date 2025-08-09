@@ -53,13 +53,13 @@ app.add_middleware(
 @app.middleware("http")
 async def add_security_headers(request, call_next):
     response = await call_next(request)
-    
+
     # Security headers
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    
+
     # Check if this is a documentation endpoint
     if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
         # More permissive CSP for documentation endpoints
@@ -82,10 +82,10 @@ async def add_security_headers(request, call_next):
             "font-src 'self'; "
             "connect-src 'self'"
         )
-    
+
     response.headers["Content-Security-Policy"] = csp_policy
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    
+
     return response
 
 # Mount static files for uploads with security restrictions
@@ -117,18 +117,18 @@ async def get_statistics(db: Session = Depends(get_db)):
     try:
         # Count dives (only public ones for unauthenticated users)
         dive_count = db.query(func.count(Dive.id)).filter(Dive.is_private == False).scalar()
-        
+
         # Count dive sites
         dive_site_count = db.query(func.count(DiveSite.id)).scalar()
-        
+
         # Count reviews (site ratings + center ratings)
         site_review_count = db.query(func.count(SiteRating.id)).scalar()
         center_review_count = db.query(func.count(CenterRating.id)).scalar()
         total_review_count = site_review_count + center_review_count
-        
+
         # Count diving centers
         diving_center_count = db.query(func.count(DivingCenter.id)).scalar()
-        
+
         return {
             "dives": dive_count,
             "dive_sites": dive_site_count,

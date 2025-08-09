@@ -24,4 +24,4 @@ def upgrade() -> None:
 def downgrade() -> None:
     # Remove name and is_private fields from dives table
     op.drop_column('dives', 'is_private')
-    op.drop_column('dives', 'name') 
+    op.drop_column('dives', 'name')

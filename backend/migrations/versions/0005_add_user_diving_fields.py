@@ -29,7 +29,7 @@ def upgrade() -> None:
     # Add new columns to users table if they don't exist
     if not column_exists('users', 'diving_certification'):
         op.add_column('users', sa.Column('diving_certification', sa.String(length=100), nullable=True))
-    
+
     if not column_exists('users', 'number_of_dives'):
         op.add_column('users', sa.Column('number_of_dives', sa.Integer(), nullable=False, server_default='0'))
 
@@ -38,6 +38,6 @@ def downgrade() -> None:
     # Remove the columns if they exist
     if column_exists('users', 'number_of_dives'):
         op.drop_column('users', 'number_of_dives')
-    
+
     if column_exists('users', 'diving_certification'):
-        op.drop_column('users', 'diving_certification') 
+        op.drop_column('users', 'diving_certification')

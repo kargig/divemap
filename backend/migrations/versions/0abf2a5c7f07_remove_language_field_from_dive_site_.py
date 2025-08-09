@@ -23,4 +23,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Add back the language column (for rollback)
-    op.add_column('dive_site_aliases', sa.Column('language', sa.String(10), nullable=True, index=True)) 
+    op.add_column('dive_site_aliases', sa.Column('language', sa.String(10), nullable=True, index=True))

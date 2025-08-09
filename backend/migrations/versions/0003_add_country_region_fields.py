@@ -37,14 +37,14 @@ def upgrade() -> None:
     # Add country and region columns to dive_sites table if they don't exist
     if not column_exists('dive_sites', 'country'):
         op.add_column('dive_sites', sa.Column('country', sa.String(length=100), nullable=True))
-    
+
     if not column_exists('dive_sites', 'region'):
         op.add_column('dive_sites', sa.Column('region', sa.String(length=100), nullable=True))
-    
+
     # Create indexes for the new columns if they don't exist
     if not index_exists('ix_dive_sites_country', 'dive_sites'):
         op.create_index(op.f('ix_dive_sites_country'), 'dive_sites', ['country'], unique=False)
-    
+
     if not index_exists('ix_dive_sites_region', 'dive_sites'):
         op.create_index(op.f('ix_dive_sites_region'), 'dive_sites', ['region'], unique=False)
 
@@ -55,15 +55,15 @@ def downgrade() -> None:
         op.drop_index(op.f('ix_dive_sites_region'), table_name='dive_sites')
     except:
         pass
-    
+
     try:
         op.drop_index(op.f('ix_dive_sites_country'), table_name='dive_sites')
     except:
         pass
-    
+
     # Drop columns if they exist
     if column_exists('dive_sites', 'region'):
         op.drop_column('dive_sites', 'region')
-    
+
     if column_exists('dive_sites', 'country'):
-        op.drop_column('dive_sites', 'country') 
+        op.drop_column('dive_sites', 'country')
