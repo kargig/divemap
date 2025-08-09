@@ -155,6 +155,7 @@ async def get_dive_sites(
     tag_ids: Optional[List[int]] = Query(None),
     country: Optional[str] = Query(None, max_length=100),
     region: Optional[str] = Query(None, max_length=100),
+    my_dive_sites: Optional[bool] = Query(None, description="Filter to show only dive sites created by the current user"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, or 100)"),
     db: Session = Depends(get_db),
@@ -188,6 +189,10 @@ async def get_dive_sites(
     if region:
         sanitized_region = region.strip()[:100]
         query = query.filter(DiveSite.region.ilike(f"%{sanitized_region}%"))
+
+    # Apply my_dive_sites filtering
+    if my_dive_sites and current_user:
+        query = query.filter(DiveSite.created_by == current_user.id)
 
     # Apply tag filtering
     if tag_ids:
@@ -378,11 +383,14 @@ async def get_dive_sites_count(
 async def create_dive_site(
     request: Request,
     dive_site: DiveSiteCreate,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
 
-    db_dive_site = DiveSite(**dive_site.dict())
+    dive_site_data = dive_site.dict()
+    dive_site_data['created_by'] = current_user.id
+    
+    db_dive_site = DiveSite(**dive_site_data)
     db.add(db_dive_site)
     db.commit()
     db.refresh(db_dive_site)

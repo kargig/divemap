@@ -5,8 +5,10 @@ import { useNavigate, useSearchParams, Link as RouterLink } from 'react-router-d
 
 import api from '../api';
 import DiveSitesMap from '../components/DiveSitesMap';
+import { useAuth } from '../contexts/AuthContext';
 
 const DiveSites = () => {
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -28,6 +30,7 @@ const DiveSites = () => {
         .getAll('tag_ids')
         .map(id => parseInt(id))
         .filter(id => !isNaN(id)),
+      my_dive_sites: searchParams.get('my_dive_sites') === 'true',
     };
   };
 
@@ -76,6 +79,7 @@ const DiveSites = () => {
           if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
           if (newFilters.country) newSearchParams.set('country', newFilters.country);
           if (newFilters.region) newSearchParams.set('region', newFilters.region);
+          if (newFilters.my_dive_sites) newSearchParams.set('my_dive_sites', 'true');
 
           // Add tag IDs
           newFilters.tag_ids.forEach(tagId => {
@@ -112,6 +116,7 @@ const DiveSites = () => {
       if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
       if (newFilters.country) newSearchParams.set('country', newFilters.country);
       if (newFilters.region) newSearchParams.set('region', newFilters.region);
+      if (newFilters.my_dive_sites) newSearchParams.set('my_dive_sites', 'true');
 
       // Add tag IDs
       newFilters.tag_ids.forEach(tagId => {
@@ -158,6 +163,7 @@ const DiveSites = () => {
     filters.min_rating,
     filters.max_rating,
     filters.tag_ids,
+    filters.my_dive_sites,
     immediateUpdateURL,
   ]);
 
@@ -181,6 +187,7 @@ const DiveSites = () => {
       filters.min_rating,
       filters.max_rating,
       filters.tag_ids,
+      filters.my_dive_sites,
     ],
     () => {
       const params = new URLSearchParams();
@@ -195,6 +202,7 @@ const DiveSites = () => {
       filters.tag_ids.forEach(tagId => {
         params.append('tag_ids', tagId.toString());
       });
+      if (filters.my_dive_sites) params.append('my_dive_sites', 'true');
 
       return api.get(`/api/v1/dive-sites/count?${params.toString()}`).then(res => res.data);
     },
@@ -221,6 +229,7 @@ const DiveSites = () => {
       filters.min_rating,
       filters.max_rating,
       filters.tag_ids,
+      filters.my_dive_sites,
       pagination.page,
       pagination.page_size,
     ],
@@ -237,6 +246,7 @@ const DiveSites = () => {
       filters.tag_ids.forEach(tagId => {
         params.append('tag_ids', tagId.toString());
       });
+      if (filters.my_dive_sites) params.append('my_dive_sites', 'true');
 
       params.append('page', pagination.page.toString());
       params.append('page_size', pagination.page_size.toString());
@@ -268,6 +278,7 @@ const DiveSites = () => {
       country: '',
       region: '',
       tag_ids: [],
+      my_dive_sites: false,
     });
     setPagination(prev => ({ ...prev, page: 1 }));
   };
@@ -568,17 +579,6 @@ const DiveSites = () => {
               </div>
             </div>
 
-            {/* Create Dive Site Button */}
-            <div className='flex items-center gap-2'>
-              <button
-                onClick={() => navigate('/dive-sites/create')}
-                className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-2'
-              >
-                <Plus className='h-4 w-4' />
-                Create Dive Site
-              </button>
-            </div>
-
             {/* Pagination Controls */}
             <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
               {/* Page Size Selection */}
@@ -632,6 +632,39 @@ const DiveSites = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className='flex flex-col sm:flex-row justify-between items-center mb-6 gap-4'>
+        {user && (
+          <button
+            onClick={() => {
+              const newFilters = { ...filters, my_dive_sites: !filters.my_dive_sites };
+              setFilters(newFilters);
+              setPagination(prev => ({ ...prev, page: 1 }));
+              immediateUpdateURL(newFilters, { ...pagination, page: 1 }, viewMode);
+            }}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+              filters.my_dive_sites
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+            }`}
+          >
+            {filters.my_dive_sites ? '✓ My Dive Sites' : 'My Dive Sites'}
+          </button>
+        )}
+
+        {user && (
+          <div className='flex flex-col sm:flex-row gap-3'>
+            <button
+              onClick={() => navigate('/dive-sites/create')}
+              className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2'
+            >
+              <Plus size={20} />
+              Create Dive Site
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Results Section */}
