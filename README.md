@@ -21,7 +21,9 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 - **Gear Rental**: Manage diving center gear rental costs with multi-currency support
 - **Multi-Currency System**: Support for 10 major world currencies with Euro (€) as default
 - **Tag System**: Comprehensive tag/label management for dive sites and dives with enhanced validation
-- **Admin Dashboard**: Full administrative interface with separate management pages
+- **Admin Dashboard**: Full administrative interface with system monitoring and activity tracking
+- **System Monitoring**: Real-time platform statistics, health monitoring, and performance metrics
+- **Activity Tracking**: Comprehensive monitoring of user registrations, content creation, and system changes
 - **Mass Operations**: Bulk delete functionality for admin management
 - **Google OAuth**: Secure authentication with Google accounts
 - **Database Migrations**: Alembic-based version-controlled database schema management
@@ -99,6 +101,8 @@ For comprehensive documentation, see the [docs/](./docs/) directory:
 - **[API Documentation](./docs/development/api.md)** - API endpoints and usage
 - **[Database Guide](./docs/development/database.md)** - Database documentation and migrations
 - **[Testing Guide](./docs/development/testing.md)** - Testing procedures and best practices
+- **[Architecture Documentation](./docs/development/architecture.md)** - System architecture and admin dashboard features
+- **[Permissions Guide](./docs/development/permissions.md)** - User roles, permissions, and access control
 - **[Deployment Guide](./docs/deployment/README.md)** - Deployment strategies and infrastructure
 - **[Security Documentation](./docs/security/README.md)** - Security measures and best practices
 
@@ -160,6 +164,14 @@ python populate_diving_organizations.py list
 ```
 
 ## Core Features
+
+### **Enhanced Admin Dashboard & System Monitoring**
+- **System Overview Dashboard**: Real-time platform statistics including user counts, content metrics, and engagement data
+- **System Health Monitoring**: CPU, memory, disk usage, and database connectivity monitoring
+- **Recent Activity Tracking**: Monitor user registrations, content creation, comments, and system changes
+- **Performance Metrics**: Track API response times, error rates, and system performance indicators
+- **Backup & Export Management**: Automated data export and backup management capabilities
+- **Permission System**: Comprehensive role-based access control with admin, moderator, and user roles
 
 ### **Comprehensive Dive Site Management**
 - **Complete CRUD Operations**: Full create, read, update, delete functionality for dive sites
@@ -229,10 +241,14 @@ python populate_diving_organizations.py list
 
 ### **Admin Management System**
 - **Comprehensive Admin Interface**: Dedicated admin pages for all management areas
+- **System Overview Dashboard**: Real-time platform statistics, system health monitoring, and performance metrics
+- **Recent Activity Monitoring**: Track user registrations, content creation, comments, and system changes
+- **Backup and Export Management**: Automated data export and backup management capabilities
 - **Bulk Operations**: Mass delete functionality for efficient management
 - **Real-time Updates**: React Query integration for instant data refresh
 - **Modal Forms**: Clean inline create/edit interfaces
 - **Safety Features**: Protection against accidental deletions and data loss
+- **Permission System**: Role-based access control with comprehensive permission validation
 
 ### **Multi-Currency Support**
 - **10 Major Currencies**: Support for EUR, USD, GBP, AUD, CAD, CHF, JPY, SEK, NOK, DKK
@@ -242,10 +258,12 @@ python populate_diving_organizations.py list
 
 ### **Security & Performance**
 - **JWT Authentication**: Secure token-based authentication
+- **Role-Based Access Control**: Comprehensive permission system with admin, moderator, and user roles
 - **Rate Limiting**: Comprehensive API rate limiting with admin exemptions
 - **Input Validation**: Comprehensive client and server-side validation
 - **Database Migrations**: Alembic-based version-controlled schema management
 - **Container Optimization**: Pre-compiled wheels and IPv6 support for cloud deployment
+- **System Monitoring**: Real-time health monitoring and performance metrics
 
 ## API Documentation
 
@@ -262,6 +280,7 @@ The API provides RESTful endpoints for:
 - **Tag System** - Comprehensive tag management for dive sites and dives
 - **Media Management** - Photo and video uploads for dive sites and dives
 - **Rating & Comment System** - User ratings and comments for dive sites and centers
+- **System Administration** - Platform statistics, health monitoring, and activity tracking
 
 Interactive API documentation is available at: http://localhost:8000/docs
 

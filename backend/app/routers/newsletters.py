@@ -18,7 +18,7 @@ from difflib import SequenceMatcher
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["newsletters"])
+router = APIRouter()
 
 def similarity_ratio(a: str, b: str) -> float:
     """Calculate similarity ratio between two strings"""
