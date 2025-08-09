@@ -384,13 +384,19 @@ def update_dive_admin(
             )
 
     # Update name if provided, or regenerate if dive site changed
-    if dive_update.name is not None:
+    if dive_update.name is not None and dive_update.name.strip():
         dive.name = dive_update.name
     elif dive_update.dive_site_id and dive_update.dive_site_id != dive.dive_site_id:
         # Regenerate name if dive site changed
         dive_site = db.query(DiveSite).filter(DiveSite.id == dive_update.dive_site_id).first()
         if dive_site:
             dive.name = generate_dive_name(dive_site.name, dive.dive_date)
+    elif dive_update.name is not None and not dive_update.name.strip():
+        # If name is explicitly set to empty/whitespace, regenerate it
+        if dive.dive_site_id:
+            dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
+            if dive_site:
+                dive.name = generate_dive_name(dive_site.name, dive.dive_date)
 
     # Update other fields
     for field, value in dive_update.dict(exclude_unset=True).items():
@@ -1280,13 +1286,19 @@ def update_dive(
             )
 
     # Update name if provided, or regenerate if dive site changed
-    if dive_update.name is not None:
+    if dive_update.name is not None and dive_update.name.strip():
         dive.name = dive_update.name
     elif dive_update.dive_site_id and dive_update.dive_site_id != dive.dive_site_id:
         # Regenerate name if dive site changed
         dive_site = db.query(DiveSite).filter(DiveSite.id == dive_update.dive_site_id).first()
         if dive_site:
             dive.name = generate_dive_name(dive_site.name, dive.dive_date)
+    elif dive_update.name is not None and not dive_update.name.strip():
+        # If name is explicitly set to empty/whitespace, regenerate it
+        if dive.dive_site_id:
+            dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
+            if dive_site:
+                dive.name = generate_dive_name(dive_site.name, dive.dive_date)
 
     # Update other fields
     for field, value in dive_update.dict(exclude_unset=True).items():

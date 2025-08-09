@@ -300,7 +300,7 @@ const EditDive = () => {
         formData.diving_center_id && formData.diving_center_id !== ''
           ? parseInt(formData.diving_center_id)
           : null,
-      name: formData.name || null,
+      name: formData.name !== undefined ? formData.name : null,
       is_private: formData.is_private || false,
       dive_information: formData.dive_information || null,
       max_depth: formData.max_depth ? parseFloat(formData.max_depth) : null,
@@ -600,7 +600,7 @@ const EditDive = () => {
               type='number'
               min='0'
               max='1000'
-              step='0.1'
+              step='any'
               value={formData.max_depth || ''}
               onChange={e => handleInputChange('max_depth', e.target.value)}
               className='w-full border border-gray-300 rounded-md px-3 py-2'
@@ -616,7 +616,7 @@ const EditDive = () => {
               type='number'
               min='0'
               max='1000'
-              step='0.1'
+              step='any'
               value={formData.average_depth || ''}
               onChange={e => handleInputChange('average_depth', e.target.value)}
               className='w-full border border-gray-300 rounded-md px-3 py-2'
