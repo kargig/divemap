@@ -28,6 +28,9 @@ const Register = () => {
       try {
         const success = await registerWithGoogle(credential);
         if (success) {
+          toast.success(
+            'Google registration successful! Your account is now active and ready to use.'
+          );
           navigate('/');
         }
       } catch (error) {
@@ -115,7 +118,9 @@ const Register = () => {
     try {
       const success = await register(formData.username, formData.email, formData.password);
       if (success) {
-        toast.success('Registration successful! Your account is pending admin approval.');
+        toast.success(
+          "Registration successful! Your account is pending admin approval. You'll be notified once approved."
+        );
         navigate('/');
       }
     } catch (error) {
@@ -274,7 +279,7 @@ const Register = () => {
                   <div id='google-signup-button' className='w-full flex justify-center'></div>
                   {googleLoading && (
                     <div className='mt-2 text-center text-sm text-gray-600'>
-                      Creating account with Google...
+                      Creating account with Google... (Account will be immediately active)
                     </div>
                   )}
                 </div>
@@ -293,11 +298,15 @@ const Register = () => {
                 </svg>
               </div>
               <div className='ml-3'>
-                <h3 className='text-sm font-medium text-blue-800'>Account Approval Required</h3>
+                <h3 className='text-sm font-medium text-blue-800'>Account Activation</h3>
                 <div className='mt-2 text-sm text-blue-700'>
+                  <p className='mb-2'>
+                    <strong>Google Sign-In:</strong> Your account will be automatically activated
+                    and ready to use immediately.
+                  </p>
                   <p>
-                    New accounts require admin approval before you can access all features. be
-                    notified once your account is approved.
+                    <strong>Username/Password:</strong> New accounts require admin approval before
+                    you can access all features. You'll be notified once your account is approved.
                   </p>
                 </div>
               </div>

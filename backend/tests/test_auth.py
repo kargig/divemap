@@ -1,6 +1,7 @@
 import pytest
 from fastapi import status
 from app.models import User
+from unittest.mock import patch, MagicMock
 
 class TestAuth:
     """Test authentication endpoints."""
@@ -73,6 +74,97 @@ class TestAuth:
         response = client.post("/api/v1/auth/google-login", json={"token": "invalid_token"})
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @patch('app.google_auth.verify_google_token')
+    @patch('app.google_auth.get_or_create_google_user')
+    def test_google_login_new_user_automatically_enabled(self, mock_get_or_create_user, mock_verify_token, client, db_session):
+        """Test that new Google users are automatically enabled."""
+        # Mock Google token verification
+        mock_verify_token.return_value = {
+            'sub': 'google_user_123',
+            'email': 'googleuser@example.com',
+            'name': 'Google User',
+            'picture': 'https://example.com/avatar.jpg'
+        }
+
+        # Mock user creation - this should return a user with enabled=True
+        mock_user = User(
+            username="googleuser",
+            email="googleuser@example.com",
+            google_id="google_user_123",
+            name="Google User",
+            avatar_url="https://example.com/avatar.jpg",
+            enabled=True,  # Google users should be enabled by default
+            is_admin=False,
+            is_moderator=False
+        )
+        mock_get_or_create_user.return_value = mock_user
+
+        # Test Google login
+        response = client.post("/api/v1/auth/google-login", json={
+            "token": "valid_google_token"
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+
+        # Verify that the user was created with enabled=True
+        mock_get_or_create_user.assert_called_once()
+        created_user = mock_get_or_create_user.call_args[0][1]  # Second argument is google_user_info
+        assert created_user['email'] == 'googleuser@example.com'
+
+    @patch('app.google_auth.verify_google_token')
+    @patch('app.google_auth.get_or_create_google_user')
+    def test_google_login_existing_user_remains_enabled(self, mock_get_or_create_user, mock_verify_token, client, db_session):
+        """Test that existing Google users remain enabled."""
+        # Mock Google token verification
+        mock_verify_token.return_value = {
+            'sub': 'google_user_123',
+            'email': 'existing@example.com',
+            'name': 'Existing User',
+            'picture': 'https://example.com/avatar.jpg'
+        }
+
+        # Mock existing user - should remain enabled
+        existing_user = User(
+            username="existinguser",
+            email="existing@example.com",
+            google_id="google_user_123",
+            name="Existing User",
+            avatar_url="https://example.com/avatar.jpg",
+            enabled=True,  # Should remain enabled
+            is_admin=False,
+            is_moderator=False
+        )
+        mock_get_or_create_user.return_value = existing_user
+
+        # Test Google login
+        response = client.post("/api/v1/auth/google-login", json={
+            "token": "valid_google_token"
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+
+    def test_regular_registration_creates_disabled_user(self, client, db_session):
+        """Test that regular registration creates a user with enabled=False."""
+        response = client.post("/api/v1/auth/register", json={
+            "username": "newuser",
+            "email": "newuser@example.com",
+            "password": "Password123!"
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        
+        # Verify the user was created in the database with enabled=False
+        user = db_session.query(User).filter(User.username == "newuser").first()
+        assert user is not None
+        assert user.enabled is False  # Regular users should be disabled by default
+        assert user.google_id is None  # Should not have Google ID
 
     def test_login_success(self, client, test_user):
         """Test successful login."""
@@ -153,7 +245,7 @@ class TestAuth:
 
     def test_get_current_user_invalid_token(self, client):
         """Test getting current user with invalid token."""
-        response = client.get("/api/v1/auth/me", headers={"Authorization": "Bearer invalid_token"})
+        response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer invalid_token"})
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
