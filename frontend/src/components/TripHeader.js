@@ -1,0 +1,112 @@
+import { Calendar, DollarSign, Users, ArrowLeft } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+
+import { formatPrice, formatDate } from '../utils/tripHelpers';
+
+const TripHeader = ({ trip }) => {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      {/* Breadcrumb Navigation */}
+      <nav className='flex items-center space-x-2 text-sm text-gray-600 mb-6'>
+        <Link to='/dive-trips' className='hover:text-blue-600'>
+          Dive Trips
+        </Link>
+        <span>/</span>
+        <span className='text-gray-900 font-medium'>{trip.trip_name || 'Trip Details'}</span>
+      </nav>
+
+      {/* Back Button */}
+      <button
+        onClick={() => navigate('/dive-trips')}
+        className='flex items-center space-x-2 text-blue-600 hover:text-blue-800 mb-6 transition-colors'
+      >
+        <ArrowLeft className='w-4 h-4' />
+        <span>Back to Trips</span>
+      </button>
+
+      {/* Trip Header */}
+      <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6'>
+        <div className='flex flex-col lg:flex-row lg:items-start lg:justify-between'>
+          <div className='flex-1'>
+            <h1 className='text-3xl font-bold text-gray-900 mb-2'>
+              {trip.trip_name || 'Dive Trip'}
+            </h1>
+            <p className='text-gray-600 text-lg mb-4'>
+              {trip.description || 'Experience an amazing diving adventure'}
+            </p>
+
+            {/* Trip Meta Information */}
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
+              <div className='flex items-center space-x-3'>
+                <Calendar className='w-5 h-5 text-gray-500' />
+                <div>
+                  <div className='text-sm text-gray-500'>Date</div>
+                  <div className='font-medium'>{formatDate(trip.trip_date)}</div>
+                </div>
+              </div>
+
+              <div className='flex items-center space-x-3'>
+                <DollarSign className='w-5 h-5 text-gray-500' />
+                <div>
+                  <div className='text-sm text-gray-500'>Price</div>
+                  <div className='font-medium'>{formatPrice(trip.price)}</div>
+                </div>
+              </div>
+
+              <div className='flex items-center space-x-3'>
+                <Users className='w-5 h-5 text-gray-500' />
+                <div>
+                  <div className='text-sm text-gray-500'>Max Group Size</div>
+                  <div className='font-medium'>{trip.max_group_size || 'Contact center'}</div>
+                </div>
+              </div>
+
+              <div className='flex items-center space-x-3'>
+                <div className='w-5 h-5'></div>
+                <div>
+                  <div className='text-sm text-gray-500'>Status</div>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      trip.status === 'confirmed'
+                        ? 'bg-green-100 text-green-800'
+                        : trip.status === 'scheduled'
+                          ? 'bg-blue-100 text-blue-800'
+                          : trip.status === 'cancelled'
+                            ? 'bg-red-100 text-red-800'
+                            : trip.status === 'completed'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    {trip.status || 'Active'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Trip Image Placeholder */}
+          <div className='mt-6 lg:mt-0 lg:ml-6'>
+            <div className='w-64 h-48 bg-gray-200 rounded-lg flex items-center justify-center'>
+              {trip.trip_image_url ? (
+                <img
+                  src={trip.trip_image_url}
+                  alt={trip.trip_name}
+                  className='w-full h-full object-cover rounded-lg'
+                />
+              ) : (
+                <div className='text-center text-gray-500'>
+                  <div className='text-sm'>Trip Image</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default TripHeader;

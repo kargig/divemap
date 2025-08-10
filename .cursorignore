@@ -1,0 +1,6 @@
+map/*
+backend/divemap_venv/*
+venv/*
+database_backups/*
+frontend/node_modules/*
+frontend/build/*

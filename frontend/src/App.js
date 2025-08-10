@@ -39,6 +39,7 @@ import Login from './pages/Login';
 import Privacy from './pages/Privacy';
 import Profile from './pages/Profile';
 import Register from './pages/Register';
+import TripDetail from './pages/TripDetail';
 import UserProfile from './pages/UserProfile';
 
 const queryClient = new QueryClient({
@@ -292,6 +293,7 @@ function App() {
                   }
                 />
                 <Route path='/dive-trips' element={<DiveTrips />} />
+                <Route path='/dive-trips/:id' element={<TripDetail />} />
               </Routes>
             </main>
             <Toaster
