@@ -309,12 +309,28 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 # Rate Limiting
 RATE_LIMIT_PER_MINUTE=60
 
-# CORS
-ALLOWED_ORIGINS=https://divemap.fly.dev,https://divemap-backend.fly.dev
+# CORS Configuration
+# Comma-separated list of allowed origins for CORS
+# This controls which domains can make requests to your API
+# Example: ALLOWED_ORIGINS=https://divemap.fly.dev
+ALLOWED_ORIGINS=https://divemap.fly.dev,https://divemap-frontend.fly.dev
 
 # Monitoring
 SENTRY_DSN=your-sentry-dsn
 LOG_LEVEL=INFO
+```
+
+### CORS Configuration
+
+The application uses CORS (Cross-Origin Resource Sharing) to control which domains can access your API. This is crucial for security and proper frontend-backend communication.
+
+#### Environment Variable
+```bash
+# Set allowed origins (comma-separated)
+ALLOWED_ORIGINS=https://divemap.fly.dev,https://divemap-frontend.fly.dev
+```
+
+# Look for Access-Control-Allow-Origin header in response
 ```
 
 ### Configuration Management

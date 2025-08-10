@@ -339,6 +339,10 @@ fly secrets set SECRET_KEY="your-secure-secret-key-here" -a divemap-backend
 fly secrets set GOOGLE_CLIENT_ID="your-google-client-id" -a divemap-backend
 fly secrets set GOOGLE_CLIENT_SECRET="your-google-client-secret" -a divemap-backend
 
+# CORS Configuration
+# Set allowed origins for your frontend domains
+fly secrets set ALLOWED_ORIGINS="https://divemap-domain.com" -a divemap-backend
+
 # Redis (if using)
 fly secrets set REDIS_URL="redis://divemap-redis.internal:6379" -a divemap-backend
 ```
@@ -363,6 +367,19 @@ Set these secrets for the database:
 # Database passwords
 fly secrets set MYSQL_ROOT_PASSWORD="your-secure-root-password" -a divemap-db
 fly secrets set MYSQL_PASSWORD="your-secure-password" -a divemap-db
+```
+
+## CORS Configuration
+
+### Overview
+CORS (Cross-Origin Resource Sharing) is configured to allow your frontend domains to communicate with the backend API. This is essential for the application to function properly.
+
+### Configuration
+The `ALLOWED_ORIGINS` environment variable controls which domains can access your API:
+
+```bash
+# Set allowed origins (comma-separated)
+fly secrets set ALLOWED_ORIGINS="https://divemap.fly.dev" -a divemap-backend
 ```
 
 ## Security Benefits

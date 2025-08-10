@@ -62,6 +62,10 @@ docker-compose exec frontend npm test
 DATABASE_URL=mysql+pymysql://prod_user:prod_password@prod-host:3306/divemap
 SECRET_KEY=your-secure-secret-key
 DEBUG=false
+
+# CORS Configuration
+# Comma-separated list of allowed origins
+ALLOWED_ORIGINS=https://divemap.fly.dev
 ```
 
 ### Deployment Commands
@@ -107,6 +111,20 @@ docker-compose exec backend ping db
 
 # Check volume mounts
 docker volume ls
+```
+
+## CORS Configuration
+
+### Overview
+CORS (Cross-Origin Resource Sharing) controls which domains can access your API. This is configured via the `ALLOWED_ORIGINS` environment variable.
+
+
+### Docker Compose Setup
+The `docker-compose.yml` files automatically handle CORS configuration:
+
+```yaml
+environment:
+  - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
 ```
 
 ## Best Practices

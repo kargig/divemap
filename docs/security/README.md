@@ -99,7 +99,8 @@ Security is a critical aspect of the Divemap application. This document outlines
 ### 5. CORS Configuration
 
 **Restrictive CORS Settings:**
-- Limited allowed origins (localhost for development)
+- Environment-driven allowed origins configuration
+- Limited to trusted domains only (no wildcards)
 - Specific HTTP methods allowed
 - Credentials support enabled
 - Max age set to 1 hour
@@ -209,12 +210,18 @@ RATE_LIMITS = {
 ### 4. CORS Configuration
 
 **Issue:** Overly permissive CORS settings
-**Fix:** Implemented restrictive CORS configuration
+**Fix:** Implemented restrictive CORS configuration with environment-driven origins
 ```python
-ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "https://divemap.fly.dev"
-]
+# Environment-driven CORS configuration
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+if allowed_origins_env:
+    allow_origins = [origin.strip() for origin in allowed_origins_env.split(",")]
+else:
+    # Default development origins
+    allow_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+    ]
 ```
 
 ## Current Security Status
