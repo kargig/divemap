@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = '0019_add_created_by_field'
-down_revision = '0018_depth_precision'
+revision = '0019_add_created_by_field_to_dive_sites_table'
+down_revision = '0018_increase_depth_precision_to_3_decimal_places'
 branch_labels = None
 depends_on = None
 

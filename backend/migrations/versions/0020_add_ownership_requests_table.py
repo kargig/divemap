@@ -1,7 +1,7 @@
 """Add ownership requests table for tracking ownership history
 
 Revision ID: 0020_add_ownership_requests_table
-Revises: 0019_add_created_by_field
+Revises: 0019_add_created_by_field_to_dive_sites_table
 Create Date: 2025-08-10 13:56:48.413763
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.
-revision = '0020_add_ownership_requests'
-down_revision = '0019_add_created_by_field'
+revision = '0020_add_ownership_requests_table'
+down_revision = '0019_add_created_by_field_to_dive_sites_table'
 branch_labels = None
 depends_on = None
 

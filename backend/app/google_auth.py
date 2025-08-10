@@ -9,6 +9,9 @@ from app.models import User
 from app.auth import create_access_token, get_password_hash
 from datetime import timedelta
 from app.auth import ACCESS_TOKEN_EXPIRE_MINUTES
+import re
+from sqlalchemy.exc import IntegrityError
+import time
 
 # Google OAuth configuration
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
@@ -77,34 +80,88 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
         # Update user's Google ID if not set
         if not existing_user.google_id:
             existing_user.google_id = google_id
-            db.commit()
+        # Update name if not set and we have one from Google
+        if not existing_user.name and google_user_info.get('name'):
+            existing_user.name = google_user_info.get('name')
+        db.commit()
+        return existing_user
+
+    # Check if user exists by Google ID
+    existing_user = db.query(User).filter(User.google_id == google_id).first()
+    if existing_user:
         return existing_user
 
     # Create new user
-    username = google_user_info.get('name', email.split('@')[0])
-    # Ensure username is unique
-    base_username = username
-    counter = 1
-    while db.query(User).filter(User.username == username).first():
-        username = f"{base_username}{counter}"
-        counter += 1
-
+    # Generate username from first part of email
+    username = _generate_valid_username(db, email)
+    
+    # Get profile picture URL and name if available
+    picture_url = google_user_info.get('picture')
+    full_name = google_user_info.get('name', '')
+    
+    # Create new user
     new_user = User(
         username=username,
+        name=full_name,  # Store the full name from Google
         email=email,
         google_id=google_id,
+        avatar_url=picture_url,
         enabled=True,  # Google users are enabled by default
         is_admin=False,
-        is_moderator=False,
-        # Generate a random password hash for Google users
-        password_hash=get_password_hash(os.urandom(32).hex())
+        is_moderator=False
     )
 
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return new_user
+    except IntegrityError as e:
+        db.rollback()
+        raise GoogleAuthError(f"Failed to create user: {str(e)}")
 
-    return new_user
+
+def _generate_valid_username(db: Session, email: str) -> str:
+    """
+    Generate a valid username from the first part of the email address.
+    If the username already exists, append a random numeric suffix.
+    
+    Args:
+        db: Database session
+        email: User's email address
+        
+    Returns:
+        Valid username string
+    """
+    # Extract first part of email (before @)
+    email_prefix = email.split('@')[0].lower()
+    
+    # Extract only the first part before the first dot (if any)
+    username = email_prefix.split('.')[0]
+    
+    # Remove any special characters that don't match the pattern ^[a-zA-Z0-9_]+$
+    username = re.sub(r'[^a-zA-Z0-9_]', '', username)
+    
+    # Ensure username is not empty
+    if not username:
+        username = "user"
+    
+    # Check if username already exists, if so, append a random numeric suffix
+    base_username = username
+    import random
+    
+    while db.query(User).filter(User.username == username).first():
+        # Generate a random 3-digit number
+        suffix = random.randint(100, 999)
+        username = f"{base_username}{suffix}"
+        
+        # Prevent infinite loop (very unlikely but safe)
+        if len(username) > 50:  # Max username length is 50
+            username = f"{base_username}_{int(time.time())}"
+            break
+    
+    return username
+
 
 def authenticate_google_user(token: str, db: Session) -> str:
     """

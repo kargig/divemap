@@ -56,6 +56,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, index=True, nullable=False)
+    name = Column(String(255), nullable=True)  # User's full name (can contain multiple words)
     email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     google_id = Column(String(255), unique=True, index=True, nullable=True)  # Google OAuth ID
