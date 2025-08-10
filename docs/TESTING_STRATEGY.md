@@ -78,6 +78,93 @@ def test_engagement_activity(self, client, admin_headers):
 - **ESLint Compliance**: All formatting issues resolved ✅
 - **API Testing**: All new monitoring endpoints functional ✅
 
+### ✅ Added: Advanced Search and Client IP Detection Testing
+
+**New Features Added:**
+- **Advanced Trip Search**: Full-text search across trip descriptions, special requirements, diving center names, dive site names, and dive descriptions
+- **Location-Based Filtering**: Filter by country, region, and address with intelligent matching
+- **Duration Filtering**: Filter trips by minimum and maximum duration
+- **Advanced Sorting**: Sort by relevance, date, duration, and other criteria
+- **Client IP Detection**: Robust proxy header analysis for accurate client identification in rate limiting
+- **Enhanced Rate Limiting**: Intelligent admin exemptions with client IP validation
+
+**New Test Categories Added:**
+```python
+# Advanced Search Tests
+def test_advanced_trip_search(self, client, user_headers):
+    """Test full-text search across multiple trip fields."""
+
+def test_location_based_filtering(self, client, user_headers):
+    """Test location filtering by country, region, and address."""
+
+def test_duration_filtering(self, client, user_headers):
+    """Test trip filtering by minimum and maximum duration."""
+
+def test_advanced_sorting(self, client, user_headers):
+    """Test sorting by relevance, date, duration, and other criteria."""
+
+# Client IP Detection Tests
+def test_client_ip_detection_proxy_headers(self, client):
+    """Test client IP detection from various proxy headers."""
+
+def test_rate_limiting_with_client_ip(self, client):
+    """Test rate limiting with accurate client IP detection."""
+
+def test_admin_rate_limit_exemption(self, client, admin_headers):
+    """Test admin rate limit exemptions with client IP validation."""
+```
+
+**Search Functionality Tests:**
+```python
+# Test search across multiple fields
+def test_search_across_trip_fields(self, client, user_headers):
+    """Test search functionality across trip descriptions, requirements, and associated data."""
+
+def test_search_with_location_filtering(self, client, user_headers):
+    """Test search combined with location-based filtering."""
+
+def test_search_with_duration_filtering(self, client, user_headers):
+    """Test search combined with duration filtering."""
+
+def test_search_sorting_options(self, client, user_headers):
+    """Test various sorting options for search results."""
+```
+
+**Client IP Detection Tests:**
+```python
+# Test proxy header handling
+def test_x_forwarded_for_header(self, client):
+    """Test client IP detection from X-Forwarded-For header."""
+
+def test_x_real_ip_header(self, client):
+    """Test client IP detection from X-Real-IP header."""
+
+def test_cf_connecting_ip_header(self, client):
+    """Test client IP detection from Cloudflare headers."""
+
+def test_proxy_chain_analysis(self, client):
+    """Test intelligent proxy chain analysis for accurate IP detection."""
+```
+
+**Frontend Integration Tests:**
+- Advanced search form with multiple filter options
+- Search results display with sorting controls
+- Location filtering interface
+- Duration range selection
+- Real-time search results updates
+
+**API Endpoint Tests:**
+- `GET /api/v1/newsletters/trips` - Advanced search with filtering and sorting
+- `GET /api/v1/admin/system/overview` - System overview with client IP detection
+- Rate limiting endpoints with client IP validation
+
+**Testing Results:**
+- **Backend Tests**: All advanced search endpoints working correctly ✅
+- **Frontend Validation**: Advanced search interface operational ✅
+- **ESLint Compliance**: All formatting issues resolved ✅
+- **Client IP Detection**: Accurate proxy header analysis ✅
+- **Rate Limiting**: Intelligent admin exemptions with IP validation ✅
+
 ### ✅ Added: Enhanced User Profile Management Testing
 
 **New Features Added:**

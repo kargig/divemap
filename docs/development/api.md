@@ -1677,11 +1677,20 @@ Re-parse existing newsletter (admin/moderator only).
 ```
 
 #### GET /newsletters/trips
-Get parsed dive trips (admin/moderator only).
+Get parsed dive trips with advanced search, filtering, and sorting (registered users only).
 
-**Headers:** `Authorization: Bearer <admin_token>`
+**Headers:** `Authorization: Bearer <user_token>`
 
 **Query Parameters:**
+- `search`: Full-text search across trip descriptions, special requirements, diving center names, dive site names, and dive descriptions
+- `location`: Location-based search filtering by country, region, and address
+- `min_duration`: Minimum trip duration in minutes
+- `max_duration`: Maximum trip duration in minutes
+- `sort_by`: Sort options: date, price, duration, difficulty, popularity, distance
+- `user_lat`: User latitude for distance calculations (required for distance sorting)
+- `user_lon`: User longitude for distance calculations (required for distance sorting)
+- `skip`: Number of records to skip for pagination
+- `limit`: Maximum number of records to return
 - `start_date`: Filter by start date (YYYY-MM-DD)
 - `end_date`: Filter by end date (YYYY-MM-DD)
 - `diving_center_id`: Filter by diving center ID
@@ -1834,6 +1843,120 @@ curl -X PUT "https://divemap-backend.fly.dev/api/v1/newsletters/trips/1" \
 # Delete trip
 curl -X DELETE "https://divemap-backend.fly.dev/api/v1/newsletters/trips/1" \
      -H "Authorization: Bearer ADMIN_TOKEN"
+```
+
+### System Management Endpoints
+
+#### GET /admin/system/overview
+Get comprehensive system overview with platform statistics and health metrics (admin only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Response:**
+```json
+{
+  "platform_stats": {
+    "total_users": 150,
+    "active_users_30d": 45,
+    "new_users_7d": 12,
+    "new_users_30d": 38,
+    "user_growth_rate": 15.2,
+    "total_dive_sites": 74,
+    "total_diving_centers": 23,
+    "total_dives": 156,
+    "total_ratings": 89,
+    "total_comments": 67
+  },
+  "system_health": {
+    "database_status": "healthy",
+    "database_response_time": 45,
+    "cpu_usage": 23.5,
+    "memory_usage": 67.2,
+    "disk_usage": 45.8
+  },
+  "geographic_distribution": {
+    "countries": 12,
+    "regions": 28
+  }
+}
+```
+
+#### GET /admin/system/health
+Get detailed system health information (admin only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Response:**
+```json
+{
+  "database": {
+    "status": "healthy",
+    "response_time_ms": 45,
+    "connection_pool": "active"
+  },
+  "application": {
+    "uptime_seconds": 86400,
+    "memory_usage_mb": 256,
+    "cpu_usage_percent": 23.5
+  },
+  "resources": {
+    "disk_usage_percent": 45.8,
+    "available_memory_mb": 1024
+  }
+}
+```
+
+#### GET /admin/system/activity
+Get recent system activity with filtering options (admin only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Query Parameters:**
+- `time_range`: Filter by time range (hour, 6hours, day, week, month)
+- `activity_type`: Filter by activity type (registrations, content, engagement)
+
+**Response:**
+```json
+{
+  "activity_stats": {
+    "total_activities": 156,
+    "user_registrations": 23,
+    "content_creation": 89,
+    "user_engagement": 44
+  },
+  "recent_activities": [
+    {
+      "id": 1,
+      "activity_type": "user_registration",
+      "description": "New user 'diver123' registered",
+      "timestamp": "2024-01-15T10:30:00Z",
+      "user_id": 45,
+      "username": "diver123"
+    }
+  ]
+}
+```
+
+#### GET /admin/system/client-ip
+Debug endpoint to display client IP detection information (admin only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Response:**
+```json
+{
+  "detected_ip": "203.0.113.1",
+  "headers": {
+    "x-forwarded-for": "203.0.113.1, 10.0.0.1",
+    "x-real-ip": "203.0.113.1",
+    "cf-connecting-ip": "203.0.113.1"
+  },
+  "connection_info": {
+    "client_host": "203.0.113.1",
+    "is_localhost": false,
+    "is_private": false
+  }
+}
 ```
 
 ## Conclusion

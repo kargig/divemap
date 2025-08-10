@@ -259,10 +259,18 @@ This document outlines the technical design for a Python-based web application, 
 
 ### **3.9. Search and Filtering**
 
-* Search dive sites by name, location, difficulty.
-* Search diving centers by name, location, associated dive sites.
-* Search dives by various criteria (depth, date, location, tags).
-* Filter dive sites/centers by average rating.
+* **Basic Search**: Search dive sites by name, location, difficulty.
+* **Advanced Search**: Full-text search across multiple fields with location-based filtering.
+* **Diving Center Search**: Search by name, location, associated dive sites.
+* **Dive Search**: Search by various criteria (depth, date, location, tags).
+* **Rating Filtering**: Filter dive sites/centers by average rating.
+* **Advanced Trip Search**: Full-text search across trip descriptions, special requirements, diving center names, dive site names, and dive descriptions.
+* **Location-Based Filtering**: Filter by country, region, and address with geocoding support.
+* **Duration Filtering**: Filter trips by minimum and maximum duration.
+* **Advanced Sorting**: Sort by date, price, duration, difficulty, popularity, and distance from user location.
+* **Distance Calculations**: Haversine formula implementation for accurate geographic distance calculations.
+* **Pagination Support**: Efficient handling of large datasets with skip/limit parameters.
+* **User Location Integration**: Geolocation API support with manual coordinate input fallback.
 
 ### **3.10. Multi-Currency Support System**
 

@@ -72,6 +72,14 @@ Security is a critical aspect of the Divemap application. This document outlines
 - Robust error handling with fallback to normal rate limiting
 - Protection against API abuse while maintaining administrative functionality
 
+**Client IP Detection System:**
+- Robust client IP detection from various proxy headers (X-Forwarded-For, X-Real-IP, CF-Connecting-IP)
+- Intelligent proxy chain analysis to distinguish normal proxy patterns from suspicious activity
+- Enhanced security logging for truly suspicious IP patterns while reducing production log noise
+- Support for various CDN configurations (Cloudflare, Fly.io, etc.)
+- Localhost and private IP detection for development and internal network support
+- Secure IP formatting for logging to prevent information disclosure
+
 ### 3. Input Validation & Sanitization
 
 **API Input Validation:**

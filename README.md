@@ -216,6 +216,10 @@ python populate_diving_organizations.py list
 - **Trip Management**: Create, update, and manage parsed dive trips
 - **Multi-format Support**: Support for various newsletter formats and languages
 - **Bulk Operations**: Mass upload and management of newsletter content
+- **Advanced Search & Filtering**: Full-text search, location-based filtering, duration filtering, and advanced sorting
+- **Distance Calculations**: Haversine formula for accurate geographic distance calculations from user location
+- **User Location Integration**: Geolocation API support with manual coordinate input fallback
+- **Pagination Support**: Efficient handling of large datasets with skip/limit parameters
 
 ### **User Management & Authentication**
 - **Google OAuth Integration**: Secure authentication with Google accounts
@@ -238,6 +242,10 @@ python populate_diving_organizations.py list
 - **Rating-based Filtering**: Filter by minimum and maximum ratings
 - **Tag-based Filtering**: Filter by multiple tags simultaneously
 - **Pagination Support**: Efficient handling of large datasets
+- **Full-text Search**: Advanced search across multiple fields with location-based filtering
+- **Trip Search**: Intelligent search across trip descriptions, requirements, and associated data
+- **Duration Filtering**: Filter trips by minimum and maximum duration
+- **Advanced Sorting**: Sort by relevance, date, duration, and other criteria
 
 ### **Admin Management System**
 - **Comprehensive Admin Interface**: Dedicated admin pages for all management areas
@@ -259,11 +267,12 @@ python populate_diving_organizations.py list
 ### **Security & Performance**
 - **JWT Authentication**: Secure token-based authentication
 - **Role-Based Access Control**: Comprehensive permission system with admin, moderator, and user roles
-- **Rate Limiting**: Comprehensive API rate limiting with admin exemptions
+- **Rate Limiting**: Comprehensive API rate limiting with admin exemptions and intelligent client IP detection
 - **Input Validation**: Comprehensive client and server-side validation
 - **Database Migrations**: Alembic-based version-controlled schema management
 - **Container Optimization**: Pre-compiled wheels and IPv6 support for cloud deployment
 - **System Monitoring**: Real-time health monitoring and performance metrics
+- **Client IP Detection**: Robust proxy header analysis for accurate client identification
 
 ## API Documentation
 
@@ -280,7 +289,7 @@ The API provides RESTful endpoints for:
 - **Tag System** - Comprehensive tag management for dive sites and dives
 - **Media Management** - Photo and video uploads for dive sites and dives
 - **Rating & Comment System** - User ratings and comments for dive sites and centers
-- **System Administration** - Platform statistics, health monitoring, and activity tracking
+- **System Administration** - Platform statistics, health monitoring, activity tracking, and client IP detection
 
 Interactive API documentation is available at: http://localhost:8000/docs
 
