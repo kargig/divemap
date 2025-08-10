@@ -25,6 +25,7 @@ class OwnershipStatus(enum.Enum):
     unclaimed = "unclaimed"
     claimed = "claimed"
     approved = "approved"
+    denied = "denied"
 
 class TripStatus(enum.Enum):
     scheduled = "scheduled"
@@ -329,6 +330,24 @@ class DivingCenterOrganization(Base):
     # Relationships
     diving_center = relationship("DivingCenter", back_populates="organization_relationships")
     diving_organization = relationship("DivingOrganization", back_populates="diving_center_organizations")
+
+class OwnershipRequest(Base):
+    __tablename__ = "ownership_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    request_status = Column(Enum(OwnershipStatus), nullable=False)  # claimed, approved, denied, revoked
+    request_date = Column(DateTime(timezone=True), server_default=func.now())
+    processed_date = Column(DateTime(timezone=True), nullable=True)
+    processed_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # admin who processed the request
+    reason = Column(Text, nullable=True)  # reason for approval/denial/revocation
+    notes = Column(Text, nullable=True)  # additional admin notes
+
+    # Relationships
+    diving_center = relationship("DivingCenter")
+    user = relationship("User", foreign_keys=[user_id])
+    admin = relationship("User", foreign_keys=[processed_by])
 
 class UserCertification(Base):
     __tablename__ = "user_certifications"

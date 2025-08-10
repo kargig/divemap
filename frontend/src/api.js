@@ -143,6 +143,19 @@ export const getOwnershipRequests = async () => {
   return response.data;
 };
 
+export const revokeDivingCenterOwnership = async (divingCenterId, revocationData) => {
+  const response = await api.post(
+    `/api/v1/diving-centers/${divingCenterId}/revoke-ownership`,
+    revocationData
+  );
+  return response.data;
+};
+
+export const getOwnershipRequestHistory = async () => {
+  const response = await api.get('/api/v1/diving-centers/ownership-requests/history');
+  return response.data;
+};
+
 // Dive Sites API functions
 export const getDiveSites = async (params = {}) => {
   const response = await api.get('/api/v1/dive-sites/', { params });

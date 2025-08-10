@@ -4,14 +4,14 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_
 
 from app.database import get_db
-from app.models import DivingCenter, CenterRating, CenterComment, User, CenterDiveSite, GearRentalCost, DivingCenterOrganization, DivingOrganization, UserCertification
+from app.models import DivingCenter, CenterRating, CenterComment, User, CenterDiveSite, GearRentalCost, DivingCenterOrganization, DivingOrganization, UserCertification, OwnershipRequest
 from app.schemas import (
     DivingCenterCreate, DivingCenterUpdate, DivingCenterResponse,
     CenterRatingCreate, CenterRatingResponse,
     CenterCommentCreate, CenterCommentUpdate, CenterCommentResponse,
     DivingCenterSearchParams, CenterDiveSiteCreate, GearRentalCostCreate,
     DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse,
-    DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval
+    DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval, OwnershipRequestHistoryResponse
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, is_admin_or_moderator
 from app.models import OwnershipStatus
@@ -181,6 +181,47 @@ async def get_ownership_requests(
             "owner_id": center.owner_id,
             "ownership_status": center.ownership_status,
             "owner_username": owner_username
+        })
+
+    return result
+
+@router.get("/ownership-requests/history", response_model=List[OwnershipRequestHistoryResponse])
+async def get_ownership_request_history(
+    current_user: User = Depends(is_admin_or_moderator),
+    db: Session = Depends(get_db)
+):
+    """Get complete history of all ownership requests (admin/moderator only)"""
+    ownership_requests = db.query(OwnershipRequest).order_by(OwnershipRequest.request_date.desc()).all()
+
+    result = []
+    for request in ownership_requests:
+        # Get diving center name
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == request.diving_center_id).first()
+        diving_center_name = diving_center.name if diving_center else "Unknown Center"
+        
+        # Get user username
+        user = db.query(User).filter(User.id == request.user_id).first()
+        username = user.username if user else "Unknown User"
+        
+        # Get admin username if processed
+        admin_username = None
+        if request.processed_by:
+            admin = db.query(User).filter(User.id == request.processed_by).first()
+            admin_username = admin.username if admin else "Unknown Admin"
+
+        result.append({
+            "id": request.id,
+            "diving_center_id": request.diving_center_id,
+            "diving_center_name": diving_center_name,
+            "user_id": request.user_id,
+            "username": username,
+            "request_status": request.request_status.value,
+            "request_date": request.request_date,
+            "processed_date": request.processed_date,
+            "processed_by": request.processed_by,
+            "admin_username": admin_username,
+            "reason": request.reason,
+            "notes": request.notes
         })
 
     return result
@@ -790,6 +831,15 @@ async def claim_diving_center_ownership(
             detail="Diving center is already claimed or has an owner"
         )
 
+    # Create ownership request record
+    ownership_request = OwnershipRequest(
+        diving_center_id=diving_center_id,
+        user_id=current_user.id,
+        request_status=OwnershipStatus.claimed,
+        reason=claim.reason
+    )
+    db.add(ownership_request)
+
     # Update diving center ownership status
     diving_center.ownership_status = OwnershipStatus.claimed
     diving_center.owner_id = current_user.id
@@ -817,15 +867,31 @@ async def approve_diving_center_ownership(
     if not diving_center:
         raise HTTPException(status_code=404, detail="Diving center not found")
 
+    # Find the existing ownership request for this center and user
+    ownership_request = db.query(OwnershipRequest).filter(
+        OwnershipRequest.diving_center_id == diving_center_id,
+        OwnershipRequest.user_id == diving_center.owner_id,
+        OwnershipRequest.request_status == OwnershipStatus.claimed
+    ).first()
+
     if approval.approved:
         # Approve the ownership claim
         diving_center.ownership_status = OwnershipStatus.approved
         message = "Ownership claim approved successfully"
+        new_status = OwnershipStatus.approved
     else:
         # Deny the ownership claim
         diving_center.ownership_status = OwnershipStatus.unclaimed
         diving_center.owner_id = None
         message = "Ownership claim denied"
+        new_status = OwnershipStatus.denied
+
+    # Update the ownership request record
+    if ownership_request:
+        ownership_request.request_status = new_status
+        ownership_request.processed_date = func.now()
+        ownership_request.processed_by = current_user.id
+        ownership_request.reason = approval.reason
 
     db.commit()
     db.refresh(diving_center)
@@ -871,4 +937,60 @@ async def assign_diving_center_owner(
         "diving_center_id": diving_center_id,
         "owner_id": user_id,
         "status": "approved"
+    }
+
+
+@router.post("/{diving_center_id}/revoke-ownership")
+async def revoke_diving_center_ownership(
+    diving_center_id: int,
+    revocation: DivingCenterOwnershipApproval,
+    current_user: User = Depends(is_admin_or_moderator),
+    db: Session = Depends(get_db)
+):
+    """Revoke ownership of a diving center (admin only)"""
+    # Check if diving center exists
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not diving_center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+
+    # Check if diving center has an approved owner
+    if diving_center.ownership_status != OwnershipStatus.approved:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot revoke ownership: diving center does not have an approved owner"
+        )
+
+    # Get current owner info for the response
+    current_owner_username = None
+    if diving_center.owner_id:
+        owner = db.query(User).filter(User.id == diving_center.owner_id).first()
+        current_owner_username = owner.username if owner else None
+
+    # Create a new ownership request record for the revocation
+    revocation_request = OwnershipRequest(
+        diving_center_id=diving_center_id,
+        user_id=diving_center.owner_id,
+        request_status=OwnershipStatus.denied,  # Use denied status for revoked ownership
+        request_date=func.now(),
+        processed_date=func.now(),
+        processed_by=current_user.id,
+        reason=revocation.reason,
+        notes="Ownership revoked by admin"
+    )
+    db.add(revocation_request)
+
+    # Revoke ownership
+    diving_center.ownership_status = OwnershipStatus.unclaimed
+    diving_center.owner_id = None
+
+    db.commit()
+    db.refresh(diving_center)
+
+    return {
+        "message": f"Ownership of {diving_center.name} has been revoked from {current_owner_username or 'previous owner'}",
+        "message": f"Ownership of {diving_center.name} has been revoked from {current_owner_username or 'previous owner'}",
+        "diving_center_id": diving_center_id,
+        "previous_owner": current_owner_username,
+        "status": "unclaimed",
+        "reason": revocation.reason
     }

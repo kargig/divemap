@@ -1,6 +1,7 @@
 import pytest
 from fastapi import status
 from app.models import CenterRating, CenterComment
+from datetime import datetime
 
 class TestDivingCenters:
     """Test diving centers endpoints."""
@@ -871,3 +872,198 @@ class TestDivingCenters:
         data = response.json()
         assert "ownership_status" in data
         assert data["ownership_status"] == "claimed"
+
+    def test_revoke_diving_center_ownership_success(self, client, test_diving_center, test_user, admin_headers, db_session):
+        """Test successful revocation of diving center ownership."""
+        from app.models import OwnershipStatus
+        
+        # Set up approved ownership
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        test_diving_center.owner_id = test_user.id
+        db_session.commit()
+        
+        # Revoke ownership as admin
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/revoke-ownership",
+            json={"approved": False, "reason": "Testing revocation"},
+            headers=admin_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["message"] == f"Ownership of {test_diving_center.name} has been revoked from {test_user.username}"
+        assert data["status"] == "unclaimed"
+        assert data["previous_owner"] == test_user.username
+        assert data["reason"] == "Testing revocation"
+        
+        # Verify database changes
+        db_session.refresh(test_diving_center)
+        assert test_diving_center.ownership_status == OwnershipStatus.unclaimed
+        assert test_diving_center.owner_id is None
+
+    def test_revoke_diving_center_ownership_not_approved(self, client, test_diving_center, admin_headers, db_session):
+        """Test revocation fails when diving center is not approved."""
+        from app.models import OwnershipStatus
+        
+        # Set diving center as claimed (not approved)
+        test_diving_center.ownership_status = OwnershipStatus.claimed
+        db_session.commit()
+        
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/revoke-ownership",
+            json={"approved": False, "reason": "Testing"},
+            headers=admin_headers
+        )
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        data = response.json()
+        assert "Cannot revoke ownership" in data["detail"]
+
+    def test_revoke_diving_center_ownership_not_found(self, client, admin_headers):
+        """Test revocation fails when diving center doesn't exist."""
+        response = client.post(
+            "/api/v1/diving-centers/99999/revoke-ownership",
+            json={"approved": False, "reason": "Testing"},
+            headers=admin_headers
+        )
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_revoke_diving_center_ownership_requires_admin(self, client, test_diving_center, test_user, auth_headers, db_session):
+        """Test that revoking ownership requires admin privileges."""
+        from app.models import OwnershipStatus
+        
+        # Set up diving center as claimed by test_user
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.claimed
+        db_session.commit()
+
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/revoke-ownership",
+            json={"approved": False, "reason": "Testing"},
+            headers=auth_headers
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_ownership_request_history(self, client, test_diving_center, test_user, test_admin_user, admin_headers, db_session):
+        """Test getting ownership request history (admin only)."""
+        from app.models import OwnershipRequest, OwnershipStatus
+
+        # Create some ownership requests
+        request1 = OwnershipRequest(
+            diving_center_id=test_diving_center.id,
+            user_id=test_user.id,
+            request_status=OwnershipStatus.claimed,
+            reason="Test claim"
+        )
+        request2 = OwnershipRequest(
+            diving_center_id=test_diving_center.id,
+            user_id=test_user.id,
+            request_status=OwnershipStatus.approved,
+            processed_date=datetime.utcnow(),
+            processed_by=test_admin_user.id,
+            reason="Approved for testing"
+        )
+        db_session.add_all([request1, request2])
+        db_session.commit()
+
+        response = client.get(
+            "/api/v1/diving-centers/ownership-requests/history",
+            headers=admin_headers
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 2
+        
+        # Check that we have the expected requests
+        request_ids = [req["id"] for req in data]
+        assert request1.id in request_ids
+        assert request2.id in request_ids
+
+    def test_get_ownership_request_history_requires_admin(self, client, test_user, auth_headers):
+        """Test that getting ownership request history requires admin privileges."""
+        response = client.get(
+            "/api/v1/diving-centers/ownership-requests/history",
+            headers=auth_headers
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_ownership_request_history_logs_all_actions(self, client, admin_headers, test_diving_center, test_user, auth_headers, db_session):
+        """Test that ownership request history logs all ownership actions."""
+        from app.models import OwnershipStatus, OwnershipRequest
+
+        # 1. Claim ownership
+        claim_response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/claim",
+            headers=auth_headers
+        )
+        assert claim_response.status_code == status.HTTP_200_OK
+
+        # 2. Check history has claim record
+        history_response = client.get("/api/v1/diving-centers/ownership-requests/history", headers=admin_headers)
+        assert history_response.status_code == status.HTTP_200_OK
+        
+        history_data = history_response.json()
+        assert len(history_data) >= 1
+        
+        # Find the claim record
+        claim_record = next((record for record in history_data 
+                           if record["diving_center_id"] == test_diving_center.id 
+                           and record["user_id"] == test_user.id 
+                           and record["request_status"] == "claimed"), None)
+        assert claim_record is not None
+        assert claim_record["request_date"] is not None
+
+        # 3. Approve ownership
+        approve_response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/approve-ownership",
+            json={"approved": True, "reason": "Testing approval"},
+            headers=admin_headers
+        )
+        assert approve_response.status_code == status.HTTP_200_OK
+
+        # 4. Check history has approval record
+        history_response = client.get("/api/v1/diving-centers/ownership-requests/history", headers=admin_headers)
+        assert history_response.status_code == status.HTTP_200_OK
+        
+        history_data = history_response.json()
+        assert len(history_data) >= 2
+        
+        # Find the approval record
+        approval_record = next((record for record in history_data 
+                              if record["diving_center_id"] == test_diving_center.id 
+                              and record["user_id"] == test_user.id 
+                              and record["request_status"] == "approved"), None)
+        assert approval_record is not None
+        assert approval_record["processed_date"] is not None
+        assert approval_record["processed_by"] is not None
+        assert approval_record["reason"] == "Testing approval"
+
+        # 5. Revoke ownership
+        revoke_response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/revoke-ownership",
+            json={"approved": False, "reason": "Testing revocation"},
+            headers=admin_headers
+        )
+        assert revoke_response.status_code == status.HTTP_200_OK
+
+        # 6. Check history has revocation record
+        history_response = client.get("/api/v1/diving-centers/ownership-requests/history", headers=admin_headers)
+        assert history_response.status_code == status.HTTP_200_OK
+        
+        history_data = history_response.json()
+        assert len(history_data) >= 3
+        
+        # Find the revocation record
+        revocation_record = next((record for record in history_data 
+                                if record["diving_center_id"] == test_diving_center.id 
+                                and record["user_id"] == test_user.id 
+                                and record["request_status"] == "denied"), None)
+        assert revocation_record is not None
+        assert revocation_record["processed_date"] is not None
+        assert revocation_record["processed_by"] is not None
+        assert revocation_record["reason"] == "Testing revocation"
+        assert "revocation" in revocation_record.get("notes", "").lower()

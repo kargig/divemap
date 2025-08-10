@@ -623,6 +623,23 @@ class DivingCenterOwnershipApproval(BaseModel):
     approved: bool
     reason: Optional[str] = Field(None, max_length=1000)
 
+class OwnershipRequestHistoryResponse(BaseModel):
+    id: int
+    diving_center_id: int
+    diving_center_name: str
+    user_id: int
+    username: str
+    request_status: str
+    request_date: datetime
+    processed_date: Optional[datetime] = None
+    processed_by: Optional[int] = None
+    admin_username: Optional[str] = None
+    reason: Optional[str] = None
+    notes: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 # ParsedDiveResponse schemas
 class ParsedDiveResponse(BaseModel):
     id: int
