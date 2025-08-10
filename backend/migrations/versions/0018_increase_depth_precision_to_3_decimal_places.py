@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.
-revision = '0018_increase_depth_precision_to_3_decimal_places'
+revision = '0018_depth_precision'
 down_revision = '0abf2a5c7f07'
 branch_labels = None
 depends_on = None

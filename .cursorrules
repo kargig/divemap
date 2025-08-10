@@ -75,6 +75,29 @@ python run_migrations.py
 - **ALWAYS check existing migration numbers before creating new ones**
 - **ALWAYS rename any migration files that don't follow this pattern**
 
+### Migration Revision ID Requirements
+- **Revision IDs can be hash-based strings (e.g., 'c85d7af66778', '9002229c2a67')**
+- **Revision IDs can be descriptive strings (e.g., 'consolidated_dive_system_final', 'add_parseddive_table_simple')**
+- **Revision IDs can be any valid Alembic identifier including text strings**
+- **Revision IDs are completely separate from filenames and can be any format**
+- **Only the filename prefix must follow numerical ordering (0001_, 0002_, etc.)**
+- **The actual revision ID in the file can be anything - hash, text, or descriptive string**
+
+### Migration Revision ID Length Requirements
+- **Revision IDs MUST fit within MySQL's VARCHAR(32) limit for the alembic_version.version_num column**
+- **MySQL's default alembic_version table uses VARCHAR(32) for version_num column**
+- **Revision IDs longer than 32 characters will cause "Data too long for column 'version_num'" errors**
+- **When encountering length errors, shorten the revision ID rather than modifying database schema**
+- **Keep revision IDs descriptive but concise (under 32 characters)**
+- **Examples of acceptable lengths:**
+  - Hash-based: 'c85d7af66778' (12 characters) ✅
+  - Short descriptive: '0018_depth_precision' (22 characters) ✅
+  - Medium descriptive: 'add_parseddive_table_simple' (31 characters) ✅
+  - Too long: '0018_increase_depth_precision_to_3_decimal_places' (45 characters) ❌
+- **If a revision ID is too long, shorten it while maintaining clarity and uniqueness**
+- **Always update subsequent migration files' down_revision fields when shortening revision IDs**
+- **Test migrations after shortening revision IDs to ensure chain consistency**
+
 ### Migration Filename Examples
 ```bash
 # ✅ CORRECT - Numerical ordering with descriptive names

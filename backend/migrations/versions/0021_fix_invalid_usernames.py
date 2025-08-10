@@ -1,7 +1,7 @@
 """Fix invalid usernames
 
 Revision ID: 0021
-Revises: 0020_add_ownership_requests_table
+Revises: 0020_ownership_requests
 Create Date: 2025-01-10 16:00:00.000000
 
 """
@@ -12,7 +12,7 @@ import re
 
 # revision identifiers, used by Alembic.
 revision = '0021'
-down_revision = '0020_add_ownership_requests_table'
+down_revision = '0020_ownership_requests'
 branch_labels = None
 depends_on = None
 
