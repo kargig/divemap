@@ -36,6 +36,7 @@ import EditDivingCenter from './pages/EditDivingCenter';
 import Help from './pages/Help';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import Privacy from './pages/Privacy';
 import Profile from './pages/Profile';
 import Register from './pages/Register';
 import UserProfile from './pages/UserProfile';
@@ -103,6 +104,7 @@ function App() {
                 <Route path='/' element={<Home />} />
                 <Route path='/about' element={<About />} />
                 <Route path='/help' element={<Help />} />
+                <Route path='/privacy' element={<Privacy />} />
                 <Route path='/login' element={<Login />} />
                 <Route path='/register' element={<Register />} />
                 <Route path='/user/:username' element={<UserProfile />} />

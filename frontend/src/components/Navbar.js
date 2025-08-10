@@ -20,6 +20,7 @@ import {
   HelpCircle,
   Activity,
   Clock,
+  Shield,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -126,6 +127,14 @@ const Navbar = () => {
                   >
                     <HelpCircle className='h-4 w-4 mr-2' />
                     Help
+                  </Link>
+                  <Link
+                    to='/privacy'
+                    className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
+                    onClick={() => setShowInfoDropdown(false)}
+                  >
+                    <Shield className='h-4 w-4 mr-2' />
+                    Privacy
                   </Link>
                 </div>
               )}
@@ -342,6 +351,14 @@ const Navbar = () => {
                 >
                   <HelpCircle className='h-4 w-4 mr-3' />
                   <span>Help</span>
+                </Link>
+                <Link
+                  to='/privacy'
+                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                  onClick={closeMobileMenu}
+                >
+                  <Shield className='h-4 w-4 mr-3' />
+                  <span>Privacy</span>
                 </Link>
               </div>
 
