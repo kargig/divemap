@@ -28,6 +28,7 @@ const Profile = () => {
   const [editingCertification, setEditingCertification] = useState(null);
   const [formData, setFormData] = useState({
     username: user?.username || '',
+    name: user?.name || '',
     email: user?.email || '',
     number_of_dives: user?.number_of_dives || 0,
   });
@@ -265,6 +266,21 @@ const Profile = () => {
                 </div>
 
                 <div>
+                  <label htmlFor='name' className='block text-sm font-medium text-gray-700 mb-2'>
+                    Full Name
+                  </label>
+                  <input
+                    id='name'
+                    type='text'
+                    name='name'
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder='Enter your full name'
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+                  />
+                </div>
+
+                <div>
                   <label htmlFor='email' className='block text-sm font-medium text-gray-700 mb-2'>
                     Email
                   </label>
@@ -315,6 +331,14 @@ const Profile = () => {
                   <div>
                     <span className='text-sm text-gray-500'>Username</span>
                     <p className='text-gray-900'>{user.username}</p>
+                  </div>
+                </div>
+
+                <div className='flex items-center'>
+                  <User className='h-5 w-5 text-gray-400 mr-3' />
+                  <div>
+                    <span className='text-sm text-gray-500'>Full Name</span>
+                    <p className='text-gray-900'>{user.name || 'Not set'}</p>
                   </div>
                 </div>
 

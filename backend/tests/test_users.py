@@ -68,6 +68,29 @@ class TestUsers:
         assert data["username"] == "partialupdate"
         assert data["email"] == test_user.email  # Should remain unchanged
 
+    def test_update_current_user_name(self, client, auth_headers, test_user):
+        """Test updating current user name field."""
+        update_data = {"name": "John Doe"}
+
+        response = client.put("/api/v1/users/me",
+                            json=update_data, headers=auth_headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["name"] == "John Doe"
+        assert data["username"] == test_user.username  # Should remain unchanged
+        assert data["email"] == test_user.email  # Should remain unchanged
+
+    def test_update_current_user_name_empty(self, client, auth_headers, test_user):
+        """Test updating current user name field to empty string (should be rejected)."""
+        update_data = {"name": ""}
+
+        response = client.put("/api/v1/users/me",
+                            json=update_data, headers=auth_headers)
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        # Empty string should be rejected due to min_length=1 validation
+
 
 class TestAdminUserManagement:
     """Test admin user management endpoints."""

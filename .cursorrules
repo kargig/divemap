@@ -2,10 +2,21 @@
 
 ## Environment Management
 
+### Docker Container Management
+- **ALWAYS use docker to manage containers**
+- **NEVER start services directly on the system**
+- **ALWAYS use the following container names:**
+  - `divemap_db` - MySQL database
+  - `divemap_backend` - Python FastAPI backend
+  - `divemap_frontend` - React frontend
+- **ALWAYS use docker exec to run commands inside containers IF needed**
+- **NEVER run frontend or backend commands outside of containers**
+
 ### Virtual Environment Requirements
 - **NEVER install Python packages in the system Python**
 - **ALWAYS use docker containers named divemap_db, divemap_frontend, divemap_backend to execute commands**
 - **NEVER try to start frontend, backend or database on the system**
+- **NEVER run npm, node, or any frontend commands on the system**
 - **ALWAYS use virtual environments for Python development**
 - **ALWAYS activate the virtual environment before installing packages**
 - **NEVER install npm packages globally**
@@ -16,6 +27,7 @@
 # ✅ CORRECT - Always use virtual environment
 cd backend
 source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
 pip install package_name
 
 # ❌ WRONG - Never install in system Python
@@ -24,11 +36,17 @@ pip install package_name  # This is forbidden
 
 ### Node.js Development
 ```bash
-# ✅ CORRECT - Use local node_modules
-npm install package_name
+# ✅ CORRECT - Use Docker containers for frontend development
+docker-compose exec divemap_frontend npm install package_name
+docker-compose exec divemap_frontend npm start
+docker-compose exec divemap_frontend npm run build
+docker-compose exec divemap_frontend npm run lint:fix
 
-# ❌ WRONG - Never install globally
-npm install -g package_name  # This is forbidden
+# ❌ WRONG - Never run npm/node on the system
+npm install package_name  # This is forbidden
+npm start  # This is forbidden
+npm run build  # This is forbidden
+npm test  # This is forbidden
 ```
 
 ## Database Migration Rules
@@ -244,12 +262,15 @@ python -m pytest  # This is forbidden
 
 ### Frontend Testing
 ```bash
-# ✅ CORRECT - Use local node_modules
-npm test
-node validate_frontend.js
-node test_regressions.js
+# ✅ CORRECT - Use Docker containers for frontend testing
+docker exec divemap_frontend npm test
+docker exec divemap_frontend node validate_frontend.js
+docker exec divemap_frontend node test_regressions.js
 
-# ❌ WRONG - Never use global packages
+# ❌ WRONG - Never run frontend commands on the system
+npm test  # This is forbidden
+node validate_frontend.js  # This is forbidden
+node test_regressions.js  # This is forbidden
 npx test  # This is forbidden
 ```
 
@@ -329,6 +350,30 @@ Common issues and solutions.
 - [ ] Consistent formatting throughout
 
 ## Development Workflow
+
+### Docker Commands for Development
+```bash
+# Start all services
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+
+# View logs
+docker-compose logs divemap_frontend
+docker-compose logs divemap_backend
+docker-compose logs divemap_db
+
+# Run commands in containers
+docker-compose exec divemap_frontend npm install package_name
+docker-compose exec divemap_backend python -m pytest
+docker-compose exec divemap_db mysql -u root -p
+
+# Restart specific service
+docker-compose restart divemap_frontend
+docker-compose restart divemap_backend
+docker-compose restart divemap_db
+```
 
 ### Environment Setup
 1. Always activate virtual environment first
@@ -416,12 +461,14 @@ Common issues and solutions.
 ## Compliance Checklist
 
 Before making any changes, ensure:
-- [ ] Virtual environment is activated
+- [ ] Virtual environment is activated (for backend development)
 - [ ] PYTHONPATH is set correctly
 - [ ] No system packages are being installed
+- [ ] No npm/node commands are run on the system
+- [ ] All frontend commands use Docker containers
 - [ ] Alembic is used for database changes
 - [ ] Migration filenames follow numerical ordering (0001_, 0002_, etc.)
-- [ ] Tests run in virtual environment
+- [ ] Tests run in virtual environment or Docker containers
 - [ ] User permission obtained before git commits
 - [ ] Commit messages follow the 7 rules of great git commits
 - [ ] Documentation is updated
@@ -447,9 +494,11 @@ Before making any changes, ensure:
 These rules are mandatory and must be followed:
 - Violations will result in immediate correction
 - System package installations are strictly forbidden
+- **Running npm, node, or frontend commands on the system is strictly forbidden**
+- **All frontend development must use Docker containers**
 - Manual database changes are not allowed
 - Automatic git commits are prohibited
-- All testing must use virtual environments
+- All testing must use virtual environments or Docker containers
 - All documentation must follow standards
 - All migration filenames must follow numerical ordering
 - Hash-based or non-numerical migration filenames are strictly forbidden
