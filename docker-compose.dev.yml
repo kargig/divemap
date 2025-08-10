@@ -17,6 +17,7 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
       - ENVIRONMENT=development
       - OPENAI_API_KEY=${OPENAI_API_KEY:-foobar}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     volumes:
       - ./backend:/app
       - ./uploads:/app/uploads
