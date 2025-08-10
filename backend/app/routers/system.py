@@ -1,5 +1,5 @@
 from typing import Dict, Any, List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, desc, asc, text
 from datetime import datetime, timedelta
@@ -14,6 +14,7 @@ from app.models import (
 )
 from app.auth import get_current_admin_user
 from app.schemas import SystemOverviewResponse, SystemHealthResponse, PlatformStatsResponse
+from app.utils import get_client_ip, format_ip_for_logging
 
 router = APIRouter()
 
@@ -418,3 +419,42 @@ async def get_recent_activity(
     activities = activities[:limit]
     
     return activities
+
+@router.get("/client-ip")
+async def get_client_ip_info(request: Request):
+    """
+    Debug endpoint to show client IP detection information.
+    This endpoint is useful for testing and debugging client IP detection
+    in various proxy and load balancer configurations.
+    """
+    # Get the real client IP using our utility function
+    real_client_ip = get_client_ip(request)
+    
+    # Get all relevant headers for debugging
+    headers_info = {}
+    for header_name in [
+        'Fly-Client-IP', 'X-Real-IP', 'X-Forwarded-For', 
+        'X-Forwarded-Host', 'X-Forwarded-Proto', 'CF-Connecting-IP',
+        'True-Client-IP', 'X-Client-IP', 'X-Originating-IP'
+    ]:
+        if header_name in request.headers:
+            headers_info[header_name] = request.headers[header_name]
+    
+    # Get connection information
+    connection_info = {
+        "client_host": getattr(request.client, 'host', None) if request.client else None,
+        "client_port": getattr(request.client, 'port', None) if request.client else None,
+        "remote_addr": getattr(request, 'remote_addr', None),
+        "url": str(request.url),
+        "method": request.method,
+        "user_agent": request.headers.get("User-Agent", "Unknown")
+    }
+    
+    return {
+        "detected_client_ip": real_client_ip,
+        "formatted_ip": format_ip_for_logging(real_client_ip),
+        "is_localhost": real_client_ip in ["127.0.0.1", "::1", "localhost"],
+        "headers": headers_info,
+        "connection": connection_info,
+        "timestamp": datetime.utcnow().isoformat()
+    }

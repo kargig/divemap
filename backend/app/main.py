@@ -11,6 +11,7 @@ from app.routers import auth, dive_sites, users, diving_centers, tags, diving_or
 from app.database import engine, get_db
 from app.models import Base, Dive, DiveSite, SiteRating, CenterRating, DivingCenter
 from app.limiter import limiter
+from app.utils import get_client_ip, format_ip_for_logging
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -58,6 +59,10 @@ app.add_middleware(
 # Security middleware
 @app.middleware("http")
 async def add_security_headers(request, call_next):
+    # Get client IP for security monitoring (but don't log every request)
+    client_ip = get_client_ip(request)
+    formatted_ip = format_ip_for_logging(client_ip, include_private=False)
+    
     response = await call_next(request)
 
     # Security headers
@@ -92,6 +97,44 @@ async def add_security_headers(request, call_next):
     response.headers["Content-Security-Policy"] = csp_policy
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
 
+    return response
+
+# Enhanced security logging middleware
+@app.middleware("http")
+async def enhanced_security_logging(request, call_next):
+    """Enhanced security logging with detailed client IP analysis"""
+    
+    # Get client IP for logging
+    client_ip = get_client_ip(request)
+    formatted_ip = format_ip_for_logging(client_ip)
+    
+    # Only log suspicious activity and security-relevant events
+    # Check for suspicious patterns
+    suspicious_headers = [
+        'X-Forwarded-For', 'X-Real-IP', 'X-Forwarded-Host',
+        'X-Forwarded-Proto', 'CF-Connecting-IP', 'True-Client-IP'
+    ]
+    
+    suspicious_activity = False
+    for header in suspicious_headers:
+        if header in request.headers:
+            header_value = request.headers[header]
+            # Log if header contains multiple IPs (potential proxy chaining)
+            if ',' in str(header_value):
+                print(f"[SECURITY] Multiple IPs in {header}: {header_value}")
+                suspicious_activity = True
+    
+    # Log suspicious activity
+    if suspicious_activity:
+        print(f"[SECURITY] Suspicious activity detected from IP: {formatted_ip}")
+    
+    # Process the request
+    response = await call_next(request)
+    
+    # Only log failed requests or suspicious activity
+    if response.status_code >= 400 or suspicious_activity:
+        print(f"[SECURITY] {request.method} {request.url.path} - Status: {response.status_code} - Client IP: {formatted_ip}")
+    
     return response
 
 # Mount static files for uploads with security restrictions

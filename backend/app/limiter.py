@@ -7,6 +7,7 @@ from functools import wraps
 from app.auth import get_current_user_optional, get_current_admin_user, verify_token
 from app.database import get_db
 from app.models import User
+from app.utils import get_client_ip, is_localhost_ip, format_ip_for_logging
 
 def custom_key_func(request: Request) -> str:
     """
@@ -14,19 +15,20 @@ def custom_key_func(request: Request) -> str:
     1. Localhost requests (127.0.0.1, ::1, localhost)
     """
     start_time = time.time()
-    # Get client IP address
-    client_ip = get_remote_address(request)
-    print(f"[RATE_LIMIT] Key function - Client IP: {client_ip}")
+    # Get client IP address using our enhanced detection
+    client_ip = get_client_ip(request)
+    formatted_ip = format_ip_for_logging(client_ip, include_private=True)
+    print(f"[RATE_LIMIT] Key function - Client IP: {formatted_ip}")
 
     # Skip rate limiting for localhost only
-    if client_ip in ["127.0.0.1", "::1", "localhost"]:
-        print(f"[RATE_LIMIT] Skipping rate limiting for IP: {client_ip}")
+    if is_localhost_ip(client_ip):
+        print(f"[RATE_LIMIT] Skipping rate limiting for IP: {formatted_ip}")
         elapsed = time.time() - start_time
         print(f"[RATE_LIMIT] Key function completed in {elapsed:.4f}s")
         return "localhost"  # Special key that won't be rate limited
 
     # For all other requests, use IP address as key
-    print(f"[RATE_LIMIT] Applying rate limiting for IP: {client_ip}")
+    print(f"[RATE_LIMIT] Applying rate limiting for IP: {formatted_ip}")
     elapsed = time.time() - start_time
     print(f"[RATE_LIMIT] Key function completed in {elapsed:.4f}s")
     return client_ip
@@ -55,7 +57,7 @@ def skip_rate_limit_for_admin(limit_string: str):
                 request = kwargs['request']
 
             if request:
-                client_ip = get_remote_address(request)
+                client_ip = get_client_ip(request)
 
                 # Try to get current user by extracting token from headers
                 try:
