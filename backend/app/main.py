@@ -7,7 +7,7 @@ import os
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.routers import auth, dive_sites, users, diving_centers, tags, diving_organizations, user_certifications, dives, newsletters, system
+from app.routers import auth, dive_sites, users, diving_centers, tags, diving_organizations, user_certifications, dives, newsletters, system, privacy
 from app.database import engine, get_db
 from app.models import Base, Dive, DiveSite, SiteRating, CenterRating, DivingCenter
 from app.limiter import limiter
@@ -103,6 +103,7 @@ app.include_router(user_certifications.router, prefix="/api/v1/user-certificatio
 app.include_router(dives.router, prefix="/api/v1/dives", tags=["Dives"])
 app.include_router(newsletters.router, prefix="/api/v1/newsletters", tags=["Newsletters"])
 app.include_router(system.router, prefix="/api/v1/admin/system", tags=["System"])
+app.include_router(privacy.router, prefix="/api/v1/privacy", tags=["Privacy"])
 
 @app.get("/")
 async def root():
