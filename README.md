@@ -6,6 +6,7 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 
 ## Features
 
+### **Core Platform**
 - **User Management**: Registration, login, and profile management with Google OAuth support
 - **Dive Sites**: Comprehensive CRUD operations with detailed information including maximum depth, aliases, country, and region
 - **Diving Centers**: Full management with gear rental costs and dive site associations
@@ -13,28 +14,57 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 - **User Certifications**: Comprehensive certification tracking system with organization associations
 - **Dive Logging**: Complete dive logging system with media uploads, tags, and statistics
 - **Rating System**: Rate dive sites and diving centers (1-10 scale) with proper state management
-- **Comments**: User comments on dive sites and diving centers
-- **Interactive Map**: View dive sites and diving centers on an interactive map
-- **Search & Filtering**: Advanced search and filtering capabilities including country and region filters
-- **Geocoding Integration**: Automatic country and region suggestions based on coordinates using OpenStreetMap
+- **Comments**: User comments on dive sites and diving centers with diving credentials display
+- **Interactive Map**: View dive sites and diving centers on an interactive map using OpenLayers
 - **Media Management**: Upload and display photos and videos for dive sites and dives
-- **Gear Rental**: Manage diving center gear rental costs with multi-currency support
-- **Multi-Currency System**: Support for 10 major world currencies with Euro (€) as default
 - **Tag System**: Comprehensive tag/label management for dive sites and dives with enhanced validation
-- **Admin Dashboard**: Full administrative interface with system monitoring and activity tracking
-- **System Monitoring**: Real-time platform statistics, health monitoring, and performance metrics
-- **Activity Tracking**: Comprehensive monitoring of user registrations, content creation, and system changes
-- **Mass Operations**: Bulk delete functionality for admin management
-- **Google OAuth**: Secure authentication with Google accounts
-- **Database Migrations**: Alembic-based version-controlled database schema management
-- **Enhanced Validation**: Mandatory coordinate fields with client and server-side validation
-- **Form Field Management**: Intelligent handling of optional fields with proper empty value conversion
-- **Cache Management**: Improved React Query cache management for seamless user experience
-- **Enhanced User Profiles**: Diving certification tracking and dive count management
-- **Password Management**: Secure password change functionality with current password verification
-- **Comment Credentials**: User diving information displayed alongside comments
-- **Database Connectivity**: Robust startup process with database availability checking
+
+### **Advanced Search & Filtering**
+- **Multi-criteria Search**: Search by name, difficulty, location, and tags
+- **Geographic Filtering**: Filter by country and region
+- **Rating-based Filtering**: Filter by minimum and maximum ratings
+- **Tag-based Filtering**: Filter by multiple tags simultaneously
+- **Full-text Search**: Advanced search across multiple fields with location-based filtering
+- **Trip Search**: Intelligent search across trip descriptions, requirements, and associated data
+- **Duration Filtering**: Filter trips by minimum and maximum duration
+- **Advanced Sorting**: Sort by relevance, date, duration, and other criteria
+- **Pagination Support**: Efficient handling of large datasets
+
+### **Admin Dashboard & System Monitoring**
+- **System Overview Dashboard**: Real-time platform statistics including user counts, content metrics, and engagement data
+- **System Health Monitoring**: CPU, memory, disk usage, and database connectivity monitoring
+- **Recent Activity Tracking**: Monitor user registrations, content creation, comments, and system changes
+- **Performance Metrics**: Track API response times, error rates, and system performance indicators
+- **Backup & Export Management**: Automated data export and backup management capabilities
+- **Permission System**: Comprehensive role-based access control with admin, moderator, and user roles
+- **Bulk Operations**: Mass delete functionality for efficient management
+- **Real-time Updates**: React Query integration for instant data refresh
+
+### **Newsletter Management System**
+- **AI-Powered Parsing**: OpenAI integration for intelligent newsletter content parsing
+- **Dive Trip Extraction**: Automatically extract dive trip information from newsletters
+- **Diving Center Matching**: Intelligent matching of diving centers from newsletter content
+- **Dive Site Recognition**: Automatic recognition and linking of dive sites using aliases
+- **Trip Management**: Create, update, and manage parsed dive trips
+- **Multi-format Support**: Support for various newsletter formats and languages
+- **Distance Calculations**: Haversine formula for accurate geographic distance calculations from user location
+- **User Location Integration**: Geolocation API support with manual coordinate input fallback
+
+### **Multi-Currency Support**
+- **10 Major Currencies**: Support for EUR, USD, GBP, AUD, CAD, CHF, JPY, SEK, NOK, DKK
+- **Automatic Conversion**: Real-time currency conversion rates
+- **Flexible Pricing**: Support for different currencies across the platform
+- **User Preferences**: Currency selection based on user location
+
+### **Security & Performance**
+- **JWT Authentication**: Secure token-based authentication
+- **Role-Based Access Control**: Comprehensive permission system with admin, moderator, and user roles
+- **Rate Limiting**: Comprehensive API rate limiting with admin exemptions and intelligent client IP detection
+- **Input Validation**: Comprehensive client and server-side validation
+- **Database Migrations**: Alembic-based version-controlled schema management
 - **Container Optimization**: Pre-compiled wheels and IPv6 support for cloud deployment
+- **System Monitoring**: Real-time health monitoring and performance metrics
+- **Client IP Detection**: Robust proxy header analysis for accurate client identification
 
 ## Tech Stack
 
@@ -163,116 +193,7 @@ python populate_diving_organizations.py
 python populate_diving_organizations.py list
 ```
 
-## Core Features
 
-### **Enhanced Admin Dashboard & System Monitoring**
-- **System Overview Dashboard**: Real-time platform statistics including user counts, content metrics, and engagement data
-- **System Health Monitoring**: CPU, memory, disk usage, and database connectivity monitoring
-- **Recent Activity Tracking**: Monitor user registrations, content creation, comments, and system changes
-- **Performance Metrics**: Track API response times, error rates, and system performance indicators
-- **Backup & Export Management**: Automated data export and backup management capabilities
-- **Permission System**: Comprehensive role-based access control with admin, moderator, and user roles
-
-### **Comprehensive Dive Site Management**
-- **Complete CRUD Operations**: Full create, read, update, delete functionality for dive sites
-- **Advanced Search & Filtering**: Search by name, difficulty, country, region, and tags
-- **Geocoding Integration**: Automatic country and region suggestions based on coordinates
-- **Media Management**: Upload and display photos and videos for dive sites
-- **Rating System**: 1-10 scale rating system with user feedback
-- **Comment System**: User comments with diving credentials display
-- **Tag System**: Comprehensive tagging with usage statistics and protection
-- **Aliases System**: Multiple aliases per dive site for enhanced search and newsletter parsing
-
-### **Diving Center Management**
-- **Full Center Management**: Complete CRUD operations for diving centers
-- **Gear Rental System**: Multi-currency gear rental cost management
-- **Center-Dive Site Relationships**: Link diving centers to specific dive sites
-- **Ownership System**: Claim and manage diving center ownership
-- **Rating & Review System**: User ratings and comments for diving centers
-- **Contact Information**: Email, phone, website, and location management
-
-### **Diving Organizations & Certifications**
-- **Organization Management**: Complete CRUD for diving organizations (PADI, SSI, GUE, etc.)
-- **Pre-populated Data**: Top 10 diving organizations with comprehensive information
-- **User Certification Tracking**: Users can manage their diving certifications
-- **Organization Association**: Certifications linked to specific diving organizations
-- **Active Status Management**: Users can activate/deactivate certifications
-- **Public Profile Display**: Certifications visible on user profiles
-
-### **Advanced Dive Logging System**
-- **Comprehensive Dive Records**: Track dive details including depth, duration, visibility, and ratings
-- **Media Uploads**: Photo and video uploads for dive memories
-- **Tag System**: Tag dives for easy categorization and search
-- **Privacy Controls**: Public and private dive visibility options
-- **Diving Center Integration**: Link dives to specific diving centers
-- **Dive Site Association**: Connect dives to existing dive sites
-- **Statistics Tracking**: View counts, ratings, and dive statistics
-
-### **Newsletter Management System**
-- **AI-Powered Parsing**: OpenAI integration for intelligent newsletter content parsing
-- **Dive Trip Extraction**: Automatically extract dive trip information from newsletters
-- **Diving Center Matching**: Intelligent matching of diving centers from newsletter content
-- **Dive Site Recognition**: Automatic recognition and linking of dive sites using aliases
-- **Trip Management**: Create, update, and manage parsed dive trips
-- **Multi-format Support**: Support for various newsletter formats and languages
-- **Bulk Operations**: Mass upload and management of newsletter content
-- **Advanced Search & Filtering**: Full-text search, location-based filtering, duration filtering, and advanced sorting
-- **Distance Calculations**: Haversine formula for accurate geographic distance calculations from user location
-- **User Location Integration**: Geolocation API support with manual coordinate input fallback
-- **Pagination Support**: Efficient handling of large datasets with skip/limit parameters
-
-### **User Management & Authentication**
-- **Google OAuth Integration**: Secure authentication with Google accounts
-- **Role-Based Access Control**: Admin, moderator, and user roles with appropriate permissions
-- **User Profile Management**: Comprehensive user profiles with diving information
-- **Password Management**: Secure password change functionality
-- **Account Status Control**: Enable/disable user accounts
-- **Diving Credentials**: Track user certifications and dive counts
-
-### **Interactive Map System**
-- **OpenLayers Integration**: High-performance interactive maps
-- **Dive Site Visualization**: Display dive sites with detailed information
-- **Diving Center Mapping**: Show diving centers with contact and service information
-- **Geographic Filtering**: Filter by location, country, and region
-- **Responsive Design**: Mobile-friendly map interface
-
-### **Advanced Search & Filtering**
-- **Multi-criteria Search**: Search by name, difficulty, location, and tags
-- **Geographic Filtering**: Filter by country and region
-- **Rating-based Filtering**: Filter by minimum and maximum ratings
-- **Tag-based Filtering**: Filter by multiple tags simultaneously
-- **Pagination Support**: Efficient handling of large datasets
-- **Full-text Search**: Advanced search across multiple fields with location-based filtering
-- **Trip Search**: Intelligent search across trip descriptions, requirements, and associated data
-- **Duration Filtering**: Filter trips by minimum and maximum duration
-- **Advanced Sorting**: Sort by relevance, date, duration, and other criteria
-
-### **Admin Management System**
-- **Comprehensive Admin Interface**: Dedicated admin pages for all management areas
-- **System Overview Dashboard**: Real-time platform statistics, system health monitoring, and performance metrics
-- **Recent Activity Monitoring**: Track user registrations, content creation, comments, and system changes
-- **Backup and Export Management**: Automated data export and backup management capabilities
-- **Bulk Operations**: Mass delete functionality for efficient management
-- **Real-time Updates**: React Query integration for instant data refresh
-- **Modal Forms**: Clean inline create/edit interfaces
-- **Safety Features**: Protection against accidental deletions and data loss
-- **Permission System**: Role-based access control with comprehensive permission validation
-
-### **Multi-Currency Support**
-- **10 Major Currencies**: Support for EUR, USD, GBP, AUD, CAD, CHF, JPY, SEK, NOK, DKK
-- **Automatic Conversion**: Real-time currency conversion rates
-- **Flexible Pricing**: Support for different currencies across the platform
-- **User Preferences**: Currency selection based on user location
-
-### **Security & Performance**
-- **JWT Authentication**: Secure token-based authentication
-- **Role-Based Access Control**: Comprehensive permission system with admin, moderator, and user roles
-- **Rate Limiting**: Comprehensive API rate limiting with admin exemptions and intelligent client IP detection
-- **Input Validation**: Comprehensive client and server-side validation
-- **Database Migrations**: Alembic-based version-controlled schema management
-- **Container Optimization**: Pre-compiled wheels and IPv6 support for cloud deployment
-- **System Monitoring**: Real-time health monitoring and performance metrics
-- **Client IP Detection**: Robust proxy header analysis for accurate client identification
 
 ## API Documentation
 
