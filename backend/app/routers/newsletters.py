@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_
 from typing import List, Optional
 from datetime import datetime, date, time
 import re
 import json
 import os
 import requests
+import math
 from app.database import get_db
 from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, DifficultyLevel, ParsedDive
 from app.auth import get_current_user, is_admin_or_moderator
@@ -19,6 +21,25 @@ from difflib import SequenceMatcher
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Calculate the distance between two points using the Haversine formula.
+    Returns distance in kilometers.
+    """
+    # Convert decimal degrees to radians
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+    
+    # Haversine formula
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(math.sqrt(a))
+    
+    # Radius of earth in kilometers
+    r = 6371
+    
+    return c * r
 
 def similarity_ratio(a: str, b: str) -> float:
     """Calculate similarity ratio between two strings"""
@@ -686,26 +707,57 @@ async def get_parsed_trips(
     diving_center_id: Optional[int] = None,
     dive_site_id: Optional[int] = None,
     trip_status: Optional[str] = None,
-    current_user: User = Depends(is_admin_or_moderator),
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    min_duration: Optional[int] = None,
+    max_duration: Optional[int] = None,
+    difficulty_level: Optional[str] = None,
+    search_query: Optional[str] = None,
+    location_query: Optional[str] = None,
+    sort_by: Optional[str] = "trip_date",
+    sort_order: Optional[str] = "desc",
+    user_lat: Optional[float] = None,
+    user_lon: Optional[float] = None,
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Get parsed dive trips with optional filtering.
+    Get parsed dive trips with advanced filtering, search, and sorting.
+    
+    Sort options:
+    - trip_date: Sort by trip date
+    - trip_price: Sort by trip price
+    - trip_duration: Sort by trip duration
+    - difficulty_level: Sort by difficulty level
+    - popularity: Sort by dive site popularity (view count)
+    - distance: Sort by distance from user location (requires user_lat and user_lon)
+    - created_at: Sort by creation date
+    
+    Sort order: "asc" or "desc"
+    
+    Distance sorting requires user_lat and user_lon coordinates.
     """
     query = db.query(ParsedDiveTrip)
 
+    # Date filtering
     if start_date:
         query = query.filter(ParsedDiveTrip.trip_date >= start_date)
 
     if end_date:
         query = query.filter(ParsedDiveTrip.trip_date <= end_date)
 
+    # Diving center filtering
     if diving_center_id:
         query = query.filter(ParsedDiveTrip.diving_center_id == diving_center_id)
 
+    # Dive site filtering
     if dive_site_id:
-        query = query.filter(ParsedDiveTrip.dive_site_id == dive_site_id)
+        # Filter through the dives relationship to find trips with the specified dive site
+        query = query.filter(ParsedDiveTrip.dives.any(ParsedDive.dive_site_id == dive_site_id))
 
+    # Status filtering
     if trip_status:
         try:
             status = TripStatus(trip_status)
@@ -713,24 +765,147 @@ async def get_parsed_trips(
         except:
             pass  # Invalid status, ignore filter
 
+    # Price filtering
+    if min_price is not None:
+        query = query.filter(ParsedDiveTrip.trip_price >= min_price)
+
+    if max_price is not None:
+        query = query.filter(ParsedDiveTrip.trip_price <= max_price)
+
+    # Duration filtering
+    if min_duration is not None:
+        query = query.filter(ParsedDiveTrip.trip_duration >= min_duration)
+
+    if max_duration is not None:
+        query = query.filter(ParsedDiveTrip.trip_duration <= max_duration)
+
+    # Difficulty level filtering
+    if difficulty_level:
+        try:
+            difficulty = DifficultyLevel(difficulty_level)
+            query = query.filter(ParsedDiveTrip.trip_difficulty_level == difficulty)
+        except:
+            pass  # Invalid difficulty, ignore filter
+
+    # Full-text search across multiple fields
+    if search_query and search_query.strip():
+        search_term = f"%{search_query.strip()}%"
+        query = query.filter(
+            or_(
+                ParsedDiveTrip.trip_description.ilike(search_term),
+                ParsedDiveTrip.special_requirements.ilike(search_term),
+                ParsedDiveTrip.diving_center.has(DivingCenter.name.ilike(search_term)),
+                # Search in dive site names through the dives relationship
+                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.name.ilike(search_term))),
+                # Search in dive descriptions
+                ParsedDiveTrip.dives.any(ParsedDive.dive_description.ilike(search_term))
+            )
+        )
+
+    # Location-based search
+    if location_query and location_query.strip():
+        location_term = f"%{location_query.strip()}%"
+        query = query.filter(
+            or_(
+                # Search in dive site location fields through the dives relationship
+                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.country.ilike(location_term))),
+                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.region.ilike(location_term))),
+                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.address.ilike(location_term))),
+                ParsedDiveTrip.diving_center.has(DivingCenter.name.ilike(location_term))
+            )
+        )
+
+    # Sorting
+    if sort_by == "popularity":
+        # Sort by dive site popularity (view count)
+        # Join through dives to get dive site information
+        if sort_order.lower() == "desc":
+            query = query.join(ParsedDive, ParsedDiveTrip.dives).join(DiveSite, ParsedDive.dive_site_id == DiveSite.id).order_by(DiveSite.view_count.desc())
+        else:
+            query = query.join(ParsedDive, ParsedDiveTrip.dives).join(DiveSite, ParsedDive.dive_site_id == DiveSite.id).order_by(DiveSite.view_count.asc())
+    elif sort_by == "distance":
+        # Sort by distance from user location
+        if user_lat is not None and user_lon is not None:
+            # Join through dives to get dive site coordinates
+            query = query.join(ParsedDive, ParsedDiveTrip.dives).join(DiveSite, ParsedDive.dive_site_id == DiveSite.id)
+            # We'll sort by distance after fetching the results
+            # For now, just ensure we have the dive site data
+        else:
+            # If no user coordinates provided, fall back to trip_date
+            sort_by = "trip_date"
+            sort_field = getattr(ParsedDiveTrip, sort_by, ParsedDiveTrip.trip_date)
+            if sort_order.lower() == "desc":
+                query = query.order_by(sort_field.desc())
+            else:
+                query = query.order_by(sort_field.asc())
+    else:
+        sort_field = getattr(ParsedDiveTrip, sort_by, ParsedDiveTrip.trip_date)
+        if sort_order.lower() == "desc":
+            query = query.order_by(sort_field.desc())
+        else:
+            query = query.order_by(sort_field.asc())
+
+    # Apply pagination
+    if skip > 0:
+        query = query.offset(skip)
+    if limit > 0:
+        query = query.limit(limit)
+
     trips = query.all()
+
+    # Process trips and add distance information if needed
+    trip_data = []
+    for trip in trips:
+        distance = None
+        if sort_by == "distance" and user_lat is not None and user_lon is not None:
+            # Calculate distance from user to dive site through the dives relationship
+            distance = None
+            for dive in trip.dives:
+                if dive.dive_site and dive.dive_site.latitude and dive.dive_site.longitude:
+                    distance = calculate_distance(
+                        user_lat, user_lon,
+                        float(dive.dive_site.latitude), float(dive.dive_site.longitude)
+                    )
+                    break  # Use the first dive site with coordinates
+            
+            # If no dive site coordinates, check diving center coordinates as fallback
+            if distance is None and trip.diving_center and trip.diving_center.latitude and trip.diving_center.longitude:
+                distance = calculate_distance(
+                    user_lat, user_lon,
+                    float(trip.diving_center.latitude), float(trip.diving_center.longitude)
+                )
+        
+        trip_data.append({
+            'trip': trip,
+            'distance': distance
+        })
+
+    # Sort by distance if requested
+    if sort_by == "distance" and user_lat is not None and user_lon is not None:
+        # Filter out trips without distance information
+        trip_data = [td for td in trip_data if td['distance'] is not None]
+        
+        if sort_order.lower() == "desc":
+            trip_data.sort(key=lambda x: x['distance'], reverse=True)
+        else:
+            trip_data.sort(key=lambda x: x['distance'])
 
     return [
         ParsedDiveTripResponse(
-            id=trip.id,
-            diving_center_id=trip.diving_center_id,
-            trip_date=trip.trip_date,
-            trip_time=trip.trip_time,
-            trip_duration=trip.trip_duration,
-            trip_difficulty_level=trip.trip_difficulty_level.value if trip.trip_difficulty_level else None,
-            trip_price=float(trip.trip_price) if trip.trip_price else None,
-            trip_currency=trip.trip_currency,
-            group_size_limit=trip.group_size_limit,
-            current_bookings=trip.current_bookings,
-            trip_description=trip.trip_description,
-            special_requirements=trip.special_requirements,
-            trip_status=trip.trip_status.value,
-            diving_center_name=trip.diving_center.name if trip.diving_center else None,
+            id=td['trip'].id,
+            diving_center_id=td['trip'].diving_center_id,
+            trip_date=td['trip'].trip_date,
+            trip_time=td['trip'].trip_time,
+            trip_duration=td['trip'].trip_duration,
+            trip_difficulty_level=td['trip'].trip_difficulty_level.value if td['trip'].trip_difficulty_level else None,
+            trip_price=float(td['trip'].trip_price) if td['trip'].trip_price else None,
+            trip_currency=td['trip'].trip_currency,
+            group_size_limit=td['trip'].group_size_limit,
+            current_bookings=td['trip'].current_bookings,
+            trip_description=td['trip'].trip_description,
+            special_requirements=td['trip'].special_requirements,
+            trip_status=td['trip'].trip_status.value,
+            diving_center_name=td['trip'].diving_center.name if td['trip'].diving_center else None,
             dives=[
                 ParsedDiveResponse(
                     id=dive.id,
@@ -744,13 +919,13 @@ async def get_parsed_trips(
                     created_at=dive.created_at,
                     updated_at=dive.updated_at
                 )
-                for dive in trip.dives
+                for dive in td['trip'].dives
             ],
-            extracted_at=trip.extracted_at,
-            created_at=trip.created_at,
-            updated_at=trip.updated_at
+            extracted_at=td['trip'].extracted_at,
+            created_at=td['trip'].created_at,
+            updated_at=td['trip'].updated_at
         )
-        for trip in trips
+        for td in trip_data
     ]
 
 @router.get("/{newsletter_id}", response_model=NewsletterResponse)

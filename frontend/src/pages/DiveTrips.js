@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   Calendar,
   MapPin,
   Clock,
@@ -12,7 +13,7 @@ import {
   Search,
   Tag,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -32,8 +33,50 @@ const DiveTrips = () => {
     max_price: '',
     difficulty_level: '',
     search_query: '',
+    location_query: '',
+  });
+  const [sortOptions, setSortOptions] = useState({
+    sort_by: 'trip_date',
+    sort_order: 'desc',
+  });
+  const [userLocation, setUserLocation] = useState({
+    latitude: null,
+    longitude: null,
   });
   const [showDateFilterMessage, setShowDateFilterMessage] = useState(false);
+
+  // Get user location on component mount
+  useEffect(() => {
+    getUserLocation();
+  }, []);
+
+  // Function to get user's current location
+  const getUserLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          setUserLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        error => {
+          console.error('Error getting location:', error);
+          // Set default location (e.g., Athens, Greece)
+          setUserLocation({
+            latitude: 37.9838,
+            longitude: 23.7275,
+          });
+        }
+      );
+    } else {
+      // Fallback to default location
+      setUserLocation({
+        latitude: 37.9838,
+        longitude: 23.7275,
+      });
+    }
+  };
 
   // Query for parsed trips
   const {
@@ -41,7 +84,7 @@ const DiveTrips = () => {
     isLoading,
     error,
   } = useQuery(
-    ['parsedTrips', filters],
+    ['parsedTrips', filters, sortOptions, userLocation],
     () => {
       // Only include filters that have actual values
       const validFilters = {};
@@ -50,7 +93,21 @@ const DiveTrips = () => {
           validFilters[key] = value;
         }
       });
-      return getParsedTrips(validFilters);
+
+      // Add sorting parameters
+      const params = {
+        ...validFilters,
+        sort_by: sortOptions.sort_by,
+        sort_order: sortOptions.sort_order,
+      };
+
+      // Add user location for distance sorting
+      if (sortOptions.sort_by === 'distance' && userLocation.latitude && userLocation.longitude) {
+        params.user_lat = userLocation.latitude;
+        params.user_lon = userLocation.longitude;
+      }
+
+      return getParsedTrips(params);
     },
     {
       refetchInterval: 30000, // Refetch every 30 seconds
@@ -353,11 +410,92 @@ const DiveTrips = () => {
             <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
             <input
               type='text'
-              placeholder='Search trips by description, dive site, or diving center...'
+              placeholder='Search trips by description, dive site, diving center, or special requirements...'
               value={filters.search_query}
               onChange={e => handleFilterChange('search_query', e.target.value)}
-              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              className='w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base'
             />
+          </div>
+
+          {/* Search Tips */}
+          <div className='mt-2 text-sm text-gray-500'>
+            💡 Search tips: Try searching for specific dive sites, diving centers, trip types, or
+            requirements
+          </div>
+        </div>
+
+        {/* Location Search */}
+        <div className='mb-4'>
+          <div className='relative'>
+            <MapPin className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
+            <input
+              type='text'
+              placeholder='Search by location, country, or region...'
+              value={filters.location_query}
+              onChange={e => handleFilterChange('location_query', e.target.value)}
+              className='w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base'
+            />
+          </div>
+
+          {/* Location Search Tips */}
+          <div className='mt-2 text-sm text-gray-500'>
+            🌍 Location tips: Search for countries (e.g., "Spain"), regions (e.g., "Mediterranean"),
+            or specific areas
+          </div>
+        </div>
+
+        {/* User Location for Distance Sorting */}
+        <div className='mb-4'>
+          <div className='flex items-center justify-between mb-2'>
+            <label className='block text-sm font-medium text-gray-700'>
+              Your Location (for distance sorting)
+            </label>
+            <button
+              onClick={getUserLocation}
+              className='text-sm text-blue-600 hover:text-blue-800 underline'
+            >
+              Use Current Location
+            </button>
+          </div>
+
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+            <div>
+              <label className='block text-xs text-gray-500 mb-1'>Latitude</label>
+              <input
+                type='number'
+                step='any'
+                placeholder='e.g., 37.9838'
+                value={userLocation.latitude || ''}
+                onChange={e =>
+                  setUserLocation(prev => ({
+                    ...prev,
+                    latitude: parseFloat(e.target.value) || null,
+                  }))
+                }
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+              />
+            </div>
+            <div>
+              <label className='block text-xs text-gray-500 mb-1'>Longitude</label>
+              <input
+                type='number'
+                step='any'
+                placeholder='e.g., 23.7275'
+                value={userLocation.longitude || ''}
+                onChange={e =>
+                  setUserLocation(prev => ({
+                    ...prev,
+                    longitude: parseFloat(e.target.value) || null,
+                  }))
+                }
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 text-sm'
+              />
+            </div>
+          </div>
+
+          <div className='mt-2 text-sm text-gray-500'>
+            📍 Set your location to enable distance-based sorting. Click "Use Current Location" to
+            automatically detect your position.
           </div>
         </div>
 
@@ -524,6 +662,101 @@ const DiveTrips = () => {
         </div>
       </div>
 
+      {/* Sorting Controls */}
+      <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+        <div className='flex items-center mb-4'>
+          <Tag className='h-5 w-5 text-gray-600 mr-2' />
+          <h3 className='text-lg font-semibold text-gray-900'>Sort & Organize</h3>
+        </div>
+
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+          <div>
+            <label htmlFor='sort-by' className='block text-sm font-medium text-gray-700 mb-1'>
+              Sort By
+            </label>
+            <select
+              id='sort-by'
+              value={sortOptions.sort_by}
+              onChange={e => setSortOptions(prev => ({ ...prev, sort_by: e.target.value }))}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            >
+              <option value='trip_date'>Trip Date</option>
+              <option value='trip_price'>Price</option>
+              <option value='trip_duration'>Duration</option>
+              <option value='difficulty_level'>Difficulty Level</option>
+              <option value='popularity'>Popularity</option>
+              <option value='distance'>Distance</option>
+              <option value='created_at'>Recently Added</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor='sort-order' className='block text-sm font-medium text-gray-700 mb-1'>
+              Sort Order
+            </label>
+            <select
+              id='sort-order'
+              value={sortOptions.sort_order}
+              onChange={e => setSortOptions(prev => ({ ...prev, sort_order: e.target.value }))}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            >
+              <option value='desc'>Newest/High to Low</option>
+              <option value='asc'>Oldest/Low to High</option>
+            </select>
+          </div>
+
+          <div className='flex items-end'>
+            <button
+              onClick={() => setSortOptions({ sort_by: 'trip_date', sort_order: 'desc' })}
+              className='w-full px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors'
+            >
+              Reset to Default
+            </button>
+          </div>
+        </div>
+
+        {/* Sort Description */}
+        <div className='mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200'>
+          <div className='flex items-center text-sm text-blue-700'>
+            <Tag className='h-4 w-4 mr-2 flex-shrink-0' />
+            <span>
+              Currently sorting by{' '}
+              <strong>
+                {sortOptions.sort_by === 'popularity'
+                  ? 'Popularity'
+                  : sortOptions.sort_by === 'distance'
+                    ? 'Distance'
+                    : sortOptions.sort_by.replace('_', ' ')}
+              </strong>{' '}
+              in <strong>{sortOptions.sort_order === 'desc' ? 'descending' : 'ascending'}</strong>{' '}
+              order
+              {sortOptions.sort_by === 'distance' &&
+                userLocation.latitude &&
+                userLocation.longitude && (
+                  <span className='ml-2 text-blue-600'>
+                    from your location ({userLocation.latitude.toFixed(4)},{' '}
+                    {userLocation.longitude.toFixed(4)})
+                  </span>
+                )}
+            </span>
+          </div>
+        </div>
+
+        {/* Distance Sorting Warning */}
+        {sortOptions.sort_by === 'distance' &&
+          (!userLocation.latitude || !userLocation.longitude) && (
+            <div className='mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200'>
+              <div className='flex items-center text-sm text-yellow-700'>
+                <AlertTriangle className='h-4 w-4 mr-2 flex-shrink-0' />
+                <span>
+                  <strong>Distance sorting selected but no location set.</strong> Please set your
+                  location coordinates above to enable distance-based sorting.
+                </span>
+              </div>
+            </div>
+          )}
+      </div>
+
       {/* Content */}
       {isLoading && (
         <div className='text-center py-12'>
@@ -540,13 +773,106 @@ const DiveTrips = () => {
 
       {sortedTrips && sortedTrips.length === 0 && !isAuthError && (
         <div className='text-center py-12'>
-          <Calendar className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-          <p className='text-gray-600'>No dive trips found</p>
+          <Search className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+          <h3 className='text-lg font-medium text-gray-900 mb-2'>No dive trips found</h3>
+
+          {/* Check if any filters are active */}
+          {Object.values(filters).some(value => value && value.trim() !== '') && (
+            <div className='max-w-md mx-auto'>
+              <p className='text-gray-600 mb-4'>
+                No trips match your current search criteria. Try adjusting your filters:
+              </p>
+              <div className='space-y-2 text-sm text-gray-500'>
+                {filters.search_query && <p>• Try different search terms or check spelling</p>}
+                {filters.location_query && <p>• Try a different location or region</p>}
+                {filters.start_date && filters.end_date && <p>• Expand your date range</p>}
+                {filters.min_price && filters.max_price && <p>• Adjust your price range</p>}
+                {filters.diving_center_id && <p>• Try a different diving center</p>}
+                {filters.dive_site_id && <p>• Try a different dive site</p>}
+                {filters.difficulty_level && <p>• Try a different difficulty level</p>}
+              </div>
+              <button
+                onClick={clearFilters}
+                className='mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+              >
+                Clear All Filters
+              </button>
+            </div>
+          )}
+
+          {/* No filters active */}
+          {!Object.values(filters).some(value => value && value.trim() !== '') && (
+            <p className='text-gray-600'>
+              There are currently no dive trips available. Check back later for new trips!
+            </p>
+          )}
         </div>
       )}
 
       {viewMode === 'list' && sortedTrips && sortedTrips.length > 0 && !isAuthError && (
         <div className='space-y-8'>
+          {/* Search Results Summary */}
+          <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between'>
+              <div className='flex items-center mb-2 sm:mb-0'>
+                <Search className='h-5 w-5 text-blue-600 mr-2' />
+                <span className='text-blue-800 font-medium'>
+                  Found {sortedTrips.length} trip{sortedTrips.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {/* Active Filters Display */}
+              <div className='flex flex-wrap gap-2'>
+                {filters.search_query && (
+                  <span className='inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full'>
+                    Search: "{filters.search_query}"
+                  </span>
+                )}
+                {filters.location_query && (
+                  <span className='inline-flex items-center px-2 py-1 bg-teal-100 text-teal-800 text-xs rounded-full'>
+                    Location: "{filters.location_query}"
+                  </span>
+                )}
+                {filters.start_date && (
+                  <span className='inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full'>
+                    From: {filters.start_date}
+                  </span>
+                )}
+                {filters.end_date && (
+                  <span className='inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full'>
+                    To: {filters.end_date}
+                  </span>
+                )}
+                {filters.diving_center_id && (
+                  <span className='inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full'>
+                    Center:{' '}
+                    {divingCenters.find(c => c.id == filters.diving_center_id)?.name || 'Unknown'}
+                  </span>
+                )}
+                {filters.dive_site_id && (
+                  <span className='inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full'>
+                    Site: {diveSites.find(s => s.id == filters.dive_site_id)?.name || 'Unknown'}
+                  </span>
+                )}
+                {filters.min_price && (
+                  <span className='inline-flex items-center px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full'>
+                    Min: €{filters.min_price}
+                  </span>
+                )}
+                {filters.max_price && (
+                  <span className='inline-flex items-center px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full'>
+                    Max: €{filters.max_price}
+                  </span>
+                )}
+                {filters.difficulty_level && (
+                  <span className='inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full'>
+                    Level: {filters.difficulty_level}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
           {sortedDateGroups.map(([dateKey, tripsForDate]) => (
             <div key={dateKey} className='space-y-4'>
               {/* Date Header */}
