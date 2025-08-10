@@ -12,11 +12,12 @@
    - [Comments](#35-comments)
    - [Newsletter Parsing & Dive Trip Display](#36-newsletter-parsing--dive-trip-display)
    - [Dive Trip Calendar System](#37-dive-trip-calendar-system)
-   - [Search and Filtering](#38-search-and-filtering)
-   - [Multi-Currency Support System](#39-multi-currency-support-system)
-   - [Database Migration System](#310-database-migration-system)
-   - [Admin Management System](#311-admin-management-system)
-   - [Admin Dashboard Pages](#312-admin-dashboard-pages)
+   - [Privacy and Data Protection System](#38-privacy-and-data-protection-system)
+   - [Search and Filtering](#39-search-and-filtering)
+   - [Multi-Currency Support System](#310-multi-currency-support-system)
+   - [Database Migration System](#311-database-migration-system)
+   - [Admin Management System](#312-admin-management-system)
+   - [Admin Dashboard Pages](#313-admin-dashboard-pages)
 4. [Non-Functional Requirements](#4-non-functional-requirements)
 5. [Architecture](#5-architecture)
 6. [API Endpoints](#6-api-endpoints-conceptual)
@@ -24,9 +25,10 @@
 8. [Future Considerations](#8-future-considerations)
 9. [Implementation Phases](#9-implementation-phases-high-level)
 10. [Security Considerations](#10-security-considerations)
-11. [Error Handling and Logging](#11-error-handling-and-logging)
-12. [Testing Infrastructure](#12-testing-infrastructure)
-13. [Current Implementation Status](#13-current-implementation-status)
+11. [Privacy and Data Protection Features](#11-privacy-and-data-protection-features)
+12. [Error Handling and Logging](#12-error-handling-and-logging)
+13. [Testing Infrastructure](#13-testing-infrastructure)
+14. [Current Implementation Status](#14-current-implementation-status)
 
 ## **1\. Introduction**
 
@@ -221,21 +223,55 @@ This document outlines the technical design for a Python-based web application, 
   * Payment processing integration (future enhancement).
   * Weather API integration for trip planning.
 
-### **3.8. Search and Filtering**
+### **3.8. Privacy and Data Protection System**
+
+* **User Data Management:**
+  * **Data Export and Portability:** Users can export all their personal data, dive records, and user-generated content in multiple formats (JSON, CSV, PDF).
+  * **Data Access and Correction:** Users can view, update, and correct all personal information held by the platform through dedicated interface.
+  * **Data Deletion:** Users can request complete removal of their personal data with automatic cleanup within 30 days and confirmation process.
+  * **Consent Management:** Users can manage consent for data processing and withdraw consent at any time with immediate effect.
+* **Privacy Controls:**
+  * **Privacy Settings Dashboard:** Comprehensive user-configurable privacy preferences and data sharing controls.
+  * **Communication Preferences:** Granular control over email notifications, updates, marketing communications, and newsletter subscriptions.
+  * **Data Visibility Controls:** Fine-grained management of who can see user-generated content and profile information.
+  * **Account Privacy:** Options for public or private profiles and content with selective sharing capabilities.
+* **Data Protection Features:**
+  * **GDPR Compliance Tools:** Complete implementation of all GDPR user rights and data protection requirements.
+  * **Data Retention Policies:** Automated enforcement of data retention policies with configurable cleanup schedules and legal compliance.
+  * **Audit Trail:** Complete logging of all data access, modifications, and deletions for compliance, security, and transparency.
+  * **Privacy Impact Assessments:** Tools for evaluating and documenting privacy implications of new features and system changes.
+  * **Data Minimization:** Collection and processing of only necessary data for specified purposes.
+  * **Purpose Limitation:** Data used only for explicitly stated and legitimate purposes.
+* **Privacy Technologies:**
+  * **Cloudflare Turnstile Integration:** Privacy-preserving bot protection without personal data collection or tracking.
+  * **OpenLayers Mapping:** Client-side mapping with no third-party location data sharing or external tracking.
+  * **Encrypted Storage:** All sensitive data encrypted at rest and in transit using industry-standard encryption.
+  * **Secure Authentication:** Multi-factor authentication support and secure session management with privacy protection.
+  * **Cookie Management:** Minimal cookie usage with user consent and transparency about data collection.
+* **User Rights Implementation:**
+  * **Right to Information:** Clear documentation of data collection, processing, and usage practices.
+  * **Right to Access:** Complete access to all personal data held by the platform.
+  * **Right to Rectification:** Easy correction and updating of personal information.
+  * **Right to Erasure:** Comprehensive data deletion with verification and confirmation.
+  * **Right to Restrict Processing:** Options to limit or suspend data processing activities.
+  * **Right to Data Portability:** Export capabilities in standard, machine-readable formats.
+  * **Right to Object:** Mechanisms to object to specific types of data processing.
+
+### **3.9. Search and Filtering**
 
 * Search dive sites by name, location, difficulty.
 * Search diving centers by name, location, associated dive sites.
 * Search dives by various criteria (depth, date, location, tags).
 * Filter dive sites/centers by average rating.
 
-### **3.9. Multi-Currency Support System**
+### **3.10. Multi-Currency Support System**
 
 * **Supported Currencies**: 10 major world currencies (USD, EUR, JPY, GBP, CNY, AUD, CAD, CHF, HKD, NZD)
 * **Default Currency**: Euro (€) is the default currency for all cost fields
 * **Currency Display**: Proper formatting with currency symbols and flags
 * **Flexible Input**: Users can submit costs in any supported currency
 
-### **3.10. Database Migration System**
+### **3.11. Database Migration System**
 
 * **Alembic Integration**: All database schema changes must use Alembic for version control
 * **Automatic Migration Execution**: Migrations run automatically before application startup
@@ -247,7 +283,7 @@ This document outlines the technical design for a Python-based web application, 
 * **API Integration**: All cost-related endpoints support currency
 * **Frontend Utility**: Comprehensive currency formatting and selection functions
 
-### **3.11. Admin Management System**
+### **3.12. Admin Management System**
 
 * **Mass Operations**: Bulk delete functionality for admin management pages
 * **User Management**: Complete user CRUD with role assignment and status control
@@ -258,9 +294,9 @@ This document outlines the technical design for a Python-based web application, 
 * **Recent Activity Monitoring**: Real-time tracking of user actions and system changes
 * **Backup and Export Management**: Data export capabilities and backup management
 
-### **3.12. Admin Dashboard Pages**
+### **3.13. Admin Dashboard Pages**
 
-#### **3.12.1. System Overview Dashboard**
+#### **3.13.1. System Overview Dashboard**
 
 The System Overview dashboard provides administrators with comprehensive platform statistics and health monitoring capabilities:
 
@@ -290,7 +326,7 @@ The System Overview dashboard provides administrators with comprehensive platfor
 * **Quick Actions**: Direct links to common administrative tasks
 * **Refresh Controls**: Real-time data updates with configurable intervals
 
-#### **3.12.2. Recent Activity Monitoring**
+#### **3.13.2. Recent Activity Monitoring**
 
 The Recent Activity page provides real-time tracking of user actions and system changes for security and operational oversight:
 
@@ -327,7 +363,7 @@ The Recent Activity page provides real-time tracking of user actions and system 
 * **Export Capabilities**: Export activity logs for external analysis
 * **Alert Configuration**: Customizable alerts for specific activity patterns
 
-#### **3.12.3. Backup and Export Management**
+#### **3.13.3. Backup and Export Management**
 
 The Backup and Export page provides comprehensive data management capabilities for administrators:
 
@@ -395,6 +431,16 @@ The Backup and Export page provides comprehensive data management capabilities f
   * Protection against common web vulnerabilities (XSS, CSRF, SQL injection).
   * Data encryption (especially for user credentials).
   * Secure Google OAuth token verification.
+  * Industry-standard security measures for data protection.
+  * Secure authentication and access controls.
+  * Regular security audits and monitoring.
+* **Privacy & Data Protection:**
+  * GDPR compliance with user data rights (access, correction, deletion, portability).
+  * No data sales or marketing use of personal information.
+  * Data export and portability features.
+  * Transparent data collection and usage policies.
+  * User consent management for data processing.
+  * Data retention policies with automatic cleanup.
 * **Maintainability:**
   * Clean, modular, and well-documented codebase.
   * Easy to deploy and update.
@@ -684,6 +730,11 @@ The application will follow a microservices-oriented or a well-separated monolit
 * /api/v1/admin/system/backup (POST \- create database backup)
 * /api/v1/admin/system/export (GET \- export data in various formats)
 * /api/v1/admin/system/health (GET \- system health check)
+* /api/v1/privacy/data-export (GET \- export user's personal data)
+* /api/v1/privacy/data-deletion (POST \- request data deletion)
+* /api/v1/privacy/consent-management (GET, PUT \- manage data processing consent)
+* /api/v1/privacy/privacy-settings (GET, PUT \- manage privacy preferences)
+* /api/v1/privacy/audit-log (GET \- view user's data access audit trail)
 
 ## **7\. Technologies & Tools**
 
@@ -709,6 +760,7 @@ The application will follow a microservices-oriented or a well-separated monolit
   * OpenLayers (for interactive maps)
   * Axios (for API calls)
   * Google Identity Services (for OAuth) - NEW
+  * Privacy-focused UI components for data control
 * **DevOps & Deployment:**
   * Docker / Docker Compose (for local development and deployment)
   * Kubernetes (for container orchestration in production \- long-term)
@@ -732,6 +784,8 @@ The application will follow a microservices-oriented or a well-separated monolit
 * **Additional OAuth Providers:** Facebook, GitHub, etc.
 * **Dive Statistics and Analytics:** Advanced dive logging analytics and statistics.
 * **Dive Buddy System:** Connect divers and share dive experiences.
+* **Enhanced Privacy Features:** Advanced data anonymization, differential privacy, and privacy-preserving analytics.
+* **Privacy Compliance Tools:** Automated GDPR compliance checking, privacy impact assessment automation, and regulatory reporting tools.
 
 ## **9\. Implementation Phases (High-Level)**
 
@@ -825,30 +879,144 @@ The application will follow a microservices-oriented or a well-separated monolit
 * **Google OAuth Security:** Secure token verification with Google's servers.
 * **Media Upload Security:** Validate file types and sizes, scan for malware.
 
-## **11\. Error Handling and Logging**
+## **11\. Privacy and Data Protection Features**
+
+### **11.1. Data Collection and Usage**
+
+* **Personal Information Management:**
+  * User registration data (name, username, email, contact information).
+  * Profile information and preferences.
+  * Diving certifications and experience.
+  * Authentication details and OAuth tokens.
+* **Usage Data Collection:**
+  * Platform usage patterns and interactions.
+  * Pages visited and features used.
+  * Search queries and user behavior.
+  * Device and browser information for security.
+* **User-Generated Content:**
+  * Dive site reviews, ratings, and comments.
+  * Dive logs and trip reports.
+  * Photos, videos, and media uploads.
+  * Community contributions and interactions.
+
+### **11.2. Data Protection Measures**
+
+* **Encryption and Security:**
+  * Data encryption in transit (HTTPS/TLS).
+  * Data encryption at rest in database and storage.
+  * Secure authentication and access controls.
+  * Regular security audits and monitoring.
+  * Employee training on data protection.
+* **Access Control:**
+  * Role-based access control (RBAC).
+  * Principle of least privilege.
+  * Secure session management.
+  * Multi-factor authentication support.
+
+### **11.3. User Rights and Control**
+
+* **GDPR Compliance Features:**
+  * **Right to Access:** Users can view all personal data held about them.
+  * **Right to Correction:** Users can update or correct inaccurate information.
+  * **Right to Deletion:** Users can request removal of their personal data.
+  * **Right to Portability:** Users can export their data in machine-readable format.
+  * **Right to Objection:** Users can object to certain types of processing.
+  * **Right to Withdrawal:** Users can revoke consent for data processing.
+* **Data Export and Portability:**
+  * Download dive data in multiple formats.
+  * Export profile and account information.
+  * Access all uploaded content and media.
+  * Transfer data to other platforms.
+  * Machine-readable export formats.
+
+### **11.4. Data Sharing and Third Parties**
+
+* **No Data Sales Policy:**
+  * No selling, renting, or trading of personal information.
+  * No marketing use of user data.
+  * No advertising partnerships or data monetization.
+* **Limited Third-Party Sharing:**
+  * Service providers under strict confidentiality agreements.
+  * Legal requirements and regulatory compliance.
+  * Protection of platform rights and safety.
+  * Explicit user consent for specific purposes.
+
+### **11.5. Data Retention and Cleanup**
+
+* **Retention Policies:**
+  * Personal data retained only as long as necessary.
+  * Automatic cleanup after account deletion (30 days).
+  * Legal and regulatory compliance retention.
+  * Audit trail maintenance for security.
+* **Data Lifecycle Management:**
+  * Automated data retention enforcement.
+  * Regular data cleanup processes.
+  * Backup and archive management.
+  * Data anonymization options.
+
+### **11.6. Privacy Technologies and Services**
+
+* **Cloudflare Turnstile Integration:**
+  * Bot protection and spam prevention.
+  * Privacy-preserving human verification.
+  * No personal data collection by Cloudflare.
+  * Enhanced security without compromising privacy.
+* **OpenLayers Mapping Service:**
+  * Client-side mapping library.
+  * No third-party location data sharing.
+  * User-controlled location information.
+  * Privacy-focused map interactions.
+
+### **11.7. Privacy Policy and Transparency**
+
+* **Transparent Data Practices:**
+  * Clear privacy policy documentation.
+  * Regular policy updates and notifications.
+  * User consent management interface.
+  * Data usage transparency tools.
+* **Privacy Controls:**
+  * User preference management.
+  * Communication preferences.
+  * Data sharing consent controls.
+  * Privacy settings dashboard.
+
+### **11.8. Compliance and Auditing**
+
+* **Regulatory Compliance:**
+  * GDPR compliance framework.
+  * Data protection impact assessments.
+  * Privacy by design implementation.
+  * Regular compliance audits.
+* **Audit and Monitoring:**
+  * Complete audit trail of data operations.
+  * Privacy event logging and monitoring.
+  * Data access and modification tracking.
+  * Compliance reporting and documentation.
+
+## **12\. Error Handling and Logging**
 
 * Implement centralized error logging (e.g., using Sentry, ELK stack).
 * Provide meaningful error messages to the client without exposing sensitive internal details.
 * Log sufficient information for debugging (request details, stack traces, timestamps).
 * Graceful degradation for external service failures.
 
-## **12\. Testing Infrastructure**
+## **13\. Testing Infrastructure**
 
-### **12.1 Testing Strategy**
+### **13.1 Testing Strategy**
 
 * **Automated Testing:** Comprehensive test suite for backend API endpoints using Pytest.
 * **Frontend Validation:** Automated scripts to validate frontend functionality and catch regressions.
 * **Data Type Safety:** Validation of API response types and frontend data handling.
 * **Regression Prevention:** Automated testing to prevent common frontend errors.
 
-### **12.2 Testing Tools**
+### **13.2 Testing Tools**
 
 * **Backend Testing:** Pytest with fixtures for isolated test database and authentication.
 * **Frontend Validation:** Node.js scripts for API health checks and data type validation.
 * **Regression Testing:** Automated scripts to test common issues like data type mismatches.
 * **Manual Testing:** Comprehensive checklist for user experience validation.
 
-### **12.3 Test Categories**
+### **13.3 Test Categories**
 
 #### **A. Backend API Testing**
 * Unit tests for all API endpoints (auth, users, dive sites, diving centers, dives)
