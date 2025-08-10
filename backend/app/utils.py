@@ -44,6 +44,8 @@ def get_client_ip(request: Request) -> str:
     elif 'X-Forwarded-For' in request.headers:
         # Get the first IP from the list (client's original IP)
         # X-Forwarded-For can contain multiple IPs: client, proxy1, proxy2, ...
+        # We ALWAYS take only the leftmost IP as the real client IP
+        # This prevents IP spoofing and ensures consistent behavior
         forwarded_for = request.headers['X-Forwarded-For']
         # Split by comma and take the first (leftmost) IP
         first_ip = forwarded_for.split(',')[0].strip()

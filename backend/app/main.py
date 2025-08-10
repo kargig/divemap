@@ -11,7 +11,7 @@ from app.routers import auth, dive_sites, users, diving_centers, tags, diving_or
 from app.database import engine, get_db
 from app.models import Base, Dive, DiveSite, SiteRating, CenterRating, DivingCenter
 from app.limiter import limiter
-from app.utils import get_client_ip, format_ip_for_logging
+from app.utils import get_client_ip, format_ip_for_logging, is_private_ip
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -104,34 +104,53 @@ async def add_security_headers(request, call_next):
 async def enhanced_security_logging(request, call_next):
     """Enhanced security logging with detailed client IP analysis"""
     
-    # Get client IP for logging
+    # Get client IP for logging (this already extracts only the first IP)
     client_ip = get_client_ip(request)
     formatted_ip = format_ip_for_logging(client_ip)
     
-    # Only log suspicious activity and security-relevant events
-    # Check for suspicious patterns
-    suspicious_headers = [
-        'X-Forwarded-For', 'X-Real-IP', 'X-Forwarded-Host',
-        'X-Forwarded-Proto', 'CF-Connecting-IP', 'True-Client-IP'
-    ]
-    
+    # Check for truly suspicious patterns (not just normal proxy chains)
     suspicious_activity = False
+    suspicious_details = []
+    
+    # Check X-Forwarded-For for unusual patterns (not just multiple IPs)
+    if 'X-Forwarded-For' in request.headers:
+        forwarded_for = request.headers['X-Forwarded-For']
+        ips = [ip.strip() for ip in forwarded_for.split(',')]
+        
+        # Only log if there are more than 3 IPs (unusual proxy chain)
+        # or if the first IP looks suspicious
+        if len(ips) > 3:
+            suspicious_activity = True
+            suspicious_details.append(f"Unusual proxy chain length: {len(ips)} IPs")
+        
+        # Check if first IP is private but others are public (potential spoofing)
+        if len(ips) >= 2:
+            first_ip = ips[0]
+            second_ip = ips[1]
+            if is_private_ip(first_ip) and not is_private_ip(second_ip):
+                suspicious_activity = True
+                suspicious_details.append("Private IP followed by public IP in chain")
+    
+    # Check for other suspicious patterns
+    suspicious_headers = ['X-Real-IP', 'X-Forwarded-Host', 'X-Forwarded-Proto']
     for header in suspicious_headers:
         if header in request.headers:
             header_value = request.headers[header]
-            # Log if header contains multiple IPs (potential proxy chaining)
+            # Only log if header contains multiple values (unusual)
             if ',' in str(header_value):
-                print(f"[SECURITY] Multiple IPs in {header}: {header_value}")
                 suspicious_activity = True
+                suspicious_details.append(f"Multiple values in {header}")
     
-    # Log suspicious activity
+    # Log suspicious activity only once per request
     if suspicious_activity:
         print(f"[SECURITY] Suspicious activity detected from IP: {formatted_ip}")
+        for detail in suspicious_details:
+            print(f"[SECURITY] Detail: {detail}")
     
     # Process the request
     response = await call_next(request)
     
-    # Only log failed requests or suspicious activity
+    # Only log failed requests or truly suspicious activity
     if response.status_code >= 400 or suspicious_activity:
         print(f"[SECURITY] {request.method} {request.url.path} - Status: {response.status_code} - Client IP: {formatted_ip}")
     
