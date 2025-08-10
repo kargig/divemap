@@ -874,6 +874,9 @@ async def approve_diving_center_ownership(
         OwnershipRequest.request_status == OwnershipStatus.claimed
     ).first()
 
+    # Capture the current owner_id before potentially changing it
+    current_owner_id = diving_center.owner_id
+    
     if approval.approved:
         # Approve the ownership claim
         diving_center.ownership_status = OwnershipStatus.approved
@@ -886,12 +889,17 @@ async def approve_diving_center_ownership(
         message = "Ownership claim denied"
         new_status = OwnershipStatus.denied
 
-    # Update the ownership request record
-    if ownership_request:
-        ownership_request.request_status = new_status
-        ownership_request.processed_date = func.now()
-        ownership_request.processed_by = current_user.id
-        ownership_request.reason = approval.reason
+    # Create a new ownership request record for the approval/denial action
+    new_ownership_request = OwnershipRequest(
+        diving_center_id=diving_center_id,
+        user_id=current_owner_id,  # Use the captured owner_id
+        request_status=new_status,
+        reason=approval.reason,
+        processed_date=func.now(),
+        processed_by=current_user.id,
+        notes=f"Ownership {'approved' if approval.approved else 'denied'} by admin"
+    )
+    db.add(new_ownership_request)
 
     db.commit()
     db.refresh(diving_center)
@@ -975,7 +983,7 @@ async def revoke_diving_center_ownership(
         processed_date=func.now(),
         processed_by=current_user.id,
         reason=revocation.reason,
-        notes="Ownership revoked by admin"
+        notes="Ownership revocation by admin"
     )
     db.add(revocation_request)
 

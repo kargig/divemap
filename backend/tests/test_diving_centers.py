@@ -998,6 +998,7 @@ class TestDivingCenters:
         # 1. Claim ownership
         claim_response = client.post(
             f"/api/v1/diving-centers/{test_diving_center.id}/claim",
+            json={"reason": "I am the legitimate owner of this diving center and can provide verification documents."},
             headers=auth_headers
         )
         assert claim_response.status_code == status.HTTP_200_OK
