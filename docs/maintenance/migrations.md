@@ -870,7 +870,7 @@ fly ssh console -a divemap-db -C "mysql -u root -p divemap -e 'SHOW TABLES'"
 curl -X GET https://divemap-backend.fly.dev/dive-sites
 
 # Monitor application logs
-fly logs -f -a divemap-backend
+fly logs -a divemap-backend
 ```
 
 ### Emergency Rollback
@@ -898,6 +898,26 @@ echo "✅ Emergency rollback completed"
 ```
 
 ## Production Migrations
+
+### Fly.io Logs Usage
+
+When monitoring migrations, use the appropriate `fly logs` command:
+
+- **Oneshot Commands**: Use `fly logs -n` for one-time log checks
+- **Continuous Monitoring**: Use `fly logs` (without `-n`) for real-time migration monitoring
+- **Script Usage**: Always use `fly logs -n` in scripts to prevent hanging
+
+**Examples:**
+```bash
+# Quick log check (oneshot)
+fly logs -n -a divemap-backend
+
+# Monitor migration logs continuously
+fly logs -a divemap-backend
+
+# Use in scripts (oneshot)
+fly logs -n -a divemap-backend | grep -i "migration\|error"
+```
 
 ### Production Migration Checklist
 
@@ -937,7 +957,7 @@ fly ssh console -a divemap-backend -C "alembic current"
 curl -f https://divemap-backend.fly.dev/health
 
 # 5. Monitor logs
-fly logs -f -a divemap-backend
+fly logs -a divemap-backend
 ```
 
 #### Rollback Procedure
@@ -973,7 +993,7 @@ done
 fly ssh console -a divemap-db -C "mysql -u root -p -e 'SHOW PROCESSLIST'"
 
 # Monitor application performance
-fly logs -f -a divemap-backend | grep -i "slow\|timeout\|error"
+fly logs -a divemap-backend | grep -i "slow\|timeout\|error"
 ```
 
 ## Conclusion

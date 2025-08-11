@@ -87,7 +87,7 @@ If the build fails:
 
 1. Check that all required environment variables are set
 2. Verify the Google Client ID format is correct
-3. Check Fly.io logs: `fly logs -a divemap`
+3. Check Fly.io logs: `fly logs -n -a divemap`
 
 ## Development vs Production
 

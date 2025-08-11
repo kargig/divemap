@@ -62,6 +62,22 @@ Divemap is designed for cloud deployment with containerized services, automated 
 
 ## Deployment Strategies
 
+### Fly.io Logs Usage
+
+When using `fly logs` commands, it's important to understand the difference between oneshot and tail commands:
+
+- **Oneshot Commands**: Use `fly logs -n` to view logs once and exit
+- **Tail Commands**: Use `fly logs` (without `-n`) to continuously follow logs
+
+**Examples:**
+```bash
+# View logs once and exit (for scripts, one-time checks)
+fly logs -n -a divemap-backend
+
+# Follow logs continuously (for monitoring, debugging)
+fly logs -a divemap-backend
+```
+
 ### 1. Makefile Deployment (Recommended)
 
 #### Streamlined Deployment
@@ -156,8 +172,13 @@ fly deploy
 # Check deployment status
 fly status
 
-# View logs
+# View logs (oneshot)
+fly logs -n
+
+# View logs (tail/follow)
 fly logs
+
+**Note**: The `-n` flag is required for oneshot commands. Without it, `fly logs` will tail the logs continuously.
 ```
 
 #### Configuration
@@ -524,6 +545,14 @@ alerts:
 
 ## Troubleshooting
 
+### Logs Usage
+
+When troubleshooting, use the appropriate `fly logs` command:
+
+- **Quick Checks**: Use `fly logs -n` for one-time log viewing
+- **Continuous Monitoring**: Use `fly logs` (without `-n`) to follow logs in real-time
+- **Continuous Monitoring**: Use `fly logs` (without `-n`) to follow logs in real-time
+
 ### Common Issues
 
 #### 1. Deployment Failures
@@ -533,7 +562,7 @@ alerts:
 **Solution**:
 ```bash
 # Check deployment logs
-fly logs
+fly logs -n
 
 # Verify configuration
 fly config show
@@ -595,7 +624,7 @@ curl -I https://divemap.fly.dev/
 #### Application Debugging
 ```bash
 # Check application logs
-fly logs
+fly logs -n
 
 # Connect to application shell
 fly ssh console

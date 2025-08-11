@@ -541,7 +541,7 @@ fly certs add api.your-domain.com -a divemap-backend
 Monitor application performance:
 ```bash
 fly status
-fly logs --follow
+fly logs -n
 ```
 
 Use Fly's built-in monitoring dashboard for detailed metrics.

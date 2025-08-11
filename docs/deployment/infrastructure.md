@@ -117,9 +117,13 @@ fly status
 
 ### Logs
 ```bash
-# View logs
+# View logs (oneshot)
+fly logs -n -a divemap-backend
+
+# View logs (tail/follow)
 fly logs -a divemap-backend
-fly logs -f -a divemap-backend
+
+**Note**: The `-n` flag is required for oneshot commands. Without it, `fly logs` will tail the logs continuously.
 ```
 
 ## Security
@@ -162,7 +166,7 @@ fly scale cpu 2 -a divemap-backend
 
 2. **Application Deployment**
    ```bash
-   fly logs -a divemap-backend
+   fly logs -n -a divemap-backend
    fly status -a divemap-backend
    ```
 

@@ -39,6 +39,23 @@ Regular maintenance is essential for ensuring the reliability, security, and per
 
 ## Regular Maintenance Tasks
 
+### Fly.io Logs Usage
+
+When using `fly logs` commands for maintenance tasks:
+
+- **Oneshot Commands**: Use `fly logs -n` for one-time log checks and scripts
+- **Continuous Monitoring**: Use `fly logs` (without `-n`) for real-time monitoring
+- **Continuous Monitoring**: Use `fly logs` (without `-n`) for real-time monitoring
+
+**Examples:**
+```bash
+# Quick log check (oneshot)
+fly logs -n -a divemap-backend
+
+# Monitor logs continuously
+fly logs -a divemap-backend
+```
+
 ### Daily Tasks
 
 #### 1. Health Checks
@@ -66,7 +83,7 @@ mysql -u root -p < /backups/latest_backup.sql
 #### 3. Log Review
 ```bash
 # Check application logs
-fly logs
+fly logs -n
 
 # Check error rates
 grep -i error /var/log/application.log | wc -l
@@ -103,13 +120,13 @@ curl -w "@curl-format.txt" -o /dev/null -s https://divemap.fly.dev/
 #### 3. Log Analysis
 ```bash
 # Analyze error patterns
-fly logs | grep -i error | wc -l
+fly logs -n | grep -i error | wc -l
 
 # Check for unusual activity
-fly logs | grep -i "failed login" | wc -l
+fly logs -n | grep -i "failed login" | wc -l
 
 # Monitor API usage
-fly logs | grep -i "rate limit" | wc -l
+fly logs -n | grep -i "rate limit" | wc -l
 ```
 
 ### Monthly Tasks
@@ -139,10 +156,10 @@ fly ssh console -a divemap-db -C "mysql -u root -p -e 'SELECT * FROM information
 #### 3. Security Review
 ```bash
 # Review access logs
-fly logs | grep -i "unauthorized"
+fly logs -n | grep -i "unauthorized"
 
 # Check for suspicious activity
-fly logs | grep -i "failed"
+fly logs -n | grep -i "failed"
 
 # Review security headers
 curl -I https://divemap.fly.dev/
@@ -351,10 +368,10 @@ fly ssh console -a divemap-backend -C "mysql -u divemap_user -p divemap -e 'UPDA
 #### Authentication Review
 ```bash
 # Check failed login attempts
-fly logs -a divemap-backend | grep -i "failed login"
+fly logs -n -a divemap-backend | grep -i "failed login"
 
 # Review authentication logs
-fly logs -a divemap-backend | grep -i "unauthorized"
+fly logs -n -a divemap-backend | grep -i "unauthorized"
 ```
 
 ## Monitoring and Alerts
@@ -387,10 +404,10 @@ fly ssh console -a divemap-db -C "mysql -u root -p -e 'SHOW PROCESSLIST'"
 #### Error Alerts
 ```bash
 # Monitor error rates
-fly logs | grep -i error | wc -l
+fly logs -n | grep -i error | wc -l
 
 # Check for critical errors
-fly logs | grep -i "critical\|fatal\|panic"
+fly logs -n | grep -i "critical\|fatal\|panic"
 ```
 
 #### Performance Alerts
@@ -424,7 +441,7 @@ fly ssh console -C "mysql -u divemap_user -p divemap -e 'SELECT 1'"
 #### 1. Application Not Responding
 ```bash
 # Check logs
-fly logs -a divemap
+fly logs -n -a divemap
 
 # Restart application
 fly restart -a divemap
@@ -448,7 +465,7 @@ fly ssh console -a divemap-backend -C "python run_migrations.py"
 #### 3. Authentication Issues
 ```bash
 # Check authentication logs
-fly logs -a divemap-backend | grep -i auth
+fly logs -n -a divemap-backend | grep -i auth
 
 # Test authentication
 curl -X POST https://divemap-backend.fly.dev/auth/login \
@@ -488,7 +505,7 @@ fly status
 fly secrets set DEBUG=true -a divemap-backend
 
 # Check debug logs
-fly logs -a divemap-backend | grep -i debug
+fly logs -n -a divemap-backend | grep -i debug
 ```
 
 #### Manual Testing
