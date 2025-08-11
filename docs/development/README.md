@@ -320,6 +320,137 @@ python test_rate_limiting_real.py
 - **Error Handling**: Comprehensive error handling ensures system stability
 - **Security**: Regular users are still protected by appropriate rate limits
 
+## Frontend Rate Limiting Error Handling
+
+The frontend implements comprehensive error handling for rate limiting responses (HTTP 429) to provide a better user experience when API rate limits are exceeded.
+
+### Frontend Rate Limiting Features
+
+#### **API Interceptor Enhancement**
+- **File**: `frontend/src/api.js`
+- **Feature**: Automatically detects 429 responses and marks them as rate-limited
+- **Extracts**: Retry-after time from headers or response data
+- **Sets**: `error.isRateLimited = true` and `error.retryAfter` for consistent handling
+
+#### **RateLimitError Component**
+- **File**: `frontend/src/components/RateLimitError.js`
+- **Features**: 
+  - User-friendly error message with countdown timer
+  - Retry button that appears after countdown
+  - Visual indicators (warning icon, clock icon)
+  - Responsive design with Tailwind CSS
+
+#### **Rate Limit Handler Utility**
+- **File**: `frontend/src/utils/rateLimitHandler.js`
+- **Features**:
+  - Centralized rate limiting error handling
+  - Toast notifications for immediate feedback
+  - Consistent error message formatting
+  - Reusable across all components
+
+#### **Component Integration**
+- **DiveTrips.js**: Full rate limiting error handling implemented
+- **DiveSites.js**: Full rate limiting error handling implemented
+- **Both components now show**: 
+  - RateLimitError component for visual feedback
+  - Toast notifications for immediate awareness
+  - Proper error handling for all API calls
+
+### Error Handling Flow
+
+1. **API Call Fails** → 429 response received
+2. **API Interceptor** → Marks error as rate-limited, extracts retry-after time
+3. **Component useEffect** → Detects rate-limited error, shows toast notification
+4. **UI Rendering** → Shows RateLimitError component with countdown
+5. **User Experience** → Clear message, countdown timer, retry option after timeout
+
+### User Experience Features
+
+- **Immediate Feedback**: Toast notification appears telling user about rate limiting
+- **Visual Error Display**: RateLimitError component shows with:
+  - Clear explanation of what happened
+  - Countdown timer showing when user can retry
+  - Retry button (appears after countdown)
+- **Consistent Experience**: Same error handling across all components
+- **User Guidance**: Clear instructions on what to do next
+
+### Implementation Details
+
+#### **API Response Interceptor**
+```javascript
+// Response interceptor to handle errors
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 429) {
+      // Rate limiting - extract retry after information if available
+      const retryAfter = error.response.headers['retry-after'] || 
+                        error.response.data?.retry_after || 30;
+      error.retryAfter = retryAfter;
+      error.isRateLimited = true;
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+#### **Component Error Handling**
+```javascript
+// Show toast notifications for rate limiting errors
+useEffect(() => {
+  handleRateLimitError(error, 'dive sites', () => window.location.reload());
+}, [error]);
+
+// Render rate limiting error component
+if (error?.isRateLimited) {
+  return (
+    <RateLimitError
+      retryAfter={error.retryAfter}
+      onRetry={() => window.location.reload()}
+    />
+  );
+}
+```
+
+#### **Rate Limit Handler Utility**
+```javascript
+export const handleRateLimitError = (error, context = 'data', onRetry = null) => {
+  if (error?.isRateLimited) {
+    const retryAfter = error.retryAfter || 30;
+    
+    // Show toast notification
+    toast.error(
+      `Rate limiting in effect for ${context}. Please wait ${retryAfter} seconds before trying again.`,
+      {
+        duration: 5000,
+        position: 'top-center',
+        id: `rate-limit-${context}`, // Prevent duplicate toasts
+      }
+    );
+    
+    // Execute retry callback if provided
+    if (onRetry && typeof onRetry === 'function') {
+      onRetry();
+    }
+  }
+};
+```
+
+### Testing Frontend Rate Limiting
+
+```bash
+# Check frontend container logs for ESLint errors
+docker logs divemap_frontend --tail 20
+
+# Run ESLint on specific files
+docker exec divemap_frontend npm run lint -- src/components/RateLimitError.js
+docker exec divemap_frontend npm run lint -- src/pages/DiveSites.js
+
+# Test rate limiting error handling
+# Navigate to /dive-sites and trigger rate limiting (if possible)
+# Verify RateLimitError component displays correctly
+```
+
 ## Docker Configuration
 
 The Divemap project uses multiple Dockerfiles to optimize for different environments and use cases.
@@ -1103,3 +1234,4 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 - **[Testing Documentation](./testing.md)** - Testing procedures and best practices
 - **[Diving Organizations Admin](./diving-organizations-admin.md)** - Diving organizations management
 - **[Permissions Documentation](./permissions.md)** - User permissions and access control
+- **[Frontend Rate Limiting Error Handling](./frontend-rate-limiting-error-handling.md)** - Comprehensive frontend error handling for API rate limits

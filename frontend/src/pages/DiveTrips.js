@@ -19,7 +19,9 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { getParsedTrips, getDivingCenters, getDiveSites } from '../api';
 import DiveMap from '../components/DiveMap';
+import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
+import { handleRateLimitError } from '../utils/rateLimitHandler';
 
 const DiveTrips = () => {
   const navigate = useNavigate();
@@ -51,6 +53,19 @@ const DiveTrips = () => {
   useEffect(() => {
     getUserLocation();
   }, []);
+
+  // Show toast notifications for rate limiting errors
+  useEffect(() => {
+    handleRateLimitError(error, 'dive trips', () => window.location.reload());
+  }, [error]);
+
+  useEffect(() => {
+    handleRateLimitError(divingCentersError, 'diving centers', () => window.location.reload());
+  }, [divingCentersError]);
+
+  useEffect(() => {
+    handleRateLimitError(diveSitesError, 'dive sites', () => window.location.reload());
+  }, [diveSitesError]);
 
   // Function to get user's current location
   const getUserLocation = () => {
@@ -117,7 +132,7 @@ const DiveTrips = () => {
   );
 
   // Query for diving centers and dive sites for filters
-  const { data: divingCenters = [] } = useQuery(
+  const { data: divingCenters = [], error: divingCentersError } = useQuery(
     ['diving-centers'],
     () => getDivingCenters({ page_size: 100 }),
     {
@@ -125,7 +140,7 @@ const DiveTrips = () => {
     }
   );
 
-  const { data: diveSites = [] } = useQuery(
+  const { data: diveSites = [], error: diveSitesError } = useQuery(
     ['dive-sites'],
     () => getDiveSites({ page_size: 100 }),
     {
@@ -421,6 +436,25 @@ const DiveTrips = () => {
           </button>
         </div>
       </div>
+
+      {/* API Errors for Filter Data */}
+      {(divingCentersError || diveSitesError) && (
+        <div className='mb-6'>
+          {divingCentersError?.isRateLimited && (
+            <RateLimitError
+              retryAfter={divingCentersError.retryAfter}
+              onRetry={() => window.location.reload()}
+              className='mb-4'
+            />
+          )}
+          {diveSitesError?.isRateLimited && (
+            <RateLimitError
+              retryAfter={diveSitesError.retryAfter}
+              onRetry={() => window.location.reload()}
+            />
+          )}
+        </div>
+      )}
 
       {/* Enhanced Filters */}
       <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
@@ -791,8 +825,23 @@ const DiveTrips = () => {
       )}
 
       {error && (
-        <div className='text-center py-12'>
-          <p className='text-red-600'>Error loading dive trips</p>
+        <div className='py-6'>
+          {error.isRateLimited ? (
+            <RateLimitError
+              retryAfter={error.retryAfter}
+              onRetry={() => {
+                // Refetch the query when user clicks retry
+                window.location.reload();
+              }}
+            />
+          ) : (
+            <div className='text-center py-12'>
+              <p className='text-red-600'>Error loading dive trips</p>
+              <p className='text-sm text-gray-500 mt-2'>
+                {error.response?.data?.detail || error.message || 'An unexpected error occurred'}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

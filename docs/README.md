@@ -14,6 +14,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 - **[API.md](./development/api.md)** - API documentation and endpoints
 - **[Testing.md](./development/testing.md)** - Testing guide (see [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for comprehensive details)
 - **[Docker.md](./development/docker.md)** - Docker configuration and containerization guide
+- **[Frontend Rate Limiting Error Handling](./development/frontend-rate-limiting-error-handling.md)** - Comprehensive frontend error handling for API rate limits
 - **Newsletter Management** - Newsletter parsing and trip management (see [Development README](./development/README.md#newsletter-management-system))
 - **Import Scripts** - Dive site import utilities with smart conflict resolution (see [Development README](./development/README.md#import-scripts))
 - **[Importing Data](./IMPORTING_DATA.md)** - Comprehensive guide for importing dive sites and dives from Subsurface
@@ -29,7 +30,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 ### 🛡️ Security
 - **[README.md](./security/README.md)** - Security overview, measures, and best practices
 - **[OAuth Setup.md](./security/oauth-setup.md)** - Google OAuth configuration
-- **Rate Limiting** - Enhanced rate limiting with localhost and admin exemptions (see [API.md](./development/api.md#rate-limiting) and [Security README](./security/README.md#rate-limiting))
+- **Rate Limiting** - Enhanced rate limiting with localhost and admin exemptions, plus comprehensive frontend error handling (see [API.md](./development/api.md#rate-limiting), [Security README](./security/README.md#rate-limiting), and [Development README](./development/README.md#frontend-rate-limiting-error-handling))
 
 ### 🔧 Maintenance
 - **[README.md](./maintenance/README.md)** - Maintenance overview and troubleshooting
@@ -51,6 +52,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 4. **[Testing Guide](./development/testing.md)** - Testing procedures (see [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for details)
 5. **[Docker Configuration](./development/docker.md)** - Container setup and optimization
 6. **[Importing Data](./IMPORTING_DATA.md)** - Guide for importing dive sites and dives from Subsurface
+7. **[Rate Limiting Error Handling](./development/README.md#frontend-rate-limiting-error-handling)** - Frontend error handling for API rate limits
 
 ### For Deployment
 1. **[Deployment Overview](./deployment/README.md)** - Deployment strategies (includes Makefile deployment)
@@ -98,6 +100,7 @@ All documentation should:
 - ✅ Consolidated security measures
 - ✅ Merged troubleshooting into maintenance guide
 - ✅ Reduced total documentation files from 22 to 16
+- ✅ Added comprehensive frontend rate limiting error handling documentation
 - ✅ Added diving organizations and user certifications documentation
 - ✅ Updated API documentation with new endpoints
 - ✅ Enhanced database documentation with new schema

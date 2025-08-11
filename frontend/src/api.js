@@ -33,6 +33,12 @@ api.interceptors.response.use(
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+    } else if (error.response?.status === 429) {
+      // Rate limiting - extract retry after information if available
+      const retryAfter =
+        error.response.headers['retry-after'] || error.response.data?.retry_after || 30;
+      error.retryAfter = retryAfter;
+      error.isRateLimited = true;
     }
     return Promise.reject(error);
   }

@@ -1249,6 +1249,57 @@ The rate limiting system uses a custom decorator `@skip_rate_limit_for_admin()` 
 
 This ensures robust protection while allowing legitimate administrative operations.
 
+### Frontend Rate Limiting Error Handling
+
+The frontend implements comprehensive error handling for rate limiting responses to provide a better user experience when API rate limits are exceeded.
+
+#### **Frontend Error Handling Components**
+
+- **API Interceptor**: Automatically detects 429 responses and marks them as rate-limited
+- **RateLimitError Component**: User-friendly error display with countdown timer and retry button
+- **Rate Limit Handler Utility**: Centralized error handling with toast notifications
+- **Component Integration**: Consistent error handling across all React components
+
+#### **Frontend Error Handling Flow**
+
+1. **API Call Fails** → 429 response received from backend
+2. **API Interceptor** → Marks error as rate-limited, extracts retry-after time
+3. **Component useEffect** → Detects rate-limited error, shows toast notification
+4. **UI Rendering** → Shows RateLimitError component with countdown
+5. **User Experience** → Clear message, countdown timer, retry option after timeout
+
+#### **Frontend Implementation Files**
+
+- **API Interceptor**: `frontend/src/api.js` - Response interceptor for 429 handling
+- **Error Component**: `frontend/src/components/RateLimitError.js` - Visual error display
+- **Utility Function**: `frontend/src/utils/rateLimitHandler.js` - Centralized error handling
+- **Component Usage**: `frontend/src/pages/DiveSites.js`, `frontend/src/pages/DiveTrips.js`
+
+#### **Frontend User Experience Features**
+
+- **Immediate Feedback**: Toast notification appears telling user about rate limiting
+- **Visual Error Display**: RateLimitError component shows with:
+  - Clear explanation of what happened
+  - Countdown timer showing when user can retry
+  - Retry button (appears after countdown)
+- **Consistent Experience**: Same error handling across all components
+- **User Guidance**: Clear instructions on what to do next
+
+#### **Frontend Testing**
+
+```bash
+# Check frontend container logs for ESLint errors
+docker logs divemap_frontend --tail 20
+
+# Run ESLint on rate limiting error handling files
+docker exec divemap_frontend npm run lint -- src/components/RateLimitError.js
+docker exec divemap_frontend npm run lint -- src/pages/DiveSites.js
+
+# Test rate limiting error handling
+# Navigate to /dive-sites and trigger rate limiting (if possible)
+# Verify RateLimitError component displays correctly
+```
+
 ## Examples
 
 ### Complete Authentication Flow
