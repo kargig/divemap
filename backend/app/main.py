@@ -81,7 +81,10 @@ async def add_security_headers(request, call_next):
             "img-src 'self' https://fastapi.tiangolo.com https://cdn.jsdelivr.net https://unpkg.com data:; "
             "font-src 'self' https://cdn.jsdelivr.net https://unpkg.com; "
             "connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com; "
-            "frame-src 'self'"
+            "frame-src 'self'; "
+            "worker-src 'self' blob:; "
+            "child-src 'self' blob:; "
+            "object-src 'self'"
         )
     else:
         # Stricter CSP for API endpoints

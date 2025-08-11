@@ -21,6 +21,7 @@ import {
   Activity,
   Clock,
   Shield,
+  Code,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -119,6 +120,14 @@ const Navbar = () => {
                   >
                     <Info className='h-4 w-4 mr-2' />
                     About
+                  </Link>
+                  <Link
+                    to='/api'
+                    className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
+                    onClick={() => setShowInfoDropdown(false)}
+                  >
+                    <Code className='h-4 w-4 mr-2' />
+                    API
                   </Link>
                   <Link
                     to='/help'
@@ -343,6 +352,14 @@ const Navbar = () => {
                 >
                   <Info className='h-4 w-4 mr-3' />
                   <span>About</span>
+                </Link>
+                <Link
+                  to='/api'
+                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                  onClick={closeMobileMenu}
+                >
+                  <Code className='h-4 w-4 mr-3' />
+                  <span>API</span>
                 </Link>
                 <Link
                   to='/help'

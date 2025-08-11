@@ -17,6 +17,7 @@ import AdminRecentActivity from './pages/AdminRecentActivity';
 import AdminSystemOverview from './pages/AdminSystemOverview';
 import AdminTags from './pages/AdminTags';
 import AdminUsers from './pages/AdminUsers';
+import API from './pages/API';
 import CreateDive from './pages/CreateDive';
 import CreateDiveSite from './pages/CreateDiveSite';
 import CreateDivingCenter from './pages/CreateDivingCenter';
@@ -104,6 +105,7 @@ function App() {
               <Routes>
                 <Route path='/' element={<Home />} />
                 <Route path='/about' element={<About />} />
+                <Route path='/api' element={<API />} />
                 <Route path='/help' element={<Help />} />
                 <Route path='/privacy' element={<Privacy />} />
                 <Route path='/login' element={<Login />} />
