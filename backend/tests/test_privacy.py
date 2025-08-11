@@ -60,7 +60,7 @@ class TestPrivacyDataExport:
             latitude=10.0,
             longitude=20.0,
             access_instructions="Shore access",
-            difficulty_level="intermediate"
+            difficulty_level=2  # 2 = intermediate (integer, not string)
         )
         db_session.add(dive_site)
         db_session.commit()
@@ -121,7 +121,7 @@ class TestPrivacyDataExport:
             latitude=10.0,
             longitude=20.0,
             access_instructions="Shore access",
-            difficulty_level="intermediate"
+            difficulty_level=2  # 2 = intermediate (integer, not string)
         )
         db_session.add(dive_site)
         db_session.commit()
@@ -241,7 +241,7 @@ class TestPrivacyDataExport:
             latitude=10.0,
             longitude=20.0,
             access_instructions="Shore access",
-            difficulty_level="intermediate"
+            difficulty_level=2  # 2 = intermediate (integer, not string)
         )
         db_session.add(dive_site)
         db_session.commit()
@@ -383,7 +383,7 @@ class TestPrivacyDataExport:
             latitude=10.0,
             longitude=20.0,
             access_instructions="Shore access",
-            difficulty_level="intermediate"
+            difficulty_level=2  # 2 = intermediate (integer, not string)
         )
         db_session.add(dive_site)
         db_session.commit()

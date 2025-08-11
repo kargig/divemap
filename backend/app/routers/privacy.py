@@ -10,7 +10,7 @@ from app.auth import get_current_active_user
 from app.models import (
     User, Dive, DiveMedia, DiveTag, SiteRating, SiteComment, 
     CenterRating, CenterComment, UserCertification, DivingCenter,
-    DiveSite, AvailableTag, DivingOrganization
+    DiveSite, AvailableTag, DivingOrganization, get_difficulty_label
 )
 from app.schemas import UserResponse
 
@@ -134,7 +134,7 @@ async def export_user_data(
             "average_depth": float(dive.average_depth) if dive.average_depth else None,
             "gas_bottles_used": dive.gas_bottles_used,
             "suit_type": dive.suit_type.value if dive.suit_type else None,
-            "difficulty_level": dive.difficulty_level.value if dive.difficulty_level else None,
+            "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
             "visibility_rating": dive.visibility_rating,
             "user_rating": dive.user_rating,
             "dive_date": dive.dive_date.isoformat(),

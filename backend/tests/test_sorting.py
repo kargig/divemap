@@ -333,7 +333,7 @@ def sample_dive_sites(db_session: Session):
             name="Alpha Reef",
             country="Greece",
             region="Crete",
-            difficulty_level="beginner",
+            difficulty_level=2,  # 2 = intermediate (integer, not string)
             view_count=100,
             created_at=datetime.now() - timedelta(days=5),
             updated_at=datetime.now() - timedelta(days=1)
@@ -342,7 +342,7 @@ def sample_dive_sites(db_session: Session):
             name="Beta Bay",
             country="Greece", 
             region="Santorini",
-            difficulty_level="intermediate",
+            difficulty_level=2,  # 2 = intermediate (integer, not string)
             view_count=250,
             created_at=datetime.now() - timedelta(days=3),
             updated_at=datetime.now() - timedelta(days=2)
@@ -351,7 +351,7 @@ def sample_dive_sites(db_session: Session):
             name="Gamma Grotto",
             country="Greece",
             region="Rhodes", 
-            difficulty_level="advanced",
+            difficulty_level=3,  # 3 = advanced (integer, not string)
             view_count=75,
             created_at=datetime.now() - timedelta(days=1),
             updated_at=datetime.now()
@@ -413,7 +413,7 @@ def sample_dives(db_session: Session, sample_dive_sites, sample_users):
             dive_date=date.today() - timedelta(days=5),
             max_depth=15.5,
             duration=45,
-            difficulty_level="beginner",
+            difficulty_level=1,  # 1 = beginner (integer, not string)
             visibility_rating=8,
             user_rating=4,
             view_count=25
@@ -425,7 +425,7 @@ def sample_dives(db_session: Session, sample_dive_sites, sample_users):
             dive_date=date.today() - timedelta(days=3),
             max_depth=25.0,
             duration=60,
-            difficulty_level="intermediate",
+            difficulty_level=2,  # 2 = intermediate (integer, not string)
             visibility_rating=7,
             user_rating=5,
             view_count=40
@@ -437,7 +437,7 @@ def sample_dives(db_session: Session, sample_dive_sites, sample_users):
             dive_date=date.today() - timedelta(days=1),
             max_depth=35.5,
             duration=75,
-            difficulty_level="advanced",
+            difficulty_level=3,  # 3 = advanced (integer, not string)
             visibility_rating=6,
             user_rating=3,
             view_count=15
@@ -463,21 +463,21 @@ def sample_dive_trips(db_session: Session, sample_diving_centers):
             trip_date=date.today() + timedelta(days=5),
             trip_price=Decimal("150.00"),
             trip_duration=120,
-            trip_difficulty_level="beginner"
+            trip_difficulty_level=1  # 1 = beginner (integer, not string)
         ),
         ParsedDiveTrip(
             diving_center_id=sample_diving_centers[1].id,
             trip_date=date.today() + timedelta(days=3),
             trip_price=Decimal("200.00"),
             trip_duration=180,
-            trip_difficulty_level="intermediate"
+            trip_difficulty_level=2  # 2 = intermediate (integer, not string)
         ),
         ParsedDiveTrip(
             diving_center_id=sample_diving_centers[2].id,
             trip_date=date.today() + timedelta(days=1),
             trip_price=Decimal("300.00"),
             trip_duration=240,
-            trip_difficulty_level="advanced"
+            trip_difficulty_level=3  # 3 = advanced (integer, not string)
         )
     ]
     

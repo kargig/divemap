@@ -217,7 +217,7 @@ class TestNewsletters:
             "trip_date": "2024-01-15",
             "trip_time": "09:00:00",
             "trip_duration": 480,
-            "trip_difficulty_level": "intermediate",
+            "trip_difficulty_level": 2,  # 2 = intermediate (integer, not string)
             "trip_price": 100.0,
             "trip_currency": "EUR",
             "group_size_limit": 8,
@@ -254,7 +254,7 @@ class TestNewsletters:
             "trip_date": "2024-01-15",
             "trip_time": "09:00:00",
             "trip_duration": 480,
-            "trip_difficulty_level": "intermediate",
+            "trip_difficulty_level": 2,  # 2 = intermediate (integer, not string)
             "trip_price": 100.0,
             "trip_currency": "EUR",
             "group_size_limit": 8,

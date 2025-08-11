@@ -686,7 +686,7 @@ def create_dive(
         "average_depth": float(db_dive.average_depth) if db_dive.average_depth else None,
         "gas_bottles_used": db_dive.gas_bottles_used,
         "suit_type": db_dive.suit_type.value if db_dive.suit_type else None,
-        "difficulty_level": db_get_difficulty_label(dive.difficulty_level) if db_dive.difficulty_level else None,
+        "difficulty_level": get_difficulty_label(dive.difficulty_level) if db_dive.difficulty_level else None,
         "visibility_rating": db_dive.visibility_rating,
         "user_rating": db_dive.user_rating,
         "dive_date": db_dive.dive_date.strftime("%Y-%m-%d"),

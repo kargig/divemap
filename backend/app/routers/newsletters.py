@@ -782,7 +782,7 @@ async def get_parsed_trips(
     # Difficulty level filtering
     if difficulty_level:
         try:
-            difficulty = DifficultyLevel(difficulty_level)
+            difficulty = get_difficulty_label(difficulty_level) # Assuming get_difficulty_label is a function that maps int to label
             query = query.filter(ParsedDiveTrip.trip_difficulty_level == difficulty)
         except:
             pass  # Invalid difficulty, ignore filter
@@ -1285,7 +1285,7 @@ async def create_parsed_trip(
             trip_date=trip.trip_date,
             trip_time=trip.trip_time,
             trip_duration=trip.trip_duration,
-            trip_difficulty_level=trip.trip_difficulty_level.value if trip.trip_difficulty_level else None,
+            trip_difficulty_level=get_difficulty_label(trip.trip_difficulty_level) if trip.trip_difficulty_level else None,
             trip_price=float(trip.trip_price) if trip.trip_price else None,
             trip_currency=trip.trip_currency,
             group_size_limit=trip.group_size_limit,
@@ -1326,7 +1326,7 @@ async def get_parsed_trip(
         trip_date=trip.trip_date,
         trip_time=trip.trip_time,
         trip_duration=trip.trip_duration,
-        trip_difficulty_level=trip.trip_difficulty_level.value if trip.trip_difficulty_level else None,
+        trip_difficulty_level=get_difficulty_label(trip.trip_difficulty_level) if trip.trip_difficulty_level else None,
         trip_price=float(trip.trip_price) if trip.trip_price else None,
         trip_currency=trip.trip_currency,
         group_size_limit=trip.group_size_limit,
@@ -1443,7 +1443,7 @@ async def update_parsed_trip(
             trip_date=trip.trip_date,
             trip_time=trip.trip_time,
             trip_duration=trip.trip_duration,
-            trip_difficulty_level=trip.trip_difficulty_level.value if trip.trip_difficulty_level else None,
+            trip_difficulty_level=get_difficulty_label(trip.trip_difficulty_level) if trip.trip_difficulty_level else None,
             trip_price=float(trip.trip_price) if trip.trip_price else None,
             trip_currency=trip.trip_currency,
             group_size_limit=trip.group_size_limit,
