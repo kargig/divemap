@@ -9,7 +9,7 @@ from io import BytesIO
 from difflib import SequenceMatcher
 
 from app.database import get_db
-from app.models import Dive, DiveMedia, DiveTag, DiveSite, AvailableTag, User, DivingCenter
+from app.models import Dive, DiveMedia, DiveTag, DiveSite, AvailableTag, User, DivingCenter, DiveSiteAlias
 from app.schemas import (
     DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse,
     DiveTagCreate, DiveTagResponse, DiveSearchParams
@@ -61,7 +61,17 @@ def get_all_dives_count_admin(
         query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
         # Use ILIKE for case-insensitive partial matching
         sanitized_name = dive_site_name.strip()
-        query = query.filter(DiveSite.name.ilike(f"%{sanitized_name}%"))
+        # Search in both dive site names and aliases
+        query = query.filter(
+            or_(
+                DiveSite.name.ilike(f"%{sanitized_name}%"),
+                DiveSite.id.in_(
+                    db.query(DiveSiteAlias.dive_site_id).filter(
+                        DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
+                    )
+                )
+            )
+        )
 
     if difficulty_level:
         query = query.filter(Dive.difficulty_level == difficulty_level)
@@ -177,7 +187,17 @@ def get_all_dives_admin(
         query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
         # Use ILIKE for case-insensitive partial matching
         sanitized_name = dive_site_name.strip()
-        query = query.filter(DiveSite.name.ilike(f"%{sanitized_name}%"))
+        # Search in both dive site names and aliases
+        query = query.filter(
+            or_(
+                DiveSite.name.ilike(f"%{sanitized_name}%"),
+                DiveSite.id.in_(
+                    db.query(DiveSiteAlias.dive_site_id).filter(
+                        DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
+                    )
+                )
+            )
+        )
 
     if difficulty_level:
         query = query.filter(Dive.difficulty_level == difficulty_level)
@@ -737,7 +757,17 @@ def get_dives_count(
         query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
         # Use ILIKE for case-insensitive partial matching
         sanitized_name = dive_site_name.strip()
-        query = query.filter(DiveSite.name.ilike(f"%{sanitized_name}%"))
+        # Search in both dive site names and aliases
+        query = query.filter(
+            or_(
+                DiveSite.name.ilike(f"%{sanitized_name}%"),
+                DiveSite.id.in_(
+                    db.query(DiveSiteAlias.dive_site_id).filter(
+                        DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
+                    )
+                )
+            )
+        )
 
     if difficulty_level:
         query = query.filter(Dive.difficulty_level == difficulty_level)
@@ -887,7 +917,17 @@ def get_dives(
         query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
         # Use ILIKE for case-insensitive partial matching
         sanitized_name = dive_site_name.strip()
-        query = query.filter(DiveSite.name.ilike(f"%{sanitized_name}%"))
+        # Search in both dive site names and aliases
+        query = query.filter(
+            or_(
+                DiveSite.name.ilike(f"%{sanitized_name}%"),
+                DiveSite.id.in_(
+                    db.query(DiveSiteAlias.dive_site_id).filter(
+                        DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
+                    )
+                )
+            )
+        )
 
     if difficulty_level:
         query = query.filter(Dive.difficulty_level == difficulty_level)

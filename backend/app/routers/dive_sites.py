@@ -175,7 +175,17 @@ async def get_dive_sites(
     if name:
         # Sanitize name input to prevent injection
         sanitized_name = name.strip()[:100]
-        query = query.filter(DiveSite.name.ilike(f"%{sanitized_name}%"))
+        # Search in both dive site names and aliases
+        query = query.filter(
+            or_(
+                DiveSite.name.ilike(f"%{sanitized_name}%"),
+                DiveSite.id.in_(
+                    db.query(DiveSiteAlias.dive_site_id).filter(
+                        DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
+                    )
+                )
+            )
+        )
 
     if difficulty_level:
         query = query.filter(DiveSite.difficulty_level == difficulty_level)
@@ -346,7 +356,17 @@ async def get_dive_sites_count(
     # Apply filters with input validation
     if name:
         sanitized_name = name.strip()[:100]
-        query = query.filter(DiveSite.name.ilike(f"%{sanitized_name}%"))
+        # Search in both dive site names and aliases
+        query = query.filter(
+            or_(
+                DiveSite.name.ilike(f"%{sanitized_name}%"),
+                DiveSite.id.in_(
+                    db.query(DiveSiteAlias.dive_site_id).filter(
+                        DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
+                    )
+                )
+            )
+        )
 
     if difficulty_level:
         query = query.filter(DiveSite.difficulty_level == difficulty_level)
