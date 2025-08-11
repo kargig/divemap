@@ -83,6 +83,68 @@ python run_migrations.py
 - Use descriptive migration names
 - Handle dependencies between migrations
 
+### Migration Creation Anti-Hallucination Rule
+- **BEFORE creating any new migration file, ALWAYS examine previous successful migrations**
+- **ALWAYS look at the last 3-5 migration files to see which methods have worked successfully**
+- **NEVER invent new migration patterns without first checking existing working examples**
+- **ALWAYS use the same successful patterns from previous migrations for similar operations**
+- **If a migration pattern worked before, use it again instead of trying something new**
+- **When in doubt, copy the structure and approach from a similar previous migration**
+- **This prevents migration creation hallucinations and ensures consistency**
+
+### Migration Testing Requirements
+- **ALWAYS test new migration files on a test MySQL container before applying to production**
+- **ALWAYS use the same testing approach as the GitHub Actions workflow**
+- **NEVER assume a migration will work without testing it first**
+- **ALWAYS verify that the created tables match exactly what the models expect**
+
+### Migration Testing Workflow
+```bash
+# ✅ CORRECT - Test migrations on isolated MySQL container
+# 1. Start test MySQL container
+docker run --name divemap_test_mysql \
+  -e MYSQL_ROOT_PASSWORD=password \
+  -e MYSQL_DATABASE=divemap_test \
+  -d -p 3307:3306 mysql:8.0
+
+# 2. Wait for MySQL to be ready
+sleep 15
+docker exec divemap_test_mysql mysql -u root -ppassword -e "SELECT 1;"
+
+# 3. Set up Python environment
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+export DATABASE_URL="mysql+pymysql://root:password@localhost:3307/divemap_test"
+
+# 4. Run all migrations from scratch
+alembic upgrade head
+
+# 5. Verify all modified tables in the migration file match models. Example:
+docker exec divemap_test_mysql mysql -u root -ppassword divemap_test -e "DESCRIBE parsed_dive_trips;"
+
+# 6. Run backend tests to ensure compatibility
+python -m pytest tests/ -v
+
+# 7. Clean up test container
+docker stop divemap_test_mysql && docker rm divemap_test_mysql
+
+# ❌ WRONG - Don't skip migration testing
+# Never apply migrations without testing them first
+# Never assume migrations will work in production
+```
+
+### Migration Testing Checklist
+Before considering a migration ready for production:
+- [ ] Migration runs successfully on test MySQL container
+- [ ] All tables are created with correct structure
+- [ ] Column types match model definitions exactly
+- [ ] Indexes are created correctly
+- [ ] Constraints are applied properly
+- [ ] Backend tests pass with new schema
+- [ ] Models can successfully query the database
+- [ ] Test container is cleaned up after testing
+
 ### Migration Filename Requirements
 - **MUST always use numerical ordering for migration filenames**
 - **MUST follow the format: `####_descriptive_name.py` where #### is a 4-digit number**
