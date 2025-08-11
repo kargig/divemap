@@ -9,9 +9,9 @@ import RateLimitError from '../components/RateLimitError';
 import SortingControls from '../components/SortingControls';
 import { useAuth } from '../contexts/AuthContext';
 import useSorting from '../hooks/useSorting';
+import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
-import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 
 const DiveSites = () => {
   const { user } = useAuth();

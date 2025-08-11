@@ -26,8 +26,8 @@ import ImportDivesModal from '../components/ImportDivesModal';
 import SortingControls from '../components/SortingControls';
 import { useAuth } from '../contexts/AuthContext';
 import useSorting from '../hooks/useSorting';
-import { getSortOptions } from '../utils/sortOptions';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { getSortOptions } from '../utils/sortOptions';
 
 const Dives = () => {
   const { user } = useAuth();
