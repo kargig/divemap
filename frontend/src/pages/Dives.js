@@ -27,6 +27,7 @@ import SortingControls from '../components/SortingControls';
 import { useAuth } from '../contexts/AuthContext';
 import useSorting from '../hooks/useSorting';
 import { getSortOptions } from '../utils/sortOptions';
+import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 
 const Dives = () => {
   const { user } = useAuth();
@@ -474,15 +475,7 @@ const Dives = () => {
     });
   };
 
-  const getDifficultyColor = level => {
-    const colors = {
-      beginner: 'bg-green-100 text-green-800',
-      intermediate: 'bg-yellow-100 text-yellow-800',
-      advanced: 'bg-orange-100 text-orange-800',
-      expert: 'bg-red-100 text-red-800',
-    };
-    return colors[level] || 'bg-gray-100 text-gray-800';
-  };
+  // getDifficultyColor function is now replaced by getDifficultyColorClasses from difficultyHelpers
 
   const getSuitTypeColor = type => {
     const colors = {
@@ -801,7 +794,7 @@ const Dives = () => {
         <SortingControls
           sortBy={sortBy}
           sortOrder={sortOrder}
-          sortOptions={getSortOptions('dives')}
+          sortOptions={getSortOptions('dives', user?.is_admin)}
           onSortChange={handleSortChange}
           onSortApply={handleSortApply}
           onReset={resetSorting}
@@ -1031,9 +1024,9 @@ const Dives = () => {
                     {dive.difficulty_level && (
                       <div className='flex items-center gap-2'>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(dive.difficulty_level)}`}
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_level)}`}
                         >
-                          {dive.difficulty_level}
+                          {getDifficultyLabel(dive.difficulty_level)}
                         </span>
                       </div>
                     )}

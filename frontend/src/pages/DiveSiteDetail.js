@@ -18,6 +18,7 @@ import api from '../api';
 import MiniMap from '../components/MiniMap';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
+import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 
 // Helper function to safely extract error message
 const getErrorMessage = error => {
@@ -236,17 +237,9 @@ const DiveSiteDetail = () => {
         </div>
         <div className='flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4'>
           <span
-            className={`px-3 py-1 text-sm font-medium rounded-full ${
-              diveSite.difficulty_level === 'beginner'
-                ? 'bg-green-100 text-green-800'
-                : diveSite.difficulty_level === 'intermediate'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : diveSite.difficulty_level === 'advanced'
-                    ? 'bg-orange-100 text-orange-800'
-                    : 'bg-red-100 text-red-800'
-            }`}
+            className={`px-3 py-1 text-sm font-medium rounded-full ${getDifficultyColorClasses(diveSite.difficulty_level)}`}
           >
-            {diveSite.difficulty_level}
+            {getDifficultyLabel(diveSite.difficulty_level)}
           </span>
 
           {/* Aliases */}
@@ -447,17 +440,9 @@ const DiveSiteDetail = () => {
                         <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
                           <span className='font-medium'>Level:</span>
                           <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              dive.difficulty_level === 'beginner'
-                                ? 'bg-green-100 text-green-800'
-                                : dive.difficulty_level === 'intermediate'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : dive.difficulty_level === 'advanced'
-                                    ? 'bg-orange-100 text-orange-800'
-                                    : 'bg-red-100 text-red-800'
-                            }`}
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(dive.difficulty_level)}`}
                           >
-                            {dive.difficulty_level}
+                            {getDifficultyLabel(dive.difficulty_level)}
                           </span>
                         </div>
                       )}
@@ -800,7 +785,9 @@ const DiveSiteDetail = () => {
             <div className='space-y-3 text-sm'>
               <div>
                 <span className='font-medium text-gray-700'>Difficulty:</span>
-                <span className='ml-2 capitalize'>{diveSite.difficulty_level}</span>
+                <span className='ml-2 capitalize'>
+                  {getDifficultyLabel(diveSite.difficulty_level)}
+                </span>
               </div>
               {diveSite.average_rating && (
                 <div>

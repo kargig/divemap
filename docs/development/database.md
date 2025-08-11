@@ -26,6 +26,21 @@ The Divemap application uses MySQL as its primary database with SQLAlchemy ORM a
 
 ## Database Schema
 
+### Difficulty Level System
+
+The difficulty level system has been converted from ENUM strings to integers for better performance and consistency:
+
+- **1** = beginner
+- **2** = intermediate (default)
+- **3** = advanced  
+- **4** = expert
+
+This conversion was implemented in migration 0024 and provides:
+- Better database performance for sorting and filtering
+- Consistent integer-based operations
+- Human-readable string conversion in API responses
+- Backward compatibility through helper functions
+
 ### Core Tables
 
 #### Users Table
@@ -58,7 +73,7 @@ CREATE TABLE dive_sites (
     access_instructions TEXT,
     dive_plans TEXT,
     gas_tanks_necessary TEXT,
-    difficulty_level ENUM('beginner', 'intermediate', 'advanced', 'expert'),
+    difficulty_level INTEGER DEFAULT 2, -- 1=beginner, 2=intermediate, 3=advanced, 4=expert
     marine_life TEXT,
     safety_information TEXT,
     max_depth DECIMAL(5, 2),
@@ -145,7 +160,7 @@ CREATE TABLE dives (
     average_depth DECIMAL(5, 2),
     gas_bottles_used TEXT,
     suit_type ENUM('wet_suit', 'dry_suit', 'shortie'),
-    difficulty_level ENUM('beginner', 'intermediate', 'advanced', 'expert'),
+    difficulty_level INTEGER DEFAULT 2, -- 1=beginner, 2=intermediate, 3=advanced, 4=expert
     visibility_rating INT CHECK (visibility_rating >= 1 AND visibility_rating <= 10),
     user_rating INT CHECK (user_rating >= 1 AND user_rating <= 10),
     dive_date DATE NOT NULL,
@@ -196,7 +211,7 @@ CREATE TABLE parsed_dive_trips (
     trip_date DATE NOT NULL,
     trip_time TIME,
     trip_duration INT,
-    trip_difficulty_level ENUM('beginner', 'intermediate', 'advanced', 'expert'),
+    trip_difficulty_level INTEGER DEFAULT 2, -- 1=beginner, 2=intermediate, 3=advanced, 4=expert
     trip_price DECIMAL(10, 2),
     trip_currency VARCHAR(3) DEFAULT 'EUR',
     group_size_limit INT,

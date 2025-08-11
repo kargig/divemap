@@ -21,7 +21,9 @@ import { getParsedTrips, getDivingCenters, getDiveSites } from '../api';
 import DiveMap from '../components/DiveMap';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
+import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
+import { getSortOptions } from '../utils/sortOptions';
 
 const DiveTrips = () => {
   const navigate = useNavigate();
@@ -43,6 +45,11 @@ const DiveTrips = () => {
     sort_by: 'trip_date',
     sort_order: 'desc',
   });
+
+  // Get sort options based on user permissions
+  const getAvailableSortOptions = () => {
+    return getSortOptions('dive-trips', user?.is_admin);
+  };
   const [userLocation, setUserLocation] = useState({
     latitude: null,
     longitude: null,
@@ -280,22 +287,7 @@ const DiveTrips = () => {
     }
   };
 
-  const getDifficultyColor = difficulty => {
-    if (!difficulty) return 'bg-gray-100 text-gray-600';
-
-    switch (difficulty.toLowerCase()) {
-      case 'beginner':
-        return 'bg-green-100 text-green-800';
-      case 'intermediate':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'advanced':
-        return 'bg-orange-100 text-orange-800';
-      case 'expert':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-600';
-    }
-  };
+  // getDifficultyColor function is now replaced by getDifficultyColorClasses from difficultyHelpers
 
   // Function to determine the display status based on trip date
   const getDisplayStatus = trip => {
@@ -739,13 +731,11 @@ const DiveTrips = () => {
               onChange={e => setSortOptions(prev => ({ ...prev, sort_by: e.target.value }))}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
             >
-              <option value='trip_date'>Trip Date</option>
-              <option value='trip_price'>Price</option>
-              <option value='trip_duration'>Duration</option>
-              <option value='difficulty_level'>Difficulty Level</option>
-              <option value='popularity'>Popularity</option>
-              <option value='distance'>Distance</option>
-              <option value='created_at'>Recently Added</option>
+              {getAvailableSortOptions().map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -1048,9 +1038,9 @@ const DiveTrips = () => {
 
                         {trip.difficulty_level && (
                           <span
-                            className={`px-3 py-1 text-sm font-medium rounded-full ${getDifficultyColor(trip.difficulty_level)}`}
+                            className={`px-3 py-1 text-sm font-medium rounded-full ${getDifficultyColorClasses(trip.difficulty_level)}`}
                           >
-                            {trip.difficulty_level}
+                            {getDifficultyLabel(trip.difficulty_level)}
                           </span>
                         )}
                       </div>

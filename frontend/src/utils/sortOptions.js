@@ -5,16 +5,12 @@ export const SORT_OPTIONS = {
     { value: 'country', label: 'Country', defaultOrder: 'asc' },
     { value: 'region', label: 'Region', defaultOrder: 'asc' },
     { value: 'difficulty_level', label: 'Difficulty Level', defaultOrder: 'asc' },
-    { value: 'view_count', label: 'Popularity (Views)', defaultOrder: 'desc' },
-    { value: 'comment_count', label: 'Comments', defaultOrder: 'desc' },
     { value: 'created_at', label: 'Date Created', defaultOrder: 'desc' },
     { value: 'updated_at', label: 'Last Updated', defaultOrder: 'desc' },
   ],
 
   'diving-centers': [
     { value: 'name', label: 'Name', defaultOrder: 'asc' },
-    { value: 'view_count', label: 'Popularity (Views)', defaultOrder: 'desc' },
-    { value: 'comment_count', label: 'Comments', defaultOrder: 'desc' },
     { value: 'created_at', label: 'Date Created', defaultOrder: 'desc' },
     { value: 'updated_at', label: 'Last Updated', defaultOrder: 'desc' },
   ],
@@ -26,7 +22,6 @@ export const SORT_OPTIONS = {
     { value: 'difficulty_level', label: 'Difficulty Level', defaultOrder: 'asc' },
     { value: 'visibility_rating', label: 'Visibility Rating', defaultOrder: 'desc' },
     { value: 'user_rating', label: 'User Rating', defaultOrder: 'desc' },
-    { value: 'view_count', label: 'Popularity (Views)', defaultOrder: 'desc' },
     { value: 'created_at', label: 'Date Created', defaultOrder: 'desc' },
     { value: 'updated_at', label: 'Last Updated', defaultOrder: 'desc' },
   ],
@@ -36,14 +31,37 @@ export const SORT_OPTIONS = {
     { value: 'price', label: 'Price', defaultOrder: 'asc' },
     { value: 'duration', label: 'Duration', defaultOrder: 'asc' },
     { value: 'difficulty_level', label: 'Difficulty Level', defaultOrder: 'asc' },
-    { value: 'popularity', label: 'Popularity', defaultOrder: 'desc' },
     { value: 'distance', label: 'Distance', defaultOrder: 'asc' },
   ],
 };
 
+// Admin-only sort options that are added for admin users
+export const ADMIN_SORT_OPTIONS = {
+  'dive-sites': [
+    { value: 'view_count', label: 'Popularity (Views)', defaultOrder: 'desc' },
+    { value: 'comment_count', label: 'Comments', defaultOrder: 'desc' },
+  ],
+
+  'diving-centers': [
+    { value: 'view_count', label: 'Popularity (Views)', defaultOrder: 'desc' },
+    { value: 'comment_count', label: 'Comments', defaultOrder: 'desc' },
+  ],
+
+  dives: [{ value: 'view_count', label: 'Popularity (Views)', defaultOrder: 'desc' }],
+
+  'dive-trips': [{ value: 'popularity', label: 'Popularity', defaultOrder: 'desc' }],
+};
+
 // Helper function to get sort options for a specific entity type
-export const getSortOptions = entityType => {
-  return SORT_OPTIONS[entityType] || SORT_OPTIONS['dive-sites'];
+export const getSortOptions = (entityType, isAdmin = false) => {
+  const baseOptions = SORT_OPTIONS[entityType] || SORT_OPTIONS['dive-sites'];
+
+  if (isAdmin && ADMIN_SORT_OPTIONS[entityType]) {
+    // Insert admin options at the beginning for better UX
+    return [...ADMIN_SORT_OPTIONS[entityType], ...baseOptions];
+  }
+
+  return baseOptions;
 };
 
 // Helper function to get default sort for a specific entity type

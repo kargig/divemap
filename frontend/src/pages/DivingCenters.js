@@ -391,7 +391,7 @@ const DivingCenters = () => {
         <SortingControls
           sortBy={sortBy}
           sortOrder={sortOrder}
-          sortOptions={getSortOptions('diving-centers')}
+          sortOptions={getSortOptions('diving-centers', user?.is_admin)}
           onSortChange={handleSortChange}
           onSortApply={handleSortApply}
           onReset={resetSorting}

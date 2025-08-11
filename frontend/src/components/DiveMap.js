@@ -11,6 +11,8 @@ import View from 'ol/View';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
+import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+
 const DiveMap = ({
   diveSites = [],
   divingCenters = [],
@@ -343,17 +345,9 @@ const DiveMap = ({
             {popupInfo.type === 'dive_site' && (
               <div className='flex items-center justify-between mb-2'>
                 <span
-                  className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    popupInfo.difficulty_level === 'beginner'
-                      ? 'bg-green-100 text-green-800'
-                      : popupInfo.difficulty_level === 'intermediate'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : popupInfo.difficulty_level === 'advanced'
-                          ? 'bg-orange-100 text-orange-800'
-                          : 'bg-red-100 text-red-800'
-                  }`}
+                  className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(popupInfo.difficulty_level)}`}
                 >
-                  {popupInfo.difficulty_level}
+                  {getDifficultyLabel(popupInfo.difficulty_level)}
                 </span>
                 {popupInfo.average_rating && (
                   <div className='flex items-center'>

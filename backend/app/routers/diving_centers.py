@@ -31,6 +31,32 @@ async def get_diving_centers_count(
     if search_params.name:
         query = query.filter(DivingCenter.name.ilike(f"%{search_params.name}%"))
 
+    # Apply rating filters at database level for accurate count
+    if search_params.min_rating is not None or search_params.max_rating is not None:
+        # Create a subquery to filter by ratings
+        ratings_filter_subquery = db.query(
+            CenterRating.diving_center_id,
+            func.avg(CenterRating.score).label('avg_rating')
+        ).group_by(CenterRating.diving_center_id)
+        
+        if search_params.min_rating is not None:
+            ratings_filter_subquery = ratings_filter_subquery.having(
+                func.avg(CenterRating.score) >= search_params.min_rating
+            )
+        
+        if search_params.max_rating is not None:
+            ratings_filter_subquery = ratings_filter_subquery.having(
+                func.avg(CenterRating.score) <= search_params.max_rating
+            )
+        
+        ratings_filter_subquery = ratings_filter_subquery.subquery()
+        
+        # Join with the filtered ratings
+        query = query.join(
+            ratings_filter_subquery,
+            DivingCenter.id == ratings_filter_subquery.c.diving_center_id
+        )
+
     # Get total count
     total_count = query.count()
 
@@ -58,15 +84,39 @@ async def get_diving_centers(
     if search_params.name:
         query = query.filter(DivingCenter.name.ilike(f"%{search_params.name}%"))
 
-    # Get total count for pagination headers
-    total_count = query.count()
+    # Apply rating filters at database level for accurate pagination
+    if search_params.min_rating is not None or search_params.max_rating is not None:
+        # Create a subquery to filter by ratings
+        ratings_filter_subquery = db.query(
+            CenterRating.diving_center_id,
+            func.avg(CenterRating.score).label('avg_rating')
+        ).group_by(CenterRating.diving_center_id)
+        
+        if search_params.min_rating is not None:
+            ratings_filter_subquery = ratings_filter_subquery.having(
+                func.avg(CenterRating.score) >= search_params.min_rating
+            )
+        
+        if search_params.max_rating is not None:
+            ratings_filter_subquery = ratings_filter_subquery.having(
+                func.avg(CenterRating.score) <= search_params.max_rating
+            )
+        
+        ratings_filter_subquery = ratings_filter_subquery.subquery()
+        
+        # Join with the filtered ratings
+        query = query.join(
+            ratings_filter_subquery,
+            DivingCenter.id == ratings_filter_subquery.c.diving_center_id
+        )
 
     # Apply dynamic sorting based on parameters
     if search_params.sort_by:
-        # Validate sort_by parameter
+        # All valid sort fields (including admin-only ones)
         valid_sort_fields = {
             'name', 'view_count', 'comment_count', 'created_at', 'updated_at'
         }
+        
         if search_params.sort_by not in valid_sort_fields:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -84,8 +134,20 @@ async def get_diving_centers(
         if search_params.sort_by == 'name':
             sort_field = func.lower(DivingCenter.name)
         elif search_params.sort_by == 'view_count':
+            # Only admin users can sort by view_count
+            if not current_user or not current_user.is_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Sorting by view_count is only available for admin users"
+                )
             sort_field = DivingCenter.view_count
         elif search_params.sort_by == 'comment_count':
+            # Only admin users can sort by comment_count
+            if not current_user or not current_user.is_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Sorting by comment_count is only available for admin users"
+                )
             # For comment count, we need to join with comments and group
             query = query.outerjoin(CenterComment).group_by(DivingCenter.id)
             sort_field = func.count(CenterComment.id)
@@ -102,6 +164,9 @@ async def get_diving_centers(
     else:
         # Default sorting by name (case-insensitive)
         query = query.order_by(func.lower(DivingCenter.name).asc())
+
+    # Get total count for pagination headers (after applying all filters)
+    total_count = query.count()
 
     # Calculate pagination
     offset = (page - 1) * page_size
@@ -157,13 +222,6 @@ async def get_diving_centers(
             center_dict["view_count"] = center.view_count
 
         result.append(center_dict)
-
-    # Apply rating filters
-    if search_params.min_rating is not None:
-        result = [center for center in result if center["average_rating"] and center["average_rating"] >= search_params.min_rating]
-
-    if search_params.max_rating is not None:
-        result = [center for center in result if center["average_rating"] and center["average_rating"] <= search_params.max_rating]
 
     # Return response with pagination headers
     from fastapi.responses import JSONResponse

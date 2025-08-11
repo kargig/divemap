@@ -234,6 +234,62 @@ npm test
 
 ## Testing Strategy
 
+### Database Migration Testing
+
+The GitHub Actions workflow automatically tests all database migrations in a clean MySQL 8.0 environment. This validates that all existing migrations can run successfully from scratch.
+
+#### GitHub Actions Migration Test
+
+The `backend-tests.yml` workflow:
+1. Sets up a test MySQL 8.0 instance
+2. Configures test environment variables
+3. Runs all migrations from base to head using `alembic upgrade head`
+4. Validates the final database schema
+
+#### Local Migration Testing
+
+You can replicate the GitHub Actions migration testing process locally:
+
+```bash
+# 1. Start test MySQL container
+docker run --name divemap_test_mysql \
+  -e MYSQL_ROOT_PASSWORD=password \
+  -e MYSQL_DATABASE=divemap_test \
+  -p 3307:3306 \
+  -d mysql:8.0
+
+# 2. Wait for MySQL to be ready and verify
+sleep 30
+docker exec divemap_test_mysql mysqladmin ping -h 127.0.0.1 -u root -ppassword
+
+# 3. Set up environment and run migrations
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+export DATABASE_URL="mysql+pymysql://root:password@localhost:3307/divemap_test"
+export SECRET_KEY="test-secret-key-for-ci"
+export ENVIRONMENT="ci"
+
+# 4. Run all migrations from scratch
+alembic upgrade head
+
+# 5. Verify results
+alembic current
+docker exec divemap_test_mysql mysql -u root -ppassword divemap_test -e "SHOW TABLES;"
+
+# 6. Clean up
+docker stop divemap_test_mysql && docker rm divemap_test_mysql
+```
+
+#### Migration Validation Checklist
+
+Before committing migrations, ensure they pass the GitHub Actions validation:
+- [ ] All migrations run successfully from base to head
+- [ ] No migration conflicts or dependency issues
+- [ ] Database schema is correct after all migrations
+- [ ] Migration state is consistent (alembic_version table)
+- [ ] No data loss or corruption during migration process
+
 ### Backend Testing
 ```bash
 # Run all tests
@@ -1235,3 +1291,4 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 - **[Diving Organizations Admin](./diving-organizations-admin.md)** - Diving organizations management
 - **[Permissions Documentation](./permissions.md)** - User permissions and access control
 - **[Frontend Rate Limiting Error Handling](./frontend-rate-limiting-error-handling.md)** - Comprehensive frontend error handling for API rate limits
+- **[Sorting Implementation Plan](./sorting-implementation-plan.md)** - Comprehensive sorting functionality implementation

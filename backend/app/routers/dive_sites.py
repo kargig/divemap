@@ -5,7 +5,7 @@ from sqlalchemy import func, and_, or_, desc, asc
 from slowapi.util import get_remote_address
 
 from app.database import get_db
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias
+from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, get_difficulty_label
 from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse,
     SiteRatingCreate, SiteRatingResponse,
@@ -149,12 +149,12 @@ def get_fallback_location(latitude: float, longitude: float):
 async def get_dive_sites(
     request: Request,
     name: Optional[str] = Query(None, max_length=100),
-    difficulty_level: Optional[str] = Query(None, pattern=r"^(beginner|intermediate|advanced|expert)$"),
+    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
     tag_ids: Optional[List[int]] = Query(None),
     country: Optional[str] = Query(None, max_length=100),
     region: Optional[str] = Query(None, max_length=100),
     my_dive_sites: Optional[bool] = Query(None, description="Filter to show only dive sites created by the current user"),
-    sort_by: Optional[str] = Query(None, description="Sort field (name, country, region, difficulty_level, view_count, comment_count, created_at, updated_at)"),
+    sort_by: Optional[str] = Query(None, description="Sort field (name, country, region, difficulty_level, created_at, updated_at). Admin users can also sort by view_count and comment_count."),
     sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, or 100)"),
@@ -228,11 +228,12 @@ async def get_dive_sites(
 
     # Apply dynamic sorting based on parameters
     if sort_by:
-        # Validate sort_by parameter
+        # All valid sort fields (including admin-only ones)
         valid_sort_fields = {
             'name', 'country', 'region', 'difficulty_level', 
             'view_count', 'comment_count', 'created_at', 'updated_at'
         }
+        
         if sort_by not in valid_sort_fields:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -256,8 +257,20 @@ async def get_dive_sites(
         elif sort_by == 'difficulty_level':
             sort_field = DiveSite.difficulty_level
         elif sort_by == 'view_count':
+            # Only admin users can sort by view_count
+            if not current_user or not current_user.is_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Sorting by view_count is only available for admin users"
+                )
             sort_field = DiveSite.view_count
         elif sort_by == 'comment_count':
+            # Only admin users can sort by comment_count
+            if not current_user or not current_user.is_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Sorting by comment_count is only available for admin users"
+                )
             # For comment count, we need to join with comments and group
             query = query.outerjoin(SiteComment).group_by(DiveSite.id)
             sort_field = func.count(SiteComment.id)
@@ -338,7 +351,7 @@ async def get_dive_sites(
                 "longitude": float(site.longitude) if site.longitude else None,
                 "address": site.address,
                 "access_instructions": site.access_instructions,
-                "difficulty_level": site.difficulty_level.value if site.difficulty_level else None,
+                "difficulty_level": get_difficulty_label(site.difficulty_level) if site.difficulty_level else None,
                 "marine_life": site.marine_life,
                 "safety_information": site.safety_information,
                 "max_depth": float(site.max_depth) if site.max_depth else None,
@@ -377,7 +390,7 @@ async def get_dive_sites(
 async def get_dive_sites_count(
     request: Request,
     name: Optional[str] = Query(None, max_length=100),
-    difficulty_level: Optional[str] = Query(None, pattern=r"^(beginner|intermediate|advanced|expert)$"),
+    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
     tag_ids: Optional[List[int]] = Query(None),
     country: Optional[str] = Query(None, max_length=100),
     region: Optional[str] = Query(None, max_length=100),

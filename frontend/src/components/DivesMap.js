@@ -13,6 +13,8 @@ import View from 'ol/View';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
+import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+
 const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
   const mapRef = useRef();
   const mapInstance = useRef();
@@ -641,15 +643,7 @@ const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
     });
   };
 
-  const getDifficultyColor = level => {
-    const colors = {
-      beginner: 'bg-green-100 text-green-800',
-      intermediate: 'bg-yellow-100 text-yellow-800',
-      advanced: 'bg-orange-100 text-orange-800',
-      expert: 'bg-red-100 text-red-800',
-    };
-    return colors[level] || 'bg-gray-100 text-gray-800';
-  };
+  // getDifficultyColor function is now replaced by getDifficultyColorClasses from difficultyHelpers
 
   return (
     <div className='h-[36rem] w-full rounded-lg overflow-hidden shadow-md relative'>
@@ -697,9 +691,9 @@ const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
               {popupInfo.difficulty_level && (
                 <div className='flex items-center'>
                   <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(popupInfo.difficulty_level)}`}
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(popupInfo.difficulty_level)}`}
                   >
-                    {popupInfo.difficulty_level}
+                    {getDifficultyLabel(popupInfo.difficulty_level)}
                   </span>
                 </div>
               )}

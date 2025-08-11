@@ -17,6 +17,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 
 const AdminDiveSites = () => {
   const { user } = useAuth();
@@ -623,17 +624,9 @@ const AdminDiveSites = () => {
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap'>
                     <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        site.difficulty_level === 'beginner'
-                          ? 'bg-green-100 text-green-800'
-                          : site.difficulty_level === 'intermediate'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : site.difficulty_level === 'advanced'
-                              ? 'bg-orange-100 text-orange-800'
-                              : 'bg-red-100 text-red-800'
-                      }`}
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(site.difficulty_level)}`}
                     >
-                      {site.difficulty_level}
+                      {getDifficultyLabel(site.difficulty_level)}
                     </span>
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>

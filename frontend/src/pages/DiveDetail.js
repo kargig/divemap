@@ -19,6 +19,7 @@ import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
 
 import { getDive, deleteDive, deleteDiveMedia } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 
 const DiveDetail = () => {
   const { id } = useParams();
@@ -117,15 +118,7 @@ const DiveDetail = () => {
     });
   };
 
-  const getDifficultyColor = level => {
-    const colors = {
-      beginner: 'bg-green-100 text-green-800',
-      intermediate: 'bg-yellow-100 text-yellow-800',
-      advanced: 'bg-orange-100 text-orange-800',
-      expert: 'bg-red-100 text-red-800',
-    };
-    return colors[level] || 'bg-gray-100 text-gray-800';
-  };
+  // getDifficultyColor function is now replaced by getDifficultyColorClasses from difficultyHelpers
 
   const getSuitTypeColor = type => {
     const colors = {
@@ -298,9 +291,9 @@ const DiveDetail = () => {
             {dive.difficulty_level && (
               <div className='mt-4'>
                 <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColor(dive.difficulty_level)}`}
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColorClasses(dive.difficulty_level)}`}
                 >
-                  {dive.difficulty_level}
+                  {getDifficultyLabel(dive.difficulty_level)}
                 </span>
               </div>
             )}

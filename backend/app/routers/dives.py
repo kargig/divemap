@@ -9,7 +9,7 @@ from io import BytesIO
 from difflib import SequenceMatcher
 
 from app.database import get_db
-from app.models import Dive, DiveMedia, DiveTag, DiveSite, AvailableTag, User, DivingCenter, DiveSiteAlias
+from app.models import Dive, DiveMedia, DiveTag, DiveSite, AvailableTag, User, DivingCenter, DiveSiteAlias, get_difficulty_label
 from app.schemas import (
     DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse,
     DiveTagCreate, DiveTagResponse, DiveSearchParams
@@ -32,7 +32,7 @@ def get_all_dives_count_admin(
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
-    difficulty_level: Optional[str] = Query(None, pattern=r"^(beginner|intermediate|advanced|expert)$"),
+    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
     min_depth: Optional[float] = Query(None, ge=0, le=1000),
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
@@ -144,7 +144,7 @@ def get_all_dives_admin(
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
-    difficulty_level: Optional[str] = Query(None, pattern=r"^(beginner|intermediate|advanced|expert)$"),
+    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
     min_depth: Optional[float] = Query(None, ge=0, le=1000),
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
@@ -307,7 +307,7 @@ def get_all_dives_admin(
             "average_depth": float(dive.average_depth) if dive.average_depth else None,
             "gas_bottles_used": dive.gas_bottles_used,
             "suit_type": dive.suit_type.value if dive.suit_type else None,
-            "difficulty_level": dive.difficulty_level.value if dive.difficulty_level else None,
+            "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
             "visibility_rating": dive.visibility_rating,
             "user_rating": dive.user_rating,
             "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
@@ -502,7 +502,7 @@ def update_dive_admin(
         "average_depth": float(dive.average_depth) if dive.average_depth else None,
         "gas_bottles_used": dive.gas_bottles_used,
         "suit_type": dive.suit_type.value if dive.suit_type else None,
-        "difficulty_level": dive.difficulty_level.value if dive.difficulty_level else None,
+        "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
         "visibility_rating": dive.visibility_rating,
         "user_rating": dive.user_rating,
         "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
@@ -686,7 +686,7 @@ def create_dive(
         "average_depth": float(db_dive.average_depth) if db_dive.average_depth else None,
         "gas_bottles_used": db_dive.gas_bottles_used,
         "suit_type": db_dive.suit_type.value if db_dive.suit_type else None,
-        "difficulty_level": db_dive.difficulty_level.value if db_dive.difficulty_level else None,
+        "difficulty_level": db_get_difficulty_label(dive.difficulty_level) if db_dive.difficulty_level else None,
         "visibility_rating": db_dive.visibility_rating,
         "user_rating": db_dive.user_rating,
         "dive_date": db_dive.dive_date.strftime("%Y-%m-%d"),
@@ -713,7 +713,7 @@ def get_dives_count(
     my_dives: Optional[bool] = Query(None, description="Filter to show only current user's dives"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
-    difficulty_level: Optional[str] = Query(None, pattern=r"^(beginner|intermediate|advanced|expert)$"),
+    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
     min_depth: Optional[float] = Query(None, ge=0, le=1000),
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
@@ -841,7 +841,7 @@ def get_dives(
     my_dives: Optional[bool] = Query(None, description="Filter to show only current user's dives"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
-    difficulty_level: Optional[str] = Query(None, pattern=r"^(beginner|intermediate|advanced|expert)$"),
+    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
     min_depth: Optional[float] = Query(None, ge=0, le=1000),
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
@@ -852,7 +852,7 @@ def get_dives(
     start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
-    sort_by: Optional[str] = Query(None, description="Sort field (dive_date, max_depth, duration, difficulty_level, visibility_rating, user_rating, view_count, created_at, updated_at)"),
+    sort_by: Optional[str] = Query(None, description="Sort field (dive_date, max_depth, duration, difficulty_level, visibility_rating, user_rating, created_at, updated_at). Admin users can also sort by view_count."),
     sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, or 100)")
@@ -991,11 +991,12 @@ def get_dives(
 
     # Apply dynamic sorting based on parameters
     if sort_by:
-        # Validate sort_by parameter
+        # All valid sort fields (including admin-only ones)
         valid_sort_fields = {
             'dive_date', 'max_depth', 'duration', 'difficulty_level', 
             'visibility_rating', 'user_rating', 'view_count', 'created_at', 'updated_at'
         }
+        
         if sort_by not in valid_sort_fields:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -1017,12 +1018,35 @@ def get_dives(
         elif sort_by == 'duration':
             sort_field = Dive.duration
         elif sort_by == 'difficulty_level':
-            sort_field = Dive.difficulty_level
+            # Custom sorting for difficulty levels (beginner < intermediate < advanced < expert)
+            from sqlalchemy import case
+            if sort_order == 'desc':
+                sort_field = case(
+                    (Dive.difficulty_level == 'expert', 4),
+                    (Dive.difficulty_level == 'advanced', 3),
+                    (Dive.difficulty_level == 'intermediate', 2),
+                    (Dive.difficulty_level == 'beginner', 1),
+                    else_=0
+                )
+            else:
+                sort_field = case(
+                    (Dive.difficulty_level == 'beginner', 1),
+                    (Dive.difficulty_level == 'intermediate', 2),
+                    (Dive.difficulty_level == 'advanced', 3),
+                    (Dive.difficulty_level == 'expert', 4),
+                    else_=0
+                )
         elif sort_by == 'visibility_rating':
             sort_field = Dive.visibility_rating
         elif sort_by == 'user_rating':
             sort_field = Dive.user_rating
         elif sort_by == 'view_count':
+            # Only admin users can sort by view_count
+            if not current_user or not current_user.is_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Sorting by view_count is only available for admin users"
+                )
             sort_field = Dive.view_count
         elif sort_by == 'created_at':
             sort_field = Dive.created_at
@@ -1098,7 +1122,7 @@ def get_dives(
             "average_depth": float(dive.average_depth) if dive.average_depth else None,
             "gas_bottles_used": dive.gas_bottles_used,
             "suit_type": dive.suit_type.value if dive.suit_type else None,
-            "difficulty_level": dive.difficulty_level.value if dive.difficulty_level else None,
+            "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
             "visibility_rating": dive.visibility_rating,
             "user_rating": dive.user_rating,
             "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
@@ -1230,7 +1254,7 @@ def get_dive(
         "average_depth": float(dive.average_depth) if dive.average_depth else None,
         "gas_bottles_used": dive.gas_bottles_used,
         "suit_type": dive.suit_type.value if dive.suit_type else None,
-        "difficulty_level": dive.difficulty_level.value if dive.difficulty_level else None,
+        "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
         "visibility_rating": dive.visibility_rating,
         "user_rating": dive.user_rating,
         "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
@@ -1307,7 +1331,7 @@ def get_dive_details(
             "address": dive.dive_site.address,
             "country": dive.dive_site.country,
             "region": dive.dive_site.region,
-            "difficulty_level": dive.dive_site.difficulty_level.value if dive.dive_site.difficulty_level else None,
+            "difficulty_level": get_difficulty_label(dive.dive_site.difficulty_level) if dive.dive_site.difficulty_level else None,
             "max_depth": float(dive.dive_site.max_depth) if dive.dive_site.max_depth else None,
             "marine_life": dive.dive_site.marine_life,
             "safety_information": dive.dive_site.safety_information,
@@ -1353,7 +1377,7 @@ def get_dive_details(
         "average_depth": float(dive.average_depth) if dive.average_depth else None,
         "gas_bottles_used": dive.gas_bottles_used,
         "suit_type": dive.suit_type.value if dive.suit_type else None,
-        "difficulty_level": dive.difficulty_level.value if dive.difficulty_level else None,
+        "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
         "visibility_rating": dive.visibility_rating,
         "user_rating": dive.user_rating,
         "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
@@ -1548,7 +1572,7 @@ def update_dive(
         "average_depth": float(dive.average_depth) if dive.average_depth else None,
         "gas_bottles_used": dive.gas_bottles_used,
         "suit_type": dive.suit_type.value if dive.suit_type else None,
-        "difficulty_level": dive.difficulty_level.value if dive.difficulty_level else None,
+        "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
         "visibility_rating": dive.visibility_rating,
         "user_rating": dive.user_rating,
         "dive_date": dive.dive_date.strftime("%Y-%m-%d"),

@@ -517,6 +517,94 @@ alembic upgrade head --sql
 
 ## Best Practices
 
+### GitHub Actions Migration Testing
+
+The GitHub Actions workflow (`backend-tests.yml`) automatically tests all database migrations in a clean MySQL 8.0 environment. This process validates that all existing migrations can run successfully from scratch.
+
+#### GitHub Actions Migration Test Process
+
+1. **Setup Test MySQL Instance**
+   ```yaml
+   services:
+     mysql:
+       image: mysql:8.0
+       env:
+         MYSQL_ROOT_PASSWORD: password
+         MYSQL_DATABASE: divemap_test
+       ports:
+         - 3306:3306
+       options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+   ```
+
+2. **Environment Configuration**
+   ```yaml
+   - name: Set up environment variables
+     run: |
+       export DATABASE_URL="mysql+pymysql://root:password@localhost:3306/divemap_test"
+       export SECRET_KEY="test-secret-key-for-ci"
+       export ENVIRONMENT="ci"
+   ```
+
+3. **Run All Migrations**
+   ```yaml
+   - name: Run database migrations
+     run: |
+       cd backend
+       source divemap_venv/bin/activate
+       export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+       alembic upgrade head
+   ```
+
+#### Local Migration Testing (GitHub Actions Simulation)
+
+You can replicate the GitHub Actions migration testing process locally:
+
+```bash
+# 1. Start test MySQL container
+docker run --name divemap_test_mysql \
+  -e MYSQL_ROOT_PASSWORD=password \
+  -e MYSQL_DATABASE=divemap_test \
+  -p 3307:3306 \
+  -d mysql:8.0
+
+# 2. Wait for MySQL to be ready
+sleep 30
+
+# 3. Verify MySQL is running
+docker exec divemap_test_mysql mysqladmin ping -h 127.0.0.1 -u root -ppassword
+
+# 4. Set up environment variables
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+export DATABASE_URL="mysql+pymysql://root:password@localhost:3307/divemap_test"
+export SECRET_KEY="test-secret-key-for-ci"
+export ENVIRONMENT="ci"
+
+# 5. Run all migrations from scratch
+alembic upgrade head
+
+# 6. Verify migration status
+alembic current
+
+# 7. Verify database schema
+docker exec divemap_test_mysql mysql -u root -ppassword divemap_test -e "SHOW TABLES;"
+
+# 8. Clean up test container
+docker stop divemap_test_mysql && docker rm divemap_test_mysql
+```
+
+#### Migration Validation Checklist
+
+Before committing migrations, ensure they pass the GitHub Actions validation:
+
+- [ ] **All migrations run successfully** from base to head
+- [ ] **No migration conflicts** or dependency issues
+- [ ] **Database schema is correct** after all migrations
+- [ ] **Migration state is consistent** (alembic_version table)
+- [ ] **No data loss** or corruption during migration process
+- [ ] **Rollback works correctly** if needed
+
 ### Migration Design
 
 #### 1. Atomic Changes

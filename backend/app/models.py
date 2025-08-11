@@ -4,11 +4,26 @@ from app.database import Base
 import enum
 import sqlalchemy as sa
 
-class DifficultyLevel(enum.Enum):
-    beginner = "beginner"
-    intermediate = "intermediate"
-    advanced = "advanced"
-    expert = "expert"
+# Difficulty levels are now stored as integers in the database:
+# 1 = beginner, 2 = intermediate, 3 = advanced, 4 = expert
+# This allows for efficient sorting and better performance
+DIFFICULTY_LEVELS = {
+    1: "beginner",
+    2: "intermediate", 
+    3: "advanced",
+    4: "expert"
+}
+
+def get_difficulty_label(level: int) -> str:
+    """Convert integer difficulty level to human-readable label."""
+    return DIFFICULTY_LEVELS.get(level, "unknown")
+
+def get_difficulty_value(label: str) -> int:
+    """Convert human-readable difficulty label to integer value."""
+    for value, difficulty_label in DIFFICULTY_LEVELS.items():
+        if difficulty_label == label:
+            return value
+    return 2  # Default to intermediate if label not found
 
 class MediaType(enum.Enum):
     photo = "photo"
@@ -87,7 +102,7 @@ class DiveSite(Base):
     longitude = Column(DECIMAL(11, 8))
     address = Column(Text)  # Added address field
     access_instructions = Column(Text)
-    difficulty_level = Column(Enum(DifficultyLevel), default=DifficultyLevel.intermediate, index=True)
+    difficulty_level = Column(Integer, default=2, nullable=False, index=True)  # 1=beginner, 2=intermediate, 3=advanced, 4=expert
     marine_life = Column(Text)  # Added marine life field
     safety_information = Column(Text)  # Added safety information field
     max_depth = Column(DECIMAL(6, 3))  # Maximum depth in meters
@@ -253,7 +268,7 @@ class ParsedDiveTrip(Base):
     trip_date = Column(Date, nullable=False, index=True)
     trip_time = Column(Time)
     trip_duration = Column(Integer)  # Total duration in minutes
-    trip_difficulty_level = Column(Enum(DifficultyLevel), nullable=True)
+    trip_difficulty_level = Column(Integer, nullable=True, index=True)  # 1=beginner, 2=intermediate, 3=advanced, 4=expert
     trip_price = Column(DECIMAL(10, 2), nullable=True)
     trip_currency = Column(String(3), default="EUR", nullable=False, index=True)
     group_size_limit = Column(Integer, nullable=True)
@@ -379,7 +394,7 @@ class Dive(Base):
     average_depth = Column(DECIMAL(6, 3))  # Average depth in meters
     gas_bottles_used = Column(Text)
     suit_type = Column(Enum(SuitType), nullable=True)
-    difficulty_level = Column(Enum(DifficultyLevel), default=DifficultyLevel.intermediate)
+    difficulty_level = Column(Integer, default=2, nullable=False)  # 1=beginner, 2=intermediate, 3=advanced, 4=expert
     visibility_rating = Column(Integer)  # 1-10 rating
     user_rating = Column(Integer)  # 1-10 rating
     dive_date = Column(Date, nullable=False)

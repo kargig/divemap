@@ -323,19 +323,21 @@ Get total count of dive sites matching filters.
 ```
 
 #### GET /dive-sites/
-Get dive sites (alphabetically sorted).
+Get dive sites with comprehensive sorting and filtering.
 
 **Query Parameters:**
 - `page`: Page number (1-based, default: 1)
 - `page_size`: Page size (25, 50, or 100, default: 25)
 - `name`: Search term for dive site name
-- `difficulty_level`: Filter by difficulty (beginner, intermediate, advanced, expert)
+- `difficulty_level`: Filter by difficulty (1=beginner, 2=intermediate, 3=advanced, 4=expert)
 - `country`: Filter by country
 - `region`: Filter by region
-- `min_rating`: Minimum rating filter
-- `max_rating`: Maximum rating filter
+- `sort_by`: Sort field (name, country, region, difficulty_level, view_count, comment_count, created_at, updated_at)
+- `sort_order`: Sort order (asc, desc, default: asc)
 - `tag_ids`: Comma-separated tag IDs
 - `my_dive_sites`: Filter to show only dive sites created by the current user
+
+**Note:** `view_count` and `comment_count` sorting require admin privileges.
 
 **Response Headers:**
 - `X-Total-Count`: Total number of records
@@ -546,7 +548,7 @@ Get total count of diving centers matching filters.
 ```
 
 #### GET /diving-centers/
-Get all diving centers (alphabetically sorted).
+Get all diving centers with comprehensive sorting and filtering.
 
 **Query Parameters:**
 - `page`: Page number (1-based, default: 1)
@@ -554,6 +556,10 @@ Get all diving centers (alphabetically sorted).
 - `name`: Search term for diving center name
 - `min_rating`: Minimum rating filter
 - `max_rating`: Maximum rating filter
+- `sort_by`: Sort field (name, view_count, comment_count, created_at, updated_at)
+- `sort_order`: Sort order (asc, desc, default: asc)
+
+**Note:** `view_count` and `comment_count` sorting require admin privileges.
 
 **Response Headers:**
 - `X-Total-Count`: Total number of records
@@ -1737,7 +1743,8 @@ Get parsed dive trips with advanced search, filtering, and sorting (registered u
 - `location`: Location-based search filtering by country, region, and address
 - `min_duration`: Minimum trip duration in minutes
 - `max_duration`: Maximum trip duration in minutes
-- `sort_by`: Sort options: date, price, duration, difficulty, popularity, distance
+- `sort_by`: Sort field (trip_date, trip_price, trip_duration, trip_difficulty_level, popularity, distance, created_at)
+- `sort_order`: Sort order (asc, desc, default: desc)
 - `user_lat`: User latitude for distance calculations (required for distance sorting)
 - `user_lon`: User longitude for distance calculations (required for distance sorting)
 - `skip`: Number of records to skip for pagination
@@ -1747,6 +1754,8 @@ Get parsed dive trips with advanced search, filtering, and sorting (registered u
 - `diving_center_id`: Filter by diving center ID
 - `dive_site_id`: Filter by dive site ID
 - `trip_status`: Filter by trip status (scheduled, confirmed, cancelled, completed)
+
+**Note:** `popularity` sorting requires admin privileges.
 
 **Response:**
 ```json

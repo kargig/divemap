@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import useSorting from '../hooks/useSorting';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
+import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 
 const DiveSites = () => {
   const { user } = useAuth();
@@ -559,7 +560,7 @@ const DiveSites = () => {
         <SortingControls
           sortBy={sortBy}
           sortOrder={sortOrder}
-          sortOptions={getSortOptions('dive-sites')}
+          sortOptions={getSortOptions('dive-sites', user?.is_admin)}
           onSortChange={handleSortChange}
           onSortApply={handleSortApply}
           onReset={resetSorting}
@@ -713,17 +714,9 @@ const DiveSites = () => {
                     {site.name}
                   </h3>
                   <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
-                      site.difficulty_level === 'beginner'
-                        ? 'bg-green-100 text-green-800'
-                        : site.difficulty_level === 'intermediate'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : site.difficulty_level === 'advanced'
-                            ? 'bg-orange-100 text-orange-800'
-                            : 'bg-red-100 text-red-800'
-                    }`}
+                    className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${getDifficultyColorClasses(site.difficulty_level)}`}
                   >
-                    {site.difficulty_level}
+                    {getDifficultyLabel(site.difficulty_level)}
                   </span>
                 </div>
 

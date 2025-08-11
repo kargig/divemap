@@ -15,6 +15,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 - **[Testing.md](./development/testing.md)** - Testing guide (see [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for comprehensive details)
 - **[Docker.md](./development/docker.md)** - Docker configuration and containerization guide
 - **[Frontend Rate Limiting Error Handling](./development/frontend-rate-limiting-error-handling.md)** - Comprehensive frontend error handling for API rate limits
+- **[Sorting Implementation Plan](./development/sorting-implementation-plan.md)** - Comprehensive sorting functionality implementation
 - **Newsletter Management** - Newsletter parsing and trip management (see [Development README](./development/README.md#newsletter-management-system))
 - **Import Scripts** - Dive site import utilities with smart conflict resolution (see [Development README](./development/README.md#import-scripts))
 - **[Importing Data](./IMPORTING_DATA.md)** - Comprehensive guide for importing dive sites and dives from Subsurface
@@ -53,6 +54,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 5. **[Docker Configuration](./development/docker.md)** - Container setup and optimization
 6. **[Importing Data](./IMPORTING_DATA.md)** - Guide for importing dive sites and dives from Subsurface
 7. **[Rate Limiting Error Handling](./development/README.md#frontend-rate-limiting-error-handling)** - Frontend error handling for API rate limits
+8. **[Sorting Implementation](./development/sorting-implementation-plan.md)** - Comprehensive sorting functionality and admin restrictions
 
 ### For Deployment
 1. **[Deployment Overview](./deployment/README.md)** - Deployment strategies (includes Makefile deployment)
@@ -98,6 +100,9 @@ All documentation should:
 - ✅ Removed duplicate content across files
 - ✅ Streamlined testing documentation
 - ✅ Consolidated security measures
+- ✅ **Sorting Implementation Complete** - Comprehensive sorting across all entity types with admin restrictions
+- ✅ **Difficulty Level System Converted** - From ENUM strings to integers for better performance
+- ✅ **Database Migration 0024** - Applied with comprehensive sorting indexes
 - ✅ Merged troubleshooting into maintenance guide
 - ✅ Reduced total documentation files from 22 to 16
 - ✅ Added comprehensive frontend rate limiting error handling documentation

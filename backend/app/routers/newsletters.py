@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_
 from typing import List, Optional
@@ -9,8 +9,8 @@ import os
 import requests
 import math
 from app.database import get_db
-from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, DifficultyLevel, ParsedDive
-from app.auth import get_current_user, is_admin_or_moderator
+from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, ParsedDive, get_difficulty_label
+from app.auth import get_current_user, get_current_user_optional, is_admin_or_moderator
 from app.schemas import ParsedDiveTripResponse, NewsletterUploadResponse, NewsletterResponse, NewsletterUpdateRequest, NewsletterDeleteRequest, NewsletterDeleteResponse, ParsedDiveTripCreate, ParsedDiveTripUpdate, ParsedDiveResponse
 import logging
 import openai
@@ -711,7 +711,7 @@ async def get_parsed_trips(
     max_price: Optional[float] = None,
     min_duration: Optional[int] = None,
     max_duration: Optional[int] = None,
-    difficulty_level: Optional[str] = None,
+    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
     search_query: Optional[str] = None,
     location_query: Optional[str] = None,
     sort_by: Optional[str] = "trip_date",
@@ -720,7 +720,7 @@ async def get_parsed_trips(
     user_lon: Optional[float] = None,
     skip: int = 0,
     limit: int = 100,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
     """
@@ -757,13 +757,13 @@ async def get_parsed_trips(
         # Filter through the dives relationship to find trips with the specified dive site
         query = query.filter(ParsedDiveTrip.dives.any(ParsedDive.dive_site_id == dive_site_id))
 
-    # Status filtering
-    if trip_status:
-        try:
-            status = TripStatus(trip_status)
-            query = query.filter(ParsedDiveTrip.trip_status == status)
-        except:
-            pass  # Invalid status, ignore filter
+            # Status filtering
+        if trip_status:
+            try:
+                trip_status_enum = TripStatus(trip_status)
+                query = query.filter(ParsedDiveTrip.trip_status == trip_status_enum)
+            except:
+                pass  # Invalid status, ignore filter
 
     # Price filtering
     if min_price is not None:
@@ -817,6 +817,12 @@ async def get_parsed_trips(
 
     # Sorting
     if sort_by == "popularity":
+        # Only admin users can sort by popularity (view count)
+        if not current_user or not current_user.is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Sorting by popularity is only available for admin users"
+            )
         # Sort by dive site popularity (view count)
         # Join through dives to get dive site information
         if sort_order.lower() == "desc":
@@ -838,6 +844,12 @@ async def get_parsed_trips(
                 query = query.order_by(sort_field.desc())
             else:
                 query = query.order_by(sort_field.asc())
+    elif sort_by == "difficulty_level":
+        # Integer-based sorting for difficulty levels (1=beginner, 2=intermediate, 3=advanced, 4=expert)
+        if sort_order.lower() == "desc":
+            query = query.order_by(ParsedDiveTrip.trip_difficulty_level.desc())
+        else:
+            query = query.order_by(ParsedDiveTrip.trip_difficulty_level.asc())
     else:
         sort_field = getattr(ParsedDiveTrip, sort_by, ParsedDiveTrip.trip_date)
         if sort_order.lower() == "desc":
@@ -897,7 +909,7 @@ async def get_parsed_trips(
             trip_date=td['trip'].trip_date,
             trip_time=td['trip'].trip_time,
             trip_duration=td['trip'].trip_duration,
-            trip_difficulty_level=td['trip'].trip_difficulty_level.value if td['trip'].trip_difficulty_level else None,
+            trip_difficulty_level=get_difficulty_label(td['trip'].trip_difficulty_level) if td['trip'].trip_difficulty_level else None,
             trip_price=float(td['trip'].trip_price) if td['trip'].trip_price else None,
             trip_currency=td['trip'].trip_currency,
             group_size_limit=td['trip'].group_size_limit,
