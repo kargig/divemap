@@ -1018,12 +1018,12 @@ class TestDives:
         assert response.headers["x-has-next-page"] == "false"
         assert response.headers["x-has-prev-page"] == "false"
 
-        # Check alphabetical sorting
-        assert data[0]["name"] == "Alpha Dive - 2025/01/01"
-        assert data[1]["name"] == "Beta Dive - 2025/01/02"
+        # Check default sorting (by dive_date descending, newest first)
+        assert data[0]["name"] == "Echo Dive - 2025/01/05"  # Newest date
+        assert data[1]["name"] == "Delta Dive - 2025/01/04"
         assert data[2]["name"] == "Charlie Dive - 2025/01/03"
-        assert data[3]["name"] == "Delta Dive - 2025/01/04"
-        assert data[4]["name"] == "Echo Dive - 2025/01/05"
+        assert data[3]["name"] == "Beta Dive - 2025/01/02"
+        assert data[4]["name"] == "Alpha Dive - 2025/01/01"  # Oldest date
 
     def test_get_dives_invalid_page_size(self, client, auth_headers):
         """Test that invalid page_size values are rejected."""
