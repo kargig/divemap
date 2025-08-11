@@ -1,14 +1,20 @@
 import { Search, List, ChevronLeft, ChevronRight, Map, Filter, Plus } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import { useNavigate, useSearchParams, Link as RouterLink } from 'react-router-dom';
 
 import api from '../api';
 import DiveSitesMap from '../components/DiveSitesMap';
+import RateLimitError from '../components/RateLimitError';
+import SortingControls from '../components/SortingControls';
 import { useAuth } from '../contexts/AuthContext';
+import useSorting from '../hooks/useSorting';
+import { handleRateLimitError } from '../utils/rateLimitHandler';
+import { getSortOptions } from '../utils/sortOptions';
 
 const DiveSites = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -22,8 +28,6 @@ const DiveSites = () => {
     return {
       name: searchParams.get('name') || '',
       difficulty_level: searchParams.get('difficulty_level') || '',
-      min_rating: searchParams.get('min_rating') || '',
-      max_rating: searchParams.get('max_rating') || '',
       country: searchParams.get('country') || '',
       region: searchParams.get('region') || '',
       tag_ids: searchParams
@@ -57,6 +61,10 @@ const DiveSites = () => {
     region: getInitialFilters().region,
   });
 
+  // Initialize sorting
+  const { sortBy, sortOrder, handleSortChange, handleSortApply, resetSorting, getSortParams } =
+    useSorting('dive-sites');
+
   // Debounced URL update for search inputs
   const debouncedUpdateURL = useCallback(
     (() => {
@@ -75,11 +83,14 @@ const DiveSites = () => {
           if (newFilters.name) newSearchParams.set('name', newFilters.name);
           if (newFilters.difficulty_level)
             newSearchParams.set('difficulty_level', newFilters.difficulty_level);
-          if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
-          if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
           if (newFilters.country) newSearchParams.set('country', newFilters.country);
           if (newFilters.region) newSearchParams.set('region', newFilters.region);
           if (newFilters.my_dive_sites) newSearchParams.set('my_dive_sites', 'true');
+
+          // Add sorting parameters
+          const sortParams = getSortParams();
+          if (sortParams.sort_by) newSearchParams.set('sort_by', sortParams.sort_by);
+          if (sortParams.sort_order) newSearchParams.set('sort_order', sortParams.sort_order);
 
           // Add tag IDs
           newFilters.tag_ids.forEach(tagId => {
@@ -92,10 +103,10 @@ const DiveSites = () => {
 
           // Update URL without triggering a page reload
           navigate(`?${newSearchParams.toString()}`, { replace: true });
-        }, 500); // 500ms debounce delay
+        }, 800); // 800ms debounce delay
       };
     })(),
-    [navigate]
+    [navigate, sortBy, sortOrder]
   );
 
   // Immediate URL update for non-search filters (difficulty, ratings, tags, pagination)
@@ -112,11 +123,14 @@ const DiveSites = () => {
       if (newFilters.name) newSearchParams.set('name', newFilters.name);
       if (newFilters.difficulty_level)
         newSearchParams.set('difficulty_level', newFilters.difficulty_level);
-      if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
-      if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
       if (newFilters.country) newSearchParams.set('country', newFilters.country);
       if (newFilters.region) newSearchParams.set('region', newFilters.region);
       if (newFilters.my_dive_sites) newSearchParams.set('my_dive_sites', 'true');
+
+      // Add sorting parameters
+      const sortParams = getSortParams();
+      if (sortParams.sort_by) newSearchParams.set('sort_by', sortParams.sort_by);
+      if (sortParams.sort_order) newSearchParams.set('sort_order', sortParams.sort_order);
 
       // Add tag IDs
       newFilters.tag_ids.forEach(tagId => {
@@ -130,7 +144,7 @@ const DiveSites = () => {
       // Update URL without triggering a page reload
       navigate(`?${newSearchParams.toString()}`, { replace: true });
     },
-    [navigate]
+    [navigate, sortBy, sortOrder]
   );
 
   // Update URL when view mode or pagination change (immediate)
@@ -151,21 +165,19 @@ const DiveSites = () => {
         country: filters.country,
         region: filters.region,
       });
-    }, 500);
+    }, 800);
     return () => clearTimeout(timeoutId);
   }, [filters.name, filters.country, filters.region]);
 
   // Immediate URL update for non-search filters
   useEffect(() => {
     immediateUpdateURL(filters, pagination, viewMode);
-  }, [
-    filters.difficulty_level,
-    filters.min_rating,
-    filters.max_rating,
-    filters.tag_ids,
-    filters.my_dive_sites,
-    immediateUpdateURL,
-  ]);
+  }, [filters.difficulty_level, filters.tag_ids, filters.my_dive_sites, immediateUpdateURL]);
+
+  // Invalidate query when sorting changes to ensure fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries(['dive-sites']);
+  }, [sortBy, sortOrder, queryClient]);
 
   // Fetch available tags for filtering
   const { data: availableTags } = useQuery(
@@ -184,8 +196,6 @@ const DiveSites = () => {
       debouncedSearchTerms.country,
       debouncedSearchTerms.region,
       filters.difficulty_level,
-      filters.min_rating,
-      filters.max_rating,
       filters.tag_ids,
       filters.my_dive_sites,
     ],
@@ -194,8 +204,6 @@ const DiveSites = () => {
 
       if (debouncedSearchTerms.name) params.append('name', debouncedSearchTerms.name);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
-      if (filters.min_rating) params.append('min_rating', filters.min_rating);
-      if (filters.max_rating) params.append('max_rating', filters.max_rating);
       if (debouncedSearchTerms.country) params.append('country', debouncedSearchTerms.country);
       if (debouncedSearchTerms.region) params.append('region', debouncedSearchTerms.region);
 
@@ -226,22 +234,24 @@ const DiveSites = () => {
       debouncedSearchTerms.country,
       debouncedSearchTerms.region,
       filters.difficulty_level,
-      filters.min_rating,
-      filters.max_rating,
       filters.tag_ids,
       filters.my_dive_sites,
       pagination.page,
       pagination.page_size,
+      sortBy,
+      sortOrder,
     ],
     () => {
       const params = new URLSearchParams();
 
       if (debouncedSearchTerms.name) params.append('name', debouncedSearchTerms.name);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
-      if (filters.min_rating) params.append('min_rating', filters.min_rating);
-      if (filters.max_rating) params.append('max_rating', filters.max_rating);
       if (debouncedSearchTerms.country) params.append('country', debouncedSearchTerms.country);
       if (debouncedSearchTerms.region) params.append('region', debouncedSearchTerms.region);
+
+      // Add sorting parameters directly from state (not from getSortParams)
+      if (sortBy) params.append('sort_by', sortBy);
+      if (sortOrder) params.append('sort_order', sortOrder);
 
       filters.tag_ids.forEach(tagId => {
         params.append('tag_ids', tagId.toString());
@@ -258,29 +268,46 @@ const DiveSites = () => {
     }
   );
 
+  // Show toast notifications for rate limiting errors
+  useEffect(() => {
+    handleRateLimitError(error, 'dive sites', () => window.location.reload());
+  }, [error]);
+
+  useEffect(() => {
+    handleRateLimitError(totalCountResponse?.error, 'dive sites count', () =>
+      window.location.reload()
+    );
+  }, [totalCountResponse?.error]);
+
+  useEffect(() => {
+    handleRateLimitError(availableTags?.error, 'available tags', () => window.location.reload());
+  }, [availableTags?.error]);
+
   const handleSearchChange = e => {
     const { name, value } = e.target;
     setFilters(prev => ({
       ...prev,
       [name]: value,
     }));
+    // Reset to first page when filters change
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   // handleTagChange function removed as it's now handled inline in the button onClick
 
   const clearFilters = () => {
-    setFilters({
+    const clearedFilters = {
       name: '',
       difficulty_level: '',
-      min_rating: '',
-      max_rating: '',
       country: '',
       region: '',
       tag_ids: [],
       my_dive_sites: false,
-    });
+    };
+    setFilters(clearedFilters);
     setPagination(prev => ({ ...prev, page: 1 }));
+    resetSorting();
+    immediateUpdateURL(clearedFilters, { ...pagination, page: 1 }, viewMode);
   };
 
   const handlePageChange = newPage => {
@@ -369,8 +396,23 @@ const DiveSites = () => {
 
   if (error) {
     return (
-      <div className='text-center py-12'>
-        <p className='text-red-600'>Error loading dive sites. Please try again.</p>
+      <div className='py-6'>
+        {error.isRateLimited ? (
+          <RateLimitError
+            retryAfter={error.retryAfter}
+            onRetry={() => {
+              // Refetch the query when user clicks retry
+              window.location.reload();
+            }}
+          />
+        ) : (
+          <div className='text-center py-12'>
+            <p className='text-red-600'>Error loading dive sites. Please try again.</p>
+            <p className='text-sm text-gray-500 mt-2'>
+              {error.response?.data?.detail || error.message || 'An unexpected error occurred'}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -405,7 +447,7 @@ const DiveSites = () => {
         className={`bg-white rounded-lg shadow-md mb-6 sm:mb-8 ${showFilters ? 'block' : 'hidden md:block'}`}
       >
         <div className='p-4 sm:p-6'>
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4'>
             <div className='lg:col-span-2'>
               <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
                 Search Sites
@@ -439,38 +481,6 @@ const DiveSites = () => {
                 <option value='advanced'>Advanced</option>
                 <option value='expert'>Expert</option>
               </select>
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Min Rating
-              </label>
-              <input
-                type='number'
-                name='min_rating'
-                min='1'
-                max='10'
-                placeholder='Min rating'
-                value={filters.min_rating}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Max Rating
-              </label>
-              <input
-                type='number'
-                name='max_rating'
-                min='1'
-                max='10'
-                placeholder='Max rating'
-                value={filters.max_rating}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              />
             </div>
 
             <div>
@@ -542,6 +552,19 @@ const DiveSites = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Sorting Controls */}
+      <div className='mb-6 sm:mb-8'>
+        <SortingControls
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          sortOptions={getSortOptions('dive-sites')}
+          onSortChange={handleSortChange}
+          onSortApply={handleSortApply}
+          onReset={resetSorting}
+          entityType='dive-sites'
+        />
       </div>
 
       {/* View Mode and Pagination Controls - Integrated for better UX */}

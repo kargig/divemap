@@ -61,8 +61,47 @@ async def get_diving_centers(
     # Get total count for pagination headers
     total_count = query.count()
 
-    # Apply alphabetical sorting by center name (case-insensitive)
-    query = query.order_by(func.lower(DivingCenter.name).asc())
+    # Apply dynamic sorting based on parameters
+    if search_params.sort_by:
+        # Validate sort_by parameter
+        valid_sort_fields = {
+            'name', 'view_count', 'comment_count', 'created_at', 'updated_at'
+        }
+        if search_params.sort_by not in valid_sort_fields:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}"
+            )
+        
+        # Validate sort_order parameter
+        if search_params.sort_order not in ['asc', 'desc']:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="sort_order must be 'asc' or 'desc'"
+            )
+        
+        # Apply sorting based on field
+        if search_params.sort_by == 'name':
+            sort_field = func.lower(DivingCenter.name)
+        elif search_params.sort_by == 'view_count':
+            sort_field = DivingCenter.view_count
+        elif search_params.sort_by == 'comment_count':
+            # For comment count, we need to join with comments and group
+            query = query.outerjoin(CenterComment).group_by(DivingCenter.id)
+            sort_field = func.count(CenterComment.id)
+        elif search_params.sort_by == 'created_at':
+            sort_field = DivingCenter.created_at
+        elif search_params.sort_by == 'updated_at':
+            sort_field = DivingCenter.updated_at
+        
+        # Apply the sorting
+        if search_params.sort_order == 'desc':
+            query = query.order_by(sort_field.desc())
+        else:
+            query = query.order_by(sort_field.asc())
+    else:
+        # Default sorting by name (case-insensitive)
+        query = query.order_by(func.lower(DivingCenter.name).asc())
 
     # Calculate pagination
     offset = (page - 1) * page_size

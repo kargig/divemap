@@ -23,7 +23,10 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api, { deleteDive } from '../api';
 import DivesMap from '../components/DivesMap';
 import ImportDivesModal from '../components/ImportDivesModal';
+import SortingControls from '../components/SortingControls';
 import { useAuth } from '../contexts/AuthContext';
+import useSorting from '../hooks/useSorting';
+import { getSortOptions } from '../utils/sortOptions';
 
 const Dives = () => {
   const { user } = useAuth();
@@ -80,6 +83,10 @@ const Dives = () => {
     dive_site_name: getInitialFilters().dive_site_name,
   });
 
+  // Initialize sorting
+  const { sortBy, sortOrder, handleSortChange, handleSortApply, resetSorting, getSortParams } =
+    useSorting('dives');
+
   // Debounced URL update for search inputs
   const debouncedUpdateURL = useCallback(
     (() => {
@@ -117,13 +124,18 @@ const Dives = () => {
             newSearchParams.append('tag_ids', tagId.toString());
           });
 
+          // Add sorting parameters
+          const sortParams = getSortParams();
+          if (sortParams.sort_by) newSearchParams.set('sort_by', sortParams.sort_by);
+          if (sortParams.sort_order) newSearchParams.set('sort_order', sortParams.sort_order);
+
           // Add pagination
           newSearchParams.set('page', newPagination.page.toString());
           newSearchParams.set('page_size', newPagination.page_size.toString());
 
           // Update URL without triggering a page reload
           navigate(`?${newSearchParams.toString()}`, { replace: true });
-        }, 500); // 500ms debounce delay
+        }, 800); // 800ms debounce delay
       };
     })(),
     [navigate]
@@ -162,6 +174,11 @@ const Dives = () => {
         newSearchParams.append('tag_ids', tagId.toString());
       });
 
+      // Add sorting parameters
+      const sortParams = getSortParams();
+      if (sortParams.sort_by) newSearchParams.set('sort_by', sortParams.sort_by);
+      if (sortParams.sort_order) newSearchParams.set('sort_order', sortParams.sort_order);
+
       // Add pagination
       newSearchParams.set('page', newPagination.page.toString());
       newSearchParams.set('page_size', newPagination.page_size.toString());
@@ -169,7 +186,7 @@ const Dives = () => {
       // Update URL without triggering a page reload
       navigate(`?${newSearchParams.toString()}`, { replace: true });
     },
-    [navigate]
+    [navigate, sortBy, sortOrder]
   );
 
   // Update URL when view mode or pagination change (immediate)
@@ -177,10 +194,7 @@ const Dives = () => {
     immediateUpdateURL(filters, pagination, viewMode);
   }, [viewMode, pagination, immediateUpdateURL]);
 
-  // Debounced URL update for search inputs
-  useEffect(() => {
-    debouncedUpdateURL(filters, pagination, viewMode);
-  }, [filters.dive_site_name, debouncedUpdateURL]);
+  // No more debounced URL updates for search inputs - they only update when Search button is clicked
 
   // Debounced search terms for query key
   useEffect(() => {
@@ -188,7 +202,7 @@ const Dives = () => {
       setDebouncedSearchTerms({
         dive_site_name: filters.dive_site_name,
       });
-    }, 500);
+    }, 800);
     return () => clearTimeout(timeoutId);
   }, [filters.dive_site_name]);
 
@@ -210,6 +224,11 @@ const Dives = () => {
     filters.tag_ids,
     immediateUpdateURL,
   ]);
+
+  // Invalidate query when sorting changes to ensure fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries(['dives']);
+  }, [sortBy, sortOrder, queryClient]);
 
   // Fetch available tags for filtering
   const { data: availableTags } = useQuery(
@@ -292,6 +311,8 @@ const Dives = () => {
       filters.tag_ids,
       pagination.page,
       pagination.page_size,
+      sortBy,
+      sortOrder,
     ],
     () => {
       const params = new URLSearchParams();
@@ -314,6 +335,10 @@ const Dives = () => {
         params.append('tag_ids', tagId.toString());
       });
 
+      // Add sorting parameters directly from state (not from getSortParams)
+      if (sortBy) params.append('sort_by', sortBy);
+      if (sortOrder) params.append('sort_order', sortOrder);
+
       params.append('page', pagination.page.toString());
       params.append('page_size', pagination.page_size.toString());
 
@@ -324,13 +349,58 @@ const Dives = () => {
     }
   );
 
+  const handleSearch = e => {
+    e.preventDefault();
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when searching
+
+    // Update URL with current search filters
+    const newSearchParams = new URLSearchParams();
+
+    // Add view mode
+    if (viewMode === 'map') {
+      newSearchParams.set('view', 'map');
+    }
+
+    // Add search filters
+    if (filters.dive_site_name) newSearchParams.set('dive_site_name', filters.dive_site_name);
+
+    // Add other filters
+    if (filters.dive_site_id) newSearchParams.set('dive_site_id', filters.dive_site_id);
+    if (filters.difficulty_level) newSearchParams.set('difficulty_level', filters.difficulty_level);
+    if (filters.min_depth) newSearchParams.set('min_depth', filters.min_depth);
+    if (filters.max_depth) newSearchParams.set('max_depth', filters.max_depth);
+    if (filters.min_visibility) newSearchParams.set('min_visibility', filters.min_visibility);
+    if (filters.max_visibility) newSearchParams.set('max_visibility', filters.max_visibility);
+    if (filters.min_rating) newSearchParams.set('min_rating', filters.min_rating);
+    if (filters.max_rating) newSearchParams.set('max_rating', filters.max_rating);
+    if (filters.start_date) newSearchParams.set('start_date', filters.start_date);
+    if (filters.end_date) newSearchParams.set('end_date', filters.end_date);
+    if (filters.my_dives) newSearchParams.set('my_dives', filters.my_dives.toString());
+
+    // Add sorting parameters
+    if (sortBy) newSearchParams.set('sort_by', sortBy);
+    if (sortOrder) newSearchParams.set('sort_order', sortOrder);
+
+    // Add tag IDs
+    filters.tag_ids.forEach(tagId => {
+      newSearchParams.append('tag_ids', tagId.toString());
+    });
+
+    // Add pagination
+    newSearchParams.set('page', '1'); // Reset to page 1
+    newSearchParams.set('page_size', pagination.page_size.toString());
+
+    // Update URL without triggering a page reload
+    navigate(`?${newSearchParams.toString()}`, { replace: true });
+  };
+
   const handleSearchChange = e => {
     const { name, value } = e.target;
     setFilters(prev => ({
       ...prev,
       [name]: value,
     }));
-    setPagination(prev => ({ ...prev, page: 1 }));
+    // Don't reset pagination or trigger search on every change - only when Search button is clicked
   };
 
   // handleTagChange function removed as it's now handled inline in the button onClick
@@ -724,6 +794,19 @@ const Dives = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Sorting Controls */}
+      <div className='mb-6 sm:mb-8'>
+        <SortingControls
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          sortOptions={getSortOptions('dives')}
+          onSortChange={handleSortChange}
+          onSortApply={handleSortApply}
+          onReset={resetSorting}
+          entityType='dives'
+        />
       </div>
 
       {/* View Mode and Pagination Controls - Integrated for better UX */}

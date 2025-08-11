@@ -150,12 +150,12 @@ async def get_dive_sites(
     request: Request,
     name: Optional[str] = Query(None, max_length=100),
     difficulty_level: Optional[str] = Query(None, pattern=r"^(beginner|intermediate|advanced|expert)$"),
-    min_rating: Optional[float] = Query(None, ge=0, le=10),
-    max_rating: Optional[float] = Query(None, ge=0, le=10),
     tag_ids: Optional[List[int]] = Query(None),
     country: Optional[str] = Query(None, max_length=100),
     region: Optional[str] = Query(None, max_length=100),
     my_dive_sites: Optional[bool] = Query(None, description="Filter to show only dive sites created by the current user"),
+    sort_by: Optional[str] = Query(None, description="Sort field (name, country, region, difficulty_level, view_count, comment_count, created_at, updated_at)"),
+    sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, or 100)"),
     db: Session = Depends(get_db),
@@ -226,8 +226,54 @@ async def get_dive_sites(
         # Then filter the main query by those dive site IDs
         query = query.filter(DiveSite.id.in_(dive_site_ids_with_all_tags))
 
-    # Apply alphabetical sorting by name (case-insensitive)
-    query = query.order_by(func.lower(DiveSite.name).asc())
+    # Apply dynamic sorting based on parameters
+    if sort_by:
+        # Validate sort_by parameter
+        valid_sort_fields = {
+            'name', 'country', 'region', 'difficulty_level', 
+            'view_count', 'comment_count', 'created_at', 'updated_at'
+        }
+        if sort_by not in valid_sort_fields:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}"
+            )
+        
+        # Validate sort_order parameter
+        if sort_order not in ['asc', 'desc']:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="sort_order must be 'asc' or 'desc'"
+            )
+        
+        # Apply sorting based on field
+        if sort_by == 'name':
+            sort_field = func.lower(DiveSite.name)
+        elif sort_by == 'country':
+            sort_field = func.lower(DiveSite.country)
+        elif sort_by == 'region':
+            sort_field = func.lower(DiveSite.region)
+        elif sort_by == 'difficulty_level':
+            sort_field = DiveSite.difficulty_level
+        elif sort_by == 'view_count':
+            sort_field = DiveSite.view_count
+        elif sort_by == 'comment_count':
+            # For comment count, we need to join with comments and group
+            query = query.outerjoin(SiteComment).group_by(DiveSite.id)
+            sort_field = func.count(SiteComment.id)
+        elif sort_by == 'created_at':
+            sort_field = DiveSite.created_at
+        elif sort_by == 'updated_at':
+            sort_field = DiveSite.updated_at
+        
+        # Apply the sorting
+        if sort_order == 'desc':
+            query = query.order_by(sort_field.desc())
+        else:
+            query = query.order_by(sort_field.asc())
+    else:
+        # Default sorting by name (case-insensitive)
+        query = query.order_by(func.lower(DiveSite.name).asc())
 
     # Get total count for pagination
     total_count = query.count()
@@ -312,12 +358,7 @@ async def get_dive_sites(
 
         result.append(site_dict)
 
-    # Apply rating filters
-    if min_rating is not None:
-        result = [site for site in result if site["average_rating"] and site["average_rating"] >= min_rating]
 
-    if max_rating is not None:
-        result = [site for site in result if site["average_rating"] and site["average_rating"] <= max_rating]
 
     # Add pagination metadata to response headers
     from fastapi.responses import JSONResponse
@@ -337,8 +378,6 @@ async def get_dive_sites_count(
     request: Request,
     name: Optional[str] = Query(None, max_length=100),
     difficulty_level: Optional[str] = Query(None, pattern=r"^(beginner|intermediate|advanced|expert)$"),
-    min_rating: Optional[float] = Query(None, ge=0, le=10),
-    max_rating: Optional[float] = Query(None, ge=0, le=10),
     tag_ids: Optional[List[int]] = Query(None),
     country: Optional[str] = Query(None, max_length=100),
     region: Optional[str] = Query(None, max_length=100),

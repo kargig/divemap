@@ -736,6 +736,21 @@ Regular users can now create dive sites, with ownership tracking and filtering.
 - **My Dive Sites Filter**: Filter to show only user's created dive sites
 - **UI Improvements**: Enhanced dive site creation interface
 
+### Sorting Functionality Implementation
+
+A comprehensive sorting system is being implemented for all entity list views.
+
+**Status**: 🚧 In Progress
+**Implementation**: [Sorting Implementation Plan](./sorting-implementation-plan.md)
+
+**Features:**
+- **User-Configurable Sorting**: Sort by name, country, region, difficulty, popularity, dates, etc.
+- **Rating Filter Removal**: Remove rating filters from dive sites for cleaner interface
+- **Consistent Interface**: Unified sorting experience across dives, dive sites, and diving centers
+- **Performance Optimization**: Database indexes and optimized queries for sorting
+
+**Planned Timeline**: 4-6 weeks
+
 **Database Changes:**
 - Added `created_by` foreign key to `dive_sites` table
 - Migration 0019: `add_created_by_field_to_dive_sites_table.py`

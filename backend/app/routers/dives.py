@@ -852,6 +852,8 @@ def get_dives(
     start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
+    sort_by: Optional[str] = Query(None, description="Sort field (dive_date, max_depth, duration, difficulty_level, visibility_rating, user_rating, view_count, created_at, updated_at)"),
+    sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, or 100)")
 ):
@@ -987,8 +989,54 @@ def get_dives(
     # Get total count for pagination headers
     total_count = query.count()
 
-    # Apply alphabetical sorting by dive name (case-insensitive)
-    query = query.order_by(func.lower(Dive.name).asc())
+    # Apply dynamic sorting based on parameters
+    if sort_by:
+        # Validate sort_by parameter
+        valid_sort_fields = {
+            'dive_date', 'max_depth', 'duration', 'difficulty_level', 
+            'visibility_rating', 'user_rating', 'view_count', 'created_at', 'updated_at'
+        }
+        if sort_by not in valid_sort_fields:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}"
+            )
+        
+        # Validate sort_order parameter
+        if sort_order not in ['asc', 'desc']:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="sort_order must be 'asc' or 'desc'"
+            )
+        
+        # Apply sorting based on field
+        if sort_by == 'dive_date':
+            sort_field = Dive.dive_date
+        elif sort_by == 'max_depth':
+            sort_field = Dive.max_depth
+        elif sort_by == 'duration':
+            sort_field = Dive.duration
+        elif sort_by == 'difficulty_level':
+            sort_field = Dive.difficulty_level
+        elif sort_by == 'visibility_rating':
+            sort_field = Dive.visibility_rating
+        elif sort_by == 'user_rating':
+            sort_field = Dive.user_rating
+        elif sort_by == 'view_count':
+            sort_field = Dive.view_count
+        elif sort_by == 'created_at':
+            sort_field = Dive.created_at
+        elif sort_by == 'updated_at':
+            sort_field = Dive.updated_at
+        
+        # Apply the sorting
+        if sort_order == 'desc':
+            query = query.order_by(sort_field.desc())
+        else:
+            query = query.order_by(sort_field.asc())
+    else:
+        # Default sorting by dive date (newest first)
+        query = query.order_by(Dive.dive_date.desc(), Dive.dive_time.desc())
 
     # Calculate pagination
     offset = (page - 1) * page_size

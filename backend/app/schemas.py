@@ -199,11 +199,11 @@ class SiteMediaResponse(BaseModel):
 class DiveSiteSearchParams(BaseModel):
     name: Optional[str] = None
     difficulty_level: Optional[str] = Field(None, pattern=r"^(beginner|intermediate|advanced|expert)$")
-    min_rating: Optional[float] = Field(None, ge=0, le=10)
-    max_rating: Optional[float] = Field(None, ge=0, le=10)
     tag_ids: Optional[List[int]] = None
     country: Optional[str] = None
     region: Optional[str] = None
+    sort_by: Optional[str] = Field(None, description="Sort field (name, country, region, difficulty_level, view_count, comment_count, created_at, updated_at)")
+    sort_order: Optional[str] = Field("asc", description="Sort order (asc/desc)")
     limit: int = Field(50, ge=1, le=100)
     offset: int = Field(0, ge=0)
 
@@ -283,6 +283,8 @@ class DivingCenterSearchParams(BaseModel):
     name: Optional[str] = None
     min_rating: Optional[float] = Field(None, ge=0, le=10)
     max_rating: Optional[float] = Field(None, ge=0, le=10)
+    sort_by: Optional[str] = Field(None, description="Sort field (name, view_count, comment_count, created_at, updated_at)")
+    sort_order: Optional[str] = Field("asc", description="Sort order (asc/desc)")
     limit: int = Field(50, ge=1, le=100)
     offset: int = Field(0, ge=0)
 
@@ -604,6 +606,8 @@ class DiveSearchParams(BaseModel):
     start_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     end_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     tag_ids: Optional[List[int]] = None
+    sort_by: Optional[str] = Field(None, description="Sort field (dive_date, max_depth, duration, difficulty_level, visibility_rating, user_rating, view_count, created_at, updated_at)")
+    sort_order: Optional[str] = Field("desc", description="Sort order (asc/desc)")
     limit: int = Field(50, ge=1, le=100)
     offset: int = Field(0, ge=0)
 

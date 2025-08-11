@@ -16,7 +16,10 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import DivingCentersMap from '../components/DivingCentersMap';
+import SortingControls from '../components/SortingControls';
 import { useAuth } from '../contexts/AuthContext';
+import useSorting from '../hooks/useSorting';
+import { getSortOptions } from '../utils/sortOptions';
 
 // Helper function to safely extract error message
 const getErrorMessage = error => {
@@ -66,6 +69,10 @@ const DivingCenters = () => {
     name: getInitialFilters().name,
   });
 
+  // Initialize sorting
+  const { sortBy, sortOrder, handleSortChange, handleSortApply, resetSorting, getSortParams } =
+    useSorting('diving-centers');
+
   // Debounced URL update for search inputs
   const debouncedUpdateURL = useCallback(
     (() => {
@@ -85,16 +92,21 @@ const DivingCenters = () => {
           if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
           if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
 
+          // Add sorting parameters
+          const sortParams = getSortParams();
+          if (sortParams.sort_by) newSearchParams.set('sort_by', sortParams.sort_by);
+          if (sortParams.sort_order) newSearchParams.set('sort_order', sortParams.sort_order);
+
           // Add pagination
           newSearchParams.set('page', newPagination.page.toString());
           newSearchParams.set('page_size', newPagination.page_size.toString());
 
           // Update URL without triggering a page reload
           navigate(`?${newSearchParams.toString()}`, { replace: true });
-        }, 500); // 500ms debounce delay
+        }, 800); // 800ms debounce delay
       };
     })(),
-    [navigate]
+    [navigate, sortBy, sortOrder]
   );
 
   // Immediate URL update for non-search filters
@@ -112,6 +124,11 @@ const DivingCenters = () => {
       if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
       if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
 
+      // Add sorting parameters
+      const sortParams = getSortParams();
+      if (sortParams.sort_by) newSearchParams.set('sort_by', sortParams.sort_by);
+      if (sortParams.sort_order) newSearchParams.set('sort_order', sortParams.sort_order);
+
       // Add pagination
       newSearchParams.set('page', newPagination.page.toString());
       newSearchParams.set('page_size', newPagination.page_size.toString());
@@ -119,7 +136,7 @@ const DivingCenters = () => {
       // Update URL without triggering a page reload
       navigate(`?${newSearchParams.toString()}`, { replace: true });
     },
-    [navigate]
+    [navigate, sortBy, sortOrder]
   );
 
   // Update URL when view mode or pagination change (immediate)
@@ -138,7 +155,7 @@ const DivingCenters = () => {
       setDebouncedSearchTerms({
         name: filters.name,
       });
-    }, 500);
+    }, 800);
     return () => clearTimeout(timeoutId);
   }, [filters.name]);
 
@@ -146,6 +163,11 @@ const DivingCenters = () => {
   useEffect(() => {
     immediateUpdateURL(filters, pagination, viewMode);
   }, [filters.min_rating, filters.max_rating, immediateUpdateURL]);
+
+  // Invalidate query when sorting changes to ensure fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries(['diving-centers']);
+  }, [sortBy, sortOrder, queryClient]);
 
   // Fetch diving centers with pagination
   const {
@@ -160,6 +182,8 @@ const DivingCenters = () => {
       filters.max_rating,
       pagination.page,
       pagination.page_size,
+      sortBy,
+      sortOrder,
     ],
     () => {
       // Create URLSearchParams to properly handle parameters
@@ -169,6 +193,10 @@ const DivingCenters = () => {
       if (debouncedSearchTerms.name) params.append('name', debouncedSearchTerms.name);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
       if (filters.max_rating) params.append('max_rating', filters.max_rating);
+
+      // Add sorting parameters directly from state (not from getSortParams)
+      if (sortBy) params.append('sort_by', sortBy);
+      if (sortOrder) params.append('sort_order', sortOrder);
 
       // Add pagination parameters
       params.append('page', pagination.page.toString());
@@ -225,11 +253,6 @@ const DivingCenters = () => {
       },
     }
   );
-
-  const handleSearch = e => {
-    e.preventDefault();
-    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when searching
-  };
 
   const handleSearchChange = e => {
     const { name, value } = e.target;
@@ -309,9 +332,9 @@ const DivingCenters = () => {
         )}
       </div>
 
-      {/* Search and Filter Form */}
-      <form onSubmit={handleSearch} className='bg-white p-6 rounded-lg shadow-md mb-8'>
-        <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
+      {/* Search and Filter Section */}
+      <div className='bg-white p-6 rounded-lg shadow-md mb-8'>
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
           <div>
             <label htmlFor='search-name' className='block text-sm font-medium text-gray-700 mb-2'>
               Search by name
@@ -360,16 +383,21 @@ const DivingCenters = () => {
               placeholder='10'
             />
           </div>
-          <div className='flex items-end'>
-            <button
-              type='submit'
-              className='w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-              Search
-            </button>
-          </div>
         </div>
-      </form>
+      </div>
+
+      {/* Sorting Controls */}
+      <div className='mb-6'>
+        <SortingControls
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          sortOptions={getSortOptions('diving-centers')}
+          onSortChange={handleSortChange}
+          onSortApply={handleSortApply}
+          onReset={resetSorting}
+          entityType='diving-centers'
+        />
+      </div>
 
       {/* View Mode and Pagination Controls */}
       <div className='mt-4 flex flex-col sm:flex-row justify-between items-center gap-4 mb-8'>
