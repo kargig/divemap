@@ -299,7 +299,7 @@ function App() {
             <Toaster
               position='top-right'
               toastOptions={{
-                duration: 500,
+                duration: 2000,
                 style: {
                   marginTop: '4rem', // Add top margin to appear below navbar
                   zIndex: 9999, // Ensure it's above other elements but below navbar dropdown
