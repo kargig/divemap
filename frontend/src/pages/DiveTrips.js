@@ -19,9 +19,11 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { getParsedTrips, getDivingCenters, getDiveSites } from '../api';
 import DiveMap from '../components/DiveMap';
+import { useAuth } from '../contexts/AuthContext';
 
 const DiveTrips = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
   const [filters, setFilters] = useState({
     start_date: '',
@@ -312,20 +314,32 @@ const DiveTrips = () => {
       trip_status: getDisplayStatus(trip),
     })) || [];
 
-  // Check if error is a 403 Forbidden (authentication required)
-  const isAuthError = error?.response?.status === 403;
-
-  return (
-    <div className='max-w-6xl mx-auto p-3 sm:p-6'>
-      <div className='mb-6 sm:mb-8'>
-        <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>Dive Trips</h1>
-        <p className='text-gray-600 mt-2 text-sm sm:text-base'>
-          Discover upcoming dive trips from local diving centers
-        </p>
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className='max-w-6xl mx-auto p-3 sm:p-6'>
+        <div className='flex items-center justify-center min-h-64'>
+          <div className='text-center'>
+            <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
+            <p className='text-gray-600'>Loading...</p>
+          </div>
+        </div>
       </div>
+    );
+  }
 
-      {/* Authentication Required Message */}
-      {isAuthError && (
+  // If user is not authenticated, show only the login message
+  if (!user) {
+    return (
+      <div className='max-w-6xl mx-auto p-3 sm:p-6'>
+        <div className='mb-6 sm:mb-8'>
+          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>Dive Trips</h1>
+          <p className='text-gray-600 mt-2 text-sm sm:text-base'>
+            Discover upcoming dive trips from local diving centers
+          </p>
+        </div>
+
+        {/* Authentication Required Message */}
         <div className='bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6'>
           <div className='flex items-center'>
             <LogIn className='h-8 w-8 text-blue-600 mr-4' />
@@ -353,7 +367,18 @@ const DiveTrips = () => {
             </div>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className='max-w-6xl mx-auto p-3 sm:p-6'>
+      <div className='mb-6 sm:mb-8'>
+        <h1 className='text-3xl font-bold text-gray-900'>Dive Trips</h1>
+        <p className='text-gray-600 mt-2 text-sm sm:text-base'>
+          Discover upcoming dive trips from local diving centers
+        </p>
+      </div>
 
       {/* Date Filter Confirmation Message */}
       {showDateFilterMessage && (
@@ -765,13 +790,13 @@ const DiveTrips = () => {
         </div>
       )}
 
-      {error && !isAuthError && (
+      {error && (
         <div className='text-center py-12'>
           <p className='text-red-600'>Error loading dive trips</p>
         </div>
       )}
 
-      {sortedTrips && sortedTrips.length === 0 && !isAuthError && (
+      {sortedTrips && sortedTrips.length === 0 && (
         <div className='text-center py-12'>
           <Search className='h-12 w-12 text-gray-400 mx-auto mb-4' />
           <h3 className='text-lg font-medium text-gray-900 mb-2'>No dive trips found</h3>
@@ -809,7 +834,7 @@ const DiveTrips = () => {
         </div>
       )}
 
-      {viewMode === 'list' && sortedTrips && sortedTrips.length > 0 && !isAuthError && (
+      {viewMode === 'list' && sortedTrips && sortedTrips.length > 0 && (
         <div className='space-y-8'>
           {/* Search Results Summary */}
           <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
@@ -1216,7 +1241,7 @@ const DiveTrips = () => {
         </div>
       )}
 
-      {viewMode === 'map' && sortedTrips && sortedTrips.length > 0 && !isAuthError && (
+      {viewMode === 'map' && sortedTrips && sortedTrips.length > 0 && (
         <div className='bg-white rounded-lg shadow-md'>
           <DiveMap diveSites={[]} divingCenters={mapData} height='600px' showTripInfo={true} />
         </div>
