@@ -497,7 +497,7 @@ const AdminDivingCenters = () => {
                     </div>
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap'>
-                    <div className='text-sm text-gray-900'>{center.email}</div>
+                    <div className='text-sm text-gray-900'>{center.email || 'N/A'}</div>
                     <div className='text-sm text-gray-500'>{center.phone}</div>
                   </td>
                   <td className='px-6 py-4'>

@@ -16,6 +16,7 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import DivingCentersMap from '../components/DivingCentersMap';
+import MaskedEmail from '../components/MaskedEmail';
 import SortingControls from '../components/SortingControls';
 import { useAuth } from '../contexts/AuthContext';
 import useSorting from '../hooks/useSorting';
@@ -533,9 +534,7 @@ const DivingCenters = () => {
                   {center.email && (
                     <div className='flex items-center text-sm text-gray-600'>
                       <Mail className='h-4 w-4 mr-2' />
-                      <a href={`mailto:${center.email}`} className='hover:text-blue-600'>
-                        {center.email}
-                      </a>
+                      <MaskedEmail email={center.email} className='hover:text-blue-600' />
                     </div>
                   )}
                   {center.phone && (

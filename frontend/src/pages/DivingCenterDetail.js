@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 
 import api, { claimDivingCenterOwnership } from '../api';
+import MaskedEmail from '../components/MaskedEmail';
 import { useAuth } from '../contexts/AuthContext';
 
 // Helper function to safely extract error message
@@ -346,9 +347,7 @@ const DivingCenterDetail = () => {
             {center?.email && (
               <div className='flex items-center text-gray-600'>
                 <Mail className='h-5 w-5 mr-3' />
-                <a href={`mailto:${center.email}`} className='hover:text-blue-600'>
-                  {center.email}
-                </a>
+                <MaskedEmail email={center.email} className='hover:text-blue-600' />
               </div>
             )}
             {center?.phone && (

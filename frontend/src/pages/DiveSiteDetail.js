@@ -15,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
 
 import api from '../api';
+import MaskedEmail from '../components/MaskedEmail';
 import MiniMap from '../components/MiniMap';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';

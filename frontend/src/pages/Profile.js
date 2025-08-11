@@ -18,6 +18,7 @@ import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
 import api from '../api';
+import MaskedEmail from '../components/MaskedEmail';
 import { useAuth } from '../contexts/AuthContext';
 
 const Profile = () => {
@@ -346,7 +347,9 @@ const Profile = () => {
                   <Mail className='h-5 w-5 text-gray-400 mr-3' />
                   <div>
                     <span className='text-sm text-gray-500'>Email</span>
-                    <p className='text-gray-900'>{user.email}</p>
+                    <p className='text-gray-900'>
+                      <MaskedEmail email={user.email} />
+                    </p>
                   </div>
                 </div>
 

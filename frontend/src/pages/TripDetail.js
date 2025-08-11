@@ -4,6 +4,7 @@ import { useQuery } from 'react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 
 import { getParsedTrip, getDiveSite, getDivingCenter } from '../api';
+import MaskedEmail from '../components/MaskedEmail';
 import TripHeader from '../components/TripHeader';
 const TripDetail = () => {
   const { id } = useParams();
@@ -203,7 +204,7 @@ const TripDetail = () => {
                         {divingCenter.email && (
                           <div className='flex items-center space-x-2'>
                             <Mail className='w-4 h-4 text-gray-500' />
-                            <span className='text-gray-700'>{divingCenter.email}</span>
+                            <MaskedEmail email={divingCenter.email} className='text-gray-700' />
                           </div>
                         )}
                         {divingCenter.website && (

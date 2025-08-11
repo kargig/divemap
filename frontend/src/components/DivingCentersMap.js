@@ -12,6 +12,8 @@ import View from 'ol/View';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
+import MaskedEmail from './MaskedEmail';
+
 const DivingCentersMap = ({ divingCenters, viewport, onViewportChange }) => {
   const mapRef = useRef();
   const mapInstance = useRef();
@@ -283,7 +285,11 @@ const DivingCentersMap = ({ divingCenters, viewport, onViewportChange }) => {
           )}
 
           <div className='space-y-1 mb-3'>
-            {popupInfo.email && <div className='text-xs text-gray-500'>📧 {popupInfo.email}</div>}
+            {popupInfo.email && (
+              <div className='text-xs text-gray-500'>
+                📧 <MaskedEmail email={popupInfo.email} />
+              </div>
+            )}
             {popupInfo.phone && <div className='text-xs text-gray-500'>📞 {popupInfo.phone}</div>}
             {popupInfo.website && (
               <div className='text-xs text-gray-500'>🌐 {popupInfo.website}</div>
