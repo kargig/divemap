@@ -27,8 +27,8 @@ const Help = () => {
             <h1 className='text-4xl font-bold text-gray-900'>Help & User Guide</h1>
           </div>
           <p className='text-xl text-gray-600'>
-            Learn how to use Divemap's features to discover dive sites, log your dives, and connect
-            with the diving community.
+            Learn how to use Divemap&apos;s features to discover dive sites, log your dives, and
+            connect with the diving community.
           </p>
         </div>
 
@@ -75,7 +75,8 @@ const Help = () => {
               <div className='bg-gray-50 rounded-lg p-4'>
                 <h3 className='text-lg font-semibold text-gray-900 mb-2'>Browse Dive Sites</h3>
                 <p className='text-gray-700 mb-3'>
-                  Navigate to the "Dive Sites" section to explore dive locations around the world.
+                  Navigate to the &quot;Dive Sites&quot; section to explore dive locations around
+                  the world.
                 </p>
                 <div className='space-y-2 text-sm text-gray-600'>
                   <div className='flex items-center'>
@@ -127,7 +128,7 @@ const Help = () => {
               <div className='bg-green-50 rounded-lg p-4'>
                 <h3 className='text-lg font-semibold text-gray-900 mb-2'>Adding a New Dive Site</h3>
                 <p className='text-gray-700 mb-3'>
-                  Help the community by adding dive sites that aren't yet in our database.
+                  Help the community by adding dive sites that aren&apos;t yet in our database.
                 </p>
                 <div className='space-y-2 text-sm text-gray-600'>
                   <div className='flex items-center'>

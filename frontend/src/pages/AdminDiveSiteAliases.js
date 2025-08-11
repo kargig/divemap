@@ -143,7 +143,9 @@ const AdminDiveSiteAliases = () => {
             Back to Dive Sites
           </button>
         </div>
-        <h1 className='text-3xl font-bold text-gray-900'>Manage Aliases for "{diveSite.name}"</h1>
+        <h1 className='text-3xl font-bold text-gray-900'>
+          Manage Aliases for &quot;{diveSite.name}&quot;
+        </h1>
         <p className='text-gray-600 mt-2'>
           Add, edit, or remove aliases for this dive site. Aliases help with newsletter parsing and
           multilingual support.

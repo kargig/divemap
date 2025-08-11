@@ -9,12 +9,13 @@ import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
 import { Style, Icon, Text, Fill, Stroke, Circle } from 'ol/style';
 import View from 'ol/View';
+import PropTypes from 'prop-types';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 
-const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
+const DiveSitesMap = ({ diveSites, onViewportChange }) => {
   const mapRef = useRef();
   const mapInstance = useRef();
   const [popupInfo, setPopupInfo] = useState(null);
@@ -168,7 +169,7 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
               extentHeight = extent[3] - extent[1];
             }
           } catch (error) {
-            console.error('⚠️ Error calculating extent dimensions:', error);
+            // Error calculating extent dimensions
           }
 
           if (extent && extentWidth > minExtentSize && extentHeight > minExtentSize) {
@@ -260,7 +261,7 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
             view.setZoom(targetZoom);
           }
         } catch (error) {
-          console.error('❌ Error fitting extent:', error);
+          // Error fitting extent
           // Fallback: calculate center and zoom manually
 
           try {
@@ -320,7 +321,7 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
             view.setCenter(fromLonLat([centerLon, centerLat]));
             view.setZoom(targetZoom);
           } catch (fallbackError) {
-            console.error('❌ Error in fallback calculation:', fallbackError);
+            // Error in fallback calculation
             // Final fallback: use a default view
             const view = mapInstance.current.getView();
             view.setCenter(fromLonLat([0, 0]));
@@ -329,7 +330,7 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
         }
       }, 100); // Small delay to ensure source is ready
     } catch (error) {
-      console.error('❌ Error in fitMapToDiveSites:', error);
+      // Error in fitMapToDiveSites
     }
   };
 
@@ -391,7 +392,7 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
         }
       });
     } catch (error) {
-      console.error('Error creating map:', error);
+      // Error creating map
     }
 
     // Cleanup
@@ -422,7 +423,7 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
         const lat = parseFloat(site.latitude);
 
         if (isNaN(lon) || isNaN(lat)) {
-          console.error('Invalid coordinates for site:', site.name, site.longitude, site.latitude);
+          // Invalid coordinates for site, skipping
           return null;
         }
 
@@ -578,7 +579,7 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
                 });
               }
             } catch (error) {
-              console.warn('Error fitting cluster extent:', error);
+              // Error fitting cluster extent
               // Fallback: zoom in by one level
               const view = mapInstance.current.getView();
               const currentZoom = view.getZoom();
@@ -691,6 +692,21 @@ const DiveSitesMap = ({ diveSites, viewport, onViewportChange }) => {
       )}
     </div>
   );
+};
+
+DiveSitesMap.propTypes = {
+  diveSites: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      name: PropTypes.string.isRequired,
+      latitude: PropTypes.string.isRequired,
+      longitude: PropTypes.string.isRequired,
+      difficulty_level: PropTypes.string.isRequired,
+      description: PropTypes.string,
+      average_rating: PropTypes.number,
+    })
+  ).isRequired,
+  onViewportChange: PropTypes.func.isRequired,
 };
 
 export default DiveSitesMap;

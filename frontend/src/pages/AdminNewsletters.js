@@ -1178,7 +1178,7 @@ const TripFormModal = ({
 
             {formData.dives.length === 0 && (
               <p className='text-gray-500 text-sm'>
-                No dives added yet. Click "Add Dive" to add dives to this trip.
+                No dives added yet. Click &quot;Add Dive&quot; to add dives to this trip.
               </p>
             )}
 

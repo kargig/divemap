@@ -1,4 +1,5 @@
 import { AlertTriangle, Clock, RefreshCw } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 
 const RateLimitError = ({ retryAfter = 30, onRetry, className = '' }) => {
@@ -66,6 +67,17 @@ const RateLimitError = ({ retryAfter = 30, onRetry, className = '' }) => {
       </div>
     </div>
   );
+};
+
+RateLimitError.propTypes = {
+  retryAfter: PropTypes.number,
+  onRetry: PropTypes.func,
+  className: PropTypes.string,
+};
+
+RateLimitError.defaultProps = {
+  retryAfter: 30,
+  className: '',
 };
 
 export default RateLimitError;

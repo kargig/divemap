@@ -184,9 +184,9 @@ const API = () => {
                   <code className='bg-green-100 px-3 py-2 rounded text-sm font-mono block text-green-900'>
                     curl -X POST {backendUrl}/api/v1/auth/login \
                     <br />
-                    &nbsp;&nbsp;-H "Content-Type: application/x-www-form-urlencoded" \
+                    &nbsp;&nbsp;-H &quot;Content-Type: application/x-www-form-urlencoded&quot; \
                     <br />
-                    &nbsp;&nbsp;-d "username=your_username&password=your_password"
+                    &nbsp;&nbsp;-d &quot;username=your_username&password=your_password&quot;
                   </code>
                   <p className='text-green-700 text-xs mt-2'>
                     Response will include:{' '}
@@ -202,9 +202,9 @@ const API = () => {
                   <code className='bg-blue-100 px-3 py-2 rounded text-sm font-mono block text-blue-900'>
                     curl -X GET {backendUrl}/api/v1/dive-sites \
                     <br />
-                    &nbsp;&nbsp;-H "Authorization: Bearer YOUR_TOKEN_HERE" \
+                    &nbsp;&nbsp;-H &quot;Authorization: Bearer YOUR_TOKEN_HERE&quot; \
                     <br />
-                    &nbsp;&nbsp;-H "Content-Type: application/json"
+                    &nbsp;&nbsp;-H &quot;Content-Type: application/json&quot;
                   </code>
                 </div>
 
@@ -216,11 +216,11 @@ const API = () => {
                   <code className='bg-purple-100 px-3 py-2 rounded text-sm font-mono block text-purple-900'>
                     curl -X POST {backendUrl}/api/v1/dive-sites \
                     <br />
-                    &nbsp;&nbsp;-H "Authorization: Bearer YOUR_TOKEN_HERE" \
+                    &nbsp;&nbsp;-H &quot;Authorization: Bearer YOUR_TOKEN_HERE&quot; \
                     <br />
-                    &nbsp;&nbsp;-H "Content-Type: application/json" \
+                    &nbsp;&nbsp;-H &quot;Content-Type: application/json&quot; \
                     <br />
-                    &nbsp;&nbsp;-d '{createDiveSiteData}'
+                    &nbsp;&nbsp;-d &apos;{createDiveSiteData}&apos;
                   </code>
                 </div>
 
@@ -232,11 +232,11 @@ const API = () => {
                   <code className='bg-orange-100 px-3 py-2 rounded text-sm font-mono block text-orange-900'>
                     curl -X PUT {backendUrl}/api/v1/dive-sites/123 \
                     <br />
-                    &nbsp;&nbsp;-H "Authorization: Bearer YOUR_TOKEN_HERE" \
+                    &nbsp;&nbsp;-H &quot;Authorization: Bearer YOUR_TOKEN_HERE&quot; \
                     <br />
-                    &nbsp;&nbsp;-H "Content-Type: application/json" \
+                    &nbsp;&nbsp;-H &quot;Content-Type: application/json&quot; \
                     <br />
-                    &nbsp;&nbsp;-d '{updateDiveSiteData}'
+                    &nbsp;&nbsp;-d &apos;{updateDiveSiteData}&apos;
                   </code>
                 </div>
 
@@ -246,7 +246,7 @@ const API = () => {
                   <code className='bg-red-100 px-3 py-2 rounded text-sm font-mono block text-red-900'>
                     curl -X DELETE {backendUrl}/api/v1/dive-sites/123 \
                     <br />
-                    &nbsp;&nbsp;-H "Authorization: Bearer YOUR_TOKEN_HERE"
+                    &nbsp;&nbsp;-H &quot;Authorization: Bearer YOUR_TOKEN_HERE&quot;
                   </code>
                 </div>
               </div>
@@ -256,7 +256,9 @@ const API = () => {
                 <ul className='list-disc list-inside space-y-1 text-gray-700 text-sm'>
                   <li>
                     Save your token in a variable:{' '}
-                    <code className='bg-gray-100 px-1 rounded'>TOKEN="your_token_here"</code>
+                    <code className='bg-gray-100 px-1 rounded'>
+                      TOKEN=&quot;your_token_here&quot;
+                    </code>
                   </li>
                   <li>
                     Use <code className='bg-gray-100 px-1 rounded'>-v</code> flag for verbose output
@@ -269,7 +271,7 @@ const API = () => {
                   <li>
                     Use{' '}
                     <code className='bg-gray-100 px-1 rounded'>
-                      -w "\nHTTP Status: %{'{http_code}'}\n"
+                      -w &quot;\nHTTP Status: %{'{http_code}'}\n&quot;
                     </code>{' '}
                     to see response status codes
                   </li>

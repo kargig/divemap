@@ -306,7 +306,8 @@ const Register = () => {
                   </p>
                   <p>
                     <strong>Username/Password:</strong> New accounts require admin approval before
-                    you can access all features. You'll be notified once your account is approved.
+                    you can access all features. You&apos;ll be notified once your account is
+                    approved.
                   </p>
                 </div>
               </div>

@@ -49,8 +49,8 @@ const Home = () => {
           <span className='text-blue-600'> Dive Sites</span>
         </h1>
         <p className='text-lg sm:text-xl text-gray-600 mb-6 sm:mb-8 max-w-3xl mx-auto px-4'>
-          Explore the world's best scuba diving locations, read reviews from fellow divers, and find
-          diving centers for your next underwater adventure.
+          Explore the world&apos;s best scuba diving locations, read reviews from fellow divers, and
+          find diving centers for your next underwater adventure.
         </p>
         <div className='flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4'>
           <Link

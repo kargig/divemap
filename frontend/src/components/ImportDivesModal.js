@@ -10,6 +10,7 @@ import {
   Check,
   AlertCircle,
 } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
@@ -222,8 +223,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                   Upload Subsurface XML Files
                 </h3>
                 <p className='text-gray-600 mb-4'>
-                  Select one or more Subsurface XML files to import your dives. You'll be able to
-                  review and adjust privacy settings before importing.
+                  Select one or more Subsurface XML files to import your dives. You&apos;ll be able
+                  to review and adjust privacy settings before importing.
                 </p>
               </div>
 
@@ -550,8 +551,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                               <p className='text-xs text-gray-500'>
                                 Compare the original dive site name from your XML file with the
                                 proposed match. If the proposed site is correct, select it.
-                                Otherwise, choose a different site or create a new one. If you don't
-                                select any, this dive will be skipped.
+                                Otherwise, choose a different site or create a new one. If you
+                                don&apos;t select any, this dive will be skipped.
                               </p>
                             </div>
                           ) : dive.dive_site_id ? (
@@ -621,6 +622,12 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       </div>
     </div>
   );
+};
+
+ImportDivesModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSuccess: PropTypes.func,
 };
 
 export default ImportDivesModal;

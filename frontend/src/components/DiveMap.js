@@ -8,18 +8,13 @@ import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
 import { Style, Icon } from 'ol/style';
 import View from 'ol/View';
+import PropTypes from 'prop-types';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 
-const DiveMap = ({
-  diveSites = [],
-  divingCenters = [],
-  _viewport,
-  _onViewportChange,
-  showTripInfo = false,
-}) => {
+const DiveMap = ({ diveSites = [], divingCenters = [], showTripInfo = false }) => {
   const mapRef = useRef();
   const mapInstance = useRef();
   const [popupInfo, setPopupInfo] = useState(null);
@@ -117,7 +112,7 @@ const DiveMap = ({
         setCurrentZoom(map.getView().getZoom());
       });
     } catch (error) {
-      console.error('Error creating map:', error);
+      // Map creation error handled silently
     }
 
     // Cleanup
@@ -144,12 +139,7 @@ const DiveMap = ({
         const lat = parseFloat(site.latitude);
 
         if (isNaN(lon) || isNaN(lat)) {
-          console.error(
-            'Invalid coordinates for dive site:',
-            site.name,
-            site.longitude,
-            site.latitude
-          );
+          // Invalid coordinates for dive site, skipping
           return null;
         }
 
@@ -169,12 +159,7 @@ const DiveMap = ({
         const lat = parseFloat(center.latitude);
 
         if (isNaN(lon) || isNaN(lat)) {
-          console.error(
-            'Invalid coordinates for diving center:',
-            center.name,
-            center.longitude,
-            center.latitude
-          );
+          // Invalid coordinates for diving center, skipping
           return null;
         }
 
@@ -443,6 +428,36 @@ const DiveMap = ({
       )}
     </div>
   );
+};
+
+DiveMap.propTypes = {
+  diveSites: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      name: PropTypes.string.isRequired,
+      latitude: PropTypes.string.isRequired,
+      longitude: PropTypes.string.isRequired,
+      description: PropTypes.string,
+      difficulty_level: PropTypes.string,
+      average_rating: PropTypes.number,
+      trip_date: PropTypes.string,
+      trip_time: PropTypes.string,
+      trip_price: PropTypes.number,
+      trip_currency: PropTypes.string,
+      trip_status: PropTypes.string,
+    })
+  ),
+  divingCenters: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      name: PropTypes.string.isRequired,
+      latitude: PropTypes.string.isRequired,
+      longitude: PropTypes.string.isRequired,
+      description: PropTypes.string,
+      average_rating: PropTypes.number,
+    })
+  ),
+  showTripInfo: PropTypes.bool,
 };
 
 export default DiveMap;

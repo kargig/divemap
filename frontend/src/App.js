@@ -1,6 +1,7 @@
+import PropTypes from 'prop-types';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -71,10 +72,14 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   return children;
 };
 
+ProtectedRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+  requireAdmin: PropTypes.bool,
+};
+
 // Protected route for admin/moderator or owner
 const ProtectedEditRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  const { id } = useParams();
 
   if (loading) {
     return <div className='flex justify-center items-center h-screen'>Loading...</div>;
@@ -92,6 +97,10 @@ const ProtectedEditRoute = ({ children }) => {
   }
 
   return children;
+};
+
+ProtectedEditRoute.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 function App() {

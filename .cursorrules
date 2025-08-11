@@ -541,6 +541,7 @@ Before making any changes, ensure:
 - [ ] Code formatting is consistent
 - [ ] Linting checks pass
 - [ ] Whitespace validation passes
+- [ ] JavaScript style rules are followed for frontend code
 
 ### Frontend-Specific Compliance
 - [ ] Frontend container logs checked for ESLint errors
@@ -550,6 +551,7 @@ Before making any changes, ensure:
 - [ ] Prettier formatting is consistent
 - [ ] No unused variables or imports
 - [ ] Component prop types validated (where applicable)
+- [ ] JavaScript style rules from `docs/development/javascript-style-rules.md` are followed
 
 ## Enforcement
 
@@ -663,6 +665,7 @@ docker-compose exec divemap_frontend npm run lint -- --fix
 - **ALWAYS remove trailing whitespace (no-trailing-spaces)**
 - **ALWAYS fix unused variables and imports (no-unused-vars)**
 - **ALWAYS validate prop types where applicable (react/prop-types)**
+- **ALWAYS follow JavaScript style rules from `docs/development/javascript-style-rules.md`**
 
 ### Frontend Error Categories to Address
 - **Critical**: ESLint errors that prevent compilation

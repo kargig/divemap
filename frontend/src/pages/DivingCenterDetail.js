@@ -650,8 +650,8 @@ const DivingCenterDetail = () => {
               <div className='flex items-center space-x-2 mb-4'>
                 <AlertCircle className='h-5 w-5 text-yellow-600' />
                 <p className='text-sm text-gray-600'>
-                  Your claim will be reviewed by administrators. You'll be notified once a decision
-                  is made.
+                  Your claim will be reviewed by administrators. You&apos;ll be notified once a
+                  decision is made.
                 </p>
               </div>
               <div className='flex justify-end space-x-3'>

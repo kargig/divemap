@@ -9,19 +9,19 @@ import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
 import { Style, Icon, Text, Fill, Stroke, Circle } from 'ol/style';
 import View from 'ol/View';
+import PropTypes from 'prop-types';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 import MaskedEmail from './MaskedEmail';
 
-const DivingCentersMap = ({ divingCenters, viewport, onViewportChange }) => {
+const DivingCentersMap = ({ divingCenters, onViewportChange }) => {
   const mapRef = useRef();
   const mapInstance = useRef();
   const hasFittedRef = useRef(false);
   const [popupInfo, setPopupInfo] = useState(null);
   const [popupPosition, setPopupPosition] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(2);
-  const [maxZoom, setMaxZoom] = useState(19);
   const [useClustering, setUseClustering] = useState(true);
 
   // Create custom diving center icon
@@ -118,7 +118,7 @@ const DivingCentersMap = ({ divingCenters, viewport, onViewportChange }) => {
   };
 
   // Fit map to show all diving centers
-  const fitMapToDivingCenters = (features, source, divingCentersData) => {
+  const fitMapToDivingCenters = (features, source) => {
     if (features.length === 0 || hasFittedRef.current) return;
 
     const extent = source.getExtent();
@@ -235,7 +235,7 @@ const DivingCentersMap = ({ divingCenters, viewport, onViewportChange }) => {
     // Fit map to diving centers if this is the first load
     if (features.length > 0 && !hasFittedRef.current) {
       setTimeout(() => {
-        fitMapToDivingCenters(features, vectorSource, divingCenters);
+        fitMapToDivingCenters(features, vectorSource);
       }, 100);
     }
   }, [divingCenters]);
@@ -318,6 +318,23 @@ const DivingCentersMap = ({ divingCenters, viewport, onViewportChange }) => {
       </div>
     </div>
   );
+};
+
+DivingCentersMap.propTypes = {
+  divingCenters: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      name: PropTypes.string.isRequired,
+      latitude: PropTypes.number.isRequired,
+      longitude: PropTypes.number.isRequired,
+      description: PropTypes.string,
+      email: PropTypes.string,
+      phone: PropTypes.string,
+      website: PropTypes.string,
+      average_rating: PropTypes.number,
+    })
+  ).isRequired,
+  onViewportChange: PropTypes.func.isRequired,
 };
 
 export default DivingCentersMap;

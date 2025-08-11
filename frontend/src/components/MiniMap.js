@@ -9,6 +9,7 @@ import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
 import { Style, Circle as CircleStyle, Fill, Stroke } from 'ol/style';
 import View from 'ol/View';
+import PropTypes from 'prop-types';
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -66,7 +67,7 @@ const MiniMap = ({ latitude, longitude, name, onMaximize, isMaximized = false, o
 
       map.addLayer(vectorLayer);
     } catch (error) {
-      console.error('Error creating map:', error);
+      // Error creating map
     }
 
     // Cleanup
@@ -128,6 +129,15 @@ const MiniMap = ({ latitude, longitude, name, onMaximize, isMaximized = false, o
       <div ref={mapRef} className='w-full h-full rounded-lg' />
     </div>
   );
+};
+
+MiniMap.propTypes = {
+  latitude: PropTypes.number.isRequired,
+  longitude: PropTypes.number.isRequired,
+  name: PropTypes.string.isRequired,
+  onMaximize: PropTypes.func,
+  isMaximized: PropTypes.bool,
+  onClose: PropTypes.func.isRequired,
 };
 
 export default MiniMap;

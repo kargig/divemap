@@ -25,6 +25,10 @@ This document provides a comprehensive guide for developers working on the Divem
 
 For comprehensive React JavaScript linting setup and best practices, see the dedicated [React Linting Guide](./react-linting.md).
 
+### JavaScript Style Rules
+
+For detailed JavaScript/React coding standards and best practices based on our ESLint configuration, see the [JavaScript Style Rules](./javascript-style-rules.md) guide.
+
 ### Quick Start
 
 ```bash

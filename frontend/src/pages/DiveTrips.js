@@ -25,6 +25,41 @@ import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficul
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
 
+// Helper function to determine display status based on trip date
+const getDisplayStatus = trip => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+
+  const tripDate = new Date(trip.trip_date);
+  tripDate.setHours(0, 0, 0, 0);
+
+  // If the trip date is in the past and status is 'scheduled', show 'completed'
+  if (tripDate < today && trip.trip_status === 'scheduled') {
+    return 'completed';
+  }
+
+  return trip.trip_status;
+};
+
+// Helper function to prepare map data for dive trips
+const prepareMapData = (sortedTrips, getDisplayStatus) => {
+  return (
+    sortedTrips?.map(trip => ({
+      id: trip.id,
+      name: trip.diving_center_name || 'Unknown Center',
+      description: trip.trip_description || '',
+      latitude: trip.diving_center?.latitude || 0,
+      longitude: trip.diving_center?.longitude || 0,
+      type: 'diving_center',
+      trip_date: trip.trip_date,
+      trip_time: trip.trip_time,
+      trip_price: trip.trip_price,
+      trip_currency: trip.trip_currency,
+      trip_status: getDisplayStatus(trip),
+    })) || []
+  );
+};
+
 const DiveTrips = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -71,8 +106,7 @@ const DiveTrips = () => {
             longitude: position.coords.longitude,
           });
         },
-        error => {
-          console.error('Error getting location:', error);
+        () => {
           // Set default location (e.g., Athens, Greece)
           setUserLocation({
             latitude: 37.9838,
@@ -295,37 +329,8 @@ const DiveTrips = () => {
 
   // getDifficultyColor function is now replaced by getDifficultyColorClasses from difficultyHelpers
 
-  // Function to determine the display status based on trip date
-  const getDisplayStatus = trip => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
-
-    const tripDate = new Date(trip.trip_date);
-    tripDate.setHours(0, 0, 0, 0);
-
-    // If the trip date is in the past and status is 'scheduled', show 'completed'
-    if (tripDate < today && trip.trip_status === 'scheduled') {
-      return 'completed';
-    }
-
-    return trip.trip_status;
-  };
-
   // Prepare map data for dive trips
-  const mapData =
-    sortedTrips?.map(trip => ({
-      id: trip.id,
-      name: trip.diving_center_name || 'Unknown Center',
-      description: trip.trip_description || '',
-      latitude: trip.diving_center?.latitude || 0,
-      longitude: trip.diving_center?.longitude || 0,
-      type: 'diving_center',
-      trip_date: trip.trip_date,
-      trip_time: trip.trip_time,
-      trip_price: trip.trip_price,
-      trip_currency: trip.trip_currency,
-      trip_status: getDisplayStatus(trip),
-    })) || [];
+  const mapData = prepareMapData(sortedTrips, getDisplayStatus);
 
   // Show loading state while checking authentication
   if (loading) {
@@ -496,15 +501,18 @@ const DiveTrips = () => {
 
           {/* Location Search Tips */}
           <div className='mt-2 text-sm text-gray-500'>
-            🌍 Location tips: Search for countries (e.g., "Spain"), regions (e.g., "Mediterranean"),
-            or specific areas
+            🌍 Location tips: Search for countries (e.g., &quot;Spain&quot;), regions (e.g.,
+            &quot;Mediterranean&quot;), or specific areas
           </div>
         </div>
 
         {/* User Location for Distance Sorting */}
         <div className='mb-4'>
           <div className='flex items-center justify-between mb-2'>
-            <label className='block text-sm font-medium text-gray-700'>
+            <label
+              htmlFor='user-location-label'
+              className='block text-sm font-medium text-gray-700'
+            >
               Your Location (for distance sorting)
             </label>
             <button
@@ -517,8 +525,11 @@ const DiveTrips = () => {
 
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
             <div>
-              <label className='block text-xs text-gray-500 mb-1'>Latitude</label>
+              <label htmlFor='latitude-input' className='block text-xs text-gray-500 mb-1'>
+                Latitude
+              </label>
               <input
+                id='latitude-input'
                 type='number'
                 step='any'
                 placeholder='e.g., 37.9838'
@@ -533,8 +544,11 @@ const DiveTrips = () => {
               />
             </div>
             <div>
-              <label className='block text-xs text-gray-500 mb-1'>Longitude</label>
+              <label htmlFor='longitude-input' className='block text-xs text-gray-500 mb-1'>
+                Longitude
+              </label>
               <input
+                id='longitude-input'
                 type='number'
                 step='any'
                 placeholder='e.g., 23.7275'
@@ -551,19 +565,22 @@ const DiveTrips = () => {
           </div>
 
           <div className='mt-2 text-sm text-gray-500'>
-            📍 Set your location to enable distance-based sorting. Click "Use Current Location" to
-            automatically detect your position.
+            📍 Set your location to enable distance-based sorting. Click &quot;Use Current
+            Location&quot; to automatically detect your position.
           </div>
         </div>
 
         {/* Responsive Filter Grid - Better mobile layout */}
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
           <div>
-            <label htmlFor='start-date' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='start-date-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               Start Date
             </label>
             <input
-              id='start-date'
+              id='start-date-filter'
               type='date'
               value={filters.start_date}
               onChange={e => handleFilterChange('start_date', e.target.value)}
@@ -572,11 +589,14 @@ const DiveTrips = () => {
           </div>
 
           <div>
-            <label htmlFor='end-date' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='end-date-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               End Date
             </label>
             <input
-              id='end-date'
+              id='end-date-filter'
               type='date'
               value={filters.end_date}
               onChange={e => handleFilterChange('end_date', e.target.value)}
@@ -585,11 +605,14 @@ const DiveTrips = () => {
           </div>
 
           <div>
-            <label htmlFor='diving-center' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='diving-center-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               Diving Center
             </label>
             <select
-              id='diving-center'
+              id='diving-center-filter'
               value={filters.diving_center_id}
               onChange={e => handleFilterChange('diving_center_id', e.target.value)}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -604,11 +627,14 @@ const DiveTrips = () => {
           </div>
 
           <div>
-            <label htmlFor='dive-site' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='dive-site-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               Dive Site
             </label>
             <select
-              id='dive-site'
+              id='dive-site-filter'
               value={filters.dive_site_id}
               onChange={e => handleFilterChange('dive_site_id', e.target.value)}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -623,11 +649,14 @@ const DiveTrips = () => {
           </div>
 
           <div>
-            <label htmlFor='trip-status' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='trip-status-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               Status
             </label>
             <select
-              id='trip-status'
+              id='trip-status-filter'
               value={filters.trip_status}
               onChange={e => handleFilterChange('trip_status', e.target.value)}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -641,13 +670,16 @@ const DiveTrips = () => {
           </div>
 
           <div>
-            <label htmlFor='min-price' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='min-price-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               Min Price
             </label>
             <div className='relative'>
               <Euro className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
               <input
-                id='min-price'
+                id='min-price-filter'
                 type='number'
                 placeholder='0'
                 value={filters.min_price}
@@ -658,13 +690,16 @@ const DiveTrips = () => {
           </div>
 
           <div>
-            <label htmlFor='max-price' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='max-price-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               Max Price
             </label>
             <div className='relative'>
               <Euro className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
               <input
-                id='max-price'
+                id='max-price-filter'
                 type='number'
                 placeholder='1000'
                 value={filters.max_price}
@@ -675,11 +710,14 @@ const DiveTrips = () => {
           </div>
 
           <div>
-            <label htmlFor='difficulty' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='difficulty-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               Difficulty Level
             </label>
             <select
-              id='difficulty'
+              id='difficulty-filter'
               value={filters.difficulty_level}
               onChange={e => handleFilterChange('difficulty_level', e.target.value)}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -728,11 +766,14 @@ const DiveTrips = () => {
 
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
           <div>
-            <label htmlFor='sort-by' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='sort-by-select'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               Sort By
             </label>
             <select
-              id='sort-by'
+              id='sort-by-select'
               value={sortOptions.sort_by}
               onChange={e => setSortOptions(prev => ({ ...prev, sort_by: e.target.value }))}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -746,11 +787,14 @@ const DiveTrips = () => {
           </div>
 
           <div>
-            <label htmlFor='sort-order' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='sort-order-select'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               Sort Order
             </label>
             <select
-              id='sort-order'
+              id='sort-order-select'
               value={sortOptions.sort_order}
               onChange={e => setSortOptions(prev => ({ ...prev, sort_order: e.target.value }))}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -895,12 +939,12 @@ const DiveTrips = () => {
               <div className='flex flex-wrap gap-2'>
                 {filters.search_query && (
                   <span className='inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full'>
-                    Search: "{filters.search_query}"
+                    Search: &quot;{filters.search_query}&quot;
                   </span>
                 )}
                 {filters.location_query && (
                   <span className='inline-flex items-center px-2 py-1 bg-teal-100 text-teal-800 text-xs rounded-full'>
-                    Location: "{filters.location_query}"
+                    Location: &quot;{filters.location_query}&quot;
                   </span>
                 )}
                 {filters.start_date && (

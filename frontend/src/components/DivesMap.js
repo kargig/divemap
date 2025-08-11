@@ -10,12 +10,13 @@ import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
 import { Style, Icon, Text, Fill, Stroke, Circle } from 'ol/style';
 import View from 'ol/View';
+import PropTypes from 'prop-types';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 
-const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
+const DivesMap = ({ dives = [], onViewportChange }) => {
   const mapRef = useRef();
   const mapInstance = useRef();
   const hasFittedRef = useRef(false);
@@ -173,7 +174,7 @@ const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
               extentHeight = extent[3] - extent[1];
             }
           } catch (error) {
-            console.error('⚠️ Error calculating extent dimensions:', error);
+            // Error calculating extent dimensions
           }
 
           if (extent && extentWidth > minExtentSize && extentHeight > minExtentSize) {
@@ -271,7 +272,7 @@ const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
             hasFittedRef.current = true;
           }
         } catch (error) {
-          console.error('❌ Error fitting extent:', error);
+          // Error fitting extent
           // Fallback: calculate center and zoom manually
 
           try {
@@ -334,7 +335,7 @@ const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
             view.setZoom(targetZoom);
             hasFittedRef.current = true;
           } catch (fallbackError) {
-            console.error('❌ Error in fallback calculation:', fallbackError);
+            // Error in fallback calculation
             // Final fallback: use a default view
             const view = mapInstance.current.getView();
             view.setCenter(fromLonLat([0, 0]));
@@ -343,7 +344,7 @@ const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
         }
       }, 100); // Small delay to ensure source is ready
     } catch (error) {
-      console.error('❌ Error in fitMapToDives:', error);
+      // Error in fitMapToDives
     }
   };
 
@@ -407,7 +408,7 @@ const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
         }
       });
     } catch (error) {
-      console.error('Error creating map:', error);
+      // Error creating map
     }
 
     // Cleanup
@@ -436,7 +437,7 @@ const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
       .map(dive => {
         // Use dive site coordinates if available, otherwise skip
         if (!dive.dive_site?.longitude || !dive.dive_site?.latitude) {
-          console.warn('Dive has no coordinates:', dive.name || dive.dive_site?.name);
+          // Dive has no coordinates, skipping
           return null;
         }
 
@@ -444,12 +445,7 @@ const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
         const lat = parseFloat(dive.dive_site.latitude);
 
         if (isNaN(lon) || isNaN(lat)) {
-          console.error(
-            'Invalid coordinates for dive:',
-            dive.name || dive.dive_site?.name,
-            lon,
-            lat
-          );
+          // Invalid coordinates for dive, skipping
           return null;
         }
 
@@ -578,7 +574,7 @@ const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
                 });
               }
             } catch (error) {
-              console.warn('Error fitting cluster extent:', error);
+              // Error fitting cluster extent
               // Fallback: zoom in by one level
               const view = mapInstance.current.getView();
               const currentZoom = view.getZoom();
@@ -757,6 +753,11 @@ const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
       )}
     </div>
   );
+};
+
+DivesMap.propTypes = {
+  dives: PropTypes.arrayOf(PropTypes.object),
+  onViewportChange: PropTypes.func,
 };
 
 export default DivesMap;

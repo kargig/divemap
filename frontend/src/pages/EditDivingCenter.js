@@ -341,7 +341,7 @@ const EditDivingCenter = () => {
         <div className='max-w-4xl mx-auto px-4'>
           <div className='bg-white rounded-lg shadow-md p-6'>
             <h1 className='text-2xl font-bold text-gray-900 mb-4'>Access Denied</h1>
-            <p className='text-gray-600'>You don't have permission to edit diving centers.</p>
+            <p className='text-gray-600'>You don&apos;t have permission to edit diving centers.</p>
           </div>
         </div>
       </div>

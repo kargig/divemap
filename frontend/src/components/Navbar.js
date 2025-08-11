@@ -9,7 +9,6 @@ import {
   Users,
   MapPin,
   Tags,
-  Award,
   Anchor,
   Crown,
   Calendar,

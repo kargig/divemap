@@ -1,4 +1,5 @@
 import { Calendar, DollarSign, Users, ArrowLeft } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { formatPrice, formatDate } from '../utils/tripHelpers';
@@ -107,6 +108,18 @@ const TripHeader = ({ trip }) => {
       </div>
     </>
   );
+};
+
+TripHeader.propTypes = {
+  trip: PropTypes.shape({
+    trip_name: PropTypes.string,
+    description: PropTypes.string,
+    trip_date: PropTypes.string,
+    price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    max_group_size: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    status: PropTypes.string,
+    trip_image_url: PropTypes.string,
+  }).isRequired,
 };
 
 export default TripHeader;

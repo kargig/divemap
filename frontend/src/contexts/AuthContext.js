@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.get('/api/v1/auth/me');
       setUser(response.data);
     } catch (error) {
-      console.error('Error fetching user:', error);
+      // Error fetching user, logging out
       logout();
     } finally {
       setLoading(false);

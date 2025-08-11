@@ -1,5 +1,6 @@
 import { ChevronUp, ChevronDown, RotateCcw } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import { useState, useEffect } from 'react';
 
 const SortingControls = ({
   sortBy,
@@ -7,8 +8,6 @@ const SortingControls = ({
   sortOptions,
   onSortChange,
   onSortApply,
-  onReset,
-  entityType = 'default',
   className = '',
 }) => {
   const [pendingSortBy, setPendingSortBy] = useState(sortBy);
@@ -124,6 +123,29 @@ const SortingControls = ({
       )}
     </div>
   );
+};
+
+SortingControls.propTypes = {
+  sortBy: PropTypes.string.isRequired,
+  sortOrder: PropTypes.string.isRequired,
+  sortOptions: PropTypes.arrayOf(
+    PropTypes.shape({
+      value: PropTypes.string.isRequired,
+      label: PropTypes.string.isRequired,
+      defaultOrder: PropTypes.string,
+    })
+  ).isRequired,
+  onSortChange: PropTypes.func.isRequired,
+  onSortApply: PropTypes.func.isRequired,
+  onReset: PropTypes.func,
+  entityType: PropTypes.string,
+  className: PropTypes.string,
+};
+
+SortingControls.defaultProps = {
+  onReset: () => {},
+  entityType: 'default',
+  className: '',
 };
 
 export default SortingControls;

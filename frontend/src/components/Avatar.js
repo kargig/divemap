@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+
 const Avatar = ({ src, alt, size = 'md', className = '', fallbackText = null }) => {
   const sizeClasses = {
     xs: 'w-6 h-6 text-xs',
@@ -63,6 +65,20 @@ const Avatar = ({ src, alt, size = 'md', className = '', fallbackText = null }) 
       {getInitials()}
     </div>
   );
+};
+
+Avatar.propTypes = {
+  src: PropTypes.string,
+  alt: PropTypes.string,
+  size: PropTypes.oneOf(['xs', 'sm', 'md', 'lg', 'xl', '2xl']),
+  className: PropTypes.string,
+  fallbackText: PropTypes.string,
+};
+
+Avatar.defaultProps = {
+  size: 'md',
+  className: '',
+  fallbackText: null,
 };
 
 export default Avatar;

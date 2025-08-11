@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 
 const MaskedEmail = ({ email, className = '', showMailto = true }) => {
@@ -92,6 +93,17 @@ const MaskedEmail = ({ email, className = '', showMailto = true }) => {
       {displayEmail}
     </span>
   );
+};
+
+MaskedEmail.propTypes = {
+  email: PropTypes.string.isRequired,
+  className: PropTypes.string,
+  showMailto: PropTypes.bool,
+};
+
+MaskedEmail.defaultProps = {
+  className: '',
+  showMailto: true,
 };
 
 export default MaskedEmail;
