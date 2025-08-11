@@ -61,19 +61,6 @@ const DiveTrips = () => {
     getUserLocation();
   }, []);
 
-  // Show toast notifications for rate limiting errors
-  useEffect(() => {
-    handleRateLimitError(error, 'dive trips', () => window.location.reload());
-  }, [error]);
-
-  useEffect(() => {
-    handleRateLimitError(divingCentersError, 'diving centers', () => window.location.reload());
-  }, [divingCentersError]);
-
-  useEffect(() => {
-    handleRateLimitError(diveSitesError, 'dive sites', () => window.location.reload());
-  }, [diveSitesError]);
-
   // Function to get user's current location
   const getUserLocation = () => {
     if (navigator.geolocation) {
@@ -154,6 +141,25 @@ const DiveTrips = () => {
       staleTime: 300000, // 5 minutes
     }
   );
+
+  // Show toast notifications for rate limiting errors
+  useEffect(() => {
+    if (error) {
+      handleRateLimitError(error, 'dive trips', () => window.location.reload());
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (divingCentersError) {
+      handleRateLimitError(divingCentersError, 'diving centers', () => window.location.reload());
+    }
+  }, [divingCentersError]);
+
+  useEffect(() => {
+    if (diveSitesError) {
+      handleRateLimitError(diveSitesError, 'dive sites', () => window.location.reload());
+    }
+  }, [diveSitesError]);
 
   // Sort trips by date (newest/future first)
   const sortedTrips = trips
