@@ -1237,7 +1237,7 @@ async def get_dive_site_dives(
             "average_depth": dive.average_depth,
             "gas_bottles_used": dive.gas_bottles_used,
             "suit_type": dive.suit_type,
-            "difficulty_level": dive.difficulty_level,
+            "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
             "visibility_rating": dive.visibility_rating,
             "user_rating": dive.user_rating,
             "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
