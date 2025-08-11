@@ -105,12 +105,18 @@ class TestRateLimiting:
         from app.limiter import custom_key_func
         from fastapi import Request
 
-        # Mock request objects
+        # Mock request objects with proper structure
         localhost_request = Mock(spec=Request)
+        localhost_request.client = Mock()
         localhost_request.client.host = "127.0.0.1"
+        localhost_request.headers = {}
+        localhost_request.remote_addr = None
 
         external_request = Mock(spec=Request)
+        external_request.client = Mock()
         external_request.client.host = "192.168.1.100"
+        external_request.headers = {}
+        external_request.remote_addr = None
 
         # Test localhost behavior
         localhost_key = custom_key_func(localhost_request)
