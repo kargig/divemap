@@ -108,27 +108,38 @@ const TripDetail = () => {
               <div>
                 <h3 className='text-lg font-semibold text-gray-900 mb-3'>Trip Description</h3>
                 <p className='text-gray-700 leading-relaxed'>
-                  {trip.description || 'Detailed trip description will be available soon.'}
+                  {trip.trip_description || 'Detailed trip description will be available soon.'}
                 </p>
               </div>
-              {trip.requirements && (
+              {trip.special_requirements && (
                 <div>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-3'>Requirements</h3>
-                  <p className='text-gray-700 leading-relaxed'>{trip.requirements}</p>
+                  <h3 className='text-lg font-semibold text-gray-900 mb-3'>Special Requirements</h3>
+                  <p className='text-gray-700 leading-relaxed'>{trip.special_requirements}</p>
                 </div>
               )}
-              {trip.included_services && (
+
+              {trip.trip_duration && (
                 <div>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-3'>What&apos;s Included</h3>
-                  <p className='text-gray-700 leading-relaxed'>{trip.included_services}</p>
+                  <h3 className='text-lg font-semibold text-gray-900 mb-3'>Trip Duration</h3>
+                  <p className='text-gray-700 leading-relaxed'>
+                    {Math.floor(trip.trip_duration / 60)} hours {trip.trip_duration % 60} minutes
+                  </p>
                 </div>
               )}
-              {trip.additional_info && (
+              {trip.trip_price && (
                 <div>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-3'>
-                    Additional Information
-                  </h3>
-                  <p className='text-gray-700 leading-relaxed'>{trip.additional_info}</p>
+                  <h3 className='text-lg font-semibold text-gray-900 mb-3'>Price</h3>
+                  <p className='text-gray-700 leading-relaxed'>
+                    {trip.trip_price} {trip.trip_currency}
+                  </p>
+                </div>
+              )}
+              {trip.group_size_limit && (
+                <div>
+                  <h3 className='text-lg font-semibold text-gray-900 mb-3'>Group Size Limit</h3>
+                  <p className='text-gray-700 leading-relaxed'>
+                    Maximum {trip.group_size_limit} participants
+                  </p>
                 </div>
               )}
             </div>
@@ -166,6 +177,16 @@ const TripDetail = () => {
                           <p className='mb-2'>
                             {diveSite.description || 'No description available'}
                           </p>
+                          {dive.dive_description && (
+                            <p className='mb-2 text-gray-700'>
+                              <strong>Dive Description:</strong> {dive.dive_description}
+                            </p>
+                          )}
+                          {dive.dive_duration && (
+                            <p className='mb-2 text-gray-700'>
+                              <strong>Duration:</strong> {dive.dive_duration} minutes
+                            </p>
+                          )}
                           <div className='flex items-center space-x-4 text-xs text-gray-500'>
                             {diveSite.country && <span>📍 {diveSite.country}</span>}
                             {diveSite.region && <span>🏛️ {diveSite.region}</span>}
