@@ -8,8 +8,8 @@ This document provides comprehensive information about deploying the Divemap app
 2. [Deployment Strategies](#deployment-strategies)
    - [Makefile Deployment](#1-makefile-deployment-recommended)
    - [Docker Compose](#2-docker-compose-development)
-   - [Fly.io](#2-flyio-production)
-   - [Kubernetes](#3-kubernetes-enterprise)
+   - [Fly.io](#3-flyio-production)
+   - [Kubernetes](#4-kubernetes-enterprise)
 3. [Infrastructure Components](#infrastructure-components)
 4. [Environment Configuration](#environment-configuration)
 5. [Deployment Process](#deployment-process)
@@ -62,22 +62,6 @@ Divemap is designed for cloud deployment with containerized services, automated 
 
 ## Deployment Strategies
 
-### Fly.io Logs Usage
-
-When using `fly logs` commands, it's important to understand the difference between oneshot and tail commands:
-
-- **Oneshot Commands**: Use `fly logs -n` to view logs once and exit
-- **Tail Commands**: Use `fly logs` (without `-n`) to continuously follow logs
-
-**Examples:**
-```bash
-# View logs once and exit (for scripts, one-time checks)
-fly logs -n -a divemap-backend
-
-# Follow logs continuously (for monitoring, debugging)
-fly logs -a divemap-backend
-```
-
 ### 1. Makefile Deployment (Recommended)
 
 #### Streamlined Deployment
@@ -126,6 +110,41 @@ docker-compose ps
 docker-compose logs -f
 ```
 
+#### Container Configuration
+
+**Frontend Container**
+- **Port**: 3000 (dev) / 80 (prod)
+- **Hot Reloading**: Enabled in development
+- **Build**: Optimized for production
+
+**Backend Container**
+- **Port**: 8000
+- **Health Checks**: Built-in monitoring
+- **Database Migrations**: Run automatically
+- **IPv6 Support**: Enabled
+
+**Database Container**
+- **Port**: 3306
+- **Data Persistence**: Volume mounted
+- **Backup Support**: Automated backups
+
+#### Development Workflow
+```bash
+# Hot reloading
+docker-compose logs -f frontend
+docker-compose logs -f backend
+
+# Database access
+docker-compose exec db mysql -u divemap_user -p divemap
+
+# Run migrations
+docker-compose exec backend python run_migrations.py
+
+# Testing
+docker-compose exec backend python -m pytest
+docker-compose exec frontend npm test
+```
+
 #### Configuration
 ```yaml
 # docker-compose.yml
@@ -162,7 +181,7 @@ services:
       - db_data:/var/lib/mysql
 ```
 
-### 2. Fly.io (Production)
+### 3. Fly.io (Production)
 
 #### Cloud Deployment
 ```bash
@@ -177,39 +196,90 @@ fly logs -n
 
 # View logs (tail/follow)
 fly logs
-
-**Note**: The `-n` flag is required for oneshot commands. Without it, `fly logs` will tail the logs continuously.
 ```
 
-#### Configuration
+**Note**: The `-n` flag is required for oneshot commands. Without it, `fly logs` will tail the logs continuously.
+
+#### Fly.io Configuration
+
+**Frontend (`frontend/fly.toml`)**
 ```toml
-# fly.toml
 app = "divemap"
 primary_region = "iad"
 
-[build]
-  dockerfile = "Dockerfile"
+[env]
+  NODE_ENV = "production"
+  REACT_APP_API_URL = "https://divemap-backend.fly.dev"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  min_machines_running = 0
+```
+
+**Backend (`backend/fly.toml`)**
+```toml
+app = "divemap-backend"
+primary_region = "iad"
 
 [env]
-  PORT = "8000"
+  DATABASE_URL = "mysql+pymysql://divemap_user:divemap_password@divemap-db.flycast:3306/divemap"
+  SECRET_KEY = "your-secret-key"
 
 [http_service]
   internal_port = 8000
   force_https = true
-  auto_stop_machines = true
-  auto_start_machines = true
-  min_machines_running = 0
-  processes = ["app"]
+  min_machines_running = 1
 
 [[http_service.checks]]
-  grace_period = "10s"
-  interval = "30s"
-  method = "GET"
-  timeout = "5s"
   path = "/health"
 ```
 
-### 3. Kubernetes (Enterprise)
+**Database (`database/fly.toml`)**
+```toml
+app = "divemap-db"
+primary_region = "iad"
+
+[env]
+  MYSQL_ROOT_PASSWORD = "your-root-password"
+  MYSQL_DATABASE = "divemap"
+  MYSQL_USER = "divemap_user"
+  MYSQL_PASSWORD = "divemap_password"
+
+[mounts]
+  source = "divemap_data"
+  destination = "/var/lib/mysql"
+```
+
+#### Initial Setup
+```bash
+# Install Fly CLI
+curl -L https://fly.io/install.sh | sh
+fly auth login
+
+# Create applications
+fly apps create divemap
+fly apps create divemap-backend
+fly apps create divemap-db
+
+# Create volume
+fly volumes create divemap_data --size 10 --region iad
+```
+
+#### Deploy Applications
+```bash
+# Deploy database
+cd database && fly deploy
+
+# Deploy backend
+cd ../backend && fly deploy
+
+# Deploy frontend
+cd ../frontend && fly deploy
+```
+
+### 4. Kubernetes (Enterprise)
 
 #### Kubernetes Deployment
 ```yaml
@@ -351,7 +421,12 @@ The application uses CORS (Cross-Origin Resource Sharing) to control which domai
 ALLOWED_ORIGINS=https://divemap.fly.dev,https://divemap-frontend.fly.dev
 ```
 
-# Look for Access-Control-Allow-Origin header in response
+#### Docker Compose Setup
+The `docker-compose.yml` files automatically handle CORS configuration:
+
+```yaml
+environment:
+  - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
 ```
 
 ### Configuration Management
@@ -637,7 +712,6 @@ alerts:
 When troubleshooting, use the appropriate `fly logs` command:
 
 - **Quick Checks**: Use `fly logs -n` for one-time log viewing
-- **Continuous Monitoring**: Use `fly logs` (without `-n`) to follow logs in real-time
 - **Continuous Monitoring**: Use `fly logs` (without `-n`) to follow logs in real-time
 
 ### Common Issues

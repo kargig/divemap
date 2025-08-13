@@ -1,330 +1,166 @@
-# Getting Started
+# Getting Started with Divemap
 
-Welcome to Divemap! This guide will help you get the application up and running quickly.
+Welcome to Divemap! This guide will help you get started using the scuba diving platform.
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Quick Start](#quick-start)
-3. [Environment Setup](#environment-setup)
-4. [Verification](#verification)
-5. [Troubleshooting](#troubleshooting)
+1. [What is Divemap?](#what-is-divemap)
+2. [Quick Start for Users](#quick-start-for-users)
+3. [Exploring the Application](#exploring-the-application)
+4. [Creating Your First Content](#creating-your-first-content)
+5. [Next Steps](#next-steps)
+
+## What is Divemap?
+
+Divemap is a comprehensive scuba diving platform that helps you:
+- **Discover dive sites** around the world
+- **Track your dives** with detailed logging
+- **Find diving centers** and organizations
+- **Connect with other divers** in the community
+- **Plan dive trips** with interactive maps
+
+## Quick Start for Users
+
+### 1. Access the Application
+
+**Production Application:**
+- **Main Application**: https://divemap.fly.dev
+- **API Documentation**: https://divemap-backend.fly.dev/docs
+
+### 2. Create an Account
+
+1. Visit https://divemap.fly.dev
+2. Click "Register" or "Sign Up"
+3. Choose your preferred signup method:
+   - **Google OAuth** (recommended)
+   - **Email registration**
+4. Complete your profile information
+
+### 3. Explore Dive Sites
+
+1. **Browse dive sites** on the main map
+2. **Search by location** using the search bar
+3. **Filter by difficulty** and other criteria
+4. **View detailed information** about each site
+
+### 4. Log Your Dives
+
+1. **Add new dives** to your profile
+2. **Record dive details**:
+   - Date and time
+   - Location and dive site
+   - Depth and duration
+   - Equipment used
+   - Notes and observations
+
+## Exploring the Application
+
+### Main Features
+
+#### 🗺️ Interactive Maps
+- **Dive Sites Map**: Explore dive locations worldwide
+- **Dives Map**: View your personal dive history
+- **Diving Centers Map**: Find diving organizations and centers
+
+#### 📊 Dive Management
+- **Dive Logging**: Record and track your dives
+- **Trip Planning**: Organize dive trips and expeditions
+- **Statistics**: View your diving statistics and progress
+
+#### 🏢 Community Features
+- **Diving Centers**: Discover and review diving centers
+- **Organizations**: Connect with diving organizations
+- **User Profiles**: View and connect with other divers
+
+### Navigation
+
+- **Home**: Main dashboard and overview
+- **Dive Sites**: Browse and search dive locations
+- **Dives**: Manage your dive log
+- **Diving Centers**: Find diving organizations
+- **Profile**: Manage your account and preferences
+
+## Creating Your First Content
+
+### Adding a Dive Site
+
+1. **Navigate to Dive Sites**
+2. **Click "Add New Dive Site"**
+3. **Fill in the details**:
+   - Name and description
+   - Location coordinates
+   - Difficulty level
+   - Maximum depth
+   - Water type (salt/fresh)
+4. **Submit for review**
+
+### Logging Your First Dive
+
+1. **Go to Dives section**
+2. **Click "Add New Dive"**
+3. **Enter dive information**:
+   - Date and time
+   - Dive site
+   - Depth and duration
+   - Equipment used
+   - Notes
+4. **Save your dive**
 
-## Prerequisites
+### Finding Diving Centers
 
-Before you begin, ensure you have the following installed:
-
-- **Docker** (version 20.10+)
-- **Docker Compose** (version 2.0+)
-- **Git** (for cloning the repository)
-
-### Installing Docker
-
-#### Ubuntu/Debian
-```bash
-sudo apt-get update
-sudo apt-get install docker.io docker-compose
-sudo usermod -aG docker $USER
-sudo systemctl start docker
-sudo systemctl enable docker
-```
-
-#### macOS
-```bash
-brew install --cask docker
-```
-
-#### Windows
-Download and install [Docker Desktop](https://www.docker.com/products/docker-desktop)
-
-## Quick Start
-
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd divemap
-```
-
-### 2. Set Up Environment Variables
-
-#### Development Environment
-```bash
-# Copy the example environment file for development
-cp env.example .env
-
-# Edit the environment file with your settings
-nano .env
-```
-
-**Important**: Update the following variables in your `.env` file:
-- `SECRET_KEY` - Generate a secure random string
-- `DATABASE_PASSWORD` - Set a strong database password
-- `GOOGLE_CLIENT_ID` - Your Google OAuth client ID (optional)
-- `GOOGLE_CLIENT_SECRET` - Your Google OAuth client secret (optional)
-
-#### Production Environment
-```bash
-# Copy the example environment file for production
-cp env.example .env.production
-
-# Edit the production environment file
-nano .env.production
-```
-
-**Production Configuration**: Update the following variables in your `.env.production` file:
-- `REACT_APP_API_URL` - Set to your production backend URL (e.g., `https://divemap-backend.fly.dev`)
-- `REACT_APP_GOOGLE_CLIENT_ID` - Your production Google OAuth client ID
-- `REACT_APP_ENVIRONMENT` - Set to `production`
-
-### 3. Start the Application
-```bash
-# Start all services
-docker-compose up -d
-
-# Check service status
-docker-compose ps
-```
-
-### 4. Access the Application
-
-Once all services are running, you can access:
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **Database**: Accessible via Docker container
-
-### 5. Default Credentials
-
-- **Admin Username**: `admin`
-- **Admin Password**: `ADMIN_PASSWORD`
-
-**⚠️ Security Note**: Change these credentials immediately in production environments.
-
-## Environment Setup
-
-### Environment File Management
-
-The project uses separate environment files for different deployment scenarios:
-
-- **`.env`** - Development environment (localhost)
-- **`.env.production`** - Production environment (deployed)
-- **`env.example`** - Template file with example values
-
-#### Development Environment Variables (`.env`)
-
-```bash
-# Frontend Configuration
-REACT_APP_API_URL=http://localhost:8000
-REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id
-REACT_APP_ENVIRONMENT=development
-
-# Backend Configuration
-DATABASE_URL=mysql+pymysql://divemap_user:divemap_password@db:3306/divemap
-DATABASE_PASSWORD=your_secure_password
-SECRET_KEY=your_secure_secret_key
-JWT_SECRET_KEY=your_jwt_secret_key
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-DEBUG=true
-ENVIRONMENT=development
-```
-
-#### Production Environment Variables (`.env.production`)
-
-```bash
-# Frontend Configuration
-REACT_APP_API_URL=https://divemap-backend.fly.dev
-REACT_APP_GOOGLE_CLIENT_ID=your_production_google_client_id
-REACT_APP_ENVIRONMENT=production
-
-# Backend Configuration
-DATABASE_URL=mysql+pymysql://prod_user:prod_password@prod_host:3306/divemap
-DATABASE_PASSWORD=your_production_database_password
-SECRET_KEY=your_production_secret_key
-JWT_SECRET_KEY=your_production_jwt_secret_key
-GOOGLE_CLIENT_ID=your_production_google_client_id
-GOOGLE_CLIENT_SECRET=your_production_google_client_secret
-DEBUG=false
-ENVIRONMENT=production
-```
-
-### Generating Secure Keys
-
-```bash
-# Generate SECRET_KEY
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-
-# Generate JWT_SECRET_KEY
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-```
-
-## Verification
-
-### 1. Check Service Status
-```bash
-# Check all services are running
-docker-compose ps
-
-# Expected output:
-# Name                    Command               State           Ports
-# divemap_backend_1      python -m uvicorn ... Up      0.0.0.0:8000->8000/tcp
-# divemap_db_1           docker-entrypoint.sh mysqld   Up      0.0.0.0:3306->3306/tcp
-# divemap_frontend_1     npm start              Up      0.0.0.0:3000->3000/tcp
-```
-
-### 2. Test Application Health
-```bash
-# Test frontend
-curl -f http://localhost:3000
-
-# Test backend API
-curl -f http://localhost:8000/health
-
-# Test database connection
-docker-compose exec db mysql -u divemap_user -p divemap -e "SELECT 1"
-```
-
-### 3. Verify Features
-- [ ] Frontend loads at http://localhost:3000
-- [ ] Backend API responds at http://localhost:8000
-- [ ] API documentation available at http://localhost:8000/docs
-- [ ] Database connection working
-- [ ] Admin login works with default credentials
-
-## Troubleshooting
-
-### Common Issues
-
-#### 1. Docker Services Not Starting
-```bash
-# Check Docker status
-docker --version
-docker-compose --version
-
-# Restart Docker service
-sudo systemctl restart docker
-
-# Check available ports
-netstat -tulpn | grep :3000
-netstat -tulpn | grep :8000
-```
-
-#### 2. Database Connection Issues
-```bash
-# Check database container
-docker-compose logs db
-
-# Restart database
-docker-compose restart db
-
-# Check database connectivity
-docker-compose exec db mysql -u root -p -e "SHOW DATABASES"
-```
-
-#### 3. Frontend Not Loading
-```bash
-# Check frontend logs
-docker-compose logs frontend
-
-# Restart frontend
-docker-compose restart frontend
-
-# Check Node.js dependencies
-docker-compose exec frontend npm list
-```
-
-#### 4. Backend API Issues
-```bash
-# Check backend logs
-docker-compose logs backend
-
-# Restart backend
-docker-compose restart backend
-
-# Check Python dependencies
-docker-compose exec backend pip list
-```
-
-#### 5. Environment Variable Issues
-```bash
-# Verify environment file
-cat .env
-
-# Check if variables are loaded
-docker-compose exec backend env | grep DATABASE
-
-# Restart with new environment
-docker-compose down
-docker-compose up -d
-```
-
-### Debug Mode
-
-For detailed debugging, enable debug mode:
-
-```bash
-# Set debug environment variable
-echo "DEBUG=true" >> .env
-
-# Restart services
-docker-compose down
-docker-compose up -d
-
-# Check debug logs
-docker-compose logs -f
-```
-
-### Performance Issues
-
-#### High Resource Usage
-```bash
-# Check resource usage
-docker stats
-
-# Monitor specific containers
-docker stats divemap_frontend_1 divemap_backend_1 divemap_db_1
-```
-
-#### Slow Response Times
-```bash
-# Test response times
-curl -w "Time: %{time_total}s\n" -o /dev/null -s http://localhost:3000
-curl -w "Time: %{time_total}s\n" -o /dev/null -s http://localhost:8000/health
-```
+1. **Visit Diving Centers section**
+2. **Search by location** or name
+3. **View center details** and services
+4. **Contact centers** for information
 
 ## Next Steps
 
-### For Users
-1. **Explore the Application**: Navigate through the different sections
-2. **Create an Account**: Register for a user account
-3. **Add Content**: Create dive sites and diving centers
-4. **Use the Map**: Explore the interactive map features
+### For Regular Users
+1. **Complete your profile** with diving certifications
+2. **Add more dive sites** to your favorites
+3. **Connect with other divers** in your area
+4. **Plan your next dive trip**
 
-### For Developers
-1. **Review Development Guide**: See [Development Documentation](../development/README.md)
-2. **Check API Documentation**: Visit http://localhost:8000/docs
-3. **Run Tests**: Follow the testing procedures
-4. **Contribute**: Review contribution guidelines
+### For Content Contributors
+1. **Add dive sites** in your local area
+2. **Review and rate** existing dive sites
+3. **Share dive reports** and experiences
+4. **Contribute photos** and additional information
 
-### For Administrators
-1. **Security Setup**: Configure Google OAuth and security settings
-2. **Production Deployment**: Follow deployment guides
-3. **Monitoring**: Set up monitoring and alerting
-4. **Backup Strategy**: Implement database backup procedures
+### For Advanced Users
+1. **Import dive data** from Subsurface or other applications
+2. **Create dive trip itineraries**
+3. **Use advanced search** and filtering options
+4. **Export your dive data** for personal records
 
-## Support
+## Getting Help
 
-If you encounter issues:
+### Documentation
+- **[Development Guide](../development/README.md)** - Technical setup and development
+- **[API Documentation](../development/api.md)** - API endpoints and usage
+- **[Deployment Guide](../deployment/README.md)** - Production deployment information
 
-1. **Check this troubleshooting guide**
-2. **Review application logs**: `docker-compose logs`
-3. **Verify environment setup**: Check all prerequisites
-4. **Test individual components**: Verify each service separately
-5. **Check documentation**: Review development and deployment guides
+### Support
+- **Check the troubleshooting section** in the maintenance guide
+- **Review application logs** for error details
+- **Contact the development team** for technical issues
 
-For additional help, refer to:
-- [Development Guide](../development/README.md) - Technical setup and development
-- [Deployment Guide](../deployment/README.md) - Production deployment
-- [Security Guide](../security/README.md) - Security configuration
-- [Maintenance Guide](../maintenance/README.md) - Ongoing maintenance
+## Tips for New Users
+
+1. **Start small**: Begin with familiar dive sites
+2. **Use the search**: Find specific locations quickly
+3. **Check difficulty levels**: Choose sites appropriate for your experience
+4. **Add photos**: Visual content helps other divers
+5. **Be descriptive**: Detailed information benefits the community
+
+## Community Guidelines
+
+- **Be respectful** of other users and their contributions
+- **Verify information** before adding new content
+- **Update existing content** rather than creating duplicates
+- **Follow local regulations** when adding dive site information
+- **Respect privacy** and don't share sensitive information
+
+---
+
+**Ready to start exploring?** Visit [https://divemap.fly.dev](https://divemap.fly.dev) and begin your diving adventure!

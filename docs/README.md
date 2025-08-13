@@ -5,7 +5,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 ## 📚 Documentation Index
 
 ### 🚀 Getting Started
-- **[README.md](./getting-started/README.md)** - Quick start guide and setup instructions
+- **[README.md](./getting-started/README.md)** - User onboarding and application usage guide
 
 ### 🔧 Development
 - **[README.md](./development/README.md)** - Development overview, setup, and workflow
@@ -24,10 +24,8 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 - **[Subsurface XML Import](./import-subsurface-xml.md)** - Import dive data from Subsurface XML files
 
 ### 🚀 Deployment
-- **[README.md](./deployment/README.md)** - Deployment overview (includes Makefile deployment)
-- **[Fly.io.md](./deployment/fly-io.md)** - Fly.io deployment guide
-- **[Docker.md](./deployment/docker.md)** - Docker setup and configuration
-- **[Infrastructure.md](./deployment/infrastructure.md)** - Infrastructure details
+- **[README.md](./deployment/README.md)** - Comprehensive deployment guide (includes all deployment strategies, Docker, Fly.io, and infrastructure)
+- **[Fly.io.md](./deployment/fly-io.md)** - Detailed Fly.io deployment guide with advanced features
 
 ### 🛡️ Security
 - **[README.md](./security/README.md)** - Security overview, measures, and best practices
@@ -45,7 +43,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 ## 📋 Quick Reference
 
 ### For New Users
-1. Start with **[Getting Started](./getting-started/README.md)** for installation and setup
+1. Start with **[Getting Started](./getting-started/README.md)** for application usage and features
 
 ### For Developers
 1. **[Development Overview](./development/README.md)** - Development setup and workflow
@@ -59,10 +57,9 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 9. **[Sorting Implementation](./development/sorting-implementation-plan.md)** - Comprehensive sorting functionality and admin restrictions
 
 ### For Deployment
-1. **[Deployment Overview](./deployment/README.md)** - Deployment strategies (includes Makefile deployment and environment file management)
-2. **[Fly.io Guide](./deployment/fly-io.md)** - Cloud deployment instructions with `.env.production` setup
-3. **[Docker Setup](./deployment/docker.md)** - Container configuration
-4. **[Infrastructure Details](./deployment/infrastructure.md)** - Infrastructure components
+1. **[Deployment Overview](./deployment/README.md)** - Comprehensive deployment guide (includes Docker, Fly.io, and infrastructure)
+2. **[Fly.io Guide](./deployment/fly-io.md)** - Advanced Fly.io deployment features and configuration
+3. **[Development Docker Guide](./development/docker.md)** - Development container configuration
 
 ### For Security
 1. **[Security Overview](./security/README.md)** - Security measures and best practices
@@ -102,7 +99,10 @@ All documentation should:
 - ✅ Interactive map component for dive trips implemented
 - ✅ Database migration 0027: trip_difficulty_level nullable constraint fixed
 - ✅ Newsletter content enhancement in API responses
-- ✅ Documentation consolidation completed
+- ✅ **Documentation consolidation completed** - Eliminated duplication between deployment and getting-started sections
+- ✅ **Streamlined deployment documentation** - Consolidated Docker, infrastructure, and deployment into single comprehensive guide
+- ✅ **Refocused getting-started guide** - Now focuses on user onboarding and application usage
+- ✅ **Reduced deployment files** - From 4 files to 2 files (main README + Fly.io guide)
 - ✅ Removed duplicate content across files
 - ✅ Streamlined testing documentation
 - ✅ Consolidated security measures
@@ -133,13 +133,13 @@ All documentation should:
 ## 📊 Documentation Categories
 
 ### **Getting Started (1 file)**
-- Quick start guide and setup instructions
+- User onboarding and application usage guide
 
 ### **Development (7 files)**
 - Architecture, API, database, testing, newsletter management, development workflow, and Subsurface import plan
 
-### **Deployment (4 files)**
-- Deployment strategies and infrastructure
+### **Deployment (2 files)**
+- Comprehensive deployment guide and advanced Fly.io features
 
 ### **Security (2 files)**
 - Security measures and OAuth setup (consolidated)
@@ -150,19 +150,22 @@ All documentation should:
 ### **Testing Strategy (1 file)**
 - Comprehensive testing strategy and procedures
 
-**Total Documentation Files: 18** (reduced from 22)
+**Total Documentation Files: 16** (reduced from 18)
 
 ## 🔄 Consolidation Summary
 
 ### Files Removed
+- `docs/deployment/docker.md` - Content merged into deployment README
+- `docs/deployment/infrastructure.md` - Content merged into deployment README
 - `docs/security/measures.md` - Content merged into security README
 - `docs/maintenance/troubleshooting.md` - Content merged into maintenance README
 
 ### Files Streamlined
 - `docs/development/testing.md` - Now references comprehensive TESTING_STRATEGY.md
-- `docs/getting-started/README.md` - Focused on user setup, technical details moved to development
+- `docs/getting-started/README.md` - Focused on user onboarding, technical details moved to deployment
 - `docs/security/README.md` - Consolidated security measures and audit results
 - `docs/maintenance/README.md` - Merged troubleshooting procedures
+- `docs/deployment/README.md` - Consolidated Docker, infrastructure, and deployment information
 
 ### Benefits Achieved
 - **Reduced Redundancy**: Eliminated duplicate content across files
@@ -170,3 +173,5 @@ All documentation should:
 - **Better Organization**: Related content grouped logically
 - **Easier Maintenance**: Fewer files to update and maintain
 - **Clearer Navigation**: Users can find information more quickly
+- **Streamlined Deployment**: Single comprehensive deployment guide
+- **User-Focused Getting Started**: Clear separation between user onboarding and technical deployment

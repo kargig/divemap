@@ -126,15 +126,18 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
 
 For comprehensive documentation, see the [docs/](./docs/) directory:
 
-- **[Getting Started](./docs/getting-started/README.md)** - Installation and setup guide
+- **[Getting Started](./docs/getting-started/README.md)** - User onboarding and application usage guide
 - **[Development Guide](./docs/development/README.md)** - Development setup and workflow
 - **[API Documentation](./docs/development/api.md)** - API endpoints and usage
 - **[Database Guide](./docs/development/database.md)** - Database documentation and migrations
 - **[Testing Guide](./docs/development/testing.md)** - Testing procedures and best practices
 - **[Architecture Documentation](./docs/development/architecture.md)** - System architecture and admin dashboard features
 - **[Permissions Guide](./docs/development/permissions.md)** - User roles, permissions, and access control
-- **[Deployment Guide](./docs/deployment/README.md)** - Deployment strategies and infrastructure
+- **[Deployment Guide](./docs/deployment/README.md)** - Comprehensive deployment strategies, Docker, and infrastructure
+- **[Fly.io Guide](./docs/deployment/fly-io.md)** - Advanced Fly.io deployment features and configuration
 - **[Security Documentation](./docs/security/README.md)** - Security measures and best practices
+- **[Maintenance Guide](./docs/maintenance/README.md)** - Database migrations, changelog, and troubleshooting
+- **[Testing Strategy](./docs/TESTING_STRATEGY.md)** - Comprehensive testing strategy and procedures
 
 ## Development
 
@@ -240,8 +243,12 @@ node test_regressions.js
 ### Documentation
 - **API Changes**: Update the [API Documentation](./docs/development/api.md)
 - **Database Changes**: Follow the [Database Migration Guide](./docs/development/database.md)
-- **Testing**: Refer to the [Testing Guide](./docs/development/testing.md)
-- **Deployment**: Check the [Deployment Documentation](./docs/deployment/README.md)
+- **Testing**: Refer to the [Testing Guide](./docs/development/testing.md) and [Testing Strategy](./docs/TESTING_STRATEGY.md)
+- **Deployment**: Check the [Deployment Documentation](./docs/deployment/README.md) and [Fly.io Guide](./docs/deployment/fly-io.md)
+- **User Experience**: Update the [Getting Started Guide](./docs/getting-started/README.md) for user-facing changes
+- **Maintenance**: Refer to the [Maintenance Guide](./docs/maintenance/README.md) for operational procedures
+
+**Note**: Documentation has been consolidated to eliminate duplication. See the [Documentation Index](./docs/README.md) for the complete structure.
 
 ### Code Quality
 - Follow the established code style and patterns
