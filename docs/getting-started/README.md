@@ -46,8 +46,10 @@ cd divemap
 ```
 
 ### 2. Set Up Environment Variables
+
+#### Development Environment
 ```bash
-# Copy the example environment file
+# Copy the example environment file for development
 cp env.example .env
 
 # Edit the environment file with your settings
@@ -59,6 +61,20 @@ nano .env
 - `DATABASE_PASSWORD` - Set a strong database password
 - `GOOGLE_CLIENT_ID` - Your Google OAuth client ID (optional)
 - `GOOGLE_CLIENT_SECRET` - Your Google OAuth client secret (optional)
+
+#### Production Environment
+```bash
+# Copy the example environment file for production
+cp env.example .env.production
+
+# Edit the production environment file
+nano .env.production
+```
+
+**Production Configuration**: Update the following variables in your `.env.production` file:
+- `REACT_APP_API_URL` - Set to your production backend URL (e.g., `https://divemap-backend.fly.dev`)
+- `REACT_APP_GOOGLE_CLIENT_ID` - Your production Google OAuth client ID
+- `REACT_APP_ENVIRONMENT` - Set to `production`
 
 ### 3. Start the Application
 ```bash
@@ -87,22 +103,48 @@ Once all services are running, you can access:
 
 ## Environment Setup
 
-### Required Environment Variables
+### Environment File Management
+
+The project uses separate environment files for different deployment scenarios:
+
+- **`.env`** - Development environment (localhost)
+- **`.env.production`** - Production environment (deployed)
+- **`env.example`** - Template file with example values
+
+#### Development Environment Variables (`.env`)
 
 ```bash
-# Database Configuration
+# Frontend Configuration
+REACT_APP_API_URL=http://localhost:8000
+REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id
+REACT_APP_ENVIRONMENT=development
+
+# Backend Configuration
 DATABASE_URL=mysql+pymysql://divemap_user:divemap_password@db:3306/divemap
 DATABASE_PASSWORD=your_secure_password
-
-# Application Security
 SECRET_KEY=your_secure_secret_key
 JWT_SECRET_KEY=your_jwt_secret_key
-
-# Google OAuth (Optional)
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
+DEBUG=true
+ENVIRONMENT=development
+```
 
-# Application Settings
+#### Production Environment Variables (`.env.production`)
+
+```bash
+# Frontend Configuration
+REACT_APP_API_URL=https://divemap-backend.fly.dev
+REACT_APP_GOOGLE_CLIENT_ID=your_production_google_client_id
+REACT_APP_ENVIRONMENT=production
+
+# Backend Configuration
+DATABASE_URL=mysql+pymysql://prod_user:prod_password@prod_host:3306/divemap
+DATABASE_PASSWORD=your_production_database_password
+SECRET_KEY=your_production_secret_key
+JWT_SECRET_KEY=your_production_jwt_secret_key
+GOOGLE_CLIENT_ID=your_production_google_client_id
+GOOGLE_CLIENT_SECRET=your_production_google_client_secret
 DEBUG=false
 ENVIRONMENT=production
 ```

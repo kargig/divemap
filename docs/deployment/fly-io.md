@@ -312,15 +312,35 @@ fly deploy
 
 ```bash
 cd frontend
+
+# Create production environment file
+cp env.example .env.production
+
+# Edit production environment file
+nano .env.production
+```
+
+**Update `.env.production` with production values:**
+```bash
+# API Configuration
+REACT_APP_API_URL=https://divemap-backend.fly.dev
+
+# Google OAuth Configuration
+REACT_APP_GOOGLE_CLIENT_ID=your-google-client-id
+
+# Production Settings
+REACT_APP_ENVIRONMENT=production
+```
+
+```bash
+# Launch Fly.io app (don't deploy yet)
 fly launch --no-deploy
 
-# Set frontend secrets
-fly secrets set REACT_APP_API_URL="https://divemap-backend.fly.dev" -a divemap
-fly secrets set REACT_APP_GOOGLE_CLIENT_ID="your-google-client-id" -a divemap
-
-# Deploy frontend
-fly deploy
+# Deploy frontend using production environment
+make deploy-frontend
 ```
+
+**Note**: The `make deploy-frontend` command automatically uses the `.env.production` file for deployment.
 
 ## Environment Variables and Secrets
 
@@ -347,17 +367,51 @@ fly secrets set ALLOWED_ORIGINS="https://divemap-domain.com" -a divemap-backend
 fly secrets set REDIS_URL="redis://divemap-redis.internal:6379" -a divemap-backend
 ```
 
-### Frontend Secrets
+### Frontend Environment Configuration
 
-Set these secrets for the frontend application:
+The frontend deployment uses a `.env.production` file instead of Fly.io secrets for better development workflow.
+
+#### Create Production Environment File
 
 ```bash
-# API endpoint
-fly secrets set REACT_APP_API_URL="https://divemap-backend.fly.dev" -a divemap
+cd frontend
 
-# Google OAuth
-fly secrets set REACT_APP_GOOGLE_CLIENT_ID="your-google-client-id" -a divemap
+# Copy from template
+cp env.example .env.production
+
+# Edit with production values
+nano .env.production
 ```
+
+#### Required Production Variables
+
+```bash
+# API Configuration
+REACT_APP_API_URL=https://divemap-backend.fly.dev
+
+# Google OAuth Configuration
+REACT_APP_GOOGLE_CLIENT_ID=your-google-client-id
+
+# Production Settings
+REACT_APP_ENVIRONMENT=production
+```
+
+#### Deployment
+
+```bash
+# Deploy using production environment file
+make deploy-frontend
+
+# Or deploy directly from frontend directory
+cd frontend
+./deploy.sh .env.production
+```
+
+**Benefits of `.env.production` approach:**
+- ✅ Easier local testing of production configuration
+- ✅ Version control friendly (file is gitignored)
+- ✅ Consistent with development workflow
+- ✅ No need to manage Fly.io secrets for frontend
 
 ### Database Secrets
 

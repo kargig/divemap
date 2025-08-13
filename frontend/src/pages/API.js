@@ -1,7 +1,7 @@
 import { ExternalLink, Code, Database, Shield, Zap, BookOpen } from 'lucide-react';
 
 const API = () => {
-  const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+  const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
   const tokenResponseExample = '{"access_token": "your_token_here"}';
   const createDiveSiteData = '{"name": "Coral Reef", "latitude": 25.7617, "longitude": -80.1918}';
   const updateDiveSiteData =

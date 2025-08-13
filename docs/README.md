@@ -59,8 +59,8 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 9. **[Sorting Implementation](./development/sorting-implementation-plan.md)** - Comprehensive sorting functionality and admin restrictions
 
 ### For Deployment
-1. **[Deployment Overview](./deployment/README.md)** - Deployment strategies (includes Makefile deployment)
-2. **[Fly.io Guide](./deployment/fly-io.md)** - Cloud deployment instructions
+1. **[Deployment Overview](./deployment/README.md)** - Deployment strategies (includes Makefile deployment and environment file management)
+2. **[Fly.io Guide](./deployment/fly-io.md)** - Cloud deployment instructions with `.env.production` setup
 3. **[Docker Setup](./deployment/docker.md)** - Container configuration
 4. **[Infrastructure Details](./deployment/infrastructure.md)** - Infrastructure components
 

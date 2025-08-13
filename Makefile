@@ -42,7 +42,7 @@ deploy-backend:
 # Deploy only the frontend
 deploy-frontend:
 	@echo "🚀 Deploying frontend..."
-	@cd frontend && ./deploy.sh
+	@cd frontend && ./deploy.sh .env.production
 	@echo "✅ Frontend deployed successfully!"
 
 # Run all tests

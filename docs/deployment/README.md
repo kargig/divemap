@@ -358,10 +358,12 @@ ALLOWED_ORIGINS=https://divemap.fly.dev,https://divemap-frontend.fly.dev
 
 #### Development Environment
 ```bash
-# .env.development
+# .env (development)
 DEBUG=true
 DATABASE_URL=mysql+pymysql://divemap_user:divemap_password@localhost:3306/divemap
 LOG_LEVEL=DEBUG
+REACT_APP_API_URL=http://localhost:8000
+REACT_APP_ENVIRONMENT=development
 ```
 
 #### Production Environment
@@ -370,6 +372,91 @@ LOG_LEVEL=DEBUG
 DEBUG=false
 DATABASE_URL=mysql+pymysql://prod_user:prod_password@prod-host:3306/divemap
 LOG_LEVEL=WARNING
+REACT_APP_API_URL=https://divemap-backend.fly.dev
+REACT_APP_ENVIRONMENT=production
+```
+
+#### Environment File Setup
+
+1. **Copy from template**: `cp env.example .env.production`
+2. **Edit production values**: Update URLs, credentials, and settings
+3. **Deploy with production config**: `make deploy-frontend` automatically uses `.env.production`
+4. **Keep separate**: Never commit `.env.production` to version control
+
+## Environment File Management
+
+### Overview
+The project uses separate environment files for different deployment scenarios to maintain clean separation between development and production configurations.
+
+### Environment Files
+
+| File | Purpose | Usage | Git Status |
+|------|---------|-------|------------|
+| `env.example` | Template with example values | Copy to create new env files | ✅ Committed |
+| `.env` | Development environment | Local development, Docker Compose | ❌ Gitignored |
+| `.env.production` | Production environment | Production deployment | ❌ Gitignored |
+
+### Creating Environment Files
+
+#### Development Environment
+```bash
+# Copy template for development
+cp env.example .env
+
+# Edit with development values
+nano .env
+```
+
+#### Production Environment
+```bash
+# Copy template for production
+cp env.example .env.production
+
+# Edit with production values
+nano .env.production
+```
+
+### Environment File Contents
+
+#### Development (`.env`)
+```bash
+# Frontend
+REACT_APP_API_URL=http://localhost:8000
+REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id
+REACT_APP_ENVIRONMENT=development
+
+# Backend
+DATABASE_URL=mysql+pymysql://divemap_user:divemap_password@db:3306/divemap
+SECRET_KEY=your_development_secret_key
+DEBUG=true
+ENVIRONMENT=development
+```
+
+#### Production (`.env.production`)
+```bash
+# Frontend
+REACT_APP_API_URL=https://divemap-backend.fly.dev
+REACT_APP_GOOGLE_CLIENT_ID=your_production_google_client_id
+REACT_APP_ENVIRONMENT=production
+
+# Backend
+DATABASE_URL=mysql+pymysql://prod_user:prod_password@prod_host:3306/divemap
+SECRET_KEY=your_production_secret_key
+DEBUG=false
+ENVIRONMENT=production
+```
+
+### Deployment Commands
+
+```bash
+# Deploy frontend with production environment
+make deploy-frontend
+
+# Deploy backend with production environment
+make deploy-backend
+
+# Deploy both with production environment
+make deploy
 ```
 
 ## Deployment Process
