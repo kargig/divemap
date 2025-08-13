@@ -13,15 +13,16 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 - **[Database.md](./development/database.md)** - Database documentation and migrations
 - **[API.md](./development/api.md)** - API documentation and endpoints
 - **[Testing.md](./development/testing.md)** - Testing guide (see [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for comprehensive details)
-- **[Docker.md](./development/docker.md)** - Docker configuration and containerization guide
+- **[Importing Data](./development/importing-data.md)** - Comprehensive guide for importing dive data from Subsurface
 - **[Frontend Rate Limiting Error Handling](./development/frontend-rate-limiting-error-handling.md)** - Comprehensive frontend error handling for API rate limits
 - **[Sorting Implementation Plan](./development/sorting-implementation-plan.md)** - Comprehensive sorting functionality implementation
 - **Newsletter Management** - Newsletter parsing and trip management (see [Development README](./development/README.md#newsletter-management-system))
 - **Phase 2: Map Integration** - Interactive map visualization for dive trips (see [Development README](./development/README.md#phase-2-map-integration-and-visualization--complete))
 - **Import Scripts** - Dive site import utilities with smart conflict resolution (see [Development README](./development/README.md#import-scripts))
-- **[Importing Data](./IMPORTING_DATA.md)** - Comprehensive guide for importing dive sites and dives from Subsurface
-- **[Subsurface Import Plan](./development/subsurface-import-plan.md)** - Comprehensive plan for importing dives from Subsurface
-- **[Subsurface XML Import](./import-subsurface-xml.md)** - Import dive data from Subsurface XML files
+- **[Diving Organizations Admin](./development/diving-organizations-admin.md)** - Admin management for diving organizations
+- **[JavaScript Style Rules](./development/javascript-style-rules.md)** - Frontend coding standards and best practices
+- **[GitHub Actions](./development/github-actions.md)** - CI/CD workflow configuration
+- **[Permissions](./development/permissions.md)** - User roles, permissions, and access control
 
 ### 🚀 Deployment
 - **[README.md](./deployment/README.md)** - Comprehensive deployment guide (includes all deployment strategies, Docker, Fly.io, and infrastructure)
@@ -99,6 +100,9 @@ All documentation should:
 - ✅ Interactive map component for dive trips implemented
 - ✅ Database migration 0027: trip_difficulty_level nullable constraint fixed
 - ✅ Newsletter content enhancement in API responses
+- ✅ **High Priority Documentation Consolidation Completed** - Consolidated import documentation and Docker documentation
+- ✅ **Import Documentation Consolidated** - Merged 3 files (IMPORTING_DATA.md, import-subsurface-xml.md, subsurface-import-plan.md) into single comprehensive guide
+- ✅ **Docker Documentation Consolidated** - Merged docker-quick-reference.md into main deployment README
 - ✅ **Documentation consolidation completed** - Eliminated duplication between deployment and getting-started sections
 - ✅ **Streamlined deployment documentation** - Consolidated Docker, infrastructure, and deployment into single comprehensive guide
 - ✅ **Refocused getting-started guide** - Now focuses on user onboarding and application usage
@@ -136,10 +140,10 @@ All documentation should:
 - User onboarding and application usage guide
 
 ### **Development (7 files)**
-- Architecture, API, database, testing, newsletter management, development workflow, and Subsurface import plan
+- Architecture, API, database, testing, newsletter management, development workflow, and comprehensive import guide
 
 ### **Deployment (2 files)**
-- Comprehensive deployment guide and advanced Fly.io features
+- Comprehensive deployment guide (includes Docker quick reference) and advanced Fly.io features
 
 ### **Security (2 files)**
 - Security measures and OAuth setup (consolidated)
@@ -155,6 +159,10 @@ All documentation should:
 ## 🔄 Consolidation Summary
 
 ### Files Removed
+- `docs/IMPORTING_DATA.md` - Content merged into comprehensive import guide
+- `docs/import-subsurface-xml.md` - Content merged into comprehensive import guide
+- `docs/development/subsurface-import-plan.md` - Content merged into comprehensive import guide
+- `docs/development/docker-quick-reference.md` - Content merged into deployment README
 - `docs/deployment/docker.md` - Content merged into deployment README
 - `docs/deployment/infrastructure.md` - Content merged into deployment README
 - `docs/security/measures.md` - Content merged into security README
@@ -166,6 +174,7 @@ All documentation should:
 - `docs/security/README.md` - Consolidated security measures and audit results
 - `docs/maintenance/README.md` - Merged troubleshooting procedures
 - `docs/deployment/README.md` - Consolidated Docker, infrastructure, and deployment information
+- `docs/development/importing-data.md` - Comprehensive import guide consolidating 3 previous files
 
 ### Benefits Achieved
 - **Reduced Redundancy**: Eliminated duplicate content across files
@@ -175,3 +184,5 @@ All documentation should:
 - **Clearer Navigation**: Users can find information more quickly
 - **Streamlined Deployment**: Single comprehensive deployment guide
 - **User-Focused Getting Started**: Clear separation between user onboarding and technical deployment
+- **Comprehensive Import Guide**: Single source of truth for all import operations
+- **Consolidated Docker Reference**: All Docker information in one place

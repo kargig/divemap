@@ -138,6 +138,7 @@ For comprehensive documentation, see the [docs/](./docs/) directory:
 - **[Security Documentation](./docs/security/README.md)** - Security measures and best practices
 - **[Maintenance Guide](./docs/maintenance/README.md)** - Database migrations, changelog, and troubleshooting
 - **[Testing Strategy](./docs/TESTING_STRATEGY.md)** - Comprehensive testing strategy and procedures
+- **[Importing Data](./docs/development/importing-data.md)** - Guide for importing dive sites and dives from Subsurface
 
 ## Development
 
