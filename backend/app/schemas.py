@@ -693,6 +693,7 @@ class ParsedDiveTripResponse(BaseModel):
     trip_status: str = "scheduled"
     diving_center_name: Optional[str] = None
     dives: List[ParsedDiveResponse] = []  # List of dives in this trip
+    newsletter_content: Optional[str] = None  # Content of the source newsletter
     extracted_at: datetime
     created_at: datetime
     updated_at: datetime

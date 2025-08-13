@@ -1335,6 +1335,7 @@ async def get_parsed_trip(
         special_requirements=trip.special_requirements,
         trip_status=trip.trip_status.value,
         diving_center_name=trip.diving_center.name if trip.diving_center else None,
+        newsletter_content=db.query(Newsletter).filter(Newsletter.id == trip.source_newsletter_id).first().content if trip.source_newsletter_id else None,
         dives=[
             ParsedDiveResponse(
                 id=dive.id,

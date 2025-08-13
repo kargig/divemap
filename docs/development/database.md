@@ -211,7 +211,7 @@ CREATE TABLE parsed_dive_trips (
     trip_date DATE NOT NULL,
     trip_time TIME,
     trip_duration INT,
-    trip_difficulty_level INTEGER DEFAULT 2, -- 1=beginner, 2=intermediate, 3=advanced, 4=expert
+    trip_difficulty_level INTEGER NULL, -- 1=beginner, 2=intermediate, 3=advanced, 4=expert (nullable since migration 0027)
     trip_price DECIMAL(10, 2),
     trip_currency VARCHAR(3) DEFAULT 'EUR',
     group_size_limit INT,
@@ -227,6 +227,8 @@ CREATE TABLE parsed_dive_trips (
     FOREIGN KEY (source_newsletter_id) REFERENCES newsletters(id)
 );
 ```
+
+**Note**: The `trip_difficulty_level` field was made nullable in migration 0027 to handle cases where the newsletter parsing logic cannot determine the difficulty level. This allows for more flexible trip creation while maintaining data integrity.
 
 #### Parsed Dives Table
 ```sql

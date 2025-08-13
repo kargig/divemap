@@ -15,11 +15,11 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { getParsedTrips, getDivingCenters, getDiveSites } from '../api';
-import DiveMap from '../components/DiveMap';
 import RateLimitError from '../components/RateLimitError';
+import TripMap from '../components/TripMap';
 import { useAuth } from '../contexts/AuthContext';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
@@ -41,29 +41,24 @@ const getDisplayStatus = trip => {
   return trip.trip_status;
 };
 
-// Helper function to prepare map data for dive trips
-const prepareMapData = (sortedTrips, getDisplayStatus) => {
-  return (
-    sortedTrips?.map(trip => ({
-      id: trip.id,
-      name: trip.diving_center_name || 'Unknown Center',
-      description: trip.trip_description || '',
-      latitude: trip.diving_center?.latitude || 0,
-      longitude: trip.diving_center?.longitude || 0,
-      type: 'diving_center',
-      trip_date: trip.trip_date,
-      trip_time: trip.trip_time,
-      trip_price: trip.trip_price,
-      trip_currency: trip.trip_currency,
-      trip_status: getDisplayStatus(trip),
-    })) || []
-  );
-};
-
 const DiveTrips = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading } = useAuth();
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+
+  // Get view mode from URL parameter, default to 'list'
+  const [viewMode, setViewMode] = useState(() => {
+    const urlViewMode = searchParams.get('view');
+    return urlViewMode === 'map' ? 'map' : 'list';
+  });
+  const [mappedTripsCount, setMappedTripsCount] = useState(0);
+  const [statusToggles, setStatusToggles] = useState({
+    scheduled: true,
+    confirmed: true,
+    completed: true,
+    cancelled: true,
+  });
+  const [clustering, setClustering] = useState(false);
   const [filters, setFilters] = useState({
     start_date: '',
     end_date: '',
@@ -90,6 +85,20 @@ const DiveTrips = () => {
     longitude: null,
   });
   const [showDateFilterMessage, setShowDateFilterMessage] = useState(false);
+
+  // Helper function to change view mode and update URL
+  const changeViewMode = mode => {
+    setViewMode(mode);
+    if (mode === 'map') {
+      setSearchParams(prev => ({ ...Object.fromEntries(prev), view: 'map' }));
+    } else {
+      setSearchParams(prev => {
+        const newParams = { ...Object.fromEntries(prev) };
+        delete newParams.view;
+        return newParams;
+      });
+    }
+  };
 
   // Get user location on component mount
   useEffect(() => {
@@ -160,7 +169,7 @@ const DiveTrips = () => {
   );
 
   // Query for diving centers and dive sites for filters
-  const { data: divingCenters = [], error: divingCentersError } = useQuery(
+  const { data: divingCentersData, error: divingCentersError } = useQuery(
     ['diving-centers'],
     () => getDivingCenters({ page_size: 100 }),
     {
@@ -168,13 +177,32 @@ const DiveTrips = () => {
     }
   );
 
-  const { data: diveSites = [], error: diveSitesError } = useQuery(
+  const { data: diveSitesData, error: diveSitesError } = useQuery(
     ['dive-sites'],
     () => getDiveSites({ page_size: 100 }),
     {
       staleTime: 300000, // 5 minutes
     }
   );
+
+  // Ensure we always have arrays for the filter data
+  // Handle different possible response structures from the API
+  const divingCenters = (() => {
+    if (Array.isArray(divingCentersData)) return divingCentersData;
+    if (divingCentersData && Array.isArray(divingCentersData.items)) return divingCentersData.items;
+    if (divingCentersData && Array.isArray(divingCentersData.data)) return divingCentersData.data;
+    if (divingCentersData && Array.isArray(divingCentersData.results))
+      return divingCentersData.results;
+    return [];
+  })();
+
+  const diveSites = (() => {
+    if (Array.isArray(diveSitesData)) return diveSitesData;
+    if (diveSitesData && Array.isArray(diveSitesData.items)) return diveSitesData.items;
+    if (diveSitesData && Array.isArray(diveSitesData.data)) return diveSitesData.data;
+    if (diveSitesData && Array.isArray(diveSitesData.results)) return diveSitesData.results;
+    return [];
+  })();
 
   // Show toast notifications for rate limiting errors
   useEffect(() => {
@@ -238,6 +266,11 @@ const DiveTrips = () => {
       difficulty_level: '',
       search_query: '',
     });
+  };
+
+  // Callback to handle mapped trips count from TripMap component
+  const handleMappedTripsCountChange = count => {
+    setMappedTripsCount(count);
   };
 
   const handleDateClick = dateString => {
@@ -329,9 +362,6 @@ const DiveTrips = () => {
 
   // getDifficultyColor function is now replaced by getDifficultyColorClasses from difficultyHelpers
 
-  // Prepare map data for dive trips
-  const mapData = prepareMapData(sortedTrips, getDisplayStatus);
-
   // Show loading state while checking authentication
   if (loading) {
     return (
@@ -414,7 +444,7 @@ const DiveTrips = () => {
       <div className='flex justify-between items-center mb-6'>
         <div className='flex space-x-2 w-full sm:w-auto'>
           <button
-            onClick={() => setViewMode('list')}
+            onClick={() => changeViewMode('list')}
             className={`flex-1 sm:flex-none flex items-center justify-center px-3 sm:px-4 py-2 rounded-md text-sm sm:text-base ${
               viewMode === 'list'
                 ? 'bg-blue-600 text-white'
@@ -426,7 +456,7 @@ const DiveTrips = () => {
             <span className='sm:hidden'>List</span>
           </button>
           <button
-            onClick={() => setViewMode('map')}
+            onClick={() => changeViewMode('map')}
             className={`flex-1 sm:flex-none flex items-center justify-center px-3 sm:px-4 py-2 rounded-md text-sm sm:text-base ${
               viewMode === 'map'
                 ? 'bg-blue-600 text-white'
@@ -438,6 +468,19 @@ const DiveTrips = () => {
             <span className='sm:hidden'>Map</span>
           </button>
         </div>
+
+        {/* Map View Info */}
+        {viewMode === 'map' && (
+          <div className='text-sm text-gray-600 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200'>
+            <div className='flex items-center space-x-2'>
+              <Map className='h-4 w-4 text-blue-600' />
+              <span>
+                <strong>Map View:</strong> Click on trip markers to view details and navigate to
+                trip pages
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* API Errors for Filter Data */}
@@ -456,6 +499,19 @@ const DiveTrips = () => {
               onRetry={() => window.location.reload()}
             />
           )}
+        </div>
+      )}
+
+      {/* Filter Data Loading State */}
+      {(!divingCentersData || !diveSitesData) && (
+        <div className='mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4'>
+          <div className='flex items-center'>
+            <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-2'></div>
+            <span className='text-yellow-800 text-sm'>
+              Loading filter data... Please wait while we prepare the diving centers and dive sites
+              for filtering.
+            </span>
+          </div>
         </div>
       )}
 
@@ -616,13 +672,19 @@ const DiveTrips = () => {
               value={filters.diving_center_id}
               onChange={e => handleFilterChange('diving_center_id', e.target.value)}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              disabled={!Array.isArray(divingCenters) || divingCenters.length === 0}
             >
-              <option value=''>All Centers</option>
-              {divingCenters.map(center => (
-                <option key={center.id} value={center.id}>
-                  {center.name}
-                </option>
-              ))}
+              <option value=''>
+                {!Array.isArray(divingCenters) || divingCenters.length === 0
+                  ? 'Loading centers...'
+                  : 'All Centers'}
+              </option>
+              {Array.isArray(divingCenters) &&
+                divingCenters.map(center => (
+                  <option key={center.id} value={center.id}>
+                    {center.name}
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -638,13 +700,19 @@ const DiveTrips = () => {
               value={filters.dive_site_id}
               onChange={e => handleFilterChange('dive_site_id', e.target.value)}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              disabled={!Array.isArray(diveSites) || diveSites.length === 0}
             >
-              <option value=''>All Sites</option>
-              {diveSites.map(site => (
-                <option key={site.id} value={site.id}>
-                  {site.name}
-                </option>
-              ))}
+              <option value=''>
+                {!Array.isArray(diveSites) || diveSites.length === 0
+                  ? 'Loading sites...'
+                  : 'All Sites'}
+              </option>
+              {Array.isArray(diveSites) &&
+                diveSites.map(site => (
+                  <option key={site.id} value={site.id}>
+                    {site.name}
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -923,6 +991,35 @@ const DiveTrips = () => {
         </div>
       )}
 
+      {/* Map View No Results */}
+      {viewMode === 'map' && sortedTrips && sortedTrips.length === 0 && (
+        <div className='bg-white rounded-lg shadow-md p-8 text-center'>
+          <Map className='h-16 w-16 text-gray-400 mx-auto mb-4' />
+          <h3 className='text-lg font-medium text-gray-900 mb-2'>No trips to display on map</h3>
+          <p className='text-gray-600 mb-4'>
+            {Object.values(filters).some(value => value && value.trim() !== '')
+              ? 'No trips match your current filters. Try adjusting your search criteria or switch to list view to see all available trips.'
+              : 'There are currently no dive trips available with location data. Switch to list view to see all trips.'}
+          </p>
+          <div className='flex justify-center space-x-3'>
+            <button
+              onClick={() => changeViewMode('list')}
+              className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+            >
+              Switch to List View
+            </button>
+            {Object.values(filters).some(value => value && value.trim() !== '') && (
+              <button
+                onClick={clearFilters}
+                className='px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {viewMode === 'list' && sortedTrips && sortedTrips.length > 0 && (
         <div className='space-y-8'>
           {/* Search Results Summary */}
@@ -960,12 +1057,17 @@ const DiveTrips = () => {
                 {filters.diving_center_id && (
                   <span className='inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full'>
                     Center:{' '}
-                    {divingCenters.find(c => c.id == filters.diving_center_id)?.name || 'Unknown'}
+                    {Array.isArray(divingCenters)
+                      ? divingCenters.find(c => c.id == filters.diving_center_id)?.name || 'Unknown'
+                      : 'Unknown'}
                   </span>
                 )}
                 {filters.dive_site_id && (
                   <span className='inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full'>
-                    Site: {diveSites.find(s => s.id == filters.dive_site_id)?.name || 'Unknown'}
+                    Site:{' '}
+                    {Array.isArray(diveSites)
+                      ? diveSites.find(s => s.id == filters.dive_site_id)?.name || 'Unknown'
+                      : 'Unknown'}
                   </span>
                 )}
                 {filters.min_price && (
@@ -1332,7 +1434,82 @@ const DiveTrips = () => {
 
       {viewMode === 'map' && sortedTrips && sortedTrips.length > 0 && (
         <div className='bg-white rounded-lg shadow-md'>
-          <DiveMap diveSites={[]} divingCenters={mapData} height='600px' showTripInfo={true} />
+          {/* Map View Summary */}
+          <div className='p-4 bg-gray-50 border-b border-gray-200'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center space-x-2'>
+                <Map className='h-5 w-5 text-gray-600' />
+                <span className='text-sm text-gray-600'>
+                  <strong>Map View:</strong> Showing {mappedTripsCount} dive site
+                  {mappedTripsCount !== 1 ? 's' : ''}
+                  {mappedTripsCount !== sortedTrips.length && (
+                    <span className='text-gray-500 ml-1'>(from {sortedTrips.length} trips)</span>
+                  )}
+                </span>
+              </div>
+              <div className='text-xs text-gray-500'>
+                Click markers for trip details • Use filters to refine results
+                {mappedTripsCount !== sortedTrips.length && (
+                  <div className='mt-1 text-orange-600'>
+                    ⚠️ {sortedTrips.length - mappedTripsCount} dive site
+                    {sortedTrips.length - mappedTripsCount !== 1 ? 's' : ''} belonging to{' '}
+                    {sortedTrips.length} dive trips not shown (no dive site coordinates)
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Status Toggle Controls */}
+          <div className='p-4 bg-white border-b border-gray-200'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center space-x-4'>
+                <span className='text-sm font-medium text-gray-700'>Show Status:</span>
+                {Object.entries(statusToggles).map(([status, enabled]) => (
+                  <label key={status} className='flex items-center space-x-2'>
+                    <input
+                      type='checkbox'
+                      checked={enabled}
+                      onChange={e => {
+                        setStatusToggles(prev => ({
+                          ...prev,
+                          [status]: e.target.checked,
+                        }));
+                      }}
+                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                    />
+                    <span className='text-sm text-gray-600 capitalize'>{status}</span>
+                  </label>
+                ))}
+              </div>
+              <div className='flex items-center space-x-4'>
+                <label className='flex items-center space-x-2'>
+                  <input
+                    type='checkbox'
+                    checked={clustering}
+                    onChange={e => setClustering(e.target.checked)}
+                    className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                  />
+                  <span className='text-sm text-gray-600'>Clustering</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <TripMap
+            trips={sortedTrips}
+            filters={filters}
+            onTripSelect={trip => {
+              // Navigate to trip detail when trip is selected on map
+              navigate(`/dive-trips/${trip.id}`);
+            }}
+            height='600px'
+            clustering={clustering}
+            divingCenters={divingCenters}
+            diveSites={diveSites}
+            onMappedTripsCountChange={handleMappedTripsCountChange}
+            statusToggles={statusToggles}
+          />
         </div>
       )}
     </div>

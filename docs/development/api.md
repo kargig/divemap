@@ -1775,6 +1775,7 @@ Get parsed dive trips with advanced search, filtering, and sorting (registered u
     "special_requirements": "Advanced certification required",
     "trip_status": "scheduled",
     "diving_center_name": "Coral Dive Center",
+    "newsletter_content": "Newsletter content with trip details...",
     "dives": [
       {
         "id": 1,

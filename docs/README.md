@@ -17,6 +17,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 - **[Frontend Rate Limiting Error Handling](./development/frontend-rate-limiting-error-handling.md)** - Comprehensive frontend error handling for API rate limits
 - **[Sorting Implementation Plan](./development/sorting-implementation-plan.md)** - Comprehensive sorting functionality implementation
 - **Newsletter Management** - Newsletter parsing and trip management (see [Development README](./development/README.md#newsletter-management-system))
+- **Phase 2: Map Integration** - Interactive map visualization for dive trips (see [Development README](./development/README.md#phase-2-map-integration-and-visualization--complete))
 - **Import Scripts** - Dive site import utilities with smart conflict resolution (see [Development README](./development/README.md#import-scripts))
 - **[Importing Data](./IMPORTING_DATA.md)** - Comprehensive guide for importing dive sites and dives from Subsurface
 - **[Subsurface Import Plan](./development/subsurface-import-plan.md)** - Comprehensive plan for importing dives from Subsurface
@@ -52,9 +53,10 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 3. **[API Documentation](./development/api.md)** - API endpoints and usage
 4. **[Testing Guide](./development/testing.md)** - Testing procedures (see [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for details)
 5. **[Docker Configuration](./development/docker.md)** - Container setup and optimization
-6. **[Importing Data](./IMPORTING_DATA.md)** - Guide for importing dive sites and dives from Subsurface
-7. **[Rate Limiting Error Handling](./development/README.md#frontend-rate-limiting-error-handling)** - Frontend error handling for API rate limits
-8. **[Sorting Implementation](./development/sorting-implementation-plan.md)** - Comprehensive sorting functionality and admin restrictions
+6. **[Phase 2: Map Integration](./development/README.md#phase-2-map-integration-and-visualization--complete)** - Interactive map visualization for dive trips
+7. **[Importing Data](./IMPORTING_DATA.md)** - Guide for importing dive sites and dives from Subsurface
+8. **[Rate Limiting Error Handling](./development/README.md#frontend-rate-limiting-error-handling)** - Frontend error handling for API rate limits
+9. **[Sorting Implementation](./development/sorting-implementation-plan.md)** - Comprehensive sorting functionality and admin restrictions
 
 ### For Deployment
 1. **[Deployment Overview](./deployment/README.md)** - Deployment strategies (includes Makefile deployment)
@@ -96,6 +98,10 @@ All documentation should:
 - **Database:** Internal network only (`divemap-db.flycast`)
 
 **Recent Updates:**
+- ✅ Phase 2: Map Integration and Visualization completed
+- ✅ Interactive map component for dive trips implemented
+- ✅ Database migration 0027: trip_difficulty_level nullable constraint fixed
+- ✅ Newsletter content enhancement in API responses
 - ✅ Documentation consolidation completed
 - ✅ Removed duplicate content across files
 - ✅ Streamlined testing documentation
