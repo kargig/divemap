@@ -13,6 +13,7 @@ import PropTypes from 'prop-types';
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { generateTripName } from '../utils/tripNameGenerator';
 
 const TripMap = ({
   trips = [],
@@ -371,7 +372,7 @@ const TripMap = ({
             const diveData = {
               ...dive,
               trip_id: trip.id,
-              trip_name: trip.trip_name,
+              trip_name: generateTripName(trip),
               trip_date: trip.trip_date,
               trip_time: trip.trip_time,
               trip_status: trip.trip_status,
@@ -682,7 +683,7 @@ const TripMap = ({
                       ? `${popupInfo.dive_site_name || 'Dive Site'} (${popupInfo.dive_count} dives)`
                       : popupInfo.type === 'dive'
                         ? `${popupInfo.dive_site_name || 'Dive Site'} - ${popupInfo.trip_name || 'Trip'}`
-                        : popupInfo.trip_name || 'Dive Trip'}
+                        : generateTripName(popupInfo)}
                   </h3>
                   <span
                     className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${

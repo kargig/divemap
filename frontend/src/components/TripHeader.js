@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { formatPrice, formatDate } from '../utils/tripHelpers';
+import { generateTripName } from '../utils/tripNameGenerator';
 
 const TripHeader = ({ trip }) => {
   const navigate = useNavigate();
@@ -15,7 +16,9 @@ const TripHeader = ({ trip }) => {
           Dive Trips
         </Link>
         <span>/</span>
-        <span className='text-gray-900 font-medium'>{trip.trip_name || 'Trip Details'}</span>
+        <span className='text-gray-900 font-medium'>
+          {generateTripName(trip) || 'Trip Details'}
+        </span>
       </nav>
 
       {/* Back Button */}
@@ -32,7 +35,7 @@ const TripHeader = ({ trip }) => {
         <div className='flex flex-col lg:flex-row lg:items-start lg:justify-between'>
           <div className='flex-1'>
             <h1 className='text-3xl font-bold text-gray-900 mb-2'>
-              {trip.trip_name || 'Dive Trip'}
+              {generateTripName(trip) || 'Dive Trip'}
             </h1>
             <p className='text-gray-600 text-lg mb-4'>
               {trip.description || 'Experience an amazing diving adventure'}
@@ -94,7 +97,7 @@ const TripHeader = ({ trip }) => {
               {trip.trip_image_url ? (
                 <img
                   src={trip.trip_image_url}
-                  alt={trip.trip_name}
+                  alt={generateTripName(trip)}
                   className='w-full h-full object-cover rounded-lg'
                 />
               ) : (

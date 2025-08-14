@@ -31,6 +31,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
+import { generateTripName } from '../utils/tripNameGenerator';
 
 // Helper function to determine display status based on trip date
 const getDisplayStatus = trip => {
@@ -1044,7 +1045,7 @@ const DiveTrips = () => {
                           to={`/dive-trips/${trip.id}`}
                           className='hover:text-blue-600 transition-colors'
                         >
-                          {trip.trip_name || 'Unknown Trip'}
+                          {generateTripName(trip)}
                         </Link>
                       </h3>
                       <p className={`text-gray-600 ${compactLayout ? 'text-sm' : 'text-base'}`}>
@@ -1347,7 +1348,7 @@ const DiveTrips = () => {
                     to={`/dive-trips/${trip.id}`}
                     className='hover:text-blue-600 transition-colors'
                   >
-                    {trip.trip_name || 'Unknown Trip'}
+                    {generateTripName(trip)}
                   </Link>
                 </h3>
 
