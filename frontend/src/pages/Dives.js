@@ -14,6 +14,9 @@ import {
   ChevronRight,
   Filter,
   Upload,
+  Calendar,
+  TrendingUp,
+  Grid,
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
@@ -22,64 +25,69 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import api, { deleteDive } from '../api';
 import DivesMap from '../components/DivesMap';
+import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
 import ImportDivesModal from '../components/ImportDivesModal';
-import SortingControls from '../components/SortingControls';
 import { useAuth } from '../contexts/AuthContext';
 import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
 
 const Dives = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
-  const [showImportModal, setShowImportModal] = useState(false);
 
   // Get initial values from URL parameters
   const getInitialViewMode = () => {
-    const viewMode = searchParams.get('view');
-    return viewMode === 'map' ? 'map' : 'list';
+    const mode = searchParams.get('view') || 'list';
+    return ['list', 'grid', 'map'].includes(mode) ? mode : 'list';
   };
 
   const getInitialFilters = () => {
     return {
-      dive_site_id: searchParams.get('dive_site_id') || '',
       dive_site_name: searchParams.get('dive_site_name') || '',
-      difficulty_level: searchParams.get('difficulty_level') || '',
       min_depth: searchParams.get('min_depth') || '',
-      max_depth: searchParams.get('max_depth') || '',
-      min_visibility: searchParams.get('min_visibility') || '',
-      max_visibility: searchParams.get('max_visibility') || '',
-      min_rating: searchParams.get('min_rating') || '',
-      max_rating: searchParams.get('max_rating') || '',
-      start_date: searchParams.get('start_date') || '',
-      end_date: searchParams.get('end_date') || '',
+      duration_min: searchParams.get('duration_min') || '',
+      duration_max: searchParams.get('duration_max') || '',
+      difficulty_level: searchParams.get('difficulty_level') || '',
+      date_from: searchParams.get('date_from') || '',
+      date_to: searchParams.get('date_to') || '',
       tag_ids: searchParams
         .getAll('tag_ids')
         .map(id => parseInt(id))
         .filter(id => !isNaN(id)),
-      my_dives: searchParams.get('my_dives') === 'true',
     };
   };
 
   const getInitialPagination = () => {
     return {
       page: parseInt(searchParams.get('page')) || 1,
-      page_size: parseInt(searchParams.get('page_size')) || 25,
+      per_page: parseInt(searchParams.get('per_page')) || 25,
     };
   };
 
-  const [viewMode, setViewMode] = useState(getInitialViewMode);
-  const [viewport, setViewport] = useState({
-    longitude: 0,
-    latitude: 0,
-    zoom: 2,
+  // View mode state
+  const [viewMode, setViewMode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('view') || 'list';
   });
+  const [showThumbnails, setShowThumbnails] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('show_thumbnails') === 'true';
+  });
+  const [compactLayout, setCompactLayout] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('compact_layout') !== 'false'; // Default to true (compact)
+  });
+
+  const [showFilters, setShowFilters] = useState(false);
+  const [showMobileSorting, setShowMobileSorting] = useState(false);
 
   const [filters, setFilters] = useState(getInitialFilters);
   const [pagination, setPagination] = useState(getInitialPagination);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
     dive_site_name: getInitialFilters().dive_site_name,
   });
@@ -93,6 +101,16 @@ const Dives = () => {
     (() => {
       let timeoutId;
       return (newFilters, newPagination, newViewMode) => {
+        // Safety check: only proceed if all parameters are properly defined
+        if (!newFilters || !newPagination || !newViewMode) {
+          console.log('debouncedUpdateURL: Missing required parameters', {
+            newFilters,
+            newPagination,
+            newViewMode,
+          });
+          return;
+        }
+
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => {
           const newSearchParams = new URLSearchParams();
@@ -100,100 +118,230 @@ const Dives = () => {
           // Add view mode
           if (newViewMode === 'map') {
             newSearchParams.set('view', 'map');
+          } else if (newViewMode === 'grid') {
+            newSearchParams.set('view', 'grid');
+          } else {
+            newSearchParams.delete('view'); // Default to list view
           }
 
-          // Add filters
-          if (newFilters.dive_site_id) newSearchParams.set('dive_site_id', newFilters.dive_site_id);
-          if (newFilters.dive_site_name)
-            newSearchParams.set('dive_site_name', newFilters.dive_site_name);
-          if (newFilters.difficulty_level)
-            newSearchParams.set('difficulty_level', newFilters.difficulty_level);
-          if (newFilters.min_depth) newSearchParams.set('min_depth', newFilters.min_depth);
-          if (newFilters.max_depth) newSearchParams.set('max_depth', newFilters.max_depth);
-          if (newFilters.min_visibility)
-            newSearchParams.set('min_visibility', newFilters.min_visibility);
-          if (newFilters.max_visibility)
-            newSearchParams.set('max_visibility', newFilters.max_visibility);
-          if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
-          if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
-          if (newFilters.start_date) newSearchParams.set('start_date', newFilters.start_date);
-          if (newFilters.end_date) newSearchParams.set('end_date', newFilters.end_date);
-          if (newFilters.my_dives) newSearchParams.set('my_dives', newFilters.my_dives.toString());
+          // Add filters with comprehensive safety checks
+          if (
+            newFilters.dive_site_id &&
+            newFilters.dive_site_id.toString &&
+            newFilters.dive_site_id.toString().trim()
+          ) {
+            newSearchParams.set('dive_site_id', newFilters.dive_site_id.toString());
+          }
+          if (
+            newFilters.dive_site_name &&
+            newFilters.dive_site_name.toString &&
+            newFilters.dive_site_name.toString().trim()
+          ) {
+            newSearchParams.set('dive_site_name', newFilters.dive_site_name.toString());
+          }
+          if (
+            newFilters.difficulty_level &&
+            newFilters.difficulty_level.toString &&
+            newFilters.difficulty_level.toString().trim()
+          ) {
+            newSearchParams.set('difficulty_level', newFilters.difficulty_level.toString());
+          }
+          if (
+            newFilters.min_depth &&
+            newFilters.min_depth.toString &&
+            newFilters.min_depth.toString().trim()
+          ) {
+            newSearchParams.set('min_depth', newFilters.min_depth.toString());
+          }
+          if (
+            newFilters.min_rating &&
+            newFilters.min_rating.toString &&
+            newFilters.min_rating.toString().trim()
+          ) {
+            newSearchParams.set('min_rating', newFilters.min_rating.toString());
+          }
+          if (
+            newFilters.start_date &&
+            newFilters.start_date.toString &&
+            newFilters.start_date.toString().trim()
+          ) {
+            newSearchParams.set('start_date', newFilters.start_date.toString());
+          }
+          if (
+            newFilters.end_date &&
+            newFilters.end_date.toString &&
+            newFilters.end_date.toString().trim()
+          ) {
+            newSearchParams.set('end_date', newFilters.end_date.toString());
+          }
+          if (
+            newFilters.my_dives !== undefined &&
+            newFilters.my_dives !== null &&
+            newFilters.my_dives.toString
+          ) {
+            newSearchParams.set('my_dives', newFilters.my_dives.toString());
+          }
 
-          // Add tag IDs
-          newFilters.tag_ids.forEach(tagId => {
-            newSearchParams.append('tag_ids', tagId.toString());
-          });
+          // Add tag IDs with safety check
+          if (newFilters.tag_ids && Array.isArray(newFilters.tag_ids)) {
+            newFilters.tag_ids.forEach(tagId => {
+              if (tagId && tagId.toString) {
+                newSearchParams.append('tag_ids', tagId.toString());
+              }
+            });
+          }
 
-          // Add sorting parameters
+          // Add sorting parameters with safety check
           const sortParams = getSortParams();
-          if (sortParams.sort_by) newSearchParams.set('sort_by', sortParams.sort_by);
-          if (sortParams.sort_order) newSearchParams.set('sort_order', sortParams.sort_order);
+          if (sortParams && sortParams.sort_by) {
+            newSearchParams.set('sort_by', sortParams.sort_by);
+          }
+          if (sortParams && sortParams.sort_order) {
+            newSearchParams.set('sort_order', sortParams.sort_order);
+          }
 
-          // Add pagination
-          newSearchParams.set('page', newPagination.page.toString());
-          newSearchParams.set('page_size', newPagination.page_size.toString());
+          // Add pagination with safety checks
+          if (newPagination.page && newPagination.page.toString) {
+            newSearchParams.set('page', newPagination.page.toString());
+          }
+          if (newPagination.per_page && newPagination.per_page.toString) {
+            newSearchParams.set('per_page', newPagination.per_page.toString());
+          }
 
           // Update URL without triggering a page reload
           navigate(`?${newSearchParams.toString()}`, { replace: true });
         }, 800); // 800ms debounce delay
       };
     })(),
-    [navigate]
+    [navigate, getSortParams]
   );
 
   // Immediate URL update for non-search filters
   const immediateUpdateURL = useCallback(
     (newFilters, newPagination, newViewMode) => {
+      // Safety check: only proceed if all parameters are properly defined
+      if (!newFilters || !newPagination || !newViewMode) {
+        console.log('immediateUpdateURL: Missing required parameters', {
+          newFilters,
+          newPagination,
+          newViewMode,
+        });
+        return;
+      }
+
       const newSearchParams = new URLSearchParams();
 
       // Add view mode
       if (newViewMode === 'map') {
         newSearchParams.set('view', 'map');
+      } else if (newViewMode === 'grid') {
+        newSearchParams.set('view', 'grid');
+      } else {
+        newSearchParams.delete('view'); // Default to list view
       }
 
-      // Add filters
-      if (newFilters.dive_site_id) newSearchParams.set('dive_site_id', newFilters.dive_site_id);
-      if (newFilters.dive_site_name)
-        newSearchParams.set('dive_site_name', newFilters.dive_site_name);
-      if (newFilters.difficulty_level)
-        newSearchParams.set('difficulty_level', newFilters.difficulty_level);
-      if (newFilters.min_depth) newSearchParams.set('min_depth', newFilters.min_depth);
-      if (newFilters.max_depth) newSearchParams.set('max_depth', newFilters.max_depth);
-      if (newFilters.min_visibility)
-        newSearchParams.set('min_visibility', newFilters.min_visibility);
-      if (newFilters.max_visibility)
-        newSearchParams.set('max_visibility', newFilters.max_visibility);
-      if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
-      if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
-      if (newFilters.start_date) newSearchParams.set('start_date', newFilters.start_date);
-      if (newFilters.end_date) newSearchParams.set('end_date', newFilters.end_date);
-      if (newFilters.my_dives) newSearchParams.set('my_dives', newFilters.my_dives.toString());
+      // Add filters with comprehensive safety checks
+      if (
+        newFilters.dive_site_id &&
+        newFilters.dive_site_id.toString &&
+        newFilters.dive_site_id.toString().trim()
+      ) {
+        newSearchParams.set('dive_site_id', newFilters.dive_site_id.toString());
+      }
+      if (
+        newFilters.dive_site_name &&
+        newFilters.dive_site_name.toString &&
+        newFilters.dive_site_name.toString().trim()
+      ) {
+        newSearchParams.set('dive_site_name', newFilters.dive_site_name.toString());
+      }
+      if (
+        newFilters.difficulty_level &&
+        newFilters.difficulty_level.toString &&
+        newFilters.difficulty_level.toString().trim()
+      ) {
+        newSearchParams.set('difficulty_level', newFilters.difficulty_level.toString());
+      }
+      if (
+        newFilters.min_depth &&
+        newFilters.min_depth.toString &&
+        newFilters.min_depth.toString().trim()
+      ) {
+        newSearchParams.set('min_depth', newFilters.min_depth.toString());
+      }
+      if (
+        newFilters.min_rating &&
+        newFilters.min_rating.toString &&
+        newFilters.min_rating.toString().trim()
+      ) {
+        newSearchParams.set('min_rating', newFilters.min_rating.toString());
+      }
+      if (
+        newFilters.start_date &&
+        newFilters.start_date.toString &&
+        newFilters.start_date.toString().trim()
+      ) {
+        newSearchParams.set('start_date', newFilters.start_date.toString());
+      }
+      if (
+        newFilters.end_date &&
+        newFilters.end_date.toString &&
+        newFilters.end_date.toString().trim()
+      ) {
+        newSearchParams.set('end_date', newFilters.end_date.toString());
+      }
+      if (
+        newFilters.my_dives !== undefined &&
+        newFilters.my_dives !== null &&
+        newFilters.my_dives.toString
+      ) {
+        newSearchParams.set('my_dives', newFilters.my_dives.toString());
+      }
 
-      // Add tag IDs
-      newFilters.tag_ids.forEach(tagId => {
-        newSearchParams.append('tag_ids', tagId.toString());
-      });
+      // Add tag IDs with safety check
+      if (newFilters.tag_ids && Array.isArray(newFilters.tag_ids)) {
+        newFilters.tag_ids.forEach(tagId => {
+          if (tagId && tagId.toString) {
+            newSearchParams.append('tag_ids', tagId.toString());
+          }
+        });
+      }
 
-      // Add sorting parameters
+      // Add sorting parameters with safety check
       const sortParams = getSortParams();
-      if (sortParams.sort_by) newSearchParams.set('sort_by', sortParams.sort_by);
-      if (sortParams.sort_order) newSearchParams.set('sort_order', sortParams.sort_order);
+      if (sortParams && sortParams.sort_by) {
+        newSearchParams.set('sort_by', sortParams.sort_by);
+      }
+      if (sortParams && sortParams.sort_order) {
+        newSearchParams.set('sort_order', sortParams.sort_order);
+      }
 
-      // Add pagination
-      newSearchParams.set('page', newPagination.page.toString());
-      newSearchParams.set('page_size', newPagination.page_size.toString());
+      // Add pagination with safety checks
+      if (newPagination.page && newPagination.page.toString) {
+        newSearchParams.set('page', newPagination.page.toString());
+      }
+      if (newPagination.per_page && newPagination.per_page.toString) {
+        newSearchParams.set('per_page', newPagination.per_page.toString());
+      }
 
       // Update URL without triggering a page reload
       navigate(`?${newSearchParams.toString()}`, { replace: true });
     },
-    [navigate, sortBy, sortOrder]
+    [navigate, getSortParams]
   );
 
   // Update URL when view mode or pagination change (immediate)
   useEffect(() => {
-    immediateUpdateURL(filters, pagination, viewMode);
-  }, [viewMode, pagination, immediateUpdateURL]);
+    // Only run if filters and pagination are properly initialized
+    if (
+      filters &&
+      pagination &&
+      Object.keys(filters).length > 0 &&
+      Object.keys(pagination).length > 0
+    ) {
+      immediateUpdateURL(filters, pagination, viewMode);
+    }
+  }, [filters, pagination, viewMode, immediateUpdateURL]);
 
   // No more debounced URL updates for search inputs - they only update when Search button is clicked
 
@@ -214,11 +362,7 @@ const Dives = () => {
     filters.dive_site_id,
     filters.difficulty_level,
     filters.min_depth,
-    filters.max_depth,
-    filters.min_visibility,
-    filters.max_visibility,
     filters.min_rating,
-    filters.max_rating,
     filters.start_date,
     filters.end_date,
     filters.my_dives,
@@ -248,11 +392,7 @@ const Dives = () => {
       filters.dive_site_id,
       filters.difficulty_level,
       filters.min_depth,
-      filters.max_depth,
-      filters.min_visibility,
-      filters.max_visibility,
       filters.min_rating,
-      filters.max_rating,
       filters.start_date,
       filters.end_date,
       filters.my_dives,
@@ -266,18 +406,20 @@ const Dives = () => {
         params.append('dive_site_name', debouncedSearchTerms.dive_site_name);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
       if (filters.min_depth) params.append('min_depth', filters.min_depth);
-      if (filters.max_depth) params.append('max_depth', filters.max_depth);
-      if (filters.min_visibility) params.append('min_visibility', filters.min_visibility);
-      if (filters.max_visibility) params.append('max_visibility', filters.max_visibility);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
-      if (filters.max_rating) params.append('max_rating', filters.max_rating);
       if (filters.start_date) params.append('start_date', filters.start_date);
       if (filters.end_date) params.append('end_date', filters.end_date);
-      if (filters.my_dives) params.append('my_dives', filters.my_dives.toString());
+      if (filters.my_dives && filters.my_dives.toString) {
+        params.append('my_dives', filters.my_dives.toString());
+      }
 
-      filters.tag_ids.forEach(tagId => {
-        params.append('tag_ids', tagId.toString());
-      });
+      if (filters.tag_ids && Array.isArray(filters.tag_ids)) {
+        filters.tag_ids.forEach(tagId => {
+          if (tagId && tagId.toString) {
+            params.append('tag_ids', tagId.toString());
+          }
+        });
+      }
 
       return api.get(`/api/v1/dives/count?${params.toString()}`).then(res => res.data);
     },
@@ -301,17 +443,13 @@ const Dives = () => {
       filters.dive_site_id,
       filters.difficulty_level,
       filters.min_depth,
-      filters.max_depth,
-      filters.min_visibility,
-      filters.max_visibility,
       filters.min_rating,
-      filters.max_rating,
       filters.start_date,
       filters.end_date,
       filters.my_dives,
       filters.tag_ids,
       pagination.page,
-      pagination.page_size,
+      pagination.per_page,
       sortBy,
       sortOrder,
     ],
@@ -323,25 +461,27 @@ const Dives = () => {
         params.append('dive_site_name', debouncedSearchTerms.dive_site_name);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
       if (filters.min_depth) params.append('min_depth', filters.min_depth);
-      if (filters.max_depth) params.append('max_depth', filters.max_depth);
-      if (filters.min_visibility) params.append('min_visibility', filters.min_visibility);
-      if (filters.max_visibility) params.append('max_visibility', filters.max_visibility);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
-      if (filters.max_rating) params.append('max_rating', filters.max_rating);
       if (filters.start_date) params.append('start_date', filters.start_date);
       if (filters.end_date) params.append('end_date', filters.end_date);
       if (filters.my_dives) params.append('my_dives', filters.my_dives.toString());
 
-      filters.tag_ids.forEach(tagId => {
-        params.append('tag_ids', tagId.toString());
-      });
+      if (filters.tag_ids && Array.isArray(filters.tag_ids)) {
+        filters.tag_ids.forEach(tagId => {
+          params.append('tag_ids', tagId.toString());
+        });
+      }
 
       // Add sorting parameters directly from state (not from getSortParams)
       if (sortBy) params.append('sort_by', sortBy);
       if (sortOrder) params.append('sort_order', sortOrder);
 
-      params.append('page', pagination.page.toString());
-      params.append('page_size', pagination.page_size.toString());
+      if (pagination.page && pagination.page.toString) {
+        params.append('page', pagination.page.toString());
+      }
+      if (pagination.per_page && pagination.per_page.toString) {
+        params.append('per_page', pagination.per_page.toString());
+      }
 
       return api.get(`/api/v1/dives/?${params.toString()}`).then(res => res.data);
     },
@@ -360,36 +500,58 @@ const Dives = () => {
     // Add view mode
     if (viewMode === 'map') {
       newSearchParams.set('view', 'map');
+    } else if (viewMode === 'grid') {
+      newSearchParams.set('view', 'grid');
+    } else {
+      newSearchParams.delete('view'); // Default to list view
     }
 
-    // Add search filters
-    if (filters.dive_site_name) newSearchParams.set('dive_site_name', filters.dive_site_name);
+    // Add search filters with safety checks
+    if (filters.dive_site_name && filters.dive_site_name.toString) {
+      newSearchParams.set('dive_site_name', filters.dive_site_name.toString());
+    }
 
-    // Add other filters
-    if (filters.dive_site_id) newSearchParams.set('dive_site_id', filters.dive_site_id);
-    if (filters.difficulty_level) newSearchParams.set('difficulty_level', filters.difficulty_level);
-    if (filters.min_depth) newSearchParams.set('min_depth', filters.min_depth);
-    if (filters.max_depth) newSearchParams.set('max_depth', filters.max_depth);
-    if (filters.min_visibility) newSearchParams.set('min_visibility', filters.min_visibility);
-    if (filters.max_visibility) newSearchParams.set('max_visibility', filters.max_visibility);
-    if (filters.min_rating) newSearchParams.set('min_rating', filters.min_rating);
-    if (filters.max_rating) newSearchParams.set('max_rating', filters.max_rating);
-    if (filters.start_date) newSearchParams.set('start_date', filters.start_date);
-    if (filters.end_date) newSearchParams.set('end_date', filters.end_date);
-    if (filters.my_dives) newSearchParams.set('my_dives', filters.my_dives.toString());
+    // Add other filters with safety checks
+    if (filters.dive_site_id && filters.dive_site_id.toString) {
+      newSearchParams.set('dive_site_id', filters.dive_site_id.toString());
+    }
+    if (filters.difficulty_level && filters.difficulty_level.toString) {
+      newSearchParams.set('difficulty_level', filters.difficulty_level.toString());
+    }
+    if (filters.min_depth && filters.min_depth.toString) {
+      newSearchParams.set('min_depth', filters.min_depth.toString());
+    }
+    if (filters.min_rating && filters.min_rating.toString) {
+      newSearchParams.set('min_rating', filters.min_rating.toString());
+    }
+    if (filters.start_date && filters.start_date.toString) {
+      newSearchParams.set('start_date', filters.start_date.toString());
+    }
+    if (filters.end_date && filters.end_date.toString) {
+      newSearchParams.set('end_date', filters.end_date.toString());
+    }
+    if (filters.my_dives !== undefined && filters.my_dives !== null && filters.my_dives.toString) {
+      newSearchParams.set('my_dives', filters.my_dives.toString());
+    }
 
     // Add sorting parameters
     if (sortBy) newSearchParams.set('sort_by', sortBy);
     if (sortOrder) newSearchParams.set('sort_order', sortOrder);
 
-    // Add tag IDs
-    filters.tag_ids.forEach(tagId => {
-      newSearchParams.append('tag_ids', tagId.toString());
-    });
+    // Add tag IDs with safety check
+    if (filters.tag_ids && Array.isArray(filters.tag_ids)) {
+      filters.tag_ids.forEach(tagId => {
+        if (tagId && tagId.toString) {
+          newSearchParams.append('tag_ids', tagId.toString());
+        }
+      });
+    }
 
-    // Add pagination
+    // Add pagination with safety check
     newSearchParams.set('page', '1'); // Reset to page 1
-    newSearchParams.set('page_size', pagination.page_size.toString());
+    if (pagination.per_page && pagination.per_page.toString) {
+      newSearchParams.set('per_page', pagination.per_page.toString());
+    }
 
     // Update URL without triggering a page reload
     navigate(`?${newSearchParams.toString()}`, { replace: true });
@@ -412,11 +574,7 @@ const Dives = () => {
       dive_site_name: '',
       difficulty_level: '',
       min_depth: '',
-      max_depth: '',
-      min_visibility: '',
-      max_visibility: '',
       min_rating: '',
-      max_rating: '',
       start_date: '',
       end_date: '',
       tag_ids: [],
@@ -439,11 +597,56 @@ const Dives = () => {
   };
 
   const handlePageSizeChange = newPageSize => {
-    setPagination(prev => ({ ...prev, page: 1, page_size: newPageSize }));
+    setPagination(prev => ({ ...prev, page: 1, per_page: newPageSize }));
   };
 
   const toggleFilters = () => {
     setShowFilters(!showFilters);
+  };
+
+  const handleViewModeChange = newViewMode => {
+    setViewMode(newViewMode);
+
+    // Update URL with new view mode
+    const urlParams = new URLSearchParams(window.location.search);
+    if (newViewMode === 'map') {
+      urlParams.set('view', 'map');
+    } else if (newViewMode === 'grid') {
+      urlParams.set('view', 'grid');
+    } else {
+      urlParams.delete('view'); // Default to list view
+    }
+
+    // Update URL without triggering a page reload
+    navigate(`?${urlParams.toString()}`, { replace: true });
+  };
+
+  const handleDisplayOptionChange = option => {
+    if (option === 'thumbnails') {
+      const newShowThumbnails = !showThumbnails;
+      setShowThumbnails(newShowThumbnails);
+
+      // Update URL
+      const urlParams = new URLSearchParams(window.location.search);
+      if (newShowThumbnails) {
+        urlParams.set('show_thumbnails', 'true');
+      } else {
+        urlParams.delete('show_thumbnails');
+      }
+      navigate(`?${urlParams.toString()}`, { replace: true });
+    } else if (option === 'compact') {
+      const newCompactLayout = !compactLayout;
+      setCompactLayout(newCompactLayout);
+
+      // Update URL
+      const urlParams = new URLSearchParams(window.location.search);
+      if (!newCompactLayout) {
+        urlParams.set('compact_layout', 'false');
+      } else {
+        urlParams.delete('compact_layout');
+      }
+      navigate(`?${urlParams.toString()}`, { replace: true });
+    }
   };
 
   // Delete dive mutation
@@ -626,14 +829,14 @@ const Dives = () => {
 
             <div>
               <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Min Depth (m)
+                Min Depth (≥)
               </label>
               <input
                 type='number'
                 name='min_depth'
                 min='0'
                 step='any'
-                placeholder='Min depth'
+                placeholder='Show dives deeper than this value'
                 value={filters.min_depth}
                 onChange={handleSearchChange}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
@@ -642,77 +845,16 @@ const Dives = () => {
 
             <div>
               <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Max Depth (m)
-              </label>
-              <input
-                type='number'
-                name='max_depth'
-                min='0'
-                step='any'
-                placeholder='Max depth'
-                value={filters.max_depth}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Min Visibility (m)
-              </label>
-              <input
-                type='number'
-                name='min_visibility'
-                min='0'
-                placeholder='Min visibility'
-                value={filters.min_visibility}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Max Visibility (m)
-              </label>
-              <input
-                type='number'
-                name='max_visibility'
-                min='0'
-                placeholder='Max visibility'
-                value={filters.max_visibility}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Min Rating
+                Min Rating (≥)
               </label>
               <input
                 type='number'
                 name='min_rating'
-                min='1'
+                min='0'
                 max='10'
-                placeholder='Min rating'
+                step='0.1'
+                placeholder='Show dives rated ≥ this value'
                 value={filters.min_rating}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Max Rating
-              </label>
-              <input
-                type='number'
-                name='max_rating'
-                min='1'
-                max='10'
-                placeholder='Max rating'
-                value={filters.max_rating}
                 onChange={handleSearchChange}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
               />
@@ -791,59 +933,38 @@ const Dives = () => {
 
       {/* Sorting Controls */}
       <div className='mb-6 sm:mb-8'>
-        <SortingControls
+        <EnhancedMobileSortingControls
           sortBy={sortBy}
           sortOrder={sortOrder}
-          sortOptions={getSortOptions('dives', user?.is_admin)}
+          sortOptions={getSortOptions('dives')}
           onSortChange={handleSortChange}
           onSortApply={handleSortApply}
           onReset={resetSorting}
           entityType='dives'
+          showFilters={false} // Hide filters in this section for now
+          onToggleFilters={() => {}}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          showQuickActions={true}
+          showFAB={true}
+          showTabs={true}
+          showThumbnails={showThumbnails}
+          compactLayout={compactLayout}
+          onDisplayOptionChange={handleDisplayOptionChange}
         />
       </div>
 
-      {/* View Mode and Pagination Controls - Integrated for better UX */}
+      {/* Pagination Controls */}
       <div className='mb-6 sm:mb-8'>
         <div className='bg-white rounded-lg shadow-md p-4 sm:p-6'>
           <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
-            {/* View Mode Controls */}
-            <div className='flex flex-col sm:flex-row items-center gap-4'>
-              <div className='flex items-center gap-2'>
-                <span className='text-sm font-medium text-gray-700'>View Mode:</span>
-              </div>
-              <div className='flex gap-2'>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`px-6 py-3 rounded-lg transition-all duration-200 text-sm font-medium flex items-center gap-2 ${
-                    viewMode === 'list'
-                      ? 'bg-blue-600 text-white shadow-md scale-105'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
-                  }`}
-                >
-                  <List className='h-5 w-5' />
-                  List View
-                </button>
-                <button
-                  onClick={() => setViewMode('map')}
-                  className={`px-6 py-3 rounded-lg transition-all duration-200 text-sm font-medium flex items-center gap-2 ${
-                    viewMode === 'map'
-                      ? 'bg-blue-600 text-white shadow-md scale-105'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
-                  }`}
-                >
-                  <Map className='h-5 w-5' />
-                  Map View
-                </button>
-              </div>
-            </div>
-
             {/* Pagination Controls */}
             <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
               {/* Page Size Selection */}
               <div className='flex items-center gap-2'>
                 <label className='text-sm font-medium text-gray-700'>Show:</label>
                 <select
-                  value={pagination.page_size}
+                  value={pagination.per_page}
                   onChange={e => handlePageSizeChange(parseInt(e.target.value))}
                   className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
                 >
@@ -855,16 +976,16 @@ const Dives = () => {
               </div>
 
               {/* Pagination Info */}
-              {totalCount !== undefined && (
+              {totalCount !== undefined && totalCount !== null && (
                 <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
-                  Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
-                  {Math.min(pagination.page * pagination.page_size, totalCount)} of {totalCount}{' '}
+                  Showing {Math.max(1, (pagination.page - 1) * pagination.per_page + 1)} to{' '}
+                  {Math.min(pagination.page * pagination.per_page, totalCount)} of {totalCount}{' '}
                   dives
                 </div>
               )}
 
               {/* Pagination Navigation */}
-              {totalCount !== undefined && (
+              {totalCount !== undefined && totalCount !== null && totalCount > 0 && (
                 <div className='flex items-center gap-2'>
                   <button
                     onClick={() => handlePageChange(pagination.page - 1)}
@@ -875,12 +996,13 @@ const Dives = () => {
                   </button>
 
                   <span className='text-xs sm:text-sm text-gray-700'>
-                    Page {pagination.page} of {Math.ceil(totalCount / pagination.page_size)}
+                    Page {pagination.page} of{' '}
+                    {Math.max(1, Math.ceil(totalCount / pagination.per_page))}
                   </span>
 
                   <button
                     onClick={() => handlePageChange(pagination.page + 1)}
-                    disabled={pagination.page >= Math.ceil(totalCount / pagination.page_size)}
+                    disabled={pagination.page >= Math.ceil(totalCount / pagination.per_page)}
                     className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
                   >
                     <ChevronRight className='h-4 w-4' />
@@ -944,146 +1066,187 @@ const Dives = () => {
         </div>
       ) : viewMode === 'map' ? (
         <div className='mb-6 sm:mb-8'>
-          <DivesMap
-            key={`dives-${dives?.length || 0}-${JSON.stringify(filters)}`}
-            dives={dives}
-            viewport={viewport}
-            onViewportChange={setViewport}
-          />
+          <DivesMap dives={dives || []} />
         </div>
       ) : (
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6'>
-          {dives?.map(dive => {
-            // Determine card styling based on ownership and privacy
-            const isOwnedByUser = user?.id === dive.user_id;
-            const isPrivate = dive.is_private;
-
-            let cardClasses =
-              'rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow';
-
-            if (isPrivate) {
-              cardClasses +=
-                ' bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200';
-            } else if (!isOwnedByUser) {
-              cardClasses += ' bg-gradient-to-br from-gray-50 to-blue-50 border border-gray-200';
-            } else {
-              cardClasses += ' bg-white';
-            }
-
-            return (
-              <div key={dive.id} className={cardClasses}>
-                <div className='p-4 sm:p-6'>
-                  <div className='flex justify-between items-start mb-3 sm:mb-4'>
-                    <div className='flex-1 min-w-0'>
-                      <Link
-                        to={`/dives/${dive.id}`}
-                        className='text-lg sm:text-xl font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate block'
-                      >
-                        {dive.name || dive.dive_site?.name || 'Unnamed Dive Site'}
-                      </Link>
-                      <p className='text-sm text-gray-600'>
-                        {formatDate(dive.dive_date)}
-                        {dive.dive_time && ` at ${formatTime(dive.dive_time)}`}
-                      </p>
-                    </div>
-                    <div className='flex gap-2 flex-shrink-0'>
-                      <Link
-                        to={`/dives/${dive.id}`}
-                        className='text-blue-600 hover:text-blue-800'
-                        title='View Dive'
-                      >
-                        <Eye size={16} />
-                      </Link>
-                      {isPrivate && (
-                        <Lock size={16} className='text-gray-500' title='Private Dive' />
-                      )}
-                      {(isOwnedByUser || user?.is_admin) && (
-                        <>
-                          <Link
-                            to={`/dives/${dive.id}/edit`}
-                            className='text-green-600 hover:text-green-800'
-                            title='Edit Dive'
+        <>
+          {/* Dives List */}
+          {viewMode === 'list' && (
+            <div className={`space-y-4 ${compactLayout ? 'view-mode-compact' : ''}`}>
+              {dives?.map(dive => (
+                <div
+                  key={dive.id}
+                  className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow ${
+                    compactLayout ? 'p-4' : 'p-6'
+                  }`}
+                >
+                  <div className='flex items-start justify-between mb-4'>
+                    <div className='flex-1'>
+                      <div className='flex items-center gap-3 mb-2'>
+                        {showThumbnails && (
+                          <div className='dive-thumbnail'>
+                            <Calendar className='w-8 h-8' />
+                          </div>
+                        )}
+                        <div>
+                          <h3
+                            className={`font-semibold text-gray-900 ${compactLayout ? 'text-base' : 'text-lg'}`}
                           >
-                            <Edit size={16} />
-                          </Link>
-                          {(isOwnedByUser || user?.is_admin) && (
-                            <button
-                              onClick={() => handleDelete(dive.id)}
-                              className='text-red-600 hover:text-red-800'
-                              title='Delete Dive'
+                            <Link
+                              to={`/dives/${dive.id}`}
+                              className='hover:text-blue-600 transition-colors'
                             >
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                        </>
-                      )}
+                              {dive.name || `Dive #${dive.id}`}
+                            </Link>
+                          </h3>
+                          <p className={`text-gray-600 ${compactLayout ? 'text-sm' : 'text-base'}`}>
+                            {new Date(dive.dive_date).toLocaleDateString('en-GB')} at{' '}
+                            {new Date(dive.dive_date).toLocaleTimeString('en-GB', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <Link
+                      to={`/dives/${dive.id}`}
+                      className='inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
+                    >
+                      <Eye className='w-4 h-4' />
+                      View Dive
+                    </Link>
+                  </div>
+
+                  <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-4'>
+                    <div className='flex items-center gap-2'>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_level)}`}
+                      >
+                        {getDifficultyLabel(dive.difficulty_level)}
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+                        {dive.suit_type || 'dry suit'}
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <TrendingUp className='w-4 h-4 text-gray-400' />
+                      <span className='text-sm text-gray-600'>{dive.max_depth}m max</span>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <Clock className='w-4 h-4 text-gray-400' />
+                      <span className='text-sm text-gray-600'>{dive.duration}min</span>
                     </div>
                   </div>
 
-                  <div className='space-y-2'>
-                    {dive.difficulty_level && (
+                  <div className='flex items-center gap-4 mb-4'>
+                    <div className='flex items-center gap-2'>
+                      <Star className='w-4 h-4 text-yellow-400' />
+                      <span className='text-sm text-gray-600'>{dive.rating}/10</span>
+                    </div>
+                  </div>
+
+                  <p className={`text-gray-700 ${compactLayout ? 'text-sm' : 'text-base'}`}>
+                    Buddy: {dive.buddy} SAC: {dive.sac} l/min OTU: {dive.otu} CNS: {dive.cns}% Max
+                    Depth: {dive.max_depth} m Avg Depth: {dive.avg_depth} m Water Temp:{' '}
+                    {dive.water_temp} C Deco Model: {dive.deco_model} Weights: {dive.weights} kg
+                    weight
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Dives Grid */}
+          {viewMode === 'grid' && (
+            <div
+              className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${compactLayout ? 'view-mode-compact' : ''}`}
+            >
+              {dives?.map(dive => (
+                <div
+                  key={dive.id}
+                  className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
+                    compactLayout ? 'p-4' : 'p-6'
+                  }`}
+                >
+                  {showThumbnails && (
+                    <div className='dive-thumbnail bg-gray-100 p-4 flex items-center justify-center'>
+                      <Calendar className='w-12 h-12 text-gray-400' />
+                    </div>
+                  )}
+
+                  <div className='p-4'>
+                    <h3
+                      className={`font-semibold text-gray-900 mb-2 ${compactLayout ? 'text-base' : 'text-lg'}`}
+                    >
+                      <Link
+                        to={`/dives/${dive.id}`}
+                        className='hover:text-blue-600 transition-colors'
+                      >
+                        {dive.name || `Dive #${dive.id}`}
+                      </Link>
+                    </h3>
+
+                    <p className={`text-gray-600 mb-3 ${compactLayout ? 'text-sm' : 'text-base'}`}>
+                      {new Date(dive.dive_date).toLocaleDateString('en-GB')} at{' '}
+                      {new Date(dive.dive_date).toLocaleTimeString('en-GB', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+
+                    <div className='space-y-2 mb-4'>
                       <div className='flex items-center gap-2'>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_level)}`}
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_level)}`}
                         >
                           {getDifficultyLabel(dive.difficulty_level)}
                         </span>
                       </div>
-                    )}
-
-                    {dive.suit_type && (
                       <div className='flex items-center gap-2'>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getSuitTypeColor(dive.suit_type)}`}
-                        >
-                          {dive.suit_type.replace('_', ' ')}
+                        <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+                          {dive.suit_type || 'dry suit'}
                         </span>
                       </div>
-                    )}
-
-                    <div className='flex items-center gap-4 text-xs sm:text-sm text-gray-600'>
-                      {dive.max_depth && (
-                        <div className='flex items-center gap-1'>
-                          <Thermometer size={14} />
-                          <span>{dive.max_depth}m max</span>
-                        </div>
-                      )}
-                      {dive.duration && (
-                        <div className='flex items-center gap-1'>
-                          <Clock size={14} />
-                          <span>{dive.duration}min</span>
-                        </div>
-                      )}
-                      {dive.user_rating && (
-                        <div className='flex items-center gap-1'>
-                          <Star size={14} className='text-yellow-500' />
-                          <span>{dive.user_rating}/10</span>
-                        </div>
-                      )}
                     </div>
 
-                    {dive.dive_information && (
-                      <p className='text-sm text-gray-700 line-clamp-2'>{dive.dive_information}</p>
-                    )}
-
-                    {dive.tags && dive.tags.length > 0 && (
-                      <div className='flex flex-wrap gap-1 mt-2'>
-                        {dive.tags.map(tag => (
-                          <span
-                            key={tag.id}
-                            className={`px-2 py-1 text-xs rounded-full font-medium ${getTagColor(tag.name)}`}
-                          >
-                            {tag.name}
-                          </span>
-                        ))}
+                    <div className='grid grid-cols-2 gap-3 mb-4'>
+                      <div className='flex items-center gap-2'>
+                        <TrendingUp className='w-4 h-4 text-gray-400' />
+                        <span className='text-sm text-gray-600'>{dive.max_depth}m</span>
                       </div>
-                    )}
+                      <div className='flex items-center gap-2'>
+                        <Clock className='w-4 h-4 text-gray-400' />
+                        <span className='text-sm text-gray-600'>{dive.duration}min</span>
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <Star className='w-4 h-4 text-yellow-400' />
+                        <span className='text-sm text-gray-600'>{dive.rating}/10</span>
+                      </div>
+                    </div>
+
+                    <Link
+                      to={`/dives/${dive.id}`}
+                      className='w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
+                    >
+                      <Eye className='w-4 h-4' />
+                      View Dive
+                    </Link>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              ))}
+            </div>
+          )}
+
+          {/* Dives Map */}
+          {viewMode === 'map' && (
+            <div className='h-96 rounded-lg overflow-hidden border border-gray-200'>
+              <DivesMap dives={dives || []} />
+            </div>
+          )}
+        </>
       )}
 
       {dives?.length === 0 && (

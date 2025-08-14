@@ -101,9 +101,4 @@ MaskedEmail.propTypes = {
   showMailto: PropTypes.bool,
 };
 
-MaskedEmail.defaultProps = {
-  className: '',
-  showMailto: true,
-};
-
 export default MaskedEmail;
