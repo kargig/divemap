@@ -16,7 +16,7 @@ import { Link } from 'react-router-dom';
 
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 
-const DivesMap = ({ dives = [], onViewportChange }) => {
+const DivesMap = ({ dives = [], viewport, onViewportChange }) => {
   const mapRef = useRef();
   const mapInstance = useRef();
   const hasFittedRef = useRef(false);
@@ -361,8 +361,10 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
           }),
         ],
         view: new View({
-          center: fromLonLat([0, 0]),
-          zoom: 2,
+          center: viewport
+            ? fromLonLat([viewport.longitude, viewport.latitude])
+            : fromLonLat([0, 0]),
+          zoom: viewport ? viewport.zoom : 2,
         }),
       });
 
@@ -757,6 +759,11 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
 
 DivesMap.propTypes = {
   dives: PropTypes.arrayOf(PropTypes.object),
+  viewport: PropTypes.shape({
+    longitude: PropTypes.number,
+    latitude: PropTypes.number,
+    zoom: PropTypes.number,
+  }),
   onViewportChange: PropTypes.func,
 };
 
