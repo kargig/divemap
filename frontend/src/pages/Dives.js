@@ -30,7 +30,6 @@ import ImportDivesModal from '../components/ImportDivesModal';
 import { useAuth } from '../contexts/AuthContext';
 import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
-import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
 
 const Dives = () => {
@@ -80,6 +79,13 @@ const Dives = () => {
   const [compactLayout, setCompactLayout] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('compact_layout') !== 'false'; // Default to true (compact)
+  });
+
+  // Add viewport state for map functionality
+  const [viewport, setViewport] = useState({
+    longitude: 0,
+    latitude: 0,
+    zoom: 2,
   });
 
   const [showFilters, setShowFilters] = useState(false);
@@ -1066,7 +1072,12 @@ const Dives = () => {
         </div>
       ) : viewMode === 'map' ? (
         <div className='mb-6 sm:mb-8'>
-          <DivesMap dives={dives || []} />
+          <DivesMap
+            key={`dives-${dives?.length || 0}-${JSON.stringify(filters)}`}
+            dives={dives || []}
+            viewport={viewport}
+            onViewportChange={setViewport}
+          />
         </div>
       ) : (
         <>
@@ -1243,7 +1254,12 @@ const Dives = () => {
           {/* Dives Map */}
           {viewMode === 'map' && (
             <div className='h-96 rounded-lg overflow-hidden border border-gray-200'>
-              <DivesMap dives={dives || []} />
+              <DivesMap
+                key={`dives-${dives?.length || 0}-${JSON.stringify(filters)}`}
+                dives={dives || []}
+                viewport={viewport}
+                onViewportChange={setViewport}
+              />
             </div>
           )}
         </>

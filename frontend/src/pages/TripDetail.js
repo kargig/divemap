@@ -6,6 +6,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getParsedTrip, getDiveSite, getDivingCenter } from '../api';
 import MaskedEmail from '../components/MaskedEmail';
 import TripHeader from '../components/TripHeader';
+import { generateTripName } from '../utils/tripNameGenerator';
 const TripDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -287,7 +288,7 @@ const TripDetail = () => {
                       )}
                       {divingCenter.email && (
                         <a
-                          href={`mailto:${divingCenter.email}?subject=Booking Inquiry: ${trip.trip_name || 'Dive Trip'}`}
+                          href={`mailto:${divingCenter.email}?subject=Booking Inquiry: ${generateTripName(trip)}`}
                           className='inline-flex items-center space-x-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors'
                         >
                           <Mail className='w-4 h-4' />
