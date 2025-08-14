@@ -13,6 +13,7 @@ import PropTypes from 'prop-types';
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { generateTripName } from '../utils/tripNameGenerator';
 
 const TripMap = ({
   trips = [],
@@ -70,6 +71,7 @@ const TripMap = ({
         <svg width="${size}" height="${size}" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
           <!-- Background circle -->
           <circle cx="14" cy="14" r="13" fill="${baseColor}" stroke="white" stroke-width="2"/>
+
           <!-- Diver silhouette -->
           <circle cx="14" cy="10" r="3" fill="white"/>
           <path d="M10 18 Q14 22 18 18" stroke="white" stroke-width="2" fill="none"/>
@@ -249,6 +251,7 @@ const TripMap = ({
     // Remove existing vector layers
     const layers = mapInstance.current.getLayers();
     const existingVectorLayers = layers.getArray().filter(layer => layer instanceof VectorLayer);
+
     existingVectorLayers.forEach(layer => mapInstance.current.removeLayer(layer));
 
     // Filter trips based on current filters and status toggles
@@ -345,6 +348,7 @@ const TripMap = ({
               divingCenters.length > 0
             ) {
               const divingCenter = divingCenters.find(dc => dc.id === trip.diving_center_id);
+
               if (divingCenter && divingCenter.latitude && divingCenter.longitude) {
                 latitude = parseFloat(divingCenter.latitude);
                 longitude = parseFloat(divingCenter.longitude);
@@ -581,8 +585,11 @@ const TripMap = ({
       if (filters.start_date && new Date(trip.trip_date) < new Date(filters.start_date))
         return false;
       if (filters.end_date && new Date(trip.trip_date) > new Date(filters.end_date)) return false;
+
       if (filters.min_price && trip.trip_price < parseFloat(filters.min_price)) return false;
+
       if (filters.max_price && trip.trip_price > parseFloat(filters.max_price)) return false;
+
       if (filters.trip_status && trip.trip_status !== filters.trip_status) return false;
       if (filters.difficulty_level && trip.difficulty_level !== filters.difficulty_level)
         return false;
@@ -681,8 +688,8 @@ const TripMap = ({
                     {popupInfo.type === 'dive_site'
                       ? `${popupInfo.dive_site_name || 'Dive Site'} (${popupInfo.dive_count} dives)`
                       : popupInfo.type === 'dive'
-                        ? `${popupInfo.dive_site_name || 'Dive Site'} - ${popupInfo.trip_name || 'Trip'}`
-                        : popupInfo.trip_name || 'Dive Trip'}
+                        ? `${popupInfo.dive_site_name || 'Dive Site'} - ${generateTripName(popupInfo)}`
+                        : generateTripName(popupInfo)}
                   </h3>
                   <span
                     className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
@@ -759,13 +766,7 @@ const TripMap = ({
                                 className='text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-left'
                                 title='Click to view trip details'
                               >
-                                •{' '}
-                                {dive.diving_center_name ||
-                                  (Array.isArray(divingCenters)
-                                    ? divingCenters.find(dc => dc.id === dive.diving_center_id)
-                                        ?.name
-                                    : null) ||
-                                  `Center ${dive.diving_center_id}`}
+                                • {generateTripName(dive)}
                               </button>
                               <button
                                 onClick={() => {
@@ -847,7 +848,9 @@ const TripMap = ({
                     <div className='flex items-center text-sm text-gray-700'>
                       <span className='font-medium w-16'>Level:</span>
                       <span
-                        className={`px-2 py-1 text-xs rounded-full ${getDifficultyColorClasses(popupInfo.difficulty_level)}`}
+                        className={`px-2 py-1 text-xs rounded-full ${getDifficultyColorClasses(
+                          popupInfo.difficulty_level
+                        )}`}
                       >
                         {getDifficultyLabel(popupInfo.difficulty_level)}
                       </span>
