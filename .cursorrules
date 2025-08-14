@@ -11,6 +11,8 @@
   - `divemap_frontend` - React frontend
 - **ALWAYS use docker exec to run commands inside containers IF needed**
 - **NEVER run frontend or backend commands outside of containers**
+- **ALWAYS use `docker logs` for container logging (NEVER use `docker-compose logs`)**
+- **ALWAYS use `docker logs --since` flag for efficient log filtering when debugging**
 
 ### Virtual Environment Requirements
 - **NEVER install Python packages in the system Python**
@@ -421,11 +423,6 @@ docker-compose up -d
 # Stop all services
 docker-compose down
 
-# View logs
-docker-compose logs divemap_frontend
-docker-compose logs divemap_backend
-docker-compose logs divemap_db
-
 # Run commands in containers
 docker-compose exec divemap_frontend npm install package_name
 docker-compose exec divemap_backend python -m pytest
@@ -435,6 +432,29 @@ docker-compose exec divemap_db mysql -u root -p
 docker-compose restart divemap_frontend
 docker-compose restart divemap_backend
 docker-compose restart divemap_db
+```
+
+### Docker Logging Best Practices
+```bash
+# ✅ CORRECT - ALWAYS use docker logs for specific containers
+# View all logs for a container:
+docker logs divemap_frontend
+docker logs divemap_backend
+docker logs divemap_db
+
+# View recent logs with --since flag (especially useful for debugging):
+docker logs divemap_frontend --since 5m | tail -20
+docker logs divemap_backend --since 10m | tail -20
+docker logs divemap_db --since 1h | tail -20
+
+# Filter logs for specific errors:
+docker logs divemap_frontend --since 10m | grep -i "error\|warning"
+docker logs divemap_backend --since 10m | grep -i "exception\|error"
+
+# ❌ WRONG - NEVER use docker-compose logs
+# docker-compose logs divemap_frontend  # This is forbidden
+# docker-compose logs divemap_backend   # This is forbidden
+# docker-compose logs divemap_db        # This is forbidden
 ```
 
 ### Environment Setup
@@ -645,7 +665,10 @@ grep -r '[ \t]+$' --include="*.py" --include="*.js" --include="*.jsx" --include=
 ```bash
 # ✅ CORRECT - Check frontend container logs for ESLint errors
 # After making changes to frontend files, check container logs:
-docker-compose logs divemap_frontend | grep -i "eslint\|error\|warning"
+docker logs divemap_frontend | grep -i "eslint\|error\|warning"
+
+# Or check recent logs with --since flag (more efficient):
+docker logs divemap_frontend --since 5m | grep -i "eslint\|error\|warning"
 
 # Or run ESLint directly in the frontend container:
 docker-compose exec divemap_frontend npm run lint
