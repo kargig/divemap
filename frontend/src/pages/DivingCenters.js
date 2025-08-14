@@ -1,23 +1,32 @@
 import {
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  Map,
+  Search,
+  List,
+  Lock,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
   Star,
   MapPin,
+  Building,
   Phone,
   Mail,
   Globe,
-  ChevronLeft,
-  ChevronRight,
-  List,
-  Map,
+  DollarSign,
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
 import DivingCentersMap from '../components/DivingCentersMap';
+import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
 import MaskedEmail from '../components/MaskedEmail';
-import SortingControls from '../components/SortingControls';
 import { useAuth } from '../contexts/AuthContext';
 import useSorting from '../hooks/useSorting';
 import { getSortOptions } from '../utils/sortOptions';
@@ -32,22 +41,35 @@ const getErrorMessage = error => {
 };
 
 const DivingCenters = () => {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+
+  // View mode state
+  const [viewMode, setViewMode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('view') || 'list';
+  });
+  const [showThumbnails, setShowThumbnails] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('show_thumbnails') === 'true';
+  });
+  const [compactLayout, setCompactLayout] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('compact_layout') !== 'false'; // Default to true (compact)
+  });
 
   // Get initial values from URL parameters
   const getInitialViewMode = () => {
     const viewMode = searchParams.get('view');
-    return viewMode === 'map' ? 'map' : 'list';
+    return viewMode === 'map' ? 'map' : viewMode === 'grid' ? 'grid' : 'list';
   };
 
   const getInitialFilters = () => {
     return {
       name: searchParams.get('name') || '',
       min_rating: searchParams.get('min_rating') || '',
-      max_rating: searchParams.get('max_rating') || '',
     };
   };
 
@@ -58,7 +80,6 @@ const DivingCenters = () => {
     };
   };
 
-  const [viewMode, setViewMode] = useState(getInitialViewMode);
   const [viewport, setViewport] = useState({
     longitude: 0,
     latitude: 0,
@@ -84,14 +105,13 @@ const DivingCenters = () => {
           const newSearchParams = new URLSearchParams();
 
           // Add view mode
-          if (newViewMode === 'map') {
-            newSearchParams.set('view', 'map');
+          if (newViewMode && newViewMode !== 'list') {
+            newSearchParams.set('view', newViewMode);
           }
 
           // Add filters
           if (newFilters.name) newSearchParams.set('name', newFilters.name);
           if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
-          if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
 
           // Add sorting parameters
           const sortParams = getSortParams();
@@ -116,14 +136,13 @@ const DivingCenters = () => {
       const newSearchParams = new URLSearchParams();
 
       // Add view mode
-      if (newViewMode === 'map') {
-        newSearchParams.set('view', 'map');
+      if (newViewMode && newViewMode !== 'list') {
+        newSearchParams.set('view', newViewMode);
       }
 
       // Add filters
       if (newFilters.name) newSearchParams.set('name', newFilters.name);
       if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
-      if (newFilters.max_rating) newSearchParams.set('max_rating', newFilters.max_rating);
 
       // Add sorting parameters
       const sortParams = getSortParams();
@@ -163,7 +182,7 @@ const DivingCenters = () => {
   // Immediate URL update for non-search filters
   useEffect(() => {
     immediateUpdateURL(filters, pagination, viewMode);
-  }, [filters.min_rating, filters.max_rating, immediateUpdateURL]);
+  }, [filters.min_rating, immediateUpdateURL]);
 
   // Invalidate query when sorting changes to ensure fresh data
   useEffect(() => {
@@ -180,7 +199,6 @@ const DivingCenters = () => {
       'diving-centers',
       debouncedSearchTerms.name,
       filters.min_rating,
-      filters.max_rating,
       pagination.page,
       pagination.page_size,
       sortBy,
@@ -193,7 +211,6 @@ const DivingCenters = () => {
       // Add filter parameters
       if (debouncedSearchTerms.name) params.append('name', debouncedSearchTerms.name);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
-      if (filters.max_rating) params.append('max_rating', filters.max_rating);
 
       // Add sorting parameters directly from state (not from getSortParams)
       if (sortBy) params.append('sort_by', sortBy);
@@ -287,6 +304,49 @@ const DivingCenters = () => {
     rateMutation.mutate({ centerId, score });
   };
 
+  const handleViewModeChange = newViewMode => {
+    setViewMode(newViewMode);
+
+    // Update URL with new view mode
+    const urlParams = new URLSearchParams(window.location.search);
+    if (newViewMode === 'list') {
+      urlParams.delete('view'); // Default view, no need for parameter
+    } else {
+      urlParams.set('view', newViewMode);
+    }
+
+    // Update URL without triggering a page reload
+    navigate(`?${urlParams.toString()}`, { replace: true });
+  };
+
+  const handleDisplayOptionChange = option => {
+    if (option === 'thumbnails') {
+      const newShowThumbnails = !showThumbnails;
+      setShowThumbnails(newShowThumbnails);
+
+      // Update URL
+      const urlParams = new URLSearchParams(window.location.search);
+      if (newShowThumbnails) {
+        urlParams.set('show_thumbnails', 'true');
+      } else {
+        urlParams.delete('show_thumbnails');
+      }
+      navigate(`?${urlParams.toString()}`, { replace: true });
+    } else if (option === 'compact') {
+      const newCompactLayout = !compactLayout;
+      setCompactLayout(newCompactLayout);
+
+      // Update URL
+      const urlParams = new URLSearchParams(window.location.search);
+      if (!newCompactLayout) {
+        urlParams.set('compact_layout', 'false');
+      } else {
+        urlParams.delete('compact_layout');
+      }
+      navigate(`?${urlParams.toString()}`, { replace: true });
+    }
+  };
+
   const renderStars = (rating, interactive = false, centerId = null) => {
     const stars = [];
     for (let i = 1; i <= 10; i++) {
@@ -335,7 +395,7 @@ const DivingCenters = () => {
 
       {/* Search and Filter Section */}
       <div className='bg-white p-6 rounded-lg shadow-md mb-8'>
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <div>
             <label htmlFor='search-name' className='block text-sm font-medium text-gray-700 mb-2'>
               Search by name
@@ -352,7 +412,7 @@ const DivingCenters = () => {
           </div>
           <div>
             <label htmlFor='min-rating' className='block text-sm font-medium text-gray-700 mb-2'>
-              Min Rating
+              Min Rating (≥)
             </label>
             <input
               id='min-rating'
@@ -364,24 +424,7 @@ const DivingCenters = () => {
               value={filters.min_rating}
               onChange={handleSearchChange}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='0'
-            />
-          </div>
-          <div>
-            <label htmlFor='max-rating' className='block text-sm font-medium text-gray-700 mb-2'>
-              Max Rating
-            </label>
-            <input
-              id='max-rating'
-              type='number'
-              min='0'
-              max='10'
-              step='0.1'
-              name='max_rating'
-              value={filters.max_rating}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='10'
+              placeholder='Show centers rated ≥ this value'
             />
           </div>
         </div>
@@ -389,59 +432,37 @@ const DivingCenters = () => {
 
       {/* Sorting Controls */}
       <div className='mb-6'>
-        <SortingControls
+        <EnhancedMobileSortingControls
           sortBy={sortBy}
           sortOrder={sortOrder}
-          sortOptions={getSortOptions('diving-centers', user?.is_admin)}
+          sortOptions={getSortOptions('diving-centers')}
           onSortChange={handleSortChange}
           onSortApply={handleSortApply}
           onReset={resetSorting}
           entityType='diving-centers'
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          showFilters={false} // Hide filters in this section for now
+          onToggleFilters={() => {}}
+          showQuickActions={true}
+          showFAB={true}
+          showTabs={true}
+          showThumbnails={showThumbnails}
+          compactLayout={compactLayout}
+          onDisplayOptionChange={handleDisplayOptionChange}
         />
       </div>
 
-      {/* View Mode and Pagination Controls */}
+      {/* Pagination Controls */}
       <div className='mt-4 flex flex-col sm:flex-row justify-between items-center gap-4 mb-8'>
-        {/* View Mode Controls */}
+        {/* Page Size Controls */}
         <div className='flex items-center gap-4'>
           <div className='flex items-center gap-2'>
-            <span className='text-sm font-medium text-gray-700'>View Mode:</span>
-          </div>
-          <div className='flex gap-2'>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-all duration-200 ${
-                viewMode === 'list'
-                  ? 'bg-blue-600 text-white shadow-md scale-105'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
-              }`}
-            >
-              <List className='h-4 w-4' />
-              List View
-            </button>
-            <button
-              onClick={() => setViewMode('map')}
-              className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-all duration-200 ${
-                viewMode === 'map'
-                  ? 'bg-blue-600 text-white shadow-md scale-105'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
-              }`}
-            >
-              <Map className='h-4 w-4' />
-              Map View
-            </button>
-          </div>
-        </div>
-
-        {/* Pagination Controls */}
-        <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
-          {/* Page Size Selection */}
-          <div className='flex items-center gap-2'>
-            <label className='text-sm font-medium text-gray-700'>Show:</label>
+            <span className='text-sm font-medium text-gray-700'>Show:</span>
             <select
               value={pagination.page_size}
               onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-              className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+              className='px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
             >
               <option value={25}>25</option>
               <option value={50}>50</option>
@@ -449,105 +470,261 @@ const DivingCenters = () => {
             </select>
             <span className='text-sm text-gray-600'>per page</span>
           </div>
+        </div>
 
-          {/* Pagination Info */}
-          {paginationInfo.totalCount !== undefined && (
-            <div className='text-sm text-gray-600'>
-              Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
-              {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of{' '}
-              {paginationInfo.totalCount} diving centers
-            </div>
-          )}
-
-          {/* Pagination Navigation */}
-          {paginationInfo.totalCount !== undefined && (
-            <div className='flex items-center gap-2'>
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page <= 1}
-                className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-              >
-                <ChevronLeft className='h-4 w-4' />
-              </button>
-
-              <span className='text-sm text-gray-700'>
-                Page {pagination.page} of{' '}
-                {Math.ceil(paginationInfo.totalCount / pagination.page_size)}
-              </span>
-
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={
-                  pagination.page >= Math.ceil(paginationInfo.totalCount / pagination.page_size)
-                }
-                className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-              >
-                <ChevronRight className='h-4 w-4' />
-              </button>
-            </div>
-          )}
+        {/* Pagination Info and Navigation */}
+        <div className='flex items-center gap-4'>
+          <div className='text-sm text-gray-600'>
+            Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
+            {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of{' '}
+            {paginationInfo.totalCount} diving centers
+          </div>
+          <div className='flex items-center gap-2'>
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={!paginationInfo.hasPrevPage}
+              className='p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+            >
+              <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M15 19l-7-7 7-7'
+                />
+              </svg>
+            </button>
+            <span className='text-sm font-medium text-gray-700'>
+              Page {pagination.page} of {paginationInfo.totalPages}
+            </span>
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={!paginationInfo.hasNextPage}
+              className='p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+            >
+              <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M9 5l7 7-7 7'
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Results Section */}
-      {viewMode === 'map' ? (
-        <div className='mb-6'>
-          <DivingCentersMap
-            key={`diving-centers-${divingCenters?.length || 0}-${divingCenters?.map(center => center.id).join('-') || ''}`}
-            divingCenters={divingCenters}
-            viewport={viewport}
-            onViewportChange={setViewport}
-          />
-        </div>
-      ) : (
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+      {/* Diving Centers List */}
+      {viewMode === 'list' && (
+        <div className={`space-y-2 ${compactLayout ? 'view-mode-compact' : ''}`}>
           {divingCenters?.map(center => (
             <div
               key={center.id}
-              className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow'
+              className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 hover:border-blue-300 ${
+                compactLayout ? 'p-3' : 'p-4'
+              }`}
             >
-              <div className='p-6'>
-                <div className='flex justify-between items-start mb-4'>
-                  <h3 className='text-xl font-semibold text-gray-900 mb-2'>
+              {/* Main content row */}
+              <div className='flex items-start gap-3'>
+                {/* Left side - Main info */}
+                <div className='flex-1 min-w-0'>
+                  {/* Title and rating row */}
+                  <div className='flex items-center justify-between mb-2'>
+                    <h3 className='font-semibold text-gray-900 text-base truncate'>
+                      <Link
+                        to={`/diving-centers/${center.id}`}
+                        className='hover:text-blue-600 transition-colors'
+                      >
+                        {center.name}
+                      </Link>
+                    </h3>
+                    {center.average_rating && (
+                      <div className='flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full'>
+                        <Star className='w-3 h-3 text-yellow-500 fill-current' />
+                        <span className='text-xs font-medium text-yellow-700'>
+                          {center.average_rating.toFixed(1)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Contact and location info row */}
+                  <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-2'>
+                    {/* Email */}
+                    {center.email && (
+                      <div className='flex items-center gap-1 text-xs text-gray-600'>
+                        <Mail className='w-3 h-3 text-gray-400' />
+                        <span className='truncate'>
+                          <MaskedEmail email={center.email} />
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Website */}
+                    {center.website && (
+                      <div className='flex items-center gap-1 text-xs text-gray-600'>
+                        <Globe className='w-3 h-3 text-gray-400' />
+                        <a
+                          href={
+                            center.website.startsWith('http')
+                              ? center.website
+                              : `https://${center.website}`
+                          }
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='truncate hover:text-blue-600 transition-colors'
+                        >
+                          {center.website.replace(/^https?:\/\//, '')}
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Coordinates */}
+                    {center.latitude && center.longitude && (
+                      <div className='flex items-center gap-1 text-xs text-gray-600'>
+                        <MapPin className='w-3 h-3 text-gray-400' />
+                        <span className='truncate'>
+                          {center.latitude.toFixed(4)}, {center.longitude.toFixed(4)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Description - truncated for compactness */}
+                  {center.description && (
+                    <p
+                      className={`text-gray-700 line-clamp-2 ${compactLayout ? 'text-xs' : 'text-sm'}`}
+                    >
+                      {center.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Right side - Actions */}
+                <div className='flex flex-col gap-2 flex-shrink-0'>
+                  <Link
+                    to={`/diving-centers/${center.id}`}
+                    className='inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors'
+                  >
+                    <Eye className='w-3 h-3' />
+                    Details
+                  </Link>
+
+                  {center.phone && (
+                    <a
+                      href={`tel:${center.phone}`}
+                      className='inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors'
+                      title='Call center'
+                    >
+                      <Phone className='w-3 h-3' />
+                      Call
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Diving Centers Grid */}
+      {viewMode === 'grid' && (
+        <div
+          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ${compactLayout ? 'view-mode-compact' : ''}`}
+        >
+          {divingCenters?.map(center => (
+            <div
+              key={center.id}
+              className={`dive-item bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${
+                compactLayout ? 'p-4' : 'p-6'
+              }`}
+            >
+              {/* Header with thumbnail and rating */}
+              <div className='relative'>
+                {showThumbnails && (
+                  <div className='dive-thumbnail bg-gradient-to-br from-blue-50 to-cyan-50 p-6 flex items-center justify-center border-b border-gray-100'>
+                    <div className='relative'>
+                      <Building className='w-16 h-16 text-blue-600' />
+                      {center.average_rating && (
+                        <div className='absolute -top-2 -right-2 bg-yellow-400 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center'>
+                          {Math.round(center.average_rating)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className={`${compactLayout ? 'p-3' : 'p-5'}`}>
+                {/* Title and rating row */}
+                <div className='flex items-start justify-between mb-2'>
+                  <h3
+                    className={`font-bold text-gray-900 line-clamp-2 flex-1 pr-3 ${compactLayout ? 'text-base' : 'text-lg'}`}
+                  >
                     <Link
                       to={`/diving-centers/${center.id}`}
-                      className='hover:text-blue-600 transition-colors'
+                      className='hover:text-blue-600 transition-colors hover:underline'
                     >
                       {center.name}
                     </Link>
                   </h3>
+
+                  {/* Rating badge - positioned to the right of title */}
                   {center.average_rating && (
-                    <div className='flex items-center space-x-1'>
-                      <span className='text-sm font-semibold text-gray-700'>
-                        {center.average_rating.toFixed(1)}/10
-                      </span>
+                    <div className='bg-yellow-100 rounded-full px-3 py-1 shadow-sm border border-yellow-200 flex-shrink-0'>
+                      <div className='flex items-center gap-1'>
+                        <Star className='w-4 h-4 text-yellow-500 fill-current' />
+                        <span className='text-sm font-semibold text-yellow-800'>
+                          {center.average_rating}/10
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {center.description && (
-                  <p className='text-gray-600 mb-4 line-clamp-3'>{center.description}</p>
-                )}
+                {/* Geolocation - always present for consistent spacing */}
+                <div className='flex items-center gap-2 text-gray-600 mb-4'>
+                  <MapPin className='w-4 h-4 text-gray-400 flex-shrink-0' />
+                  <span className={`${compactLayout ? 'text-sm' : 'text-base'}`}>
+                    {center.latitude && center.longitude
+                      ? `${center.latitude}, ${center.longitude}`
+                      : center.address || 'Location N/A'}
+                  </span>
+                </div>
 
-                {/* Contact Information */}
-                <div className='space-y-2 mb-4'>
-                  {center.email && (
-                    <div className='flex items-center text-sm text-gray-600'>
-                      <Mail className='h-4 w-4 mr-2' />
-                      <MaskedEmail email={center.email} className='hover:text-blue-600' />
-                    </div>
-                  )}
-                  {center.phone && (
-                    <div className='flex items-center text-sm text-gray-600'>
-                      <Phone className='h-4 w-4 mr-2' />
-                      <a href={`tel:${center.phone}`} className='hover:text-blue-600'>
-                        {center.phone}
+                {/* Key information grid */}
+                <div className='grid grid-cols-2 gap-3 mb-4'>
+                  {/* Show email if available, otherwise rating */}
+                  {center.email ? (
+                    <div className='flex items-center justify-center bg-blue-50 rounded-lg px-3 py-2'>
+                      <a
+                        href={`mailto:${center.email}`}
+                        className='text-blue-500 hover:text-blue-700 transition-colors'
+                        title={`Send email to ${center.email}`}
+                      >
+                        <Mail className='w-5 h-5' />
                       </a>
                     </div>
+                  ) : center.average_rating ? (
+                    <div className='flex items-center justify-center bg-yellow-50 rounded-lg px-3 py-2'>
+                      <div className='flex items-center gap-1'>
+                        <Star className='w-4 h-4 text-yellow-500 fill-current' />
+                        <span className='text-sm font-medium text-gray-700'>
+                          {center.average_rating}/10
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className='flex items-center justify-center bg-gray-50 rounded-lg px-3 py-2'>
+                      <span className='text-sm text-gray-500'>No email</span>
+                    </div>
                   )}
-                  {center.website && (
-                    <div className='flex items-center text-sm text-gray-600'>
-                      <Globe className='h-4 w-4 mr-2' />
+
+                  {/* Show website if available, otherwise show rating if no email */}
+                  {center.website ? (
+                    <div className='flex items-center justify-center bg-green-50 rounded-lg px-3 py-2'>
                       <a
                         href={
                           center.website.startsWith('http')
@@ -556,49 +733,94 @@ const DivingCenters = () => {
                         }
                         target='_blank'
                         rel='noopener noreferrer'
-                        className='hover:text-blue-600'
+                        className='text-green-500 hover:text-green-700 transition-colors'
+                        title={`Visit ${center.website}`}
                       >
-                        {center.website}
+                        <Globe className='w-5 h-5' />
                       </a>
                     </div>
-                  )}
-                  {center.latitude && center.longitude && (
-                    <div className='flex items-center text-sm text-gray-600'>
-                      <MapPin className='h-4 w-4 mr-2' />
-                      <span>
-                        {Number(center.latitude).toFixed(4)}, {Number(center.longitude).toFixed(4)}
-                      </span>
+                  ) : center.average_rating && !center.email ? (
+                    <div className='flex items-center justify-center bg-yellow-50 rounded-lg px-3 py-2'>
+                      <div className='flex items-center gap-1'>
+                        <Star className='w-4 h-4 text-yellow-500 fill-current' />
+                        <span className='text-sm font-medium text-gray-700'>
+                          {center.average_rating}/10
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className='flex items-center justify-center bg-gray-50 rounded-lg px-3 py-2'>
+                      <span className='text-sm text-gray-500'>No website</span>
                     </div>
                   )}
                 </div>
 
-                {/* Rating Section */}
-                <div className='border-t pt-4'>
-                  <div className='flex justify-between items-center'>
-                    <span className='text-sm text-gray-600'>
-                      {center.total_ratings} rating{center.total_ratings !== 1 ? 's' : ''}
-                    </span>
-                    {user && (
-                      <div className='flex items-center space-x-1'>
-                        <span className='text-xs text-gray-500 mr-2'>Rate:</span>
-                        {renderStars(0, true, center.id)}
-                      </div>
-                    )}
-                  </div>
+                {/* Description - always present for consistent card heights */}
+                <div className='mb-4'>
+                  <p
+                    className={`text-gray-600 line-clamp-3 ${compactLayout ? 'text-sm' : 'text-base'}`}
+                  >
+                    {center.description || 'No description available'}
+                  </p>
                 </div>
 
-                {/* View Details Button */}
-                <div className='mt-4'>
+                {/* Action buttons */}
+                <div className='flex gap-2'>
                   <Link
                     to={`/diving-centers/${center.id}`}
-                    className='block w-full text-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors'
+                    className='flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors hover:shadow-md'
                   >
+                    <Eye className='w-4 h-4' />
                     View Details
                   </Link>
+
+                  {center.phone && (
+                    <a
+                      href={`tel:${center.phone}`}
+                      className='inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors'
+                      title='Call center'
+                    >
+                      <Phone className='w-4 h-4' />
+                    </a>
+                  )}
                 </div>
+
+                {/* Additional info badges */}
+                {center.services && center.services.length > 0 && (
+                  <div className='mt-4 pt-4 border-t border-gray-100'>
+                    <div className='flex flex-wrap gap-2'>
+                      {center.services.slice(0, 3).map((service, index) => (
+                        <span
+                          key={index}
+                          className='inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full'
+                        >
+                          {service}
+                        </span>
+                      ))}
+                      {center.services.length > 3 && (
+                        <span className='inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full'>
+                          +{center.services.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Diving Centers Map */}
+      {viewMode === 'map' && (
+        <div className='h-96 rounded-lg overflow-hidden border border-gray-200'>
+          <DivingCentersMap
+            divingCenters={(divingCenters || []).map(center => ({
+              ...center,
+              id: center.id.toString(),
+            }))}
+            onViewportChange={setViewport}
+          />
         </div>
       )}
 

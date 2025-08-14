@@ -75,9 +75,4 @@ RateLimitError.propTypes = {
   className: PropTypes.string,
 };
 
-RateLimitError.defaultProps = {
-  retryAfter: 30,
-  className: '',
-};
-
 export default RateLimitError;
