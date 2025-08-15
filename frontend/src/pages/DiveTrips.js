@@ -20,13 +20,14 @@ import {
   Star,
   ChevronDown,
 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { getParsedTrips, getDivingCenters, getDiveSites } from '../api';
 import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
 import RateLimitError from '../components/RateLimitError';
+import StickyFilterBar from '../components/StickyFilterBar';
 import TripMap from '../components/TripMap';
 import { useAuth } from '../contexts/AuthContext';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
@@ -114,6 +115,40 @@ const DiveTrips = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showMapInfo, setShowMapInfo] = useState(false);
+
+  // Helper function to get active filters count
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filters.search_query) count++;
+    if (filters.start_date) count++;
+    if (filters.end_date) count++;
+    if (filters.diving_center_id) count++;
+    if (filters.trip_status) count++;
+    if (filters.min_price) count++;
+    if (filters.max_price) count++;
+    if (filters.difficulty_level) count++;
+    return count;
+  };
+
+  // Helper function to handle filter changes from StickyFilterBar
+  const handleStickyFilterChange = (key, value) => {
+    if (key === 'date_range' && value === 'next_week') {
+      const today = new Date();
+      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      handleFilterChange('start_date', today.toISOString().split('T')[0]);
+      handleFilterChange('end_date', nextWeek.toISOString().split('T')[0]);
+    } else if (key === 'location' && value === 'current') {
+      if (user && userLocation.latitude && userLocation.longitude) {
+        // Already have location, just show a message
+        console.log('Using current location for distance sorting');
+      } else {
+        getUserLocation();
+      }
+    } else {
+      handleFilterChange(key, value);
+    }
+  };
 
   // Helper function to change view mode and update URL
   const changeViewMode = mode => {
@@ -625,12 +660,141 @@ const DiveTrips = () => {
 
   return (
     <div className='max-w-6xl mx-auto p-3 sm:p-6'>
-      <div className='mb-6 sm:mb-8'>
+      {/* Hero Section */}
+      <div className='mb-6 sm:mb-8 text-center'>
         <h1 className='text-3xl font-bold text-gray-900'>Dive Trips</h1>
         <p className='text-gray-600 mt-2 text-sm sm:text-base'>
           Discover upcoming dive trips from local diving centers
         </p>
       </div>
+
+      {/* Map Section - Immediate Visual Impact */}
+      {viewMode === 'map' && (
+        <>
+          {/* Map View Info - Merged and Foldable */}
+          <div className='mb-4 bg-blue-50 rounded-lg border border-blue-200'>
+            <button
+              onClick={() => setShowMapInfo(prev => !prev)}
+              className='w-full p-3 text-left flex items-center justify-between hover:bg-blue-100 transition-colors'
+            >
+              <div className='flex items-center space-x-2'>
+                <Map className='h-4 w-4 text-blue-600' />
+                <span className='text-sm text-gray-700 font-medium'>Map View Information</span>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 text-blue-600 transition-transform ${
+                  showMapInfo ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {showMapInfo && (
+              <div className='px-3 pb-3 border-t border-blue-200'>
+                <div className='pt-3 space-y-3'>
+                  {/* Basic Info */}
+                  <div className='text-sm text-gray-700'>
+                    <strong>Instructions:</strong> Click on trip markers to view details and
+                    navigate to trip pages
+                  </div>
+
+                  {/* Map Summary */}
+                  <div className='text-sm text-gray-700'>
+                    <strong>Status:</strong> Showing {mappedTripsCount} dive site
+                    {mappedTripsCount !== 1 ? 's' : ''}
+                    {mappedTripsCount !== sortedTrips.length && (
+                      <span className='text-gray-500 ml-1'>(from {sortedTrips.length} trips)</span>
+                    )}
+                  </div>
+
+                  {/* Additional Info */}
+                  <div className='text-sm text-gray-600'>
+                    Click markers for trip details • Use filters to refine results
+                  </div>
+
+                  {/* Warning for missing coordinates */}
+                  {mappedTripsCount !== sortedTrips.length && (
+                    <div className='text-sm text-orange-600 bg-orange-50 p-2 rounded border border-orange-200'>
+                      ⚠️ {sortedTrips.length - mappedTripsCount} dive site
+                      {sortedTrips.length - mappedTripsCount !== 1 ? 's' : ''} belonging to{' '}
+                      {sortedTrips.length} dive trips not shown (no dive site coordinates)
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className='mb-6 bg-white rounded-lg shadow-md'>
+            {/* Status Toggle Controls */}
+            <div className='p-4 bg-white border-b border-gray-200'>
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center space-x-4'>
+                  <span className='text-sm font-medium text-gray-700'>Show Status:</span>
+                  {Object.entries(statusToggles).map(([status, enabled]) => (
+                    <label key={status} className='flex items-center space-x-2'>
+                      <input
+                        type='checkbox'
+                        checked={enabled}
+                        onChange={e => {
+                          setStatusToggles(prev => ({
+                            ...prev,
+                            [status]: e.target.checked,
+                          }));
+                        }}
+                        className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                      />
+                      <span className='text-sm text-gray-600 capitalize'>{status}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className='flex items-center space-x-4'>
+                  <label className='flex items-center space-x-2'>
+                    <input
+                      type='checkbox'
+                      checked={clustering}
+                      onChange={e => setClustering(e.target.checked)}
+                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                    />
+                    <span className='text-sm text-gray-600'>Clustering</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Map */}
+            {isLoading ? (
+              <div className='h-96 sm:h-[500px] lg:h-[600px] bg-gray-100 flex items-center justify-center'>
+                <div className='text-center'>
+                  <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4'></div>
+                  <p className='text-gray-600'>Loading map data...</p>
+                </div>
+              </div>
+            ) : trips && trips.length > 0 ? (
+              <div className='h-96 sm:h-[500px] lg:h-[600px] bg-gray-100 overflow-hidden'>
+                <TripMap
+                  trips={trips}
+                  onMappedTripsCountChange={handleMappedTripsCountChange}
+                  viewport={viewport}
+                  onViewportChange={setViewport}
+                  statusToggles={statusToggles}
+                  onStatusToggleChange={setStatusToggles}
+                  clustering={clustering}
+                  onClusteringChange={setClustering}
+                  diveSites={diveSites}
+                  divingCenters={divingCenters}
+                />
+              </div>
+            ) : (
+              <div className='h-96 sm:h-[500px] lg:h-[600px] bg-gray-100 flex items-center justify-center'>
+                <div className='text-center'>
+                  <Map className='h-16 w-16 text-gray-400 mx-auto mb-4' />
+                  <p className='text-gray-600'>No trips available to display on map</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Date Filter Confirmation Message */}
       {showDateFilterMessage && (
@@ -676,478 +840,20 @@ const DiveTrips = () => {
         </div>
       )}
 
-      {/* Enhanced Filters */}
-      <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-        <div className='flex items-center mb-4'>
-          <Filter className='h-5 w-5 text-gray-600 mr-2' />
-          <h3 className='text-lg font-semibold text-gray-900'>Filters</h3>
-        </div>
-
-        {/* Unified Search */}
-        <div className='mb-4'>
-          <div className='relative'>
-            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-            <input
-              type='text'
-              placeholder='Search trips, dive sites, diving centers, locations, or requirements...'
-              value={filters.search_query}
-              onChange={e => handleFilterChange('search_query', e.target.value)}
-              className='w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base'
-            />
-          </div>
-
-          {/* Search Tips */}
-          <div className='mt-2 text-sm text-gray-500'>
-            💡 Search for anything: &quot;Spain beginner diving&quot;, &quot;Mediterranean
-            advanced&quot;, &quot;PADI center Athens&quot;, &quot;Greece location&quot;
-          </div>
-
-          {/* Mobile Filter Toggle */}
-          {isMobile && (
-            <div className='mt-4'>
-              <button
-                onClick={() => setShowMobileFilters(!showMobileFilters)}
-                className='w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md touch-manipulation'
-              >
-                <Filter className='h-5 w-5' />
-                {showMobileFilters ? 'Hide Filters' : 'Show All Filters'}
-                <ChevronDown
-                  className={`h-5 w-5 transition-transform ${showMobileFilters ? 'rotate-180' : ''}`}
-                />
-              </button>
-
-              {/* Mobile Filter Status Indicator */}
-              {showMobileFilters && (
-                <div className='mt-2 text-xs text-blue-600 text-center'>
-                  📱 Filters are now visible
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Smart Filter Suggestions */}
-          {filters.search_query && (
-            <div className='mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200'>
-              <div className='flex items-center mb-2'>
-                <TrendingUp className='h-4 w-4 text-blue-600 mr-2' />
-                <span className='text-sm font-medium text-blue-800'>
-                  Smart suggestions for &quot;{filters.search_query}&quot;
-                </span>
-              </div>
-              <div className='flex flex-wrap gap-2'>
-                {/* Location-based suggestions */}
-                {filters.search_query.toLowerCase().includes('greece') && (
-                  <>
-                    <button
-                      onClick={() => handleFilterChange('search_query', 'Athens')}
-                      className='px-3 py-2 bg-blue-100 text-blue-700 text-sm rounded-full hover:bg-blue-200 active:bg-blue-300 transition-colors touch-manipulation min-h-[44px]'
-                    >
-                      🏛️ Athens
-                    </button>
-                    <button
-                      onClick={() => handleFilterChange('search_query', 'Santorini')}
-                      className='px-3 py-2 bg-blue-100 text-blue-700 text-sm rounded-full hover:bg-blue-200 active:bg-blue-300 transition-colors touch-manipulation min-h-[44px]'
-                    >
-                      🌅 Santorini
-                    </button>
-                    <button
-                      onClick={() => handleFilterChange('search_query', 'Crete')}
-                      className='px-3 py-2 bg-blue-100 text-blue-700 text-sm rounded-full hover:bg-blue-200 active:bg-blue-300 transition-colors touch-manipulation min-h-[44px]'
-                    >
-                      🏝️ Crete
-                    </button>
-                    <button
-                      onClick={() => handleFilterChange('search_query', 'Mediterranean')}
-                      className='px-3 py-2 bg-blue-100 text-blue-700 text-sm rounded-full hover:bg-blue-200 active:bg-blue-300 transition-colors touch-manipulation min-h-[44px]'
-                    >
-                      🌊 Mediterranean
-                    </button>
-                  </>
-                )}
-
-                {filters.search_query.toLowerCase().includes('spain') && (
-                  <>
-                    <button
-                      onClick={() => handleFilterChange('search_query', 'Barcelona')}
-                      className='px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full hover:bg-blue-200 transition-colors'
-                    >
-                      🏰 Barcelona
-                    </button>
-                    <button
-                      onClick={() => handleFilterChange('search_query', 'Costa Brava')}
-                      className='px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full hover:bg-blue-200 transition-colors'
-                    >
-                      🏖️ Costa Brava
-                    </button>
-                    <button
-                      onClick={() => handleFilterChange('search_query', 'Mediterranean')}
-                      className='px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full hover:bg-blue-200 transition-colors'
-                    >
-                      🌊 Mediterranean
-                    </button>
-                  </>
-                )}
-
-                {filters.search_query.toLowerCase().includes('mediterranean') && (
-                  <>
-                    <button
-                      onClick={() => handleFilterChange('search_query', 'Greece')}
-                      className='px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full hover:bg-blue-200 transition-colors'
-                    >
-                      🇬🇷 Greece
-                    </button>
-                    <button
-                      onClick={() => handleFilterChange('search_query', 'Spain')}
-                      className='px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full hover:bg-blue-200 transition-colors'
-                    >
-                      🇪🇸 Spain
-                    </button>
-                    <button
-                      onClick={() => handleFilterChange('search_query', 'Italy')}
-                      className='px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full hover:bg-blue-200 transition-colors'
-                    >
-                      🇮🇹 Italy
-                    </button>
-                    <button
-                      onClick={() => handleFilterChange('search_query', 'Croatia')}
-                      className='px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full hover:bg-blue-200 transition-colors'
-                    >
-                      🇭🇷 Croatia
-                    </button>
-                  </>
-                )}
-
-                {/* Difficulty-based suggestions */}
-                {filters.search_query.toLowerCase().includes('beginner') && (
-                  <>
-                    <button
-                      onClick={() => handleFilterChange('difficulty_level', 'beginner')}
-                      className='px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full hover:bg-green-200 transition-colors'
-                    >
-                      🟢 Set Beginner Level
-                    </button>
-                    <button
-                      onClick={() => handleFilterChange('search_query', 'PADI Open Water')}
-                      className='px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full hover:bg-green-200 transition-colors'
-                    >
-                      🎓 PADI Open Water
-                    </button>
-                  </>
-                )}
-
-                {filters.search_query.toLowerCase().includes('advanced') && (
-                  <>
-                    <button
-                      onClick={() => handleFilterChange('difficulty_level', 'advanced')}
-                      className='px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full hover:bg-orange-200 transition-colors'
-                    >
-                      🟠 Set Advanced Level
-                    </button>
-                    <button
-                      onClick={() => handleFilterChange('search_query', 'PADI Open Water')}
-                      className='px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full hover:bg-orange-200 transition-colors'
-                    >
-                      🌊 Deep Diving
-                    </button>
-                  </>
-                )}
-
-                {/* Generic suggestions */}
-                <button
-                  onClick={() => handleFilterChange('trip_status', 'scheduled')}
-                  className='px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full hover:bg-purple-200 transition-colors'
-                >
-                  📅 Show Scheduled
-                </button>
-                <button
-                  onClick={() => {
-                    const today = new Date();
-                    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-                    handleFilterChange('start_date', today.toISOString().split('T')[0]);
-                    handleFilterChange('end_date', nextWeek.toISOString().split('T')[0]);
-                  }}
-                  className='px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full hover:bg-purple-200 transition-colors'
-                >
-                  📅 Next 7 Days
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Essential Filters - Mobile Responsive */}
-        <div className={`${isMobile && !showMobileFilters ? 'hidden' : 'block'}`}>
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4'>
-            {/* Date Range */}
-            <div>
-              <label
-                htmlFor='start-date-filter'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Start Date
-              </label>
-              <input
-                id='start-date-filter'
-                type='date'
-                value={filters.start_date}
-                onChange={e => handleFilterChange('start_date', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor='end-date-filter'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                End Date
-              </label>
-              <input
-                id='end-date-filter'
-                type='date'
-                value={filters.end_date}
-                onChange={e => handleFilterChange('end_date', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Advanced Filters Toggle */}
-        <div className='mb-4'>
-          <button
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className='flex items-center text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-2 rounded-md transition-colors'
-          >
-            <Filter className='h-4 w-4 mr-2' />
-            {showAdvancedFilters ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
-            <ChevronDown
-              className={`h-4 w-4 ml-1 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`}
-            />
-          </button>
-        </div>
-
-        {/* Advanced Filters - Collapsible and Mobile Responsive */}
-        {showAdvancedFilters && (
-          <div className={`${isMobile && !showMobileFilters ? 'hidden' : 'block'}`}>
-            <div className='space-y-4 mb-4'>
-              {/* User Location for Distance Sorting */}
-              <div className='p-4 bg-gray-50 rounded-lg border border-gray-200'>
-                <div className='flex items-center justify-between mb-2'>
-                  <label
-                    htmlFor='user-location-label'
-                    className='block text-sm font-medium text-gray-700'
-                  >
-                    Your Location (for distance sorting)
-                  </label>
-                  {user ? (
-                    <button
-                      onClick={getUserLocation}
-                      className='text-sm text-blue-600 hover:text-blue-800 underline'
-                    >
-                      Use Current Location
-                    </button>
-                  ) : (
-                    <span className='text-sm text-gray-500 italic'>
-                      Login required for location access
-                    </span>
-                  )}
-                </div>
-
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                  <div>
-                    <label htmlFor='latitude-input' className='block text-xs text-gray-500 mb-1'>
-                      Latitude
-                    </label>
-                    <input
-                      id='latitude-input'
-                      type='number'
-                      step='any'
-                      placeholder='e.g., 37.9838'
-                      value={userLocation.latitude || ''}
-                      onChange={e =>
-                        setUserLocation(prev => ({
-                          ...prev,
-                          latitude: parseFloat(e.target.value) || null,
-                        }))
-                      }
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor='longitude-input' className='block text-xs text-gray-500 mb-1'>
-                      Longitude
-                    </label>
-                    <input
-                      id='longitude-input'
-                      type='number'
-                      step='any'
-                      placeholder='e.g., 23.7275'
-                      value={userLocation.longitude || ''}
-                      onChange={e =>
-                        setUserLocation(prev => ({
-                          ...prev,
-                          longitude: parseFloat(e.target.value) || null,
-                        }))
-                      }
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 text-sm'
-                    />
-                  </div>
-                </div>
-
-                <div className='mt-2 text-sm text-gray-500'>
-                  📍 Set your location to enable distance-based sorting.
-                  {user ? (
-                    <>
-                      Click &quot;Use Current Location&quot; to automatically detect your position.
-                    </>
-                  ) : (
-                    <>Login to automatically detect your position, or manually enter coordinates.</>
-                  )}
-                </div>
-              </div>
-
-              {/* Advanced Filter Grid */}
-              <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
-                <div>
-                  <label
-                    htmlFor='diving-center-filter'
-                    className='block text-sm font-medium text-gray-700 mb-1'
-                  >
-                    Diving Center
-                  </label>
-                  <select
-                    id='diving-center-filter'
-                    value={filters.diving_center_id}
-                    onChange={e => handleFilterChange('diving_center_id', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    disabled={!Array.isArray(divingCenters) || divingCenters.length === 0}
-                  >
-                    <option value=''>
-                      {!Array.isArray(divingCenters) || divingCenters.length === 0
-                        ? 'Loading centers...'
-                        : 'All Centers'}
-                    </option>
-                    {Array.isArray(divingCenters) &&
-                      divingCenters.map(center => (
-                        <option key={center.id} value={center.id}>
-                          {center.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor='trip-status-filter'
-                    className='block text-sm font-medium text-gray-700 mb-1'
-                  >
-                    Status
-                  </label>
-                  <select
-                    id='trip-status-filter'
-                    value={filters.trip_status}
-                    onChange={e => handleFilterChange('trip_status', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  >
-                    <option value=''>All Statuses</option>
-                    <option value='scheduled'>Scheduled</option>
-                    <option value='confirmed'>Confirmed</option>
-                    <option value='cancelled'>Cancelled</option>
-                    <option value='completed'>Completed</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor='min-price-filter'
-                    className='block text-sm font-medium text-gray-700 mb-1'
-                  >
-                    Min Price
-                  </label>
-                  <div className='relative'>
-                    <Euro className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                    <input
-                      id='min-price-filter'
-                      type='number'
-                      placeholder='0'
-                      value={filters.min_price}
-                      onChange={e => handleFilterChange('min_price', e.target.value)}
-                      className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor='max-price-filter'
-                    className='block text-sm font-medium text-gray-700 mb-1'
-                  >
-                    Max Price
-                  </label>
-                  <div className='relative'>
-                    <Euro className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                    <input
-                      id='max-price-filter'
-                      type='number'
-                      placeholder='1000'
-                      value={filters.max_price}
-                      onChange={e => handleFilterChange('max_price', e.target.value)}
-                      className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor='difficulty-filter'
-                    className='block text-sm font-medium text-gray-700 mb-1'
-                  >
-                    Difficulty Level
-                  </label>
-                  <select
-                    id='difficulty-filter'
-                    value={filters.difficulty_level}
-                    onChange={e => handleFilterChange('difficulty_level', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  >
-                    <option value=''>All Levels</option>
-                    <option value='beginner'>Beginner</option>
-                    <option value='intermediate'>Intermediate</option>
-                    <option value='advanced'>Advanced</option>
-                    <option value='expert'>Expert</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className='mt-4 flex items-center justify-between'>
-          <button
-            onClick={clearFilters}
-            className='px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md'
-          >
-            Clear Filters
-          </button>
-          {(filters.start_date || filters.end_date) && (
-            <div className='flex items-center text-sm text-blue-600'>
-              <Calendar className='h-4 w-4 mr-1' />
-              <span>
-                Filtered by date:{' '}
-                {filters.start_date === filters.end_date
-                  ? new Date(filters.start_date).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })
-                  : `${filters.start_date} to ${filters.end_date}`}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
+      <StickyFilterBar
+        searchValue={filters.search_query}
+        onSearchChange={value => handleFilterChange('search_query', value)}
+        searchPlaceholder='Search trips, dive sites, diving centers, locations, or requirements...'
+        showFilters={showAdvancedFilters}
+        onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+        onClearFilters={clearFilters}
+        activeFiltersCount={getActiveFiltersCount()}
+        filters={{ ...filters, diving_centers: divingCenters }}
+        onFilterChange={handleStickyFilterChange}
+        variant='sticky'
+        showQuickFilters={true}
+        showAdvancedToggle={true}
+      />
 
       {/* Mobile Floating Action Button */}
       {isMobile && (
@@ -1162,30 +868,75 @@ const DiveTrips = () => {
         </div>
       )}
 
-      {/* Sorting Controls */}
-      <div className='mb-6'>
-        <EnhancedMobileSortingControls
-          sortBy={sortOptions.sort_by}
-          sortOrder={sortOptions.sort_order}
-          sortOptions={getAvailableSortOptions()}
-          onSortChange={(sortBy, sortOrder) =>
-            setSortOptions(prev => ({ ...prev, sort_by: sortBy, sort_order: sortOrder }))
-          }
-          onSortApply={() => {}} // No separate apply needed for DiveTrips
-          onReset={() => setSortOptions({ sort_by: 'trip_date', sort_order: 'desc' })}
-          entityType='dive-trips'
-          viewMode={viewMode}
-          onViewModeChange={changeViewMode}
-          showFilters={false} // Hide filters in this section for now
-          onToggleFilters={() => {}}
-          showQuickActions={true}
-          showFAB={true}
-          showTabs={true}
-          showThumbnails={showThumbnails}
-          compactLayout={compactLayout}
-          onDisplayOptionChange={handleDisplayOptionChange}
-        />
-      </div>
+      {/* View Controls - Simplified for Map View */}
+      {viewMode === 'map' ? (
+        <div className='mb-6'>
+          <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
+            <div className='flex items-center justify-between'>
+              <h3 className='text-lg font-medium text-gray-900'>View Mode</h3>
+              <div className='flex gap-2'>
+                <button
+                  onClick={() => changeViewMode('list')}
+                  className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                    viewMode === 'list'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  <List className='h-4 w-4' />
+                  List
+                </button>
+                <button
+                  onClick={() => changeViewMode('grid')}
+                  className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                    viewMode === 'grid'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  <Grid className='h-4 w-4' />
+                  Grid
+                </button>
+                <button
+                  onClick={() => changeViewMode('map')}
+                  className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                    viewMode === 'map'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  <Map className='h-4 w-4' />
+                  Map
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className='mb-6'>
+          <EnhancedMobileSortingControls
+            sortBy={sortOptions.sort_by}
+            sortOrder={sortOptions.sort_order}
+            sortOptions={getAvailableSortOptions()}
+            onSortChange={(sortBy, sortOrder) =>
+              setSortOptions(prev => ({ ...prev, sort_by: sortBy, sort_order: sortOrder }))
+            }
+            onSortApply={() => {}} // No separate apply needed for DiveTrips
+            onReset={() => setSortOptions({ sort_by: 'trip_date', sort_order: 'desc' })}
+            entityType='dive-trips'
+            viewMode={viewMode}
+            onViewModeChange={changeViewMode}
+            showFilters={false} // Hide filters in this section for now
+            onToggleFilters={() => {}}
+            showQuickActions={true}
+            showFAB={true}
+            showTabs={true}
+            showThumbnails={showThumbnails}
+            compactLayout={compactLayout}
+            onDisplayOptionChange={handleDisplayOptionChange}
+          />
+        </div>
+      )}
 
       {/* Mobile View Mode Quick Access */}
       {isMobile && (
@@ -1233,46 +984,6 @@ const DiveTrips = () => {
           quick access
         </div>
       )}
-
-      {/* Map View Info */}
-      {viewMode === 'map' && (
-        <div className='mb-6 text-sm text-gray-600 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200'>
-          <div className='flex items-center space-x-2'>
-            <Map className='h-4 w-4 text-blue-600' />
-            <span>
-              <strong>Map View:</strong> Click on trip markers to view details and navigate to trip
-              pages
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Sort Description */}
-      <div className='mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200'>
-        <div className='flex items-center text-sm text-blue-700'>
-          <Tag className='h-4 w-4 mr-2 flex-shrink-0' />
-          <span>
-            Currently sorting by{' '}
-            <strong>
-              {sortOptions.sort_by === 'popularity'
-                ? 'Popularity'
-                : sortOptions.sort_by === 'distance'
-                  ? 'Distance'
-                  : sortOptions.sort_by.replace('_', ' ')}
-            </strong>{' '}
-            in <strong>{sortOptions.sort_order === 'desc' ? 'descending' : 'ascending'}</strong>{' '}
-            order
-            {sortOptions.sort_by === 'distance' &&
-              userLocation.latitude &&
-              userLocation.longitude && (
-                <span className='ml-2 text-blue-600'>
-                  from your location ({userLocation.latitude.toFixed(4)},{' '}
-                  {userLocation.longitude.toFixed(4)})
-                </span>
-              )}
-          </span>
-        </div>
-      </div>
 
       {/* Distance Sorting Warning */}
       {sortOptions.sort_by === 'distance' &&
@@ -1380,88 +1091,6 @@ const DiveTrips = () => {
               </button>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Map View with Trips */}
-      {viewMode === 'map' && sortedTrips && sortedTrips.length > 0 && (
-        <div className='bg-white rounded-lg shadow-md'>
-          {/* Map View Summary */}
-          <div className='p-4 bg-gray-50 border-b border-gray-200'>
-            <div className='flex items-center justify-between'>
-              <div className='flex items-center space-x-2'>
-                <Map className='h-5 w-5 text-gray-600' />
-                <span className='text-sm text-gray-600'>
-                  <strong>Map View:</strong> Showing {mappedTripsCount} dive site
-                  {mappedTripsCount !== 1 ? 's' : ''}
-                  {mappedTripsCount !== sortedTrips.length && (
-                    <span className='text-gray-500 ml-1'>(from {sortedTrips.length} trips)</span>
-                  )}
-                </span>
-              </div>
-              <div className='text-xs text-gray-500'>
-                Click markers for trip details • Use filters to refine results
-                {mappedTripsCount !== sortedTrips.length && (
-                  <div className='mt-1 text-orange-600'>
-                    ⚠️ {sortedTrips.length - mappedTripsCount} dive site
-                    {sortedTrips.length - mappedTripsCount !== 1 ? 's' : ''} belonging to{' '}
-                    {sortedTrips.length} dive trips not shown (no dive site coordinates)
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Status Toggle Controls */}
-          <div className='p-4 bg-white border-b border-gray-200'>
-            <div className='flex items-center justify-between'>
-              <div className='flex items-center space-x-4'>
-                <span className='text-sm font-medium text-gray-700'>Show Status:</span>
-                {Object.entries(statusToggles).map(([status, enabled]) => (
-                  <label key={status} className='flex items-center space-x-2'>
-                    <input
-                      type='checkbox'
-                      checked={enabled}
-                      onChange={e => {
-                        setStatusToggles(prev => ({
-                          ...prev,
-                          [status]: e.target.checked,
-                        }));
-                      }}
-                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                    />
-                    <span className='text-sm text-gray-600 capitalize'>{status}</span>
-                  </label>
-                ))}
-              </div>
-              <div className='flex items-center space-x-4'>
-                <label className='flex items-center space-x-2'>
-                  <input
-                    type='checkbox'
-                    checked={clustering}
-                    onChange={e => setClustering(e.target.checked)}
-                    className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                  />
-                  <span className='text-sm text-gray-600'>Clustering</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <TripMap
-            trips={sortedTrips}
-            filters={filters}
-            onTripSelect={trip => {
-              // Navigate to trip detail when trip is selected on map
-              navigate(`/dive-trips/${trip.id}`);
-            }}
-            height='600px'
-            clustering={clustering}
-            divingCenters={divingCenters}
-            diveSites={diveSites}
-            onMappedTripsCountChange={handleMappedTripsCountChange}
-            statusToggles={statusToggles}
-          />
         </div>
       )}
 

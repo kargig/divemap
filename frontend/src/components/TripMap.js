@@ -11,6 +11,7 @@ import { Style, Icon, Circle as CircleStyle, Fill, Stroke, Text } from 'ol/style
 import View from 'ol/View';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
@@ -384,7 +385,7 @@ const TripMap = ({
               trip_duration: trip.trip_duration,
               difficulty_level: trip.difficulty_level,
               diving_center_id: trip.diving_center_id,
-              diving_center_name: divingCenterName,
+              diving_center_name: divingCenterName || trip.diving_center_name,
               dive_site_name: diveSiteName,
               coordinates: [longitude, latitude],
             };
@@ -512,13 +513,13 @@ const TripMap = ({
     }
   }, [
     trips,
-    filters,
+    JSON.stringify(filters),
     clustering,
     createClusterStyle,
     createDiveStyle,
     divingCenters,
     diveSites,
-    statusToggles,
+    JSON.stringify(statusToggles),
   ]);
 
   // Handle feature clicks
@@ -688,8 +689,14 @@ const TripMap = ({
                     {popupInfo.type === 'dive_site'
                       ? `${popupInfo.dive_site_name || 'Dive Site'} (${popupInfo.dive_count} dives)`
                       : popupInfo.type === 'dive'
-                        ? `${popupInfo.dive_site_name || 'Dive Site'} - ${generateTripName(popupInfo)}`
-                        : generateTripName(popupInfo)}
+                        ? `${popupInfo.dive_site_name || 'Dive Site'} - ${popupInfo.diving_center_name || 'Unknown Center'}`
+                        : `${popupInfo.diving_center_name || 'Unknown Center'} - ${new Date(
+                            popupInfo.trip_date
+                          ).toLocaleDateString('en-GB', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                          })}`}
                   </h3>
                   <span
                     className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
@@ -734,9 +741,19 @@ const TripMap = ({
                   {popupInfo.diving_center_name && (
                     <div className='flex items-center text-sm text-gray-700'>
                       <span className='font-medium w-16'>Center:</span>
-                      <span className='text-blue-600 font-medium'>
-                        {popupInfo.diving_center_name}
-                      </span>
+                      {popupInfo.diving_center_id ? (
+                        <Link
+                          to={`/diving-centers/${popupInfo.diving_center_id}`}
+                          className='text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer'
+                          onClick={e => e.stopPropagation()}
+                        >
+                          {popupInfo.diving_center_name}
+                        </Link>
+                      ) : (
+                        <span className='text-blue-600 font-medium'>
+                          {popupInfo.diving_center_name}
+                        </span>
+                      )}
                     </div>
                   )}
 
@@ -744,9 +761,19 @@ const TripMap = ({
                   {popupInfo.type === 'dive_site' ? (
                     <div className='text-sm text-gray-700'>
                       <span className='font-medium w-16 inline-block'>Site:</span>
-                      <span className='text-blue-600 font-medium'>
-                        {popupInfo.dive_site_name || 'Unknown Site'}
-                      </span>
+                      {popupInfo.dive_site_id ? (
+                        <Link
+                          to={`/dive-sites/${popupInfo.dive_site_id}`}
+                          className='text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer'
+                          onClick={e => e.stopPropagation()}
+                        >
+                          {popupInfo.dive_site_name || 'Unknown Site'}
+                        </Link>
+                      ) : (
+                        <span className='text-blue-600 font-medium'>
+                          {popupInfo.dive_site_name || 'Unknown Site'}
+                        </span>
+                      )}
                       <div className='mt-2'>
                         <span className='font-medium text-xs text-gray-600'>
                           Dive Trips to this site:
@@ -795,9 +822,19 @@ const TripMap = ({
                   ) : popupInfo.type === 'dive' ? (
                     <div className='text-sm text-gray-700'>
                       <span className='font-medium w-16 inline-block'>Site:</span>
-                      <span className='text-blue-600 font-medium'>
-                        {popupInfo.dive_site_name || 'Unknown Site'}
-                      </span>
+                      {popupInfo.dive_site_id ? (
+                        <Link
+                          to={`/dive-sites/${popupInfo.dive_site_id}`}
+                          className='text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer'
+                          onClick={e => e.stopPropagation()}
+                        >
+                          {popupInfo.dive_site_name || 'Unknown Site'}
+                        </Link>
+                      ) : (
+                        <span className='text-blue-600 font-medium'>
+                          {popupInfo.dive_site_name || 'Unknown Site'}
+                        </span>
+                      )}
                     </div>
                   ) : (
                     /* Trip Dive Sites */
@@ -816,7 +853,18 @@ const TripMap = ({
 
                             return (
                               <div key={index} className='text-gray-600 text-xs'>
-                                • {diveSiteName || `Dive ${index + 1}`}
+                                •{' '}
+                                {dive.dive_site_id ? (
+                                  <Link
+                                    to={`/dive-sites/${dive.dive_site_id}`}
+                                    className='text-blue-600 hover:text-blue-800 hover:underline cursor-pointer'
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    {diveSiteName || `Site ${dive.dive_site_id}`}
+                                  </Link>
+                                ) : (
+                                  diveSiteName || `Dive ${index + 1}`
+                                )}
                               </div>
                             );
                           })}
@@ -915,7 +963,7 @@ const TripMap = ({
 TripMap.propTypes = {
   trips: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.string.isRequired,
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       trip_name: PropTypes.string,
       trip_date: PropTypes.string.isRequired,
       trip_time: PropTypes.string,
@@ -925,17 +973,17 @@ TripMap.propTypes = {
       difficulty_level: PropTypes.string,
       trip_description: PropTypes.string,
       diving_center_name: PropTypes.string,
-      diving_center_id: PropTypes.string,
+      diving_center_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       diving_center: PropTypes.object,
       dives: PropTypes.arrayOf(
         PropTypes.shape({
-          id: PropTypes.string,
-          dive_site_id: PropTypes.string,
+          id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+          dive_site_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
           dive_site_name: PropTypes.string,
           dive_site: PropTypes.object,
         })
       ),
-      dive_site_id: PropTypes.string,
+      dive_site_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       dive_site_name: PropTypes.string,
     })
   ),

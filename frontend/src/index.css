@@ -127,16 +127,16 @@
   .mobile-sort-controls {
     margin: 8px 0;
   }
-  
+
   .sort-options {
     padding: 12px;
   }
-  
+
   .sort-option {
     padding: 12px;
     min-height: 48px; /* Larger touch target on mobile */
   }
-  
+
   .sort-toggle-btn {
     padding: 16px; /* Larger touch target on mobile */
     min-height: 48px;
@@ -489,27 +489,27 @@
   .mobile-sticky-header {
     position: sticky;
   }
-  
+
   .mobile-fab {
     bottom: 16px;
     right: 16px;
     width: 48px;
     height: 48px;
   }
-  
+
   .mobile-fab .fab-icon {
     width: 20px;
     height: 20px;
   }
-  
+
   .mobile-controls-container {
     margin: 12px 0;
   }
-  
+
   .mobile-controls-header {
     padding: 12px;
   }
-  
+
   .mobile-controls-content {
     padding: 12px;
   }
@@ -519,11 +519,11 @@
   .mobile-sticky-header {
     position: relative;
   }
-  
+
   .mobile-fab {
     display: none;
   }
-  
+
   .mobile-tabs {
     max-width: 400px;
     margin: 16px auto;
@@ -735,12 +735,12 @@
   .view-mode-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .view-mode-thumbnails .dive-item {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .view-mode-thumbnails .dive-thumbnail {
     width: 100px;
     height: 100px;
