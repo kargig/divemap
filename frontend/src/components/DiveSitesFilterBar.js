@@ -61,7 +61,7 @@ const DiveSitesFilterBar = ({
         className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 ${mobileOptimized ? 'p-3 sm:p-4' : 'p-4'}`}
       >
         {/* Search Section */}
-        <div className='flex-1 max-w-md w-full'>
+        <div className='flex-1 max-w-sm w-full'>
           <div className='relative'>
             <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
             <input
@@ -80,7 +80,7 @@ const DiveSitesFilterBar = ({
 
         {/* Quick Filters */}
         {showQuickFilters && (
-          <div className='flex items-center gap-2 sm:ml-4 w-full sm:w-auto justify-center sm:justify-end'>
+          <div className='flex items-center gap-2 sm:ml-2 w-full sm:w-auto justify-center sm:justify-end'>
             <button
               onClick={() => onQuickFilter('wrecks')}
               className={`flex items-center gap-1 px-3 py-2.5 sm:py-2 text-sm rounded-md transition-colors min-h-[44px] sm:min-h-0 touch-manipulation ${

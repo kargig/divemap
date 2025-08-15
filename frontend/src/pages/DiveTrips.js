@@ -664,47 +664,50 @@ const DiveTrips = () => {
 
   return (
     <div className='min-h-screen bg-gray-50'>
-      {/* Hero Section */}
-      <HeroSection
-        title='Dive Trips'
-        subtitle='Discover upcoming dive trips from local diving centers with interactive maps and detailed information'
-        background='ocean'
-        size='medium'
-      >
-        <div className='flex flex-col sm:flex-row gap-3 justify-center'>
-          <button
-            onClick={() => {
-              setViewMode('map');
-              navigate('/dive-trips?view=map');
-            }}
-            className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
-          >
-            <Compass className='w-5 h-5' />
-            Explore Map
-          </button>
-          <button
-            onClick={() => {
-              setViewMode('list');
-              navigate('/dive-trips');
-            }}
-            className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
-          >
-            <Globe className='w-5 h-5' />
-            Browse Trips
-          </button>
-          {user && (
+      {/* Mobile-First Responsive Container */}
+      <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+        {/* Hero Section */}
+        <HeroSection
+          title='Dive Trips'
+          subtitle='Discover upcoming dive trips from local diving centers'
+          background='ocean'
+          size='medium'
+        >
+          <div className='flex flex-col sm:flex-row gap-3 justify-center'>
             <button
-              onClick={() => navigate('/dive-trips/create')}
-              className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+              onClick={() => {
+                setViewMode('map');
+                navigate('/dive-trips?view=map');
+              }}
+              className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
             >
-              <Plus size={20} />
-              Create Trip
+              <Compass className='w-5 h-5' />
+              Explore Map
             </button>
-          )}
-        </div>
-      </HeroSection>
+            <button
+              onClick={() => {
+                setViewMode('list');
+                navigate('/dive-trips');
+              }}
+              className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
+            >
+              <Globe className='w-5 h-5' />
+              Browse Trips
+            </button>
+            {user && (
+              <button
+                onClick={() => navigate('/dive-trips/create')}
+                className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+              >
+                <Plus size={20} />
+                Create Trip
+              </button>
+            )}
+          </div>
+        </HeroSection>
+      </div>
       {/* Main Content */}
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8'>
+      <div className='max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8'>
         {/* Map Section - Immediate Visual Impact */}
         {viewMode === 'map' && (
           <>

@@ -605,41 +605,46 @@ const DiveSites = () => {
   return (
     <div className='min-h-screen bg-gray-50'>
       {/* Mobile-First Responsive Container */}
-      <div className='max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
         {/* Hero Section */}
-        <div className='mb-6 sm:mb-8 lg:mb-10'>
-          <HeroSection
-            title='Dive Sites'
-            subtitle='Discover amazing dive sites around the world'
-            actions={[
-              {
-                label: 'Explore Map',
-                icon: Compass,
-                onClick: () => {
-                  setViewMode('map');
-                  navigate('/dive-sites?view=map');
-                },
-                variant: 'primary',
-              },
-              {
-                label: 'Browse Sites',
-                icon: Globe,
-                onClick: () => {
-                  setViewMode('list');
-                  navigate('/dive-sites');
-                },
-                variant: 'secondary',
-              },
-              {
-                label: 'Create Dive Site',
-                icon: Plus,
-                onClick: () => navigate('/dive-sites/create'),
-                variant: 'success',
-                show: user,
-              },
-            ]}
-          />
-        </div>
+        <HeroSection
+          title='Dive Sites'
+          subtitle='Discover amazing dive sites around the world'
+          background='ocean'
+          size='medium'
+        >
+          <div className='flex flex-col sm:flex-row gap-3 justify-center'>
+            <button
+              onClick={() => {
+                setViewMode('map');
+                navigate('/dive-sites?view=map');
+              }}
+              className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
+            >
+              <Compass className='w-5 h-5' />
+              Explore Map
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('list');
+                navigate('/dive-sites');
+              }}
+              className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
+            >
+              <Globe className='w-5 h-5' />
+              Browse Sites
+            </button>
+            {user && (
+              <button
+                onClick={() => navigate('/dive-sites/create')}
+                className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+              >
+                <Plus size={20} />
+                Create Dive Site
+              </button>
+            )}
+          </div>
+        </HeroSection>
         {/* Map Section - Show immediately when in map view */}
         {viewMode === 'map' && (
           <div className='mb-8'>
@@ -654,7 +659,7 @@ const DiveSites = () => {
           </div>
         )}
         {/* Filter Bar - Sticky and compact with mobile-first responsive design */}
-        <div className='sticky top-16 z-40 bg-white shadow-sm border-b border-gray-200 -mx-4 sm:-mx-6 lg:-mx-8 px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4'>
+        <div className='sticky top-16 z-40 bg-white shadow-sm border-b border-gray-200 rounded-t-lg py-3 sm:py-4'>
           <DiveSitesFilterBar
             searchValue={filters.search_query}
             onSearchChange={value => handleFilterChange('search_query', value)}
@@ -674,7 +679,7 @@ const DiveSites = () => {
           />
         </div>
         {/* Content Section */}
-        <div className={`content-section pt-4 sm:pt-6 ${mobileStyles.mobileMargin}`}>
+        <div className={`content-section ${mobileStyles.mobileMargin}`}>
           {/* View Controls - Mobile-first responsive design for Map View */}
           {viewMode === 'map' ? (
             <div className='mb-4 sm:mb-6 lg:mb-8'>
@@ -722,7 +727,7 @@ const DiveSites = () => {
               </div>
             </div>
           ) : (
-            <div className='mb-4 sm:mb-6 lg:mb-8'>
+            <div className='bg-white shadow-sm border-b border-l border-r border-gray-200 rounded-b-lg'>
               <EnhancedMobileSortingControls
                 sortBy={sortBy}
                 sortOrder={sortOrder}
