@@ -1,20 +1,16 @@
 import { debounce } from 'lodash';
 import {
   Plus,
-  Edit,
-  Trash2,
   Eye,
   Map,
-  Search,
-  List,
-  Lock,
   ChevronLeft,
   ChevronRight,
-  Filter,
   Star,
   MapPin,
-  Tag,
   TrendingUp,
+  Compass,
+  Globe,
+  List,
   Grid,
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
@@ -23,8 +19,10 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
+import DiveSitesFilterBar from '../components/DiveSitesFilterBar';
 import DiveSitesMap from '../components/DiveSitesMap';
 import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
+import HeroSection from '../components/HeroSection';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
 import useSorting from '../hooks/useSorting';
@@ -44,6 +42,8 @@ const DiveSites = () => {
     return params.get('view') || 'list';
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [quickFilter, setQuickFilter] = useState('');
 
   // View mode state
   const [showThumbnails, setShowThumbnails] = useState(() => {
@@ -55,6 +55,17 @@ const DiveSites = () => {
     return params.get('compact_layout') !== 'false'; // Default to true (compact)
   });
 
+  // Mobile optimization styles
+  const mobileStyles = {
+    touchTarget: 'min-h-[44px] sm:min-h-0 touch-manipulation',
+    mobilePadding: 'p-3 sm:p-4 lg:p-6',
+    mobileMargin: 'mb-4 sm:mb-6 lg:mb-8',
+    mobileText: 'text-xs sm:text-sm lg:text-base',
+    mobileFlex: 'flex-col sm:flex-row',
+    mobileCenter: 'justify-center sm:justify-start',
+    mobileFullWidth: 'w-full sm:w-auto',
+  };
+
   // Get initial values from URL parameters
   const getInitialViewMode = () => {
     const mode = searchParams.get('view') || 'list';
@@ -63,7 +74,7 @@ const DiveSites = () => {
 
   const getInitialFilters = () => {
     return {
-      name: searchParams.get('name') || '',
+      search_query: searchParams.get('search') || '',
       country: searchParams.get('country') || '',
       region: searchParams.get('region') || '',
       difficulty_level: searchParams.get('difficulty_level') || '',
@@ -91,7 +102,7 @@ const DiveSites = () => {
   });
   const effectivePageSize = Number(pagination.page_size) || 25;
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
-    name: getInitialFilters().name,
+    search_query: getInitialFilters().search_query,
     country: getInitialFilters().country,
     region: getInitialFilters().region,
   });
@@ -117,10 +128,6 @@ const DiveSites = () => {
 
       if (newFilters.search_query && newFilters.search_query.trim()) {
         newSearchParams.set('search', newFilters.search_query.trim());
-      }
-
-      if (newFilters.location_query && newFilters.location_query.trim()) {
-        newSearchParams.set('location', newFilters.location_query.trim());
       }
 
       if (newFilters.country && newFilters.country.trim()) {
@@ -186,8 +193,8 @@ const DiveSites = () => {
         newSearchParams.set('search', newFilters.search_query.trim());
       }
 
-      if (newFilters.location_query && newFilters.location_query.trim()) {
-        newSearchParams.set('location', newFilters.location_query.trim());
+      if (newFilters.location && newFilters.location.trim()) {
+        newSearchParams.set('location', newFilters.location.trim());
       }
 
       if (newFilters.country && newFilters.country.trim()) {
@@ -242,19 +249,28 @@ const DiveSites = () => {
   // Debounced URL update for search inputs
   useEffect(() => {
     debouncedUpdateURL(filters, pagination, viewMode);
-  }, [filters.name, filters.country, filters.region, debouncedUpdateURL]);
+  }, [
+    filters.name,
+    filters.search_query,
+    filters.country,
+    filters.region,
+    filters.location,
+    debouncedUpdateURL,
+  ]);
 
   // Debounced search terms for query key
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearchTerms({
         name: filters.name,
+        search_query: filters.search_query,
         country: filters.country,
         region: filters.region,
+        location: filters.location,
       });
     }, 800);
     return () => clearTimeout(timeoutId);
-  }, [filters.name, filters.country, filters.region]);
+  }, [filters.name, filters.search_query, filters.country, filters.region, filters.location]);
 
   // Immediate URL update for non-search filters
   useEffect(() => {
@@ -285,7 +301,7 @@ const DiveSites = () => {
   const { data: totalCountResponse } = useQuery(
     [
       'dive-sites-count',
-      debouncedSearchTerms.name,
+      debouncedSearchTerms.search_query,
       debouncedSearchTerms.country,
       debouncedSearchTerms.region,
       filters.difficulty_level,
@@ -296,7 +312,8 @@ const DiveSites = () => {
     () => {
       const params = new URLSearchParams();
 
-      if (debouncedSearchTerms.name) params.append('name', debouncedSearchTerms.name);
+      if (debouncedSearchTerms.search_query)
+        params.append('search', debouncedSearchTerms.search_query);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
       if (debouncedSearchTerms.country) params.append('country', debouncedSearchTerms.country);
@@ -329,7 +346,7 @@ const DiveSites = () => {
   } = useQuery(
     [
       'dive-sites',
-      debouncedSearchTerms.name,
+      debouncedSearchTerms.search_query,
       debouncedSearchTerms.country,
       debouncedSearchTerms.region,
       filters.difficulty_level,
@@ -344,7 +361,8 @@ const DiveSites = () => {
     () => {
       const params = new URLSearchParams();
 
-      if (debouncedSearchTerms.name) params.append('name', debouncedSearchTerms.name);
+      if (debouncedSearchTerms.search_query)
+        params.append('search', debouncedSearchTerms.search_query);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
       if (debouncedSearchTerms.country) params.append('country', debouncedSearchTerms.country);
@@ -396,21 +414,11 @@ const DiveSites = () => {
     handleRateLimitError(availableTags?.error, 'available tags', () => window.location.reload());
   }, [availableTags?.error]);
 
-  const handleSearchChange = e => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-    // Reset to first page when filters change
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
   // handleTagChange function removed as it's now handled inline in the button onClick
 
   const clearFilters = () => {
     const clearedFilters = {
-      name: '',
+      search_query: '',
       difficulty_level: '',
       min_rating: '',
       country: '',
@@ -430,74 +438,6 @@ const DiveSites = () => {
 
   const handlePageSizeChange = newPageSize => {
     setPagination(prev => ({ ...prev, page: 1, page_size: newPageSize }));
-  };
-
-  const getTagColor = tagName => {
-    // Create a consistent color mapping based on tag name
-    const colorMap = {
-      beginner: 'bg-green-100 text-green-800',
-      intermediate: 'bg-yellow-100 text-yellow-800',
-      advanced: 'bg-orange-100 text-orange-800',
-      expert: 'bg-red-100 text-red-800',
-      deep: 'bg-blue-100 text-blue-800',
-      shallow: 'bg-cyan-100 text-cyan-800',
-      wreck: 'bg-purple-100 text-purple-800',
-      reef: 'bg-emerald-100 text-emerald-800',
-      cave: 'bg-indigo-100 text-indigo-800',
-      wall: 'bg-slate-100 text-slate-800',
-      drift: 'bg-teal-100 text-teal-800',
-      night: 'bg-violet-100 text-violet-800',
-      photography: 'bg-pink-100 text-pink-800',
-      marine: 'bg-cyan-100 text-cyan-800',
-      training: 'bg-amber-100 text-amber-800',
-      tech: 'bg-red-100 text-red-800',
-      boat: 'bg-blue-100 text-blue-800',
-      shore: 'bg-green-100 text-green-800',
-    };
-
-    // Try exact match first
-    const lowerTagName = tagName.toLowerCase();
-    if (colorMap[lowerTagName]) {
-      return colorMap[lowerTagName];
-    }
-
-    // Try partial matches
-    for (const [key, color] of Object.entries(colorMap)) {
-      if (lowerTagName.includes(key) || key.includes(lowerTagName)) {
-        return color;
-      }
-    }
-
-    // Default color scheme based on hash of tag name
-    const colors = [
-      'bg-blue-100 text-blue-800',
-      'bg-green-100 text-green-800',
-      'bg-yellow-100 text-yellow-800',
-      'bg-orange-100 text-orange-800',
-      'bg-red-100 text-red-800',
-      'bg-purple-100 text-purple-800',
-      'bg-pink-100 text-pink-800',
-      'bg-indigo-100 text-indigo-800',
-      'bg-cyan-100 text-cyan-800',
-      'bg-teal-100 text-teal-800',
-      'bg-emerald-100 text-emerald-800',
-      'bg-amber-100 text-amber-800',
-      'bg-violet-100 text-violet-800',
-      'bg-slate-100 text-slate-800',
-    ];
-
-    // Simple hash function for consistent color assignment
-    let hash = 0;
-    for (let i = 0; i < tagName.length; i++) {
-      hash = (hash << 5) - hash + tagName.charCodeAt(i);
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-
-    return colors[Math.abs(hash) % colors.length];
-  };
-
-  const toggleFilters = () => {
-    setShowFilters(!showFilters);
   };
 
   const handleViewModeChange = newViewMode => {
@@ -545,6 +485,92 @@ const DiveSites = () => {
     }
   };
 
+  const handleQuickFilter = filterType => {
+    setQuickFilter(filterType);
+
+    // Apply the quick filter
+    switch (filterType) {
+      case 'beginner':
+        setFilters(prev => ({
+          ...prev,
+          difficulty_level: 'beginner',
+          search_query: '',
+        }));
+        break;
+      case 'intermediate':
+        setFilters(prev => ({
+          ...prev,
+          difficulty_level: 'intermediate',
+          search_query: '',
+        }));
+        break;
+      case 'advanced':
+        setFilters(prev => ({
+          ...prev,
+          difficulty_level: 'advanced',
+          search_query: '',
+        }));
+        break;
+      case 'wrecks':
+        setFilters(prev => ({
+          ...prev,
+          search_query: 'wreck',
+          difficulty_level: '',
+        }));
+        break;
+      case 'reefs':
+        setFilters(prev => ({
+          ...prev,
+          search_query: 'reef',
+          difficulty_level: '',
+        }));
+        break;
+      case 'boat_dive':
+        setFilters(prev => ({
+          ...prev,
+          search_query: 'boat dive',
+          difficulty_level: '',
+        }));
+        break;
+      case 'shore_dive':
+        setFilters(prev => ({
+          ...prev,
+          search_query: 'shore dive',
+          difficulty_level: '',
+        }));
+        break;
+      case 'clear':
+        setQuickFilter('');
+        setFilters(prev => ({
+          ...prev,
+          difficulty_level: '',
+          search_query: '',
+        }));
+        break;
+      default:
+        break;
+    }
+
+    // Reset to first page
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filters.search_query) count++;
+    if (filters.country) count++;
+    if (filters.region) count++;
+    if (filters.difficulty_level) count++;
+    if (filters.min_rating) count++;
+    if (filters.tag_ids && filters.tag_ids.length > 0) count++;
+    return count;
+  };
+
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
   if (isLoading) {
     return (
       <div className='flex justify-center items-center h-64'>
@@ -577,556 +603,517 @@ const DiveSites = () => {
   }
 
   return (
-    <div className='max-w-7xl mx-auto px-4 sm:px-6'>
-      <div className='mb-6 sm:mb-8'>
-        <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-4'>Dive Sites</h1>
-        <p className='text-sm sm:text-base text-gray-600'>
-          Discover amazing dive sites around the world
-        </p>
-        {totalCount !== undefined && (
-          <div className='mt-2 text-xs sm:text-sm text-gray-500'>
-            Showing {diveSites?.length || 0} dive sites from {totalCount} total dive sites
+    <div className='min-h-screen bg-gray-50'>
+      {/* Mobile-First Responsive Container */}
+      <div className='max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+        {/* Hero Section */}
+        <div className='mb-6 sm:mb-8 lg:mb-10'>
+          <HeroSection
+            title='Dive Sites'
+            subtitle='Discover amazing dive sites around the world'
+            actions={[
+              {
+                label: 'Explore Map',
+                icon: Compass,
+                onClick: () => {
+                  setViewMode('map');
+                  navigate('/dive-sites?view=map');
+                },
+                variant: 'primary',
+              },
+              {
+                label: 'Browse Sites',
+                icon: Globe,
+                onClick: () => {
+                  setViewMode('list');
+                  navigate('/dive-sites');
+                },
+                variant: 'secondary',
+              },
+              {
+                label: 'Create Dive Site',
+                icon: Plus,
+                onClick: () => navigate('/dive-sites/create'),
+                variant: 'success',
+                show: user,
+              },
+            ]}
+          />
+        </div>
+        {/* Map Section - Show immediately when in map view */}
+        {viewMode === 'map' && (
+          <div className='mb-8'>
+            <div className='bg-white rounded-lg shadow-md p-4 mb-6'>
+              <h2 className='text-xl font-semibold text-gray-900 mb-4'>
+                Interactive Dive Sites Map
+              </h2>
+              <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200'>
+                <DiveSitesMap diveSites={diveSites || []} />
+              </div>
+            </div>
           </div>
         )}
-      </div>
-
-      {/* Mobile Filter Toggle Button */}
-      <div className='md:hidden mb-4'>
-        <button
-          onClick={toggleFilters}
-          className='w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
-        >
-          <Filter className='h-5 w-5' />
-          {showFilters ? 'Hide Filters' : 'Show Filters'}
-        </button>
-      </div>
-
-      {/* Search and Filter Section */}
-      <div
-        className={`bg-white rounded-lg shadow-md mb-6 sm:mb-8 ${showFilters ? 'block' : 'hidden md:block'}`}
-      >
-        <div className='p-4 sm:p-6'>
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4'>
-            <div className='lg:col-span-2'>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Search Sites
-              </label>
-              <div className='relative'>
-                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                <input
-                  type='text'
-                  name='name'
-                  placeholder='Search by name...'
-                  value={filters.name}
-                  onChange={handleSearchChange}
-                  className='pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-                />
+        {/* Filter Bar - Sticky and compact with mobile-first responsive design */}
+        <div className='sticky top-16 z-40 bg-white shadow-sm border-b border-gray-200 -mx-4 sm:-mx-6 lg:-mx-8 px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4'>
+          <DiveSitesFilterBar
+            searchValue={filters.search_query}
+            onSearchChange={value => handleFilterChange('search_query', value)}
+            searchPlaceholder='Search dive sites by name, country, region, or description...'
+            showFilters={showAdvancedFilters}
+            onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            onClearFilters={clearFilters}
+            activeFiltersCount={getActiveFiltersCount()}
+            filters={{ ...filters, availableTags, user }}
+            onFilterChange={handleFilterChange}
+            onQuickFilter={handleQuickFilter}
+            quickFilter={quickFilter}
+            variant='inline'
+            showQuickFilters={true}
+            showAdvancedToggle={true}
+            mobileOptimized={true}
+          />
+        </div>
+        {/* Content Section */}
+        <div className={`content-section pt-4 sm:pt-6 ${mobileStyles.mobileMargin}`}>
+          {/* View Controls - Mobile-first responsive design for Map View */}
+          {viewMode === 'map' ? (
+            <div className='mb-4 sm:mb-6 lg:mb-8'>
+              <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4'>
+                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4'>
+                  <h3 className='text-base sm:text-lg font-medium text-gray-900 text-center sm:text-left'>
+                    View Mode
+                  </h3>
+                  <div className='flex justify-center sm:justify-end gap-2'>
+                    <button
+                      onClick={() => handleViewModeChange('list')}
+                      className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
+                        viewMode === 'list'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
+                      }`}
+                    >
+                      <List className='h-4 w-4 sm:h-4 sm:w-4' />
+                      <span className='hidden xs:inline'>List</span>
+                    </button>
+                    <button
+                      onClick={() => handleViewModeChange('grid')}
+                      className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
+                        viewMode === 'grid'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
+                      }`}
+                    >
+                      <Grid className='h-4 w-4 sm:h-4 sm:w-4' />
+                      <span className='hidden xs:inline'>Grid</span>
+                    </button>
+                    <button
+                      onClick={() => handleViewModeChange('map')}
+                      className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
+                        viewMode === 'map'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
+                      }`}
+                    >
+                      <Map className='h-4 w-4 sm:h-4 sm:w-4' />
+                      <span className='hidden xs:inline'>Map</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Difficulty Level
-              </label>
-              <select
-                name='difficulty_level'
-                value={filters.difficulty_level}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              >
-                <option value=''>All Levels</option>
-                <option value='beginner'>Beginner</option>
-                <option value='intermediate'>Intermediate</option>
-                <option value='advanced'>Advanced</option>
-                <option value='expert'>Expert</option>
-              </select>
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Min Rating (≥)
-              </label>
-              <input
-                type='number'
-                min='0'
-                max='10'
-                step='0.1'
-                name='min_rating'
-                value={filters.min_rating}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-                placeholder='Show sites rated ≥ this value'
+          ) : (
+            <div className='mb-4 sm:mb-6 lg:mb-8'>
+              <EnhancedMobileSortingControls
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                sortOptions={getSortOptions('dive-sites')}
+                onSortChange={handleSortChange}
+                onSortApply={handleSortApply}
+                onReset={resetSorting}
+                entityType='dive-sites'
+                showFilters={false} // Hide filters in this section for now
+                onToggleFilters={() => {}}
+                viewMode={viewMode}
+                onViewModeChange={handleViewModeChange}
+                showQuickActions={true}
+                showFAB={true}
+                showTabs={true}
+                showThumbnails={showThumbnails}
+                compactLayout={compactLayout}
+                onDisplayOptionChange={handleDisplayOptionChange}
+                mobileOptimized={true}
               />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Country
-              </label>
-              <input
-                type='text'
-                name='country'
-                placeholder='Filter by country...'
-                value={filters.country}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>Region</label>
-              <input
-                type='text'
-                name='region'
-                placeholder='Filter by region...'
-                value={filters.region}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              />
-            </div>
-          </div>
-
-          {/* Tags Filter */}
-          {availableTags && availableTags.length > 0 && (
-            <div className='mt-4'>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Tags</label>
-              <div className='flex flex-wrap gap-2'>
-                {availableTags.map(tag => (
-                  <button
-                    key={tag.id}
-                    type='button'
-                    onClick={() => {
-                      const tagId = parseInt(tag.id);
-                      setFilters(prev => ({
-                        ...prev,
-                        tag_ids: prev.tag_ids.includes(tagId)
-                          ? prev.tag_ids.filter(id => id !== tagId)
-                          : [...prev.tag_ids, tagId],
-                      }));
-                      setPagination(prev => ({ ...prev, page: 1 }));
-                    }}
-                    className={`px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                      filters.tag_ids.includes(tag.id)
-                        ? `${getTagColor(tag.name)} border-2 border-current shadow-md`
-                        : `${getTagColor(tag.name)} opacity-60 hover:opacity-100 border-2 border-transparent`
-                    }`}
-                  >
-                    {tag.name}
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 
-          {/* Filter Actions */}
-          <div className='mt-4 flex flex-col sm:flex-row gap-2 sm:gap-4'>
-            <button
-              onClick={clearFilters}
-              className='px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-sm'
-            >
-              Clear Filters
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Sorting Controls */}
-      <div className='mb-6 sm:mb-8'>
-        <EnhancedMobileSortingControls
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          sortOptions={getSortOptions('dive-sites')}
-          onSortChange={handleSortChange}
-          onSortApply={handleSortApply}
-          onReset={resetSorting}
-          entityType='dive-sites'
-          showFilters={false} // Hide filters in this section for now
-          onToggleFilters={() => {}}
-          viewMode={viewMode}
-          onViewModeChange={handleViewModeChange}
-          showQuickActions={true}
-          showFAB={true}
-          showTabs={true}
-          showThumbnails={showThumbnails}
-          compactLayout={compactLayout}
-          onDisplayOptionChange={handleDisplayOptionChange}
-        />
-      </div>
-
-      {/* Pagination Controls */}
-      <div className='mb-6 sm:mb-8'>
-        <div className='bg-white rounded-lg shadow-md p-4 sm:p-6'>
-          <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
-            {/* Pagination Controls */}
-            <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
-              {/* Page Size Selection */}
-              <div className='flex items-center gap-2'>
-                <label className='text-sm font-medium text-gray-700'>Show:</label>
-                <select
-                  value={pagination.page_size}
-                  onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-                  className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-                >
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-                <span className='text-sm text-gray-600'>per page</span>
-              </div>
-
-              {/* Pagination Info */}
-              {totalCount !== undefined && totalCount !== null && (
-                <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
-                  Showing {Math.max(1, (pagination.page - 1) * effectivePageSize + 1)} to{' '}
-                  {Math.min(pagination.page * effectivePageSize, totalCount)} of {totalCount} dive
-                  sites
-                </div>
-              )}
-
-              {/* Pagination Navigation */}
-              {totalCount !== undefined && totalCount !== null && totalCount > 0 && (
-                <div className='flex items-center gap-2'>
-                  <button
-                    onClick={() => handlePageChange(pagination.page - 1)}
-                    disabled={pagination.page <= 1}
-                    className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                  >
-                    <ChevronLeft className='h-4 w-4' />
-                  </button>
-
-                  <span className='text-xs sm:text-sm text-gray-700'>
-                    Page {pagination.page} of{' '}
-                    {Math.max(1, Math.ceil(totalCount / effectivePageSize))}
-                  </span>
-
-                  <button
-                    onClick={() => handlePageChange(pagination.page + 1)}
-                    disabled={pagination.page >= Math.ceil(totalCount / effectivePageSize)}
-                    className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                  >
-                    <ChevronRight className='h-4 w-4' />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className='flex flex-col sm:flex-row justify-between items-center mb-6 gap-4'>
-        {user && (
-          <button
-            onClick={() => {
-              const newFilters = { ...filters, my_dive_sites: !filters.my_dive_sites };
-              setFilters(newFilters);
-              setPagination(prev => ({ ...prev, page: 1 }));
-              immediateUpdateURL(newFilters, { ...pagination, page: 1 }, viewMode);
-            }}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-              filters.my_dive_sites
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-            }`}
-          >
-            {filters.my_dive_sites ? '✓ My Dive Sites' : 'My Dive Sites'}
-          </button>
-        )}
-
-        {user && (
-          <div className='flex flex-col sm:flex-row gap-3'>
-            <button
-              onClick={() => navigate('/dive-sites/create')}
-              className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2'
-            >
-              <Plus size={20} />
-              Create Dive Site
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Results Section */}
-      {/* Dive Sites List */}
-      {viewMode === 'list' && (
-        <div className={`space-y-2 ${compactLayout ? 'view-mode-compact' : ''}`}>
-          {diveSites?.map(site => (
-            <div
-              key={site.id}
-              className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow ${
-                compactLayout ? 'p-2' : 'p-3'
-              }`}
-            >
-              <div className='flex items-start justify-between mb-2'>
-                <div className='flex-1 min-w-0'>
-                  <div className='flex items-center gap-2 mb-1'>
-                    {showThumbnails && (
-                      <div className='dive-thumbnail flex-shrink-0'>
-                        <MapPin className='w-6 h-6' />
-                      </div>
-                    )}
-                    <div className='min-w-0 flex-1'>
-                      <div className='flex items-center gap-2'>
-                        <h3
-                          className={`font-semibold text-gray-900 truncate ${compactLayout ? 'text-sm' : 'text-base'}`}
-                        >
-                          <Link
-                            to={`/dive-sites/${site.id}`}
-                            className='hover:text-blue-600 transition-colors block truncate'
-                            title={site.name}
-                          >
-                            {site.name}
-                          </Link>
-                        </h3>
-                        {(site.country || site.region) && (
-                          <span
-                            className={`text-gray-600 flex-shrink-0 ${compactLayout ? 'text-xs' : 'text-sm'}`}
-                          >
-                            {[site.country, site.region].filter(Boolean).join(', ')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <Link
-                  to={`/dive-sites/${site.id}`}
-                  className='ml-2 flex-shrink-0 inline-flex items-center justify-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors'
-                >
-                  <Eye className='w-3 h-3' />
-                  View
-                </Link>
-              </div>
-
-              <div className='flex items-center gap-4 mb-2'>
-                <div className='flex items-center gap-1'>
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(site.difficulty_level)}`}
-                  >
-                    {getDifficultyLabel(site.difficulty_level)}
-                  </span>
-                </div>
-                {site.max_depth !== undefined && site.max_depth !== null && (
-                  <div className='flex items-center gap-1'>
-                    <TrendingUp className='w-3 h-3 text-gray-400' />
-                    <span className='text-xs text-gray-600'>{site.max_depth}m</span>
-                  </div>
-                )}
-                {site.average_rating !== undefined && site.average_rating !== null && (
-                  <div className='flex items-center gap-1'>
-                    <Star className='w-3 h-3 text-yellow-400' />
-                    <span className='text-xs text-gray-600'>
-                      {Number(site.average_rating).toFixed(1)}/10
-                    </span>
-                  </div>
-                )}
-                {site.latitude !== undefined &&
-                  site.latitude !== null &&
-                  site.longitude !== undefined &&
-                  site.longitude !== null && (
-                    <div className='flex items-center gap-1'>
-                      <MapPin className='w-3 h-3 text-gray-400' />
-                      <span className='text-xs text-gray-600'>
-                        {Number(site.latitude).toFixed(4)}°, {Number(site.longitude).toFixed(4)}°
-                      </span>
-                    </div>
-                  )}
-              </div>
-
-              {site.description && (
-                <p
-                  className={`text-gray-700 ${compactLayout ? 'text-xs' : 'text-sm'} mb-2 line-clamp-2`}
-                >
-                  {site.description.split(/(https?:\/\/[^\s]+)/).map((part, index) => {
-                    if (part.match(/^https?:\/\//)) {
-                      return (
-                        <a
-                          key={index}
-                          href={part}
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className='text-blue-600 hover:text-blue-800 underline break-all'
-                        >
-                          {part}
-                        </a>
-                      );
-                    }
-                    return part;
-                  })}
-                </p>
-              )}
-
-              {/* Tags */}
-              {site.tags && site.tags.length > 0 && (
-                <div className='flex flex-wrap gap-1'>
-                  {site.tags.slice(0, 3).map((tag, index) => (
-                    <span
-                      key={index}
-                      className='inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded'
+          {/* Pagination Controls - Mobile-first responsive design */}
+          <div className='mb-4 sm:mb-6 lg:mb-8'>
+            <div className='bg-white rounded-lg shadow-md p-3 sm:p-4 lg:p-6'>
+              <div className='flex flex-col lg:flex-row justify-between items-center gap-3 sm:gap-4'>
+                {/* Pagination Controls */}
+                <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto'>
+                  {/* Page Size Selection */}
+                  <div className='flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start'>
+                    <label className='text-xs sm:text-sm font-medium text-gray-700'>Show:</label>
+                    <select
+                      value={pagination.page_size}
+                      onChange={e => handlePageSizeChange(parseInt(e.target.value))}
+                      className='px-2 sm:px-3 py-2 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[44px] sm:min-h-0 touch-manipulation'
                     >
-                      {tag.name || tag}
-                    </span>
-                  ))}
-                  {site.tags.length > 3 && (
-                    <span className='inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded'>
-                      +{site.tags.length - 3}
-                    </span>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    <span className='text-xs sm:text-sm text-gray-600'>per page</span>
+                  </div>
+
+                  {/* Pagination Info */}
+                  {totalCount !== undefined && totalCount !== null && (
+                    <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
+                      Showing {Math.max(1, (pagination.page - 1) * effectivePageSize + 1)} to{' '}
+                      {Math.min(pagination.page * effectivePageSize, totalCount)} of {totalCount}{' '}
+                      dive sites
+                    </div>
+                  )}
+
+                  {/* Pagination Navigation */}
+                  {totalCount !== undefined && totalCount !== null && totalCount > 0 && (
+                    <div className='flex items-center gap-2'>
+                      <button
+                        onClick={() => handlePageChange(pagination.page - 1)}
+                        disabled={pagination.page <= 1}
+                        className='px-3 py-2 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[44px] sm:min-h-0 touch-manipulation transition-colors'
+                      >
+                        <ChevronLeft className='h-4 w-4' />
+                      </button>
+
+                      <span className='text-xs sm:text-sm text-gray-700 px-2'>
+                        Page {pagination.page} of{' '}
+                        {Math.max(1, Math.ceil(totalCount / effectivePageSize))}
+                      </span>
+
+                      <button
+                        onClick={() => handlePageChange(pagination.page + 1)}
+                        disabled={pagination.page >= Math.ceil(totalCount / effectivePageSize)}
+                        className='px-3 py-2 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[44px] sm:min-h-0 touch-manipulation transition-colors'
+                      >
+                        <ChevronRight className='h-4 w-4' />
+                      </button>
+                    </div>
                   )}
                 </div>
-              )}
+              </div>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
 
-      {/* Dive Sites Grid */}
-      {viewMode === 'grid' && (
-        <div
-          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${compactLayout ? 'view-mode-compact' : ''}`}
-        >
-          {diveSites?.map(site => (
-            <div
-              key={site.id}
-              className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
-                compactLayout ? 'p-3' : 'p-4'
-              }`}
-            >
-              {showThumbnails && (
-                <div className='dive-thumbnail bg-gray-100 p-3 flex items-center justify-center'>
-                  <MapPin className='w-10 h-10 text-gray-400' />
-                </div>
-              )}
+          {/* Action Buttons - Mobile-first responsive design */}
+          <div className='flex flex-col sm:flex-row justify-center sm:justify-end items-center mb-4 sm:mb-6 gap-3 sm:gap-4'>
+            {user && (
+              <div className='flex flex-col sm:flex-row gap-3 w-full sm:w-auto'>
+                <button
+                  onClick={() => navigate('/dive-sites/create')}
+                  className='bg-green-600 hover:bg-green-700 active:bg-green-800 text-white px-4 py-3 sm:py-2 rounded-lg flex items-center justify-center gap-2 text-sm sm:text-base font-medium shadow-sm transition-all duration-200 hover:shadow-md active:shadow-inner min-h-[44px] sm:min-h-0 touch-manipulation w-full sm:w-auto'
+                >
+                  <Plus size={20} />
+                  Create Dive Site
+                </button>
+              </div>
+            )}
+          </div>
 
-              <div className='p-3'>
-                <div className='flex items-center gap-3 mb-2'>
-                  <h3
-                    className={`font-semibold text-gray-900 truncate flex-1 ${compactLayout ? 'text-base' : 'text-lg'}`}
-                  >
+          {/* Results Section - Mobile-first responsive design */}
+          {/* Dive Sites List */}
+          {viewMode === 'list' && (
+            <div className={`space-y-2 sm:space-y-3 ${compactLayout ? 'view-mode-compact' : ''}`}>
+              {diveSites?.map(site => (
+                <div
+                  key={site.id}
+                  className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow ${
+                    compactLayout ? 'p-2 sm:p-3' : 'p-3 sm:p-4'
+                  }`}
+                >
+                  <div className='flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2'>
+                    <div className='flex-1 min-w-0'>
+                      <div className='flex items-start gap-2 mb-2'>
+                        {showThumbnails && (
+                          <div className='dive-thumbnail flex-shrink-0 mt-0.5'>
+                            <MapPin className='w-5 h-5 sm:w-6 sm:h-6 text-gray-400' />
+                          </div>
+                        )}
+                        <div className='min-w-0 flex-1'>
+                          <div className='flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2'>
+                            <h3
+                              className={`font-semibold text-gray-900 truncate ${compactLayout ? 'text-sm' : 'text-base'}`}
+                            >
+                              <Link
+                                to={`/dive-sites/${site.id}`}
+                                className='hover:text-blue-600 transition-colors block truncate'
+                                title={site.name}
+                              >
+                                {site.name}
+                              </Link>
+                            </h3>
+                            {(site.country || site.region) && (
+                              <span
+                                className={`text-gray-600 flex-shrink-0 ${compactLayout ? 'text-xs' : 'text-sm'}`}
+                              >
+                                {[site.country, site.region].filter(Boolean).join(', ')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                     <Link
                       to={`/dive-sites/${site.id}`}
-                      className='hover:text-blue-600 transition-colors block truncate'
-                      title={site.name}
+                      className='self-start sm:self-center flex-shrink-0 inline-flex items-center justify-center gap-1 px-3 py-2 sm:px-2 sm:py-1 text-xs sm:text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors min-h-[44px] sm:min-h-0 touch-manipulation'
                     >
-                      {site.name}
+                      <Eye className='w-3 h-3 sm:w-3 sm:h-3' />
+                      <span className='sm:hidden'>View Details</span>
+                      <span className='hidden sm:inline'>View</span>
                     </Link>
-                  </h3>
-                  {(site.country || site.region) && (
-                    <span
-                      className={`text-gray-600 flex-shrink-0 ${compactLayout ? 'text-xs' : 'text-sm'}`}
-                    >
-                      {[site.country, site.region].filter(Boolean).join(', ')}
-                    </span>
-                  )}
-                </div>
+                  </div>
 
-                <div className='mb-2'>
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(site.difficulty_level)}`}
-                  >
-                    {getDifficultyLabel(site.difficulty_level)}
-                  </span>
-                </div>
-
-                <div className='grid grid-cols-2 gap-2 mb-2'>
-                  {site.max_depth !== undefined && site.max_depth !== null && (
-                    <div className='flex items-center gap-2'>
-                      <TrendingUp className='w-4 h-4 text-gray-400' />
-                      <span className='text-sm text-gray-600'>{site.max_depth}m</span>
-                    </div>
-                  )}
-                  {site.average_rating !== undefined && site.average_rating !== null && (
-                    <div className='flex items-center gap-2'>
-                      <Star className='w-4 h-4 text-yellow-400' />
-                      <span className='text-sm text-gray-600'>
-                        {Number(site.average_rating).toFixed(1)}/10
+                  <div className='flex flex-wrap items-center gap-2 sm:gap-4 mb-2'>
+                    <div className='flex items-center gap-1'>
+                      <span
+                        className={`inline-flex items-center px-2 py-1 sm:py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(site.difficulty_level)}`}
+                      >
+                        {getDifficultyLabel(site.difficulty_level)}
                       </span>
                     </div>
-                  )}
-                  {site.latitude !== undefined &&
-                    site.latitude !== null &&
-                    site.longitude !== undefined &&
-                    site.longitude !== null && (
-                      <div className='flex items-center gap-2'>
-                        <MapPin className='w-4 h-4 text-gray-400' />
-                        <span className='text-sm text-gray-600'>
-                          {Number(site.latitude).toFixed(4)}°, {Number(site.longitude).toFixed(4)}°
+                    {site.max_depth !== undefined && site.max_depth !== null && (
+                      <div className='flex items-center gap-1'>
+                        <TrendingUp className='w-3 h-3 text-gray-400' />
+                        <span className='text-xs text-gray-600'>{site.max_depth}m</span>
+                      </div>
+                    )}
+                    {site.average_rating !== undefined && site.average_rating !== null && (
+                      <div className='flex items-center gap-1'>
+                        <Star className='w-3 h-3 text-yellow-400' />
+                        <span className='text-xs text-gray-600'>
+                          {Number(site.average_rating).toFixed(1)}/10
                         </span>
                       </div>
                     )}
-                </div>
+                    {site.latitude !== undefined &&
+                      site.latitude !== null &&
+                      site.longitude !== undefined &&
+                      site.longitude !== null && (
+                        <div className='flex items-center gap-1'>
+                          <MapPin className='w-3 h-3 text-gray-400' />
+                          <span className='text-xs text-gray-600'>
+                            {Number(site.latitude).toFixed(4)}°, {Number(site.longitude).toFixed(4)}
+                            °
+                          </span>
+                        </div>
+                      )}
+                  </div>
 
-                {site.description && (
-                  <p
-                    className={`text-gray-700 ${compactLayout ? 'text-xs' : 'text-sm'} mb-2 line-clamp-2`}
-                  >
-                    {site.description.split(/(https?:\/\/[^\s]+)/).map((part, index) => {
-                      if (part.match(/^https?:\/\//)) {
-                        return (
-                          <a
-                            key={index}
-                            href={part}
-                            target='_blank'
-                            rel='noopener noreferrer'
-                            className='text-blue-600 hover:text-blue-800 underline break-all'
-                          >
-                            {part}
-                          </a>
-                        );
-                      }
-                      return part;
-                    })}
-                  </p>
-                )}
+                  {site.description && (
+                    <p
+                      className={`text-gray-700 ${compactLayout ? 'text-xs' : 'text-sm'} mb-2 line-clamp-2`}
+                    >
+                      {site.description.split(/(https?:\/\/[^\s]+)/).map((part, index) => {
+                        if (part.match(/^https?:\/\//)) {
+                          return (
+                            <a
+                              key={index}
+                              href={part}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='text-blue-600 hover:text-blue-800 underline break-all'
+                            >
+                              {part}
+                            </a>
+                          );
+                        }
+                        return part;
+                      })}
+                    </p>
+                  )}
 
-                {/* Tags */}
-                {site.tags && site.tags.length > 0 && (
-                  <div className='mb-4'>
-                    <div className='flex flex-wrap gap-2'>
+                  {/* Tags */}
+                  {site.tags && site.tags.length > 0 && (
+                    <div className='flex flex-wrap gap-1'>
                       {site.tags.slice(0, 3).map((tag, index) => (
                         <span
                           key={index}
-                          className='inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full'
+                          className='inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded'
                         >
                           {tag.name || tag}
                         </span>
                       ))}
                       {site.tags.length > 3 && (
-                        <span className='inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full'>
-                          +{site.tags.length - 3} more
+                        <span className='inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded'>
+                          +{site.tags.length - 3}
                         </span>
                       )}
                     </div>
-                  </div>
-                )}
-
-                <Link
-                  to={`/dive-sites/${site.id}`}
-                  className='w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
-                >
-                  <Eye className='w-4 h-4' />
-                  View Site
-                </Link>
-              </div>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      {/* Dive Sites Map */}
-      {viewMode === 'map' && (
-        <div className='h-96 rounded-lg overflow-hidden border border-gray-200'>
-          <DiveSitesMap diveSites={diveSites || []} />
-        </div>
-      )}
+          {/* Dive Sites Grid */}
+          {viewMode === 'grid' && (
+            <div
+              className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${compactLayout ? 'view-mode-compact' : ''}`}
+            >
+              {diveSites?.map(site => (
+                <div
+                  key={site.id}
+                  className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
+                    compactLayout ? 'p-3' : 'p-4'
+                  }`}
+                >
+                  {showThumbnails && (
+                    <div className='dive-thumbnail bg-gray-100 p-3 flex items-center justify-center'>
+                      <MapPin className='w-10 h-10 text-gray-400' />
+                    </div>
+                  )}
 
-      {diveSites?.length === 0 && (
-        <div className='text-center py-8 sm:py-12'>
-          <Map className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-          <p className='text-sm sm:text-base text-gray-600'>
-            No dive sites found matching your criteria.
-          </p>
-        </div>
-      )}
+                  <div className='p-3'>
+                    <div className='flex items-center gap-3 mb-2'>
+                      <h3
+                        className={`font-semibold text-gray-900 truncate flex-1 ${compactLayout ? 'text-base' : 'text-lg'}`}
+                      >
+                        <Link
+                          to={`/dive-sites/${site.id}`}
+                          className='hover:text-blue-600 transition-colors block truncate'
+                          title={site.name}
+                        >
+                          {site.name}
+                        </Link>
+                      </h3>
+                      {(site.country || site.region) && (
+                        <span
+                          className={`text-gray-600 flex-shrink-0 ${compactLayout ? 'text-xs' : 'text-sm'}`}
+                        >
+                          {[site.country, site.region].filter(Boolean).join(', ')}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className='mb-2'>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(site.difficulty_level)}`}
+                      >
+                        {getDifficultyLabel(site.difficulty_level)}
+                      </span>
+                    </div>
+
+                    <div className='grid grid-cols-2 gap-2 mb-2'>
+                      {site.max_depth !== undefined && site.max_depth !== null && (
+                        <div className='flex items-center gap-2'>
+                          <TrendingUp className='w-4 h-4 text-gray-400' />
+                          <span className='text-sm text-gray-600'>{site.max_depth}m</span>
+                        </div>
+                      )}
+                      {site.average_rating !== undefined && site.average_rating !== null && (
+                        <div className='flex items-center gap-2'>
+                          <Star className='w-4 h-4 text-yellow-400' />
+                          <span className='text-sm text-gray-600'>
+                            {Number(site.average_rating).toFixed(1)}/10
+                          </span>
+                        </div>
+                      )}
+                      {site.latitude !== undefined &&
+                        site.latitude !== null &&
+                        site.longitude !== undefined &&
+                        site.longitude !== null && (
+                          <div className='flex items-center gap-2'>
+                            <MapPin className='w-4 h-4 text-gray-400' />
+                            <span className='text-sm text-gray-600'>
+                              {Number(site.latitude).toFixed(4)}°,{' '}
+                              {Number(site.longitude).toFixed(4)}°
+                            </span>
+                          </div>
+                        )}
+                    </div>
+
+                    {site.description && (
+                      <p
+                        className={`text-gray-700 ${compactLayout ? 'text-xs' : 'text-sm'} mb-2 line-clamp-2`}
+                      >
+                        {site.description.split(/(https?:\/\/[^\s]+)/).map((part, index) => {
+                          if (part.match(/^https?:\/\//)) {
+                            return (
+                              <a
+                                key={index}
+                                href={part}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                                className='text-blue-600 hover:text-blue-800 underline break-all'
+                              >
+                                {part}
+                              </a>
+                            );
+                          }
+                          return part;
+                        })}
+                      </p>
+                    )}
+
+                    {/* Tags */}
+                    {site.tags && site.tags.length > 0 && (
+                      <div className='mb-4'>
+                        <div className='flex flex-wrap gap-2'>
+                          {site.tags.slice(0, 3).map((tag, index) => (
+                            <span
+                              key={index}
+                              className='inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full'
+                            >
+                              {tag.name || tag}
+                            </span>
+                          ))}
+                          {site.tags.length > 3 && (
+                            <span className='inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full'>
+                              +{site.tags.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <Link
+                      to={`/dive-sites/${site.id}`}
+                      className='w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
+                    >
+                      <Eye className='w-4 h-4' />
+                      View Site
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>{' '}
+        {/* Close content-section */}
+        {/* No Results Message */}
+        {diveSites?.length === 0 && (
+          <div className='text-center py-8 sm:py-12'>
+            <Map className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+            <p className='text-sm sm:text-base text-gray-600'>
+              No dive sites found matching your criteria.
+            </p>
+          </div>
+        )}
+      </div>{' '}
+      {/* Close mobile-first responsive container */}
+      {/* Phase 5 Mobile Optimization Summary */}
+      {/*
+        ✅ Mobile-First Responsive Design Implemented:
+        - Touch-friendly controls with 44px minimum height
+        - Responsive padding and margins (p-3 sm:p-4 lg:p-6)
+        - Mobile-optimized text sizes (text-xs sm:text-sm lg:text-base)
+        - Flexible layouts (flex-col sm:flex-row)
+        - Mobile-centered content with desktop justification
+        - Full-width mobile elements with auto desktop sizing
+        - Touch manipulation and active states for better UX
+        - Progressive disclosure for mobile information density
+      */}
     </div>
   );
 };

@@ -19,6 +19,9 @@ import {
   DollarSign,
   Star,
   ChevronDown,
+  Compass,
+  Globe,
+  Plus,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
@@ -26,6 +29,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { getParsedTrips, getDivingCenters, getDiveSites } from '../api';
 import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
+import HeroSection from '../components/HeroSection';
 import RateLimitError from '../components/RateLimitError';
 import StickyFilterBar from '../components/StickyFilterBar';
 import TripMap from '../components/TripMap';
@@ -659,772 +663,536 @@ const DiveTrips = () => {
   }
 
   return (
-    <div className='max-w-6xl mx-auto p-3 sm:p-6'>
+    <div className='min-h-screen bg-gray-50'>
       {/* Hero Section */}
-      <div className='mb-6 sm:mb-8 text-center'>
-        <h1 className='text-3xl font-bold text-gray-900'>Dive Trips</h1>
-        <p className='text-gray-600 mt-2 text-sm sm:text-base'>
-          Discover upcoming dive trips from local diving centers
-        </p>
-      </div>
-
-      {/* Map Section - Immediate Visual Impact */}
-      {viewMode === 'map' && (
-        <>
-          {/* Map View Info - Merged and Foldable */}
-          <div className='mb-4 bg-blue-50 rounded-lg border border-blue-200'>
+      <HeroSection
+        title='Dive Trips'
+        subtitle='Discover upcoming dive trips from local diving centers with interactive maps and detailed information'
+        background='ocean'
+        size='medium'
+      >
+        <div className='flex flex-col sm:flex-row gap-3 justify-center'>
+          <button
+            onClick={() => {
+              setViewMode('map');
+              navigate('/dive-trips?view=map');
+            }}
+            className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
+          >
+            <Compass className='w-5 h-5' />
+            Explore Map
+          </button>
+          <button
+            onClick={() => {
+              setViewMode('list');
+              navigate('/dive-trips');
+            }}
+            className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
+          >
+            <Globe className='w-5 h-5' />
+            Browse Trips
+          </button>
+          {user && (
             <button
-              onClick={() => setShowMapInfo(prev => !prev)}
-              className='w-full p-3 text-left flex items-center justify-between hover:bg-blue-100 transition-colors'
+              onClick={() => navigate('/dive-trips/create')}
+              className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
             >
-              <div className='flex items-center space-x-2'>
-                <Map className='h-4 w-4 text-blue-600' />
-                <span className='text-sm text-gray-700 font-medium'>Map View Information</span>
-              </div>
-              <ChevronDown
-                className={`h-4 w-4 text-blue-600 transition-transform ${
-                  showMapInfo ? 'rotate-180' : ''
-                }`}
-              />
+              <Plus size={20} />
+              Create Trip
             </button>
+          )}
+        </div>
+      </HeroSection>
+      {/* Main Content */}
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8'>
+        {/* Map Section - Immediate Visual Impact */}
+        {viewMode === 'map' && (
+          <>
+            {/* Map View Info - Merged and Foldable */}
+            <div className='mb-4 bg-blue-50 rounded-lg border border-blue-200'>
+              <button
+                onClick={() => setShowMapInfo(prev => !prev)}
+                className='w-full p-3 text-left flex items-center justify-between hover:bg-blue-100 transition-colors'
+              >
+                <div className='flex items-center space-x-2'>
+                  <Map className='h-4 w-4 text-blue-600' />
+                  <span className='text-sm text-gray-700 font-medium'>Map View Information</span>
+                </div>
+                <ChevronDown
+                  className={`h-4 w-4 text-blue-600 transition-transform ${
+                    showMapInfo ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
 
-            {showMapInfo && (
-              <div className='px-3 pb-3 border-t border-blue-200'>
-                <div className='pt-3 space-y-3'>
-                  {/* Basic Info */}
-                  <div className='text-sm text-gray-700'>
-                    <strong>Instructions:</strong> Click on trip markers to view details and
-                    navigate to trip pages
-                  </div>
+              {showMapInfo && (
+                <div className='px-3 pb-3 border-t border-blue-200'>
+                  <div className='pt-3 space-y-3'>
+                    {/* Basic Info */}
+                    <div className='text-sm text-gray-700'>
+                      <strong>Instructions:</strong> Click on trip markers to view details and
+                      navigate to trip pages
+                    </div>
 
-                  {/* Map Summary */}
-                  <div className='text-sm text-gray-700'>
-                    <strong>Status:</strong> Showing {mappedTripsCount} dive site
-                    {mappedTripsCount !== 1 ? 's' : ''}
+                    {/* Map Summary */}
+                    <div className='text-sm text-gray-700'>
+                      <strong>Status:</strong> Showing {mappedTripsCount} dive site
+                      {mappedTripsCount !== 1 ? 's' : ''}
+                      {mappedTripsCount !== sortedTrips.length && (
+                        <span className='text-gray-500 ml-1'>
+                          (from {sortedTrips.length} trips)
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Additional Info */}
+                    <div className='text-sm text-gray-600'>
+                      Click markers for trip details • Use filters to refine results
+                    </div>
+
+                    {/* Warning for missing coordinates */}
                     {mappedTripsCount !== sortedTrips.length && (
-                      <span className='text-gray-500 ml-1'>(from {sortedTrips.length} trips)</span>
+                      <div className='text-sm text-orange-600 bg-orange-50 p-2 rounded border border-orange-200'>
+                        ⚠️ {sortedTrips.length - mappedTripsCount} dive site
+                        {sortedTrips.length - mappedTripsCount !== 1 ? 's' : ''} belonging to{' '}
+                        {sortedTrips.length} dive trips not shown (no dive site coordinates)
+                      </div>
                     )}
                   </div>
-
-                  {/* Additional Info */}
-                  <div className='text-sm text-gray-600'>
-                    Click markers for trip details • Use filters to refine results
-                  </div>
-
-                  {/* Warning for missing coordinates */}
-                  {mappedTripsCount !== sortedTrips.length && (
-                    <div className='text-sm text-orange-600 bg-orange-50 p-2 rounded border border-orange-200'>
-                      ⚠️ {sortedTrips.length - mappedTripsCount} dive site
-                      {sortedTrips.length - mappedTripsCount !== 1 ? 's' : ''} belonging to{' '}
-                      {sortedTrips.length} dive trips not shown (no dive site coordinates)
-                    </div>
-                  )}
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          <div className='mb-6 bg-white rounded-lg shadow-md'>
-            {/* Status Toggle Controls */}
-            <div className='p-4 bg-white border-b border-gray-200'>
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center space-x-4'>
-                  <span className='text-sm font-medium text-gray-700'>Show Status:</span>
-                  {Object.entries(statusToggles).map(([status, enabled]) => (
-                    <label key={status} className='flex items-center space-x-2'>
+            <div className='mb-6 bg-white rounded-lg shadow-md'>
+              {/* Status Toggle Controls */}
+              <div className='p-4 bg-white border-b border-gray-200'>
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center space-x-4'>
+                    <span className='text-sm font-medium text-gray-700'>Show Status:</span>
+                    {Object.entries(statusToggles).map(([status, enabled]) => (
+                      <label key={status} className='flex items-center space-x-2'>
+                        <input
+                          type='checkbox'
+                          checked={enabled}
+                          onChange={e => {
+                            setStatusToggles(prev => ({
+                              ...prev,
+                              [status]: e.target.checked,
+                            }));
+                          }}
+                          className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                        />
+                        <span className='text-sm text-gray-600 capitalize'>{status}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className='flex items-center space-x-4'>
+                    <label className='flex items-center space-x-2'>
                       <input
                         type='checkbox'
-                        checked={enabled}
-                        onChange={e => {
-                          setStatusToggles(prev => ({
-                            ...prev,
-                            [status]: e.target.checked,
-                          }));
-                        }}
+                        checked={clustering}
+                        onChange={e => setClustering(e.target.checked)}
                         className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
                       />
-                      <span className='text-sm text-gray-600 capitalize'>{status}</span>
+                      <span className='text-sm text-gray-600'>Clustering</span>
                     </label>
-                  ))}
-                </div>
-                <div className='flex items-center space-x-4'>
-                  <label className='flex items-center space-x-2'>
-                    <input
-                      type='checkbox'
-                      checked={clustering}
-                      onChange={e => setClustering(e.target.checked)}
-                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                    />
-                    <span className='text-sm text-gray-600'>Clustering</span>
-                  </label>
+                  </div>
                 </div>
               </div>
+
+              {/* Main Map */}
+              {isLoading ? (
+                <div className='h-96 sm:h-[500px] lg:h-[600px] bg-gray-100 flex items-center justify-center'>
+                  <div className='text-center'>
+                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4'></div>
+                    <p className='text-gray-600'>Loading map data...</p>
+                  </div>
+                </div>
+              ) : trips && trips.length > 0 ? (
+                <div className='h-96 sm:h-[500px] lg:h-[600px] bg-gray-100 overflow-hidden'>
+                  <TripMap
+                    trips={trips}
+                    onMappedTripsCountChange={handleMappedTripsCountChange}
+                    viewport={viewport}
+                    onViewportChange={setViewport}
+                    statusToggles={statusToggles}
+                    onStatusToggleChange={setStatusToggles}
+                    clustering={clustering}
+                    onClusteringChange={setClustering}
+                    diveSites={diveSites}
+                    divingCenters={divingCenters}
+                  />
+                </div>
+              ) : (
+                <div className='h-96 sm:h-[500px] lg:h-[600px] bg-gray-100 flex items-center justify-center'>
+                  <div className='text-center'>
+                    <Map className='h-16 w-16 text-gray-400 mx-auto mb-4' />
+                    <p className='text-gray-600'>No trips available to display on map</p>
+                  </div>
+                </div>
+              )}
             </div>
+          </>
+        )}
 
-            {/* Main Map */}
-            {isLoading ? (
-              <div className='h-96 sm:h-[500px] lg:h-[600px] bg-gray-100 flex items-center justify-center'>
-                <div className='text-center'>
-                  <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4'></div>
-                  <p className='text-gray-600'>Loading map data...</p>
-                </div>
-              </div>
-            ) : trips && trips.length > 0 ? (
-              <div className='h-96 sm:h-[500px] lg:h-[600px] bg-gray-100 overflow-hidden'>
-                <TripMap
-                  trips={trips}
-                  onMappedTripsCountChange={handleMappedTripsCountChange}
-                  viewport={viewport}
-                  onViewportChange={setViewport}
-                  statusToggles={statusToggles}
-                  onStatusToggleChange={setStatusToggles}
-                  clustering={clustering}
-                  onClusteringChange={setClustering}
-                  diveSites={diveSites}
-                  divingCenters={divingCenters}
-                />
-              </div>
-            ) : (
-              <div className='h-96 sm:h-[500px] lg:h-[600px] bg-gray-100 flex items-center justify-center'>
-                <div className='text-center'>
-                  <Map className='h-16 w-16 text-gray-400 mx-auto mb-4' />
-                  <p className='text-gray-600'>No trips available to display on map</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Date Filter Confirmation Message */}
-      {showDateFilterMessage && (
-        <div className='mb-4 bg-green-50 border border-green-200 rounded-lg p-4'>
-          <div className='flex items-center'>
-            <Calendar className='h-5 w-5 text-green-600 mr-2' />
-            <span className='text-green-800'>
-              Date filter applied! Showing trips for the selected date.
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* API Errors for Filter Data */}
-      {(divingCentersError || diveSitesError) && (
-        <div className='mb-6'>
-          {divingCentersError?.isRateLimited && (
-            <RateLimitError
-              retryAfter={divingCentersError.retryAfter}
-              onRetry={() => window.location.reload()}
-              className='mb-4'
-            />
-          )}
-          {diveSitesError?.isRateLimited && (
-            <RateLimitError
-              retryAfter={diveSitesError.retryAfter}
-              onRetry={() => window.location.reload()}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Filter Data Loading State */}
-      {(!divingCentersData || !diveSitesData) && (
-        <div className='mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4'>
-          <div className='flex items-center'>
-            <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-2'></div>
-            <span className='text-yellow-800 text-sm'>
-              Loading filter data... Please wait while we prepare the diving centers and dive sites
-              for filtering.
-            </span>
-          </div>
-        </div>
-      )}
-
-      <StickyFilterBar
-        searchValue={filters.search_query}
-        onSearchChange={value => handleFilterChange('search_query', value)}
-        searchPlaceholder='Search trips, dive sites, diving centers, locations, or requirements...'
-        showFilters={showAdvancedFilters}
-        onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
-        onClearFilters={clearFilters}
-        activeFiltersCount={getActiveFiltersCount()}
-        filters={{ ...filters, diving_centers: divingCenters }}
-        onFilterChange={handleStickyFilterChange}
-        variant='sticky'
-        showQuickFilters={true}
-        showAdvancedToggle={true}
-      />
-
-      {/* Mobile Floating Action Button */}
-      {isMobile && (
-        <div className='fixed bottom-6 right-6 z-50'>
-          <button
-            onClick={() => setShowMobileFilters(!showMobileFilters)}
-            className='w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 flex items-center justify-center touch-manipulation'
-            aria-label='Toggle Filters'
-          >
-            <Filter className='h-6 w-6' />
-          </button>
-        </div>
-      )}
-
-      {/* View Controls - Simplified for Map View */}
-      {viewMode === 'map' ? (
-        <div className='mb-6'>
-          <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
-            <div className='flex items-center justify-between'>
-              <h3 className='text-lg font-medium text-gray-900'>View Mode</h3>
-              <div className='flex gap-2'>
-                <button
-                  onClick={() => changeViewMode('list')}
-                  className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                    viewMode === 'list'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  <List className='h-4 w-4' />
-                  List
-                </button>
-                <button
-                  onClick={() => changeViewMode('grid')}
-                  className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                    viewMode === 'grid'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  <Grid className='h-4 w-4' />
-                  Grid
-                </button>
-                <button
-                  onClick={() => changeViewMode('map')}
-                  className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                    viewMode === 'map'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  <Map className='h-4 w-4' />
-                  Map
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className='mb-6'>
-          <EnhancedMobileSortingControls
-            sortBy={sortOptions.sort_by}
-            sortOrder={sortOptions.sort_order}
-            sortOptions={getAvailableSortOptions()}
-            onSortChange={(sortBy, sortOrder) =>
-              setSortOptions(prev => ({ ...prev, sort_by: sortBy, sort_order: sortOrder }))
-            }
-            onSortApply={() => {}} // No separate apply needed for DiveTrips
-            onReset={() => setSortOptions({ sort_by: 'trip_date', sort_order: 'desc' })}
-            entityType='dive-trips'
-            viewMode={viewMode}
-            onViewModeChange={changeViewMode}
-            showFilters={false} // Hide filters in this section for now
-            onToggleFilters={() => {}}
-            showQuickActions={true}
-            showFAB={true}
-            showTabs={true}
-            showThumbnails={showThumbnails}
-            compactLayout={compactLayout}
-            onDisplayOptionChange={handleDisplayOptionChange}
-          />
-        </div>
-      )}
-
-      {/* Mobile View Mode Quick Access */}
-      {isMobile && (
-        <div className='mb-4 flex gap-2 justify-center'>
-          <button
-            onClick={() => changeViewMode('list')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              viewMode === 'list'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            } touch-manipulation min-h-[44px]`}
-          >
-            <List className='h-5 w-5 inline mr-2' />
-            List
-          </button>
-          <button
-            onClick={() => changeViewMode('grid')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              viewMode === 'grid'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            } touch-manipulation min-h-[44px]`}
-          >
-            <Grid className='h-5 w-5 inline mr-2' />
-            Grid
-          </button>
-          <button
-            onClick={() => changeViewMode('map')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              viewMode === 'map'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            } touch-manipulation min-h-[44px]`}
-          >
-            <Map className='h-5 w-5 inline mr-2' />
-            Map
-          </button>
-        </div>
-      )}
-
-      {/* Mobile Gesture Hints */}
-      {isMobile && (
-        <div className='mb-4 text-center text-xs text-gray-500 bg-gray-50 p-2 rounded-lg'>
-          💡 <strong>Mobile Tips:</strong> Swipe left/right on trip cards, tap filters button for
-          quick access
-        </div>
-      )}
-
-      {/* Distance Sorting Warning */}
-      {sortOptions.sort_by === 'distance' &&
-        (!userLocation.latitude || !userLocation.longitude) && (
-          <div className='mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200'>
-            <div className='flex items-center text-sm text-yellow-700'>
-              <AlertTriangle className='h-4 w-4 mr-2 flex-shrink-0' />
-              <span>
-                <strong>Distance sorting selected but no location set.</strong> Please set your
-                location coordinates above to enable distance-based sorting.
+        {/* Date Filter Confirmation Message */}
+        {showDateFilterMessage && (
+          <div className='mb-4 bg-green-50 border border-green-200 rounded-lg p-4'>
+            <div className='flex items-center'>
+              <Calendar className='h-5 w-5 text-green-600 mr-2' />
+              <span className='text-green-800'>
+                Date filter applied! Showing trips for the selected date.
               </span>
             </div>
           </div>
         )}
 
-      {/* Content */}
-      {isLoading && (
-        <div className='text-center py-12'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
-          <p className='text-gray-600 mt-2'>Loading dive trips...</p>
-        </div>
-      )}
-
-      {error && (
-        <div className='py-6'>
-          {error.isRateLimited ? (
-            <RateLimitError
-              retryAfter={error.retryAfter}
-              onRetry={() => {
-                // Refetch the query when user clicks retry
-                window.location.reload();
-              }}
-            />
-          ) : (
-            <div className='text-center py-12'>
-              <p className='text-red-600'>Error loading dive trips</p>
-              <p className='text-sm text-gray-500 mt-2'>
-                {error.response?.data?.detail || error.message || 'An unexpected error occurred'}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {sortedTrips && sortedTrips.length === 0 && (
-        <div className='text-center py-12'>
-          <Search className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-          <h3 className='text-lg font-medium text-gray-900 mb-2'>No dive trips found</h3>
-
-          {/* Check if any filters are active */}
-          {Object.values(filters).some(value => value && value.trim() !== '') && (
-            <div className='max-w-md mx-auto'>
-              <p className='text-gray-600 mb-4'>
-                No trips match your current search criteria. Try adjusting your filters:
-              </p>
-              <div className='space-y-2 text-sm text-gray-500'>
-                {filters.search_query && <p>• Try different search terms or check spelling</p>}
-                {filters.start_date && filters.end_date && <p>• Expand your date range</p>}
-                {filters.min_price && filters.max_price && <p>• Adjust your price range</p>}
-                {filters.diving_center_id && <p>• Try a different diving center</p>}
-
-                {filters.difficulty_level && <p>• Try a different difficulty level</p>}
-              </div>
-              <button
-                onClick={clearFilters}
-                className='mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
-              >
-                Clear All Filters
-              </button>
-            </div>
-          )}
-
-          {/* No filters active */}
-          {!Object.values(filters).some(value => value && value.trim() !== '') && (
-            <p className='text-gray-600'>
-              There are currently no dive trips available. Check back later for new trips!
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Map View No Results */}
-      {viewMode === 'map' && sortedTrips && sortedTrips.length === 0 && (
-        <div className='bg-white rounded-lg shadow-md p-8 text-center'>
-          <Map className='h-16 w-16 text-gray-400 mx-auto mb-4' />
-          <h3 className='text-lg font-medium text-gray-900 mb-2'>No trips to display on map</h3>
-          <p className='text-gray-600 mb-4'>
-            {Object.values(filters).some(value => value && value.trim() !== '')
-              ? 'No trips match your current filters. Try adjusting your search criteria or switch to list view to see all available trips.'
-              : 'There are currently no dive trips available with location data. Switch to list view to see all trips.'}
-          </p>
-          <div className='flex justify-center space-x-3'>
-            <button
-              onClick={() => changeViewMode('list')}
-              className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
-            >
-              Switch to List View
-            </button>
-            {Object.values(filters).some(value => value && value.trim() !== '') && (
-              <button
-                onClick={clearFilters}
-                className='px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
-              >
-                Clear Filters
-              </button>
+        {/* API Errors for Filter Data */}
+        {(divingCentersError || diveSitesError) && (
+          <div className='mb-6'>
+            {divingCentersError?.isRateLimited && (
+              <RateLimitError
+                retryAfter={divingCentersError.retryAfter}
+                onRetry={() => window.location.reload()}
+                className='mb-4'
+              />
+            )}
+            {diveSitesError?.isRateLimited && (
+              <RateLimitError
+                retryAfter={diveSitesError.retryAfter}
+                onRetry={() => window.location.reload()}
+              />
             )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Dive Trips List */}
-      {viewMode === 'list' && (
-        <div
-          className={`space-y-4 ${compactLayout ? 'view-mode-compact' : ''} ${isMobile ? 'px-2' : ''}`}
-        >
-          {sortedTrips?.map(trip => (
-            <div
-              key={trip.id}
-              className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow ${
-                compactLayout ? 'p-4' : 'p-6'
-              }`}
+        {/* Filter Data Loading State */}
+        {(!divingCentersData || !diveSitesData) && (
+          <div className='mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4'>
+            <div className='flex items-center'>
+              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-2'></div>
+              <span className='text-yellow-800 text-sm'>
+                Loading filter data... Please wait while we prepare the diving centers and dive
+                sites for filtering.
+              </span>
+            </div>
+          </div>
+        )}
+
+        <StickyFilterBar
+          searchValue={filters.search_query}
+          onSearchChange={value => handleFilterChange('search_query', value)}
+          searchPlaceholder='Search trips, dive sites, diving centers, locations, or requirements...'
+          showFilters={showAdvancedFilters}
+          onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          onClearFilters={clearFilters}
+          activeFiltersCount={getActiveFiltersCount()}
+          filters={{ ...filters, diving_centers: divingCenters }}
+          onFilterChange={handleStickyFilterChange}
+          variant='sticky'
+          showQuickFilters={true}
+          showAdvancedToggle={true}
+        />
+
+        {/* Mobile Floating Action Button */}
+        {isMobile && (
+          <div className='fixed bottom-6 right-6 z-50'>
+            <button
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className='w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 flex items-center justify-center touch-manipulation'
+              aria-label='Toggle Filters'
             >
-              <div className='flex items-start justify-between mb-4'>
-                <div className='flex-1'>
-                  <div className='flex items-center gap-3 mb-2'>
-                    {showThumbnails && (
-                      <div className='dive-thumbnail'>
-                        <Calendar className='w-8 h-8' />
-                      </div>
-                    )}
-                    <div>
-                      <h3
-                        className={`font-semibold text-gray-900 ${compactLayout ? 'text-base' : 'text-lg'}`}
-                      >
-                        <Link
-                          to={`/dive-trips/${trip.id}`}
-                          className='hover:text-blue-600 transition-colors'
-                        >
-                          {generateTripName(trip)}
-                        </Link>
-                      </h3>
-                      <p className={`text-gray-600 ${compactLayout ? 'text-sm' : 'text-base'}`}>
-                        {trip.trip_date
-                          ? new Date(trip.trip_date).toLocaleDateString('en-GB')
-                          : 'N/A'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <Link
-                  to={`/dive-trips/${trip.id}`}
-                  className='inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
-                >
-                  <Eye className='w-4 h-4' />
-                  View Trip
-                </Link>
-              </div>
+              <Filter className='h-6 w-6' />
+            </button>
+          </div>
+        )}
 
-              <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-4'>
-                <div className='flex items-center gap-2'>
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.difficulty_level)}`}
+        {/* View Controls - Simplified for Map View */}
+        {viewMode === 'map' ? (
+          <div className='mb-6'>
+            <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
+              <div className='flex items-center justify-between'>
+                <h3 className='text-lg font-medium text-gray-900'>View Mode</h3>
+                <div className='flex gap-2'>
+                  <button
+                    onClick={() => changeViewMode('list')}
+                    className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                      viewMode === 'list'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
                   >
-                    {getDifficultyLabel(trip.difficulty_level)}
-                  </span>
-                </div>
-                {trip.max_depth && (
-                  <div className='flex items-center gap-2'>
-                    <TrendingUp className='w-4 h-4 text-gray-400' />
-                    <span className='text-sm text-gray-600'>{trip.max_depth}m max</span>
-                  </div>
-                )}
-                {trip.trip_price && (
-                  <div className='flex items-center gap-2'>
-                    <DollarSign className='w-4 h-4 text-gray-400' />
-                    <span className='text-sm text-gray-600'>
-                      {formatCurrency(trip.trip_price, trip.trip_currency)}
-                    </span>
-                  </div>
-                )}
-                <div className='flex items-center gap-2'>
-                  <MapPin className='w-4 h-4 text-gray-400' />
-                  <span className='text-sm text-gray-600'>
-                    {trip.diving_center_id && trip.diving_center_name ? (
-                      <Link
-                        to={`/diving-centers/${trip.diving_center_id}`}
-                        className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
-                      >
-                        {trip.diving_center_name}
-                      </Link>
-                    ) : (
-                      trip.diving_center_name || 'Unknown Location'
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              <p className='text-gray-700 text-sm leading-relaxed mb-3 line-clamp-3'>
-                {trip.trip_description || 'No description available.'}
-              </p>
-
-              {/* Enhanced Trip Details Grid - Mobile Responsive */}
-              <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-6'>
-                <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
-                  <Calendar className='h-4 w-4 mr-3 text-blue-600 flex-shrink-0' />
-                  <div className='min-w-0'>
-                    <div className='text-xs text-gray-500 uppercase tracking-wide'>Date</div>
-                    <button
-                      onClick={() => handleDateClick(trip.trip_date)}
-                      className='text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors font-medium text-sm truncate block w-full text-left'
-                      title='Click to filter by this date'
-                    >
-                      {trip.trip_date
-                        ? new Date(trip.trip_date).toLocaleDateString('en-GB')
-                        : 'N/A'}
-                    </button>
-                  </div>
-                </div>
-
-                <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
-                  <Clock className='h-4 w-4 mr-3 text-green-600 flex-shrink-0' />
-                  <div className='min-w-0'>
-                    <div className='text-xs text-gray-500 uppercase tracking-wide'>Time</div>
-                    <span className='font-medium text-sm'>
-                      {trip.trip_time ? formatTime(trip.trip_time) : 'N/A'}
-                    </span>
-                  </div>
-                </div>
-
-                {trip.trip_duration && (
-                  <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
-                    <Clock className='h-4 w-4 mr-3 text-purple-600 flex-shrink-0' />
-                    <div className='min-w-0'>
-                      <div className='text-xs text-gray-500 uppercase tracking-wide'>Duration</div>
-                      <span className='font-medium text-sm'>{trip.trip_duration} min</span>
-                    </div>
-                  </div>
-                )}
-
-                {trip.trip_price && (
-                  <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
-                    <Euro className='h-4 w-4 mr-3 text-green-600 flex-shrink-0' />
-                    <div className='min-w-0'>
-                      <div className='text-xs text-gray-500 uppercase tracking-wide'>Price</div>
-                      <span className='font-medium text-base sm:text-lg'>
-                        {formatCurrency(trip.trip_price, trip.trip_currency)}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {trip.group_size_limit && (
-                  <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
-                    <Users className='h-4 w-4 mr-3 text-orange-600 flex-shrink-0' />
-                    <div className='min-w-0'>
-                      <div className='text-xs text-gray-500 uppercase tracking-wide'>
-                        Group Size
-                      </div>
-                      <span className='font-medium text-sm'>
-                        Max {trip.group_size_limit} people
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Additional trip details can be added here */}
-                {trip.trip_type && (
-                  <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
-                    <Tag className='h-4 w-4 mr-3 text-indigo-600 flex-shrink-0' />
-                    <div className='min-w-0'>
-                      <div className='text-xs text-gray-500 uppercase tracking-wide'>Type</div>
-                      <span className='font-medium text-sm'>{trip.trip_type}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Enhanced Dives Display - Mobile Responsive */}
-              {trip.dives && trip.dives.length > 0 && (
-                <div className='mb-6'>
-                  <h4 className='text-sm font-semibold text-gray-700 mb-3 flex items-center'>
-                    <MapPin className='h-4 w-4 mr-2 text-blue-600 flex-shrink-0' />
-                    Dive Sites ({trip.dives.length})
-                  </h4>
-                  <div className='space-y-3'>
-                    {trip.dives.map((dive, index) => (
-                      <div
-                        key={dive.id}
-                        className='flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 p-4 bg-blue-50 rounded-lg border border-blue-200'
-                      >
-                        <div className='flex items-center space-x-3'>
-                          <div className='flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full flex-shrink-0'>
-                            <span className='text-sm font-bold text-blue-700'>{index + 1}</span>
-                          </div>
-                          <div className='flex-1 min-w-0'>
-                            <div className='flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-1'>
-                              <span className='text-sm font-medium text-gray-700'>
-                                Dive {dive.dive_number || index + 1}:
-                              </span>
-                              {dive.dive_site_name ? (
-                                renderDiveSiteWithRating(dive.dive_site_id, dive.dive_site_name)
-                              ) : (
-                                <span className='text-sm text-gray-500 italic'>
-                                  No dive site specified
-                                </span>
-                              )}
-                            </div>
-
-                            <div className='flex flex-wrap items-center gap-3 text-xs text-gray-500'>
-                              {dive.dive_time && (
-                                <span className='flex items-center'>
-                                  <Clock className='h-3 w-3 mr-1 flex-shrink-0' />
-                                  {formatTime(dive.dive_time)}
-                                </span>
-                              )}
-                              {dive.dive_duration && (
-                                <span className='flex items-center'>
-                                  <Clock className='h-3 w-3 mr-1 flex-shrink-0' />
-                                  {dive.dive_duration} min
-                                </span>
-                              )}
-                              {dive.max_depth && (
-                                <span className='flex items-center'>
-                                  <MapPin className='h-3 w-3 mr-1 flex-shrink-0' />
-                                  Max {dive.max_depth}m
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {dive.dive_description && (
-                          <div className='text-xs text-gray-600 p-2 bg-white rounded border sm:ml-8'>
-                            {dive.dive_description}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Fallback for old single dive site display */}
-              {(!trip.dives || trip.dives.length === 0) && trip.dive_site_name && (
-                <div className='mb-6'>
-                  <div className='flex items-center space-x-3 p-4 bg-green-50 rounded-lg border border-green-200'>
-                    <MapPin className='h-5 w-5 text-green-600' />
-                    <div className='flex-1'>
-                      <div className='text-sm font-medium text-gray-700 mb-1'>Dive Site:</div>
-                      {renderDiveSiteWithRating(trip.dive_site_id, trip.dive_site_name)}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Special Requirements */}
-              {trip.special_requirements && (
-                <div className='p-4 bg-yellow-50 rounded-lg border border-yellow-200 mb-4'>
-                  <div className='flex items-start'>
-                    <div className='flex-shrink-0'>
-                      <Tag className='h-5 w-5 text-yellow-600 mt-0.5' />
-                    </div>
-                    <div className='ml-3'>
-                      <h5 className='text-sm font-medium text-yellow-800 mb-1'>
-                        Special Requirements
-                      </h5>
-                      <p className='text-sm text-yellow-700'>{trip.special_requirements}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Trip Actions - Mobile Responsive */}
-              <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-gray-200 gap-4'>
-                <div className='flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 text-sm text-gray-500'>
-                  {trip.created_at && (
-                    <span className='flex items-center'>
-                      <span>Added {new Date(trip.created_at).toLocaleDateString()}</span>
-                    </span>
-                  )}
-                  {trip.updated_at && trip.updated_at !== trip.created_at && (
-                    <span className='flex items-center'>
-                      <span>Updated {new Date(trip.updated_at).toLocaleDateString()}</span>
-                    </span>
-                  )}
+                    <List className='h-4 w-4' />
+                    List
+                  </button>
+                  <button
+                    onClick={() => changeViewMode('grid')}
+                    className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                      viewMode === 'grid'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    <Grid className='h-4 w-4' />
+                    Grid
+                  </button>
+                  <button
+                    onClick={() => changeViewMode('map')}
+                    className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                      viewMode === 'map'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    <Map className='h-4 w-4' />
+                    Map
+                  </button>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className='mb-6'>
+            <EnhancedMobileSortingControls
+              sortBy={sortOptions.sort_by}
+              sortOrder={sortOptions.sort_order}
+              sortOptions={getAvailableSortOptions()}
+              onSortChange={(sortBy, sortOrder) =>
+                setSortOptions(prev => ({ ...prev, sort_by: sortBy, sort_order: sortOrder }))
+              }
+              onSortApply={() => {}} // No separate apply needed for DiveTrips
+              onReset={() => setSortOptions({ sort_by: 'trip_date', sort_order: 'desc' })}
+              entityType='dive-trips'
+              viewMode={viewMode}
+              onViewModeChange={changeViewMode}
+              showFilters={false} // Hide filters in this section for now
+              onToggleFilters={() => {}}
+              showQuickActions={true}
+              showFAB={true}
+              showTabs={true}
+              showThumbnails={showThumbnails}
+              compactLayout={compactLayout}
+              onDisplayOptionChange={handleDisplayOptionChange}
+            />
+          </div>
+        )}
 
-      {/* Dive Trips Grid */}
-      {viewMode === 'grid' && (
-        <div
-          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${compactLayout ? 'view-mode-compact' : ''} ${isMobile ? 'px-2 gap-4' : ''}`}
-        >
-          {sortedTrips?.map(trip => (
-            <div
-              key={trip.id}
-              className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
-                compactLayout ? 'p-4' : 'p-6'
-              }`}
+        {/* Mobile View Mode Quick Access */}
+        {isMobile && (
+          <div className='mb-4 flex gap-2 justify-center'>
+            <button
+              onClick={() => changeViewMode('list')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              } touch-manipulation min-h-[44px]`}
             >
-              {showThumbnails && (
-                <div className='dive-thumbnail bg-gray-100 p-4 flex items-center justify-center'>
-                  <Calendar className='w-12 h-12 text-gray-400' />
-                </div>
-              )}
+              <List className='h-5 w-5 inline mr-2' />
+              List
+            </button>
+            <button
+              onClick={() => changeViewMode('grid')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              } touch-manipulation min-h-[44px]`}
+            >
+              <Grid className='h-5 w-5 inline mr-2' />
+              Grid
+            </button>
+            <button
+              onClick={() => changeViewMode('map')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                viewMode === 'map'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              } touch-manipulation min-h-[44px]`}
+            >
+              <Map className='h-5 w-5 inline mr-2' />
+              Map
+            </button>
+          </div>
+        )}
 
-              <div className='p-4'>
-                <h3
-                  className={`font-semibold text-gray-900 mb-2 ${compactLayout ? 'text-base' : 'text-lg'}`}
+        {/* Mobile Gesture Hints */}
+        {isMobile && (
+          <div className='mb-4 text-center text-xs text-gray-500 bg-gray-50 p-2 rounded-lg'>
+            💡 <strong>Mobile Tips:</strong> Swipe left/right on trip cards, tap filters button for
+            quick access
+          </div>
+        )}
+
+        {/* Distance Sorting Warning */}
+        {sortOptions.sort_by === 'distance' &&
+          (!userLocation.latitude || !userLocation.longitude) && (
+            <div className='mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200'>
+              <div className='flex items-center text-sm text-yellow-700'>
+                <AlertTriangle className='h-4 w-4 mr-2 flex-shrink-0' />
+                <span>
+                  <strong>Distance sorting selected but no location set.</strong> Please set your
+                  location coordinates above to enable distance-based sorting.
+                </span>
+              </div>
+            </div>
+          )}
+
+        {/* Content */}
+        {isLoading && (
+          <div className='text-center py-12'>
+            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
+            <p className='text-gray-600 mt-2'>Loading dive trips...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className='py-6'>
+            {error.isRateLimited ? (
+              <RateLimitError
+                retryAfter={error.retryAfter}
+                onRetry={() => {
+                  // Refetch the query when user clicks retry
+                  window.location.reload();
+                }}
+              />
+            ) : (
+              <div className='text-center py-12'>
+                <p className='text-red-600'>Error loading dive trips</p>
+                <p className='text-sm text-gray-500 mt-2'>
+                  {error.response?.data?.detail || error.message || 'An unexpected error occurred'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {sortedTrips && sortedTrips.length === 0 && (
+          <div className='text-center py-12'>
+            <Search className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+            <h3 className='text-lg font-medium text-gray-900 mb-2'>No dive trips found</h3>
+
+            {/* Check if any filters are active */}
+            {Object.values(filters).some(value => value && value.trim() !== '') && (
+              <div className='max-w-md mx-auto'>
+                <p className='text-gray-600 mb-4'>
+                  No trips match your current search criteria. Try adjusting your filters:
+                </p>
+                <div className='space-y-2 text-sm text-gray-500'>
+                  {filters.search_query && <p>• Try different search terms or check spelling</p>}
+                  {filters.start_date && filters.end_date && <p>• Expand your date range</p>}
+                  {filters.min_price && filters.max_price && <p>• Adjust your price range</p>}
+                  {filters.diving_center_id && <p>• Try a different diving center</p>}
+
+                  {filters.difficulty_level && <p>• Try a different difficulty level</p>}
+                </div>
+                <button
+                  onClick={clearFilters}
+                  className='mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
                 >
+                  Clear All Filters
+                </button>
+              </div>
+            )}
+
+            {/* No filters active */}
+            {!Object.values(filters).some(value => value && value.trim() !== '') && (
+              <p className='text-gray-600'>
+                There are currently no dive trips available. Check back later for new trips!
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Map View No Results */}
+        {viewMode === 'map' && sortedTrips && sortedTrips.length === 0 && (
+          <div className='bg-white rounded-lg shadow-md p-8 text-center'>
+            <Map className='h-16 w-16 text-gray-400 mx-auto mb-4' />
+            <h3 className='text-lg font-medium text-gray-900 mb-2'>No trips to display on map</h3>
+            <p className='text-gray-600 mb-4'>
+              {Object.values(filters).some(value => value && value.trim() !== '')
+                ? 'No trips match your current filters. Try adjusting your search criteria or switch to list view to see all available trips.'
+                : 'There are currently no dive trips available with location data. Switch to list view to see all trips.'}
+            </p>
+            <div className='flex justify-center space-x-3'>
+              <button
+                onClick={() => changeViewMode('list')}
+                className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+              >
+                Switch to List View
+              </button>
+              {Object.values(filters).some(value => value && value.trim() !== '') && (
+                <button
+                  onClick={clearFilters}
+                  className='px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Dive Trips List */}
+        {viewMode === 'list' && (
+          <div
+            className={`space-y-4 ${compactLayout ? 'view-mode-compact' : ''} ${isMobile ? 'px-2' : ''}`}
+          >
+            {sortedTrips?.map(trip => (
+              <div
+                key={trip.id}
+                className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow ${
+                  compactLayout ? 'p-4' : 'p-6'
+                }`}
+              >
+                <div className='flex items-start justify-between mb-4'>
+                  <div className='flex-1'>
+                    <div className='flex items-center gap-3 mb-2'>
+                      {showThumbnails && (
+                        <div className='dive-thumbnail'>
+                          <Calendar className='w-8 h-8' />
+                        </div>
+                      )}
+                      <div>
+                        <h3
+                          className={`font-semibold text-gray-900 ${compactLayout ? 'text-base' : 'text-lg'}`}
+                        >
+                          <Link
+                            to={`/dive-trips/${trip.id}`}
+                            className='hover:text-blue-600 transition-colors'
+                          >
+                            {generateTripName(trip)}
+                          </Link>
+                        </h3>
+                        <p className={`text-gray-600 ${compactLayout ? 'text-sm' : 'text-base'}`}>
+                          {trip.trip_date
+                            ? new Date(trip.trip_date).toLocaleDateString('en-GB')
+                            : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                   <Link
                     to={`/dive-trips/${trip.id}`}
-                    className='hover:text-blue-600 transition-colors'
+                    className='inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
                   >
-                    {generateTripName(trip)}
+                    <Eye className='w-4 h-4' />
+                    View Trip
                   </Link>
-                </h3>
+                </div>
 
-                <p className={`text-gray-600 mb-3 ${compactLayout ? 'text-sm' : 'text-base'}`}>
-                  {trip.trip_date ? new Date(trip.trip_date).toLocaleDateString('en-GB') : 'N/A'}
-                </p>
-
-                <div className='space-y-2 mb-4'>
+                <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-4'>
                   <div className='flex items-center gap-2'>
                     <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.difficulty_level)}`}
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.difficulty_level)}`}
                     >
                       {getDifficultyLabel(trip.difficulty_level)}
                     </span>
                   </div>
-                </div>
-
-                <div className='grid grid-cols-2 gap-3 mb-4'>
                   {trip.max_depth && (
                     <div className='flex items-center gap-2'>
                       <TrendingUp className='w-4 h-4 text-gray-400' />
-                      <span className='text-sm text-gray-600'>{trip.max_depth}m</span>
+                      <span className='text-sm text-gray-600'>{trip.max_depth}m max</span>
                     </div>
                   )}
                   {trip.trip_price && (
@@ -1451,11 +1219,286 @@ const DiveTrips = () => {
                     </span>
                   </div>
                 </div>
+
+                <p className='text-gray-700 text-sm leading-relaxed mb-3 line-clamp-3'>
+                  {trip.trip_description || 'No description available.'}
+                </p>
+
+                {/* Enhanced Trip Details Grid - Mobile Responsive */}
+                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-6'>
+                  <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
+                    <Calendar className='h-4 w-4 mr-3 text-blue-600 flex-shrink-0' />
+                    <div className='min-w-0'>
+                      <div className='text-xs text-gray-500 uppercase tracking-wide'>Date</div>
+                      <button
+                        onClick={() => handleDateClick(trip.trip_date)}
+                        className='text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors font-medium text-sm truncate block w-full text-left'
+                        title='Click to filter by this date'
+                      >
+                        {trip.trip_date
+                          ? new Date(trip.trip_date).toLocaleDateString('en-GB')
+                          : 'N/A'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
+                    <Clock className='h-4 w-4 mr-3 text-green-600 flex-shrink-0' />
+                    <div className='min-w-0'>
+                      <div className='text-xs text-gray-500 uppercase tracking-wide'>Time</div>
+                      <span className='font-medium text-sm'>
+                        {trip.trip_time ? formatTime(trip.trip_time) : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {trip.trip_duration && (
+                    <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
+                      <Clock className='h-4 w-4 mr-3 text-purple-600 flex-shrink-0' />
+                      <div className='min-w-0'>
+                        <div className='text-xs text-gray-500 uppercase tracking-wide'>
+                          Duration
+                        </div>
+                        <span className='font-medium text-sm'>{trip.trip_duration} min</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {trip.trip_price && (
+                    <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
+                      <Euro className='h-4 w-4 mr-3 text-green-600 flex-shrink-0' />
+                      <div className='min-w-0'>
+                        <div className='text-xs text-gray-500 uppercase tracking-wide'>Price</div>
+                        <span className='font-medium text-base sm:text-lg'>
+                          {formatCurrency(trip.trip_price, trip.trip_currency)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {trip.group_size_limit && (
+                    <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
+                      <Users className='h-4 w-4 mr-3 text-orange-600 flex-shrink-0' />
+                      <div className='min-w-0'>
+                        <div className='text-xs text-gray-500 uppercase tracking-wide'>
+                          Group Size
+                        </div>
+                        <span className='font-medium text-sm'>
+                          Max {trip.group_size_limit} people
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional trip details can be added here */}
+                  {trip.trip_type && (
+                    <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
+                      <Tag className='h-4 w-4 mr-3 text-indigo-600 flex-shrink-0' />
+                      <div className='min-w-0'>
+                        <div className='text-xs text-gray-500 uppercase tracking-wide'>Type</div>
+                        <span className='font-medium text-sm'>{trip.trip_type}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Enhanced Dives Display - Mobile Responsive */}
+                {trip.dives && trip.dives.length > 0 && (
+                  <div className='mb-6'>
+                    <h4 className='text-sm font-semibold text-gray-700 mb-3 flex items-center'>
+                      <MapPin className='h-4 w-4 mr-2 text-blue-600 flex-shrink-0' />
+                      Dive Sites ({trip.dives.length})
+                    </h4>
+                    <div className='space-y-3'>
+                      {trip.dives.map((dive, index) => (
+                        <div
+                          key={dive.id}
+                          className='flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 p-4 bg-blue-50 rounded-lg border border-blue-200'
+                        >
+                          <div className='flex items-center space-x-3'>
+                            <div className='flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full flex-shrink-0'>
+                              <span className='text-sm font-bold text-blue-700'>{index + 1}</span>
+                            </div>
+                            <div className='flex-1 min-w-0'>
+                              <div className='flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-1'>
+                                <span className='text-sm font-medium text-gray-700'>
+                                  Dive {dive.dive_number || index + 1}:
+                                </span>
+                                {dive.dive_site_name ? (
+                                  renderDiveSiteWithRating(dive.dive_site_id, dive.dive_site_name)
+                                ) : (
+                                  <span className='text-sm text-gray-500 italic'>
+                                    No dive site specified
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className='flex flex-wrap items-center gap-3 text-xs text-gray-500'>
+                                {dive.dive_time && (
+                                  <span className='flex items-center'>
+                                    <Clock className='h-3 w-3 mr-1 flex-shrink-0' />
+                                    {formatTime(dive.dive_time)}
+                                  </span>
+                                )}
+                                {dive.dive_duration && (
+                                  <span className='flex items-center'>
+                                    <Clock className='h-3 w-3 mr-1 flex-shrink-0' />
+                                    {dive.dive_duration} min
+                                  </span>
+                                )}
+                                {dive.max_depth && (
+                                  <span className='flex items-center'>
+                                    <MapPin className='h-3 w-3 mr-1 flex-shrink-0' />
+                                    Max {dive.max_depth}m
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {dive.dive_description && (
+                            <div className='text-xs text-gray-600 p-2 bg-white rounded border sm:ml-8'>
+                              {dive.dive_description}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Fallback for old single dive site display */}
+                {(!trip.dives || trip.dives.length === 0) && trip.dive_site_name && (
+                  <div className='mb-6'>
+                    <div className='flex items-center space-x-3 p-4 bg-green-50 rounded-lg border border-green-200'>
+                      <MapPin className='h-5 w-5 text-green-600' />
+                      <div className='flex-1'>
+                        <div className='text-sm font-medium text-gray-700 mb-1'>Dive Site:</div>
+                        {renderDiveSiteWithRating(trip.dive_site_id, trip.dive_site_name)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Special Requirements */}
+                {trip.special_requirements && (
+                  <div className='p-4 bg-yellow-50 rounded-lg border border-yellow-200 mb-4'>
+                    <div className='flex items-start'>
+                      <div className='flex-shrink-0'>
+                        <Tag className='h-5 w-5 text-yellow-600 mt-0.5' />
+                      </div>
+                      <div className='ml-3'>
+                        <h5 className='text-sm font-medium text-yellow-800 mb-1'>
+                          Special Requirements
+                        </h5>
+                        <p className='text-sm text-yellow-700'>{trip.special_requirements}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Trip Actions - Mobile Responsive */}
+                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-gray-200 gap-4'>
+                  <div className='flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 text-sm text-gray-500'>
+                    {trip.created_at && (
+                      <span className='flex items-center'>
+                        <span>Added {new Date(trip.created_at).toLocaleDateString()}</span>
+                      </span>
+                    )}
+                    {trip.updated_at && trip.updated_at !== trip.created_at && (
+                      <span className='flex items-center'>
+                        <span>Updated {new Date(trip.updated_at).toLocaleDateString()}</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+
+        {/* Dive Trips Grid */}
+        {viewMode === 'grid' && (
+          <div
+            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${compactLayout ? 'view-mode-compact' : ''} ${isMobile ? 'px-2 gap-4' : ''}`}
+          >
+            {sortedTrips?.map(trip => (
+              <div
+                key={trip.id}
+                className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
+                  compactLayout ? 'p-4' : 'p-6'
+                }`}
+              >
+                {showThumbnails && (
+                  <div className='dive-thumbnail bg-gray-100 p-4 flex items-center justify-center'>
+                    <Calendar className='w-12 h-12 text-gray-400' />
+                  </div>
+                )}
+
+                <div className='p-4'>
+                  <h3
+                    className={`font-semibold text-gray-900 mb-2 ${compactLayout ? 'text-base' : 'text-lg'}`}
+                  >
+                    <Link
+                      to={`/dive-trips/${trip.id}`}
+                      className='hover:text-blue-600 transition-colors'
+                    >
+                      {generateTripName(trip)}
+                    </Link>
+                  </h3>
+
+                  <p className={`text-gray-600 mb-3 ${compactLayout ? 'text-sm' : 'text-base'}`}>
+                    {trip.trip_date ? new Date(trip.trip_date).toLocaleDateString('en-GB') : 'N/A'}
+                  </p>
+
+                  <div className='space-y-2 mb-4'>
+                    <div className='flex items-center gap-2'>
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.difficulty_level)}`}
+                      >
+                        {getDifficultyLabel(trip.difficulty_level)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className='grid grid-cols-2 gap-3 mb-4'>
+                    {trip.max_depth && (
+                      <div className='flex items-center gap-2'>
+                        <TrendingUp className='w-4 h-4 text-gray-400' />
+                        <span className='text-sm text-gray-600'>{trip.max_depth}m</span>
+                      </div>
+                    )}
+                    {trip.trip_price && (
+                      <div className='flex items-center gap-2'>
+                        <DollarSign className='w-4 h-4 text-gray-400' />
+                        <span className='text-sm text-gray-600'>
+                          {formatCurrency(trip.trip_price, trip.trip_currency)}
+                        </span>
+                      </div>
+                    )}
+                    <div className='flex items-center gap-2'>
+                      <MapPin className='w-4 h-4 text-gray-400' />
+                      <span className='text-sm text-gray-600'>
+                        {trip.diving_center_id && trip.diving_center_name ? (
+                          <Link
+                            to={`/diving-centers/${trip.diving_center_id}`}
+                            className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
+                          >
+                            {trip.diving_center_name}
+                          </Link>
+                        ) : (
+                          trip.diving_center_name || 'Unknown Location'
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>{' '}
+      {/* Close main content div */}
     </div>
   );
 };
