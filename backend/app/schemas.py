@@ -199,6 +199,7 @@ class SiteMediaResponse(BaseModel):
 class DiveSiteSearchParams(BaseModel):
     name: Optional[str] = None
     difficulty_level: Optional[int] = Field(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert")
+    min_rating: Optional[float] = Field(None, ge=0, le=10, description="Minimum average rating (0-10)")
     tag_ids: Optional[List[int]] = None
     country: Optional[str] = None
     region: Optional[str] = None
