@@ -1,23 +1,4 @@
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  Map,
-  Search,
-  List,
-  Lock,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  Star,
-  MapPin,
-  Building,
-  Phone,
-  Mail,
-  Globe,
-  DollarSign,
-} from 'lucide-react';
+import { Plus, Eye, Search, Star, MapPin, Building, Phone, Mail, Globe } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -26,6 +7,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import DivingCentersMap from '../components/DivingCentersMap';
 import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
+import HeroSection from '../components/HeroSection';
 import MaskedEmail from '../components/MaskedEmail';
 import { useAuth } from '../contexts/AuthContext';
 import useSorting from '../hooks/useSorting';
@@ -41,9 +23,9 @@ const getErrorMessage = error => {
 };
 
 const DivingCenters = () => {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
   // View mode state
@@ -61,11 +43,6 @@ const DivingCenters = () => {
   });
 
   // Get initial values from URL parameters
-  const getInitialViewMode = () => {
-    const viewMode = searchParams.get('view');
-    return viewMode === 'map' ? 'map' : viewMode === 'grid' ? 'grid' : 'list';
-  };
-
   const getInitialFilters = () => {
     return {
       name: searchParams.get('name') || '',
@@ -80,11 +57,6 @@ const DivingCenters = () => {
     };
   };
 
-  const [viewport, setViewport] = useState({
-    longitude: 0,
-    latitude: 0,
-    zoom: 2,
-  });
   const [filters, setFilters] = useState(getInitialFilters);
   const [pagination, setPagination] = useState(getInitialPagination);
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
@@ -347,23 +319,6 @@ const DivingCenters = () => {
     }
   };
 
-  const renderStars = (rating, interactive = false, centerId = null) => {
-    const stars = [];
-    for (let i = 1; i <= 10; i++) {
-      const isFilled = i <= rating;
-      stars.push(
-        <Star
-          key={i}
-          className={`h-4 w-4 ${
-            isFilled ? 'text-yellow-400 fill-current' : 'text-gray-300'
-          } ${interactive ? 'cursor-pointer hover:text-yellow-400' : ''}`}
-          onClick={() => interactive && handleRating(centerId, i)}
-        />
-      );
-    }
-    return stars;
-  };
-
   if (isLoading) {
     return (
       <div className='flex justify-center items-center h-64'>
@@ -381,36 +336,49 @@ const DivingCenters = () => {
   }
 
   return (
-    <div className='max-w-7xl mx-auto'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-gray-900 mb-4'>Diving Centers</h1>
-        <p className='text-gray-600'>Discover and rate diving centers around the world</p>
-        {paginationInfo.totalCount !== undefined && (
-          <div className='mt-2 text-sm text-gray-500'>
-            Showing {paginationInfo.totalCount} diving centers from {paginationInfo.totalCount}{' '}
-            total diving centers
-          </div>
-        )}
-      </div>
+    <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      {/* Hero Section */}
+      <HeroSection
+        title='Diving Centers'
+        subtitle='Discover and connect with professional diving centers worldwide'
+        background='ocean'
+        size='medium'
+      >
+        <div className='flex flex-col sm:flex-row gap-3 justify-center'>
+          <Link
+            to='/diving-centers/create'
+            className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
+          >
+            <Plus className='w-5 h-5' />
+            Add Center
+          </Link>
+        </div>
+      </HeroSection>
 
-      {/* Search and Filter Section */}
-      <div className='bg-white p-6 rounded-lg shadow-md mb-8'>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-          <div>
+      {/* Sticky Filter Bar - Mobile-First Responsive Design */}
+      <div className='sticky top-16 z-40 bg-white shadow-sm border-b border-gray-200 rounded-t-lg px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4'>
+        <div className='flex flex-col sm:flex-row gap-3 sm:gap-4 items-end'>
+          {/* Search Input - Primary Filter */}
+          <div className='flex-1 w-full'>
             <label htmlFor='search-name' className='block text-sm font-medium text-gray-700 mb-2'>
-              Search by name
+              Search
             </label>
-            <input
-              id='search-name'
-              type='text'
-              name='name'
-              value={filters.name}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Enter center name...'
-            />
+            <div className='relative'>
+              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
+              <input
+                id='search-name'
+                type='text'
+                name='name'
+                value={filters.name}
+                onChange={handleSearchChange}
+                className='w-full pl-10 pr-4 py-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base sm:text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
+                placeholder='Search diving centers by name, location, or services...'
+              />
+            </div>
           </div>
-          <div>
+
+          {/* Min Rating Filter - Compact */}
+          <div className='w-full sm:w-32'>
             <label htmlFor='min-rating' className='block text-sm font-medium text-gray-700 mb-2'>
               Min Rating (≥)
             </label>
@@ -423,15 +391,15 @@ const DivingCenters = () => {
               name='min_rating'
               value={filters.min_rating}
               onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Show centers rated ≥ this value'
+              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
+              placeholder='≥ 0'
             />
           </div>
         </div>
       </div>
 
-      {/* Sorting Controls */}
-      <div className='mb-6'>
+      {/* Sorting & View Controls - Attached to Sticky Filters */}
+      <div className='bg-white shadow-sm border-b border-l border-r border-gray-200 rounded-b-lg'>
         <EnhancedMobileSortingControls
           sortBy={sortBy}
           sortOrder={sortOrder}
@@ -454,7 +422,7 @@ const DivingCenters = () => {
       </div>
 
       {/* Pagination Controls */}
-      <div className='mt-4 flex flex-col sm:flex-row justify-between items-center gap-4 mb-8'>
+      <div className='mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 mb-8'>
         {/* Page Size Controls */}
         <div className='flex items-center gap-4'>
           <div className='flex items-center gap-2'>
@@ -819,7 +787,6 @@ const DivingCenters = () => {
               ...center,
               id: center.id.toString(),
             }))}
-            onViewportChange={setViewport}
           />
         </div>
       )}
