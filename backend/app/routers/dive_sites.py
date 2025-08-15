@@ -148,6 +148,7 @@ def get_fallback_location(latitude: float, longitude: float):
 @skip_rate_limit_for_admin("100/minute")
 async def get_dive_sites(
     request: Request,
+    search: Optional[str] = Query(None, max_length=200, description="Unified search across name, country, region, and description"),
     name: Optional[str] = Query(None, max_length=100),
     difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
     min_rating: Optional[float] = Query(None, ge=0, le=10, description="Minimum average rating (0-10)"),
@@ -171,6 +172,26 @@ async def get_dive_sites(
         )
 
     query = db.query(DiveSite)
+
+    # Apply unified search across multiple fields
+    if search:
+        # Sanitize search input to prevent injection
+        sanitized_search = search.strip()[:200]
+        # Search across name, country, region, description, and aliases
+        query = query.filter(
+            or_(
+                DiveSite.name.ilike(f"%{sanitized_search}%"),
+                DiveSite.country.ilike(f"%{sanitized_search}%"),
+                DiveSite.region.ilike(f"%{sanitized_search}%"),
+                # Handle nullable description field safely
+                and_(DiveSite.description.isnot(None), DiveSite.description.ilike(f"%{sanitized_search}%")),
+                DiveSite.id.in_(
+                    db.query(DiveSiteAlias.dive_site_id).filter(
+                        DiveSiteAlias.alias.ilike(f"%{sanitized_search}%")
+                    )
+                )
+            )
+        )
 
     # Apply filters with input validation
     if name:
@@ -245,7 +266,7 @@ async def get_dive_sites(
         # All valid sort fields (including admin-only ones)
         valid_sort_fields = {
             'name', 'country', 'region', 'difficulty_level', 
-            'view_count', 'comment_count', 'created_at', 'updated_at'
+            'view_count', 'comment_count', 'created_at', 'updated_at', 'average_rating'
         }
         
         if sort_by not in valid_sort_fields:
@@ -292,12 +313,23 @@ async def get_dive_sites(
             sort_field = DiveSite.created_at
         elif sort_by == 'updated_at':
             sort_field = DiveSite.updated_at
+        elif sort_by == 'average_rating':
+            # For average rating, we need to join with ratings and group
+            # This will be handled in the main query to sort before pagination
+            pass
         
-        # Apply the sorting
-        if sort_order == 'desc':
-            query = query.order_by(sort_field.desc())
-        else:
-            query = query.order_by(sort_field.asc())
+        # Apply the sorting (only if we have a sort_field defined)
+        if 'sort_field' in locals():
+            if sort_order == 'desc':
+                query = query.order_by(sort_field.desc())
+            else:
+                query = query.order_by(sort_field.asc())
+        elif sort_by != 'average_rating':
+            # If no sort_field and not average_rating, this is an error
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid sort_by field: {sort_by}"
+            )
     else:
         # Default sorting by name (case-insensitive)
         query = query.order_by(func.lower(DiveSite.name).asc())
@@ -309,8 +341,88 @@ async def get_dive_sites(
     offset = (page - 1) * page_size
     total_pages = (total_count + page_size - 1) // page_size
 
-    # Get dive sites with pagination
-    dive_sites = query.offset(offset).limit(page_size).all()
+    # Handle average_rating sorting before pagination
+    if sort_by == 'average_rating':
+        # Get all dive sites with their average ratings for proper sorting
+        all_dive_sites_query = db.query(DiveSite)
+        
+        # Apply the same filters to the full query
+        if name:
+            sanitized_name = name.strip()[:100]
+            all_dive_sites_query = all_dive_sites_query.filter(
+                or_(
+                    DiveSite.name.ilike(f"%{sanitized_name}%"),
+                    DiveSite.id.in_(
+                        db.query(DiveSiteAlias.dive_site_id).filter(
+                            DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
+                        )
+                    )
+                )
+            )
+        
+        if difficulty_level:
+            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.difficulty_level == difficulty_level)
+        
+        if country:
+            sanitized_country = country.strip()[:100]
+            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.country.ilike(f"%{sanitized_country}%"))
+        
+        if region:
+            sanitized_region = region.strip()[:100]
+            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.region.ilike(f"%{sanitized_region}%"))
+        
+        if my_dive_sites and current_user:
+            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.created_by == current_user.id)
+        
+        if tag_ids:
+            from app.models import DiveSiteTag
+            from sqlalchemy import select
+            tag_count = len(tag_ids)
+            dive_site_ids_with_all_tags = select(DiveSiteTag.dive_site_id).filter(
+                DiveSiteTag.tag_id.in_(tag_ids)
+            ).group_by(DiveSiteTag.dive_site_id).having(
+                func.count(DiveSiteTag.tag_id) == tag_count
+            )
+            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.id.in_(dive_site_ids_with_all_tags))
+        
+        if min_rating is not None:
+            dive_site_ids_with_min_rating = db.query(SiteRating.dive_site_id).group_by(
+                SiteRating.dive_site_id
+            ).having(
+                func.avg(SiteRating.score) >= min_rating
+            )
+            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.id.in_(dive_site_ids_with_min_rating))
+        
+        # Get all dive sites that match the filters
+        all_dive_sites = all_dive_sites_query.all()
+        
+        # Calculate average ratings for all matching dive sites
+        dive_sites_with_ratings = []
+        for site in all_dive_sites:
+            avg_rating = db.query(func.avg(SiteRating.score)).filter(
+                SiteRating.dive_site_id == site.id
+            ).scalar()
+            dive_sites_with_ratings.append((site, avg_rating or 0))
+        
+        # Sort by average rating
+        dive_sites_with_ratings.sort(
+            key=lambda x: x[1], 
+            reverse=(sort_order == 'desc')
+        )
+        
+        # Apply pagination to the sorted results
+        start_idx = offset
+        end_idx = start_idx + page_size
+        paginated_dive_sites = dive_sites_with_ratings[start_idx:end_idx]
+        
+        # Extract just the dive sites for further processing
+        dive_sites = [site for site, rating in paginated_dive_sites]
+        
+        # Update total count for pagination
+        total_count = len(all_dive_sites)
+    else:
+        # Get dive sites with pagination for other sort fields
+        dive_sites = query.offset(offset).limit(page_size).all()
 
     # Calculate average ratings and get tags
     result = []

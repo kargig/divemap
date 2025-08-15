@@ -20,7 +20,7 @@ const StickyFilterBar = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const variantClasses = {
-    sticky: 'bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40',
+    sticky: 'bg-white border-b border-gray-200 shadow-sm sticky top-16 z-40',
     floating: 'bg-white border border-gray-200 rounded-lg shadow-lg',
     inline: 'bg-gray-50 border border-gray-200 rounded-lg',
   };

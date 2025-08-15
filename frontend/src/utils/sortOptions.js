@@ -5,6 +5,7 @@ export const SORT_OPTIONS = {
     { value: 'country', label: 'Country', defaultOrder: 'asc' },
     { value: 'region', label: 'Region', defaultOrder: 'asc' },
     { value: 'difficulty_level', label: 'Difficulty Level', defaultOrder: 'asc' },
+    { value: 'average_rating', label: 'Rating', defaultOrder: 'desc' },
     { value: 'created_at', label: 'Date Created', defaultOrder: 'desc' },
     { value: 'updated_at', label: 'Last Updated', defaultOrder: 'desc' },
   ],
