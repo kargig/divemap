@@ -150,6 +150,7 @@ async def get_dive_sites(
     request: Request,
     name: Optional[str] = Query(None, max_length=100),
     difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
+    min_rating: Optional[float] = Query(None, ge=0, le=10, description="Minimum average rating (0-10)"),
     tag_ids: Optional[List[int]] = Query(None),
     country: Optional[str] = Query(None, max_length=100),
     region: Optional[str] = Query(None, max_length=100),
@@ -225,6 +226,19 @@ async def get_dive_sites(
 
         # Then filter the main query by those dive site IDs
         query = query.filter(DiveSite.id.in_(dive_site_ids_with_all_tags))
+
+    # Apply min_rating filtering
+    if min_rating is not None:
+        # Get dive site IDs that have an average rating >= min_rating
+        # We need to join with ratings and group by dive site to calculate average
+        dive_site_ids_with_min_rating = db.query(SiteRating.dive_site_id).group_by(
+            SiteRating.dive_site_id
+        ).having(
+            func.avg(SiteRating.score) >= min_rating
+        )
+        
+        # Filter the main query by those dive site IDs
+        query = query.filter(DiveSite.id.in_(dive_site_ids_with_min_rating))
 
     # Apply dynamic sorting based on parameters
     if sort_by:
@@ -391,6 +405,7 @@ async def get_dive_sites_count(
     request: Request,
     name: Optional[str] = Query(None, max_length=100),
     difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
+    min_rating: Optional[float] = Query(None, ge=0, le=10, description="Minimum average rating (0-10)"),
     tag_ids: Optional[List[int]] = Query(None),
     country: Optional[str] = Query(None, max_length=100),
     region: Optional[str] = Query(None, max_length=100),
@@ -449,6 +464,19 @@ async def get_dive_sites_count(
             func.count(DiveSiteTag.tag_id) == tag_count
         )
         query = query.filter(DiveSite.id.in_(dive_site_ids_with_all_tags))
+
+    # Apply min_rating filtering
+    if min_rating is not None:
+        # Get dive site IDs that have an average rating >= min_rating
+        # We need to join with ratings and group by dive site to calculate average
+        dive_site_ids_with_min_rating = db.query(SiteRating.dive_site_id).group_by(
+            SiteRating.dive_site_id
+        ).having(
+            func.avg(SiteRating.score) >= min_rating
+        )
+        
+        # Filter the main query by those dive site IDs
+        query = query.filter(DiveSite.id.in_(dive_site_ids_with_min_rating))
 
     # Get total count
     total_count = query.count()
