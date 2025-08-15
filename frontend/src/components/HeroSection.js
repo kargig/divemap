@@ -38,13 +38,21 @@ const HeroSection = ({
           <p
             className={`text-lg sm:text-xl ${textColor} opacity-90 max-w-3xl ${
               centered ? 'mx-auto' : ''
-            }`}
+            } mb-6`}
           >
             {subtitle}
           </p>
         )}
         {children && (
-          <div className={`mt-6 ${centered ? 'flex justify-center' : ''}`}>{children}</div>
+          <div
+            className={`mt-6 min-h-[60px] flex items-center justify-center ${
+              centered ? 'flex justify-center' : ''
+            }`}
+          >
+            <div className='flex flex-col sm:flex-row gap-3 justify-center max-w-4xl w-full'>
+              {children}
+            </div>
+          </div>
         )}
       </div>
     </section>
