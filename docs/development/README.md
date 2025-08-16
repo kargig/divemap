@@ -134,7 +134,7 @@ The search algorithm has been significantly enhanced to address geographic field
 ## Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js 20+ 
 - Python 3.11+
 - Docker and Docker Compose
 - Git
