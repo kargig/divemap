@@ -5,10 +5,12 @@ import { useMutation, useQueryClient, useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
 import api from '../api';
+import { useAuth } from '../contexts/AuthContext';
 
 const CreateDivingCenter = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -48,9 +50,17 @@ const CreateDivingCenter = () => {
     },
     {
       onSuccess: () => {
+        // Invalidate both admin and regular diving centers queries
         queryClient.invalidateQueries(['admin-diving-centers']);
+        queryClient.invalidateQueries(['diving-centers']);
         toast.success('Diving center created successfully!');
-        navigate('/admin/diving-centers');
+
+        // Navigate based on user role
+        if (user?.is_admin) {
+          navigate('/admin/diving-centers');
+        } else {
+          navigate('/diving-centers');
+        }
       },
       onError: error => {
         toast.error(error.response?.data?.detail || 'Failed to create diving center');
@@ -143,7 +153,12 @@ const CreateDivingCenter = () => {
   };
 
   const handleCancel = () => {
-    navigate('/admin/diving-centers');
+    // Navigate based on user role
+    if (user?.is_admin) {
+      navigate('/admin/diving-centers');
+    } else {
+      navigate('/diving-centers');
+    }
   };
 
   return (
