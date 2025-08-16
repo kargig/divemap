@@ -51,7 +51,8 @@ app.add_middleware(
         "X-Current-Page",
         "X-Page-Size",
         "X-Has-Next-Page",
-        "X-Has-Prev-Page"
+        "X-Has-Prev-Page",
+        "X-Match-Types"
     ],
     max_age=3600,
 )

@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_, desc, asc
 from slowapi.util import get_remote_address
+import difflib
+import json
 
 from app.database import get_db
 from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, get_difficulty_label
@@ -17,8 +19,235 @@ from app.schemas import (
 import requests
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional
 from app.limiter import limiter, skip_rate_limit_for_admin
+from app.utils import (
+    calculate_unified_phrase_aware_score,
+    classify_match_type,
+    get_unified_fuzzy_trigger_conditions,
+    UNIFIED_TYPO_TOLERANCE
+)
 
 router = APIRouter()
+
+
+def calculate_phrase_aware_score(query: str, site_name: str, site_country: str, site_region: str, site_description: str, site_tags: List[str] = None) -> float:
+    """
+    Calculate a relevance score using phrase-aware logic that prioritizes site names
+    over geographic fields and handles multi-word queries intelligently.
+    
+    Args:
+        query: The search query string
+        site_name: The dive site name
+        site_country: The dive site country (can be None)
+        site_region: The dive site region (can be None)
+        site_description: The dive site description (can be None)
+        site_tags: List of tag names for the dive site (can be None)
+    
+    Returns:
+        Float score between 0.0 and 1.0, where higher is more relevant
+    """
+    query_lower = query.lower()
+    name_lower = site_name.lower()
+    country_lower = (site_country or "").lower()
+    region_lower = (site_region or "").lower()
+    desc_lower = (site_description or "").lower()
+    
+    # 1. Exact phrase match (highest priority)
+    if query_lower in name_lower:
+        return 1.0
+    
+    # 2. Word-by-word matching in name (with fuzzy matching for typos)
+    query_words = query_lower.split()
+    name_words = name_lower.split()
+    
+    # Count how many query words appear in name (with fuzzy matching)
+    matching_words = 0
+    for query_word in query_words:
+        # Check for exact substring match first
+        if any(query_word in name_word for name_word in name_words):
+            matching_words += 1
+        else:
+            # Check for fuzzy similarity (typo tolerance)
+            for name_word in name_words:
+                if difflib.SequenceMatcher(None, query_word, name_word).ratio() >= 0.7:
+                    matching_words += 1
+                    break
+    
+    word_match_ratio = matching_words / len(query_words)
+    
+    # 3. Consecutive word bonus (for "blue hole" in "bluehole reef")
+    consecutive_bonus = 0.0
+    if len(query_words) > 1:
+        # Check if words appear consecutively (even if concatenated)
+        query_phrase = ''.join(query_words)
+        if query_phrase in name_lower.replace(' ', ''):
+            consecutive_bonus = 0.3
+        else:
+            # Check for fuzzy similarity of concatenated phrase
+            name_no_spaces = name_lower.replace(' ', '')
+            if difflib.SequenceMatcher(None, query_phrase, name_no_spaces).ratio() >= 0.7:
+                consecutive_bonus = 0.2
+    
+    # 4. Geographic field matching (country and region)
+    geographic_bonus = 0.0
+    if country_lower and query_lower in country_lower:
+        geographic_bonus += 0.2
+    if region_lower and query_lower in region_lower:
+        geographic_bonus += 0.2
+    
+    # 5. Tag matching (high priority for specialized searches)
+    tag_bonus = 0.0
+    if site_tags:
+        for tag in site_tags:
+            tag_lower = tag.lower()
+            if query_lower in tag_lower:
+                tag_bonus += 0.3  # High bonus for tag matches
+                break
+            # Also check for word-by-word matching in tags
+            for query_word in query_words:
+                if query_word in tag_lower:
+                    tag_bonus += 0.2
+                    break
+    
+    # 6. Traditional similarity for edge cases
+    similarity_score = difflib.SequenceMatcher(None, query_lower, name_lower).ratio()
+    
+    # 7. Weighted final score
+    final_score = (
+        word_match_ratio * 0.4 +      # Word matching (40%)
+        consecutive_bonus +            # Consecutive bonus
+        geographic_bonus +             # Geographic bonus
+        tag_bonus +                    # Tag bonus
+        similarity_score * 0.2 +      # Traditional similarity (20%)
+        (0.1 if query_lower in desc_lower else 0.0)  # Description bonus (10%)
+    )
+    
+    # 7. Special case: if it's a single word and has high similarity to any name word, boost the score
+    if len(query_words) == 1 and len(name_words) > 0:
+        best_word_similarity = max(
+            difflib.SequenceMatcher(None, query_words[0], name_word).ratio()
+            for name_word in name_words
+        )
+        if best_word_similarity >= 0.8:  # High similarity threshold for single words
+            final_score = max(final_score, best_word_similarity * 0.8)
+    
+    return min(final_score, 1.0)
+
+
+def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: Session, similarity_threshold: float = 0.2, max_fuzzy_results: int = 10):
+    """
+    Enhance search results with fuzzy matching when exact results are insufficient.
+    
+    Args:
+        query: The search query string
+        exact_results: List of dive sites from exact search
+        db: Database session
+        similarity_threshold: Minimum similarity score (0.0 to 1.0)
+        max_fuzzy_results: Maximum number of fuzzy results to return
+    
+    Returns:
+        List of dive sites with exact results first, followed by fuzzy matches
+    """
+    # If we have enough exact results, return them with match type info
+    if len(exact_results) >= 10:
+        # Convert exact results to the expected format
+        final_results = []
+        for site in exact_results:
+            final_results.append({
+                'site': site,
+                'match_type': 'exact',
+                'score': 1.0,
+                'name_contains': query.lower() in site.name.lower(),
+                'country_contains': site.country and query.lower() in site.country.lower(),
+                'region_contains': site.region and query.lower() in site.region.lower(),
+                'description_contains': site.description and query.lower() in site.description.lower()
+            })
+        return final_results
+    
+    # Get all dive sites for fuzzy matching
+    all_dive_sites = db.query(DiveSite).all()
+    
+    # Create a set of exact result IDs to avoid duplicates
+    exact_ids = {site.id for site in exact_results}
+    
+    # Perform fuzzy matching on all dive sites (case-insensitive)
+    fuzzy_matches = []
+    query_lower = query.lower()  # Convert query to lowercase for case-insensitive comparison
+    
+    for site in all_dive_sites:
+        # Skip if already in exact results
+        if site.id in exact_ids:
+            continue
+            
+        # Get tags for this dive site for scoring
+        site_tags = []
+        if hasattr(site, 'tags') and site.tags:
+            site_tags = [tag.name if hasattr(tag, 'name') else str(tag) for tag in site.tags]
+        else:
+            # Query tags from database if not already loaded
+            from app.models import DiveSiteTag, AvailableTag
+            tags = db.query(AvailableTag).join(DiveSiteTag).filter(
+                DiveSiteTag.dive_site_id == site.id
+            ).all()
+            site_tags = [tag.name for tag in tags]
+        
+        # Use the unified phrase-aware scoring function with tags
+        weighted_score = calculate_unified_phrase_aware_score(
+            query_lower, 
+            site.name, 
+            site.description, 
+            site.country, 
+            site.region,
+            None,  # city parameter (not used for dive sites)
+            site_tags
+        )
+        
+        # Check for partial matches (substring matches) for match type classification
+        name_contains = query_lower in site.name.lower()
+        country_contains = site.country and query_lower in site.country.lower()
+        region_contains = site.region and query_lower in site.region.lower()
+        description_contains = site.description and query_lower in site.description.lower()
+        
+        # Determine match type using unified classification
+        match_type = classify_match_type(weighted_score)
+        
+        # Add to fuzzy matches if above threshold
+        if weighted_score >= UNIFIED_TYPO_TOLERANCE['overall_threshold']:
+            fuzzy_matches.append({
+                'site': site,
+                'score': weighted_score,
+                'match_type': match_type,
+                'name_contains': name_contains,
+                'country_contains': country_contains,
+                'region_contains': region_contains,
+                'description_contains': description_contains
+            })
+    
+    # Sort fuzzy matches by score (highest first)
+    fuzzy_matches.sort(key=lambda x: x['score'], reverse=True)
+    
+    # Limit fuzzy results
+    fuzzy_matches = fuzzy_matches[:max_fuzzy_results]
+    
+    # Create final results with match type information
+    final_results = []
+    
+    # Add exact results first with match type
+    for site in exact_results:
+        final_results.append({
+            'site': site,
+            'match_type': 'exact',
+            'score': 1.0,
+            'name_contains': query_lower in site.name.lower(),
+            'country_contains': site.country and query_lower in site.country.lower(),
+            'region_contains': site.region and query_lower in site.region.lower(),
+            'description_contains': site.description and query_lower in site.description.lower()
+        })
+    
+    # Add fuzzy matches
+    for match in fuzzy_matches:
+        final_results.append(match)
+    
+    return final_results
 
 @router.get("/health")
 async def health_check():
@@ -165,7 +394,7 @@ async def get_dive_sites(
 ):
 
     # Validate page_size to only allow 25, 50, or 100
-    if page_size not in [25, 50, 100]:
+    if page_size not in [1, 5, 25, 50, 100]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="page_size must be one of: 25, 50, 100"
@@ -173,11 +402,11 @@ async def get_dive_sites(
 
     query = db.query(DiveSite)
 
-    # Apply unified search across multiple fields
+    # Apply unified search across multiple fields (case-insensitive)
     if search:
         # Sanitize search input to prevent injection
         sanitized_search = search.strip()[:200]
-        # Search across name, country, region, description, and aliases
+        # Search across name, country, region, description, and aliases (case-insensitive using ilike)
         query = query.filter(
             or_(
                 DiveSite.name.ilike(f"%{sanitized_search}%"),
@@ -192,6 +421,9 @@ async def get_dive_sites(
                 )
             )
         )
+        
+        # Store the search query for potential fuzzy search enhancement
+        search_query_for_fuzzy = sanitized_search
 
     # Apply filters with input validation
     if name:
@@ -421,8 +653,48 @@ async def get_dive_sites(
         # Update total count for pagination
         total_count = len(all_dive_sites)
     else:
+        # Initialize match_types at function level
+        match_types = {}
+        
         # Get dive sites with pagination for other sort fields
         dive_sites = query.offset(offset).limit(page_size).all()
+        
+        # Apply fuzzy search enhancement using unified trigger conditions
+        if 'search_query_for_fuzzy' in locals() and get_unified_fuzzy_trigger_conditions(
+            search_query_for_fuzzy,
+            len(dive_sites),
+            max_exact_results=5,
+            max_query_length=10
+        ):
+            # Get exact results first
+            exact_results = dive_sites
+            
+            # Enhance with fuzzy search
+            enhanced_results = search_dive_sites_with_fuzzy(
+                search_query_for_fuzzy, 
+                exact_results, 
+                db, 
+                similarity_threshold=UNIFIED_TYPO_TOLERANCE['overall_threshold'],
+                max_fuzzy_results=10
+            )
+            
+            # Transform enhanced results back to the expected format
+            # Extract dive sites and create a mapping for match types
+            dive_sites = []
+            
+            for result in enhanced_results:
+                dive_sites.append(result['site'])
+                match_types[result['site'].id] = {
+                    'type': result['match_type'],
+                    'score': result['score'],
+                    'name_contains': result['name_contains'],
+                    'country_contains': result['country_contains'],
+                    'region_contains': result['region_contains'],
+                    'description_contains': result['description_contains']
+                }
+        else:
+            # Initialize empty match_types if no fuzzy search was performed
+            match_types = {}
 
     # Calculate average ratings and get tags
     result = []
@@ -516,6 +788,10 @@ async def get_dive_sites(
     response.headers["X-Page-Size"] = str(page_size)
     response.headers["X-Has-Next-Page"] = str(page < total_pages).lower()
     response.headers["X-Has-Prev-Page"] = str(page > 1).lower()
+    
+    # Add match type information to response headers if available
+    if match_types:
+        response.headers["X-Match-Types"] = json.dumps(match_types)
 
     return response
 
