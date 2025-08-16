@@ -21,8 +21,10 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import DivingCentersMap from '../components/DivingCentersMap';
 import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
+import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import MaskedEmail from '../components/MaskedEmail';
+import MatchTypeBadge from '../components/MatchTypeBadge';
 import { useAuth } from '../contexts/AuthContext';
 import useSorting from '../hooks/useSorting';
 import { getSortOptions } from '../utils/sortOptions';
@@ -73,8 +75,12 @@ const DivingCenters = () => {
   // Get initial values from URL parameters
   const getInitialFilters = () => {
     return {
+      search: searchParams.get('search') || '',
       name: searchParams.get('name') || '',
       min_rating: searchParams.get('min_rating') || '',
+      country: searchParams.get('country') || '',
+      region: searchParams.get('region') || '',
+      city: searchParams.get('city') || '',
     };
   };
 
@@ -88,6 +94,7 @@ const DivingCenters = () => {
   const [filters, setFilters] = useState(getInitialFilters);
   const [pagination, setPagination] = useState(getInitialPagination);
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
+    search: getInitialFilters().search,
     name: getInitialFilters().name,
   });
 
@@ -110,8 +117,12 @@ const DivingCenters = () => {
           }
 
           // Add filters
+          if (newFilters.search) newSearchParams.set('search', newFilters.search);
           if (newFilters.name) newSearchParams.set('name', newFilters.name);
           if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
+          if (newFilters.country) newSearchParams.set('country', newFilters.country);
+          if (newFilters.region) newSearchParams.set('region', newFilters.region);
+          if (newFilters.city) newSearchParams.set('city', newFilters.city);
 
           // Add sorting parameters
           const sortParams = getSortParams();
@@ -141,8 +152,12 @@ const DivingCenters = () => {
       }
 
       // Add filters
+      if (newFilters.search) newSearchParams.set('search', newFilters.search);
       if (newFilters.name) newSearchParams.set('name', newFilters.name);
       if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
+      if (newFilters.country) newSearchParams.set('country', newFilters.country);
+      if (newFilters.region) newSearchParams.set('region', newFilters.region);
+      if (newFilters.city) newSearchParams.set('city', newFilters.city);
 
       // Add sorting parameters
       const sortParams = getSortParams();
@@ -167,22 +182,33 @@ const DivingCenters = () => {
   // Debounced URL update for search inputs
   useEffect(() => {
     debouncedUpdateURL(filters, pagination, viewMode);
-  }, [filters.name, debouncedUpdateURL]);
+  }, [filters.search, debouncedUpdateURL]);
 
   // Debounced search terms for query key
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearchTerms({
+        search: filters.search,
         name: filters.name,
       });
     }, 800);
     return () => clearTimeout(timeoutId);
-  }, [filters.name]);
+  }, [filters.search, filters.name]);
+
+  // Set debounced search terms immediately on initial load if URL has search parameters
+  useEffect(() => {
+    if (filters.search || filters.name) {
+      setDebouncedSearchTerms({
+        search: filters.search,
+        name: filters.name,
+      });
+    }
+  }, []); // Only run once on mount
 
   // Immediate URL update for non-search filters
   useEffect(() => {
     immediateUpdateURL(filters, pagination, viewMode);
-  }, [filters.min_rating, immediateUpdateURL]);
+  }, [filters.min_rating, filters.country, filters.region, filters.city, immediateUpdateURL]);
 
   // Invalidate query when sorting changes to ensure fresh data
   useEffect(() => {
@@ -197,8 +223,12 @@ const DivingCenters = () => {
   } = useQuery(
     [
       'diving-centers',
+      debouncedSearchTerms.search,
       debouncedSearchTerms.name,
       filters.min_rating,
+      filters.country,
+      filters.region,
+      filters.city,
       pagination.page,
       pagination.page_size,
       sortBy,
@@ -209,8 +239,12 @@ const DivingCenters = () => {
       const params = new URLSearchParams();
 
       // Add filter parameters
+      if (debouncedSearchTerms.search) params.append('search', debouncedSearchTerms.search);
       if (debouncedSearchTerms.name) params.append('name', debouncedSearchTerms.name);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
+      if (filters.country) params.append('country', filters.country);
+      if (filters.region) params.append('region', filters.region);
+      if (filters.city) params.append('city', filters.city);
 
       // Add sorting parameters directly from state (not from getSortParams)
       if (sortBy) params.append('sort_by', sortBy);
@@ -233,11 +267,47 @@ const DivingCenters = () => {
           hasNextPage: response.headers['x-has-next-page'] === 'true',
           hasPrevPage: response.headers['x-has-prev-page'] === 'true',
         };
+
+        // Extract match types from headers if available
+        let matchTypes = {};
+        console.log('DEBUG: Response object:', response);
+        console.log('DEBUG: Response headers:', response.headers);
+        console.log('DEBUG: X-Match-Types header:', response.headers['x-match-types']);
+        try {
+          if (response.headers['x-match-types']) {
+            matchTypes = JSON.parse(response.headers['x-match-types']);
+            console.log('DEBUG: Parsed match types:', matchTypes);
+          } else {
+            console.log('DEBUG: No x-match-types header found');
+          }
+        } catch (error) {
+          console.warn('Failed to parse match types header:', error);
+        }
+
         // Store pagination info in the query cache
         queryClient.setQueryData(
           ['diving-centers-pagination', filters, pagination],
           paginationInfo
         );
+
+        // Store match types in the query cache
+        queryClient.setQueryData(
+          [
+            'diving-centers-match-types',
+            debouncedSearchTerms.search,
+            debouncedSearchTerms.name,
+            filters.min_rating,
+            filters.country,
+            filters.region,
+            filters.city,
+            pagination.page,
+            pagination.page_size,
+            sortBy,
+            sortOrder,
+          ],
+          matchTypes
+        );
+
         return response.data;
       },
       keepPreviousData: true,
@@ -257,6 +327,25 @@ const DivingCenters = () => {
     hasNextPage: false,
     hasPrevPage: pagination.page > 1,
   };
+
+  // Get match types from cached data
+  const matchTypes =
+    queryClient.getQueryData([
+      'diving-centers-match-types',
+      debouncedSearchTerms.search,
+      debouncedSearchTerms.name,
+      filters.min_rating,
+      filters.country,
+      filters.region,
+      filters.city,
+      pagination.page,
+      pagination.page_size,
+      sortBy,
+      sortOrder,
+    ]) || {};
+  console.log('DEBUG: matchTypes from cache:', matchTypes);
+  console.log('DEBUG: filters:', filters);
+  console.log('DEBUG: pagination:', pagination);
 
   // Rating mutation
   const rateMutation = useMutation(
@@ -427,23 +516,32 @@ const DivingCenters = () => {
       {/* Sticky Filter Bar - Mobile-First Responsive Design */}
       <div className='sticky top-16 z-40 bg-white shadow-sm border-b border-gray-200 rounded-t-lg px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4'>
         <div className='flex flex-col sm:flex-row gap-3 sm:gap-4 items-end'>
-          {/* Search Input - Primary Filter */}
+          {/* Smart Fuzzy Search Input - Enhanced search experience */}
           <div className='flex-1 w-full'>
             <label htmlFor='search-name' className='block text-sm font-medium text-gray-700 mb-2'>
               Search
             </label>
-            <div className='relative'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-              <input
-                id='search-name'
-                type='text'
-                name='name'
-                value={filters.name}
-                onChange={handleSearchChange}
-                className='w-full pl-10 pr-4 py-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base sm:text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
-                placeholder='Search diving centers by name, location, or services...'
-              />
-            </div>
+            <FuzzySearchInput
+              data={divingCenters || []}
+              searchValue={filters.search}
+              onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
+              onSearchSelect={selectedItem => {
+                handleSearchChange({ target: { name: 'search', value: selectedItem.name } });
+              }}
+              configType='divingCenters'
+              placeholder='Search diving centers by name, location, or services...'
+              minQueryLength={2}
+              maxSuggestions={8}
+              debounceDelay={300}
+              showSuggestions={true}
+              highlightMatches={true}
+              showScore={false}
+              showClearButton={true}
+              className='w-full'
+              inputClassName='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base'
+              suggestionsClassName='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto'
+              highlightClass='bg-blue-100 font-medium'
+            />
           </div>
 
           {/* Min Rating Filter - Compact */}
@@ -462,6 +560,52 @@ const DivingCenters = () => {
               onChange={handleSearchChange}
               className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
               placeholder='≥ 0'
+            />
+          </div>
+
+          {/* Geographic Filters */}
+          <div className='w-full sm:w-32'>
+            <label htmlFor='country' className='block text-sm font-medium text-gray-700 mb-2'>
+              Country
+            </label>
+            <input
+              id='country'
+              type='text'
+              name='country'
+              value={filters.country}
+              onChange={handleSearchChange}
+              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
+              placeholder='Country'
+            />
+          </div>
+
+          <div className='w-full sm:w-32'>
+            <label htmlFor='region' className='block text-sm font-medium text-gray-700 mb-2'>
+              Region
+            </label>
+            <input
+              id='region'
+              type='text'
+              name='region'
+              value={filters.region}
+              onChange={handleSearchChange}
+              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
+              placeholder='Region'
+            />
+          </div>
+
+          <div className='w-full sm:w-32'>
+            <label htmlFor='city' className='block text-sm font-medium text-gray-700 mb-2'>
+              City
+            </label>
+            <input
+              id='city'
+              type='text'
+              name='city'
+              value={filters.city}
+              onChange={handleSearchChange}
+              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
+              placeholder='City'
             />
           </div>
         </div>
@@ -591,6 +735,25 @@ const DivingCenters = () => {
             {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of{' '}
             {paginationInfo.totalCount} diving centers
           </div>
+
+          {/* Match Type Summary */}
+          {Object.keys(matchTypes).length > 0 && (
+            <div className='text-sm text-gray-600'>
+              <span className='font-medium'>Match Types:</span>
+              {Object.entries(
+                Object.values(matchTypes).reduce((acc, match) => {
+                  acc[match.type] = (acc[match.type] || 0) + 1;
+                  return acc;
+                }, {})
+              ).map(([type, count], index) => (
+                <span key={type}>
+                  {index > 0 ? ', ' : ' '}
+                  <span className='font-medium'>{count}</span> {type}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className='flex items-center gap-2'>
             <button
               onClick={() => handlePageChange(pagination.page - 1)}
@@ -644,14 +807,23 @@ const DivingCenters = () => {
                 <div className='flex-1 min-w-0'>
                   {/* Title and rating row */}
                   <div className='flex items-center justify-between mb-2'>
-                    <h3 className='font-semibold text-gray-900 text-base truncate'>
-                      <Link
-                        to={`/diving-centers/${center.id}`}
-                        className='hover:text-blue-600 transition-colors'
-                      >
-                        {center.name}
-                      </Link>
-                    </h3>
+                    <div className='flex items-center gap-2'>
+                      <h3 className='font-semibold text-gray-900 text-base truncate'>
+                        <Link
+                          to={`/diving-centers/${center.id}`}
+                          className='hover:text-blue-600 transition-colors'
+                        >
+                          {center.name}
+                        </Link>
+                      </h3>
+                      {/* Match type badge */}
+                      {matchTypes[center.id] && (
+                        <MatchTypeBadge
+                          matchType={matchTypes[center.id].type}
+                          score={matchTypes[center.id].score}
+                        />
+                      )}
+                    </div>
                     {center.average_rating && (
                       <div className='flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full'>
                         <Star className='w-3 h-3 text-yellow-500 fill-current' />
@@ -700,6 +872,28 @@ const DivingCenters = () => {
                         <span className='truncate'>
                           {center.latitude.toFixed(4)}, {center.longitude.toFixed(4)}
                         </span>
+                      </div>
+                    )}
+
+                    {/* Geographic fields */}
+                    {center.country && (
+                      <div className='flex items-center gap-1 text-xs text-gray-600'>
+                        <Globe className='w-3 h-3 text-gray-400' />
+                        <span className='truncate'>{center.country}</span>
+                      </div>
+                    )}
+
+                    {center.region && (
+                      <div className='flex items-center gap-1 text-xs text-gray-600'>
+                        <MapPin className='w-3 h-3 text-gray-400' />
+                        <span className='truncate'>{center.region}</span>
+                      </div>
+                    )}
+
+                    {center.city && (
+                      <div className='flex items-center gap-1 text-xs text-gray-600'>
+                        <Building className='w-3 h-3 text-gray-400' />
+                        <span className='truncate'>{center.city}</span>
                       </div>
                     )}
                   </div>
@@ -772,16 +966,27 @@ const DivingCenters = () => {
               <div className={`${compactLayout ? 'p-3' : 'p-5'}`}>
                 {/* Title and rating row */}
                 <div className='flex items-start justify-between mb-2'>
-                  <h3
-                    className={`font-bold text-gray-900 line-clamp-2 flex-1 pr-3 ${compactLayout ? 'text-base' : 'text-lg'}`}
-                  >
-                    <Link
-                      to={`/diving-centers/${center.id}`}
-                      className='hover:text-blue-600 transition-colors hover:underline'
+                  <div className='flex-1 pr-3'>
+                    <h3
+                      className={`font-bold text-gray-900 line-clamp-2 ${compactLayout ? 'text-base' : 'text-lg'}`}
                     >
-                      {center.name}
-                    </Link>
-                  </h3>
+                      <Link
+                        to={`/diving-centers/${center.id}`}
+                        className='hover:text-blue-600 transition-colors hover:underline'
+                      >
+                        {center.name}
+                      </Link>
+                    </h3>
+                    {/* Match type badge */}
+                    {matchTypes[center.id] && (
+                      <div className='mt-1'>
+                        <MatchTypeBadge
+                          matchType={matchTypes[center.id].type}
+                          score={matchTypes[center.id].score}
+                        />
+                      </div>
+                    )}
+                  </div>
 
                   {/* Rating badge - positioned to the right of title */}
                   {center.average_rating && (
@@ -805,6 +1010,30 @@ const DivingCenters = () => {
                       : center.address || 'Location N/A'}
                   </span>
                 </div>
+
+                {/* Geographic fields */}
+                {(center.country || center.region || center.city) && (
+                  <div className='flex flex-wrap gap-2 mb-4'>
+                    {center.country && (
+                      <div className='flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-full'>
+                        <Globe className='w-3 h-3 text-blue-600' />
+                        <span className='text-xs font-medium text-blue-700'>{center.country}</span>
+                      </div>
+                    )}
+                    {center.region && (
+                      <div className='flex items-center gap-1 bg-green-50 px-2 py-1 rounded-full'>
+                        <MapPin className='w-3 h-3 text-green-600' />
+                        <span className='text-xs font-medium text-green-700'>{center.region}</span>
+                      </div>
+                    )}
+                    {center.city && (
+                      <div className='flex items-center gap-1 bg-purple-50 px-2 py-1 rounded-full'>
+                        <Building className='w-3 h-3 text-purple-600' />
+                        <span className='text-xs font-medium text-purple-700'>{center.city}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Key information grid */}
                 <div className='grid grid-cols-2 gap-3 mb-4'>

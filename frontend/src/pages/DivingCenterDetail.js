@@ -389,6 +389,39 @@ const DivingCenterDetail = () => {
             )}
           </div>
 
+          {/* Geographic Information */}
+          {(center?.country || center?.region || center?.city) && (
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+              {center?.country && (
+                <div className='flex items-center text-gray-600'>
+                  <Globe className='h-5 w-5 mr-3' />
+                  <div>
+                    <span className='text-sm font-medium text-gray-700'>Country</span>
+                    <p className='text-gray-900'>{center.country}</p>
+                  </div>
+                </div>
+              )}
+              {center?.region && (
+                <div className='flex items-center text-gray-600'>
+                  <MapPin className='h-5 w-5 mr-3' />
+                  <div>
+                    <span className='text-sm font-medium text-gray-700'>Region</span>
+                    <p className='text-gray-900'>{center.region}</p>
+                  </div>
+                </div>
+              )}
+              {center?.city && (
+                <div className='flex items-center text-gray-600'>
+                  <MapPin className='h-5 w-5 mr-3' />
+                  <div>
+                    <span className='text-sm font-medium text-gray-700'>City</span>
+                    <p className='text-gray-900'>{center.city}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Ownership Status */}
           {center?.ownership_status && (
             <div className='border-t pt-4 mb-4'>

@@ -12,6 +12,9 @@ export const SORT_OPTIONS = {
 
   'diving-centers': [
     { value: 'name', label: 'Name', defaultOrder: 'asc' },
+    { value: 'country', label: 'Country', defaultOrder: 'asc' },
+    { value: 'region', label: 'Region', defaultOrder: 'asc' },
+    { value: 'city', label: 'City', defaultOrder: 'asc' },
     { value: 'created_at', label: 'Date Created', defaultOrder: 'desc' },
     { value: 'updated_at', label: 'Last Updated', defaultOrder: 'desc' },
   ],
