@@ -242,7 +242,7 @@ const DivingCentersMap = ({ divingCenters, onViewportChange }) => {
 
   // Update viewport when map changes
   useEffect(() => {
-    if (!mapInstance.current) return;
+    if (!mapInstance.current || !onViewportChange) return;
 
     const view = mapInstance.current.getView();
     const center = view.getCenter();
@@ -334,7 +334,7 @@ DivingCentersMap.propTypes = {
       average_rating: PropTypes.number,
     })
   ).isRequired,
-  onViewportChange: PropTypes.func.isRequired,
+  onViewportChange: PropTypes.func,
 };
 
 export default DivingCentersMap;
