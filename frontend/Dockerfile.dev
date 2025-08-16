@@ -1,5 +1,5 @@
 # Development stage with testing capabilities
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
