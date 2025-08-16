@@ -1,11 +1,8 @@
-import { Filter, Search, X, ChevronDown } from 'lucide-react';
+import { Filter, X, ChevronDown } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState } from 'react';
 
 const DiveSitesFilterBar = ({
-  searchValue = '',
-  onSearchChange = () => {},
-  searchPlaceholder = 'Search dive sites, locations, difficulty levels, or requirements...',
   showFilters = false,
   onToggleFilters = () => {},
   onClearFilters = () => {},
@@ -21,6 +18,71 @@ const DiveSitesFilterBar = ({
   mobileOptimized = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Tag color function - same as in Dives.js
+  const getTagColor = tagName => {
+    // Create a consistent color mapping based on tag name
+    const colorMap = {
+      beginner: 'bg-green-100 text-green-800',
+      intermediate: 'bg-yellow-100 text-yellow-800',
+      advanced: 'bg-orange-100 text-orange-800',
+      expert: 'bg-red-100 text-red-800',
+      deep: 'bg-blue-100 text-blue-800',
+      shallow: 'bg-cyan-100 text-cyan-800',
+      wreck: 'bg-purple-100 text-purple-800',
+      reef: 'bg-emerald-100 text-emerald-800',
+      cave: 'bg-indigo-100 text-indigo-800',
+      wall: 'bg-slate-100 text-slate-800',
+      drift: 'bg-teal-100 text-teal-800',
+      night: 'bg-violet-100 text-violet-800',
+      photography: 'bg-pink-100 text-pink-800',
+      marine: 'bg-cyan-100 text-cyan-800',
+      training: 'bg-amber-100 text-amber-800',
+      tech: 'bg-red-100 text-red-800',
+      boat: 'bg-blue-100 text-blue-800',
+      shore: 'bg-green-100 text-green-800',
+    };
+
+    // Try exact match first
+    const lowerTagName = tagName.toLowerCase();
+    if (colorMap[lowerTagName]) {
+      return colorMap[lowerTagName];
+    }
+
+    // Try partial matches
+    for (const [key, color] of Object.entries(colorMap)) {
+      if (lowerTagName.includes(key) || key.includes(lowerTagName)) {
+        return color;
+      }
+    }
+
+    // Default color scheme based on hash of tag name
+    const colors = [
+      'bg-blue-100 text-blue-800',
+      'bg-green-100 text-green-800',
+      'bg-yellow-100 text-yellow-800',
+      'bg-orange-100 text-orange-800',
+      'bg-red-100 text-red-800',
+      'bg-purple-100 text-purple-800',
+      'bg-pink-100 text-pink-800',
+      'bg-indigo-100 text-indigo-800',
+      'bg-cyan-100 text-cyan-800',
+      'bg-teal-100 text-teal-800',
+      'bg-emerald-100 text-emerald-800',
+      'bg-amber-100 text-amber-800',
+      'bg-violet-100 text-violet-800',
+      'bg-slate-100 text-slate-800',
+    ];
+
+    // Simple hash function for consistent color assignment
+    let hash = 0;
+    for (let i = 0; i < tagName.length; i++) {
+      hash = (hash << 5) - hash + tagName.charCodeAt(i);
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+
+    return colors[Math.abs(hash) % colors.length];
+  };
 
   const variantClasses = {
     sticky: 'bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40',
@@ -60,24 +122,6 @@ const DiveSitesFilterBar = ({
       <div
         className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 ${mobileOptimized ? 'p-3 sm:p-4' : 'p-4'}`}
       >
-        {/* Search Section */}
-        <div className='flex-1 max-w-sm w-full'>
-          <div className='relative'>
-            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-            <input
-              type='text'
-              placeholder={searchPlaceholder}
-              value={searchValue}
-              onChange={e => onSearchChange(e.target.value)}
-              className={`w-full pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                mobileOptimized
-                  ? 'py-3 sm:py-2 text-base sm:text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
-                  : 'py-2 text-sm'
-              }`}
-            />
-          </div>
-        </div>
-
         {/* Quick Filters */}
         {showQuickFilters && (
           <div className='flex items-center gap-2 sm:ml-2 w-full sm:w-auto justify-center sm:justify-end'>
@@ -292,6 +336,38 @@ const DiveSitesFilterBar = ({
                 className='w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
               />
             </div>
+
+            {/* Tags Filter */}
+            {filters.availableTags && filters.availableTags.length > 0 && (
+              <div className='md:col-span-2 lg:col-span-3'>
+                <label className='block text-xs sm:text-sm font-medium text-gray-700 mb-2'>
+                  Tags
+                </label>
+                <div className='flex flex-wrap gap-2'>
+                  {filters.availableTags.map(tag => (
+                    <button
+                      key={tag.id}
+                      type='button'
+                      onClick={() => {
+                        const tagId = parseInt(tag.id);
+                        const currentTagIds = filters.tag_ids || [];
+                        const newTagIds = currentTagIds.includes(tagId)
+                          ? currentTagIds.filter(id => id !== tagId)
+                          : [...currentTagIds, tagId];
+                        onFilterChange('tag_ids', newTagIds);
+                      }}
+                      className={`px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                        (filters.tag_ids || []).includes(tag.id)
+                          ? `${getTagColor(tag.name)} border-2 border-current shadow-md`
+                          : `${getTagColor(tag.name)} opacity-60 hover:opacity-100 border-2 border-transparent`
+                      }`}
+                    >
+                      {tag.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -300,9 +376,6 @@ const DiveSitesFilterBar = ({
 };
 
 DiveSitesFilterBar.propTypes = {
-  searchValue: PropTypes.string,
-  onSearchChange: PropTypes.func,
-  searchPlaceholder: PropTypes.string,
   showFilters: PropTypes.bool,
   onToggleFilters: PropTypes.func,
   onClearFilters: PropTypes.func,

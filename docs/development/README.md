@@ -15,6 +15,9 @@ Welcome to the Divemap development documentation. This guide provides comprehens
 - [Diving Centers UX Improvements](./diving-centers-ux-improvements-plan.md) - 🎉 **100% Complete**
 - [Dive Sites UX Improvements](./dive-sites-ux-improvements-plan.md) - 🎉 **100% Complete**
 
+### Search & Algorithm Documentation
+- [Fuzzy Search Implementation Plan](./fuzzy-search-implementation-plan.md) - **Complete guide to search implementation across all pages**
+
 ## Recent Updates
 
 ### 🎉 **Diving Centers UX Improvements - Complete**
@@ -90,6 +93,41 @@ The dive sites page has been completely transformed with a comprehensive UX over
 - `docs/development/dive-sites-ux-improvements-plan.md` - Complete progress tracking
 - `docs/development/dive-sites-content-first-ux-improvements.md` - Implementation details
 - `docs/development/README.md` - This file with recent progress
+
+---
+
+### 🔍 **Search Algorithm Improvements - Complete!**
+
+The search algorithm has been significantly enhanced to address geographic field matching issues and improve code quality across all content types.
+
+#### **Problem Solved:**
+- **"anavys" search** now properly finds "Anavissos Municipal Unit" city
+- **Geographic queries** work better with partial character matching
+- **Code duplication** eliminated through unified scoring functions
+
+#### **Key Improvements Implemented:**
+- ✅ **Enhanced Initial Database Query**: Partial character matching for geographic fields
+- ✅ **Unified Scoring System**: Consistent scoring across all content types
+- ✅ **Code Cleanup**: Removed duplicate scoring functions
+- ✅ **Better Geographic Matching**: "anavys" → "Anavissos Municipal Unit" now works
+
+#### **Technical Changes:**
+- **Backend Enhancement**: `backend/app/routers/diving_centers.py` updated with flexible matching
+- **Partial Character Matching**: Searches for first 4, 5, and 6 characters of search terms
+- **Unified Scoring**: All routers now use `calculate_unified_phrase_aware_score` from `utils.py`
+- **Performance Maintained**: No regression in search performance
+
+#### **Search Examples Now Working:**
+- **"anavys"** → Returns both Aqualized (city: "Anavissos Municipal Unit") and Athens Divers Club
+- **"scuba life"** → Returns ScubaLife Diving Center first (business name priority)
+- **Geographic queries** → Better handling of partial city/region name matches
+
+#### **Files Modified:**
+- `backend/app/routers/diving_centers.py`: Enhanced search logic and code cleanup
+- `docs/development/fuzzy-search-implementation-plan.md`: **CONSOLIDATED** - Complete search documentation
+
+#### **Documentation Created:**
+- `docs/development/fuzzy-search-implementation-plan.md` - **CONSOLIDATED** - Single comprehensive guide to all search functionality
 
 ---
 

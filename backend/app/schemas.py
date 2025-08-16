@@ -217,6 +217,9 @@ class DivingCenterBase(BaseModel):
     website: Optional[str] = None
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
+    country: Optional[str] = Field(None, max_length=100)
+    region: Optional[str] = Field(None, max_length=100)
+    city: Optional[str] = Field(None, max_length=100)
 
 class DivingCenterCreate(DivingCenterBase):
     pass
@@ -229,6 +232,9 @@ class DivingCenterUpdate(BaseModel):
     website: Optional[str] = None
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
+    country: Optional[str] = Field(None, max_length=100)
+    region: Optional[str] = Field(None, max_length=100)
+    city: Optional[str] = Field(None, max_length=100)
 
 class DivingCenterResponse(DivingCenterBase):
     id: int
@@ -282,9 +288,13 @@ class CenterCommentResponse(BaseModel):
 # Center Search Parameters
 class DivingCenterSearchParams(BaseModel):
     name: Optional[str] = None
+    search: Optional[str] = None  # Unified search across name, description, country, region, city
+    country: Optional[str] = None  # Filter by country
+    region: Optional[str] = None   # Filter by region
+    city: Optional[str] = None     # Filter by city
     min_rating: Optional[float] = Field(None, ge=0, le=10)
     max_rating: Optional[float] = Field(None, ge=0, le=10)
-    sort_by: Optional[str] = Field(None, description="Sort field (name, view_count, comment_count, created_at, updated_at)")
+    sort_by: Optional[str] = Field(None, description="Sort field (name, view_count, comment_count, created_at, updated_at, country, region, city)")
     sort_order: Optional[str] = Field("asc", description="Sort order (asc/desc)")
     limit: int = Field(50, ge=1, le=100)
     offset: int = Field(0, ge=0)
@@ -596,6 +606,7 @@ class DiveTagResponse(BaseModel):
 
 class DiveSearchParams(BaseModel):
     dive_site_id: Optional[int] = None
+    search: Optional[str] = None  # Unified search across dive site name, description, notes
     difficulty_level: Optional[int] = Field(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert")
     suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie)$")
     min_depth: Optional[float] = Field(None, ge=0, le=1000)

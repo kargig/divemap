@@ -7,6 +7,7 @@ import re
 import xml.etree.ElementTree as ET
 from io import BytesIO
 from difflib import SequenceMatcher
+import json
 
 from app.database import get_db
 from app.models import Dive, DiveMedia, DiveTag, DiveSite, AvailableTag, User, DivingCenter, DiveSiteAlias, get_difficulty_label
@@ -295,6 +296,10 @@ def get_all_dives_admin(
                     "longitude": float(diving_center.longitude) if diving_center.longitude else None
                 }
 
+        # Get tags for this dive
+        dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).order_by(AvailableTag.name.asc()).all()
+        tags_list = [{"id": tag.id, "name": tag.name} for tag in dive_tags]
+
         dive_dict = {
             "id": dive.id,
             "user_id": dive.user_id,
@@ -314,12 +319,12 @@ def get_all_dives_admin(
             "dive_time": dive.dive_time.strftime("%H:%M:%S") if dive.dive_time else None,
             "duration": dive.duration,
             "view_count": dive.view_count,
-            "created_at": dive.created_at,
-            "updated_at": dive.updated_at,
+            "created_at": dive.created_at.isoformat() if dive.created_at else None,
+            "updated_at": dive.updated_at.isoformat() if dive.updated_at else None,
             "dive_site": dive_site_info,
             "diving_center": diving_center_info,
             "media": [],
-            "tags": [],
+            "tags": tags_list,
             "user_username": dive.user.username
         }
         dive_list.append(dive_dict)
@@ -617,7 +622,6 @@ def create_dive(
             dive_name = f"Dive - {dive_date.strftime('%Y/%m/%d')}"
 
     # Create dive object
-    print(f"DEBUG: Creating dive with diving_center_id: {dive.diving_center_id}")
     db_dive = Dive(
         user_id=current_user.id,
         dive_site_id=dive.dive_site_id,
@@ -841,6 +845,7 @@ def get_dives(
     my_dives: Optional[bool] = Query(None, description="Filter to show only current user's dives"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
+    search: Optional[str] = Query(None, description="Unified search across dive site name, description, notes"),
     difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
     min_depth: Optional[float] = Query(None, ge=0, le=1000),
@@ -859,7 +864,7 @@ def get_dives(
 ):
     """Get dives with filtering options. Can view own dives and public dives from other users. Unauthenticated users can view public dives."""
     # Validate page_size
-    if page_size not in [25, 50, 100]:
+    if page_size not in [1, 5, 25, 50, 100]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="page_size must be one of: 25, 50, 100"
@@ -928,6 +933,24 @@ def get_dives(
                         DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
                     )
                 )
+            )
+        )
+
+    # Apply unified search across multiple fields (case-insensitive)
+    if search:
+        # Sanitize search input to prevent injection
+        sanitized_search = search.strip()[:200]
+        search_query_for_fuzzy = sanitized_search
+        
+        # Always join with DiveSite for search to ensure we have access to dive site fields
+        query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
+        
+        # Search across dive site name, dive site description, and dive information
+        query = query.filter(
+            or_(
+                DiveSite.name.ilike(f"%{sanitized_search}%"),
+                DiveSite.description.ilike(f"%{sanitized_search}%"),
+                Dive.dive_information.ilike(f"%{sanitized_search}%")
             )
         )
 
@@ -1070,6 +1093,42 @@ def get_dives(
 
     # Apply pagination
     dives = query.offset(offset).limit(page_size).all()
+    
+    # Apply fuzzy search if we have a search query and insufficient results
+    match_types = {}
+    if search and len(dives) < 5:
+        # Get the search query for fuzzy search
+        search_query_for_fuzzy = search.strip()[:200]
+        
+        # Perform fuzzy search to enhance results
+        enhanced_results = search_dives_with_fuzzy(
+            search_query_for_fuzzy, 
+            dives, 
+            db, 
+            similarity_threshold=0.2, 
+            max_fuzzy_results=10
+        )
+        
+        # Update dives with enhanced results
+        dives = [result['dive'] for result in enhanced_results]
+        
+        # Create match types mapping for frontend
+        for result in enhanced_results:
+            match_types[result['dive'].id] = {
+                'type': result['match_type'],
+                'score': result['score']
+            }
+        
+        # Re-query with the enhanced results to get proper pagination
+        if len(dives) > len(query.offset(offset).limit(page_size).all()):
+            # We have more results now, need to get all enhanced results
+            enhanced_query = db.query(Dive).filter(
+                Dive.id.in_([dive.id for dive in dives])
+            )
+            
+            # Re-apply the same logic for all filters and sorting
+            # This is a simplified approach - in production you might want to optimize this
+            dives = enhanced_query.all()
 
     # Convert SQLAlchemy objects to dictionaries to avoid serialization issues
     dive_list = []
@@ -1148,6 +1207,10 @@ def get_dives(
     response.headers["X-Page-Size"] = str(page_size)
     response.headers["X-Has-Next-Page"] = str(has_next_page).lower()
     response.headers["X-Has-Prev-Page"] = str(has_prev_page).lower()
+    
+    # Add match types header if available
+    if match_types:
+        response.headers["X-Match-Types"] = json.dumps(match_types)
 
     return response
 
@@ -2526,3 +2589,110 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
                 print(f"Invalid mean depth: {computer_data['mean_depth']}")
 
     return divemap_dive
+
+
+def search_dives_with_fuzzy(query: str, exact_results: List[Dive], db: Session, similarity_threshold: float = 0.2, max_fuzzy_results: int = 10):
+    """
+    Enhance search results with fuzzy matching when exact results are insufficient.
+    
+    Args:
+        query: The search query string
+        exact_results: List of dives from exact search
+        db: Database session
+        similarity_threshold: Minimum similarity score (0.0 to 1.0)
+        max_fuzzy_results: Maximum number of fuzzy results to return
+    
+    Returns:
+        List of dives with exact results first, followed by fuzzy matches
+    """
+    # If we have enough exact results, return them with match type info
+    if len(exact_results) >= 10:
+        # Convert exact results to the expected format
+        final_results = []
+        for dive in exact_results:
+            final_results.append({
+                'dive': dive,
+                'match_type': 'exact',
+                'score': 1.0,
+                'dive_site_name_contains': query.lower() in dive.dive_site.name.lower() if dive.dive_site else False,
+                'dive_information_contains': dive.dive_information and query.lower() in dive.dive_information.lower()
+            })
+        return final_results
+    
+    # Get all dives for fuzzy matching (with dive site info)
+    all_dives = db.query(Dive).join(DiveSite, Dive.dive_site_id == DiveSite.id).all()
+    
+    # Create a set of exact result IDs to avoid duplicates
+    exact_ids = {dive.id for dive in exact_results}
+    
+    # Perform fuzzy matching on all dives (case-insensitive)
+    fuzzy_matches = []
+    query_lower = query.lower()  # Convert query to lowercase for case-insensitive comparison
+    
+    for dive in all_dives:
+        # Skip if already in exact results
+        if dive.id in exact_ids:
+            continue
+            
+        # Calculate similarity scores for different fields
+        dive_site_name_similarity = SequenceMatcher(None, query_lower, dive.dive_site.name.lower()).ratio() if dive.dive_site else 0
+        dive_information_similarity = SequenceMatcher(None, query_lower, (dive.dive_information or '').lower()).ratio()
+        
+        # Check for partial matches (substring matches)
+        dive_site_name_contains = query_lower in dive.dive_site.name.lower() if dive.dive_site else False
+        dive_information_contains = dive.dive_information and query.lower() in dive.dive_information.lower()
+        
+        # Calculate weighted similarity score
+        # Give higher weight to dive site name matches, then dive information
+        weighted_score = (
+            dive_site_name_similarity * 0.8 +
+            dive_information_similarity * 0.2
+        )
+        
+        # Boost score for partial matches
+        if dive_site_name_contains:
+            weighted_score += 0.3
+        if dive_information_contains:
+            weighted_score += 0.2
+        
+        # Include if similarity above threshold
+        if weighted_score > similarity_threshold:
+            # Determine match type
+            if weighted_score >= 0.8:
+                match_type = 'close'
+            elif weighted_score >= 0.6:
+                match_type = 'partial'
+            else:
+                match_type = 'fuzzy'
+            
+            fuzzy_matches.append({
+                'dive': dive,
+                'match_type': match_type,
+                'score': weighted_score,
+                'dive_site_name_contains': dive_site_name_contains,
+                'dive_information_contains': dive_information_contains
+            })
+    
+    # Sort by score (highest first)
+    fuzzy_matches.sort(key=lambda x: x['score'], reverse=True)
+    
+    # Limit results
+    fuzzy_matches = fuzzy_matches[:max_fuzzy_results]
+    
+    # Combine exact and fuzzy results
+    final_results = []
+    
+    # Add exact results first
+    for dive in exact_results:
+        final_results.append({
+            'dive': dive,
+            'match_type': 'exact',
+            'score': 1.0,
+            'dive_site_name_contains': query.lower() in dive.dive_site.name.lower() if dive.dive_site else False,
+            'dive_information_contains': dive.dive_information and query.lower() in dive.dive_information.lower()
+        })
+    
+    # Add fuzzy results
+    final_results.extend(fuzzy_matches)
+    
+    return final_results

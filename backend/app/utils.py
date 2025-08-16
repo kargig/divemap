@@ -210,4 +210,224 @@ def format_ip_for_logging(client_ip: str, include_private: bool = False) -> str:
         else:  # IPv6
             return "private-ipv6"
     
-    return client_ip 
+    return client_ip
+
+
+# Unified search scoring utilities for fuzzy search across all content types
+import difflib
+from typing import Optional, List
+
+
+# Unified typo tolerance settings
+UNIFIED_TYPO_TOLERANCE = {
+    'word_similarity': 0.7,      # 70% similarity for individual words
+    'single_word': 0.8,          # 80% similarity for single-word queries
+    'phrase_similarity': 0.7,    # 70% similarity for multi-word phrases
+    'overall_threshold': 0.2,    # Overall similarity threshold for fuzzy results
+}
+
+
+def calculate_unified_phrase_aware_score(
+    query: str,
+    primary_name: str,
+    description: Optional[str] = None,
+    country: Optional[str] = None,
+    region: Optional[str] = None,
+    city: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    additional_fields: Optional[dict] = None
+) -> float:
+    """
+    Unified phrase-aware scoring function for all content types.
+    
+    This function provides consistent scoring logic across dive sites, diving centers,
+    dives, and dive trips, ensuring a uniform user experience.
+    
+    Args:
+        query: The search query string
+        primary_name: The primary name field (e.g., site name, center name)
+        description: Description field (optional)
+        country: Country field (optional)
+        region: Region field (optional)
+        city: City field (optional)
+        additional_fields: Dict of additional field names and values (optional)
+    
+    Returns:
+        Float score between 0.0 and 1.0, where higher is more relevant
+    """
+    query_lower = query.lower()
+    name_lower = primary_name.lower()
+    desc_lower = (description or "").lower()
+    country_lower = (country or "").lower()
+    region_lower = (region or "").lower()
+    city_lower = (city or "").lower()
+    
+    # 1. Exact phrase match (highest priority)
+    if query_lower in name_lower:
+        return 1.0
+    
+    # 2. Word-by-word matching across all fields (with unified typo tolerance)
+    query_words = query_lower.split()
+    name_words = name_lower.split()
+    city_words = city_lower.split()
+    region_words = region_lower.split()
+    country_words = country_lower.split()
+    
+    # Count how many query words appear in any relevant field (with fuzzy matching)
+    matching_words = 0
+    for query_word in query_words:
+        # Check for exact substring match first in any field
+        if (any(query_word in name_word for name_word in name_words) or
+            any(query_word in city_word for city_word in city_words) or
+            any(query_word in region_word for region_word in region_words) or
+            any(query_word in country_word for country_word in country_words)):
+            matching_words += 1
+        else:
+            # Check for fuzzy similarity using unified threshold across all fields
+            found_match = False
+            # Check name field
+            for name_word in name_words:
+                if difflib.SequenceMatcher(None, query_word, name_word).ratio() >= UNIFIED_TYPO_TOLERANCE['word_similarity']:
+                    matching_words += 1
+                    found_match = True
+                    break
+            
+            # Check city field if no match found in name
+            if not found_match:
+                for city_word in city_words:
+                    if difflib.SequenceMatcher(None, query_word, city_word).ratio() >= UNIFIED_TYPO_TOLERANCE['word_similarity']:
+                        matching_words += 1
+                        found_match = True
+                        break
+            
+            # Check region field if no match found yet
+            if not found_match:
+                for region_word in region_words:
+                    if difflib.SequenceMatcher(None, query_word, region_word).ratio() >= UNIFIED_TYPO_TOLERANCE['word_similarity']:
+                        matching_words += 1
+                        found_match = True
+                        break
+            
+            # Check country field if no match found yet
+            if not found_match:
+                for country_word in country_words:
+                    if difflib.SequenceMatcher(None, query_word, country_word).ratio() >= UNIFIED_TYPO_TOLERANCE['word_similarity']:
+                        matching_words += 1
+                        break
+    
+    word_match_ratio = matching_words / len(query_words)
+    
+    # 3. Consecutive word bonus (for "blue hole" in "bluehole reef")
+    consecutive_bonus = 0.0
+    if len(query_words) > 1:
+        # Check if words appear consecutively (even if concatenated)
+        query_phrase = ''.join(query_words)
+        if query_phrase in name_lower.replace(' ', ''):
+            consecutive_bonus = 0.3
+        else:
+            # Check for fuzzy similarity of concatenated phrase
+            name_no_spaces = name_lower.replace(' ', '')
+            if difflib.SequenceMatcher(None, query_phrase, name_no_spaces).ratio() >= UNIFIED_TYPO_TOLERANCE['phrase_similarity']:
+                consecutive_bonus = 0.2
+    
+    # 4. Geographic field matching (country, region, and city)
+    geographic_bonus = 0.0
+    if country_lower and query_lower in country_lower:
+        geographic_bonus += 0.2
+    if region_lower and query_lower in region_lower:
+        geographic_bonus += 0.2
+    if city_lower and query_lower in city_lower:
+        geographic_bonus += 0.2
+    
+    # 5. Tag matching (high priority for specialized searches)
+    tag_bonus = 0.0
+    if tags:
+        for tag in tags:
+            tag_lower = tag.lower()
+            if query_lower in tag_lower:
+                tag_bonus += 0.3  # High bonus for tag matches
+                break
+            # Also check for word-by-word matching in tags
+            for query_word in query_words:
+                if query_word in tag_lower:
+                    tag_bonus += 0.2
+                    break
+    
+    # 6. Traditional similarity for edge cases
+    similarity_score = difflib.SequenceMatcher(None, query_lower, name_lower).ratio()
+    
+    # 7. Weighted final score (unified across all content types)
+    final_score = (
+        word_match_ratio * 0.5 +      # Word matching (50%)
+        consecutive_bonus +            # Consecutive bonus
+        geographic_bonus +             # Geographic bonus
+        tag_bonus +                    # Tag bonus
+        similarity_score * 0.2 +      # Traditional similarity (20%)
+        (0.1 if query_lower in desc_lower else 0.0)  # Description bonus (10%)
+    )
+    
+    # 7. Special case: if it's a single word and has high similarity to any name word, boost the score
+    if len(query_words) == 1 and len(name_words) > 0:
+        best_word_similarity = max(
+            difflib.SequenceMatcher(None, query_words[0], name_word).ratio()
+            for name_word in name_words
+        )
+        if best_word_similarity >= UNIFIED_TYPO_TOLERANCE['single_word']:
+            final_score = max(final_score, best_word_similarity * 0.8)
+    
+    # 8. Additional fields bonus (for content-specific fields)
+    if additional_fields:
+        for field_name, field_value in additional_fields.items():
+            if field_value and query_lower in str(field_value).lower():
+                final_score += 0.05  # Small bonus for additional field matches
+    
+    return min(final_score, 1.0)
+
+
+def classify_match_type(score: float) -> str:
+    """
+    Unified match type classification for all content types.
+    
+    Args:
+        score: The calculated similarity score (0.0 to 1.0)
+    
+    Returns:
+        String representing the match type
+    """
+    if score >= 0.9:
+        return 'exact_phrase'      # Exact phrase match
+    elif score >= 0.7:
+        return 'exact_words'       # All words found
+    elif score >= 0.5:
+        return 'partial_words'     # Some words found
+    elif score >= 0.3:
+        return 'similar'           # High similarity
+    else:
+        return 'fuzzy'             # Low similarity
+
+
+def get_unified_fuzzy_trigger_conditions(
+    search_query: str,
+    exact_result_count: int,
+    max_exact_results: int = 5,
+    max_query_length: int = 10
+) -> bool:
+    """
+    Unified fuzzy search trigger conditions for all content types.
+    
+    Args:
+        search_query: The search query string
+        exact_result_count: Number of results from exact search
+        max_exact_results: Maximum exact results before triggering fuzzy search
+        max_query_length: Maximum query length before triggering fuzzy search
+    
+    Returns:
+        Boolean indicating whether fuzzy search should be triggered
+    """
+    return (
+        search_query and (
+            exact_result_count < max_exact_results or
+            len(search_query.strip()) <= max_query_length or
+            ' ' in search_query.strip()  # Multi-word queries
+        )
+    ) 

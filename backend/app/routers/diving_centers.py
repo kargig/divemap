@@ -1,7 +1,9 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, or_
+import difflib
+import json
 
 from app.database import get_db
 from app.models import DivingCenter, CenterRating, CenterComment, User, CenterDiveSite, GearRentalCost, DivingCenterOrganization, DivingOrganization, UserCertification, OwnershipRequest
@@ -9,18 +11,149 @@ from app.schemas import (
     DivingCenterCreate, DivingCenterUpdate, DivingCenterResponse,
     CenterRatingCreate, CenterRatingResponse,
     CenterCommentCreate, CenterCommentUpdate, CenterCommentResponse,
-    DivingCenterSearchParams, CenterDiveSiteCreate, GearRentalCostCreate,
+    CenterDiveSiteCreate, GearRentalCostCreate,
     DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse,
     DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval, OwnershipRequestHistoryResponse
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, is_admin_or_moderator
 from app.models import OwnershipStatus
+from app.utils import (
+    calculate_unified_phrase_aware_score,
+    classify_match_type,
+    get_unified_fuzzy_trigger_conditions,
+    UNIFIED_TYPO_TOLERANCE
+)
 
 router = APIRouter()
 
+def search_diving_centers_with_fuzzy(query: str, exact_results: List[DivingCenter], db: Session, similarity_threshold: float = UNIFIED_TYPO_TOLERANCE['overall_threshold'], max_fuzzy_results: int = 10, sort_by: str = None, sort_order: str = 'asc'):
+    """
+    Enhance search results with fuzzy matching when exact results are insufficient.
+    
+    Args:
+        query: The search query string
+        exact_results: List of diving centers from exact search
+        db: Database session
+        similarity_threshold: Minimum similarity score (0.0 to 1.0)
+        max_fuzzy_results: Maximum number of fuzzy results to return
+    
+    Returns:
+        List of diving centers with exact results first, followed by fuzzy matches
+    """
+    # Always apply phrase-aware scoring to exact results for consistent ranking
+    # Sort exact results according to the specified sort criteria
+    if sort_by == 'name':
+        exact_results_sorted = sorted(exact_results, key=lambda x: x.name.lower(), reverse=(sort_order == 'desc'))
+    elif sort_by == 'created_at':
+        exact_results_sorted = sorted(exact_results, key=lambda x: x.created_at, reverse=(sort_order == 'desc'))
+    elif sort_by == 'updated_at':
+        exact_results_sorted = sorted(exact_results, key=lambda x: x.updated_at, reverse=(sort_order == 'desc'))
+    else:
+        # Default: sort by name ascending (case-insensitive)
+        exact_results_sorted = sorted(exact_results, key=lambda x: x.name.lower())
+    
+    # Convert exact results to the expected format with phrase-aware scoring
+    exact_results_with_scores = []
+    for center in exact_results_sorted:
+        # Get tags for this diving center for scoring
+        center_tags = []
+        if hasattr(center, 'tags') and center.tags:
+            center_tags = [tag.name if hasattr(tag, 'name') else str(tag) for tag in center.tags]
+        
+        score = calculate_unified_phrase_aware_score(query.lower(), center.name, center.description, center.country, center.region, center.city, center_tags)
+        exact_results_with_scores.append({
+            'center': center,
+            'match_type': 'exact' if score >= 0.9 else 'exact_words' if score >= 0.7 else 'partial_words',
+            'score': score,
+            'name_contains': query.lower() in center.name.lower(),
+            'description_contains': center.description and query.lower() in center.description.lower(),
+            'country_contains': False, # No longer used
+            'region_contains': False # No longer used
+        })
+    
+    # If we have enough exact results and no fuzzy search needed, return them
+    if len(exact_results) >= 10:
+        return exact_results_with_scores
+    
+    # Get all diving centers for fuzzy matching
+    all_diving_centers = db.query(DivingCenter).all()
+    
+    # Create a set of exact result IDs to avoid duplicates
+    exact_ids = {center.id for center in exact_results}
+    
+    # Perform fuzzy matching on all diving centers (case-insensitive)
+    fuzzy_matches = []
+    query_lower = query.lower()  # Convert query to lowercase for case-insensitive comparison
+    
+    for center in all_diving_centers:
+        # Skip if already in exact results
+        if center.id in exact_ids:
+            continue
+            
+        # Use the new phrase-aware scoring function
+        # Get tags for this diving center for scoring
+        center_tags = []
+        if hasattr(center, 'tags') and center.tags:
+            center_tags = [tag.name if hasattr(tag, 'name') else str(tag) for tag in center.tags]
+        
+        weighted_score = calculate_unified_phrase_aware_score(query_lower, center.name, center.description, center.country, center.region, center.city, center_tags)
+        
+        # Check for partial matches (substring matches) for match type classification
+        name_contains = query_lower in center.name.lower()
+        description_contains = center.description and query_lower in center.description.lower()
+        
+        # Include if similarity above threshold
+        if weighted_score > similarity_threshold:
+            # Determine match type using unified classification
+            match_type = classify_match_type(weighted_score)
+            
+            fuzzy_matches.append({
+                'center': center,
+                'match_type': match_type,
+                'score': weighted_score,
+                'name_contains': name_contains,
+                'description_contains': description_contains,
+                'country_contains': False, # No longer used
+                'region_contains': False # No longer used
+            })
+    
+    # Sort by score (highest first)
+    fuzzy_matches.sort(key=lambda x: x['score'], reverse=True)
+    
+    # Limit results
+    fuzzy_matches = fuzzy_matches[:max_fuzzy_results]
+    
+    # Combine exact and fuzzy results
+    final_results = []
+    
+    # Sort exact results according to the specified sort criteria
+    if sort_by == 'name':
+        exact_results_sorted = sorted(exact_results, key=lambda x: x.name.lower(), reverse=(sort_order == 'desc'))
+    elif sort_by == 'created_at':
+        exact_results_sorted = sorted(exact_results, key=lambda x: x.created_at, reverse=(sort_order == 'desc'))
+    elif sort_by == 'updated_at':
+        exact_results_sorted = sorted(exact_results, key=lambda x: x.updated_at, reverse=(sort_order == 'desc'))
+    else:
+        # Default: sort by name ascending (case-insensitive)
+        exact_results_sorted = sorted(exact_results, key=lambda x: x.name.lower())
+    
+    # Add scored exact results first
+    final_results.extend(exact_results_with_scores)
+    
+    # Add fuzzy results (already sorted by score)
+    final_results.extend(fuzzy_matches)
+    
+    return final_results
+
 @router.get("/count")
 async def get_diving_centers_count(
-    search_params: DivingCenterSearchParams = Depends(),
+    search: Optional[str] = Query(None, max_length=200, description="Unified search across name, description, country, region, city"),
+    name: Optional[str] = Query(None, max_length=100),
+    country: Optional[str] = Query(None, max_length=100, description="Filter by country"),
+    region: Optional[str] = Query(None, max_length=100, description="Filter by region"),
+    city: Optional[str] = Query(None, max_length=100, description="Filter by city"),
+    min_rating: Optional[float] = Query(None, ge=0, le=10, description="Minimum average rating (0-10)"),
+    max_rating: Optional[float] = Query(None, ge=0, le=10, description="Maximum average rating (0-10)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
@@ -28,25 +161,50 @@ async def get_diving_centers_count(
     query = db.query(DivingCenter)
 
     # Apply filters
-    if search_params.name:
-        query = query.filter(DivingCenter.name.ilike(f"%{search_params.name}%"))
+    if name:
+        query = query.filter(DivingCenter.name.ilike(f"%{name}%"))
+    
+    if country:
+        query = query.filter(DivingCenter.country.ilike(f"%{country}%"))
+    
+    if region:
+        query = query.filter(DivingCenter.region.ilike(f"%{region}%"))
+    
+    if city:
+        query = query.filter(DivingCenter.city.ilike(f"%{city}%"))
+
+    # Apply unified search across multiple fields (case-insensitive)
+    if search:
+        # Sanitize search input to prevent injection
+        sanitized_search = search.strip()[:200]
+        
+        # Search across name, description, country, region, and city (case-insensitive using ilike)
+        query = query.filter(
+            or_(
+                DivingCenter.name.ilike(f"%{sanitized_search}%"),
+                DivingCenter.description.ilike(f"%{sanitized_search}%"),
+                DivingCenter.country.ilike(f"%{sanitized_search}%"),
+                DivingCenter.region.ilike(f"%{sanitized_search}%"),
+                DivingCenter.city.ilike(f"%{sanitized_search}%")
+            )
+        )
 
     # Apply rating filters at database level for accurate count
-    if search_params.min_rating is not None or search_params.max_rating is not None:
+    if min_rating is not None or max_rating is not None:
         # Create a subquery to filter by ratings
         ratings_filter_subquery = db.query(
             CenterRating.diving_center_id,
             func.avg(CenterRating.score).label('avg_rating')
         ).group_by(CenterRating.diving_center_id)
         
-        if search_params.min_rating is not None:
+        if min_rating is not None:
             ratings_filter_subquery = ratings_filter_subquery.having(
-                func.avg(CenterRating.score) >= search_params.min_rating
+                func.avg(CenterRating.score) >= min_rating
             )
         
-        if search_params.max_rating is not None:
+        if max_rating is not None:
             ratings_filter_subquery = ratings_filter_subquery.having(
-                func.avg(CenterRating.score) <= search_params.max_rating
+                func.avg(CenterRating.score) <= max_rating
             )
         
         ratings_filter_subquery = ratings_filter_subquery.subquery()
@@ -64,7 +222,15 @@ async def get_diving_centers_count(
 
 @router.get("/", response_model=List[DivingCenterResponse])
 async def get_diving_centers(
-    search_params: DivingCenterSearchParams = Depends(),
+    search: Optional[str] = Query(None, max_length=200, description="Unified search across name, description, country, region, city"),
+    name: Optional[str] = Query(None, max_length=100),
+    country: Optional[str] = Query(None, max_length=100, description="Filter by country"),
+    region: Optional[str] = Query(None, max_length=100, description="Filter by region"),
+    city: Optional[str] = Query(None, max_length=100, description="Filter by city"),
+    min_rating: Optional[float] = Query(None, ge=0, le=10, description="Minimum average rating (0-10)"),
+    max_rating: Optional[float] = Query(None, ge=0, le=10, description="Maximum average rating (0-10)"),
+    sort_by: Optional[str] = Query(None, description="Sort field (name, view_count, comment_count, created_at, updated_at, country, region, city)"),
+    sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, or 100)"),
     db: Session = Depends(get_db),
@@ -72,7 +238,7 @@ async def get_diving_centers(
 ):
     """Get diving centers with filtering and pagination."""
     # Validate page_size
-    if page_size not in [25, 50, 100]:
+    if page_size not in [1, 5, 25, 50, 100]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="page_size must be one of: 25, 50, 100"
@@ -81,25 +247,56 @@ async def get_diving_centers(
     query = db.query(DivingCenter)
 
     # Apply filters
-    if search_params.name:
-        query = query.filter(DivingCenter.name.ilike(f"%{search_params.name}%"))
+    if name:
+        query = query.filter(DivingCenter.name.ilike(f"%{name}%"))
+    
+    if country:
+        query = query.filter(DivingCenter.country.ilike(f"%{country}%"))
+    
+    if region:
+        query = query.filter(DivingCenter.region.ilike(f"%{region}%"))
+    
+    if city:
+        query = query.filter(DivingCenter.city.ilike(f"%{city}%"))
+
+    # Apply unified search across multiple fields (case-insensitive)
+    if search:
+        # Sanitize search input to prevent injection
+        sanitized_search = search.strip()[:200]
+        search_query_for_fuzzy = sanitized_search
+        
+        # Use a more flexible approach: search for partial matches and let fuzzy search handle scoring
+        # This ensures that "anavys" can match "Anavissos" through fuzzy matching
+        query = query.filter(
+            or_(
+                DivingCenter.name.ilike(f"%{sanitized_search}%"),
+                DivingCenter.description.ilike(f"%{sanitized_search}%"),
+                DivingCenter.country.ilike(f"%{sanitized_search}%"),
+                DivingCenter.region.ilike(f"%{sanitized_search}%"),
+                DivingCenter.city.ilike(f"%{sanitized_search}%"),
+                # Add more flexible matching for geographic fields
+                DivingCenter.city.ilike(f"%{sanitized_search[:4]}%"),  # Match first 4+ characters
+                DivingCenter.city.ilike(f"%{sanitized_search[:5]}%"),  # Match first 5+ characters
+                DivingCenter.city.ilike(f"%{sanitized_search[:6]}%")   # Match first 6+ characters
+            )
+        )
 
     # Apply rating filters at database level for accurate pagination
-    if search_params.min_rating is not None or search_params.max_rating is not None:
+    if min_rating is not None or max_rating is not None:
         # Create a subquery to filter by ratings
         ratings_filter_subquery = db.query(
             CenterRating.diving_center_id,
             func.avg(CenterRating.score).label('avg_rating')
         ).group_by(CenterRating.diving_center_id)
         
-        if search_params.min_rating is not None:
+        if min_rating is not None:
             ratings_filter_subquery = ratings_filter_subquery.having(
-                func.avg(CenterRating.score) >= search_params.min_rating
+                func.avg(CenterRating.score) >= min_rating
             )
         
-        if search_params.max_rating is not None:
+        if max_rating is not None:
             ratings_filter_subquery = ratings_filter_subquery.having(
-                func.avg(CenterRating.score) <= search_params.max_rating
+                func.avg(CenterRating.score) <= max_rating
             )
         
         ratings_filter_subquery = ratings_filter_subquery.subquery()
@@ -111,29 +308,29 @@ async def get_diving_centers(
         )
 
     # Apply dynamic sorting based on parameters
-    if search_params.sort_by:
+    if sort_by:
         # All valid sort fields (including admin-only ones)
         valid_sort_fields = {
-            'name', 'view_count', 'comment_count', 'created_at', 'updated_at'
+            'name', 'view_count', 'comment_count', 'created_at', 'updated_at', 'country', 'region', 'city'
         }
         
-        if search_params.sort_by not in valid_sort_fields:
+        if sort_by not in valid_sort_fields:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}"
             )
         
         # Validate sort_order parameter
-        if search_params.sort_order not in ['asc', 'desc']:
+        if sort_order not in ['asc', 'desc']:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="sort_order must be 'asc' or 'desc'"
             )
         
         # Apply sorting based on field
-        if search_params.sort_by == 'name':
+        if sort_by == 'name':
             sort_field = func.lower(DivingCenter.name)
-        elif search_params.sort_by == 'view_count':
+        elif sort_by == 'view_count':
             # Only admin users can sort by view_count
             if not current_user or not current_user.is_admin:
                 raise HTTPException(
@@ -141,7 +338,7 @@ async def get_diving_centers(
                     detail="Sorting by view_count is only available for admin users"
                 )
             sort_field = DivingCenter.view_count
-        elif search_params.sort_by == 'comment_count':
+        elif sort_by == 'comment_count':
             # Only admin users can sort by comment_count
             if not current_user or not current_user.is_admin:
                 raise HTTPException(
@@ -151,13 +348,19 @@ async def get_diving_centers(
             # For comment count, we need to join with comments and group
             query = query.outerjoin(CenterComment).group_by(DivingCenter.id)
             sort_field = func.count(CenterComment.id)
-        elif search_params.sort_by == 'created_at':
+        elif sort_by == 'created_at':
             sort_field = DivingCenter.created_at
-        elif search_params.sort_by == 'updated_at':
+        elif sort_by == 'updated_at':
             sort_field = DivingCenter.updated_at
+        elif sort_by == 'country':
+            sort_field = func.lower(DivingCenter.country)
+        elif sort_by == 'region':
+            sort_field = func.lower(DivingCenter.region)
+        elif sort_by == 'city':
+            sort_field = func.lower(DivingCenter.city)
         
         # Apply the sorting
-        if search_params.sort_order == 'desc':
+        if sort_order == 'desc':
             query = query.order_by(sort_field.desc())
         else:
             query = query.order_by(sort_field.asc())
@@ -193,7 +396,98 @@ async def get_diving_centers(
         ratings_subquery.c.total_ratings
     )
 
-    diving_centers_with_ratings = query_with_ratings.offset(offset).limit(page_size).all()
+    # Check if we need fuzzy search before applying pagination
+    # Always trigger fuzzy search for multi-word queries or when exact results are insufficient
+    should_use_fuzzy = search and (
+        total_count < 5 or 
+        len(search.strip()) <= 10 or  # Reasonable length for fuzzy search
+        ' ' in search.strip()  # Multi-word queries (e.g., "scuba life")
+    )
+    
+    if should_use_fuzzy:
+        # For fuzzy search, we need all exact results first, then we'll paginate the final results
+        diving_centers_with_ratings = query_with_ratings.all()
+        # Extract diving centers from the results
+        diving_centers = [center_data[0] for center_data in diving_centers_with_ratings]
+    else:
+        # For normal search, apply pagination as usual
+        diving_centers_with_ratings = query_with_ratings.offset(offset).limit(page_size).all()
+        # Extract diving centers from the results
+        diving_centers = [center_data[0] for center_data in diving_centers_with_ratings]
+    
+    # Apply fuzzy search if we determined we should use it
+    match_types = {}
+    if should_use_fuzzy:
+        # Get the search query for fuzzy search
+        search_query_for_fuzzy = search.strip()[:200]
+        
+        # Perform fuzzy search to enhance results
+        enhanced_results = search_diving_centers_with_fuzzy(
+            search_query_for_fuzzy, 
+            diving_centers, 
+            db, 
+            similarity_threshold=UNIFIED_TYPO_TOLERANCE['overall_threshold'], 
+            max_fuzzy_results=10,
+            sort_by=sort_by,
+            sort_order=sort_order
+        )
+        
+        # Update diving centers with enhanced results
+        all_diving_centers = [result['center'] for result in enhanced_results]
+        
+        # Apply pagination to the final fuzzy search results
+        diving_centers = all_diving_centers[offset:offset + page_size]
+        
+        # Create match types mapping for frontend (only for the paginated results)
+        for result in enhanced_results[offset:offset + page_size]:
+            match_types[result['center'].id] = {
+                'type': result['match_type'],
+                'score': result['score']
+            }
+        
+        # Update total count and pagination info for fuzzy search results
+        total_count = len(all_diving_centers)
+        total_pages = (total_count + page_size - 1) // page_size
+        has_next_page = page < total_pages
+        has_prev_page = page > 1
+        
+        # Re-query with the enhanced results to get ratings
+        if len(diving_centers) > 0:
+            # We have enhanced results, need to get ratings for the paginated subset
+            enhanced_query = db.query(DivingCenter).filter(
+                DivingCenter.id.in_([center.id for center in diving_centers])
+            )
+            
+            # Re-apply the same logic for ratings
+            if min_rating is not None or max_rating is not None:
+                enhanced_query = enhanced_query.join(
+                    ratings_subquery,
+                    DivingCenter.id == ratings_subquery.c.diving_center_id
+                )
+            
+            # Get enhanced results with ratings
+            enhanced_with_ratings = enhanced_query.outerjoin(
+                ratings_subquery,
+                DivingCenter.id == ratings_subquery.c.diving_center_id
+            ).add_columns(
+                ratings_subquery.c.avg_rating,
+                ratings_subquery.c.total_ratings
+            ).all()
+            
+            # Create a mapping from ID to rating data to preserve the sorted order
+            rating_data_by_id = {}
+            for center_data in enhanced_with_ratings:
+                center = center_data[0]
+                rating_data_by_id[center.id] = center_data
+            
+            # Rebuild diving_centers_with_ratings in the correct sorted order
+            diving_centers_with_ratings = []
+            for center in diving_centers:
+                if center.id in rating_data_by_id:
+                    diving_centers_with_ratings.append(rating_data_by_id[center.id])
+                else:
+                    # Fallback: create entry with no rating data
+                    diving_centers_with_ratings.append((center, None, None))
 
     # Build result
     result = []
@@ -211,6 +505,9 @@ async def get_diving_centers(
             "website": center.website,
             "latitude": float(center.latitude) if center.latitude else None,
             "longitude": float(center.longitude) if center.longitude else None,
+            "country": center.country,
+            "region": center.region,
+            "city": center.city,
             "created_at": center.created_at.isoformat() if center.created_at else None,
             "updated_at": center.updated_at.isoformat() if center.updated_at else None,
             "average_rating": float(avg_rating) if avg_rating else None,
@@ -232,6 +529,10 @@ async def get_diving_centers(
     response.headers["X-Page-Size"] = str(page_size)
     response.headers["X-Has-Next-Page"] = str(has_next_page).lower()
     response.headers["X-Has-Prev-Page"] = str(has_prev_page).lower()
+    
+    # Add match types header if available
+    if match_types:
+        response.headers["X-Match-Types"] = json.dumps(match_types)
 
     return response
 
@@ -369,6 +670,9 @@ async def get_diving_center(
         "website": diving_center.website,
         "latitude": diving_center.latitude,
         "longitude": diving_center.longitude,
+        "country": diving_center.country,
+        "region": diving_center.region,
+        "city": diving_center.city,
         "created_at": diving_center.created_at,
         "updated_at": diving_center.updated_at,
         "average_rating": float(avg_rating) if avg_rating else None,
@@ -427,20 +731,24 @@ async def update_diving_center(
         CenterRating.diving_center_id == diving_center.id
     ).scalar()
 
-    return {
-        "id": diving_center.id,
-        "name": diving_center.name,
-        "description": diving_center.description,
-        "email": diving_center.email,
-        "phone": diving_center.phone,
-        "website": diving_center.website,
-        "latitude": diving_center.latitude,
-        "longitude": diving_center.longitude,
-        "created_at": diving_center.created_at,
-        "updated_at": diving_center.updated_at,
-        "average_rating": float(avg_rating) if avg_rating else None,
-        "total_ratings": total_ratings
-    }
+    # Return the updated diving center using the response model
+    return DivingCenterResponse(
+        id=diving_center.id,
+        name=diving_center.name,
+        description=diving_center.description,
+        email=diving_center.email,
+        phone=diving_center.phone,
+        website=diving_center.website,
+        latitude=diving_center.latitude,
+        longitude=diving_center.longitude,
+        country=diving_center.country,
+        region=diving_center.region,
+        city=diving_center.city,
+        created_at=diving_center.created_at,
+        updated_at=diving_center.updated_at,
+        average_rating=float(avg_rating) if avg_rating else None,
+        total_ratings=total_ratings
+    )
 
 @router.delete("/{diving_center_id}")
 async def delete_diving_center(
@@ -1092,7 +1400,6 @@ async def revoke_diving_center_ownership(
     db.refresh(diving_center)
 
     return {
-        "message": f"Ownership of {diving_center.name} has been revoked from {current_owner_username or 'previous owner'}",
         "message": f"Ownership of {diving_center.name} has been revoked from {current_owner_username or 'previous owner'}",
         "diving_center_id": diving_center_id,
         "previous_owner": current_owner_username,

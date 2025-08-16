@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_, and_, func, desc, asc
 from typing import List, Optional
 from datetime import datetime, date, time
 import re
@@ -21,6 +21,139 @@ from difflib import SequenceMatcher
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+def search_dive_trips_with_fuzzy(query: str, exact_results: List[ParsedDiveTrip], db: Session, similarity_threshold: float = 0.2, max_fuzzy_results: int = 10):
+    """
+    Enhance search results with fuzzy matching when exact results are insufficient.
+    
+    Args:
+        query: The search query string
+        exact_results: List of dive trips from exact search
+        db: Database session
+        similarity_threshold: Minimum similarity score (0.0 to 1.0)
+        max_fuzzy_results: Maximum number of fuzzy results to return
+    
+    Returns:
+        List of dive trips with exact results first, followed by fuzzy matches
+    """
+    # If we have enough exact results, return them with match type info
+    if len(exact_results) >= 10:
+        # Convert exact results to the expected format
+        final_results = []
+        for trip in exact_results:
+            final_results.append({
+                'trip': trip,
+                'match_type': 'exact',
+                'score': 1.0,
+                'trip_description_contains': query.lower() in (trip.trip_description or '').lower(),
+                'special_requirements_contains': trip.special_requirements and query.lower() in trip.special_requirements.lower(),
+                'diving_center_name_contains': trip.diving_center and query.lower() in trip.diving_center.name.lower(),
+                'dive_site_name_contains': any(query.lower() in dive.dive_site.name.lower() for dive in trip.dives if dive.dive_site) if trip.dives else False
+            })
+        return final_results
+    
+    # Get all dive trips for fuzzy matching (with related data)
+    all_trips = db.query(ParsedDiveTrip).options(
+        joinedload(ParsedDiveTrip.diving_center),
+        joinedload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
+    ).all()
+    
+    # Create a set of exact result IDs to avoid duplicates
+    exact_ids = {trip.id for trip in exact_results}
+    
+    # Perform fuzzy matching on all dive trips (case-insensitive)
+    fuzzy_matches = []
+    query_lower = query.lower()  # Convert query to lowercase for case-insensitive comparison
+    
+    for trip in all_trips:
+        # Skip if already in exact results
+        if trip.id in exact_ids:
+            continue
+            
+        # Calculate similarity scores for different fields
+        trip_description_similarity = SequenceMatcher(None, query_lower, (trip.trip_description or '').lower()).ratio()
+        special_requirements_similarity = SequenceMatcher(None, query_lower, (trip.special_requirements or '').lower()).ratio()
+        diving_center_name_similarity = SequenceMatcher(None, query_lower, trip.diving_center.name.lower()).ratio() if trip.diving_center else 0
+        
+        # Calculate dive site name similarities
+        dive_site_similarities = []
+        if trip.dives:
+            for dive in trip.dives:
+                if dive.dive_site:
+                    dive_site_similarities.append(SequenceMatcher(None, query_lower, dive.dive_site.name.lower()).ratio())
+        
+        # Use the best dive site similarity score
+        best_dive_site_similarity = max(dive_site_similarities) if dive_site_similarities else 0
+        
+        # Check for partial matches (substring matches)
+        trip_description_contains = query_lower in (trip.trip_description or '').lower()
+        special_requirements_contains = trip.special_requirements and query_lower in trip.special_requirements.lower()
+        diving_center_name_contains = trip.diving_center and query_lower in trip.diving_center.name.lower()
+        dive_site_name_contains = any(query_lower in dive.dive_site.name.lower() for dive in trip.dives if dive.dive_site) if trip.dives else False
+        
+        # Calculate weighted similarity score
+        # Give higher weight to trip description, then dive site names, then diving center name
+        weighted_score = (
+            trip_description_similarity * 0.4 +
+            best_dive_site_similarity * 0.4 +
+            diving_center_name_similarity * 0.2
+        )
+        
+        # Boost score for partial matches
+        if trip_description_contains:
+            weighted_score += 0.3
+        if dive_site_name_contains:
+            weighted_score += 0.3
+        if diving_center_name_contains:
+            weighted_score += 0.2
+        if special_requirements_contains:
+            weighted_score += 0.1
+        
+        # Include if similarity above threshold
+        if weighted_score > similarity_threshold:
+            # Determine match type
+            if weighted_score >= 0.8:
+                match_type = 'close'
+            elif weighted_score >= 0.6:
+                match_type = 'partial'
+            else:
+                match_type = 'fuzzy'
+            
+            fuzzy_matches.append({
+                'trip': trip,
+                'match_type': match_type,
+                'score': weighted_score,
+                'trip_description_contains': trip_description_contains,
+                'special_requirements_contains': special_requirements_contains,
+                'diving_center_name_contains': diving_center_name_contains,
+                'dive_site_name_contains': dive_site_name_contains
+            })
+    
+    # Sort by score (highest first)
+    fuzzy_matches.sort(key=lambda x: x['score'], reverse=True)
+    
+    # Limit results
+    fuzzy_matches = fuzzy_matches[:max_fuzzy_results]
+    
+    # Combine exact and fuzzy results
+    final_results = []
+    
+    # Add exact results first
+    for trip in exact_results:
+        final_results.append({
+            'trip': trip,
+            'match_type': 'exact',
+            'score': 1.0,
+            'trip_description_contains': query.lower() in (trip.trip_description or '').lower(),
+            'special_requirements_contains': trip.special_requirements and query.lower() in trip.special_requirements.lower(),
+            'diving_center_name_contains': trip.diving_center and query.lower() in trip.diving_center.name.lower(),
+            'dive_site_name_contains': any(query.lower() in dive.dive_site.name.lower() for dive in trip.dives if dive.dive_site) if trip.dives else False
+        })
+    
+    # Add fuzzy results
+    final_results.extend(fuzzy_matches)
+    
+    return final_results
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
@@ -372,7 +505,6 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
 
             # Log the OpenAI response for debugging
             logger.info(f"OpenAI response: {content}")
-            print(f"DEBUG - OpenAI response: {content}")
 
             # Try to parse the JSON response
             try:
@@ -864,6 +996,42 @@ async def get_parsed_trips(
         query = query.limit(limit)
 
     trips = query.all()
+    
+    # Apply fuzzy search if we have a search query and insufficient results
+    match_types = {}
+    if search_query and len(trips) < 5:
+        # Get the search query for fuzzy search
+        search_query_for_fuzzy = search_query.strip()[:200]
+        
+        # Perform fuzzy search to enhance results
+        enhanced_results = search_dive_trips_with_fuzzy(
+            search_query_for_fuzzy, 
+            trips, 
+            db, 
+            similarity_threshold=0.2, 
+            max_fuzzy_results=10
+        )
+        
+        # Update trips with enhanced results
+        trips = [result['trip'] for result in enhanced_results]
+        
+        # Create match types mapping for frontend
+        for result in enhanced_results:
+            match_types[result['trip'].id] = {
+                'type': result['match_type'],
+                'score': result['score']
+            }
+        
+        # Re-query with the enhanced results to get proper pagination
+        if len(trips) > len(query.all()):
+            # We have more results now, need to get all enhanced results
+            enhanced_query = db.query(ParsedDiveTrip).filter(
+                ParsedDiveTrip.id.in_([trip.id for trip in trips])
+            )
+            
+            # Re-apply the same logic for all filters and sorting
+            # This is a simplified approach - in production you might want to optimize this
+            trips = enhanced_query.all()
 
     # Process trips and add distance information if needed
     trip_data = []
@@ -902,7 +1070,8 @@ async def get_parsed_trips(
         else:
             trip_data.sort(key=lambda x: x['distance'])
 
-    return [
+    # Build the response
+    response_data = [
         ParsedDiveTripResponse(
             id=td['trip'].id,
             diving_center_id=td['trip'].diving_center_id,
@@ -918,6 +1087,7 @@ async def get_parsed_trips(
             special_requirements=td['trip'].special_requirements,
             trip_status=td['trip'].trip_status.value,
             diving_center_name=td['trip'].diving_center.name if td['trip'].diving_center else None,
+            distance=td['distance'],
             dives=[
                 ParsedDiveResponse(
                     id=dive.id,
@@ -939,6 +1109,28 @@ async def get_parsed_trips(
         )
         for td in trip_data
     ]
+
+    # Return response with match type headers if available
+    from fastapi.responses import JSONResponse
+    
+    # Convert Pydantic models to dictionaries for JSON serialization
+    # Use model_dump() for Pydantic v2 compatibility and handle date/datetime serialization
+    response_data_dict = []
+    for trip in response_data:
+        trip_dict = trip.model_dump() if hasattr(trip, 'model_dump') else trip.dict()
+        # Handle date and datetime serialization manually
+        for key, value in trip_dict.items():
+            if value and hasattr(value, 'isoformat'):
+                trip_dict[key] = value.isoformat()
+        response_data_dict.append(trip_dict)
+    
+    response = JSONResponse(content=response_data_dict)
+    
+    # Add match types header if available
+    if match_types:
+        response.headers["X-Match-Types"] = json.dumps(match_types)
+
+    return response
 
 @router.get("/{newsletter_id}", response_model=NewsletterResponse)
 async def get_newsletter(

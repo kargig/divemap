@@ -29,6 +29,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { getParsedTrips, getDivingCenters, getDiveSites } from '../api';
 import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
+import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import RateLimitError from '../components/RateLimitError';
 import StickyFilterBar from '../components/StickyFilterBar';
@@ -882,20 +883,65 @@ const DiveTrips = () => {
           </div>
         )}
 
-        <StickyFilterBar
-          searchValue={filters.search_query}
-          onSearchChange={value => handleFilterChange('search_query', value)}
-          searchPlaceholder='Search trips, dive sites, diving centers, locations, or requirements...'
-          showFilters={showAdvancedFilters}
-          onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
-          onClearFilters={clearFilters}
-          activeFiltersCount={getActiveFiltersCount()}
-          filters={{ ...filters, diving_centers: divingCenters }}
-          onFilterChange={handleStickyFilterChange}
-          variant='sticky'
-          showQuickFilters={true}
-          showAdvancedToggle={true}
-        />
+        {/* Sticky Filter Bar - Mobile-First Responsive Design */}
+        <div className='sticky top-16 z-40 bg-white shadow-sm border-b border-gray-200 rounded-t-lg px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4'>
+          <div className='flex flex-col sm:flex-row gap-3 sm:gap-4 items-end'>
+            {/* Smart Fuzzy Search Input - Enhanced search experience */}
+            <div className='flex-1 w-full'>
+              <label
+                htmlFor='search-query'
+                className='block text-sm font-medium text-gray-700 mb-2'
+              >
+                Search
+              </label>
+              <FuzzySearchInput
+                data={trips || []}
+                searchValue={filters.search_query}
+                onSearchChange={value => handleFilterChange('search_query', value)}
+                onSearchSelect={selectedItem => {
+                  // For dive trips, we need to handle the selected item appropriately
+                  // Since dive trips have multiple searchable fields, we'll use the search query
+                  handleFilterChange(
+                    'search_query',
+                    selectedItem.name || selectedItem.trip_description || ''
+                  );
+                }}
+                configType='diveTrips'
+                placeholder='Search trips, dive sites, diving centers, locations, or requirements...'
+                minQueryLength={2}
+                maxSuggestions={8}
+                debounceDelay={300}
+                showSuggestions={true}
+                highlightMatches={true}
+                showScore={false}
+                showClearButton={true}
+                className='w-full'
+                inputClassName='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base'
+                suggestionsClassName='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto'
+                highlightClass='bg-blue-100 font-medium'
+              />
+            </div>
+
+            {/* Quick Filters */}
+            <div className='flex gap-2'>
+              <button
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium min-h-[44px] sm:min-h-0 touch-manipulation'
+              >
+                {showAdvancedFilters ? 'Hide' : 'Show'} Filters
+              </button>
+
+              {getActiveFiltersCount() > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className='px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium min-h-[44px] sm:min-h-0 touch-manipulation'
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Mobile Floating Action Button */}
         {isMobile && (

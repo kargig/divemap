@@ -190,6 +190,9 @@ class DivingCenter(Base):
     website = Column(String(255))
     latitude = Column(DECIMAL(10, 8))
     longitude = Column(DECIMAL(11, 8))
+    country = Column(String(100), nullable=True, index=True)  # New field for country
+    region = Column(String(100), nullable=True, index=True)   # New field for region
+    city = Column(String(100), nullable=True, index=True)     # New field for city
     view_count = Column(Integer, default=0, nullable=False)  # Number of views
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
