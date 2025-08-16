@@ -31,6 +31,9 @@ const EditDivingCenter = () => {
     website: '',
     latitude: '',
     longitude: '',
+    country: '',
+    region: '',
+    city: '',
   });
 
   const [gearRental, setGearRental] = useState([]);
@@ -90,6 +93,9 @@ const EditDivingCenter = () => {
           website: data.website || '',
           latitude: data.latitude?.toString() || '',
           longitude: data.longitude?.toString() || '',
+          country: data.country || '',
+          region: data.region || '',
+          city: data.city || '',
         });
       },
     }
@@ -226,6 +232,66 @@ const EditDivingCenter = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const suggestFromCoordinates = async () => {
+    const lat = parseFloat(formData.latitude);
+    const lng = parseFloat(formData.longitude);
+
+    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+      toast.error('Please enter valid latitude and longitude coordinates');
+      return;
+    }
+
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      toast.error('Coordinates are out of valid range (Lat: -90 to 90, Lng: -180 to 180)');
+      return;
+    }
+
+    try {
+      toast.loading('Looking up location...');
+
+      // Use Nominatim (OpenStreetMap) reverse geocoding service
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`,
+        {
+          headers: {
+            'Accept-Language': 'en',
+            'User-Agent': 'Divemap/1.0',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch location data');
+      }
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Extract geographic information
+      const address = data.address;
+      const suggestions = {
+        country: address.country || '',
+        region: address.state || address.region || address.province || '',
+        city: address.city || address.town || address.village || address.hamlet || '',
+      };
+
+      // Update form data with suggestions
+      setFormData(prev => ({
+        ...prev,
+        ...suggestions,
+      }));
+
+      toast.dismiss();
+      toast.success('Location information suggested from coordinates!');
+    } catch (error) {
+      toast.dismiss();
+      toast.error(`Failed to get location: ${error.message}`);
+    }
   };
 
   const handleSubmit = e => {
@@ -528,6 +594,83 @@ const EditDivingCenter = () => {
                   value={formData.longitude}
                   onChange={handleInputChange}
                   className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                />
+              </div>
+            </div>
+
+            {/* Suggest Location Button */}
+            <div className='flex justify-center'>
+              <button
+                type='button'
+                onClick={suggestFromCoordinates}
+                disabled={!formData.latitude || !formData.longitude}
+                className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors'
+              >
+                <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
+                  />
+                </svg>
+                Suggest Country, Region & City from Coordinates
+              </button>
+            </div>
+
+            {/* Geographic Information */}
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+              <div>
+                <label
+                  htmlFor='diving-center-country'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  Country
+                </label>
+                <input
+                  id='diving-center-country'
+                  type='text'
+                  name='country'
+                  value={formData.country}
+                  onChange={handleInputChange}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  placeholder='e.g., Greece'
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor='diving-center-region'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  Region
+                </label>
+                <input
+                  id='diving-center-region'
+                  type='text'
+                  name='region'
+                  value={formData.region}
+                  onChange={handleInputChange}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  placeholder='e.g., South Aegean'
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor='diving-center-city'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  City
+                </label>
+                <input
+                  id='diving-center-city'
+                  type='text'
+                  name='city'
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  placeholder='e.g., Kos'
                 />
               </div>
             </div>

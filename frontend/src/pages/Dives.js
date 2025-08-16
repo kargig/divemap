@@ -26,6 +26,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api, { deleteDive } from '../api';
 import DivesMap from '../components/DivesMap';
 import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
+import FuzzySearchInput from '../components/FuzzySearchInput';
+import HeroSection from '../components/HeroSection';
 import ImportDivesModal from '../components/ImportDivesModal';
 import { useAuth } from '../contexts/AuthContext';
 import useSorting from '../hooks/useSorting';
@@ -802,17 +804,36 @@ const Dives = () => {
               <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
                 Search Dives
               </label>
-              <div className='relative'>
-                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                <input
-                  type='text'
-                  name='dive_site_name'
-                  placeholder='Search by dive site name...'
-                  value={filters.dive_site_name}
-                  onChange={handleSearchChange}
-                  className='pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-                />
-              </div>
+              <FuzzySearchInput
+                data={dives || []}
+                searchValue={filters.dive_site_name}
+                onSearchChange={value =>
+                  handleSearchChange({ target: { name: 'dive_site_name', value } })
+                }
+                onSearchSelect={selectedItem => {
+                  // For dives, we need to handle the selected item appropriately
+                  // Since dives don't have a direct name field, we'll use the dive site name
+                  handleSearchChange({
+                    target: {
+                      name: 'dive_site_name',
+                      value: selectedItem.name || selectedItem.dive_site?.name || '',
+                    },
+                  });
+                }}
+                configType='dives'
+                placeholder='Search by dive site name...'
+                minQueryLength={2}
+                maxSuggestions={8}
+                debounceDelay={300}
+                showSuggestions={true}
+                highlightMatches={true}
+                showScore={false}
+                showClearButton={true}
+                className='w-full'
+                inputClassName='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+                suggestionsClassName='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto'
+                highlightClass='bg-blue-100 font-medium'
+              />
             </div>
 
             <div>
