@@ -100,6 +100,20 @@ const DiveSites = () => {
     latitude: 0,
     zoom: 2,
   });
+
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const effectivePageSize = Number(pagination.page_size) || 25;
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
     search_query: getInitialFilters().search_query,
@@ -640,7 +654,7 @@ const DiveSites = () => {
                 className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
               >
                 <Plus size={20} />
-                Create Dive Site
+                Add Dive Site
               </button>
             )}
           </div>
@@ -748,6 +762,45 @@ const DiveSites = () => {
                 onDisplayOptionChange={handleDisplayOptionChange}
                 mobileOptimized={true}
               />
+
+              {/* Mobile View Mode Quick Access */}
+              {isMobile && (
+                <div className='mb-4 flex gap-2 justify-center'>
+                  <button
+                    onClick={() => handleViewModeChange('list')}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      viewMode === 'list'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    } touch-manipulation min-h-[44px]`}
+                  >
+                    <List className='h-5 w-5 inline mr-2' />
+                    List
+                  </button>
+                  <button
+                    onClick={() => handleViewModeChange('grid')}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      viewMode === 'grid'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    } touch-manipulation min-h-[44px]`}
+                  >
+                    <Grid className='h-5 w-5 inline mr-2' />
+                    Grid
+                  </button>
+                  <button
+                    onClick={() => handleViewModeChange('map')}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      viewMode === 'map'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    } touch-manipulation min-h-[44px]`}
+                  >
+                    <Map className='h-5 w-5 inline mr-2' />
+                    Map
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
