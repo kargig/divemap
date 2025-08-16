@@ -18,6 +18,9 @@ Welcome to the Divemap development documentation. This guide provides comprehens
 ### Search & Algorithm Documentation
 - [Fuzzy Search Implementation Plan](./fuzzy-search-implementation-plan.md) - **Complete guide to search implementation across all pages**
 
+### Infrastructure & Upgrades
+- [Node.js 20 Upgrade Guide](./nodejs-20-upgrade-guide.md) - **Complete guide to Node.js 20 upgrade and frontend improvements**
+
 ## Recent Updates
 
 ### 🎉 **Diving Centers UX Improvements - Complete**
@@ -98,6 +101,56 @@ The dive sites page has been completely transformed with a comprehensive UX over
 
 ### 🔍 **Search Algorithm Improvements - Complete!**
 
+---
+
+### 🚀 **Node.js 20 Upgrade & Frontend Improvements - Complete!**
+
+The project has been successfully upgraded from Node.js 18 to Node.js 20, bringing significant performance improvements, security updates, and modern JavaScript features.
+
+#### **Upgrade Benefits:**
+- **Performance**: V8 11.0+ engine with 15-20% faster execution
+- **Security**: Extended LTS support until April 2026 (vs April 2025 for Node.js 18)
+- **Memory**: Better memory management and reduced footprint
+- **Build Speed**: Faster npm install and build times
+- **Modern Features**: Latest ES2022+ language features
+
+#### **Package Upgrades Completed:**
+- **High Priority**: ESLint 9.33.0, eslint-config-prettier 10.1.8, eslint-plugin-react-hooks 5.2.0
+- **Medium Priority**: React Router 7.8.1, react-hot-toast 2.6.0, lucide-react 0.539.0, OpenLayers 10.6.1
+- **Compatibility**: All packages tested and working with Node.js 20
+
+#### **Technical Improvements:**
+- **Docker Images**: Updated to `node:20-alpine` for both production and development
+- **ESLint Configuration**: Migrated from `.eslintrc.js` to modern `eslint.config.js` format
+- **PropTypes Validation**: Fixed type mismatches between backend and frontend
+- **Map View Functionality**: Resolved view switching issues in dive sites page
+
+#### **Issues Resolved:**
+- **Map View Bug**: Fixed circular dependency in useEffect causing map view to fail
+- **PropTypes Errors**: Corrected type validation for map components
+- **ESLint Compatibility**: Updated configuration for ESLint 9 and Node.js 20
+- **Test File Syntax**: Fixed missing parentheses in test files
+
+#### **Files Modified:**
+- `frontend/Dockerfile`: Updated to Node.js 20-alpine
+- `frontend/Dockerfile.dev`: Updated to Node.js 20-alpine
+- `frontend/package.json`: Upgraded package versions
+- `frontend/eslint.config.js`: New ESLint 9 configuration
+- `frontend/src/components/DiveSitesMap.js`: Fixed PropTypes validation
+- `frontend/src/components/DivingCentersMap.js`: Fixed PropTypes validation
+- `frontend/src/components/DiveMap.js`: Fixed PropTypes validation
+- `frontend/src/pages/DiveSites.js`: Fixed view mode switching logic
+- `frontend/tests/*.js`: Fixed syntax errors
+
+#### **Testing Results:**
+- ✅ **Build Success**: All Docker images build successfully with Node.js 20
+- ✅ **Runtime Test**: Application runs correctly in new containers
+- ✅ **Map View**: Dive sites map view now works correctly
+- ✅ **ESLint**: All code validation passes with new configuration
+- ✅ **PropTypes**: No more console warnings about type mismatches
+
+---
+
 The search algorithm has been significantly enhanced to address geographic field matching issues and improve code quality across all content types.
 
 #### **Problem Solved:**
@@ -134,7 +187,7 @@ The search algorithm has been significantly enhanced to address geographic field
 ## Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js 20+ 
 - Python 3.11+
 - Docker and Docker Compose
 - Git

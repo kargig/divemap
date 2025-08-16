@@ -2,7 +2,57 @@
 
 This document tracks all recent changes, improvements, and bug fixes to the Divemap application.
 
-## [Latest Release] - 2025-08-09
+## [Latest Release] - 2025-08-17
+
+### 🚀 Major Features
+
+#### **Node.js 20 Upgrade & Frontend Improvements - ✅ COMPLETE**
+- **Performance Upgrade**: Successfully upgraded from Node.js 18 to Node.js 20
+- **Docker Image Updates**: Both production and development containers now use `node:20-alpine`
+- **Package Modernization**: Upgraded high and medium priority npm packages for better compatibility
+- **ESLint 9 Migration**: Converted from legacy `.eslintrc.js` to modern `eslint.config.js` format
+- **PropTypes Validation**: Fixed type mismatches between backend and frontend data structures
+- **Map View Functionality**: Resolved critical bug preventing dive sites map view from working
+
+**Technical Improvements:**
+- **V8 Engine**: Node.js 20 uses V8 11.0+ with 15-20% performance improvement
+- **Memory Management**: Better memory usage and reduced container footprint
+- **Build Performance**: Faster npm install and build times
+- **Security**: Extended LTS support until April 2026
+- **Modern Features**: Latest ES2022+ language features and APIs
+
+**Package Upgrades Completed:**
+- **High Priority**: ESLint 9.33.0, eslint-config-prettier 10.1.8, eslint-plugin-react-hooks 5.2.0
+- **Medium Priority**: React Router 7.8.1, react-hot-toast 2.6.0, lucide-react 0.539.0, OpenLayers 10.6.1
+- **Compatibility**: All packages tested and working with Node.js 20
+
+**Critical Bug Fixes:**
+- **Map View Bug**: Fixed circular dependency in useEffect causing map view to fail
+- **PropTypes Errors**: Corrected type validation for all map components
+- **ESLint Compatibility**: Updated configuration for ESLint 9 and Node.js 20
+- **Test File Syntax**: Fixed missing parentheses in test files
+
+**Files Modified:**
+- `frontend/Dockerfile`: Updated to Node.js 20-alpine
+- `frontend/Dockerfile.dev`: Updated to Node.js 20-alpine
+- `frontend/package.json`: Upgraded package versions
+- `frontend/eslint.config.js`: New ESLint 9 configuration
+- `frontend/src/components/DiveSitesMap.js`: Fixed PropTypes validation
+- `frontend/src/components/DivingCentersMap.js`: Fixed PropTypes validation
+- `frontend/src/components/DiveMap.js`: Fixed PropTypes validation
+- `frontend/src/pages/DiveSites.js`: Fixed view mode switching logic
+- `frontend/tests/*.js`: Fixed syntax errors
+
+**Testing Results:**
+- ✅ **Build Success**: All Docker images build successfully with Node.js 20
+- ✅ **Runtime Test**: Application runs correctly in new containers
+- ✅ **Map View**: Dive sites map view now works correctly
+- ✅ **ESLint**: All code validation passes with new configuration
+- ✅ **PropTypes**: No more console warnings about type mismatches
+
+---
+
+## [Previous Release] - 2025-08-09
 
 ### 🚀 Major Features
 
