@@ -1,4 +1,16 @@
-import { Plus, Eye, Search, Star, MapPin, Building, Phone, Mail, Globe } from 'lucide-react';
+import {
+  Plus,
+  Eye,
+  Search,
+  Star,
+  MapPin,
+  Building,
+  Phone,
+  Mail,
+  Globe,
+  List,
+  Map,
+} from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -355,6 +367,25 @@ const DivingCenters = () => {
         </div>
       </HeroSection>
 
+      {/* Map Section - Show immediately when in map view */}
+      {viewMode === 'map' && (
+        <div className='mb-8'>
+          <div className='bg-white rounded-lg shadow-md p-4 mb-6'>
+            <h2 className='text-xl font-semibold text-gray-900 mb-4'>
+              Interactive Diving Centers Map
+            </h2>
+            <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200'>
+              <DivingCentersMap
+                divingCenters={(divingCenters || []).map(center => ({
+                  ...center,
+                  id: center.id.toString(),
+                }))}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sticky Filter Bar - Mobile-First Responsive Design */}
       <div className='sticky top-16 z-40 bg-white shadow-sm border-b border-gray-200 rounded-t-lg px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4'>
         <div className='flex flex-col sm:flex-row gap-3 sm:gap-4 items-end'>
@@ -400,25 +431,59 @@ const DivingCenters = () => {
 
       {/* Sorting & View Controls - Attached to Sticky Filters */}
       <div className='bg-white shadow-sm border-b border-l border-r border-gray-200 rounded-b-lg'>
-        <EnhancedMobileSortingControls
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          sortOptions={getSortOptions('diving-centers')}
-          onSortChange={handleSortChange}
-          onSortApply={handleSortApply}
-          onReset={resetSorting}
-          entityType='diving-centers'
-          viewMode={viewMode}
-          onViewModeChange={handleViewModeChange}
-          showFilters={false} // Hide filters in this section for now
-          onToggleFilters={() => {}}
-          showQuickActions={true}
-          showFAB={true}
-          showTabs={true}
-          showThumbnails={showThumbnails}
-          compactLayout={compactLayout}
-          onDisplayOptionChange={handleDisplayOptionChange}
-        />
+        {viewMode === 'map' ? (
+          <div className='p-3 sm:p-4'>
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4'>
+              <h3 className='text-base sm:text-lg font-medium text-gray-900 text-center sm:text-left'>
+                View Mode
+              </h3>
+              <div className='flex justify-center sm:justify-end gap-2'>
+                <button
+                  onClick={() => handleViewModeChange('list')}
+                  className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
+                    viewMode === 'list'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
+                  }`}
+                >
+                  <List className='h-4 w-4 sm:h-4 sm:w-4' />
+                  <span className='hidden xs:inline'>List</span>
+                </button>
+                <button
+                  onClick={() => handleViewModeChange('map')}
+                  className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
+                    viewMode === 'map'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
+                  }`}
+                >
+                  <Map className='h-4 w-4 sm:h-4 sm:w-4' />
+                  <span className='hidden xs:inline'>Map</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <EnhancedMobileSortingControls
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            sortOptions={getSortOptions('diving-centers')}
+            onSortChange={handleSortChange}
+            onSortApply={handleSortApply}
+            onReset={resetSorting}
+            entityType='diving-centers'
+            viewMode={viewMode}
+            onViewModeChange={handleViewModeChange}
+            showFilters={false} // Hide filters in this section for now
+            onToggleFilters={() => {}}
+            showQuickActions={true}
+            showFAB={true}
+            showTabs={true}
+            showThumbnails={showThumbnails}
+            compactLayout={compactLayout}
+            onDisplayOptionChange={handleDisplayOptionChange}
+          />
+        )}
       </div>
 
       {/* Pagination Controls */}
@@ -776,18 +841,6 @@ const DivingCenters = () => {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Diving Centers Map */}
-      {viewMode === 'map' && (
-        <div className='h-96 rounded-lg overflow-hidden border border-gray-200'>
-          <DivingCentersMap
-            divingCenters={(divingCenters || []).map(center => ({
-              ...center,
-              id: center.id.toString(),
-            }))}
-          />
         </div>
       )}
 

@@ -706,7 +706,7 @@ DiveSitesMap.propTypes = {
       average_rating: PropTypes.number,
     })
   ).isRequired,
-  onViewportChange: PropTypes.func.isRequired,
+  onViewportChange: PropTypes.func,
 };
 
 export default DiveSitesMap;
