@@ -10,6 +10,8 @@ import {
   Globe,
   List,
   Map,
+  Grid,
+  Compass,
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
@@ -53,6 +55,20 @@ const DivingCenters = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get('compact_layout') !== 'false'; // Default to true (compact)
   });
+
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Get initial values from URL parameters
   const getInitialFilters = () => {
@@ -357,13 +373,35 @@ const DivingCenters = () => {
         size='medium'
       >
         <div className='flex flex-col sm:flex-row gap-3 justify-center'>
-          <Link
-            to='/diving-centers/create'
+          <button
+            onClick={() => {
+              setViewMode('map');
+              navigate('/diving-centers?view=map');
+            }}
             className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
           >
-            <Plus className='w-5 h-5' />
-            Add Center
-          </Link>
+            <Compass className='w-5 h-5' />
+            Explore Map
+          </button>
+          <button
+            onClick={() => {
+              setViewMode('list');
+              navigate('/diving-centers');
+            }}
+            className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
+          >
+            <Globe className='w-5 h-5' />
+            Browse Centers
+          </button>
+          {user && (
+            <button
+              onClick={() => navigate('/diving-centers/create')}
+              className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+            >
+              <Plus size={20} />
+              Add Center
+            </button>
+          )}
         </div>
       </HeroSection>
 
@@ -464,25 +502,66 @@ const DivingCenters = () => {
             </div>
           </div>
         ) : (
-          <EnhancedMobileSortingControls
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            sortOptions={getSortOptions('diving-centers')}
-            onSortChange={handleSortChange}
-            onSortApply={handleSortApply}
-            onReset={resetSorting}
-            entityType='diving-centers'
-            viewMode={viewMode}
-            onViewModeChange={handleViewModeChange}
-            showFilters={false} // Hide filters in this section for now
-            onToggleFilters={() => {}}
-            showQuickActions={true}
-            showFAB={true}
-            showTabs={true}
-            showThumbnails={showThumbnails}
-            compactLayout={compactLayout}
-            onDisplayOptionChange={handleDisplayOptionChange}
-          />
+          <div>
+            <EnhancedMobileSortingControls
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              sortOptions={getSortOptions('diving-centers')}
+              onSortChange={handleSortChange}
+              onSortApply={handleSortApply}
+              onReset={resetSorting}
+              entityType='diving-centers'
+              viewMode={viewMode}
+              onViewModeChange={handleViewModeChange}
+              showFilters={false} // Hide filters in this section for now
+              onToggleFilters={() => {}}
+              showQuickActions={true}
+              showFAB={true}
+              showTabs={true}
+              showThumbnails={showThumbnails}
+              compactLayout={compactLayout}
+              onDisplayOptionChange={handleDisplayOptionChange}
+            />
+
+            {/* Mobile View Mode Quick Access */}
+            {isMobile && (
+              <div className='mt-4 flex justify-center gap-2'>
+                <button
+                  onClick={() => handleViewModeChange('list')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  } touch-manipulation min-h-[44px]`}
+                >
+                  <List className='h-5 w-5 inline mr-2' />
+                  List
+                </button>
+                <button
+                  onClick={() => handleViewModeChange('grid')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    viewMode === 'grid'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  } touch-manipulation min-h-[44px]`}
+                >
+                  <Grid className='h-5 w-5 inline mr-2' />
+                  Grid
+                </button>
+                <button
+                  onClick={() => handleViewModeChange('map')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    viewMode === 'map'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  } touch-manipulation min-h-[44px]`}
+                >
+                  <Map className='h-5 w-5 inline mr-2' />
+                  Map
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

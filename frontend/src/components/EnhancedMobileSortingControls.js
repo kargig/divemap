@@ -300,18 +300,20 @@ const EnhancedMobileSortingControls = ({
                 {showFilters && (
                   <button
                     onClick={onToggleFilters}
-                    className='p-2 rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-500'
+                    className='p-2 rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-500 flex items-center gap-2'
                     aria-label='Toggle filters'
                   >
                     <Filter className='w-4 h-4' />
+                    <span className='text-sm font-medium'>Filters</span>
                   </button>
                 )}
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className='p-2 rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-500'
+                  className='p-2 rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-500 flex items-center gap-2'
                   aria-label='Toggle sorting controls'
                 >
                   <Settings className='w-4 h-4' />
+                  <span className='text-sm font-medium'>Sort</span>
                 </button>
               </div>
             </div>
@@ -563,6 +565,7 @@ const EnhancedMobileSortingControls = ({
               aria-label='Quick access to sorting controls'
             >
               <Settings className='fab-icon' />
+              <span className='fab-text'>Sort</span>
             </button>
           )}
 
