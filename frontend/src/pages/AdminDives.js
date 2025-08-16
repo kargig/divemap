@@ -9,19 +9,16 @@ import {
   Calendar,
   User,
   MapPin,
-  Map,
 } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 const AdminDives = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Dive management state
@@ -308,13 +305,6 @@ const AdminDives = () => {
             )}
           </div>
           <div className='flex items-center space-x-4'>
-            <button
-              onClick={() => navigate('/admin/dives/map')}
-              className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center space-x-2'
-            >
-              <Map className='h-4 w-4' />
-              <span>Map View</span>
-            </button>
             {selectedItems.size > 0 && (
               <button
                 onClick={handleMassDelete}

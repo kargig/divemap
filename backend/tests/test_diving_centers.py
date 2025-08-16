@@ -115,7 +115,11 @@ class TestDivingCenters:
         response = client.post("/api/v1/diving-centers/",
                              json=diving_center_data, headers=auth_headers)
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        # Regular users can now create diving centers
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["name"] == "New Diving Center"
+        assert data["description"] == "A new diving center"
 
     def test_create_diving_center_invalid_data(self, client, admin_headers):
         """Test creating diving center with invalid data."""

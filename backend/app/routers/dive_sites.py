@@ -469,6 +469,12 @@ async def get_dive_sites(
             for alias in aliases
         ]
 
+        # Get creator username if available
+        creator_username = None
+        if site.created_by:
+            creator_user = db.query(User).filter(User.id == site.created_by).first()
+            creator_username = creator_user.username if creator_user else None
+
         site_dict = {
                 "id": site.id,
                 "name": site.name,
@@ -487,6 +493,8 @@ async def get_dive_sites(
                 "updated_at": site.updated_at.isoformat() if site.updated_at else None,
                 "average_rating": float(avg_rating) if avg_rating else None,
                 "total_ratings": total_ratings,
+                "created_by": site.created_by,
+                "created_by_username": creator_username,
                 "tags": tags_dict,
                 "aliases": aliases_dict
             }

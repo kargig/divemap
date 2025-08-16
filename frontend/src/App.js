@@ -23,7 +23,6 @@ import CreateDive from './pages/CreateDive';
 import CreateDiveSite from './pages/CreateDiveSite';
 import CreateDivingCenter from './pages/CreateDivingCenter';
 import DiveDetail from './pages/DiveDetail';
-import DiveMap from './pages/DiveMap';
 import DiveMapView from './pages/DiveMapView';
 import Dives from './pages/Dives';
 import DiveSiteDetail from './pages/DiveSiteDetail';
@@ -142,6 +141,14 @@ function App() {
                 <Route path='/diving-centers' element={<DivingCenters />} />
                 <Route path='/diving-centers/:id' element={<DivingCenterDetail />} />
                 <Route
+                  path='/diving-centers/create'
+                  element={
+                    <ProtectedRoute>
+                      <CreateDivingCenter />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path='/diving-centers/:id/edit'
                   element={
                     <ProtectedEditRoute>
@@ -181,14 +188,7 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path='/admin/dive-sites/create'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <CreateDiveSite />
-                    </ProtectedRoute>
-                  }
-                />
+
                 <Route
                   path='/admin/diving-centers'
                   element={
@@ -197,14 +197,7 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path='/admin/diving-centers/create'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <CreateDivingCenter />
-                    </ProtectedRoute>
-                  }
-                />
+
                 <Route
                   path='/admin/diving-organizations'
                   element={
@@ -263,14 +256,7 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path='/admin/dives/map'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <DiveMap />
-                    </ProtectedRoute>
-                  }
-                />
+
                 <Route
                   path='/admin/ownership-requests'
                   element={
