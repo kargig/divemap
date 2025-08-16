@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine as build
+FROM node:20-alpine as build
 
 WORKDIR /app
 
@@ -27,7 +27,7 @@ ENV GENERATE_SOURCEMAP=false
 RUN GENERATE_SOURCEMAP=false npm run build:prod
 
 # Production stage - only production dependencies
-FROM node:18-alpine as production
+FROM node:20-alpine as production
 
 WORKDIR /app
 

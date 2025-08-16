@@ -433,10 +433,10 @@ const DiveMap = ({ diveSites = [], divingCenters = [], showTripInfo = false }) =
 DiveMap.propTypes = {
   diveSites: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.string.isRequired,
+      id: PropTypes.number.isRequired,
       name: PropTypes.string.isRequired,
-      latitude: PropTypes.string.isRequired,
-      longitude: PropTypes.string.isRequired,
+      latitude: PropTypes.number.isRequired,
+      longitude: PropTypes.number.isRequired,
       description: PropTypes.string,
       difficulty_level: PropTypes.string,
       average_rating: PropTypes.number,
@@ -449,10 +449,10 @@ DiveMap.propTypes = {
   ),
   divingCenters: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.string.isRequired,
+      id: PropTypes.number.isRequired,
       name: PropTypes.string.isRequired,
-      latitude: PropTypes.string.isRequired,
-      longitude: PropTypes.string.isRequired,
+      latitude: PropTypes.number.isRequired,
+      longitude: PropTypes.number.isRequired,
       description: PropTypes.string,
       average_rating: PropTypes.number,
     })

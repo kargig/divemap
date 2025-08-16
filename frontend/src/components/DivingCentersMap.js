@@ -323,7 +323,7 @@ const DivingCentersMap = ({ divingCenters, onViewportChange }) => {
 DivingCentersMap.propTypes = {
   divingCenters: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.string.isRequired,
+      id: PropTypes.number.isRequired,
       name: PropTypes.string.isRequired,
       latitude: PropTypes.number.isRequired,
       longitude: PropTypes.number.isRequired,

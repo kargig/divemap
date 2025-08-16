@@ -95,13 +95,13 @@ async function testNavigation(page) {
     try {
       // Navigate to starting page
       await page.goto(`${BASE_URL}${scenario.from}`);
-      await new Promise(resolve => setTimeout(resolve, 1000);
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Find and click navigation link
       const link = await page.$(`a[href="${scenario.to}"]`);
       if (link) {
         await link.click();
-        await new Promise(resolve => setTimeout(resolve, 2000);
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Check if navigation was successful
         const currentUrl = page.url();
@@ -132,14 +132,14 @@ async function testForms(page) {
   for (const form of TEST_SCENARIOS.forms) {
     try {
       await page.goto(`${BASE_URL}${form.page}`);
-      await new Promise(resolve => setTimeout(resolve, 1000);
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Test form fields
       for (const fieldName of form.fields) {
         const field = await page.$(`input[name="${fieldName}"], textarea[name="${fieldName}"], select[name="${fieldName}"]`);
         if (field) {
           await field.type('test');
-          await new Promise(resolve => setTimeout(resolve, 500);
+          await new Promise(resolve => setTimeout(resolve, 500));
           console.log(`      ✅ ${fieldName} field working`);
         } else {
           console.log(`      ❌ ${fieldName} field not found`);
@@ -152,7 +152,7 @@ async function testForms(page) {
         const submitButton = await page.$('button[type="submit"]');
         if (submitButton) {
           await submitButton.click();
-          await new Promise(resolve => setTimeout(resolve, 2000);
+          await new Promise(resolve => setTimeout(resolve, 2000));
           console.log(`      ✅ Form submission working`);
         } else {
           console.log(`      ❌ Submit button not found`);
@@ -182,7 +182,7 @@ async function testResponsiveDesign(page) {
 
   for (const viewport of viewports) {
     await page.setViewport(viewport);
-    await new Promise(resolve => setTimeout(resolve, 500);
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Check for horizontal scrolling
     const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
@@ -234,7 +234,7 @@ async function testErrorHandling(page) {
   // Test 404 page
   try {
     await page.goto(`${BASE_URL}/non-existent-page`);
-    await new Promise(resolve => setTimeout(resolve, 2000);
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     const notFoundContent = await page.$('[data-testid="not-found"], .error-page, .not-found');
     if (notFoundContent) {
@@ -253,7 +253,7 @@ async function testErrorHandling(page) {
     await page.evaluate(() => {
       window.dispatchEvent(new Event('offline'));
     });
-    await new Promise(resolve => setTimeout(resolve, 1000);
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     const offlineIndicator = await page.$('[data-testid="offline"], .offline-indicator');
     if (offlineIndicator) {
@@ -376,7 +376,7 @@ async function testUserInteractions(page) {
   const searchInput = await page.$('input[placeholder*="Search"], input[type="search"]');
   if (searchInput) {
     await searchInput.type('test');
-    await new Promise(resolve => setTimeout(resolve, 1000);
+    await new Promise(resolve => setTimeout(resolve, 1000));
     console.log('    ✅ Search input working');
   } else {
     console.log('    ⚠️  Search input not found');
@@ -386,7 +386,7 @@ async function testUserInteractions(page) {
   const filterButtons = await page.$$('button[data-testid*="filter"], .filter-button');
   if (filterButtons.length > 0) {
     await filterButtons[0].click();
-    await new Promise(resolve => setTimeout(resolve, 1000);
+    await new Promise(resolve => setTimeout(resolve, 1000));
     console.log('    ✅ Filter functionality working');
   }
 
@@ -394,7 +394,7 @@ async function testUserInteractions(page) {
   const sortSelect = await page.$('select[data-testid="sort"], select.sort-select');
   if (sortSelect) {
     await sortSelect.select('name');
-    await new Promise(resolve => setTimeout(resolve, 1000);
+    await new Promise(resolve => setTimeout(resolve, 1000));
     console.log('    ✅ Sort functionality working');
   }
 
@@ -408,7 +408,7 @@ async function testUserInteractions(page) {
   const modalTriggers = await page.$$('[data-testid*="modal"], .modal-trigger');
   if (modalTriggers.length > 0) {
     await modalTriggers[0].click();
-    await new Promise(resolve => setTimeout(resolve, 1000);
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     const modal = await page.$('[data-testid*="modal"], .modal');
     if (modal) {
@@ -447,7 +447,7 @@ async function runValidationTests() {
   try {
     // Navigate to home page first
     await page.goto(`${BASE_URL}/`);
-    await new Promise(resolve => setTimeout(resolve, 2000);
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     console.log('📋 Running validation tests...\n');
 
