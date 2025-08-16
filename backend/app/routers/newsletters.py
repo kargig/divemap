@@ -1111,26 +1111,38 @@ async def get_parsed_trips(
     ]
 
     # Return response with match type headers if available
-    from fastapi.responses import JSONResponse
+    from fastapi.responses import Response
+    import json
     
-    # Convert Pydantic models to dictionaries for JSON serialization
-    # Use model_dump() for Pydantic v2 compatibility and handle date/datetime serialization
-    response_data_dict = []
-    for trip in response_data:
-        trip_dict = trip.model_dump() if hasattr(trip, 'model_dump') else trip.dict()
-        # Handle date and datetime serialization manually
-        for key, value in trip_dict.items():
-            if value and hasattr(value, 'isoformat'):
-                trip_dict[key] = value.isoformat()
-        response_data_dict.append(trip_dict)
-    
-    response = JSONResponse(content=response_data_dict)
-    
-    # Add match types header if available
+    # Create response with custom headers if match types are available
     if match_types:
-        response.headers["X-Match-Types"] = json.dumps(match_types)
-
-    return response
+        # Properly serialize the Pydantic models to handle datetime fields
+        serialized_trips = []
+        for trip in response_data:
+            trip_dict = trip.model_dump()
+            # Recursively handle date and datetime serialization
+            def serialize_datetime(obj):
+                if isinstance(obj, dict):
+                    return {key: serialize_datetime(value) for key, value in obj.items()}
+                elif isinstance(obj, list):
+                    return [serialize_datetime(item) for item in obj]
+                elif hasattr(obj, 'isoformat'):
+                    return obj.isoformat()
+                else:
+                    return obj
+            
+            # Apply serialization to the entire trip dictionary
+            trip_dict = serialize_datetime(trip_dict)
+            serialized_trips.append(trip_dict)
+        
+        response = Response(
+            content=json.dumps(serialized_trips),
+            media_type="application/json",
+            headers={"X-Match-Types": json.dumps(match_types)}
+        )
+        return response
+    
+    return response_data
 
 @router.get("/{newsletter_id}", response_model=NewsletterResponse)
 async def get_newsletter(
