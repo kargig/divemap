@@ -130,10 +130,8 @@ const DiveSites = () => {
   // Update viewMode when searchParams change
   useEffect(() => {
     const newViewMode = searchParams.get('view') || 'list';
-    if (newViewMode !== viewMode) {
-      setViewMode(newViewMode);
-    }
-  }, [searchParams, viewMode]);
+    setViewMode(newViewMode);
+  }, [searchParams]);
 
   // Debounced URL update for search inputs
   const debouncedUpdateURL = useCallback(
@@ -890,8 +888,8 @@ const DiveSites = () => {
           </div>
 
           {/* Results Section - Mobile-first responsive design */}
-          {/* Dive Sites List - Always show when data is available and viewMode is list or undefined */}
-          {(viewMode === 'list' || !viewMode || viewMode === '') && diveSites?.results && (
+          {/* Dive Sites List - Show when data is available and viewMode is list */}
+          {viewMode === 'list' && diveSites?.results && (
             <div className={`space-y-2 sm:space-y-3 ${compactLayout ? 'view-mode-compact' : ''}`}>
               {diveSites.results.map(site => (
                 <div
