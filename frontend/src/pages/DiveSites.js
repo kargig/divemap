@@ -13,7 +13,7 @@ import {
   List,
   Grid,
 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -22,7 +22,9 @@ import api from '../api';
 import DiveSitesFilterBar from '../components/DiveSitesFilterBar';
 import DiveSitesMap from '../components/DiveSitesMap';
 import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
+import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
+import MatchTypeBadge from '../components/MatchTypeBadge';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
 import useSorting from '../hooks/useSorting';
@@ -38,8 +40,8 @@ const DiveSites = () => {
 
   // Enhanced state for mobile UX
   const [viewMode, setViewMode] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('view') || 'list';
+    // Use React Router's searchParams consistently
+    return searchParams.get('view') || 'list';
   });
   const [showFilters, setShowFilters] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -124,6 +126,14 @@ const DiveSites = () => {
   // Initialize sorting
   const { sortBy, sortOrder, handleSortChange, handleSortApply, resetSorting, getSortParams } =
     useSorting('dive-sites');
+
+  // Update viewMode when searchParams change
+  useEffect(() => {
+    const newViewMode = searchParams.get('view') || 'list';
+    if (newViewMode !== viewMode) {
+      setViewMode(newViewMode);
+    }
+  }, [searchParams, viewMode]);
 
   // Debounced URL update for search inputs
   const debouncedUpdateURL = useCallback(
@@ -354,7 +364,7 @@ const DiveSites = () => {
 
   // Fetch dive sites
   const {
-    data: diveSites,
+    data: diveSitesResponse,
     isLoading,
     error,
   } = useQuery(
@@ -372,7 +382,7 @@ const DiveSites = () => {
       sortBy,
       sortOrder,
     ],
-    () => {
+    async () => {
       const params = new URLSearchParams();
 
       if (debouncedSearchTerms.search_query)
@@ -406,12 +416,35 @@ const DiveSites = () => {
         params.append('page_size', pagination.page_size.toString());
       }
 
-      return api.get(`/api/v1/dive-sites/?${params.toString()}`).then(res => res.data);
+      const response = await api.get(`/api/v1/dive-sites/?${params.toString()}`);
+
+      // Extract match type information from response headers
+      const matchTypesHeader = response.headers['x-match-types'];
+      let matchTypes = {};
+
+      if (matchTypesHeader) {
+        try {
+          matchTypes = JSON.parse(matchTypesHeader);
+        } catch (e) {
+          console.warn('Failed to parse match types header:', e);
+        }
+      }
+
+      return {
+        data: response.data,
+        matchTypes: matchTypes,
+      };
     },
     {
       staleTime: 5 * 60 * 1000, // 5 minutes
     }
   );
+
+  // Handle the backend response structure - it returns a list directly, not an object with results
+  const diveSites = diveSitesResponse
+    ? { results: diveSitesResponse.data || diveSitesResponse }
+    : null;
+  const matchTypes = diveSitesResponse?.matchTypes || {};
 
   // Show toast notifications for rate limiting errors
   useEffect(() => {
@@ -667,17 +700,41 @@ const DiveSites = () => {
                 Interactive Dive Sites Map
               </h2>
               <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200'>
-                <DiveSitesMap diveSites={diveSites || []} />
+                <DiveSitesMap diveSites={diveSites?.results || []} />
               </div>
             </div>
           </div>
         )}
         {/* Filter Bar - Sticky and compact with mobile-first responsive design */}
         <div className='sticky top-16 z-40 bg-white shadow-sm border-b border-gray-200 rounded-t-lg py-3 sm:py-4'>
+          {/* Smart Fuzzy Search Input - Enhanced search experience */}
+          <div className='px-3 sm:px-4 mb-3 sm:mb-4'>
+            <div className='max-w-2xl mx-auto'>
+              <FuzzySearchInput
+                data={diveSites?.results || []}
+                searchValue={filters.search_query}
+                onSearchChange={value => handleFilterChange('search_query', value)}
+                onSearchSelect={selectedItem => {
+                  handleFilterChange('search_query', selectedItem.name);
+                }}
+                configType='diveSites'
+                placeholder='Search dive sites by name, country, region, or description...'
+                minQueryLength={2}
+                maxSuggestions={8}
+                debounceDelay={300}
+                showSuggestions={true}
+                highlightMatches={true}
+                showScore={false}
+                showClearButton={true}
+                className='w-full'
+                inputClassName='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base'
+                suggestionsClassName='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto'
+                highlightClass='bg-blue-100 font-medium'
+              />
+            </div>
+          </div>
+
           <DiveSitesFilterBar
-            searchValue={filters.search_query}
-            onSearchChange={value => handleFilterChange('search_query', value)}
-            searchPlaceholder='Search dive sites by name, country, region, or description...'
             showFilters={showAdvancedFilters}
             onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
             onClearFilters={clearFilters}
@@ -694,115 +751,68 @@ const DiveSites = () => {
         </div>
         {/* Content Section */}
         <div className={`content-section ${mobileStyles.mobileMargin}`}>
-          {/* View Controls - Mobile-first responsive design for Map View */}
-          {viewMode === 'map' ? (
-            <div className='mb-4 sm:mb-6 lg:mb-8'>
-              <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4'>
-                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4'>
-                  <h3 className='text-base sm:text-lg font-medium text-gray-900 text-center sm:text-left'>
-                    View Mode
-                  </h3>
-                  <div className='flex justify-center sm:justify-end gap-2'>
-                    <button
-                      onClick={() => handleViewModeChange('list')}
-                      className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
-                        viewMode === 'list'
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
-                      }`}
-                    >
-                      <List className='h-4 w-4 sm:h-4 sm:w-4' />
-                      <span className='hidden xs:inline'>List</span>
-                    </button>
-                    <button
-                      onClick={() => handleViewModeChange('grid')}
-                      className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
-                        viewMode === 'grid'
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
-                      }`}
-                    >
-                      <Grid className='h-4 w-4 sm:h-4 sm:w-4' />
-                      <span className='hidden xs:inline'>Grid</span>
-                    </button>
-                    <button
-                      onClick={() => handleViewModeChange('map')}
-                      className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
-                        viewMode === 'map'
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
-                      }`}
-                    >
-                      <Map className='h-4 w-4 sm:h-4 sm:w-4' />
-                      <span className='hidden xs:inline'>Map</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className='bg-white shadow-sm border-b border-l border-r border-gray-200 rounded-b-lg'>
-              <EnhancedMobileSortingControls
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                sortOptions={getSortOptions('dive-sites')}
-                onSortChange={handleSortChange}
-                onSortApply={handleSortApply}
-                onReset={resetSorting}
-                entityType='dive-sites'
-                showFilters={false} // Hide filters in this section for now
-                onToggleFilters={() => {}}
-                viewMode={viewMode}
-                onViewModeChange={handleViewModeChange}
-                showQuickActions={true}
-                showFAB={true}
-                showTabs={true}
-                showThumbnails={showThumbnails}
-                compactLayout={compactLayout}
-                onDisplayOptionChange={handleDisplayOptionChange}
-                mobileOptimized={true}
-              />
+          {/* Enhanced Mobile Sorting Controls */}
+          <div className='bg-white shadow-sm border-b border-l border-r border-gray-200 rounded-b-lg'>
+            <EnhancedMobileSortingControls
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              sortOptions={getSortOptions('dive-sites')}
+              onSortChange={handleSortChange}
+              onSortApply={handleSortApply}
+              onReset={resetSorting}
+              entityType='dive-sites'
+              showFilters={false} // Hide filters in this section for now
+              onToggleFilters={() => {}}
+              viewMode={viewMode}
+              onViewModeChange={handleViewModeChange}
+              showQuickActions={true}
+              showFAB={true}
+              showTabs={true}
+              showThumbnails={showThumbnails}
+              compactLayout={compactLayout}
+              onDisplayOptionChange={handleDisplayOptionChange}
+              mobileOptimized={true}
+            />
 
-              {/* Mobile View Mode Quick Access */}
-              {isMobile && (
-                <div className='mb-4 flex gap-2 justify-center'>
-                  <button
-                    onClick={() => handleViewModeChange('list')}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      viewMode === 'list'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    } touch-manipulation min-h-[44px]`}
-                  >
-                    <List className='h-5 w-5 inline mr-2' />
-                    List
-                  </button>
-                  <button
-                    onClick={() => handleViewModeChange('grid')}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      viewMode === 'grid'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    } touch-manipulation min-h-[44px]`}
-                  >
-                    <Grid className='h-5 w-5 inline mr-2' />
-                    Grid
-                  </button>
-                  <button
-                    onClick={() => handleViewModeChange('map')}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      viewMode === 'map'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    } touch-manipulation min-h-[44px]`}
-                  >
-                    <Map className='h-5 w-5 inline mr-2' />
-                    Map
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+            {/* Mobile View Mode Quick Access */}
+            {isMobile && (
+              <div className='mt-4 flex justify-center gap-2'>
+                <button
+                  onClick={() => handleViewModeChange('list')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  } touch-manipulation min-h-[44px]`}
+                >
+                  <List className='h-5 w-5 inline mr-2' />
+                  List
+                </button>
+                <button
+                  onClick={() => handleViewModeChange('grid')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    viewMode === 'grid'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  } touch-manipulation min-h-[44px]`}
+                >
+                  <Grid className='h-5 w-5 inline mr-2' />
+                  Grid
+                </button>
+                <button
+                  onClick={() => handleViewModeChange('map')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    viewMode === 'map'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  } touch-manipulation min-h-[44px]`}
+                >
+                  <Map className='h-5 w-5 inline mr-2' />
+                  Map
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Pagination Controls - Mobile-first responsive design */}
           <div className='mb-4 sm:mb-6 lg:mb-8'>
@@ -880,10 +890,10 @@ const DiveSites = () => {
           </div>
 
           {/* Results Section - Mobile-first responsive design */}
-          {/* Dive Sites List */}
-          {viewMode === 'list' && (
+          {/* Dive Sites List - Always show when data is available and viewMode is list or undefined */}
+          {(viewMode === 'list' || !viewMode || viewMode === '') && diveSites?.results && (
             <div className={`space-y-2 sm:space-y-3 ${compactLayout ? 'view-mode-compact' : ''}`}>
-              {diveSites?.map(site => (
+              {diveSites.results.map(site => (
                 <div
                   key={site.id}
                   className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow ${
@@ -911,6 +921,14 @@ const DiveSites = () => {
                                 {site.name}
                               </Link>
                             </h3>
+                            {/* Match Type Badge - Show when we have match type information */}
+                            {matchTypes[site.id] && (
+                              <MatchTypeBadge
+                                matchType={matchTypes[site.id].type}
+                                score={matchTypes[site.id].score}
+                                className='flex-shrink-0'
+                              />
+                            )}
                             {(site.country || site.region) && (
                               <span
                                 className={`text-gray-600 flex-shrink-0 ${compactLayout ? 'text-xs' : 'text-sm'}`}
@@ -1015,11 +1033,11 @@ const DiveSites = () => {
           )}
 
           {/* Dive Sites Grid */}
-          {viewMode === 'grid' && (
+          {viewMode === 'grid' && diveSites?.results && (
             <div
               className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${compactLayout ? 'view-mode-compact' : ''}`}
             >
-              {diveSites?.map(site => (
+              {diveSites.results.map(site => (
                 <div
                   key={site.id}
                   className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
@@ -1045,6 +1063,14 @@ const DiveSites = () => {
                           {site.name}
                         </Link>
                       </h3>
+                      {/* Match Type Badge - Show when we have match type information */}
+                      {matchTypes[site.id] && (
+                        <MatchTypeBadge
+                          matchType={matchTypes[site.id].type}
+                          score={matchTypes[site.id].score}
+                          className='flex-shrink-0'
+                        />
+                      )}
                       {(site.country || site.region) && (
                         <span
                           className={`text-gray-600 flex-shrink-0 ${compactLayout ? 'text-xs' : 'text-sm'}`}
@@ -1147,18 +1173,43 @@ const DiveSites = () => {
               ))}
             </div>
           )}
-        </div>{' '}
+        </div>
         {/* Close content-section */}
         {/* No Results Message */}
-        {diveSites?.length === 0 && (
+        {diveSites?.results?.length === 0 && (
           <div className='text-center py-8 sm:py-12'>
             <Map className='h-12 w-12 text-gray-400 mx-auto mb-4' />
             <p className='text-sm sm:text-base text-gray-600'>
-              No dive sites found matching your criteria.
+              {filters.search_query.trim()
+                ? `No dive sites found matching "${filters.search_query}". Try adjusting your search terms.`
+                : 'No dive sites found matching your criteria.'}
             </p>
           </div>
         )}
-      </div>{' '}
+        {/* Fallback message when no dive sites are found */}
+        {diveSites?.results && diveSites.results.length === 0 && (
+          <div className='text-center py-12'>
+            <p className='text-gray-600'>No dive sites found matching your criteria.</p>
+            <p className='text-sm text-gray-500 mt-2'>Try adjusting your search or filters.</p>
+          </div>
+        )}
+
+        {/* Did you mean? - Show fuzzy search suggestions when no exact matches */}
+        {diveSites?.results && diveSites.results.length === 0 && filters.search_query && (
+          <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6'>
+            <h3 className='text-lg font-medium text-blue-900 mb-2'>Did you mean?</h3>
+            <p className='text-blue-700 mb-3'>
+              No exact matches found for "{filters.search_query}". Here are some similar dive sites:
+            </p>
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
+              {/* This will be populated by backend fuzzy search results */}
+              <div className='text-sm text-blue-600'>
+                Try searching for similar terms or check the spelling.
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
       {/* Close mobile-first responsive container */}
       {/* Phase 5 Mobile Optimization Summary */}
       {/*
