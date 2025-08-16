@@ -698,7 +698,7 @@ const DiveSites = () => {
                 Interactive Dive Sites Map
               </h2>
               <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200'>
-                <DiveSitesMap diveSites={diveSites?.results || []} />
+                <DiveSitesMap data-testid='dive-sites-map' diveSites={diveSites?.results || []} />
               </div>
             </div>
           </div>
@@ -774,36 +774,39 @@ const DiveSites = () => {
 
             {/* Mobile View Mode Quick Access */}
             {isMobile && (
-              <div className='mt-4 flex justify-center gap-2'>
+              <div data-testid='view-mode-toggle' className='mt-4 flex justify-center gap-2'>
                 <button
+                  data-testid='list-view-button'
                   onClick={() => handleViewModeChange('list')}
                   className={`px-4 py-2 rounded-lg transition-colors ${
                     viewMode === 'list'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } touch-manipulation min-h-[44px]`}
+                  } touch-manipulation min-h-[44px] ${viewMode === 'list' ? 'active' : ''}`}
                 >
                   <List className='h-5 w-5 inline mr-2' />
                   List
                 </button>
                 <button
+                  data-testid='grid-view-button'
                   onClick={() => handleViewModeChange('grid')}
                   className={`px-4 py-2 rounded-lg transition-colors ${
                     viewMode === 'grid'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } touch-manipulation min-h-[44px]`}
+                  } touch-manipulation min-h-[44px] ${viewMode === 'grid' ? 'active' : ''}`}
                 >
                   <Grid className='h-5 w-5 inline mr-2' />
                   Grid
                 </button>
                 <button
+                  data-testid='map-view-button'
                   onClick={() => handleViewModeChange('map')}
                   className={`px-4 py-2 rounded-lg transition-colors ${
                     viewMode === 'map'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } touch-manipulation min-h-[44px]`}
+                  } touch-manipulation min-h-[44px] ${viewMode === 'map' ? 'active' : ''}`}
                 >
                   <Map className='h-5 w-5 inline mr-2' />
                   Map
@@ -890,7 +893,10 @@ const DiveSites = () => {
           {/* Results Section - Mobile-first responsive design */}
           {/* Dive Sites List - Show when data is available and viewMode is list */}
           {viewMode === 'list' && diveSites?.results && (
-            <div className={`space-y-2 sm:space-y-3 ${compactLayout ? 'view-mode-compact' : ''}`}>
+            <div
+              data-testid='dive-sites-list'
+              className={`space-y-2 sm:space-y-3 ${compactLayout ? 'view-mode-compact' : ''}`}
+            >
               {diveSites.results.map(site => (
                 <div
                   key={site.id}
