@@ -5,10 +5,12 @@ import { useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
 import api from '../api';
+import { useAuth } from '../contexts/AuthContext';
 
 const CreateDiveSite = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -29,9 +31,13 @@ const CreateDiveSite = () => {
       queryClient.invalidateQueries(['admin-dive-sites']);
       queryClient.invalidateQueries(['dive-sites']);
       toast.success('Dive site created successfully!');
-      // Navigate to dive sites list for regular users, admin panel for admins
-      const isAdminRoute = window.location.pathname.includes('/admin/');
-      navigate(isAdminRoute ? '/admin/dive-sites' : '/dive-sites');
+
+      // Navigate based on user role
+      if (user?.is_admin) {
+        navigate('/admin/dive-sites');
+      } else {
+        navigate('/dive-sites');
+      }
     },
     onError: error => {
       toast.error(error.response?.data?.detail || 'Failed to create dive site');
@@ -77,9 +83,12 @@ const CreateDiveSite = () => {
   };
 
   const handleCancel = () => {
-    // Navigate back to dive sites list for regular users, admin panel for admins
-    const isAdminRoute = window.location.pathname.includes('/admin/');
-    navigate(isAdminRoute ? '/admin/dive-sites' : '/dive-sites');
+    // Navigate based on user role
+    if (user?.is_admin) {
+      navigate('/admin/dive-sites');
+    } else {
+      navigate('/dive-sites');
+    }
   };
 
   const suggestLocation = async () => {

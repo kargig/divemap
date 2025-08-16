@@ -238,7 +238,7 @@ async def get_diving_centers(
 @router.post("/", response_model=DivingCenterResponse)
 async def create_diving_center(
     diving_center: DivingCenterCreate,
-    current_user: User = Depends(is_admin_or_moderator),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     db_diving_center = DivingCenter(**diving_center.dict())

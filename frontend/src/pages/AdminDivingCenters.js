@@ -304,7 +304,7 @@ const AdminDivingCenters = () => {
           )}
         </div>
         <button
-          onClick={() => navigate('/admin/diving-centers/create')}
+          onClick={() => navigate('/diving-centers/create')}
           className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
         >
           <Plus className='h-4 w-4 mr-2' />
