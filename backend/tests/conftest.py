@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from fastapi.testclient import TestClient
 
 from app.database import Base, get_db
 from app.models import User, RefreshToken, AuthAuditLog
@@ -52,7 +53,11 @@ def client(db):
             pass
     
     app.dependency_overrides[get_db] = override_get_db
-    yield app
+    
+    # Create and return a TestClient
+    with TestClient(app) as test_client:
+        yield test_client
+    
     app.dependency_overrides.clear()
 
 

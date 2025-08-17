@@ -19,43 +19,20 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('access_token'));
   const [tokenExpiry, setTokenExpiry] = useState(null);
-  const [refreshTimer, setRefreshTimer] = useState(null);
+  // const [refreshTimer, setRefreshTimer] = useState(null); // No longer needed
 
-  // Token renewal logic
-  const scheduleTokenRenewal = useCallback(
-    expiresIn => {
-      if (refreshTimer) {
-        clearTimeout(refreshTimer);
-      }
-
-      // Renew token 2 minutes before expiration
-      const renewalTime = (expiresIn - 120) * 1000;
-      const timer = setTimeout(() => {
-        renewToken();
-      }, renewalTime);
-
-      setRefreshTimer(timer);
-    },
-    [refreshTimer]
-  );
+  // Token renewal logic - DISABLED to prevent conflicts with API interceptor
+  // The API interceptor handles token renewal automatically on 401 errors
+  const scheduleTokenRenewal = useCallback(expiresIn => {
+    // DISABLED: Proactive token renewal conflicts with API interceptor
+    // The API interceptor will handle token renewal automatically
+    console.log('Proactive token renewal disabled - using API interceptor instead');
+  }, []);
 
   const renewToken = async () => {
-    try {
-      const response = await api.post('/api/v1/auth/refresh');
-      const { access_token, expires_in } = response.data;
-
-      localStorage.setItem('access_token', access_token);
-      setToken(access_token);
-
-      // Schedule next renewal
-      scheduleTokenRenewal(expires_in);
-
-      console.log('Token renewed successfully');
-    } catch (error) {
-      console.error('Token renewal failed:', error);
-      // Fallback to logout
-      logout();
-    }
+    // DISABLED: This function is no longer needed
+    // The API interceptor handles token renewal automatically
+    console.log('Manual token renewal disabled - using API interceptor instead');
   };
 
   // Add token to requests if it exists
@@ -81,23 +58,10 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      console.log('=== FRONTEND LOGIN FUNCTION DEBUG ===');
-      console.log('Login attempt for username:', username);
-      console.log('Current cookies before login:', document.cookie);
-      console.log('Current localStorage before login:', {
-        access_token: localStorage.getItem('access_token'),
-        user: localStorage.getItem('user'),
-      });
-
       const response = await api.post('/api/v1/auth/login', {
         username,
         password,
       });
-
-      console.log('Login response received:', response);
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-      console.log('Response data:', response.data);
 
       const { access_token, expires_in } = response.data;
 
@@ -108,21 +72,8 @@ export const AuthProvider = ({ children }) => {
       const expiryTime = Date.now() + expires_in * 1000;
       localStorage.setItem('tokenExpiry', expiryTime.toString());
 
-      console.log('Access token stored in localStorage');
-      console.log('Token expiry calculated:', new Date(expiryTime));
-
-      // Check cookies after login
-      console.log('Cookies after login:', document.cookie);
-      console.log('localStorage after login:', {
-        access_token: localStorage.getItem('access_token'),
-        tokenExpiry: localStorage.getItem('tokenExpiry'),
-      });
-
-      // Schedule token renewal
-      scheduleTokenRenewal(expiryTime);
-
-      console.log('Token renewal scheduled');
-      console.log('=== END LOGIN FUNCTION DEBUG ===');
+      // Schedule token renewal - DISABLED (using API interceptor instead)
+      // scheduleTokenRenewal(expiryTime);
 
       return { success: true };
     } catch (error) {
@@ -145,8 +96,8 @@ export const AuthProvider = ({ children }) => {
       setToken(access_token);
       // Note: refreshToken state is no longer needed since it's in cookies
 
-      // Schedule token renewal
-      scheduleTokenRenewal(expires_in);
+      // Schedule token renewal - DISABLED (using API interceptor instead)
+      // scheduleTokenRenewal(expires_in);
 
       await fetchUser();
       toast.success('Google login successful!');
@@ -175,8 +126,8 @@ export const AuthProvider = ({ children }) => {
       setToken(access_token);
       // Note: refreshToken state is no longer needed since it's in cookies
 
-      // Schedule token renewal
-      scheduleTokenRenewal(expires_in);
+      // Schedule token renewal - DISABLED (using API interceptor instead)
+      // scheduleTokenRenewal(expires_in);
 
       await fetchUser();
       toast.success('Registration successful!');
@@ -203,8 +154,8 @@ export const AuthProvider = ({ children }) => {
       setToken(access_token);
       // Note: refreshToken state is no longer needed since it's in cookies
 
-      // Schedule token renewal
-      scheduleTokenRenewal(expires_in);
+      // Schedule token renewal - DISABLED (using API interceptor instead)
+      // scheduleTokenRenewal(expires_in);
 
       await fetchUser();
       toast.success('Google registration successful!');
@@ -218,11 +169,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    // Clear timers
-    if (refreshTimer) {
-      clearTimeout(refreshTimer);
-      setRefreshTimer(null);
-    }
+    // Clear timers - no longer needed since proactive renewal is disabled
+    // if (refreshTimer) {
+    //   clearTimeout(refreshTimer);
+    //   setRefreshTimer(null);
+    // }
 
     // Revoke refresh token on backend
     api.post('/api/v1/auth/logout').catch(console.error);
@@ -244,11 +195,12 @@ export const AuthProvider = ({ children }) => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (refreshTimer) {
-        clearTimeout(refreshTimer);
-      }
+      // No cleanup needed since proactive renewal is disabled
+      // if (refreshTimer) {
+      //   clearTimeout(refreshTimer);
+      // }
     };
-  }, [refreshTimer]);
+  }, []);
 
   const value = {
     user,

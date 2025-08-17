@@ -86,7 +86,7 @@ async def register(
         token_data["refresh_token"],
         max_age=int(token_service.refresh_token_expire.total_seconds()),
         httponly=True,
-        secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "true").lower() == "true",
+        secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true",
         samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
     )
 
@@ -117,18 +117,8 @@ async def login(
     # Create token pair
     try:
         token_data = token_service.create_token_pair(user, request, db)
-        print(f"DEBUG: Token data created: {list(token_data.keys()) if token_data else 'None'}")
-        print(f"DEBUG: Refresh token exists: {'refresh_token' in token_data if token_data else False}")
         
-        if token_data and 'refresh_token' in token_data:
-            print(f"DEBUG: Refresh token length: {len(token_data['refresh_token'])}")
-        else:
-            print("DEBUG: No refresh token in response!")
-            
     except Exception as e:
-        print(f"DEBUG: Error creating token pair: {e}")
-        import traceback
-        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create authentication tokens"
@@ -136,45 +126,14 @@ async def login(
 
     # Set refresh token as HTTP-only cookie
     if token_data and 'refresh_token' in token_data:
-        # Enhanced debugging for cookie setting
-        print(f"DEBUG: === COOKIE SETTING DEBUG ===")
-        print(f"DEBUG: Request origin: {request.headers.get('origin', 'No origin header')}")
-        print(f"DEBUG: Request host: {request.headers.get('host', 'No host header')}")
-        print(f"DEBUG: Request referer: {request.headers.get('referer', 'No referer header')}")
-        print(f"DEBUG: User agent: {request.headers.get('user-agent', 'No user-agent header')}")
-        
-        # Cookie parameters
-        cookie_max_age = int(token_service.refresh_token_expire.total_seconds())
-        cookie_secure = os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true"
-        cookie_samesite = "lax"
-        # Remove domain parameter to let browser handle it automatically
-        
-        print(f"DEBUG: Cookie parameters:")
-        print(f"DEBUG:   - max_age: {cookie_max_age}")
-        print(f"DEBUG:   - secure: {cookie_secure}")
-        print(f"DEBUG:   - samesite: {cookie_samesite}")
-        print(f"DEBUG:   - domain: None (browser default)")
-        print(f"DEBUG:   - httponly: True")
-        print(f"DEBUG:   - refresh_token length: {len(token_data['refresh_token'])}")
-        
         response.set_cookie(
             "refresh_token",
             token_data["refresh_token"],
-            max_age=cookie_max_age,
+            max_age=int(token_service.refresh_token_expire.total_seconds()),
             httponly=True,
-            secure=cookie_secure,
-            samesite=cookie_samesite
-            # No domain parameter
+            secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true",
+            samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
         )
-        
-        print(f"DEBUG: Cookie set successfully")
-        print(f"DEBUG: Response headers after cookie setting:")
-        for header, value in response.headers.items():
-            if 'set-cookie' in header.lower():
-                print(f"DEBUG:   {header}: {value}")
-        print(f"DEBUG: === END COOKIE DEBUG ===")
-    else:
-        print("DEBUG: Cannot set refresh token cookie - no refresh token available")
 
     return {
         "access_token": token_data["access_token"],
@@ -207,33 +166,14 @@ async def google_login(
             token_data = token_service.create_token_pair(user, request, db)
             
             # Set refresh token as HTTP-only cookie
-            print(f"DEBUG: === GOOGLE LOGIN COOKIE SETTING DEBUG ===")
-            print(f"DEBUG: Request origin: {request.headers.get('origin', 'No origin header')}")
-            print(f"DEBUG: Request host: {request.headers.get('host', 'No host header')}")
-            
-            cookie_max_age = int(token_service.refresh_token_expire.total_seconds())
-            cookie_secure = os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true"
-            cookie_samesite = "lax"
-            # Remove domain parameter to let browser handle it automatically
-            
-            print(f"DEBUG: Google login cookie parameters:")
-            print(f"DEBUG:   - max_age: {cookie_max_age}")
-            print(f"DEBUG:   - secure: {cookie_secure}")
-            print(f"DEBUG:   - samesite: {cookie_samesite}")
-            print(f"DEBUG:   - domain: None (browser default)")
-            
             response.set_cookie(
                 "refresh_token",
                 token_data["refresh_token"],
-                max_age=cookie_max_age,
+                max_age=int(token_service.refresh_token_expire.total_seconds()),
                 httponly=True,
-                secure=cookie_secure,
-                samesite=cookie_samesite
-                # No domain parameter
+                secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true",
+                samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
             )
-            
-            print(f"DEBUG: Google login cookie set successfully")
-            print(f"DEBUG: === END GOOGLE LOGIN COOKIE DEBUG ===")
             
             return {
                 "access_token": token_data["access_token"],
@@ -259,25 +199,24 @@ async def refresh_token(
     response: Response,
     db: Session = Depends(get_db)
 ):
-    print(f"DEBUG: === REFRESH TOKEN ENDPOINT CALLED ===")
-    print(f"DEBUG: Request cookies: {request.cookies}")
-    print(f"DEBUG: Request headers: {dict(request.headers)}")
-    
     # Get refresh token from cookies
     refresh_token = request.cookies.get("refresh_token")
-    print(f"DEBUG: Refresh token from cookies: {'Present' if refresh_token else 'Not present'}")
     
     if not refresh_token:
-        print("DEBUG: No refresh token in cookies")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token not found in cookies"
         )
 
     try:
-        # Validate and refresh token
-        token_data = token_service.refresh_access_token(refresh_token, request, db)
-        print(f"DEBUG: Token refresh successful")
+        # Validate and rotate refresh token (this returns both access and refresh tokens)
+        token_data = token_service.rotate_refresh_token(refresh_token, request, db)
+        
+        if not token_data:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token"
+            )
         
         # Set new refresh token as cookie
         response.set_cookie(
@@ -286,9 +225,8 @@ async def refresh_token(
             max_age=int(token_service.refresh_token_expire.total_seconds()),
             httponly=True,
             secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true",
-            samesite="lax"
+            samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
         )
-        print(f"DEBUG: New refresh token cookie set")
         
         return {
             "access_token": token_data["access_token"],
@@ -296,10 +234,9 @@ async def refresh_token(
             "expires_in": token_data["expires_in"]
         }
     except Exception as e:
-        print(f"DEBUG: Token refresh failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token"
+            detail="Token refresh failed"
         )
 
 @router.post("/logout")
@@ -315,7 +252,7 @@ async def logout(
         token_service.revoke_refresh_token(refresh_token, db)
     
     # Clear refresh token cookie
-    response.delete_cookie("refresh_token", httponly=True, secure=True, samesite="strict")
+    response.delete_cookie("refresh_token", httponly=True, secure=False, samesite="strict")
     
     return {"message": "Logged out successfully"}
 

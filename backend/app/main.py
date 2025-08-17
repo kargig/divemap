@@ -33,17 +33,11 @@ if allowed_origins_env:
     # Parse comma-separated origins from environment variable
     allow_origins = [origin.strip() for origin in allowed_origins_env.split(",")]
 else:
-    # Default origins for development and production
+    # Default origins for development
     allow_origins = [
-        # Development
-        "http://127.0.0.1:3000",
+        "http://localhost",  # Allow nginx proxy
         "http://localhost:3000",
-        "http://127.0.0.1:8000",
-        "http://localhost:8000",
-        # Production
-        "https://divemap.gr",
-        "https://divemap.fly.dev",
-        "https://divemap-backend.fly.dev"
+        "http://127.0.0.1:3000"
     ]
 
 app.add_middleware(
@@ -59,8 +53,7 @@ app.add_middleware(
         "X-Page-Size",
         "X-Has-Next-Page",
         "X-Has-Prev-Page",
-        "X-Match-Types",
-        "Set-Cookie",  # Expose Set-Cookie header to frontend
+        "X-Match-Types"
     ],
     max_age=3600,
 )
@@ -103,7 +96,7 @@ async def add_security_headers(request, call_next):
             "style-src 'self' 'unsafe-inline'; "
             "img-src 'self'; "
             "font-src 'self'; "
-            "connect-src 'self' http://127.0.0.1:8000 http://localhost:8000"
+            "connect-src 'self'"
         )
 
     response.headers["Content-Security-Policy"] = csp_policy
