@@ -111,8 +111,6 @@ const EnhancedMobileSortingControls = ({
 
   const handleDisplayOptionChange = option => {
     // This will be handled by the parent component
-    // For now, we'll just log the change
-    console.log('Display option changed:', option);
   };
 
   // Get current sort option for display

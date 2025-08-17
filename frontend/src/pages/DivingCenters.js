@@ -270,15 +270,9 @@ const DivingCenters = () => {
 
         // Extract match types from headers if available
         let matchTypes = {};
-        console.log('DEBUG: Response object:', response);
-        console.log('DEBUG: Response headers:', response.headers);
-        console.log('DEBUG: X-Match-Types header:', response.headers['x-match-types']);
         try {
           if (response.headers['x-match-types']) {
             matchTypes = JSON.parse(response.headers['x-match-types']);
-            console.log('DEBUG: Parsed match types:', matchTypes);
-          } else {
-            console.log('DEBUG: No x-match-types header found');
           }
         } catch (error) {
           console.warn('Failed to parse match types header:', error);
@@ -343,9 +337,6 @@ const DivingCenters = () => {
       sortBy,
       sortOrder,
     ]) || {};
-  console.log('DEBUG: matchTypes from cache:', matchTypes);
-  console.log('DEBUG: filters:', filters);
-  console.log('DEBUG: pagination:', pagination);
 
   // Rating mutation
   const rateMutation = useMutation(

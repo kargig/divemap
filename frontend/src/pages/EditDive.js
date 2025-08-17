@@ -128,9 +128,6 @@ const EditDive = () => {
     }
   }, [dive, divingCenters]);
 
-  // Monitor form data changes for debugging
-  useEffect(() => {}, [formData]);
-
   // Update dive mutation
   const updateDiveMutation = useMutation(({ diveId, diveData }) => updateDive(diveId, diveData), {
     onSuccess: () => {
@@ -338,7 +335,6 @@ const EditDive = () => {
 
         mediaPromises.push(
           addDiveMedia(id, mediaData).catch(_error => {
-            // console.error('Failed to add media URL:', error);
             toast.error(`Failed to add media URL: ${mediaUrl.url}`);
           })
         );
