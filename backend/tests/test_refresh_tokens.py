@@ -327,12 +327,20 @@ class TestAuthEndpoints:
         assert "refresh_token" in response.cookies
         assert response.cookies["refresh_token"] is not None
 
-    @pytest.mark.skip(reason="Google OAuth test requires proper environment setup")
     def test_google_login_with_refresh_token(self, client, test_user):
         """Test Google login endpoint returns access token and sets refresh token as cookie"""
         # Mock the Google authentication
-        with patch('app.google_auth.authenticate_google_user') as mock_auth:
-            mock_auth.return_value = test_user
+        with patch('app.routers.auth.verify_google_token') as mock_verify, \
+             patch('app.routers.auth.get_or_create_google_user') as mock_get_or_create:
+            
+            # Set up the mocks
+            mock_verify.return_value = {
+                'sub': 'google_user_123',
+                'email': 'testuser@example.com',
+                'name': 'Test User',
+                'picture': 'https://example.com/avatar.jpg'
+            }
+            mock_get_or_create.return_value = test_user
             
             response = client.post("/api/v1/auth/google-login", json={
                 "token": "google_token_123"

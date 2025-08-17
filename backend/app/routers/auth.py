@@ -17,7 +17,7 @@ from app.auth import (
     validate_password_strength
 )
 from app.token_service import token_service
-from app.google_auth import authenticate_google_user
+from app.google_auth import authenticate_google_user, verify_google_token, get_or_create_google_user
 from app.limiter import limiter, skip_rate_limit_for_admin
 
 router = APIRouter()
@@ -160,7 +160,12 @@ async def google_login(
         JWT access token for authenticated user
     """
     try:
-        user = authenticate_google_user(google_data.token, db)
+        # Verify Google token
+        google_user_info = verify_google_token(google_data.token)
+        
+        # Get or create user
+        user = get_or_create_google_user(db, google_user_info)
+        
         if user:
             # Create token pair
             token_data = token_service.create_token_pair(user, request, db)
