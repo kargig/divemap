@@ -145,8 +145,7 @@ const DiveTrips = () => {
       handleFilterChange('end_date', nextWeek.toISOString().split('T')[0]);
     } else if (key === 'location' && value === 'current') {
       if (user && userLocation.latitude && userLocation.longitude) {
-        // Already have location, just show a message
-        console.log('Using current location for distance sorting');
+        // Already have location
       } else {
         getUserLocation();
       }

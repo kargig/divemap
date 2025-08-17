@@ -57,7 +57,7 @@ const DiveSiteDetail = () => {
     select: response => response.data,
     onSuccess: _data => {},
     onError: _error => {
-      // console.error('DiveSiteDetail: Error loading dive site:', error);
+      // Error handled by error state
     },
   });
 
@@ -183,7 +183,6 @@ const DiveSiteDetail = () => {
   }
 
   if (error) {
-    // console.error('DiveSiteDetail: Error state:', error);
     return (
       <div className='text-center py-12'>
         <p className='text-red-600'>Error loading dive site. Please try again.</p>

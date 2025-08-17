@@ -111,11 +111,6 @@ const Dives = () => {
       return (newFilters, newPagination, newViewMode) => {
         // Safety check: only proceed if all parameters are properly defined
         if (!newFilters || !newPagination || !newViewMode) {
-          console.log('debouncedUpdateURL: Missing required parameters', {
-            newFilters,
-            newPagination,
-            newViewMode,
-          });
           return;
         }
 
@@ -229,11 +224,6 @@ const Dives = () => {
     (newFilters, newPagination, newViewMode) => {
       // Safety check: only proceed if all parameters are properly defined
       if (!newFilters || !newPagination || !newViewMode) {
-        console.log('immediateUpdateURL: Missing required parameters', {
-          newFilters,
-          newPagination,
-          newViewMode,
-        });
         return;
       }
 
