@@ -447,8 +447,6 @@ const EditDiveSite = () => {
         // Show success message
         toast.success('Dive site updated successfully');
 
-        // Log the navigation for debugging
-
         // Navigate to the dive site detail page
         navigate(`/dive-sites/${id}`);
       },
