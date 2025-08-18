@@ -1,0 +1,70 @@
+# fly.toml app configuration file for divemap-nginx-proxy
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'divemap-nginx-proxy'
+primary_region = 'fra'
+
+[build]
+  dockerfile = "Dockerfile.prod"
+
+[env]
+  NGINX_ENV = 'production'
+
+[processes]
+  app = 'nginx -g "daemon off;"'
+
+# HTTP service configuration
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+  # Health checks
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+# HTTPS service configuration
+[[http_service]]
+  internal_port = 443
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+  # SSL configuration
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+# VM configuration
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 2
+
+# Secrets that need to be set:
+# fly secrets set SSL_CERT="$(cat /path/to/cert.pem)" -a divemap-nginx-proxy
+# fly secrets set SSL_KEY="$(cat /path/to/key.pem)" -a divemap-nginx-proxy

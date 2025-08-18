@@ -6,10 +6,11 @@ This document provides comprehensive information about deploying the Divemap app
 
 1. [Overview](#overview)
 2. [Deployment Strategies](#deployment-strategies)
-   - [Makefile Deployment](#1-makefile-deployment-recommended)
-   - [Docker Compose](#2-docker-compose-development)
-   - [Fly.io](#3-flyio-production)
-   - [Kubernetes](#4-kubernetes-enterprise)
+   - [Nginx Proxy Production Deployment](#1-nginx-proxy-production-deployment-recommended-for-production)
+   - [Makefile Deployment](#2-makefile-deployment-legacy-separate-apps)
+   - [Docker Compose](#3-docker-compose-development)
+   - [Fly.io](#4-flyio-production)
+   - [Kubernetes](#5-kubernetes-enterprise)
 3. [Infrastructure Components](#infrastructure-components)
 4. [Environment Configuration](#environment-configuration)
 5. [Deployment Process](#deployment-process)
@@ -62,7 +63,41 @@ Divemap is designed for cloud deployment with containerized services, automated 
 
 ## Deployment Strategies
 
-### 1. Makefile Deployment (Recommended)
+### 1. Nginx Proxy Production Deployment (Recommended for Production)
+
+#### Unified Entry Point
+The nginx proxy provides a unified entry point for both frontend and backend services, solving cross-origin cookie issues and providing enterprise-grade security features.
+
+```bash
+# Deploy nginx proxy (handles both frontend and backend)
+cd nginx
+fly launch --no-deploy
+fly secrets set SSL_CERT="$(cat /path/to/cert.pem)" -a divemap-nginx-proxy
+fly secrets set SSL_KEY="$(cat /path/to/key.pem)" -a divemap-nginx-proxy
+fly deploy -a divemap-nginx-proxy
+```
+
+#### Nginx Proxy Features
+- **SSL Termination**: Handles HTTPS for divemap.gr
+- **Unified Domain**: Single domain for frontend and backend
+- **Security Headers**: Comprehensive security protection
+- **Rate Limiting**: API protection and abuse prevention
+- **Client IP Handling**: Proper Fly-Client-IP forwarding
+- **Performance**: Gzip compression and caching
+
+#### Production URLs
+- **Main Application**: https://divemap.gr/
+- **API Endpoints**: https://divemap.gr/api/
+- **Documentation**: https://divemap.gr/docs
+
+#### Prerequisites
+- SSL certificates for divemap.gr
+- Existing Fly.io apps (db, backend, frontend) running
+- Domain DNS configured
+
+**For detailed instructions, see [Nginx Proxy Production Deployment](./nginx-proxy-production-deployment.md)**
+
+### 2. Makefile Deployment (Legacy Separate Apps)
 
 #### Streamlined Deployment
 The project includes a Makefile that provides simplified deployment commands for both backend and frontend components.
@@ -96,7 +131,7 @@ make help
 - Frontend `.env` file configured with `REACT_APP_GOOGLE_CLIENT_ID`
 - Backend environment variables configured
 
-### 2. Docker Compose (Development)
+### 3. Docker Compose (Development)
 
 #### Local Development
 ```bash
@@ -270,7 +305,7 @@ docker run divemap_frontend_dev npm run test:e2e
 
 **💡 Tip**: Use `Dockerfile.dev` for development and testing, `Dockerfile` for production deployment.
 
-### 3. Fly.io (Production)
+### 4. Fly.io (Production)
 
 #### Cloud Deployment
 ```bash
@@ -368,7 +403,7 @@ cd ../backend && fly deploy
 cd ../frontend && fly deploy
 ```
 
-### 4. Kubernetes (Enterprise)
+### 5. Kubernetes (Enterprise)
 
 #### Kubernetes Deployment
 ```yaml
