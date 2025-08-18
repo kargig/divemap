@@ -14,6 +14,7 @@ Welcome to the Divemap development documentation. This guide provides comprehens
 ### Current Projects
 - [Diving Centers UX Improvements](./diving-centers-ux-improvements-plan.md) - 🎉 **100% Complete**
 - [Dive Sites UX Improvements](./dive-sites-ux-improvements-plan.md) - 🎉 **100% Complete**
+- [Refresh Token Implementation](./refresh-token-implementation-plan.md) - **🆕 Comprehensive authentication enhancement plan**
 
 ### Search & Algorithm Documentation
 - [Fuzzy Search Implementation Plan](./fuzzy-search-implementation-plan.md) - **Complete guide to search implementation across all pages**
@@ -96,6 +97,41 @@ The dive sites page has been completely transformed with a comprehensive UX over
 - `docs/development/dive-sites-ux-improvements-plan.md` - Complete progress tracking
 - `docs/development/dive-sites-content-first-ux-improvements.md` - Implementation details
 - `docs/development/README.md` - This file with recent progress
+
+---
+
+### 🆕 **Refresh Token Implementation Plan - New Authentication Enhancement**
+
+A comprehensive plan has been created to implement refresh tokens, background token renewal, and silent renewal in the Divemap application.
+
+#### **Current Authentication Issues:**
+- Users get logged out every 30 minutes
+- No warning before session expiration
+- Poor user experience for long browsing sessions
+- No automatic token renewal
+- Security risk of storing long-lived tokens
+
+#### **Proposed Solution:**
+- **Dual Token System**: Short-lived access tokens (15-30 min) + long-lived refresh tokens (7-30 days)
+- **Background Token Renewal**: Automatic renewal before expiration
+- **Silent Renewal**: No user interruption during renewal
+- **Enhanced Security**: Token rotation, revocation support, audit logging
+
+#### **Implementation Phases:**
+- **Phase 1**: Backend infrastructure (database, token service, API endpoints)
+- **Phase 2**: Frontend implementation (enhanced AuthContext, API interceptors)
+- **Phase 3**: Security enhancements (token rotation, rate limiting, audit logging)
+- **Phase 4**: Testing and validation (unit, integration, frontend tests)
+- **Phase 5**: Deployment and monitoring (migrations, configuration, monitoring)
+
+#### **Expected Benefits:**
+- **User Experience**: Reduce session interruptions from every 30 minutes to once per 30 days
+- **Security**: Enhanced token security with rotation and revocation
+- **Performance**: Background renewal without user interruption
+- **Monitoring**: Comprehensive audit logging and security monitoring
+
+#### **Documentation Created:**
+- `docs/development/refresh-token-implementation-plan.md` - Complete implementation plan with code examples
 
 ---
 
