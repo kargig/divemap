@@ -24,6 +24,10 @@ Welcome to the Divemap development documentation. This guide provides comprehens
 
 ## Recent Updates
 
+### August 2025
+- **Refresh Token Implementation**: Comprehensive refresh token system with background renewal, silent renewal, and enhanced security features. All implementation phases completed. [View Plan](./refresh-token-implementation-plan.md)
+- **Nginx Proxy Implementation Plan**: Plan to implement nginx reverse proxy for both development and production environments to solve cross-origin cookie issues. [View Plan](./nginx-proxy-implementation-plan.md)
+
 ### 🎉 **Diving Centers UX Improvements - Complete**
 
 The diving centers page has been successfully transformed with content-first design principles, creating a clean, focused interface with essential search and rating functionality.

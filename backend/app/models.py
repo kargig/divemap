@@ -451,8 +451,8 @@ class RefreshToken(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     token_hash = Column(String(255), nullable=False)
     expires_at = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, default=func.now)
-    last_used_at = Column(DateTime, default=func.now)
+    created_at = Column(DateTime, server_default=func.now())
+    last_used_at = Column(DateTime, server_default=func.now())
     is_revoked = Column(Boolean, default=False)
     device_info = Column(Text)
     ip_address = Column(String(45))
@@ -469,7 +469,7 @@ class AuthAuditLog(Base):
     action = Column(String(50), nullable=False)  # login, logout, token_refresh, etc.
     ip_address = Column(String(45))
     user_agent = Column(Text)
-    timestamp = Column(DateTime, default=func.now)
+    timestamp = Column(DateTime, server_default=func.now())
     success = Column(Boolean, default=True)
     details = Column(Text)
     

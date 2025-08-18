@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from slowapi.util import get_remote_address
 from slowapi import Limiter
 from pydantic import BaseModel
+import os
 
 from app.database import get_db
 from app.models import User
@@ -29,13 +30,13 @@ async def get_current_user_info(current_user: User = Depends(get_current_active_
     return current_user
 
 @router.post("/register", response_model=RegistrationResponse)
-@skip_rate_limit_for_admin("5/minute")
+@skip_rate_limit_for_admin("5/minute")  # Allow admins higher rate limit
 async def register(
     request: Request,
+    response: Response,
     user_data: UserCreate,
     db: Session = Depends(get_db)
 ):
-
     # Validate password strength
     if not validate_password_strength(user_data.password):
         raise HTTPException(
@@ -79,9 +80,18 @@ async def register(
     # Create token pair (user can login but will be blocked by enabled check)
     token_data = token_service.create_token_pair(db_user, request, db)
 
+    # Set refresh token as HTTP-only cookie
+    response.set_cookie(
+        "refresh_token",
+        token_data["refresh_token"],
+        max_age=int(token_service.refresh_token_expire.total_seconds()),
+        httponly=True,
+        secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "true").lower() == "true",
+        samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
+    )
+
     return {
         "access_token": token_data["access_token"],
-        "refresh_token": token_data["refresh_token"],
         "token_type": "bearer",
         "expires_in": token_data["expires_in"],
         "message": "Registration successful. Your account is pending admin approval."
@@ -91,6 +101,7 @@ async def register(
 @skip_rate_limit_for_admin("20/minute")
 async def login(
     request: Request,
+    response: Response,
     login_data: LoginRequest,
     db: Session = Depends(get_db)
 ):
@@ -104,11 +115,69 @@ async def login(
         )
 
     # Create token pair
-    token_data = token_service.create_token_pair(user, request, db)
+    try:
+        token_data = token_service.create_token_pair(user, request, db)
+        print(f"DEBUG: Token data created: {list(token_data.keys()) if token_data else 'None'}")
+        print(f"DEBUG: Refresh token exists: {'refresh_token' in token_data if token_data else False}")
+        
+        if token_data and 'refresh_token' in token_data:
+            print(f"DEBUG: Refresh token length: {len(token_data['refresh_token'])}")
+        else:
+            print("DEBUG: No refresh token in response!")
+            
+    except Exception as e:
+        print(f"DEBUG: Error creating token pair: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create authentication tokens"
+        )
+
+    # Set refresh token as HTTP-only cookie
+    if token_data and 'refresh_token' in token_data:
+        # Enhanced debugging for cookie setting
+        print(f"DEBUG: === COOKIE SETTING DEBUG ===")
+        print(f"DEBUG: Request origin: {request.headers.get('origin', 'No origin header')}")
+        print(f"DEBUG: Request host: {request.headers.get('host', 'No host header')}")
+        print(f"DEBUG: Request referer: {request.headers.get('referer', 'No referer header')}")
+        print(f"DEBUG: User agent: {request.headers.get('user-agent', 'No user-agent header')}")
+        
+        # Cookie parameters
+        cookie_max_age = int(token_service.refresh_token_expire.total_seconds())
+        cookie_secure = os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true"
+        cookie_samesite = "lax"
+        # Remove domain parameter to let browser handle it automatically
+        
+        print(f"DEBUG: Cookie parameters:")
+        print(f"DEBUG:   - max_age: {cookie_max_age}")
+        print(f"DEBUG:   - secure: {cookie_secure}")
+        print(f"DEBUG:   - samesite: {cookie_samesite}")
+        print(f"DEBUG:   - domain: None (browser default)")
+        print(f"DEBUG:   - httponly: True")
+        print(f"DEBUG:   - refresh_token length: {len(token_data['refresh_token'])}")
+        
+        response.set_cookie(
+            "refresh_token",
+            token_data["refresh_token"],
+            max_age=cookie_max_age,
+            httponly=True,
+            secure=cookie_secure,
+            samesite=cookie_samesite
+            # No domain parameter
+        )
+        
+        print(f"DEBUG: Cookie set successfully")
+        print(f"DEBUG: Response headers after cookie setting:")
+        for header, value in response.headers.items():
+            if 'set-cookie' in header.lower():
+                print(f"DEBUG:   {header}: {value}")
+        print(f"DEBUG: === END COOKIE DEBUG ===")
+    else:
+        print("DEBUG: Cannot set refresh token cookie - no refresh token available")
 
     return {
         "access_token": token_data["access_token"],
-        "refresh_token": token_data["refresh_token"],
         "token_type": "bearer",
         "expires_in": token_data["expires_in"]
     }
@@ -117,6 +186,7 @@ async def login(
 @skip_rate_limit_for_admin("20/minute")
 async def google_login(
     request: Request,
+    response: Response,
     google_data: GoogleLoginRequest,
     db: Session = Depends(get_db)
 ):
@@ -135,9 +205,38 @@ async def google_login(
         if user:
             # Create token pair
             token_data = token_service.create_token_pair(user, request, db)
+            
+            # Set refresh token as HTTP-only cookie
+            print(f"DEBUG: === GOOGLE LOGIN COOKIE SETTING DEBUG ===")
+            print(f"DEBUG: Request origin: {request.headers.get('origin', 'No origin header')}")
+            print(f"DEBUG: Request host: {request.headers.get('host', 'No host header')}")
+            
+            cookie_max_age = int(token_service.refresh_token_expire.total_seconds())
+            cookie_secure = os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true"
+            cookie_samesite = "lax"
+            # Remove domain parameter to let browser handle it automatically
+            
+            print(f"DEBUG: Google login cookie parameters:")
+            print(f"DEBUG:   - max_age: {cookie_max_age}")
+            print(f"DEBUG:   - secure: {cookie_secure}")
+            print(f"DEBUG:   - samesite: {cookie_samesite}")
+            print(f"DEBUG:   - domain: None (browser default)")
+            
+            response.set_cookie(
+                "refresh_token",
+                token_data["refresh_token"],
+                max_age=cookie_max_age,
+                httponly=True,
+                secure=cookie_secure,
+                samesite=cookie_samesite
+                # No domain parameter
+            )
+            
+            print(f"DEBUG: Google login cookie set successfully")
+            print(f"DEBUG: === END GOOGLE LOGIN COOKIE DEBUG ===")
+            
             return {
                 "access_token": token_data["access_token"],
-                "refresh_token": token_data["refresh_token"],
                 "token_type": "bearer",
                 "expires_in": token_data["expires_in"]
             }
@@ -155,31 +254,53 @@ async def google_login(
         )
 
 @router.post("/refresh", response_model=Token)
-@limiter.limit("10/minute")  # Prevent abuse
 async def refresh_token(
     request: Request,
+    response: Response,
     db: Session = Depends(get_db)
 ):
-    """Refresh access token using refresh token"""
+    print(f"DEBUG: === REFRESH TOKEN ENDPOINT CALLED ===")
+    print(f"DEBUG: Request cookies: {request.cookies}")
+    print(f"DEBUG: Request headers: {dict(request.headers)}")
+    
+    # Get refresh token from cookies
     refresh_token = request.cookies.get("refresh_token")
+    print(f"DEBUG: Refresh token from cookies: {'Present' if refresh_token else 'Not present'}")
+    
     if not refresh_token:
+        print("DEBUG: No refresh token in cookies")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token not found"
+            detail="Refresh token not found in cookies"
         )
-    
-    new_access_token = token_service.refresh_access_token(refresh_token, request, db)
-    if not new_access_token:
+
+    try:
+        # Validate and refresh token
+        token_data = token_service.refresh_access_token(refresh_token, request, db)
+        print(f"DEBUG: Token refresh successful")
+        
+        # Set new refresh token as cookie
+        response.set_cookie(
+            "refresh_token",
+            token_data["refresh_token"],
+            max_age=int(token_service.refresh_token_expire.total_seconds()),
+            httponly=True,
+            secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true",
+            samesite="lax"
+        )
+        print(f"DEBUG: New refresh token cookie set")
+        
+        return {
+            "access_token": token_data["access_token"],
+            "token_type": "bearer",
+            "expires_in": token_data["expires_in"]
+        }
+    except Exception as e:
+        print(f"DEBUG: Token refresh failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token"
+            detail="Invalid refresh token"
         )
-    
-    return {
-        "access_token": new_access_token,
-        "token_type": "bearer",
-        "expires_in": int(token_service.access_token_expire.total_seconds())
-    }
 
 @router.post("/logout")
 async def logout(

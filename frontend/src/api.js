@@ -22,17 +22,60 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
+// Response interceptor for token renewal
 api.interceptors.response.use(
   response => {
+    // Debug logging for successful responses
+    if (response.config.url && response.config.url.includes('/auth/login')) {
+      console.log('=== FRONTEND LOGIN RESPONSE DEBUG ===');
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      console.log('Response data keys:', Object.keys(response.data));
+      console.log('Cookies in response:', response.headers['set-cookie']);
+      console.log('=== END LOGIN RESPONSE DEBUG ===');
+    }
     return response;
   },
-  error => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid, redirect to login
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+  async error => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // Attempt to renew token using refresh token from cookies
+        console.log('=== FRONTEND TOKEN REFRESH DEBUG ===');
+        console.log('Attempting token refresh...');
+        console.log('Current cookies:', document.cookie);
+
+        const response = await api.post(
+          '/api/v1/auth/refresh',
+          {},
+          {
+            withCredentials: true, // Important: include cookies
+          }
+        );
+        const { access_token } = response.data;
+
+        console.log('Token refresh successful, new access token received');
+        console.log('New access token length:', access_token ? access_token.length : 0);
+
+        // Update localStorage with new token
+        localStorage.setItem('access_token', access_token);
+
+        // Retry original request with new token
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        console.log('=== END TOKEN REFRESH DEBUG ===');
+        return api(originalRequest);
+      } catch (refreshError) {
+        console.log('Token refresh failed:', refreshError);
+        // Refresh failed, redirect to login
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
     } else if (error.response?.status === 429) {
       // Rate limiting - extract retry after information if available
       const retryAfter =
@@ -40,6 +83,7 @@ api.interceptors.response.use(
       error.retryAfter = retryAfter;
       error.isRateLimited = true;
     }
+
     return Promise.reject(error);
   }
 );

@@ -64,6 +64,8 @@ services:
     restart: always
     ports:
       - "8000:8000"
+    env_file:
+      - ".env"
     environment:
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-divemap_user}:${MYSQL_PASSWORD:-divemap_password}@db:3306/divemap
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
