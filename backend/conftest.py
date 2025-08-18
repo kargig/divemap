@@ -4,10 +4,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from unittest.mock import Mock
 
 from app.main import app
 from app.database import get_db, Base
-from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment, DivingOrganization, UserCertification
+from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment, DivingOrganization, UserCertification, RefreshToken, AuthAuditLog
 from app.auth import create_access_token
 
 # Test database URL
@@ -45,7 +46,7 @@ def db_session():
         # Drop tables after test
         Base.metadata.drop_all(bind=engine)
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def client(db_session):
     """Create a test client with a fresh database."""
     def override_get_db():
@@ -63,6 +64,12 @@ def client(db_session):
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
+        # Set headers to simulate localhost request (exempts from rate limiting)
+        test_client.headers.update({
+            "X-Forwarded-For": "127.0.0.1",
+            "X-Real-IP": "127.0.0.1",
+            "Host": "localhost"
+        })
         yield test_client
     app.dependency_overrides.clear()
 
@@ -79,7 +86,7 @@ def test_user(db_session):
     user = User(
         username="testuser",
         email="test@example.com",
-        password_hash="$2b$12$Qf4ceC4ETacht.pNDme/H.nTnGtc7bNpWDZD2R39K.1Nh32oH7cfy",  # "password"
+        password_hash="$2b$12$bkh2s0S1uAXrAMa5CewBwubJhyiZJTs1jEwy7I4R2Sn9q9cXW2BxO",  # "TestPass123!"
         is_admin=False,
         is_moderator=False,
         enabled=True
@@ -183,6 +190,16 @@ def admin_headers(admin_token):
 def moderator_headers(moderator_token):
     """Return headers with moderator authentication."""
     return {"Authorization": f"Bearer {moderator_token}"}
+
+
+@pytest.fixture
+def mock_request():
+    """Mock request object for testing"""
+    request = Mock()
+    request.headers = {"User-Agent": "Test Browser/1.0"}
+    request.client = Mock()
+    request.client.host = "127.0.0.1"
+    return request
 
 @pytest.fixture
 def test_diving_organization(db_session):

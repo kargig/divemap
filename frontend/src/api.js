@@ -6,6 +6,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important: include cookies with all requests
 });
 
 // Request interceptor to add auth token
@@ -85,6 +86,13 @@ api.interceptors.response.use(
 
         // Update localStorage with new token
         localStorage.setItem('access_token', access_token);
+
+        // Dispatch custom event to notify AuthContext of token refresh
+        window.dispatchEvent(
+          new CustomEvent('tokenRefreshed', {
+            detail: { access_token },
+          })
+        );
 
         // Process queued requests
         processQueue(null, access_token);

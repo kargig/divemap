@@ -60,6 +60,13 @@ class TokenService:
     
     def create_refresh_token(self, user: User, request: Request, db: Session) -> str:
         """Create long-lived refresh token"""
+        # Clean up old expired tokens
+        self._cleanup_expired_tokens(user.id, db)
+        
+        # Check if user has too many active sessions
+        if self._has_too_many_sessions(user.id, db):
+            self._revoke_oldest_session(user.id, db)
+        
         token_id = str(uuid.uuid4())
         token_data = f"{user.username}:{token_id}:{datetime.utcnow().timestamp()}"
         
@@ -93,7 +100,11 @@ class TokenService:
             token_timestamp = float(timestamp)
             
             # Check if token is too old (prevent replay attacks)
-            if datetime.utcnow().timestamp() - token_timestamp > 300:  # 5 minutes
+            current_time = datetime.utcnow().timestamp()
+            time_diff = current_time - token_timestamp
+            # Allow refresh tokens up to 1 week old (604800 seconds) to prevent replay attacks
+            # This provides good user experience while maintaining security
+            if time_diff > 604800:  # 1 week (7 days)
                 return None
             
             # Find token in database

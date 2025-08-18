@@ -44,6 +44,21 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
+  // Listen for token refresh events from API interceptor
+  useEffect(() => {
+    const handleTokenRefresh = event => {
+      const { access_token } = event.detail;
+      console.log('Token refreshed via API interceptor, updating state');
+      setToken(access_token);
+    };
+
+    window.addEventListener('tokenRefreshed', handleTokenRefresh);
+
+    return () => {
+      window.removeEventListener('tokenRefreshed', handleTokenRefresh);
+    };
+  }, []);
+
   const fetchUser = async () => {
     try {
       const response = await api.get('/api/v1/auth/me');
@@ -67,6 +82,9 @@ export const AuthProvider = ({ children }) => {
 
       // Store access token
       localStorage.setItem('access_token', access_token);
+
+      // Update token state
+      setToken(access_token);
 
       // Calculate expiry time
       const expiryTime = Date.now() + expires_in * 1000;
