@@ -121,6 +121,7 @@ async def enhanced_security_logging(request, call_next):
     if 'X-Forwarded-For' in request.headers:
         forwarded_for = request.headers['X-Forwarded-For']
         ips = [ip.strip() for ip in forwarded_for.split(',')]
+        suspicious_details.append(f"Suspicious IPs: {(ips)}")
         
         # Only log if there are more than 3 IPs (unusual proxy chain)
         # or if the first IP looks suspicious

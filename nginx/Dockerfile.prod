@@ -3,31 +3,20 @@ FROM nginx:alpine
 
 # Install required packages
 RUN apk add --no-cache \
-    openssl \
     curl \
     && rm -rf /var/cache/apk/*
-
-# Create SSL directory
-RUN mkdir -p /etc/nginx/ssl
 
 # Copy production configuration
 COPY prod.conf /etc/nginx/nginx.conf
 
-# Copy startup script
-COPY startup.sh /usr/local/bin/startup.sh
-
-# Create nginx user if it doesn't exist
-RUN addgroup -g 1000 -S nginx && \
-    adduser -u 1000 -D -S -G nginx nginx
-
-# Set proper permissions
+# Set proper permissions (nginx user already exists in base image)
 RUN chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx && \
     chown -R nginx:nginx /etc/nginx/conf.d && \
-    chown -R nginx:nginx /etc/nginx/ssl && \
+    chown nginx:nginx /etc/nginx/nginx.conf && \
+    chmod 644 /etc/nginx/nginx.conf && \
     touch /var/run/nginx.pid && \
-    chown -R nginx:nginx /var/run/nginx.pid && \
-    chmod +x /usr/local/bin/startup.sh
+    chown -R nginx:nginx /var/run/nginx.pid
 
 # Create health check script
 RUN echo '#!/bin/sh' > /usr/local/bin/healthcheck && \
@@ -38,11 +27,11 @@ RUN echo '#!/bin/sh' > /usr/local/bin/healthcheck && \
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD /usr/local/bin/healthcheck
 
-# Expose ports
-EXPOSE 80 443
+# Expose port (only HTTP needed)
+EXPOSE 80
 
 # Switch to non-root user
 USER nginx
 
-# Start with startup script
-CMD ["/usr/local/bin/startup.sh"]
+# Start nginx directly (no startup script needed)
+CMD ["nginx", "-g", "daemon off;"]

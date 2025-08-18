@@ -600,6 +600,282 @@ fly logs -n
 
 Use Fly's built-in monitoring dashboard for detailed metrics.
 
+## Nginx Proxy Production Deployment
+
+### Overview
+
+The nginx proxy provides a unified entry point for both frontend and backend services, solving cross-origin cookie issues and providing enterprise-grade security features. **Fly.io handles TLS termination at the edge proxy, so no SSL certificates are needed in the nginx application.**
+
+### Architecture
+
+```
+Internet (HTTPS)
+    │
+    ▼
+┌─────────────────┐
+│  Fly.io Proxy   │  ← TLS termination happens here
+│  (divemap.gr)   │
+└─────────────────┘
+    │ (HTTP internally)
+    ▼
+┌─────────────────────────┐
+│  divemap-nginx-proxy    │  ← HTTP only, no SSL needed
+│  (internal HTTP)        │
+└─────────────────────────┘
+    │ (HTTP internally)
+    ├─── Frontend (divemap-frontend.flycast:8080)
+    └─── Backend (divemap-backend.flycast:8000)
+```
+
+### Key Features
+
+- **Unified Domain**: Single domain (divemap.gr) for frontend and backend
+- **No CORS Issues**: Same-origin requests eliminate cross-origin cookie problems
+- **Security Headers**: Comprehensive security protection
+- **Rate Limiting**: API protection and abuse prevention
+- **Client IP Handling**: Proper Fly-Client-IP forwarding
+- **Performance**: Gzip compression and caching
+
+### Deployment Steps
+
+#### Step 1: Create the Nginx Proxy App
+
+```bash
+cd nginx
+
+# Launch the nginx proxy app (don't deploy yet)
+fly launch --no-deploy
+
+# This will create the app and ask for configuration
+# App name: divemap-nginx-proxy
+# Region: fra (Frankfurt)
+# No database needed
+```
+
+#### Step 2: Deploy the Nginx Proxy
+
+```bash
+# Deploy the nginx proxy (no SSL setup needed)
+fly deploy -a divemap-nginx-proxy
+```
+
+#### Step 3: Configure Domain Routing
+
+```bash
+# Add your domain to the app
+fly domains add divemap.gr -a divemap-nginx-proxy
+
+# Add www subdomain
+fly domains add www.divemap.gr -a divemap-nginx-proxy
+```
+
+#### Step 4: Verify Deployment
+
+```bash
+# Check app status
+fly status -a divemap-nginx-proxy
+
+# Check logs
+fly logs -a divemap-nginx-proxy
+
+# Test health endpoint
+curl https://divemap.gr/health
+```
+
+### Configuration Details
+
+#### **No SSL Certificate Setup Required** ✅
+
+Fly.io automatically handles:
+- **TLS termination** at the edge proxy
+- **SSL certificate management** and renewal
+- **HTTP to HTTPS redirects**
+- **Modern TLS protocols** and cipher suites
+
+Your nginx app only needs to handle HTTP traffic internally.
+
+#### Environment Variables
+
+No special environment variables are needed for SSL:
+
+```bash
+# The nginx app runs with default environment
+# Fly.io handles all TLS/SSL configuration automatically
+```
+
+### Security Features
+
+#### **Rate Limiting**
+- **API endpoints**: 10 requests per second with 20 burst
+- **Login endpoint**: 5 requests per minute with 5 burst
+- **Frontend**: No rate limiting (static content)
+
+#### **Security Headers**
+- **X-Frame-Options**: DENY (prevents clickjacking)
+- **X-Content-Type-Options**: nosniff (prevents MIME sniffing)
+- **X-XSS-Protection**: 1; mode=block (XSS protection)
+- **Content-Security-Policy**: Restrictive CSP for security
+- **Referrer-Policy**: strict-origin-when-cross-origin
+
+**Note**: HSTS is handled by Fly.io at the edge proxy level.
+
+#### **Client IP Handling**
+- **Fly-Client-IP**: Primary header for client IP
+- **X-Forwarded-For**: Chain of proxy IPs
+- **X-Real-IP**: Direct client IP
+- **X-Forwarded-Proto**: Protocol (http/https)
+
+### Integration with Existing Apps
+
+#### **Backend Integration**
+
+The backend app (`divemap-backend`) should be configured with:
+
+```bash
+# CORS origins
+fly secrets set ALLOWED_ORIGINS="https://divemap.gr" -a divemap-backend
+
+# Trust proxy headers
+# (Already configured in the backend code)
+```
+
+#### **Frontend Integration**
+
+The frontend app (`divemap-frontend`) should be configured with:
+
+```bash
+# API URL pointing to nginx proxy
+fly secrets set REACT_APP_API_URL="https://divemap.gr/api" -a divemap-frontend
+```
+
+### Monitoring and Health Checks
+
+#### **Health Check Endpoint**
+
+```bash
+# Health check URL
+GET https://divemap.gr/health
+
+# Expected response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+
+healthy
+```
+
+#### **Logging**
+
+```bash
+# View nginx logs
+fly logs -a divemap-nginx-proxy
+
+# View specific log types
+fly logs -a divemap-nginx-proxy | grep "ERROR"
+fly logs -a divemap-nginx-proxy | grep "WARN"
+```
+
+### Performance Features
+
+#### **Compression and Caching**
+- **Gzip compression**: Enabled for text-based content
+- **Static asset caching**: 1 year with immutable flag
+- **Connection pooling**: 32 keepalive connections
+- **Buffer optimization**: 4KB buffers for API responses
+
+### Troubleshooting
+
+#### **Common Issues**
+
+1. **Permission Denied Errors**
+   ```bash
+   # If you see: "open() /etc/nginx/nginx.conf failed (13: Permission denied)"
+   # This is fixed in the current Dockerfile, but if it persists:
+   
+   fly ssh console -a divemap-nginx-proxy
+   ls -la /etc/nginx/nginx.conf
+   # Should show: -rw-r--r-- 1 nginx nginx
+   
+   # If permissions are wrong, redeploy:
+   fly deploy -a divemap-nginx-proxy
+   ```
+
+2. **Connection Refused**
+   ```bash
+   # Check if backend/frontend are running
+   fly status -a divemap-backend
+   fly status -a divemap-frontend
+   
+   # Verify internal addresses
+   fly ssh console -a divemap-nginx-proxy
+   ping divemap-backend.flycast
+   ping divemap-frontend.flycast
+   ```
+
+3. **Rate Limiting Issues**
+   ```bash
+   # Check nginx logs for rate limiting
+   fly logs -a divemap-nginx-proxy | grep "limiting"
+   ```
+
+#### **Debug Commands**
+
+```bash
+# SSH into the nginx container
+fly ssh console -a divemap-nginx-proxy
+
+# Test nginx configuration
+nginx -t
+
+# Check nginx process
+ps aux | grep nginx
+
+# View nginx error log
+tail -f /var/log/nginx/error.log
+
+# Check file permissions
+ls -la /etc/nginx/nginx.conf
+ls -la /etc/nginx/
+```
+
+### Benefits
+
+#### **For Users**
+- **Single domain**: No more cross-origin issues
+- **Faster authentication**: Refresh tokens work seamlessly
+- **Better security**: HTTPS enforcement and security headers
+- **Improved performance**: Gzip compression and caching
+
+#### **For Developers**
+- **Unified deployment**: Single app to manage
+- **Better monitoring**: Centralized logging and health checks
+- **Easier debugging**: Single entry point for all traffic
+- **Scalability**: Easy to scale and optimize
+
+#### **For Operations**
+- **Centralized security**: Single point for security headers
+- **Better monitoring**: Unified access logs and metrics
+- **Easier maintenance**: Single service to update
+- **Cost optimization**: Efficient resource usage
+- **No SSL maintenance**: Fly.io handles everything automatically
+
+### Deployment Checklist
+
+- [ ] Fly.io CLI installed and authenticated
+- [ ] Existing apps (db, backend, frontend) running
+- [ ] Domain DNS configured
+- [ ] Nginx proxy app created
+- [ ] App deployed successfully
+- [ ] Domain routing configured
+- [ ] Health checks passing
+- [ ] Frontend accessible via HTTPS
+- [ ] Backend API accessible via HTTPS
+- [ ] Client IP headers working
+- [ ] Rate limiting functional
+- [ ] Security headers present
+- [ ] Monitoring and logging working
+
+**Note**: SSL/TLS setup is handled automatically by Fly.io - no manual configuration needed.
+
 ## Future Enhancements
 
 ### 1. Multi-Region Deployment

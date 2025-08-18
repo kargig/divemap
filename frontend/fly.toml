@@ -1,15 +1,12 @@
-# fly.toml app configuration file generated for divemap on 2025-07-27T18:05:39+03:00
+# fly.toml app configuration file generated for divemap-frontend on 2025-08-18T22:29:18+03:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'divemap'
+app = 'divemap-frontend'
 primary_region = 'fra'
 
 [build]
-  [build.args]
-    REACT_APP_API_URL = "https://divemap-backend.fly.dev"
-    # REACT_APP_GOOGLE_CLIENT_ID will be provided via build secrets
 
 [env]
   NODE_ENV = 'production'
@@ -19,7 +16,7 @@ primary_region = 'fra'
 
 [http_service]
   internal_port = 8080
-  force_https = true
+  force_https = false
   auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
