@@ -1170,6 +1170,8 @@ async def get_parsed_trips(
                 )
                 for dive in td['trip'].dives
             ],
+            source_newsletter_id=td['trip'].source_newsletter_id,
+            newsletter_content=td['trip'].newsletter_content if hasattr(td['trip'], 'newsletter_content') else None,
             extracted_at=td['trip'].extracted_at,
             created_at=td['trip'].created_at,
             updated_at=td['trip'].updated_at
