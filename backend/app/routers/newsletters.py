@@ -29,6 +29,86 @@ logging.getLogger().setLevel(numeric_level)
 
 router = APIRouter()
 
+def clean_diving_terminology(dive_site_name: str) -> str:
+    """
+    Clean common diving terminology from dive site names to improve database matching.
+    
+    Args:
+        dive_site_name: The dive site name that may contain diving terminology
+        
+    Returns:
+        Cleaned dive site name with diving terminology removed
+    """
+    if not dive_site_name:
+        return dive_site_name
+    
+    # Define diving terminology patterns (case insensitive)
+    diving_patterns = [
+        # Wreck terminology
+        r'\bναυάγιο\b',      # Greek: ναυάγιο
+        r'\bΝΑΥΑΓΙΟ\b',      # Greek: ΝΑΥΑΓΙΟ
+        r'\bΝαυάγιο\b',      # Greek: Ναυάγιο
+        r'\bwreck\b',        # English: wreck
+        r'\bWRECK\b',        # English: WRECK
+        r'\bWreck\b',        # English: Wreck
+        
+        # Reef terminology
+        r'\bύφαλος\b',       # Greek: ύφαλος
+        r'\bΥΦΑΛΟΣ\b',       # Greek: ΥΦΑΛΟΣ
+        r'\bΎφαλος\b',       # Greek: Ύφαλος
+        r'\breef\b',         # English: reef
+        r'\bREEF\b',         # English: REEF
+        r'\bReef\b',         # English: Reef
+        
+        # Cave terminology
+        r'\bσπήλαιο\b',      # Greek: σπήλαιο
+        r'\bΣΠΗΛΑΙΟ\b',      # Greek: ΣΠΗΛΑΙΟ
+        r'\bΣπήλαιο\b',      # Greek: Σπήλαιο
+        r'\bcave\b',         # English: cave
+        r'\bCAVE\b',         # English: CAVE
+        r'\bCave\b',         # English: Cave
+        
+        # Wall terminology
+        r'\bτοίχος\b',       # Greek: τοίχος
+        r'\bΤΟΙΧΟΣ\b',       # Greek: ΤΟΙΧΟΣ
+        r'\bΤοίχος\b',       # Greek: Τοίχος
+        r'\bwall\b',         # English: wall
+        r'\bWALL\b',         # English: WALL
+        r'\bWall\b',         # English: Wall
+        
+        # Island terminology
+        r'\bνησί\b',         # Greek: νησί
+        r'\bΝΗΣΙ\b',         # Greek: ΝΗΣΙ
+        r'\bΝησί\b',         # Greek: Νησί
+        r'\bisland\b',       # English: island
+        r'\bISLAND\b',       # English: ISLAND
+        r'\bIsland\b',       # English: Island
+        
+        # Cape/Point terminology
+        r'\bάκρα\b',         # Greek: άκρα
+        r'\bΑΚΡΑ\b',         # Greek: ΑΚΡΑ
+        r'\bΆκρα\b',         # Greek: Άκρα
+        r'\bcape\b',         # English: cape
+        r'\bCAPE\b',         # English: CAPE
+        r'\bCape\b',         # English: Cape
+        r'\bpoint\b',        # English: point
+        r'\bPOINT\b',        # English: POINT
+        r'\bPoint\b',        # English: Point
+    ]
+    
+    cleaned_name = dive_site_name
+    
+    # Remove each diving pattern
+    for pattern in diving_patterns:
+        cleaned_name = re.sub(pattern, '', cleaned_name, flags=re.IGNORECASE)
+    
+    # Clean up extra whitespace and trim
+    cleaned_name = re.sub(r'\s+', ' ', cleaned_name).strip()
+    
+    logger.info(f"🧹 Cleaned dive site name: '{dive_site_name}' -> '{cleaned_name}'")
+    
+    return cleaned_name
+
 def search_dive_trips_with_fuzzy(query: str, exact_results: List[ParsedDiveTrip], db: Session, similarity_threshold: float = 0.2, max_fuzzy_results: int = 10):
     """
     Enhance search results with fuzzy matching when exact results are insufficient.
@@ -417,7 +497,7 @@ def parse_newsletter_with_openai(content: str, db: Session) -> List[dict]:
         prompt = f"""
 Parse the following newsletter content and extract dive trip information. Return a JSON array of dive trips.
 
-⚠️ CRITICAL: This newsletter is in Greek. You MUST parse Greek date formats correctly!
+⚠️ CRITICAL: This newsletter is probably in Greek. You MUST parse Greek date formats correctly!
 ⚠️ NEVER default to today's date when a Greek date is clearly specified in the text!
 
 ⚠️ IMPORTANT: Handle "Διπλή βουτιά" (double dive) scenarios correctly:
@@ -503,6 +583,9 @@ TRIP STRUCTURE RULES:
 - IMPORTANT: When you see "Διπλή βουτιά" or "double dive" in the text, this means there are exactly 2 dives that day
 - If "Διπλή βουτιά" is mentioned but only ONE dive site is specified, both dives happen at the same location
 - If "Διπλή βουτιά" is mentioned and TWO different dive sites are specified, each dive happens at a different location
+- CRITICAL: When you see different dates mentioned (e.g., "Σάββατο 23 Αυγούστου" and "Κυριακή 24 Αυγούστου"), create SEPARATE trip objects for each date
+- CRITICAL: Each date section has its own unique dive sites! NEVER copy dive sites from one date to another!
+- CRITICAL: Look for dive sites that are mentioned NEAR each specific date, not globally in the newsletter
 - Examples:
   * "διπλή βουτιά στην Μακρόνησο" = 2 dives at Makronisos (same location)
   * "διπλή βουτιά στον Ποθητό και στο Ποντικονήσι" = 2 dives at different locations (Pothitos, then Pontikonisi)
@@ -514,25 +597,94 @@ TRIP STRUCTURE RULES:
 - When multiple dive sites are mentioned without "διπλή βουτιά", still create 2 dives if 2 different locations are specified
 
 CONCRETE EXAMPLES - FOLLOW THESE EXACTLY:
-1. "Tο Σάββατο με ραντεβού στις 0930 πάμε για διπλή βουτιά στην Μακρόνησο."
+1. "ΚΥΡ, 17 Αυγ στις 9:00" with "9:00 Άκρα Καταφυγή" and "12:00 ν. Κουδούνια, ύφαλος"
+   → Create 1 trip with 2 dives: trip_date = "2025-08-17", trip_time = "09:00"
+   → Dive 1: dive_site_name = "Άκρα Καταφυγή", dive_time = "09:00"
+   → Dive 2: dive_site_name = "ν. Κουδούνια, ύφαλος", dive_time = "12:00"
+
+2. "Tο Σάββατο με ραντεβού στις 0930 πάμε για διπλή βουτιά στην Μακρόνησο."
    → Create 1 trip with 2 dives, both at "Μακρόνησο", trip_time = "09:30"
 
-2. "Tην Κυριακή με ραντεβού στις 0930 πάμε για διπλή βουτιά στον Ποθητό και στο Ποντικονήσι."
+3. "Tην Κυριακή με ραντεβού στις 0930 πάμε για διπλή βουτιά στον Ποθητό και στο Ποντικονήσι."
    → Create 1 trip with 2 dives: dive 1 at "Ποθητό", dive 2 at "Ποντικονήσι", trip_time = "09:30"
 
-3. "Tην Δευτέρα με ραντεβού στις 1030 πάμε για βουτιά στον Ποθητό και στο Ποντικονήσι."
+4. "Tην Δευτέρα με ραντεβού στις 1030 πάμε για βουτιά στον Ποθητό και στο Ποντικονήσι."
    → Create 1 trip with 2 dives: dive 1 at "Ποθητό", dive 2 at "Ποντικονήσι", trip_time = "10:30"
 
 4. "Tην Τρίτη με ραντεβού στις 1130 πάμε για βουτιά στον Ποθητό και στις 13:30 στο Ποντικονήσι."
    → Create 1 trip with 2 dives: dive 1 at "Ποθητό" (dive_time = "11:30"), dive 2 at "Ποντικονήσι" (dive_time = "13:30")
 
+5. Newsletter with multiple dates (like newsletter 104):
+   Content mentions "Σάββατο 23 Αυγούστου" and "Κυριακή 24 Αυγούστου"
+   → Create 2 separate trips:
+   → Trip 1: trip_date = "2025-08-23" (Saturday August 23rd) with 2 dives
+   → Trip 2: trip_date = "2025-08-24" (Sunday August 24th) with 2 dives
+   
+   CRITICAL: Each date has DIFFERENT dive sites! Do NOT copy the same dive sites to both dates!
+   - August 23rd: Look for dive sites mentioned near "Σάββατο 23 Αυγούστου"
+   - August 24th: Look for dive sites mentioned near "Κυριακή 24 Αυγούστου"
+   - Each date section will have its own unique dive sites and times
+
+6. Wreck diving examples:
+   Content mentions "Ναυάγιο ORIA" and "Ναυάγιο ΚΥΡΑ ΛΕΝΗ" means wreck diving
+   → Extract dive_site_name as "Ναυάγιο ORIA" and "Ναυάγιο ΚΥΡΑ ΛΕΝΗ"
+
+7. Newsletter specific example:
+   Content structure:
+   ```
+   Σάββατο 23 Αυγούστου
+   9:00 ν. Ποθητός
+   12:00 Άκρα Καταφυγή
+   
+   Κυριακή 24 Αυγούστου  
+   9:00 Ναυάγιο ORIA
+   12:00 Ναυάγιο ΚΥΡΑ ΛΕΝΗ
+   ```
+   → Create 2 separate trips:
+   → Trip 1 (Aug 23): dive 1 at "ν. Ποθητός" (9:00), dive 2 at "Άκρα Καταφυγή" (12:00)
+   → Trip 2 (Aug 24): dive 1 at "Ναυάγιο ORIA" (9:00), dive 2 at "Ναυάγιο ΚΥΡΑ ΛΕΝΗ" (12:00)
+   
+   CRITICAL: Each date has COMPLETELY DIFFERENT dive sites! Never copy dive sites between dates!
+
 DIVE SITE EXTRACTION RULES:
 - ALWAYS extract dive site names from the content when mentioned
 - Look for dive site names in the text and extract them for dive_site_name
-- Common Greek dive sites include: Kyra Leni, Arzentá, Pothitos, Makronisos, Koundouros, Patris, Avantis, Petrokaravo, etc.
+- CRITICAL: Extract dive sites in CONTEXT with their specific dates!
+- When you see "Σάββατο 23 Αυγούστου", only look for dive sites mentioned near that date
+- When you see "Κυριακή 24 Αυγούστου", only look for dive sites mentioned near that date
+- Do NOT extract dive sites globally from the entire newsletter
+- IMPORTANT: Recognize various diving terminology:
+  * Wreck terminology: "Ναυάγιο ORIA" = Oria wreck, "Ναυάγιο ΚΥΡΑ ΛΕΝΗ" = Kyra Leni wreck
+  * Reef terminology: "ν. Κουδούνια, ύφαλος" = Koudounia reef, "ύφαλος" = reef
+  * Cave terminology: "σπήλαιο" = cave
+  * Wall terminology: "τοίχος" = wall
+  * Island terminology: "νησί" = island
+  * Cape/Point terminology: "άκρα" = cape/point
+- Common Greek dive sites include: Άκρα Καταφυγή (Akra Katafygi), ν. Κουδούνια (Koudounia), Kyra Leni, Arzentá, Pothitos, Makronisos, Koundouros, Patris, Avantis, Petrokaravo, etc.
 - If a dive site is mentioned in the text, extract it as dive_site_name
 - If no specific dive site is mentioned for a dive, set dive_site_name to null
 - Pay attention to both English and Greek names for dive sites
+- Pay special attention to sites with diving terminology as they are popular diving destinations
+- The system will automatically clean terminology before database searching
+
+ADDITIONAL INFORMATION EXTRACTION:
+- Extract "Διάρκεια: ~5 ώρες" as trip_duration (convert to minutes: 300)
+- Extract "Διαθεσιμότητα: 3 θέσεις" as group_size_limit (3)
+- Extract "Ελάχ. Πιστοποίηση OWD" as special_requirements
+- Extract "Check-in: 8:00" as additional information in trip_description
+- Extract "Περιλαμβάνει: Φιάλη 12/15L με Αέρα, βάρη" as included items in trip_description
+- Extract "Με χρέωση: EAN32, εκμίσθωση εξοπλισμού" as extra charges in trip_description
+
+DIVING TERMINOLOGY RECOGNITION:
+- IMPORTANT: Recognize various diving terminology for proper dive site matching
+- Wreck terminology: "Ναυάγιο ORIA" = Oria wreck, "Ναυάγιο ΚΥΡΑ ΛΕΝΗ" = Kyra Leni wreck
+- Reef terminology: "ν. Κουδούνια, ύφαλος" = Koudounia reef, "ύφαλος" = reef
+- Cave terminology: "σπήλαιο" = cave
+- Wall terminology: "τοίχος" = wall
+- Island terminology: "νησί" = island
+- Cape/Point terminology: "άκρα" = cape/point
+- Always extract the full name including terminology prefixes for proper matching
+- The system will automatically clean these terms before database searching
 
 Field descriptions:
 - trip_date: Date of the dive trip (YYYY-MM-DD format, required - use today's date if not specified)
@@ -545,12 +697,12 @@ Field descriptions:
 - special_requirements: Any special requirements (optional - can be null if not mentioned)
 - dives: Array of dives in this trip
   - dive_number: Number of the dive (1 for first, 2 for second)
-  - dive_site_name: Extract the specific dive site name mentioned for this dive. Look for names like "Kyra Leni", "Arzentá", "Pothitos", "Makronisos", "Koundouros", "Patris", "Avantis", "Petrokaravo", etc. (required if mentioned in text)
+  - dive_site_name: Extract the specific dive site name mentioned for this dive. Look for names like "Άκρα Καταφυγή", "ν. Κουδούνια", "Ναυάγιο ORIA", "Ναυάγιο ΚΥΡΑ ΛΕΝΗ", "Kyra Leni", "Arzentá", "Pothitos", "Makronisos", "Koundouros", "Patris", "Avantis", "Petrokaravo", etc. (required if mentioned in text)
   - dive_time: Time for this specific dive (HH:MM format, optional - can be null if not mentioned)
   - dive_duration: Duration for this specific dive in minutes (optional - can be null if not mentioned)
   - dive_description: Description for this specific dive (optional - can be null if not mentioned)
 
-IMPORTANT: For dive_site_name, extract the specific dive site name from the trip description. Common Greek dive sites mentioned include: Kyra Leni, Arzentá, Pothitos, Makronisos, Koundouros, Patris, Avantis, Petrokaravo.
+IMPORTANT: For dive_site_name, extract the specific dive site name from the trip description. Common Greek dive sites mentioned include: Άκρα Καταφυγή (Akra Katafygi), ν. Κουδούνια (Koudounia), Ναυάγιο ORIA (Oria wreck), Ναυάγιο ΚΥΡΑ ΛΕΝΗ (Kyra Leni wreck), Kyra Leni, Arzentá, Pothitos, Makronisos, Koundouros, Patris, Avantis, Petrokaravo.
 
 Return ONLY the JSON array, no markdown formatting, no explanations.
 """
@@ -593,13 +745,23 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
                         if trip.get('dives'):
                             for dive in trip['dives']:
                                 if dive.get('dive_site_name'):
-                                    logger.info(f"🔍 Attempting to match dive site: '{dive['dive_site_name']}'")
-                                    dive_site_id = find_matching_dive_site(db, dive['dive_site_name'])
+                                    original_name = dive['dive_site_name']
+                                    cleaned_name = clean_diving_terminology(original_name)
+                                    logger.info(f"🔍 Attempting to match dive site: '{original_name}' (cleaned to: '{cleaned_name}')")
+                                    
+                                    # Try with cleaned name first
+                                    dive_site_id = find_matching_dive_site(db, cleaned_name)
                                     if dive_site_id:
                                         dive['dive_site_id'] = dive_site_id
-                                        logger.info(f"✅ Matched dive site: '{dive['dive_site_name']}' -> ID: {dive_site_id}")
+                                        logger.info(f"✅ Matched dive site: '{cleaned_name}' -> ID: {dive_site_id}")
                                     else:
-                                        logger.info(f"❌ No dive site match found for: '{dive['dive_site_name']}'")
+                                        # Fallback to original name if cleaning didn't help
+                                        dive_site_id = find_matching_dive_site(db, original_name)
+                                        if dive_site_id:
+                                            dive['dive_site_id'] = dive_site_id
+                                            logger.info(f"✅ Matched dive site with original name: '{original_name}' -> ID: {dive_site_id}")
+                                        else:
+                                            logger.info(f"❌ No dive site match found for: '{original_name}' (cleaned: '{cleaned_name}')")
                                 else:
                                     logger.info(f"⚠️ No dive_site_name found in dive")
 
@@ -735,11 +897,24 @@ def parse_newsletter_content(content: str, db: Session) -> List[dict]:
                     dive_site_name = None
                     if dive_site_names:
                         for site_name in dive_site_names:
-                            matched_id = find_matching_dive_site(db, site_name)
+                            # Clean diving terminology before searching
+                            cleaned_site_name = clean_diving_terminology(site_name)
+                            
+                            # Try with cleaned name first
+                            matched_id = find_matching_dive_site(db, cleaned_site_name)
                             if matched_id:
                                 dive_site_id = matched_id
-                                dive_site_name = site_name
+                                dive_site_name = site_name  # Keep original name for display
+                                logger.info(f"✅ Basic parsing matched dive site: '{cleaned_site_name}' -> ID: {matched_id}")
                                 break
+                            else:
+                                # Fallback to original name
+                                matched_id = find_matching_dive_site(db, site_name)
+                                if matched_id:
+                                    dive_site_id = matched_id
+                                    dive_site_name = site_name
+                                    logger.info(f"✅ Basic parsing matched dive site with original name: '{site_name}' -> ID: {matched_id}")
+                                    break
 
                     # Create trip dictionary
                     trip = {
