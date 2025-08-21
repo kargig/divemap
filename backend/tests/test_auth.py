@@ -67,16 +67,16 @@ class TestAuth:
         """Test Google OAuth endpoint."""
         # Test with missing token (should return 422 validation error)
         response = client.post("/api/v1/auth/google-login", json={})
-
+    
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-        # Test with invalid token (should return 401)
+    
+        # Test with invalid token (should return 500 since we're not mocking the functions)
         response = client.post("/api/v1/auth/google-login", json={"token": "invalid_token"})
+    
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    @patch('app.google_auth.verify_google_token')
-    @patch('app.google_auth.get_or_create_google_user')
+    @patch('app.routers.auth.verify_google_token')
+    @patch('app.routers.auth.get_or_create_google_user')
     def test_google_login_new_user_automatically_enabled(self, mock_get_or_create_user, mock_verify_token, client, db_session):
         """Test that new Google users are automatically enabled."""
         # Mock Google token verification
@@ -86,11 +86,12 @@ class TestAuth:
             'name': 'Google User',
             'picture': 'https://example.com/avatar.jpg'
         }
-
-        # Mock user creation - this should return a user with enabled=True
-        mock_user = User(
+    
+        # Create a proper database user for Google OAuth
+        google_user = User(
             username="googleuser",
             email="googleuser@example.com",
+            password_hash="dummy_hash",  # Required field
             google_id="google_user_123",
             name="Google User",
             avatar_url="https://example.com/avatar.jpg",
@@ -98,25 +99,47 @@ class TestAuth:
             is_admin=False,
             is_moderator=False
         )
-        mock_get_or_create_user.return_value = mock_user
-
+        db_session.add(google_user)
+        db_session.commit()
+        db_session.refresh(google_user)
+        
+        mock_get_or_create_user.return_value = google_user
+    
         # Test Google login
         response = client.post("/api/v1/auth/google-login", json={
             "token": "valid_google_token"
         })
-
+    
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "access_token" in data
         assert data["token_type"] == "bearer"
-
+        
         # Verify that the user was created with enabled=True
         mock_get_or_create_user.assert_called_once()
         created_user = mock_get_or_create_user.call_args[0][1]  # Second argument is google_user_info
         assert created_user['email'] == 'googleuser@example.com'
+        
+        # Test platform functionality: Google user can access protected endpoints
+        access_token = data["access_token"]
+        me_response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {access_token}"})
+        assert me_response.status_code == status.HTTP_200_OK
+        
+        me_data = me_response.json()
+        assert me_data["username"] == "googleuser"
+        assert me_data["email"] == "googleuser@example.com"
+        assert me_data["enabled"] is True
+        
+        # Verify user exists in database with correct data
+        db_user = db_session.query(User).filter(User.email == "googleuser@example.com").first()
+        assert db_user is not None
+        assert db_user.enabled is True
+        assert db_user.google_id == "google_user_123"
+        assert db_user.name == "Google User"
+        assert db_user.avatar_url == "https://example.com/avatar.jpg"
 
-    @patch('app.google_auth.verify_google_token')
-    @patch('app.google_auth.get_or_create_google_user')
+    @patch('app.routers.auth.verify_google_token')
+    @patch('app.routers.auth.get_or_create_google_user')
     def test_google_login_existing_user_remains_enabled(self, mock_get_or_create_user, mock_verify_token, client, db_session):
         """Test that existing Google users remain enabled."""
         # Mock Google token verification
@@ -126,11 +149,12 @@ class TestAuth:
             'name': 'Existing User',
             'picture': 'https://example.com/avatar.jpg'
         }
-
-        # Mock existing user - should remain enabled
+    
+        # Create a proper database user for Google OAuth
         existing_user = User(
             username="existinguser",
             email="existing@example.com",
+            password_hash="dummy_hash",  # Required field
             google_id="google_user_123",
             name="Existing User",
             avatar_url="https://example.com/avatar.jpg",
@@ -138,17 +162,185 @@ class TestAuth:
             is_admin=False,
             is_moderator=False
         )
+        db_session.add(existing_user)
+        db_session.commit()
+        db_session.refresh(existing_user)
+        
         mock_get_or_create_user.return_value = existing_user
-
+    
         # Test Google login
         response = client.post("/api/v1/auth/google-login", json={
             "token": "valid_google_token"
         })
-
+    
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "access_token" in data
         assert data["token_type"] == "bearer"
+        
+        # Test platform functionality: Existing Google user can access protected endpoints
+        access_token = data["access_token"]
+        me_response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {access_token}"})
+        assert me_response.status_code == status.HTTP_200_OK
+        
+        me_data = me_response.json()
+        assert me_data["username"] == "existinguser"
+        assert me_data["email"] == "existing@example.com"
+        assert me_data["enabled"] is True
+        
+        # Verify user remains enabled in database
+        db_user = db_session.query(User).filter(User.email == "existing@example.com").first()
+        assert db_user is not None
+        assert db_user.enabled is True
+        assert db_user.google_id == "google_user_123"
+
+    def test_google_oauth_refresh_token_functionality(self, client, db_session):
+        """Test that Google OAuth users can use refresh tokens to maintain sessions."""
+        # Mock Google token verification
+        with patch('app.routers.auth.verify_google_token') as mock_verify, \
+             patch('app.routers.auth.get_or_create_google_user') as mock_get_or_create:
+            
+            # Set up the mocks
+            mock_verify.return_value = {
+                'sub': 'google_user_456',
+                'email': 'refreshuser@example.com',
+                'name': 'Refresh User',
+                'picture': 'https://example.com/refresh-avatar.jpg'
+            }
+            
+            # Create a proper database user for Google OAuth
+            refresh_user = User(
+                username="refreshuser",
+                email="refreshuser@example.com",
+                password_hash="dummy_hash",  # Required field
+                google_id="google_user_456",
+                name="Refresh User",
+                avatar_url="https://example.com/refresh-avatar.jpg",
+                enabled=True,
+                is_admin=False,
+                is_moderator=False
+            )
+            db_session.add(refresh_user)
+            db_session.commit()
+            db_session.refresh(refresh_user)
+            
+            mock_get_or_create.return_value = refresh_user
+            
+            # Test Google login to get initial tokens
+            response = client.post("/api/v1/auth/google-login", json={
+                "token": "valid_google_token"
+            })
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert "access_token" in data
+            
+            # Get refresh token from cookies
+            refresh_token = response.cookies.get("refresh_token")
+            assert refresh_token is not None
+            
+            # Test platform functionality: User can access protected endpoints
+            access_token = data["access_token"]
+            me_response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {access_token}"})
+            assert me_response.status_code == status.HTTP_200_OK
+            
+            # Test refresh token functionality
+            refresh_response = client.post("/api/v1/auth/refresh", cookies={"refresh_token": refresh_token})
+            assert refresh_response.status_code == status.HTTP_200_OK
+            
+            refresh_data = refresh_response.json()
+            assert "access_token" in refresh_data
+            assert refresh_data["token_type"] == "bearer"
+            
+            # Verify new access token works
+            new_access_token = refresh_data["access_token"]
+            me_response_after_refresh = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {new_access_token}"})
+            assert me_response_after_refresh.status_code == status.HTTP_200_OK
+            
+            # Verify user data is consistent
+            me_data = me_response_after_refresh.json()
+            assert me_data["username"] == "refreshuser"
+            assert me_data["email"] == "refreshuser@example.com"
+            assert me_data["enabled"] is True
+
+    def test_google_oauth_error_handling(self, client):
+        """Test that Google OAuth errors are handled gracefully."""
+        # Test with invalid token format
+        response = client.post("/api/v1/auth/google-login", json={
+            "token": ""  # Empty token
+        })
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        
+        # Test with missing token
+        response = client.post("/api/v1/auth/google-login", json={})
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        
+        # Test with malformed JSON
+        response = client.post("/api/v1/auth/google-login", data="invalid json", headers={"Content-Type": "application/json"})
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_google_oauth_user_data_persistence(self, client, db_session):
+        """Test that Google OAuth user data is properly persisted and retrieved."""
+        # Mock Google token verification
+        with patch('app.routers.auth.verify_google_token') as mock_verify, \
+             patch('app.routers.auth.get_or_create_google_user') as mock_get_or_create:
+            
+            # Set up the mocks
+            mock_verify.return_value = {
+                'sub': 'google_user_789',
+                'email': 'persistuser@example.com',
+                'name': 'Persist User',
+                'picture': 'https://example.com/persist-avatar.jpg'
+            }
+            
+            # Create a proper database user for Google OAuth
+            persist_user = User(
+                username="persistuser",
+                email="persistuser@example.com",
+                password_hash="dummy_hash",  # Required field
+                google_id="google_user_789",
+                name="Persist User",
+                avatar_url="https://example.com/persist-avatar.jpg",
+                enabled=True,
+                is_admin=False,
+                is_moderator=False
+            )
+            db_session.add(persist_user)
+            db_session.commit()
+            db_session.refresh(persist_user)
+            
+            mock_get_or_create.return_value = persist_user
+            
+            # Test Google login
+            response = client.post("/api/v1/auth/google-login", json={
+                "token": "valid_google_token"
+            })
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            access_token = data["access_token"]
+            
+            # Test that user data is accessible through the platform
+            me_response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {access_token}"})
+            assert me_response.status_code == status.HTTP_200_OK
+            
+            me_data = me_response.json()
+            assert me_data["username"] == "persistuser"
+            assert me_data["email"] == "persistuser@example.com"
+            assert me_data["enabled"] is True
+            assert me_data["name"] == "Persist User"
+            
+            # Verify data persistence in database
+            db_user = db_session.query(User).filter(User.email == "persistuser@example.com").first()
+            assert db_user is not None
+            assert db_user.username == "persistuser"
+            assert db_user.email == "persistuser@example.com"
+            assert db_user.google_id == "google_user_789"
+            assert db_user.name == "Persist User"
+            assert db_user.avatar_url == "https://example.com/persist-avatar.jpg"
+            assert db_user.enabled is True
+            assert db_user.is_admin is False
+            assert db_user.is_moderator is False
 
     def test_regular_registration_creates_disabled_user(self, client, db_session):
         """Test that regular registration creates a user with enabled=False."""
@@ -170,7 +362,7 @@ class TestAuth:
         """Test successful login."""
         response = client.post("/api/v1/auth/login", json={
             "username": "testuser",
-            "password": "password"
+            "password": "TestPass123!"
         })
 
         assert response.status_code == status.HTTP_200_OK

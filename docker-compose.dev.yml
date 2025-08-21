@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  # Nginx reverse proxy for development
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: divemap_nginx
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - divemap_network
+
   # Backend API with development settings
   backend:
     build:
@@ -8,16 +23,24 @@ services:
       dockerfile: Dockerfile
     container_name: divemap_backend
     restart: always
-    ports:
-      - "8000:8000"
+    # No host port mapping - only accessible through nginx
+    ports: []
     environment:
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-divemap_user}:${MYSQL_PASSWORD:-divemap_password}@db:3306/divemap
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
       - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - ACCESS_TOKEN_EXPIRE_MINUTES=15
+      - REFRESH_TOKEN_EXPIRE_DAYS=30
+      - REFRESH_TOKEN_COOKIE_SECURE=false
+      - REFRESH_TOKEN_COOKIE_HTTPONLY=true
+      - REFRESH_TOKEN_COOKIE_SAMESITE=lax
+      - ENABLE_TOKEN_ROTATION=true
+      - ENABLE_AUDIT_LOGGING=true
+      - MAX_ACTIVE_SESSIONS_PER_USER=5
       - ENVIRONMENT=development
       - OPENAI_API_KEY=${OPENAI_API_KEY:-foobar}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      - CORS_ORIGINS=http://localhost
+      - ALLOWED_ORIGINS=http://localhost
     volumes:
       - ./backend:/app
       - ./uploads:/app/uploads
@@ -37,13 +60,13 @@ services:
       dockerfile: Dockerfile.dev
     container_name: divemap_frontend
     restart: always
-    ports:
-      - "3000:3000"
+    # No host port mapping - only accessible through nginx
+    ports: []
     volumes:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
+      - REACT_APP_API_URL=http://localhost
       - NODE_ENV=development
     depends_on:
       - backend
@@ -51,4 +74,34 @@ services:
       - divemap_network
     security_opt:
       - no-new-privileges:true
-    read_only: false 
+    read_only: false
+
+  # Database
+  db:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    container_name: divemap_db
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_password}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-divemap}
+      - MYSQL_USER=${MYSQL_USER:-divemap_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-divemap_password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - divemap_network
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+
+volumes:
+  mysql_data:
+
+networks:
+  divemap_network:
+    driver: bridge 

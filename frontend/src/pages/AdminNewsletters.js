@@ -84,6 +84,7 @@ const AdminNewsletters = () => {
 
   // State to store additional dive sites that are not in the main list
   const [additionalDiveSites, setAdditionalDiveSites] = useState([]);
+  const [selectedNewsletterFilter, setSelectedNewsletterFilter] = useState(null);
 
   // Function to ensure dive site is available in dropdown
   const ensureDiveSiteAvailable = async siteId => {
@@ -615,149 +616,252 @@ const AdminNewsletters = () => {
 
         {trips && trips.length > 0 && (
           <div className='space-y-4'>
-            {trips.map(trip => (
-              <div key={trip.id} className='border rounded-lg p-4 hover:bg-gray-50'>
-                <div className='flex justify-between items-start'>
-                  <div className='flex-1'>
-                    <div className='flex items-center space-x-4 mb-2'>
-                      <h3 className='text-lg font-semibold text-gray-900'>
-                        {trip.diving_center_name || 'Unknown Center'}
-                      </h3>
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          getDisplayStatus(trip) === 'scheduled'
-                            ? 'bg-green-100 text-green-800'
-                            : getDisplayStatus(trip) === 'confirmed'
-                              ? 'bg-blue-100 text-blue-800'
-                              : getDisplayStatus(trip) === 'cancelled'
-                                ? 'bg-red-100 text-red-800'
-                                : getDisplayStatus(trip) === 'completed'
-                                  ? 'bg-gray-100 text-gray-800'
-                                  : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {getDisplayStatus(trip)}
-                      </span>
+            {/* Newsletter Filter */}
+            <div className='bg-white p-4 rounded-lg border'>
+              <div className='flex items-center space-x-4'>
+                <label className='text-sm font-medium text-gray-700'>Filter by Newsletter:</label>
+                <select
+                  value={selectedNewsletterFilter || ''}
+                  onChange={e =>
+                    setSelectedNewsletterFilter(e.target.value ? parseInt(e.target.value) : null)
+                  }
+                  className='border border-gray-300 rounded-md px-3 py-1 text-sm'
+                >
+                  <option value=''>All Newsletters</option>
+                  {newsletters?.map(newsletter => (
+                    <option key={newsletter.id} value={newsletter.id}>
+                      Newsletter #{newsletter.id} (
+                      {trips.filter(trip => trip.source_newsletter_id === newsletter.id).length}{' '}
+                      trips)
+                    </option>
+                  ))}
+                </select>
+                {selectedNewsletterFilter && (
+                  <button
+                    onClick={() => setSelectedNewsletterFilter(null)}
+                    className='text-sm text-gray-500 hover:text-gray-700'
+                  >
+                    Clear Filter
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Newsletter Summary */}
+            <div className='bg-gray-50 p-4 rounded-lg'>
+              <div className='flex items-center justify-between mb-3'>
+                <h3 className='text-lg font-semibold text-gray-900'>Newsletter Summary</h3>
+                {selectedNewsletterFilter && (
+                  <span className='text-sm text-gray-600'>
+                    Showing{' '}
+                    {
+                      trips.filter(trip => trip.source_newsletter_id === selectedNewsletterFilter)
+                        .length
+                    }{' '}
+                    trips from Newsletter #{selectedNewsletterFilter}
+                  </span>
+                )}
+              </div>
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                {newsletters?.map(newsletter => {
+                  const linkedTrips = trips.filter(
+                    trip => trip.source_newsletter_id === newsletter.id
+                  );
+                  if (linkedTrips.length === 0) return null;
+
+                  return (
+                    <div key={newsletter.id} className='bg-white p-3 rounded border'>
+                      <div className='flex items-center justify-between'>
+                        <span className='font-medium text-gray-700'>
+                          Newsletter #{newsletter.id}
+                        </span>
+                        <span className='bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs'>
+                          {linkedTrips.length} trip{linkedTrips.length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div className='text-xs text-gray-500 mt-1'>
+                        {new Date(newsletter.received_at).toLocaleDateString()}
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
 
-                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600'>
-                      <div className='flex items-center'>
-                        <Calendar className='h-4 w-4 mr-2' />
-                        <span>{formatDate(trip.trip_date)}</span>
+            {/* Trips List */}
+            {(() => {
+              const filteredTrips = trips.filter(
+                trip =>
+                  !selectedNewsletterFilter ||
+                  trip.source_newsletter_id === selectedNewsletterFilter
+              );
+
+              if (filteredTrips.length === 0) {
+                return (
+                  <div className='text-center py-8'>
+                    <FileText className='h-8 w-8 text-gray-400 mx-auto mb-2' />
+                    <p className='text-gray-600'>
+                      {selectedNewsletterFilter
+                        ? `No trips found from Newsletter #${selectedNewsletterFilter}`
+                        : 'No trips found'}
+                    </p>
+                  </div>
+                );
+              }
+
+              return filteredTrips.map(trip => (
+                <div key={trip.id} className='border rounded-lg p-4 hover:bg-gray-50'>
+                  <div className='flex justify-between items-start'>
+                    <div className='flex-1'>
+                      <div className='flex items-center space-x-4 mb-2'>
+                        <h3 className='text-lg font-semibold text-gray-900'>
+                          {trip.diving_center_name || 'Unknown Center'}
+                        </h3>
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${
+                            getDisplayStatus(trip) === 'scheduled'
+                              ? 'bg-green-100 text-green-800'
+                              : getDisplayStatus(trip) === 'confirmed'
+                                ? 'bg-blue-100 text-blue-800'
+                                : getDisplayStatus(trip) === 'cancelled'
+                                  ? 'bg-red-100 text-red-800'
+                                  : getDisplayStatus(trip) === 'completed'
+                                    ? 'bg-gray-100 text-gray-800'
+                                    : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {getDisplayStatus(trip)}
+                        </span>
                       </div>
 
-                      <div className='flex items-center'>
-                        <Clock className='h-4 w-4 mr-2' />
-                        <span>{formatTime(trip.trip_time)}</span>
-                      </div>
+                      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600'>
+                        <div className='flex items-center'>
+                          <Calendar className='h-4 w-4 mr-2' />
+                          <span>{formatDate(trip.trip_date)}</span>
+                        </div>
 
-                      {trip.trip_duration && (
                         <div className='flex items-center'>
                           <Clock className='h-4 w-4 mr-2' />
-                          <span>{trip.trip_duration} min</span>
+                          <span>{formatTime(trip.trip_time)}</span>
+                        </div>
+
+                        {trip.trip_duration && (
+                          <div className='flex items-center'>
+                            <Clock className='h-4 w-4 mr-2' />
+                            <span>{trip.trip_duration} min</span>
+                          </div>
+                        )}
+
+                        {trip.trip_price && (
+                          <div className='flex items-center'>
+                            <Euro className='h-4 w-4 mr-2' />
+                            <span>{formatCurrency(trip.trip_price, trip.trip_currency)}</span>
+                          </div>
+                        )}
+
+                        {trip.group_size_limit && (
+                          <div className='flex items-center'>
+                            <Users className='h-4 w-4 mr-2' />
+                            <span>Max {trip.group_size_limit} people</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Display multiple dives */}
+                      {trip.dives && trip.dives.length > 0 && (
+                        <div className='mt-3'>
+                          <h4 className='text-sm font-medium text-gray-700 mb-2'>Dives:</h4>
+                          <div className='space-y-2'>
+                            {trip.dives.map((dive, _index) => (
+                              <div
+                                key={dive.id}
+                                className='flex items-center space-x-3 p-2 bg-blue-50 rounded'
+                              >
+                                <div className='flex items-center'>
+                                  <MapPin className='h-4 w-4 mr-2 text-blue-600' />
+                                  <span className='text-sm font-medium text-gray-700'>
+                                    Dive {dive.dive_number}:
+                                  </span>
+                                </div>
+                                <div className='flex-1'>
+                                  <span className='text-sm text-gray-600'>
+                                    {dive.dive_site_name || 'No dive site specified'}
+                                  </span>
+                                  {dive.dive_time && (
+                                    <span className='text-sm text-gray-500 ml-2'>
+                                      at {formatTime(dive.dive_time)}
+                                    </span>
+                                  )}
+                                  {dive.dive_duration && (
+                                    <span className='text-sm text-gray-500 ml-2'>
+                                      ({dive.dive_duration} min)
+                                    </span>
+                                  )}
+                                </div>
+                                {dive.dive_description && (
+                                  <div className='text-xs text-gray-500 mt-1'>
+                                    {dive.dive_description}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
 
-                      {trip.trip_price && (
-                        <div className='flex items-center'>
-                          <Euro className='h-4 w-4 mr-2' />
-                          <span>{formatCurrency(trip.trip_price, trip.trip_currency)}</span>
+                      {/* Fallback for old single dive site display */}
+                      {(!trip.dives || trip.dives.length === 0) && trip.dive_site_name && (
+                        <div className='flex items-center mt-2'>
+                          <MapPin className='h-4 w-4 mr-2' />
+                          <span className='text-sm text-gray-600'>{trip.dive_site_name}</span>
                         </div>
                       )}
 
-                      {trip.group_size_limit && (
-                        <div className='flex items-center'>
-                          <Users className='h-4 w-4 mr-2' />
-                          <span>Max {trip.group_size_limit} people</span>
+                      {trip.trip_description && (
+                        <p className='text-gray-700 mt-2'>{trip.trip_description}</p>
+                      )}
+
+                      {trip.special_requirements && (
+                        <div className='mt-2 p-2 bg-yellow-50 rounded'>
+                          <p className='text-sm text-yellow-800'>{trip.special_requirements}</p>
                         </div>
                       )}
                     </div>
 
-                    {/* Display multiple dives */}
-                    {trip.dives && trip.dives.length > 0 && (
-                      <div className='mt-3'>
-                        <h4 className='text-sm font-medium text-gray-700 mb-2'>Dives:</h4>
-                        <div className='space-y-2'>
-                          {trip.dives.map((dive, _index) => (
-                            <div
-                              key={dive.id}
-                              className='flex items-center space-x-3 p-2 bg-blue-50 rounded'
-                            >
-                              <div className='flex items-center'>
-                                <MapPin className='h-4 w-4 mr-2 text-blue-600' />
-                                <span className='text-sm font-medium text-gray-700'>
-                                  Dive {dive.dive_number}:
-                                </span>
-                              </div>
-                              <div className='flex-1'>
-                                <span className='text-sm text-gray-600'>
-                                  {dive.dive_site_name || 'No dive site specified'}
-                                </span>
-                                {dive.dive_time && (
-                                  <span className='text-sm text-gray-500 ml-2'>
-                                    at {formatTime(dive.dive_time)}
-                                  </span>
-                                )}
-                                {dive.dive_duration && (
-                                  <span className='text-sm text-gray-500 ml-2'>
-                                    ({dive.dive_duration} min)
-                                  </span>
-                                )}
-                              </div>
-                              {dive.dive_description && (
-                                <div className='text-xs text-gray-500 mt-1'>
-                                  {dive.dive_description}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <div className='flex items-center space-x-2 ml-4'>
+                      <button
+                        onClick={() => handleEditTrip(trip)}
+                        className='p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded'
+                        title='Edit trip'
+                      >
+                        <Edit className='h-4 w-4' />
+                      </button>
 
-                    {/* Fallback for old single dive site display */}
-                    {(!trip.dives || trip.dives.length === 0) && trip.dive_site_name && (
-                      <div className='flex items-center mt-2'>
-                        <MapPin className='h-4 w-4 mr-2' />
-                        <span className='text-sm text-gray-600'>{trip.dive_site_name}</span>
-                      </div>
-                    )}
-
-                    {trip.trip_description && (
-                      <p className='text-gray-700 mt-2'>{trip.trip_description}</p>
-                    )}
-
-                    {trip.special_requirements && (
-                      <div className='mt-2 p-2 bg-yellow-50 rounded'>
-                        <p className='text-sm text-yellow-800'>{trip.special_requirements}</p>
-                      </div>
-                    )}
+                      <button
+                        onClick={() => handleDeleteTrip(trip.id)}
+                        className='p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded'
+                        title='Delete trip'
+                      >
+                        <Trash2 className='h-4 w-4' />
+                      </button>
+                    </div>
                   </div>
 
-                  <div className='flex items-center space-x-2 ml-4'>
-                    <button
-                      onClick={() => handleEditTrip(trip)}
-                      className='p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded'
-                      title='Edit trip'
-                    >
-                      <Edit className='h-4 w-4' />
-                    </button>
-
-                    <button
-                      onClick={() => handleDeleteTrip(trip.id)}
-                      className='p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded'
-                      title='Delete trip'
-                    >
-                      <Trash2 className='h-4 w-4' />
-                    </button>
+                  <div className='mt-2 text-xs text-gray-500 flex justify-between items-center'>
+                    <span>Extracted: {new Date(trip.extracted_at).toLocaleString()}</span>
+                    {trip.source_newsletter_id && (
+                      <button
+                        onClick={() => handleViewNewsletter(trip.source_newsletter_id)}
+                        className='bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs hover:bg-blue-200 cursor-pointer'
+                        title='Click to view newsletter'
+                      >
+                        Newsletter #{trip.source_newsletter_id}
+                      </button>
+                    )}
                   </div>
                 </div>
-
-                <div className='mt-2 text-xs text-gray-500'>
-                  Extracted: {new Date(trip.extracted_at).toLocaleString()}
-                </div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         )}
       </div>

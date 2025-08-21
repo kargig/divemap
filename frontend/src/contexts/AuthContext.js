@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
 import api from '../api';
@@ -18,6 +18,22 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('access_token'));
+  const [tokenExpiry, setTokenExpiry] = useState(null);
+  // const [refreshTimer, setRefreshTimer] = useState(null); // No longer needed
+
+  // Token renewal logic - DISABLED to prevent conflicts with API interceptor
+  // The API interceptor handles token renewal automatically on 401 errors
+  const scheduleTokenRenewal = useCallback(expiresIn => {
+    // DISABLED: Proactive token renewal conflicts with API interceptor
+    // The API interceptor will handle token renewal automatically
+    console.log('Proactive token renewal disabled - using API interceptor instead');
+  }, []);
+
+  const renewToken = async () => {
+    // DISABLED: This function is no longer needed
+    // The API interceptor handles token renewal automatically
+    console.log('Manual token renewal disabled - using API interceptor instead');
+  };
 
   // Add token to requests if it exists
   useEffect(() => {
@@ -27,6 +43,21 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, [token]);
+
+  // Listen for token refresh events from API interceptor
+  useEffect(() => {
+    const handleTokenRefresh = event => {
+      const { access_token } = event.detail;
+      console.log('Token refreshed via API interceptor, updating state');
+      setToken(access_token);
+    };
+
+    window.addEventListener('tokenRefreshed', handleTokenRefresh);
+
+    return () => {
+      window.removeEventListener('tokenRefreshed', handleTokenRefresh);
+    };
+  }, []);
 
   const fetchUser = async () => {
     try {
@@ -47,18 +78,25 @@ export const AuthProvider = ({ children }) => {
         password,
       });
 
-      const { access_token } = response.data;
+      const { access_token, expires_in } = response.data;
+
+      // Store access token
       localStorage.setItem('access_token', access_token);
+
+      // Update token state
       setToken(access_token);
 
-      await fetchUser();
-      toast.success('Login successful!');
-      return true;
+      // Calculate expiry time
+      const expiryTime = Date.now() + expires_in * 1000;
+      localStorage.setItem('tokenExpiry', expiryTime.toString());
+
+      // Schedule token renewal - DISABLED (using API interceptor instead)
+      // scheduleTokenRenewal(expiryTime);
+
+      return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      const message = error.response?.data?.detail || 'Login failed';
-      toast.error(message);
-      return false;
+      return { success: false, error: error.message };
     }
   };
 
@@ -68,9 +106,16 @@ export const AuthProvider = ({ children }) => {
         token: googleToken,
       });
 
-      const { access_token } = response.data;
+      const { access_token, expires_in } = response.data;
+
       localStorage.setItem('access_token', access_token);
+      // Note: refresh_token is now set as an HTTP-only cookie by the backend
+
       setToken(access_token);
+      // Note: refreshToken state is no longer needed since it's in cookies
+
+      // Schedule token renewal - DISABLED (using API interceptor instead)
+      // scheduleTokenRenewal(expires_in);
 
       await fetchUser();
       toast.success('Google login successful!');
@@ -91,9 +136,16 @@ export const AuthProvider = ({ children }) => {
         password,
       });
 
-      const { access_token } = response.data;
+      const { access_token, expires_in } = response.data;
+
       localStorage.setItem('access_token', access_token);
+      // Note: refresh_token is now set as an HTTP-only cookie by the backend
+
       setToken(access_token);
+      // Note: refreshToken state is no longer needed since it's in cookies
+
+      // Schedule token renewal - DISABLED (using API interceptor instead)
+      // scheduleTokenRenewal(expires_in);
 
       await fetchUser();
       toast.success('Registration successful!');
@@ -112,9 +164,16 @@ export const AuthProvider = ({ children }) => {
         token: googleToken,
       });
 
-      const { access_token } = response.data;
+      const { access_token, expires_in } = response.data;
+
       localStorage.setItem('access_token', access_token);
+      // Note: refresh_token is now set as an HTTP-only cookie by the backend
+
       setToken(access_token);
+      // Note: refreshToken state is no longer needed since it's in cookies
+
+      // Schedule token renewal - DISABLED (using API interceptor instead)
+      // scheduleTokenRenewal(expires_in);
 
       await fetchUser();
       toast.success('Google registration successful!');
@@ -128,10 +187,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    // Clear timers - no longer needed since proactive renewal is disabled
+    // if (refreshTimer) {
+    //   clearTimeout(refreshTimer);
+    //   setRefreshTimer(null);
+    // }
+
+    // Revoke refresh token on backend
+    api.post('/api/v1/auth/logout').catch(console.error);
+
     localStorage.removeItem('access_token');
+    // Note: refresh_token cookie will be cleared by the backend logout endpoint
     setToken(null);
     setUser(null);
-    // Also sign out from Google
+    setTokenExpiry(null);
+
     googleAuth.signOut();
     toast.success('Logged out successfully');
   };
@@ -139,6 +209,16 @@ export const AuthProvider = ({ children }) => {
   const updateUser = userData => {
     setUser(userData);
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // No cleanup needed since proactive renewal is disabled
+      // if (refreshTimer) {
+      //   clearTimeout(refreshTimer);
+      // }
+    };
+  }, []);
 
   const value = {
     user,

@@ -106,12 +106,6 @@ const TripDetail = () => {
         <div className='p-6'>
           {activeTab === 'overview' && (
             <div className='space-y-6'>
-              <div>
-                <h3 className='text-lg font-semibold text-gray-900 mb-3'>Trip Description</h3>
-                <p className='text-gray-700 leading-relaxed'>
-                  {trip.trip_description || 'Detailed trip description will be available soon.'}
-                </p>
-              </div>
               {trip.special_requirements && (
                 <div>
                   <h3 className='text-lg font-semibold text-gray-900 mb-3'>Special Requirements</h3>
@@ -124,22 +118,6 @@ const TripDetail = () => {
                   <h3 className='text-lg font-semibold text-gray-900 mb-3'>Trip Duration</h3>
                   <p className='text-gray-700 leading-relaxed'>
                     {Math.floor(trip.trip_duration / 60)} hours {trip.trip_duration % 60} minutes
-                  </p>
-                </div>
-              )}
-              {trip.trip_price && (
-                <div>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-3'>Price</h3>
-                  <p className='text-gray-700 leading-relaxed'>
-                    {trip.trip_price} {trip.trip_currency}
-                  </p>
-                </div>
-              )}
-              {trip.group_size_limit && (
-                <div>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-3'>Group Size Limit</h3>
-                  <p className='text-gray-700 leading-relaxed'>
-                    Maximum {trip.group_size_limit} participants
                   </p>
                 </div>
               )}

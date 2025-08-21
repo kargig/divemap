@@ -1,0 +1,37 @@
+# Production Nginx Dockerfile for Divemap
+FROM nginx:alpine
+
+# Install required packages
+RUN apk add --no-cache \
+    curl \
+    && rm -rf /var/cache/apk/*
+
+# Copy production configuration
+COPY prod.conf /etc/nginx/nginx.conf
+
+# Set proper permissions (nginx user already exists in base image)
+RUN chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /var/log/nginx && \
+    chown -R nginx:nginx /etc/nginx/conf.d && \
+    chown nginx:nginx /etc/nginx/nginx.conf && \
+    chmod 644 /etc/nginx/nginx.conf && \
+    touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/run/nginx.pid
+
+# Create health check script
+RUN echo '#!/bin/sh' > /usr/local/bin/healthcheck && \
+    echo 'curl -f http://localhost/health || exit 1' >> /usr/local/bin/healthcheck && \
+    chmod +x /usr/local/bin/healthcheck
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD /usr/local/bin/healthcheck
+
+# Expose port (only HTTP needed)
+EXPOSE 80
+
+# Switch to non-root user
+USER nginx
+
+# Start nginx directly (no startup script needed)
+CMD ["nginx", "-g", "daemon off;"]

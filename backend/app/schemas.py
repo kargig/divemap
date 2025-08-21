@@ -37,10 +37,12 @@ class LoginRequest(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    expires_in: int
 
 class RegistrationResponse(BaseModel):
     access_token: str
     token_type: str
+    expires_in: int
     message: str
 
 class TokenData(BaseModel):
@@ -705,6 +707,7 @@ class ParsedDiveTripResponse(BaseModel):
     trip_status: str = "scheduled"
     diving_center_name: Optional[str] = None
     dives: List[ParsedDiveResponse] = []  # List of dives in this trip
+    source_newsletter_id: Optional[int] = None  # ID of the source newsletter
     newsletter_content: Optional[str] = None  # Content of the source newsletter
     extracted_at: datetime
     created_at: datetime

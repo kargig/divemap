@@ -175,7 +175,7 @@ def is_private_ip(ip_address: str) -> bool:
         return True
     
     # IPv6 private ranges (simplified)
-    if ip_address.startswith(("fc00:", "fd00:", "fe80:")):
+    if ip_address.startswith(("fc00:", "fd00:", "fe80:", "fdaa:")):
         return True
     
     return False

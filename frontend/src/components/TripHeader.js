@@ -38,7 +38,7 @@ const TripHeader = ({ trip }) => {
               {generateTripName(trip) || 'Dive Trip'}
             </h1>
             <p className='text-gray-600 text-lg mb-4'>
-              {trip.description || 'Experience an amazing diving adventure'}
+              {trip.trip_description || 'Experience an amazing diving adventure'}
             </p>
 
             {/* Trip Meta Information */}
@@ -55,7 +55,7 @@ const TripHeader = ({ trip }) => {
                 <DollarSign className='w-5 h-5 text-gray-500' />
                 <div>
                   <div className='text-sm text-gray-500'>Price</div>
-                  <div className='font-medium'>{formatPrice(trip.price)}</div>
+                  <div className='font-medium'>{formatPrice(trip.trip_price)}</div>
                 </div>
               </div>
 
@@ -63,7 +63,11 @@ const TripHeader = ({ trip }) => {
                 <Users className='w-5 h-5 text-gray-500' />
                 <div>
                   <div className='text-sm text-gray-500'>Max Group Size</div>
-                  <div className='font-medium'>{trip.max_group_size || 'Contact center'}</div>
+                  <div className='font-medium'>
+                    {trip.group_size_limit
+                      ? `Max ${trip.group_size_limit} people`
+                      : 'Contact center'}
+                  </div>
                 </div>
               </div>
 
@@ -73,18 +77,18 @@ const TripHeader = ({ trip }) => {
                   <div className='text-sm text-gray-500'>Status</div>
                   <span
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      trip.status === 'confirmed'
+                      trip.trip_status === 'confirmed'
                         ? 'bg-green-100 text-green-800'
-                        : trip.status === 'scheduled'
+                        : trip.trip_status === 'scheduled'
                           ? 'bg-blue-100 text-blue-800'
-                          : trip.status === 'cancelled'
+                          : trip.trip_status === 'cancelled'
                             ? 'bg-red-100 text-red-800'
-                            : trip.status === 'completed'
+                            : trip.trip_status === 'completed'
                               ? 'bg-green-100 text-green-800'
                               : 'bg-gray-100 text-gray-800'
                     }`}
                   >
-                    {trip.status || 'Active'}
+                    {trip.trip_status || 'Active'}
                   </span>
                 </div>
               </div>
@@ -116,11 +120,11 @@ const TripHeader = ({ trip }) => {
 TripHeader.propTypes = {
   trip: PropTypes.shape({
     trip_name: PropTypes.string,
-    description: PropTypes.string,
+    trip_description: PropTypes.string,
     trip_date: PropTypes.string,
-    price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    max_group_size: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    status: PropTypes.string,
+    trip_price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    group_size_limit: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    trip_status: PropTypes.string,
     trip_image_url: PropTypes.string,
   }).isRequired,
 };

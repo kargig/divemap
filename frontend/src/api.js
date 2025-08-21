@@ -6,6 +6,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important: include cookies with all requests
 });
 
 // Request interceptor to add auth token
@@ -22,17 +23,97 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
+// Add a flag to prevent multiple simultaneous refresh attempts
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
+// Response interceptor for successful responses
 api.interceptors.response.use(
   response => {
+    // Log successful login responses for debugging
+    if (response.config.url?.includes('/auth/login') && response.status === 200) {
+      console.log('Login successful - access token received');
+    }
     return response;
   },
-  error => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid, redirect to login
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+  async error => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // If already refreshing, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch(err => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Attempt to renew token using refresh token from cookies
+        console.log('Attempting token refresh...');
+
+        const response = await api.post(
+          '/api/v1/auth/refresh',
+          {},
+          {
+            withCredentials: true, // Important: include cookies
+          }
+        );
+        const { access_token } = response.data;
+
+        console.log('Token refresh successful');
+
+        // Update localStorage with new token
+        localStorage.setItem('access_token', access_token);
+
+        // Dispatch custom event to notify AuthContext of token refresh
+        window.dispatchEvent(
+          new CustomEvent('tokenRefreshed', {
+            detail: { access_token },
+          })
+        );
+
+        // Process queued requests
+        processQueue(null, access_token);
+
+        // Retry original request with new token
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        console.log('Token refresh failed:', refreshError);
+        // Process queued requests with error
+        processQueue(refreshError, null);
+
+        // Refresh failed, redirect to login
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     } else if (error.response?.status === 429) {
       // Rate limiting - extract retry after information if available
       const retryAfter =
@@ -40,6 +121,7 @@ api.interceptors.response.use(
       error.retryAfter = retryAfter;
       error.isRateLimited = true;
     }
+
     return Promise.reject(error);
   }
 );
