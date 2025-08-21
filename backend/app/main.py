@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import os
+import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -12,6 +13,31 @@ from app.database import engine, get_db
 from app.models import Base, Dive, DiveSite, SiteRating, CenterRating, DivingCenter
 from app.limiter import limiter
 from app.utils import get_client_ip, format_ip_for_logging, is_private_ip
+
+# Configure logging based on environment variable
+log_level = os.getenv("LOG_LEVEL", "WARNING").upper()
+numeric_level = getattr(logging, log_level, logging.WARNING)
+
+# Configure root logger
+logging.basicConfig(
+    level=numeric_level,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+
+# Set specific logger levels
+logging.getLogger("uvicorn").setLevel(numeric_level)
+logging.getLogger("app").setLevel(numeric_level)
+logging.getLogger("app.routers").setLevel(numeric_level)
+
+# Force set the root logger level
+logging.getLogger().setLevel(numeric_level)
+
+print(f"🔧 Logging level set to: {log_level} (numeric: {numeric_level})")
+print(f"🔧 Root logger level: {logging.getLogger().getEffectiveLevel()}")
+print(f"🔧 Uvicorn logger level: {logging.getLogger('uvicorn').getEffectiveLevel()}")
 
 # Create database tables
 Base.metadata.create_all(bind=engine)

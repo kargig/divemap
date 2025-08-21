@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, s
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, func, desc, asc
 from typing import List, Optional
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 import re
 import json
 import os
@@ -18,7 +18,14 @@ import quopri
 from email import message_from_bytes
 from difflib import SequenceMatcher
 
+# Configure logging level for this module
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Also set the root logger level if LOG_LEVEL environment variable is set
+log_level = os.getenv("LOG_LEVEL", "WARNING").upper()
+numeric_level = getattr(logging, log_level, logging.WARNING)
+logging.getLogger().setLevel(numeric_level)
 
 router = APIRouter()
 
@@ -361,32 +368,45 @@ def find_matching_diving_center(db: Session, center_name: str) -> Optional[int]:
 def parse_newsletter_with_openai(content: str, db: Session) -> List[dict]:
     """Parse newsletter content using OpenAI API"""
     try:
-        # Extract subject and clean content from raw email
-        email_message = message_from_bytes(content.encode('utf-8'))
-        subject = email_message.get('Subject', '')
-
-        # Get the text content
-        clean_content = ""
-        if email_message.is_multipart():
-            for part in email_message.walk():
-                if part.get_content_type() == "text/plain":
-                    payload = part.get_payload(decode=True)
+        # Check if content is already decoded text or needs email parsing
+        clean_content = content
+        
+        # If content contains email headers, try to extract the text content
+        if content.startswith('Delivered-To:') or 'From:' in content or 'Subject:' in content:
+            try:
+                # Try to parse as email
+                email_message = message_from_bytes(content.encode('utf-8'))
+                subject = email_message.get('Subject', '')
+                
+                # Get the text content
+                if email_message.is_multipart():
+                    for part in email_message.walk():
+                        if part.get_content_type() == "text/plain":
+                            payload = part.get_payload(decode=True)
+                            if payload:
+                                clean_content = payload.decode('utf-8', errors='ignore')
+                                break
+                else:
+                    payload = email_message.get_payload(decode=True)
                     if payload:
                         clean_content = payload.decode('utf-8', errors='ignore')
-                        break
+                
+                # Decode quoted-printable if necessary
+                if '=3D' in clean_content or '=20' in clean_content:
+                    try:
+                        clean_content = quopri.decodestring(clean_content).decode('utf-8', errors='ignore')
+                    except:
+                        pass
+            except Exception as e:
+                logger.warning(f"Failed to parse as email, treating as plain text: {e}")
+                subject = ""
+                clean_content = content
         else:
-            payload = email_message.get_payload(decode=True)
-            if payload:
-                clean_content = payload.decode('utf-8', errors='ignore')
+            # Content is already plain text
+            subject = ""
+            clean_content = content
 
-        # Decode quoted-printable if necessary
-        if '=3D' in clean_content or '=20' in clean_content:
-            try:
-                clean_content = quopri.decodestring(clean_content).decode('utf-8', errors='ignore')
-            except:
-                pass
-
-        # Extract diving center from headers
+        # Extract diving center from headers if available
         diving_center_name = extract_diving_center_from_headers(content)
         diving_center_id = None
         if diving_center_name:
@@ -396,6 +416,15 @@ def parse_newsletter_with_openai(content: str, db: Session) -> List[dict]:
         # Prepare prompt for OpenAI
         prompt = f"""
 Parse the following newsletter content and extract dive trip information. Return a JSON array of dive trips.
+
+⚠️ CRITICAL: This newsletter is in Greek. You MUST parse Greek date formats correctly!
+⚠️ NEVER default to today's date when a Greek date is clearly specified in the text!
+
+⚠️ IMPORTANT: Handle "Διπλή βουτιά" (double dive) scenarios correctly:
+⚠️ - "διπλή βουτιά στην Μακρόνησο" = 2 dives at same location (Makronisos)
+⚠️ - "διπλή βουτιά στον Ποθητό και στο Ποντικονήσι" = 2 dives at different locations
+⚠️ - "βουτιά στον Ποθητό και στο Ποντικονήσι" = 2 dives at different locations
+⚠️ - Always create 2 dives when multiple sites are mentioned or "διπλή βουτιά" is specified
 
 Newsletter Subject: {subject}
 Diving Center: {diving_center_name if diving_center_name else 'Unknown'}
@@ -444,20 +473,58 @@ CRITICAL RULES:
 - If no group size limit is mentioned, set group_size_limit to null
 - If no special requirements are mentioned, set special_requirements to null
 
-DATE EXTRACTION RULES:
-- Extract the actual date from the content if mentioned
-- If no specific date is mentioned, use today's date: {date.today().strftime('%Y-%m-%d')}
+DATE EXTRACTION RULES - THIS IS THE MOST IMPORTANT PART:
+- You MUST parse Greek date formats correctly. This is critical!
+- Look for these exact patterns in the text:
+  * "Σάββατο 2 Αυγούστου" = "2025-08-02" (Saturday August 2nd)
+  * "Κυριακή 3 Αυγούστου" = "2025-08-03" (Sunday August 3rd)
+  * "Σάββατο 23 Αυγούστου" = "2025-08-23" (Saturday August 23rd)
+  * "Κυριακή 24 Αυγούστου" = "2025-08-24" (Sunday August 24th)
+  * "Δευτέρα 25 Αυγούστου" = "2025-08-25" (Monday August 25th)
+  * "Τρίτη 26 Αυγούστου" = "2025-08-26" (Tuesday August 26th)
+  * "Τετάρτη 27 Αυγούστου" = "2025-08-27" (Wednesday August 27th)
+  * "Πέμπτη 28 Αυγούστου" = "2025-08-28" (Thursday August 28th)
+  * "Παρασκευή 29 Αυγούστου" = "2025-08-29" (Friday August 29th)
+- Greek month names: Ιανουαρίου(January), Φεβρουαρίου(February), Μαρτίου(March), Απριλίου(April), Μαΐου(May), Ιουνίου(June), Ιουλίου(July), Αυγούστου(August), Σεπτεμβρίου(September), Οκτωβρίου(October), Νοεμβρίου(November), Δεκεμβρίου(December)
+- Greek day names: Δευτέρα(Monday), Τρίτη(Tuesday), Τετάρτη(Wednesday), Πέμπτη(Thursday), Παρασκευή(Friday), Σάββατο(Saturday), Κυριακή(Sunday)
+- If the content mentions "today", use today's date: {date.today().strftime('%Y-%m-%d')}
+- If the content mentions "tomorrow", use tomorrow's date: {(date.today() + timedelta(days=1)).strftime('%Y-%m-%d')}
+- If the content mentions "next week", add 7 days to today's date
 - NEVER use placeholder dates like "YYYY-MM-DD"
-- Look for date patterns like "today", "tomorrow", "next week", or specific dates
-- If the content mentions "today", use today's date
-- If the content mentions "tomorrow", use tomorrow's date
+- NEVER default to today's date unless explicitly mentioned
+- ALWAYS parse the actual Greek date format when present in the text
+- If you see "Σάββατο 2 Αυγούστου" in the text, the trip_date MUST be "2025-08-02"
+- If you see "Κυριακή 3 Αυγούστου" in the text, the trip_date MUST be "2025-08-03"
+- If you see "Σάββατο 23 Αυγούστου" in the text, the trip_date MUST be "2025-08-23"
+- If you see "Κυριακή 24 Αυγούστου" in the text, the trip_date MUST be "2025-08-24"
 
 TRIP STRUCTURE RULES:
 - A single dive trip can have 1 or 2 dives
+- IMPORTANT: When you see "Διπλή βουτιά" or "double dive" in the text, this means there are exactly 2 dives that day
+- If "Διπλή βουτιά" is mentioned but only ONE dive site is specified, both dives happen at the same location
+- If "Διπλή βουτιά" is mentioned and TWO different dive sites are specified, each dive happens at a different location
+- Examples:
+  * "διπλή βουτιά στην Μακρόνησο" = 2 dives at Makronisos (same location)
+  * "διπλή βουτιά στον Ποθητό και στο Ποντικονήσι" = 2 dives at different locations (Pothitos, then Pontikonisi)
+  * "βουτιά στον Ποθητό και στο Ποντικονήσι" = 2 dives at different locations (Pothitos, then Pontikonisi)
 - If the text mentions "Δεύτερη βουτιά" (second dive) or similar, create 2 dives in the same trip
 - If the text mentions different dates/times for different trips, create separate trip objects
 - Each dive within a trip should have a dive_number (1 for first dive, 2 for second dive)
 - Each dive can have its own dive site, time, duration, and description
+- When multiple dive sites are mentioned without "διπλή βουτιά", still create 2 dives if 2 different locations are specified
+
+CONCRETE EXAMPLES - FOLLOW THESE EXACTLY:
+1. "Tο Σάββατο με ραντεβού στις 0930 πάμε για διπλή βουτιά στην Μακρόνησο."
+   → Create 1 trip with 2 dives, both at "Μακρόνησο", trip_time = "09:30"
+
+2. "Tην Κυριακή με ραντεβού στις 0930 πάμε για διπλή βουτιά στον Ποθητό και στο Ποντικονήσι."
+   → Create 1 trip with 2 dives: dive 1 at "Ποθητό", dive 2 at "Ποντικονήσι", trip_time = "09:30"
+
+3. "Tην Δευτέρα με ραντεβού στις 1030 πάμε για βουτιά στον Ποθητό και στο Ποντικονήσι."
+   → Create 1 trip with 2 dives: dive 1 at "Ποθητό", dive 2 at "Ποντικονήσι", trip_time = "10:30"
+
+4. "Tην Τρίτη με ραντεβού στις 1130 πάμε για βουτιά στον Ποθητό και στις 13:30 στο Ποντικονήσι."
+   → Create 1 trip with 2 dives: dive 1 at "Ποθητό" (dive_time = "11:30"), dive 2 at "Ποντικονήσι" (dive_time = "13:30")
 
 DIVE SITE EXTRACTION RULES:
 - ALWAYS extract dive site names from the content when mentioned
