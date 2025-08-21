@@ -85,12 +85,14 @@ class User(Base):
 
     # Relationships
     site_ratings = relationship("SiteRating", back_populates="user", cascade="all, delete-orphan")
-    site_comments = relationship("SiteComment", back_populates="user", cascade="all, delete-orphan")
+    site_comments = relationship("SiteComment", back_populates="user", cascade="all,delete-orphan")
     center_ratings = relationship("CenterRating", back_populates="user", cascade="all, delete-orphan")
     center_comments = relationship("CenterComment", back_populates="user", cascade="all, delete-orphan")
     certifications = relationship("UserCertification", back_populates="user", cascade="all, delete-orphan")
     dives = relationship("Dive", back_populates="user", cascade="all, delete-orphan")
     diving_centers = relationship("DivingCenter", back_populates="owner")
+    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    auth_audit_logs = relationship("AuthAuditLog", back_populates="user", cascade="all, delete-orphan")
 
 class DiveSite(Base):
     __tablename__ = "dive_sites"
@@ -440,3 +442,36 @@ class DiveTag(Base):
     # Relationships
     dive = relationship("Dive", back_populates="tags")
     tag = relationship("AvailableTag", back_populates="dive_tags")
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+    
+    id = Column(String(255), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token_hash = Column(String(255), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+    last_used_at = Column(DateTime, server_default=func.now())
+    is_revoked = Column(Boolean, default=False)
+    device_info = Column(Text)
+    ip_address = Column(String(45))
+    
+    # Relationships
+    user = relationship("User", back_populates="refresh_tokens")
+
+
+class AuthAuditLog(Base):
+    __tablename__ = "auth_audit_logs"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    action = Column(String(50), nullable=False)  # login, logout, token_refresh, etc.
+    ip_address = Column(String(45))
+    user_agent = Column(Text)
+    timestamp = Column(DateTime, server_default=func.now())
+    success = Column(Boolean, default=True)
+    details = Column(Text)
+    
+    # Relationships
+    user = relationship("User", back_populates="auth_audit_logs")

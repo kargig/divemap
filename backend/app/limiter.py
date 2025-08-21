@@ -38,7 +38,7 @@ limiter = Limiter(key_func=custom_key_func)
 
 def skip_rate_limit_for_admin(limit_string: str):
     """
-    Custom decorator that applies rate limiting but skips it for admin users
+    Custom decorator that applies rate limiting but skips it for admin users and localhost requests
     """
     def decorator(func):
         @wraps(func)
@@ -58,6 +58,11 @@ def skip_rate_limit_for_admin(limit_string: str):
 
             if request:
                 client_ip = get_client_ip(request)
+
+                # Skip rate limiting for localhost requests
+                if is_localhost_ip(client_ip):
+                    print(f"[RATE_LIMIT] Skipping rate limiting for localhost IP: {client_ip}")
+                    return await func(*args, **kwargs)
 
                 # Try to get current user by extracting token from headers
                 try:

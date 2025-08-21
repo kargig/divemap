@@ -372,8 +372,6 @@ const FuzzySearchInput = ({
           onBlur={handleInputBlur}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          // eslint-disable-next-line jsx-a11y/no-autofocus
-          autoFocus={autoFocus}
           disabled={disabled}
           readOnly={readOnly}
           className={`
@@ -464,7 +462,6 @@ FuzzySearchInput.propTypes = {
   highlightClass: PropTypes.string,
 
   // Behavior props
-  autoFocus: PropTypes.bool,
   disabled: PropTypes.bool,
   readOnly: PropTypes.bool,
 

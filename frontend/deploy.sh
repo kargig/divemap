@@ -43,9 +43,9 @@ echo "Google Client ID: ${REACT_APP_GOOGLE_CLIENT_ID:0:20}..."
 echo "API URL: $REACT_APP_API_URL"
 
 # Deploy with build arguments
-fly deploy -a divemap \
+fly deploy -a divemap-frontend \
   --build-arg REACT_APP_GOOGLE_CLIENT_ID="$REACT_APP_GOOGLE_CLIENT_ID" \
   --build-arg REACT_APP_API_URL="$REACT_APP_API_URL"
 
 echo "Deployment completed successfully!"
-echo "Visit your app at: https://divemap.fly.dev/" 
+echo "Visit your app at: https://divemap.gr/" 
