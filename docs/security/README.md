@@ -10,7 +10,8 @@ This document provides comprehensive security information for the Divemap projec
 4. [Vulnerabilities Fixed](#vulnerabilities-fixed)
 5. [Current Security Status](#current-security-status)
 6. [OAuth Setup](#oauth-setup)
-7. [Best Practices](#best-practices)
+7. [Refresh Token System](#refresh-token-system)
+8. [Best Practices](#best-practices)
 
 ## Overview
 
@@ -49,6 +50,15 @@ Security is a critical aspect of the Divemap application. This document outlines
 - Account linking for existing users
 - Automatic user creation from verified Google data
 - Rate limiting protection
+
+**Refresh Token System:**
+- **Automatic token renewal** with 15-minute access tokens and 30-day refresh tokens
+- **Token rotation and revocation** for enhanced security
+- **Comprehensive audit logging** with AuthAuditLog model for compliance and monitoring
+- **Session management** with configurable limits (default: 5 active sessions per user)
+- **Security features** including device tracking, IP address logging, and token expiration
+- **Cross-origin cookie resolution** through nginx proxy integration
+- **Request queuing** to prevent multiple simultaneous refresh attempts
 
 ### 2. Rate Limiting
 
@@ -308,6 +318,102 @@ async def verify_google_token(token: str):
 For detailed OAuth setup instructions, see:
 - [Google OAuth Credentials Setup Guide](./google-oauth-credentials.md) - Step-by-step instructions for generating credentials
 - [OAuth Setup Guide](./oauth-setup.md) - General OAuth configuration
+
+## Refresh Token System
+
+### Overview
+
+The refresh token system provides secure, long-term authentication while maintaining high security standards. It automatically renews access tokens and provides comprehensive audit logging for compliance and security monitoring.
+
+### Architecture
+
+**Token Types:**
+- **Access Tokens**: Short-lived (15 minutes) for API requests
+- **Refresh Tokens**: Long-lived (30 days) for token renewal
+- **Audit Logs**: Comprehensive tracking of all authentication events
+
+**Security Features:**
+- **Token Rotation**: New refresh tokens issued on each renewal
+- **Session Limits**: Configurable maximum active sessions per user (default: 5)
+- **Device Tracking**: Logs device information and IP addresses
+- **Automatic Cleanup**: Expired and revoked tokens are automatically removed
+
+### Configuration
+
+**Environment Variables:**
+```bash
+# Token Configuration
+SECRET_KEY=your-secure-secret-key
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=15
+REFRESH_TOKEN_EXPIRE_DAYS=30
+ENABLE_TOKEN_ROTATION=true
+ENABLE_AUDIT_LOGGING=true
+MAX_ACTIVE_SESSIONS_PER_USER=5
+```
+
+**Database Tables:**
+- `refresh_tokens`: Stores active refresh tokens with metadata
+- `auth_audit_logs`: Comprehensive audit trail of authentication events
+
+### Testing
+
+**Manual Testing (Recommended for Development):**
+```bash
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+
+# Set test environment variables
+export SECRET_KEY='test-secret-key-for-testing-only'
+export ALGORITHM='HS256'
+export ACCESS_TOKEN_EXPIRE_MINUTES='15'
+export REFRESH_TOKEN_EXPIRE_DAYS='30'
+export ENABLE_TOKEN_ROTATION='true'
+export ENABLE_AUDIT_LOGGING='true'
+export MAX_ACTIVE_SESSIONS_PER_USER='5'
+
+# Test token service
+python -c "
+from app.token_service import token_service
+print('✅ Token service initialized successfully')
+print(f'   - Access token expiry: {token_service.access_token_expire}')
+print(f'   - Refresh token expiry: {token_service.refresh_token_expire}')
+print(f'   - Token rotation: {token_service.enable_token_rotation}')
+print(f'   - Audit logging: {token_service.enable_audit_logging}')
+print(f'   - Max sessions: {token_service.max_active_sessions}')
+"
+```
+
+**Automated Testing:**
+```bash
+# Run all refresh token tests
+python -m pytest tests/test_refresh_tokens.py -v
+
+# Run specific test categories
+python -m pytest tests/test_refresh_tokens.py::TestTokenService -v
+python -m pytest tests/test_refresh_tokens.py::TestAuthEndpoints -v
+```
+
+### Security Considerations
+
+**Token Security:**
+- Refresh tokens are stored as secure HTTP-only cookies
+- SameSite=strict prevents CSRF attacks
+- Automatic token rotation on each renewal
+- Comprehensive audit logging for security monitoring
+
+**Session Management:**
+- Configurable session limits prevent abuse
+- Automatic cleanup of expired tokens
+- Device and IP tracking for suspicious activity detection
+- Revocation capability for compromised sessions
+
+**Production Deployment:**
+- Use strong, unique secret keys
+- Enable token rotation and audit logging
+- Monitor audit logs for suspicious activity
+- Regular security reviews and updates
 
 ## Best Practices
 
