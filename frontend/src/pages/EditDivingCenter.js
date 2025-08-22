@@ -36,7 +36,6 @@ const EditDivingCenter = () => {
     city: '',
   });
 
-  const [gearRental, setGearRental] = useState([]);
   const [newGearItem, setNewGearItem] = useState({
     item_name: '',
     cost: '',
@@ -45,38 +44,14 @@ const EditDivingCenter = () => {
 
   const [isAddingGear, setIsAddingGear] = useState(false);
 
-  // Organization management state
-  const [centerOrganizations, setCenterOrganizations] = useState([]);
   const [newOrganization, setNewOrganization] = useState({
     diving_organization_id: '',
     is_primary: false,
   });
 
-  // Fetch diving center data first to check ownership
+  // Fetch diving center data
   const {
     data: divingCenter,
-    isLoading: divingCenterLoading,
-    error: divingCenterError,
-  } = useQuery(
-    ['diving-center', id],
-    () => api.get(`/api/v1/diving-centers/${id}`).then(res => res.data),
-    {
-      enabled: !!id,
-    }
-  );
-
-  // Check if user has edit privileges
-  const canEdit =
-    user &&
-    divingCenter &&
-    (user.is_admin ||
-      user.is_moderator ||
-      (divingCenter.owner_username === user.username &&
-        divingCenter.ownership_status === 'approved'));
-
-  // Fetch diving center data for editing
-  const {
-    data: _divingCenter,
     isLoading,
     error,
   } = useQuery(
@@ -101,12 +76,17 @@ const EditDivingCenter = () => {
     }
   );
 
+  // Check if user has edit privileges
+  const canEdit =
+    user &&
+    divingCenter &&
+    (user.is_admin ||
+      user.is_moderator ||
+      (divingCenter.owner_username === user.username &&
+        divingCenter.ownership_status === 'approved'));
+
   // Fetch gear rental costs
-  const {
-    data: _gearRentalData = [],
-    isLoading: gearLoading,
-    error: gearError,
-  } = useQuery(
+  const { data: gearRentalData = [], isLoading: gearLoading } = useQuery(
     ['diving-center-gear', id],
     () =>
       api.get(`/api/v1/diving-centers/${id}/gear-rental`).then(res => {
@@ -114,11 +94,7 @@ const EditDivingCenter = () => {
       }),
     {
       enabled: !!id,
-      onSuccess: data => {
-        setGearRental(data);
-      },
-      onError: error => {
-        console.error('Failed to fetch gear rental:', error);
+      onError: () => {
         toast.error('Failed to load gear rental data');
       },
     }
@@ -130,22 +106,17 @@ const EditDivingCenter = () => {
   );
 
   // Fetch center organizations
-  const { data: _centerOrganizationsData = [], isLoading: orgLoading } = useQuery(
+  const { data: centerOrganizations = [], isLoading: orgLoading } = useQuery(
     ['diving-center-organizations', id],
     () => api.get(`/api/v1/diving-centers/${id}/organizations`).then(res => res.data),
     {
       enabled: !!id,
-      onSuccess: data => {
-        setCenterOrganizations(data);
-      },
     }
   );
 
   // Update mutation
   const updateMutation = useMutation(data => api.put(`/api/v1/diving-centers/${id}`, data), {
     onError: error => {
-      console.error('Update error:', error);
-      console.error('Error response:', error.response);
       toast.error(error.response?.data?.detail || 'Failed to update diving center');
     },
   });
@@ -157,7 +128,7 @@ const EditDivingCenter = () => {
       onSuccess: () => {
         toast.success('Gear rental added successfully');
         queryClient.invalidateQueries(['diving-center-gear', id]);
-        setNewGearItem({ item_name: '', cost: '' });
+        setNewGearItem({ item_name: '', cost: '', currency: DEFAULT_CURRENCY });
         setIsAddingGear(false);
       },
       onError: error => {
@@ -331,8 +302,7 @@ const EditDivingCenter = () => {
     });
   };
 
-  const handleAddGear = e => {
-    e.preventDefault();
+  const handleAddGear = () => {
     if (!newGearItem.item_name.trim() || !newGearItem.cost.trim()) {
       toast.error('Please enter both item name and cost');
       return;
@@ -400,20 +370,7 @@ const EditDivingCenter = () => {
     });
   };
 
-  if (!canEdit) {
-    return (
-      <div className='min-h-screen bg-gray-50 py-8'>
-        <div className='max-w-4xl mx-auto px-4'>
-          <div className='bg-white rounded-lg shadow-md p-6'>
-            <h1 className='text-2xl font-bold text-gray-900 mb-4'>Access Denied</h1>
-            <p className='text-gray-600'>You don&apos;t have permission to edit diving centers.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (divingCenterLoading || isLoading) {
+  if (isLoading) {
     return (
       <div className='min-h-screen bg-gray-50 py-8'>
         <div className='max-w-4xl mx-auto px-4'>
@@ -426,6 +383,19 @@ const EditDivingCenter = () => {
                 <div className='h-4 bg-gray-200 rounded w-4/6'></div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canEdit) {
+    return (
+      <div className='min-h-screen bg-gray-50 py-8'>
+        <div className='max-w-4xl mx-auto px-4'>
+          <div className='bg-white rounded-lg shadow-md p-6'>
+            <h1 className='text-2xl font-bold text-gray-900 mb-4'>Access Denied</h1>
+            <p className='text-gray-600'>You don&apos;t have permission to edit diving centers.</p>
           </div>
         </div>
       </div>
@@ -805,7 +775,7 @@ const EditDivingCenter = () => {
               {/* Add Gear Rental Form */}
               {isAddingGear && (
                 <div className='bg-gray-50 p-4 rounded-md mb-4'>
-                  <form onSubmit={handleAddGear} className='space-y-4'>
+                  <div className='space-y-4'>
                     <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                       <div>
                         <label
@@ -871,7 +841,8 @@ const EditDivingCenter = () => {
                     </div>
                     <div className='flex space-x-2'>
                       <button
-                        type='submit'
+                        type='button'
+                        onClick={handleAddGear}
                         disabled={addGearMutation.isLoading}
                         className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50'
                       >
@@ -885,7 +856,7 @@ const EditDivingCenter = () => {
                         Cancel
                       </button>
                     </div>
-                  </form>
+                  </div>
                 </div>
               )}
 
@@ -897,23 +868,12 @@ const EditDivingCenter = () => {
                     <p className='text-gray-600 mt-2'>Loading gear rental...</p>
                   </div>
                 )}
-                {gearError && (
-                  <div className='text-center py-4'>
-                    <p className='text-red-600'>Failed to load gear rental data</p>
-                  </div>
+                {!gearLoading && Array.isArray(gearRentalData) && gearRentalData.length === 0 && (
+                  <p className='text-gray-500 text-center py-4'>No gear rental items added yet.</p>
                 )}
                 {!gearLoading &&
-                  !gearError &&
-                  Array.isArray(gearRental) &&
-                  gearRental.length === 0 && (
-                    <p className='text-gray-500 text-center py-4'>
-                      No gear rental items added yet.
-                    </p>
-                  )}
-                {!gearLoading &&
-                  !gearError &&
-                  Array.isArray(gearRental) &&
-                  gearRental.map(item => (
+                  Array.isArray(gearRentalData) &&
+                  gearRentalData.map(item => (
                     <div
                       key={item.id}
                       className='flex items-center justify-between p-4 border rounded-lg'

@@ -1035,13 +1035,6 @@ async def add_diving_center_gear_rental(
     current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
-    # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
-    if not diving_center:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Diving center not found"
-        )
 
     db_gear_rental = GearRentalCost(
         diving_center_id=diving_center_id,
@@ -1061,13 +1054,6 @@ async def delete_diving_center_gear_rental(
     current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
-    # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
-    if not diving_center:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Diving center not found"
-        )
 
     # Check if gear rental exists
     gear_rental = db.query(GearRentalCost).filter(
