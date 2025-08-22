@@ -165,3 +165,4 @@ utils/samples/
 merge_*.txt
 database_backups/
 wg-*.conf
+.playwright-mcp/
