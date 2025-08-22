@@ -1072,3 +1072,452 @@ class TestDivingCenters:
         assert revocation_record["processed_by"] is not None
         assert revocation_record["reason"] == "Testing revocation"
         assert "revocation" in revocation_record.get("notes", "").lower()
+
+
+class TestDivingCenterAuthorization:
+    """Test diving center authorization for owners, admins, and regular users."""
+
+    def test_gear_rental_owner_authorization(self, client, db_session, test_user, test_diving_center, auth_headers):
+        """Test that diving center owners can manage gear rental items."""
+        from app.models import OwnershipStatus
+        
+        # Set the user as the owner of the diving center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Test adding gear rental item as owner
+        gear_data = {
+            "item_name": "Test Regulator",
+            "cost": 45.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental",
+            json=gear_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["item_name"] == "Test Regulator"
+        assert float(data["cost"]) == 45.00
+        assert data["currency"] == "EUR"
+        assert data["diving_center_id"] == test_diving_center.id
+        
+        gear_id = data["id"]
+        
+        # Test deleting gear rental item as owner
+        delete_response = client.delete(
+            f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental/{gear_id}",
+            headers=auth_headers
+        )
+        
+        assert delete_response.status_code == status.HTTP_200_OK
+        assert delete_response.json()["message"] == "Gear rental deleted successfully"
+
+    def test_gear_rental_admin_authorization(self, client, db_session, test_diving_center, admin_headers):
+        """Test that admins can manage gear rental items for any diving center."""
+        
+        # Test adding gear rental item as admin
+        gear_data = {
+            "item_name": "Admin Test BCD",
+            "cost": 75.00,
+            "currency": "USD"
+        }
+        
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental",
+            json=gear_data,
+            headers=admin_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["item_name"] == "Admin Test BCD"
+        assert float(data["cost"]) == 75.00
+        assert data["currency"] == "USD"
+        
+        gear_id = data["id"]
+        
+        # Test deleting gear rental item as admin
+        delete_response = client.delete(
+            f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental/{gear_id}",
+            headers=admin_headers
+        )
+        
+        assert delete_response.status_code == status.HTTP_200_OK
+
+    def test_gear_rental_moderator_authorization(self, client, db_session, test_diving_center, moderator_headers):
+        """Test that moderators can manage gear rental items for any diving center."""
+        
+        # Test adding gear rental item as moderator
+        gear_data = {
+            "item_name": "Moderator Test Fins",
+            "cost": 35.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental",
+            json=gear_data,
+            headers=moderator_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["item_name"] == "Moderator Test Fins"
+        
+        gear_id = data["id"]
+        
+        # Test deleting gear rental item as moderator
+        delete_response = client.delete(
+            f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental/{gear_id}",
+            headers=moderator_headers
+        )
+        
+        assert delete_response.status_code == status.HTTP_200_OK
+
+    def test_gear_rental_unauthorized_user(self, client, db_session, test_user, test_diving_center, auth_headers):
+        """Test that non-owner users cannot manage gear rental items."""
+        from app.models import OwnershipStatus
+        
+        # Set a different user as the owner (not the authenticated user)
+        test_diving_center.owner_id = 999  # Different user ID
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Test adding gear rental item as non-owner
+        gear_data = {
+            "item_name": "Unauthorized Item",
+            "cost": 25.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental",
+            json=gear_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Not enough permissions" in response.json()["detail"]
+
+    def test_gear_rental_unapproved_owner(self, client, db_session, test_user, test_diving_center, auth_headers):
+        """Test that unapproved owners cannot manage gear rental items."""
+        from app.models import OwnershipStatus
+        
+        # Set the user as the owner but with unapproved status
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.claimed
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Test adding gear rental item as unapproved owner
+        gear_data = {
+            "item_name": "Unapproved Owner Item",
+            "cost": 30.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental",
+            json=gear_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Not enough permissions" in response.json()["detail"]
+
+    def test_gear_rental_nonexistent_center(self, client, auth_headers):
+        """Test that requests to non-existent diving centers return 404."""
+        
+        gear_data = {
+            "item_name": "Test Item",
+            "cost": 25.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            "/api/v1/diving-centers/99999/gear-rental",
+            json=gear_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "Diving center not found" in response.json()["detail"]
+
+    def test_organization_management_owner_authorization(self, client, db_session, test_user, test_diving_center, test_diving_organization, auth_headers):
+        """Test that diving center owners can manage organizations."""
+        from app.models import OwnershipStatus
+        
+        # Set the user as the owner of the diving center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Test adding organization as owner
+        org_data = {
+            "diving_organization_id": test_diving_organization.id,
+            "is_primary": True
+        }
+        
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/organizations",
+            json=org_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["diving_center_id"] == test_diving_center.id
+        assert data["diving_organization_id"] == test_diving_organization.id
+        assert data["is_primary"] == True
+        
+        org_id = data["id"]
+        
+        # Test updating organization as owner
+        update_data = {
+            "is_primary": False
+        }
+        
+        update_response = client.put(
+            f"/api/v1/diving-centers/{test_diving_center.id}/organizations/{org_id}",
+            json=update_data,
+            headers=auth_headers
+        )
+        
+        assert update_response.status_code == status.HTTP_200_OK
+        assert update_response.json()["is_primary"] == False
+        
+        # Test deleting organization as owner
+        delete_response = client.delete(
+            f"/api/v1/diving-centers/{test_diving_center.id}/organizations/{org_id}",
+            headers=auth_headers
+        )
+        
+        assert delete_response.status_code == status.HTTP_200_OK
+
+    def test_organization_management_admin_authorization(self, client, db_session, test_diving_center, test_diving_organization, admin_headers):
+        """Test that admins can manage organizations for any diving center."""
+        
+        # Test adding organization as admin
+        org_data = {
+            "diving_organization_id": test_diving_organization.id,
+            "is_primary": False
+        }
+        
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/organizations",
+            json=org_data,
+            headers=admin_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        
+        org_id = response.json()["id"]
+        
+        # Test deleting organization as admin
+        delete_response = client.delete(
+            f"/api/v1/diving-centers/{test_diving_center.id}/organizations/{org_id}",
+            headers=admin_headers
+        )
+        
+        assert delete_response.status_code == status.HTTP_200_OK
+
+    def test_organization_management_unauthorized_user(self, client, db_session, test_user, test_diving_center, test_diving_organization, auth_headers):
+        """Test that non-owner users cannot manage organizations."""
+        from app.models import OwnershipStatus
+        
+        # Set a different user as the owner (not the authenticated user)
+        test_diving_center.owner_id = 999  # Different user ID
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Test adding organization as non-owner
+        org_data = {
+            "diving_organization_id": test_diving_organization.id,
+            "is_primary": False
+        }
+        
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/organizations",
+            json=org_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Not enough permissions" in response.json()["detail"]
+
+    def test_gear_rental_authentication_required(self, client, test_diving_center):
+        """Test that authentication is required for gear rental operations."""
+        
+        gear_data = {
+            "item_name": "Test Item",
+            "cost": 25.00,
+            "currency": "EUR"
+        }
+        
+        # Test without authentication
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental",
+            json=gear_data
+        )
+        
+        # The endpoint requires authentication, so it should return 403 Forbidden
+        # (not 401 Unauthorized) because it's checking authorization after authentication
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_gear_rental_invalid_data(self, client, db_session, test_user, test_diving_center, auth_headers):
+        """Test gear rental with invalid data."""
+        from app.models import OwnershipStatus
+        
+        # Set the user as the owner of the diving center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Test with missing required fields
+        invalid_data = {
+            "item_name": "",  # Empty name
+            "cost": 25.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental",
+            json=invalid_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        # Test with invalid cost
+        invalid_data = {
+            "item_name": "Test Item",
+            "cost": -10.00,  # Negative cost
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental",
+            json=invalid_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_gear_rental_delete_nonexistent_item(self, client, db_session, test_user, test_diving_center, auth_headers):
+        """Test deleting a non-existent gear rental item."""
+        from app.models import OwnershipStatus
+        
+        # Set the user as the owner of the diving center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Try to delete non-existent item
+        response = client.delete(
+            f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental/99999",
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "Gear rental not found" in response.json()["detail"]
+
+    def test_gear_rental_cross_center_access(self, client, db_session, test_user, test_diving_center, auth_headers):
+        """Test that users cannot access gear rental items from other diving centers."""
+        from app.models import OwnershipStatus, GearRentalCost, DivingCenter
+        
+        # Set the user as the owner of the diving center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Create a gear rental item in this center
+        gear_data = {
+            "item_name": "Test Item",
+            "cost": 25.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental",
+            json=gear_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        gear_id = response.json()["id"]
+        
+        # Create another diving center
+        other_center = DivingCenter(
+            name="Other Diving Center",
+            description="Another test center",
+            email="other@test.com",
+            latitude=20.0,
+            longitude=30.0
+        )
+        db_session.add(other_center)
+        db_session.commit()
+        db_session.refresh(other_center)
+        
+        # Try to delete the gear rental item from the other center
+        response = client.delete(
+            f"/api/v1/diving-centers/{other_center.id}/gear-rental/{gear_id}",
+            headers=auth_headers
+        )
+        
+        # The user should get 403 Forbidden because they don't have permission to manage the other center
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Not enough permissions" in response.json()["detail"]
+
+    def test_ownership_status_enum_handling(self, client, db_session, test_user, test_diving_center, auth_headers):
+        """Test that ownership status enum is handled correctly."""
+        from app.models import OwnershipStatus
+        
+        # Test with different ownership statuses
+        statuses_to_test = [
+            OwnershipStatus.unclaimed,
+            OwnershipStatus.claimed,
+            OwnershipStatus.denied
+        ]
+        
+        for ownership_status in statuses_to_test:
+            # Set the ownership status
+            test_diving_center.owner_id = test_user.id
+            test_diving_center.ownership_status = ownership_status
+            db_session.commit()
+            db_session.refresh(test_diving_center)
+
+            # Try to add gear rental item
+            gear_data = {
+                "item_name": f"Test Item {ownership_status.value}",
+                "cost": 25.00,
+                "currency": "EUR"
+            }
+            
+            response = client.post(
+                f"/api/v1/diving-centers/{test_diving_center.id}/gear-rental",
+                json=gear_data,
+                headers=auth_headers
+            )
+            
+            if ownership_status == OwnershipStatus.approved:
+                assert response.status_code == status.HTTP_200_OK
+            else:
+                assert response.status_code == status.HTTP_403_FORBIDDEN
+                assert "Not enough permissions" in response.json()["detail"]
+
+        # Clean up - set back to approved for other tests
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()

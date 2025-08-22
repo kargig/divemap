@@ -162,7 +162,7 @@ async def can_manage_diving_center(
         return current_user
     
     # Check if user is the owner of this diving center
-    from app.models import DivingCenter
+    from app.models import DivingCenter, OwnershipStatus
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     
     if not diving_center:
@@ -171,7 +171,7 @@ async def can_manage_diving_center(
             detail="Diving center not found"
         )
     
-    if diving_center.owner_id == current_user.id and diving_center.ownership_status == 'approved':
+    if diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved:
         return current_user
     
     raise HTTPException(
