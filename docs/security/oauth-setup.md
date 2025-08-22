@@ -36,10 +36,10 @@ This guide will help you set up Google OAuth for the Divemap application.
 4. Set the following:
    - Name: "Divemap Web Client"
    - Authorized JavaScript origins:
-     - `http://localhost:3000` (for development)
+     - `http://localhost` (for development)
      - `https://your-domain.com` (for production)
    - Authorized redirect URIs:
-     - `http://localhost:3000` (for development)
+     - `http://localhost` (for development)
      - `https://your-domain.com` (for production)
 5. Click "Create"
 6. Copy the Client ID and Client Secret
@@ -105,7 +105,7 @@ npm install
 
 2. **"Redirect URI mismatch" error**
    - Ensure the redirect URI in Google Cloud Console matches your application URL
-   - For development, use `http://localhost:3000`
+   - For development, use `http://localhost`
 
 3. **"Google Identity Services not loaded" error**
    - Check that the Google Client ID is set in the frontend environment

@@ -7,7 +7,7 @@
 
 const http = require('http');
 const https = require('https');
-const BACKEND_URL = 'http://localhost:8000';
+const BACKEND_URL = 'http://localhost';
 const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@example.com';
 const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'adminpassword';
 
@@ -293,10 +293,10 @@ async function testAPIEndpoints() {
   const endpoints = [
     '/api/v1/dive-sites/',
     '/api/v1/diving-centers/',
-    '/api/v1/dive-sites/1',
-    '/api/v1/diving-centers/1',
-    '/api/v1/dive-sites/1/media',
-    '/api/v1/diving-centers/1/gear-rental'
+    '/api/v1/dive-sites/112',  // Abu Dabab 2&3 - exists in database
+    '/api/v1/diving-centers/56',  // ACHILLEON DIVING CENTER - exists in database
+    '/api/v1/dive-sites/12/media',  // Dive site with media - exists in database
+    '/api/v1/diving-centers/56'  // Use existing diving center since no gear rental data
   ];
 
   let workingEndpoints = 0;
@@ -326,7 +326,7 @@ async function runUserActionTests() {
   let errors = 0;
   // Try rating a dive site (anonymous)
   try {
-    await testRateDiveSite(1, null);
+    await testRateDiveSite(112, null);  // Use real dive site ID 112 (Abu Dabab 2&3)
     console.log('  \u2705 Anonymous: Rating dive site did not return error object');
   } catch (e) {
     console.log('  \u274c Anonymous: ' + e.message);
@@ -342,7 +342,7 @@ async function runUserActionTests() {
   }
   // Try modifying a diving center (anonymous)
   try {
-    await testModifyDivingCenter(1, null);
+    await testModifyDivingCenter(56, null);  // Use real diving center ID 56 (ACHILLEON DIVING CENTER)
     console.log('  \u2705 Anonymous: Modifying diving center did not return error object');
   } catch (e) {
     console.log('  \u274c Anonymous: ' + e.message);
@@ -358,7 +358,7 @@ async function runUserActionTests() {
   }
   // Try rating a dive site (authenticated)
   try {
-    await testRateDiveSite(1, token);
+    await testRateDiveSite(112, token);  // Use real dive site ID 112 (Abu Dabab 2&3)
     console.log('  \u2705 Authenticated: Rating dive site did not return error object');
   } catch (e) {
     console.log('  \u274c Authenticated: ' + e.message);
@@ -374,7 +374,7 @@ async function runUserActionTests() {
   }
   // Try modifying a diving center (authenticated)
   try {
-    await testModifyDivingCenter(1, token);
+    await testModifyDivingCenter(56, token);  // Use real diving center ID 56 (ACHILLEON DIVING CENTER)
     console.log('  \u2705 Authenticated: Modifying diving center did not return error object');
   } catch (e) {
     console.log('  \u274c Authenticated: ' + e.message);

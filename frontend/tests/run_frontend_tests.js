@@ -104,7 +104,7 @@ async function checkFrontendService() {
   }
 
   try {
-    const result = await makeRequest('http://localhost:3000');
+    const result = await makeRequest('http://localhost');
     if (result.available && result.statusCode === 200) {
       console.log(`✅ Frontend: Available (${result.statusCode})`);
       return true;
