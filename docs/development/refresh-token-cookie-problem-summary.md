@@ -6,7 +6,7 @@ The refresh token cookie is not being accepted by the browser despite the backen
 ## Current Development Setup
 
 ### Frontend
-- **URL**: `http://127.0.0.1:3000`
+- **URL**: `http://127.0.0.1`
 - **Environment**: `REACT_APP_API_URL=http://127.0.0.1:8000`
 
 ### Backend
@@ -24,15 +24,15 @@ The refresh token cookie is not being accepted by the browser despite the backen
 ## What's Not Working
 
 ❌ **Browser Cookie Storage**: Browser refuses to accept the refresh token cookie  
-❌ **Cross-Origin Cookie Sharing**: Cookie set by `127.0.0.1:8000` not accessible to `127.0.0.1:3000`
+❌ **Cross-Origin Cookie Sharing**: Cookie set by `127.0.0.1:8000` not accessible to `127.0.0.1`
 
 ## Current Configuration
 
 ### CORS Settings (backend/app/main.py)
 ```python
 allow_origins = [
-    "http://127.0.0.1:3000",
-    "http://localhost:3000", 
+    "http://127.0.0.1",
+    "http://localhost", 
     "http://127.0.0.1:8000",
     "http://localhost:8000",
     # Production URLs...
@@ -105,7 +105,7 @@ console.log(document.cookie);  // Returns: "g_state={\"i_t\":1755510820339,\"i_l
 ## Root Cause Analysis
 
 The issue appears to be a fundamental browser security limitation:
-- **Same IP, Different Ports**: `127.0.0.1:3000` vs `127.0.0.1:8000`
+- **Same IP, Different Ports**: `127.0.0.1` vs `127.0.0.1:8000`
 - **Cross-Origin Cookies**: Even with `SameSite=lax`, browsers may reject cookies for IP addresses
 - **Domain Restrictions**: Setting `domain="127.0.0.1"` may not work as expected for IP addresses
 

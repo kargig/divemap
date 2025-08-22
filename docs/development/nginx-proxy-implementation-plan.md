@@ -6,7 +6,7 @@ This document outlines the plan to implement nginx as a reverse proxy for both d
 
 ## Problem Statement
 
-**Current Issue**: Refresh token cookies are not being sent with cross-origin requests between frontend (`127.0.0.1:3000`) and backend (`127.0.0.1:8000`) in development, and between `https://divemap.gr` and `https://divemap-backend.fly.dev` in production.
+**Current Issue**: Refresh token cookies are not being sent with cross-origin requests between frontend (`127.0.0.1`) and backend (`127.0.0.1:8000`) in development, and between `https://divemap.gr` and `https://divemap-backend.fly.dev` in production.
 
 **Root Cause**: Browsers fundamentally do not allow cookies to be sent across different origins, even with proper CORS configuration and `SameSite=lax` settings.
 

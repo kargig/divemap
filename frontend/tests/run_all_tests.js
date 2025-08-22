@@ -90,7 +90,7 @@ async function checkServices() {
   console.log('🔍 Checking service availability...\n');
 
   const services = [
-    { name: 'Frontend', url: 'http://localhost:3000' },
+    { name: 'Frontend', url: 'http://localhost' },
     { name: 'Backend', url: 'http://localhost:8000' }
   ];
 
@@ -144,7 +144,7 @@ async function runAllTests() {
   if (!servicesAvailable) {
     console.log('\n⚠️  Some services are not available. Tests may fail.');
     console.log('   Please ensure frontend and backend are running:');
-    console.log('   - Frontend: http://localhost:3000');
+    console.log('   - Frontend: http://localhost');
     console.log('   - Backend: http://localhost:8000');
     console.log('\n   Continue anyway? (y/N)');
 
