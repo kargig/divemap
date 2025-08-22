@@ -1360,6 +1360,31 @@ async def get_parsed_trips(
     
     # Create response with custom headers if match types are available
     if match_types:
+        # Optimize match_types to prevent extremely large headers
+        # Only include essential match information and limit size
+        optimized_match_types = {}
+        for trip_id, match_info in match_types.items():
+            # Include only essential fields to reduce header size
+            optimized_match_types[trip_id] = {
+                'type': match_info.get('type', 'unknown'),
+                'score': round(match_info.get('score', 0), 2) if match_info.get('score') else 0
+            }
+        
+        # Convert to JSON and check size
+        match_types_json = json.dumps(optimized_match_types)
+        
+        # If header is still too large, truncate or omit it
+        if len(match_types_json) > 8000:  # 8KB limit for headers
+            # Log warning about large header
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"X-Match-Types header too large ({len(match_types_json)} chars), omitting to prevent nginx errors")
+            # Return response without the header
+            return Response(
+                content=json.dumps(serialized_trips),
+                media_type="application/json"
+            )
+        
         # Properly serialize the Pydantic models to handle datetime fields
         serialized_trips = []
         for trip in response_data:
@@ -1382,7 +1407,7 @@ async def get_parsed_trips(
         response = Response(
             content=json.dumps(serialized_trips),
             media_type="application/json",
-            headers={"X-Match-Types": json.dumps(match_types)}
+            headers={"X-Match-Types": match_types_json}
         )
         return response
     
