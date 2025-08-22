@@ -288,10 +288,10 @@ const EnhancedMobileSortingControls = ({
       {/* Mobile Version - Vertical, Tabbed Interface */}
       {isMobile && (
         <>
-          {/* Sticky Header for Mobile */}
-          <div className='mobile-sticky-header'>
+          {/* Mobile Header - Non-sticky to follow normal document flow */}
+          <div className='mobile-header bg-white border-b border-gray-200 rounded-t-lg p-3 sm:p-4'>
             <div className='flex items-center justify-between'>
-              <h2 className='text-xl font-bold text-white'>
+              <h2 className='text-lg font-semibold text-gray-900'>
                 {entityType.charAt(0).toUpperCase() + entityType.slice(1)}
               </h2>
               <div className='flex items-center gap-2'>
