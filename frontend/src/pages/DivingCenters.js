@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
+import DivingCentersFilterBar from '../components/DivingCentersFilterBar';
 import DivingCentersMap from '../components/DivingCentersMap';
 import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
 import FuzzySearchInput from '../components/FuzzySearchInput';
@@ -57,6 +58,9 @@ const DivingCenters = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get('compact_layout') !== 'false'; // Default to true (compact)
   });
+
+  // Filter visibility state
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
@@ -384,6 +388,33 @@ const DivingCenters = () => {
     rateMutation.mutate({ centerId, score });
   };
 
+  // Helper function to count active filters
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filters.search) count++;
+    if (filters.name) count++;
+    if (filters.min_rating) count++;
+    if (filters.country) count++;
+    if (filters.region) count++;
+    if (filters.city) count++;
+    return count;
+  };
+
+  // Function to clear all filters
+  const clearFilters = () => {
+    const clearedFilters = {
+      search: '',
+      name: '',
+      min_rating: '',
+      country: '',
+      region: '',
+      city: '',
+    };
+    setFilters(clearedFilters);
+    setPagination(prev => ({ ...prev, page: 1 }));
+    immediateUpdateURL(clearedFilters, { ...pagination, page: 1 }, viewMode);
+  };
+
   const handleViewModeChange = newViewMode => {
     setViewMode(newViewMode);
 
@@ -506,12 +537,9 @@ const DivingCenters = () => {
 
       {/* Sticky Filter Bar - Mobile-First Responsive Design */}
       <div className='sticky top-16 z-40 bg-white shadow-sm border-b border-gray-200 rounded-t-lg px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4'>
-        <div className='flex flex-col sm:flex-row gap-3 sm:gap-4 items-end'>
-          {/* Smart Fuzzy Search Input - Enhanced search experience */}
-          <div className='flex-1 w-full'>
-            <label htmlFor='search-name' className='block text-sm font-medium text-gray-700 mb-2'>
-              Search
-            </label>
+        {/* Smart Fuzzy Search Input - Enhanced search experience */}
+        <div className='mb-3 sm:mb-4'>
+          <div className='max-w-2xl mx-auto'>
             <FuzzySearchInput
               data={divingCenters || []}
               searchValue={filters.search}
@@ -534,72 +562,21 @@ const DivingCenters = () => {
               highlightClass='bg-blue-100 font-medium'
             />
           </div>
-
-          {/* Min Rating Filter - Compact */}
-          <div className='w-full sm:w-32'>
-            <label htmlFor='min-rating' className='block text-sm font-medium text-gray-700 mb-2'>
-              Min Rating (≥)
-            </label>
-            <input
-              id='min-rating'
-              type='number'
-              min='0'
-              max='10'
-              step='0.1'
-              name='min_rating'
-              value={filters.min_rating}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
-              placeholder='≥ 0'
-            />
-          </div>
-
-          {/* Geographic Filters */}
-          <div className='w-full sm:w-32'>
-            <label htmlFor='country' className='block text-sm font-medium text-gray-700 mb-2'>
-              Country
-            </label>
-            <input
-              id='country'
-              type='text'
-              name='country'
-              value={filters.country}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
-              placeholder='Country'
-            />
-          </div>
-
-          <div className='w-full sm:w-32'>
-            <label htmlFor='region' className='block text-sm font-medium text-gray-700 mb-2'>
-              Region
-            </label>
-            <input
-              id='region'
-              type='text'
-              name='region'
-              value={filters.region}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
-              placeholder='Region'
-            />
-          </div>
-
-          <div className='w-full sm:w-32'>
-            <label htmlFor='city' className='block text-sm font-medium text-gray-700 mb-2'>
-              City
-            </label>
-            <input
-              id='city'
-              type='text'
-              name='city'
-              value={filters.city}
-              onChange={handleSearchChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
-              placeholder='City'
-            />
-          </div>
         </div>
+
+        <DivingCentersFilterBar
+          showFilters={showAdvancedFilters}
+          onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          onClearFilters={clearFilters}
+          activeFiltersCount={getActiveFiltersCount()}
+          filters={filters}
+          onFilterChange={(key, value) => {
+            handleSearchChange({ target: { name: key, value } });
+          }}
+          variant='inline'
+          showAdvancedToggle={true}
+          mobileOptimized={true}
+        />
       </div>
 
       {/* Sorting & View Controls - Attached to Sticky Filters */}

@@ -27,6 +27,8 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
 
+import Logo from './Logo';
+
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -54,8 +56,7 @@ const Navbar = () => {
       <div className='container mx-auto px-4'>
         <div className='flex justify-between items-center h-16'>
           <Link to='/' className='flex items-center space-x-2' onClick={closeMobileMenu}>
-            <Map className='h-8 w-8' />
-            <span className='text-xl font-bold'>Divemap</span>
+            <Logo size='small' showText={true} textOnly={true} textClassName='text-white' />
           </Link>
 
           {/* Desktop Navigation */}
