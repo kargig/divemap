@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 from io import BytesIO
 from difflib import SequenceMatcher
 import json
+import logging
 
 from app.database import get_db
 from app.models import Dive, DiveMedia, DiveTag, DiveSite, AvailableTag, User, DivingCenter, DiveSiteAlias, get_difficulty_label
@@ -1210,7 +1211,26 @@ def get_dives(
     
     # Add match types header if available
     if match_types:
-        response.headers["X-Match-Types"] = json.dumps(match_types)
+        # Optimize match_types to prevent extremely large headers
+        # Only include essential match information and limit size
+        optimized_match_types = {}
+        for dive_id, match_info in match_types.items():
+            # Include only essential fields to reduce header size
+            optimized_match_types[dive_id] = {
+                'type': match_info.get('type', 'unknown'),
+                'score': round(match_info.get('score', 0), 2) if match_info.get('score') else 0
+            }
+        
+        # Convert to JSON and check size
+        match_types_json = json.dumps(optimized_match_types)
+        
+        # If header is still too large, truncate or omit it
+        if len(match_types_json) > 8000:  # 8KB limit for headers
+            # Log warning about large header
+            logger = logging.getLogger(__name__)
+            logger.warning(f"X-Match-Types header too large ({len(match_types_json)} chars), omitting to prevent nginx errors")
+        else:
+            response.headers["X-Match-Types"] = match_types_json
 
     return response
 
