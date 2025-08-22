@@ -656,7 +656,10 @@ const DiveSites = () => {
           title='Dive Sites'
           subtitle='Discover amazing dive sites around the world'
           background='ocean'
-          size='medium'
+          size='large'
+          showLogo={false}
+          logoBackground={true}
+          threeColumnLayout={true}
         >
           <div className='flex flex-col sm:flex-row gap-3 justify-center'>
             <button
@@ -664,7 +667,7 @@ const DiveSites = () => {
                 setViewMode('map');
                 navigate('/dive-sites?view=map');
               }}
-              className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
+              className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
             >
               <Compass className='w-5 h-5' />
               Explore Map
@@ -674,7 +677,7 @@ const DiveSites = () => {
                 setViewMode('list');
                 navigate('/dive-sites');
               }}
-              className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
+              className='bg-indigo-600 hover:bg-indigo-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
             >
               <Globe className='w-5 h-5' />
               Browse Sites
@@ -682,7 +685,7 @@ const DiveSites = () => {
             {user && (
               <button
                 onClick={() => navigate('/dive-sites/create')}
-                className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+                className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
               >
                 <Plus size={20} />
                 Add Dive Site

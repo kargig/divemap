@@ -671,7 +671,10 @@ const DiveTrips = () => {
           title='Dive Trips'
           subtitle='Discover upcoming dive trips from local diving centers'
           background='ocean'
-          size='medium'
+          size='large'
+          showLogo={false}
+          logoBackground={true}
+          threeColumnLayout={true}
         >
           <div className='flex flex-col sm:flex-row gap-3 justify-center'>
             <button
@@ -679,7 +682,7 @@ const DiveTrips = () => {
                 setViewMode('map');
                 navigate('/dive-trips?view=map');
               }}
-              className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
+              className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
             >
               <Compass className='w-5 h-5' />
               Explore Map
@@ -689,7 +692,7 @@ const DiveTrips = () => {
                 setViewMode('list');
                 navigate('/dive-trips');
               }}
-              className='bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg flex items-center gap-2 border border-white border-opacity-30 transition-all duration-200 hover:scale-105'
+              className='bg-indigo-600 hover:bg-indigo-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
             >
               <Globe className='w-5 h-5' />
               Browse Trips
@@ -697,7 +700,7 @@ const DiveTrips = () => {
             {user && (
               <button
                 onClick={() => navigate('/dive-trips/create')}
-                className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+                className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
               >
                 <Plus size={20} />
                 Create Trip
