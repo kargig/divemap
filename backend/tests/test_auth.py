@@ -446,3 +446,306 @@ class TestAuth:
         response = client.get("/api/v1/auth/me")
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+class TestDivingCenterAuthorization:
+    """Test diving center authorization functions."""
+
+    @pytest.mark.asyncio
+    async def test_can_manage_diving_center_admin(self, db_session, test_admin_user, test_diving_center):
+        """Test that admins can manage any diving center."""
+        from app.auth import can_manage_diving_center
+        
+        result = await can_manage_diving_center(
+            test_diving_center.id, 
+            test_admin_user, 
+            db_session
+        )
+        
+        assert result == test_admin_user
+
+    @pytest.mark.asyncio
+    async def test_can_manage_diving_center_moderator(self, db_session, test_moderator_user, test_diving_center):
+        """Test that moderators can manage any diving center."""
+        from app.auth import can_manage_diving_center
+        
+        result = await can_manage_diving_center(
+            test_diving_center.id, 
+            test_moderator_user, 
+            db_session
+        )
+        
+        assert result == test_moderator_user
+
+    @pytest.mark.asyncio
+    async def test_can_manage_diving_center_approved_owner(self, db_session, test_user, test_diving_center):
+        """Test that approved owners can manage their own diving center."""
+        from app.auth import can_manage_diving_center
+        from app.models import OwnershipStatus
+        
+        # Set the user as the approved owner of the diving center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+        
+        result = await can_manage_diving_center(
+            test_diving_center.id, 
+            test_user, 
+            db_session
+        )
+        
+        assert result == test_user
+
+    @pytest.mark.asyncio
+    async def test_can_manage_diving_center_unapproved_owner(self, db_session, test_user, test_diving_center):
+        """Test that unapproved owners cannot manage their diving center."""
+        from app.auth import can_manage_diving_center
+        from app.models import OwnershipStatus
+        from fastapi import HTTPException
+        
+        # Set the user as the owner but with unapproved status
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.claimed
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+        
+        with pytest.raises(HTTPException) as exc_info:
+            await can_manage_diving_center(
+                test_diving_center.id, 
+                test_user, 
+                db_session
+            )
+        
+        assert exc_info.value.status_code == 403
+        assert "Not enough permissions" in str(exc_info.value.detail)
+
+    @pytest.mark.asyncio
+    async def test_can_manage_diving_center_denied_owner(self, db_session, test_user, test_diving_center):
+        """Test that denied owners cannot manage their diving center."""
+        from app.auth import can_manage_diving_center
+        from app.models import OwnershipStatus
+        from fastapi import HTTPException
+        
+        # Set the user as the owner but with denied status
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.denied
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+        
+        with pytest.raises(HTTPException) as exc_info:
+            await can_manage_diving_center(
+                test_diving_center.id, 
+                test_user, 
+                db_session
+            )
+        
+        assert exc_info.value.status_code == 403
+        assert "Not enough permissions" in str(exc_info.value.detail)
+
+    @pytest.mark.asyncio
+    async def test_can_manage_diving_center_non_owner(self, db_session, test_user, test_diving_center):
+        """Test that non-owners cannot manage diving centers."""
+        from app.auth import can_manage_diving_center
+        from app.models import OwnershipStatus
+        from fastapi import HTTPException
+        
+        # Set a different user as the owner
+        test_diving_center.owner_id = 999  # Different user ID
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+        
+        with pytest.raises(HTTPException) as exc_info:
+            await can_manage_diving_center(
+                test_diving_center.id, 
+                test_user, 
+                db_session
+            )
+        
+        assert exc_info.value.status_code == 403
+        assert "Not enough permissions" in str(exc_info.value.detail)
+
+    @pytest.mark.asyncio
+    async def test_can_manage_diving_center_nonexistent_center(self, db_session, test_user):
+        """Test that requests to non-existent diving centers return 404."""
+        from app.auth import can_manage_diving_center
+        from fastapi import HTTPException
+        
+        with pytest.raises(HTTPException) as exc_info:
+            await can_manage_diving_center(
+                99999,  # Non-existent diving center ID
+                test_user, 
+                db_session
+            )
+        
+        assert exc_info.value.status_code == 404
+        assert "Diving center not found" in str(exc_info.value.detail)
+
+    @pytest.mark.asyncio
+    async def test_can_manage_diving_center_unclaimed_center(self, db_session, test_user, test_diving_center):
+        """Test that unclaimed diving centers cannot be managed by regular users."""
+        from app.auth import can_manage_diving_center
+        from app.models import OwnershipStatus
+        from fastapi import HTTPException
+        
+        # Ensure the diving center is unclaimed
+        test_diving_center.owner_id = None
+        test_diving_center.ownership_status = OwnershipStatus.unclaimed
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+        
+        with pytest.raises(HTTPException) as exc_info:
+            await can_manage_diving_center(
+                test_diving_center.id, 
+                test_user, 
+                db_session
+            )
+        
+        assert exc_info.value.status_code == 403
+        assert "Not enough permissions" in str(exc_info.value.detail)
+
+    @pytest.mark.asyncio
+    async def test_create_can_manage_diving_center_dep_factory(self, db_session, test_user, test_diving_center):
+        """Test the factory function that creates diving center management dependencies."""
+        from app.auth import create_can_manage_diving_center_dep
+        from app.models import OwnershipStatus
+        
+        # Set the user as the approved owner of the diving center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+        
+        # Create a dependency function for this specific diving center
+        dependency_func = create_can_manage_diving_center_dep(test_diving_center.id)
+        
+        # Test that the dependency function works correctly
+        result = await dependency_func(
+            current_user=test_user,
+            db=db_session
+        )
+        
+        assert result == test_user
+
+    @pytest.mark.asyncio
+    async def test_create_can_manage_diving_center_dep_factory_unauthorized(self, db_session, test_user, test_diving_center):
+        """Test that the factory function correctly handles unauthorized users."""
+        from app.auth import create_can_manage_diving_center_dep
+        from app.models import OwnershipStatus
+        from fastapi import HTTPException
+        
+        # Set a different user as the owner
+        test_diving_center.owner_id = 999  # Different user ID
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+        
+        # Create a dependency function for this specific diving center
+        dependency_func = create_can_manage_diving_center_dep(test_diving_center.id)
+        
+        # Test that the dependency function correctly denies access
+        with pytest.raises(HTTPException) as exc_info:
+            await dependency_func(
+                current_user=test_user,
+                db=db_session
+            )
+        
+        assert exc_info.value.status_code == 403
+        assert "Not enough permissions" in str(exc_info.value.detail)
+
+    @pytest.mark.asyncio
+    async def test_create_can_manage_diving_center_dep_factory_admin(self, db_session, test_admin_user, test_diving_center):
+        """Test that the factory function works correctly for admins."""
+        from app.auth import create_can_manage_diving_center_dep
+        
+        # Create a dependency function for this specific diving center
+        dependency_func = create_can_manage_diving_center_dep(test_diving_center.id)
+        
+        # Test that the dependency function works correctly for admins
+        result = await dependency_func(
+            current_user=test_admin_user,
+            db=db_session
+        )
+        
+        assert result == test_admin_user
+
+    @pytest.mark.asyncio
+    async def test_create_can_manage_diving_center_dep_factory_moderator(self, db_session, test_moderator_user, test_diving_center):
+        """Test that the factory function works correctly for moderators."""
+        from app.auth import create_can_manage_diving_center_dep
+        
+        # Create a dependency function for this specific diving center
+        dependency_func = create_can_manage_diving_center_dep(test_diving_center.id)
+        
+        # Test that the dependency function works correctly for moderators
+        result = await dependency_func(
+            current_user=test_moderator_user,
+            db=db_session
+        )
+        
+        assert result == test_moderator_user
+
+    @pytest.mark.asyncio
+    async def test_ownership_status_enum_handling_in_auth(self, db_session, test_user, test_diving_center):
+        """Test that ownership status enum is handled correctly in authorization functions."""
+        from app.auth import can_manage_diving_center
+        from app.models import OwnershipStatus
+        from fastapi import HTTPException
+        
+        # Test with different ownership statuses
+        statuses_to_test = [
+            OwnershipStatus.unclaimed,
+            OwnershipStatus.claimed,
+            OwnershipStatus.denied
+        ]
+        
+        for ownership_status in statuses_to_test:
+            # Set the ownership status
+            test_diving_center.owner_id = test_user.id
+            test_diving_center.ownership_status = ownership_status
+            db_session.commit()
+            db_session.refresh(test_diving_center)
+
+            if ownership_status == OwnershipStatus.approved:
+                # Should succeed
+                result = await can_manage_diving_center(
+                    test_diving_center.id, 
+                    test_user, 
+                    db_session
+                )
+                assert result == test_user
+            else:
+                # Should fail
+                with pytest.raises(HTTPException) as exc_info:
+                    await can_manage_diving_center(
+                        test_diving_center.id, 
+                        test_user, 
+                        db_session
+                    )
+                assert exc_info.value.status_code == 403
+                assert "Not enough permissions" in str(exc_info.value.detail)
+
+        # Clean up - set back to approved for other tests
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+
+    def test_auth_functions_import_consistency(self):
+        """Test that all necessary auth functions are properly imported and available."""
+        from app.auth import (
+            can_manage_diving_center,
+            create_can_manage_diving_center_dep,
+            get_current_user,
+            is_admin_or_moderator
+        )
+        
+        # Verify all functions are callable
+        assert callable(can_manage_diving_center)
+        assert callable(create_can_manage_diving_center_dep)
+        assert callable(get_current_user)
+        assert callable(is_admin_or_moderator)
+        
+        # Verify the factory function returns a callable
+        factory_result = create_can_manage_diving_center_dep(123)
+        assert callable(factory_result)

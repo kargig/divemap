@@ -1345,3 +1345,402 @@ class TestDiveSitesAdvancedFeatures:
         
         response = client.get("/api/v1/dive-sites/?difficulty=intermediate&country=Test")
         assert response.status_code == status.HTTP_200_OK
+
+
+class TestDiveSitesAuthorization:
+    """Test dive sites authorization for diving center owners, admins, and regular users."""
+
+    def test_add_diving_center_to_dive_site_owner_authorization(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+        """Test that diving center owners can add their centers to dive sites."""
+        from app.models import OwnershipStatus
+        
+        # Set the user as the owner of the diving center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Test adding diving center to dive site as owner
+        center_data = {
+            "diving_center_id": test_diving_center.id,
+            "dive_cost": 50.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
+            json=center_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["dive_site_id"] == test_dive_site.id
+        assert data["diving_center_id"] == test_diving_center.id
+        assert float(data["dive_cost"]) == 50.00
+        assert data["currency"] == "EUR"
+        
+        # Test removing diving center from dive site as owner
+        remove_response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}",
+            headers=auth_headers
+        )
+        
+        assert remove_response.status_code == status.HTTP_200_OK
+        assert remove_response.json()["message"] == "Diving center removed from dive site successfully"
+
+    def test_add_diving_center_to_dive_site_admin_authorization(self, client, db_session, test_dive_site, test_diving_center, admin_headers):
+        """Test that admins can add any diving center to dive sites."""
+        
+        # Test adding diving center to dive site as admin
+        center_data = {
+            "diving_center_id": test_diving_center.id,
+            "dive_cost": 75.00,
+            "currency": "USD"
+        }
+        
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
+            json=center_data,
+            headers=admin_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["dive_site_id"] == test_dive_site.id
+        assert data["diving_center_id"] == test_diving_center.id
+        assert float(data["dive_cost"]) == 75.00
+        assert data["currency"] == "USD"
+        
+        # Test removing diving center from dive site as admin
+        remove_response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}",
+            headers=admin_headers
+        )
+        
+        assert remove_response.status_code == status.HTTP_200_OK
+
+    def test_add_diving_center_to_dive_site_moderator_authorization(self, client, db_session, test_dive_site, test_diving_center, moderator_headers):
+        """Test that moderators can add any diving center to dive sites."""
+        
+        # Test adding diving center to dive site as moderator
+        center_data = {
+            "diving_center_id": test_diving_center.id,
+            "dive_cost": 60.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
+            json=center_data,
+            headers=moderator_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["dive_site_id"] == test_dive_site.id
+        assert data["diving_center_id"] == test_diving_center.id
+        assert float(data["dive_cost"]) == 60.00
+        
+        # Test removing diving center from dive site as moderator
+        remove_response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}",
+            headers=moderator_headers
+        )
+        
+        assert remove_response.status_code == status.HTTP_200_OK
+
+    def test_add_diving_center_to_dive_site_unauthorized_user(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+        """Test that non-owner users cannot add diving centers to dive sites."""
+        from app.models import OwnershipStatus
+        
+        # Set a different user as the owner (not the authenticated user)
+        test_diving_center.owner_id = 999  # Different user ID
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Test adding diving center to dive site as non-owner
+        center_data = {
+            "diving_center_id": test_diving_center.id,
+            "dive_cost": 40.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
+            json=center_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Not enough permissions" in response.json()["detail"]
+
+    def test_add_diving_center_to_dive_site_unapproved_owner(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+        """Test that unapproved owners cannot add their centers to dive sites."""
+        from app.models import OwnershipStatus
+        
+        # Set the user as the owner but with unapproved status
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.claimed
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Test adding diving center to dive site as unapproved owner
+        center_data = {
+            "diving_center_id": test_diving_center.id,
+            "dive_cost": 45.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
+            json=center_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Not enough permissions" in response.json()["detail"]
+
+    def test_add_diving_center_to_dive_site_nonexistent_site(self, client, auth_headers, test_diving_center):
+        """Test that requests to non-existent dive sites return 404."""
+        
+        center_data = {
+            "diving_center_id": test_diving_center.id,
+            "dive_cost": 50.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            "/api/v1/dive-sites/99999/diving-centers",
+            json=center_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "Dive site not found" in response.json()["detail"]
+
+    def test_add_diving_center_to_dive_site_nonexistent_center(self, client, auth_headers, test_dive_site):
+        """Test that requests with non-existent diving center IDs return 404."""
+        
+        center_data = {
+            "diving_center_id": 99999,
+            "dive_cost": 50.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
+            json=center_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "Diving center not found" in response.json()["detail"]
+
+    def test_add_diving_center_to_dive_site_authentication_required(self, client, test_dive_site, test_diving_center):
+        """Test that authentication is required for adding diving centers to dive sites."""
+        
+        center_data = {
+            "diving_center_id": test_diving_center.id,
+            "dive_cost": 50.00,
+            "currency": "EUR"
+        }
+        
+        # Test without authentication
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
+            json=center_data
+        )
+        
+        # The endpoint requires authentication, so it should return 403 Forbidden
+        # (not 401 Unauthorized) because it's checking authorization after authentication
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_add_diving_center_to_dive_site_invalid_data(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+        """Test adding diving center to dive site with invalid data."""
+        from app.models import OwnershipStatus
+        
+        # Set the user as the owner of the diving center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Test with negative cost
+        invalid_data = {
+            "diving_center_id": test_diving_center.id,
+            "dive_cost": -25.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
+            json=invalid_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        # Test with invalid currency
+        invalid_data = {
+            "diving_center_id": test_diving_center.id,
+            "dive_cost": 50.00,
+            "currency": "INVALID"
+        }
+        
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
+            json=invalid_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_remove_diving_center_from_dive_site_nonexistent_relationship(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+        """Test removing a non-existent diving center relationship."""
+        from app.models import OwnershipStatus
+        
+        # Set the user as the owner of the diving center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Try to remove non-existent relationship
+        response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}",
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "Diving center is not associated with this dive site" in response.json()["detail"]
+
+    def test_diving_center_dive_site_cross_center_access(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+        """Test that users cannot manage diving center relationships for other centers."""
+        from app.models import OwnershipStatus, DivingCenter
+        
+        # Set the user as the owner of the diving center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Create another diving center
+        other_center = DivingCenter(
+            name="Other Diving Center",
+            description="Another test center",
+            email="other@test.com",
+            latitude=20.0,
+            longitude=30.0
+        )
+        db_session.add(other_center)
+        db_session.commit()
+        db_session.refresh(other_center)
+        
+        # Try to add the other center to the dive site
+        center_data = {
+            "diving_center_id": other_center.id,
+            "dive_cost": 50.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
+            json=center_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Not enough permissions" in response.json()["detail"]
+
+    def test_diving_center_dive_site_ownership_status_enum_handling(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+        """Test that ownership status enum is handled correctly for dive site relationships."""
+        from app.models import OwnershipStatus
+        
+        # Test with different ownership statuses
+        statuses_to_test = [
+            OwnershipStatus.unclaimed,
+            OwnershipStatus.claimed,
+            OwnershipStatus.denied
+        ]
+        
+        for ownership_status in statuses_to_test:
+            # Set the ownership status
+            test_diving_center.owner_id = test_user.id
+            test_diving_center.ownership_status = ownership_status
+            db_session.commit()
+            db_session.refresh(test_diving_center)
+
+            # Try to add diving center to dive site
+            center_data = {
+                "diving_center_id": test_diving_center.id,
+                "dive_cost": 50.00,
+                "currency": "EUR"
+            }
+            
+            response = client.post(
+                f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
+                json=center_data,
+                headers=auth_headers
+            )
+            
+            if ownership_status == OwnershipStatus.approved:
+                assert response.status_code == status.HTTP_200_OK
+                
+                # Clean up - remove the relationship
+                remove_response = client.delete(
+                    f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}",
+                    headers=auth_headers
+                )
+                assert remove_response.status_code == status.HTTP_200_OK
+            else:
+                assert response.status_code == status.HTTP_403_FORBIDDEN
+                assert "Not enough permissions" in response.json()["detail"]
+
+        # Clean up - set back to approved for other tests
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+
+    def test_diving_center_dive_site_duplicate_relationship(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+        """Test that duplicate diving center relationships are handled correctly."""
+        from app.models import OwnershipStatus
+        
+        # Set the user as the owner of the diving center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+        db_session.refresh(test_diving_center)
+
+        # Add diving center to dive site
+        center_data = {
+            "diving_center_id": test_diving_center.id,
+            "dive_cost": 50.00,
+            "currency": "EUR"
+        }
+        
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
+            json=center_data,
+            headers=auth_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        
+        # Try to add the same relationship again
+        duplicate_response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
+            json=center_data,
+            headers=auth_headers
+        )
+        
+        # Should handle duplicate gracefully (either 400 Bad Request, 409 Conflict, or 200 OK with existing data)
+        assert duplicate_response.status_code in [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST, status.HTTP_409_CONFLICT]
+        
+        # Clean up
+        remove_response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}",
+            headers=auth_headers
+        )
+        assert remove_response.status_code == status.HTTP_200_OK

@@ -150,3 +150,43 @@ async def get_current_user_optional(
         return user
     except Exception:
         return None
+
+async def can_manage_diving_center(
+    diving_center_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> User:
+    """Check if user can manage a diving center (admin, moderator, or owner)"""
+    # Admins and moderators can manage any diving center
+    if current_user.is_admin or current_user.is_moderator:
+        return current_user
+    
+    # Check if user is the owner of this diving center
+    from app.models import DivingCenter, OwnershipStatus
+    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    
+    if not diving_center:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Diving center not found"
+        )
+    
+    if diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved:
+        return current_user
+    
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Not enough permissions to manage this diving center"
+    )
+
+
+
+def create_can_manage_diving_center_dep(diving_center_id: int):
+    """Create a dependency function for a specific diving center ID"""
+    async def dependency(
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+    ) -> User:
+        return await can_manage_diving_center(diving_center_id, current_user, db)
+    
+    return dependency
