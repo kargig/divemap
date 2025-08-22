@@ -113,7 +113,7 @@ const Home = () => {
   );
 
   return (
-    <div className='max-w-6xl mx-auto relative'>
+    <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 relative'>
       {/* Background Logo Watermark */}
       <BackgroundLogo opacity={0.02} size='xlarge' />
 
@@ -129,19 +129,19 @@ const Home = () => {
       >
         <Link
           to='/dive-sites'
-          className='px-6 sm:px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-base sm:text-lg font-semibold'
+          className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
         >
           Explore Dive Sites
         </Link>
         <Link
           to='/dives'
-          className='px-6 sm:px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-base sm:text-lg font-semibold'
+          className='bg-indigo-600 hover:bg-indigo-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
         >
           Browse Dives
         </Link>
         <Link
           to='/register'
-          className='px-6 sm:px-8 py-3 bg-white text-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-base sm:text-lg font-semibold'
+          className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
         >
           Join the Community
         </Link>
