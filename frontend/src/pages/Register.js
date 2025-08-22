@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 
+import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import googleAuth from '../utils/googleAuth';
 
@@ -133,8 +134,8 @@ const Register = () => {
     <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
       <div className='max-w-md w-full space-y-8'>
         <div>
-          <div className='mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100'>
-            <UserPlus className='h-6 w-6 text-blue-600' />
+          <div className='mx-auto flex items-center justify-center'>
+            <Logo size='large' showText={false} />
           </div>
           <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>
             Create your account
