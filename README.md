@@ -118,7 +118,7 @@ A comprehensive web application for scuba diving enthusiasts to discover, rate, 
    ```
 
 4. **Access the application**
-   - Frontend: http://localhost:3000
+   - Frontend: http://localhost
    - Backend API: http://localhost:8000
    - API Documentation: http://localhost:8000/docs
 

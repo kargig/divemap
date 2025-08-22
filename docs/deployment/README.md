@@ -596,7 +596,7 @@ The `docker-compose.yml` files automatically handle CORS configuration:
 
 ```yaml
 environment:
-  - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+  - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost,http://127.0.0.1}
 ```
 
 ### Configuration Management

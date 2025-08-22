@@ -106,14 +106,14 @@ This guide provides step-by-step instructions for generating `GOOGLE_CLIENT_ID` 
    - **Name**: `Divemap Web Client`
    - **Authorized JavaScript origins**:
      ```
-     http://localhost:3000
+     http://localhost
      http://localhost:8000
      https://your-production-domain.com (when ready for production)
      ```
    - **Authorized redirect URIs**:
      ```
-     http://localhost:3000
-     http://localhost:3000/
+     http://localhost
+     http://localhost/
      https://your-production-domain.com (when ready for production)
      ```
 
@@ -181,7 +181,7 @@ python run_migrations.py
    ```
 
 3. **Test Google OAuth**
-   - Navigate to `http://localhost:3000`
+   - Navigate to `http://localhost`
    - Go to the login or register page
    - Click "Sign in with Google"
    - Complete the OAuth flow
@@ -225,17 +225,17 @@ python run_migrations.py
 2. **Verify Google Cloud Console Configuration**
    - Go to Google Cloud Console > "APIs & Services" > "Credentials"
    - Click on your OAuth 2.0 Client ID
-   - Check that `http://localhost:3000` is in "Authorized JavaScript origins"
-   - Check that `http://127.0.0.1:3000` is also added (if you're using 127.0.0.1)
+   - Check that `http://localhost` is in "Authorized JavaScript origins"
+   - Check that `http://127.0.0.1` is also added (if you're using 127.0.0.1)
 
 3. **Add Missing Origins**
    - In Google Cloud Console, edit your OAuth 2.0 Client ID
    - Add these to "Authorized JavaScript origins":
      ```
-     http://localhost:3000
-     http://127.0.0.1:3000
-     https://localhost:3000
-     https://127.0.0.1:3000
+     http://localhost
+     http://127.0.0.1
+     https://localhost
+     https://127.0.0.1
      ```
 
 4. **Clear Browser Cache**
@@ -276,7 +276,7 @@ python run_migrations.py
 
 2. **"Redirect URI Mismatch" Error**
    - Verify the redirect URI in Google Cloud Console matches your application URL
-   - For development, ensure `http://localhost:3000` is in the authorized origins
+   - For development, ensure `http://localhost` is in the authorized origins
    - Check that there are no trailing slashes causing mismatches
 
 3. **"Google Identity Services Not Loaded" Error**
