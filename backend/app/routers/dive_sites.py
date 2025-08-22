@@ -7,7 +7,7 @@ import difflib
 import json
 
 from app.database import get_db
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, get_difficulty_label
+from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, get_difficulty_label, OwnershipStatus
 from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse,
     SiteRatingCreate, SiteRatingResponse,
@@ -17,7 +17,7 @@ from app.schemas import (
     DiveSiteAliasCreate, DiveSiteAliasUpdate, DiveSiteAliasResponse
 )
 import requests
-from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional
+from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, get_current_user
 from app.limiter import limiter, skip_rate_limit_for_admin
 from app.utils import (
     calculate_unified_phrase_aware_score,
@@ -1127,10 +1127,10 @@ async def add_diving_center_to_dive_site(
     request: Request,
     dive_site_id: int,
     center_assignment: CenterDiveSiteCreate,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Add a diving center to a dive site (admin only)"""
+    """Add a diving center to a dive site (admin, moderator, or diving center owner)"""
 
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
@@ -1146,6 +1146,14 @@ async def add_diving_center_to_dive_site(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Diving center not found"
+        )
+
+    # Check if user has permission to manage this diving center
+    if not (current_user.is_admin or current_user.is_moderator or 
+            (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to manage this diving center"
         )
 
     # Check if association already exists
@@ -1186,10 +1194,10 @@ async def remove_diving_center_from_dive_site(
     request: Request,
     dive_site_id: int,
     diving_center_id: int,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Remove a diving center from a dive site (admin only)"""
+    """Remove a diving center from a dive site (admin, moderator, or diving center owner)"""
 
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
@@ -1205,6 +1213,14 @@ async def remove_diving_center_from_dive_site(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Diving center not found"
+        )
+
+    # Check if user has permission to manage this diving center
+    if not (current_user.is_admin or current_user.is_moderator or 
+            (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to manage this diving center"
         )
 
     # Find and delete the association

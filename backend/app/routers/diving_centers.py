@@ -15,7 +15,7 @@ from app.schemas import (
     DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse,
     DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval, OwnershipRequestHistoryResponse
 )
-from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, is_admin_or_moderator
+from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, is_admin_or_moderator, get_current_user
 from app.models import OwnershipStatus
 from app.utils import (
     calculate_unified_phrase_aware_score,
@@ -1032,9 +1032,26 @@ async def get_diving_center_gear_rental(diving_center_id: int, db: Session = Dep
 async def add_diving_center_gear_rental(
     diving_center_id: int,
     gear_rental: GearRentalCostCreate,
-    current_user: User = Depends(is_admin_or_moderator),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Check if user has permission to manage this diving center
+    if not (current_user.is_admin or current_user.is_moderator):
+        # Check if user is the owner of this diving center
+        from app.models import DivingCenter
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        
+        if not diving_center:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Diving center not found"
+            )
+        
+        if not (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions to manage this diving center"
+            )
 
     db_gear_rental = GearRentalCost(
         diving_center_id=diving_center_id,
@@ -1051,9 +1068,26 @@ async def add_diving_center_gear_rental(
 async def delete_diving_center_gear_rental(
     diving_center_id: int,
     gear_id: int,
-    current_user: User = Depends(is_admin_or_moderator),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Check if user has permission to manage this diving center
+    if not (current_user.is_admin or current_user.is_moderator):
+        # Check if user is the owner of this diving center
+        from app.models import DivingCenter
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        
+        if not diving_center:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Diving center not found"
+            )
+        
+        if not (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions to manage this diving center"
+            )
 
     # Check if gear rental exists
     gear_rental = db.query(GearRentalCost).filter(
@@ -1092,14 +1126,31 @@ async def get_diving_center_organizations(
 async def add_diving_center_organization(
     diving_center_id: int,
     organization: DivingCenterOrganizationCreate,
-    current_user: User = Depends(is_admin_or_moderator),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Add an organization to a diving center (admin only)."""
-    # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
-    if not diving_center:
-        raise HTTPException(status_code=404, detail="Diving center not found")
+    """Add an organization to a diving center (admin, moderator, or diving center owner)."""
+    # Check if user has permission to manage this diving center
+    if not (current_user.is_admin or current_user.is_moderator):
+        # Check if user is the owner of this diving center
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        
+        if not diving_center:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Diving center not found"
+            )
+        
+        if not (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions to manage this diving center"
+            )
+    else:
+        # Check if diving center exists
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        if not diving_center:
+            raise HTTPException(status_code=404, detail="Diving center not found")
 
     # Check if diving organization exists
     diving_org = db.query(DivingOrganization).filter(DivingOrganization.id == organization.diving_organization_id).first()
@@ -1135,14 +1186,31 @@ async def update_diving_center_organization(
     diving_center_id: int,
     organization_id: int,
     organization: DivingCenterOrganizationUpdate,
-    current_user: User = Depends(is_admin_or_moderator),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update an organization association for a diving center (admin only)."""
-    # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
-    if not diving_center:
-        raise HTTPException(status_code=404, detail="Diving center not found")
+    """Update an organization association for a diving center (admin, moderator, or diving center owner)."""
+    # Check if user has permission to manage this diving center
+    if not (current_user.is_admin or current_user.is_moderator):
+        # Check if user is the owner of this diving center
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        
+        if not diving_center:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Diving center not found"
+            )
+        
+        if not (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions to manage this diving center"
+            )
+    else:
+        # Check if diving center exists
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        if not diving_center:
+            raise HTTPException(status_code=404, detail="Diving center not found")
 
     # Check if organization association exists
     db_organization = db.query(DivingCenterOrganization).filter(
@@ -1173,13 +1241,31 @@ async def update_diving_center_organization(
 async def remove_diving_center_organization(
     diving_center_id: int,
     organization_id: int,
-    current_user: User = Depends(is_admin_or_moderator),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
-    if not diving_center:
-        raise HTTPException(status_code=404, detail="Diving center not found")
+    """Remove an organization association from a diving center (admin, moderator, or diving center owner)."""
+    # Check if user has permission to manage this diving center
+    if not (current_user.is_admin or current_user.is_moderator):
+        # Check if user is the owner of this diving center
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        
+        if not diving_center:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Diving center not found"
+            )
+        
+        if not (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions to manage this diving center"
+            )
+    else:
+        # Check if diving center exists
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        if not diving_center:
+            raise HTTPException(status_code=404, detail="Diving center not found")
 
     # Check if organization relationship exists
     organization_relationship = db.query(DivingCenterOrganization).filter(
