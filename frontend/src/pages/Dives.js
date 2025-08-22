@@ -760,18 +760,49 @@ const Dives = () => {
   }
 
   return (
-    <div className='max-w-7xl mx-auto px-4 sm:px-6'>
-      <div className='mb-6 sm:mb-8'>
-        <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-4'>Dives</h1>
-        <p className='text-sm sm:text-base text-gray-600'>
-          Track and explore your diving adventures
-        </p>
-        {totalCount !== undefined && (
-          <div className='mt-2 text-xs sm:text-sm text-gray-500'>
-            Showing {dives?.length || 0} dives from {totalCount} total dives
-          </div>
-        )}
-      </div>
+    <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      {/* Hero Section */}
+      <HeroSection
+        title='Dives'
+        subtitle='Track and explore your diving adventures'
+        background='ocean'
+        size='large'
+        showLogo={false}
+        logoBackground={true}
+        threeColumnLayout={true}
+      >
+        <div className='flex flex-col sm:flex-row gap-3 justify-center'>
+          <button
+            onClick={() => {
+              setViewMode('map');
+              navigate('/dives?view=map');
+            }}
+            className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+          >
+            <Map className='w-5 h-5' />
+            Explore Map
+          </button>
+          <button
+            onClick={() => {
+              setViewMode('list');
+              navigate('/dives');
+            }}
+            className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+          >
+            <List className='w-5 h-5' />
+            Browse Dives
+          </button>
+          {user && (
+            <button
+              onClick={() => navigate('/dives/create')}
+              className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+            >
+              <Plus size={20} />
+              Add Dive
+            </button>
+          )}
+        </div>
+      </HeroSection>
 
       {/* Mobile Filter Toggle Button */}
       <div className='md:hidden mb-4'>

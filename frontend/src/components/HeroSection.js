@@ -41,18 +41,18 @@ const HeroSection = ({
       <>
         {/* Mobile Layout */}
         <section className='md:hidden'>
-          {/* Hero with logo background - no white box, just logo */}
-          <div className='relative min-h-[200px] flex items-center justify-center overflow-hidden'>
+          {/* Hero with logo background - align text to bottom for readability on mobile */}
+          <div className='relative min-h-[220px] flex items-end justify-center overflow-hidden pb-4'>
             <img
               src='/divemap-logo-hero-background-mobile.png'
               alt=''
               className='absolute inset-0 h-full w-full object-cover opacity-80'
             />
+            {/* Bottom gradient to improve text contrast over logo */}
+            <div className='absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white/90 via-white/50 to-transparent pointer-events-none' />
             <div className='relative z-10 text-center px-4'>
-              <h1 className='text-2xl font-bold text-gray-900 mb-2'>{title}</h1>
-              {subtitle && (
-                <p className='text-sm text-gray-700 mb-4 max-w-xs mx-auto'>{subtitle}</p>
-              )}
+              <h1 className='text-2xl font-bold text-gray-900 mb-1'>{title}</h1>
+              {subtitle && <p className='text-sm text-gray-800 max-w-xs mx-auto'>{subtitle}</p>}
             </div>
           </div>
 
@@ -74,20 +74,20 @@ const HeroSection = ({
             {logoBackground && (
               <div className='absolute inset-0 flex items-center justify-center opacity-8 bg-white'>
                 <img
-                  src='/divemap-logo-hero-background.png'
+                  src='/divemap_logo_domain_top4_extend.jpg'
                   alt=''
                   className='h-full w-full object-contain'
                 />
               </div>
             )}
 
-            <div className='max-w-7xl mx-auto relative z-10 flex items-center justify-between w-full px-8'>
+            <div className='max-w-7xl mx-auto relative z-10 flex items-center justify-between w-full px-4'>
               {/* Left Column - Title (Vertical) */}
-              <div className='flex flex-col items-center text-center max-w-xs'>
+              <div className='flex flex-col items-center text-center max-w-[200px]'>
                 {title.split(' ').map((word, index) => (
                   <h1
                     key={index}
-                    className={`text-3xl lg:text-4xl font-bold ${textColor} mb-2 leading-tight`}
+                    className={`text-2xl lg:text-3xl font-bold ${textColor} mb-2 leading-tight`}
                   >
                     {word}
                   </h1>
@@ -95,21 +95,21 @@ const HeroSection = ({
               </div>
 
               {/* Center Column - Logo Background */}
-              <div className='flex-shrink-0 mx-8'>
+              <div className='flex-shrink-0 mx-4'>
                 {/* Logo is already in the background, this creates space */}
               </div>
 
               {/* Right Column - Subtitle (Vertical) */}
-              <div className='flex flex-col items-center text-center max-w-xs'>
+              <div className='flex flex-col items-center text-center max-w-[200px]'>
                 {subtitle && (
-                  <div className='space-y-3'>
-                    <p className={`text-base lg:text-lg ${textColor} opacity-90 leading-relaxed`}>
+                  <div className='space-y-2'>
+                    <p className={`text-sm lg:text-base ${textColor} opacity-90 leading-relaxed`}>
                       Explore the world's best scuba diving locations
                     </p>
-                    <p className={`text-base lg:text-lg ${textColor} opacity-90 leading-relaxed`}>
+                    <p className={`text-sm lg:text-base ${textColor} opacity-90 leading-relaxed`}>
                       read reviews from fellow divers
                     </p>
-                    <p className={`text-base lg:text-lg ${textColor} opacity-90 leading-relaxed`}>
+                    <p className={`text-sm lg:text-base ${textColor} opacity-90 leading-relaxed`}>
                       and find diving centers for your next underwater adventure
                     </p>
                   </div>
