@@ -51,13 +51,6 @@ const Logo = ({
           src={getLogoSrc(size)}
           alt='Divemap Logo'
           className={`${sizeClasses[size]} drop-shadow-sm`}
-          onError={(e) => {
-            console.error('Logo image failed to load:', e.target.src);
-            e.target.style.display = 'none';
-          }}
-          onLoad={() => {
-            console.log('Logo image loaded successfully:', getLogoSrc(size));
-          }}
         />
       )}
       {showText && (

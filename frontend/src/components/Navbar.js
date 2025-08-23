@@ -77,7 +77,7 @@ const Navbar = () => {
         </div>
         
         {/* Small bubble - positioned near the center */}
-        <div className='absolute left-1/3 top-4 opacity-50 navbar-sea-component'>
+        <div className='absolute left-1/4 top-4 opacity-50 navbar-sea-component'>
           <img 
             src='/arts/divemap_bubble_small.png' 
             alt='Bubble' 
@@ -104,7 +104,7 @@ const Navbar = () => {
         </div>
         
         {/* Additional Small Bubble - near coral */}
-        <div className='absolute left-2/5 top-1 opacity-45 navbar-sea-component'>
+        <div className='absolute left-3/5 top-1 opacity-45 navbar-sea-component'>
           <img 
             src='/arts/divemap_bubble_small.png' 
             alt='Bubble 2' 
@@ -122,7 +122,7 @@ const Navbar = () => {
         </div>
         
         {/* Additional Big Bubble - right side */}
-        <div className='absolute right-8 top-4 opacity-35 navbar-sea-component'>
+        <div className='absolute right-8 top-0 opacity-35 navbar-sea-component'>
           <img 
             src='/arts/divemap_bubble_big.png' 
             alt='Big Bubble 2' 
@@ -131,7 +131,7 @@ const Navbar = () => {
         </div>
         
         {/* Color bubble - positioned on the right */}
-        <div className='absolute right-1/4 top-2 opacity-40 navbar-sea-component'>
+        <div className='absolute right-1/3 top-0 opacity-40 navbar-sea-component'>
           <img 
             src='/arts/divemap_bubble_color.png' 
             alt='Color Bubble' 
