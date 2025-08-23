@@ -29,7 +29,7 @@ const Logo = ({
   const getLogoSrc = size => {
     switch (size) {
       case 'small':
-        return '/divemap-logo-navbar-improved.png';
+        return '/divemap_navbar_logo.png';
       case 'medium':
         return '/divemap-logo-medium.png';
       case 'large':
@@ -51,6 +51,13 @@ const Logo = ({
           src={getLogoSrc(size)}
           alt='Divemap Logo'
           className={`${sizeClasses[size]} drop-shadow-sm`}
+          onError={(e) => {
+            console.error('Logo image failed to load:', e.target.src);
+            e.target.style.display = 'none';
+          }}
+          onLoad={() => {
+            console.log('Logo image loaded successfully:', getLogoSrc(size));
+          }}
         />
       )}
       {showText && (
