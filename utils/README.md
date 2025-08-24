@@ -2,6 +2,20 @@
 
 This directory contains utility scripts for the Divemap project.
 
+## Table of Contents
+
+1. [Database Management Scripts](#database-management-scripts)
+2. [Data Import Scripts](#data-import-scripts)
+3. [Data Export Scripts](#data-export-scripts)
+4. [Dive Site Management Scripts](#dive-site-management-scripts)
+5. [Testing and Validation Scripts](#testing-and-validation-scripts)
+6. [Code Quality Scripts](#code-quality-scripts)
+7. [Troubleshooting](#troubleshooting)
+8. [Documentation](#documentation)
+9. [Prerequisites](#prerequisites)
+10. [Security Notes](#security-notes)
+11. [Support](#support)
+
 ## Database Management Scripts
 
 ### Database Export/Import
@@ -69,6 +83,72 @@ docker exec -it divemap_backend bash -c 'cd /app && ./utils/run_export_import.sh
 - Configurable output formats
 - Backup and restore functionality
 
+## Dive Site Management Scripts
+
+### Location Updates
+
+**`update_dive_site_locations.py`** - Update dive sites with country/region data
+- **Single Site Updates**: Update a specific dive site by ID
+- **Batch Updates**: Process all dive sites missing country/region data
+- **Dry Run Mode**: Preview changes without applying them
+- **Rate Limiting**: Respects API rate limits for external geocoding services
+- **Environment Configuration**: Configurable via environment variables
+- **Authentication**: Secure API authentication using JWT tokens with auto-refresh
+- **Progress Tracking**: Real-time progress updates and summary statistics
+- **Error Handling**: Robust error handling with detailed logging and timestamps
+
+#### Features
+- **Proactive Rate Limiting**: Prevents hitting backend rate limits
+- **Sliding Window Support**: Optimized for slowapi 0.1.9 backend
+- **Token Auto-Refresh**: Automatically handles expired JWT tokens
+- **Comprehensive Logging**: Timestamps on all operations for debugging
+- **Smart Retry Logic**: Intelligent retry with exponential backoff
+
+#### Usage Examples
+```bash
+# Update all dive sites missing country/region data
+python utils/update_dive_site_locations.py
+
+# Update a specific dive site by ID
+python utils/update_dive_site_locations.py --dive-site-id 123
+
+# Dry run mode - preview changes without applying
+python utils/update_dive_site_locations.py --dry-run
+
+# Conservative rate limiting for production
+python utils/update_dive_site_locations.py --max-requests-per-minute 50 --max-retries 5
+
+# Debug mode with detailed logging
+python utils/update_dive_site_locations.py --debug --max-requests-per-minute 60
+```
+
+#### Configuration
+```bash
+# Environment variables
+export DIVEMAP_BASE_URL="http://localhost:8000"
+export DIVEMAP_USERNAME="admin"
+export DIVEMAP_PASSWORD="your_admin_password"
+
+# Or use command line options
+python utils/update_dive_site_locations.py \
+  --base-url "https://api.divemap.com" \
+  --username "admin" \
+  --password "admin123"
+```
+
+#### API Endpoints Used
+- `POST /api/v1/auth/login` - Authentication
+- `GET /api/v1/dive-sites/` - List all dive sites
+- `GET /api/v1/dive-sites/{id}` - Get specific dive site
+- `GET /api/v1/dive-sites/reverse-geocode` - Reverse geocoding
+- `PUT /api/v1/dive-sites/{id}` - Update dive site
+
+#### Rate Limiting Strategy
+- **Backend**: Respects slowapi 0.1.9 sliding window rate limits (75/minute)
+- **Proactive**: Waits before approaching limits to prevent 429 errors
+- **Recovery**: Waits 3-5 minutes after rate limits to allow sliding window to clear
+- **Conservative**: Default limit of 60 requests/minute (75 - 15 buffer)
+
 ## Testing and Validation Scripts
 
 **`test_import_script.py`** - Test import functionality
@@ -118,6 +198,52 @@ docker exec -it divemap_backend bash -c 'cd /app && ./utils/run_export_import.sh
 - Executes test suites
 - Generates reports
 
+## Troubleshooting
+
+### Common Issues
+
+1. **Authentication Failed**
+   - Verify username and password are correct
+   - Ensure the user has admin privileges
+   - Check if the API is accessible
+
+2. **No Dive Sites Found**
+   - Verify the API endpoint is correct
+   - Check if there are dive sites in the database
+   - Ensure proper authentication
+
+3. **Geocoding Failures**
+   - Check internet connectivity
+   - Verify coordinates are valid
+   - Check API rate limits
+
+4. **Update Failures**
+   - Ensure user has admin permissions
+   - Check API endpoint accessibility
+   - Verify dive site exists
+
+### Dive Site Location Updater Issues
+
+5. **Rate Limit Errors (429)**
+   - Script automatically handles rate limits with 3-5 minute waits
+   - Use `--max-requests-per-minute 50` for conservative limits
+   - Monitor backend logs for rate limit warnings
+
+6. **Authentication Token Expired (401)**
+   - Script automatically refreshes expired JWT tokens
+   - No manual intervention required
+   - Check authentication credentials if refresh fails
+
+7. **Slow Performance**
+   - Rate limiting is intentional to respect backend limits
+   - Use `--dry-run` first to estimate processing time
+   - Consider running during low-traffic periods
+
+8. **Geocoding Failures**
+   - Check coordinates are valid (latitude: -90 to 90, longitude: -180 to 180)
+   - Verify internet connectivity for OpenStreetMap Nominatim API
+   - Some remote locations may not have detailed geocoding data
+
 ## Documentation
 
 For detailed information about database export/import procedures, see:
@@ -133,6 +259,13 @@ For import script usage and maintenance, see:
 - Docker environment running
 - Access to fly.io deployment
 
+### Additional Requirements for Dive Site Location Updater
+
+- `requests` library (Python HTTP client)
+- Valid admin user credentials for the Divemap API
+- Internet connectivity for OpenStreetMap Nominatim geocoding service
+- Access to the Divemap backend API endpoints
+
 ## Security Notes
 
 - Database credentials are stored in scripts
@@ -140,6 +273,14 @@ For import script usage and maintenance, see:
 - Log files may contain sensitive information
 - Store backups securely
 - Use appropriate file permissions
+
+### Dive Site Location Updater Security
+
+- **API Credentials**: Never commit admin credentials to version control
+- **JWT Tokens**: Tokens are automatically refreshed but should be kept secure
+- **Environment Variables**: Use `.env` files for local development (not committed)
+- **Admin Access**: Script requires admin privileges to update dive sites
+- **Rate Limiting**: Built-in protection against API abuse and external service limits
 
 ## Support
 
