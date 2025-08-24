@@ -1,29 +1,31 @@
 import {
-  LogOut,
-  User,
-  Map,
-  Home,
-  Settings,
-  Building,
-  ChevronDown,
-  Users,
-  MapPin,
-  Tags,
-  Anchor,
-  Crown,
-  Calendar,
-  FileText,
   Menu,
   X,
-  Info,
-  HelpCircle,
+  Home,
+  MapPin,
+  Users,
+  LogOut,
+  LogIn,
+  UserPlus,
+  Settings,
+  Crown,
   Activity,
   Clock,
+  FileText,
+  Info,
+  ChevronDown,
+  User,
+  Map,
+  Building,
+  Tags,
+  Anchor,
+  Calendar,
+  HelpCircle,
   Shield,
   Code,
 } from 'lucide-react';
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
 
@@ -32,9 +34,42 @@ import Logo from './Logo';
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAdminDropdown, setShowAdminDropdown] = useState(false);
   const [showInfoDropdown, setShowInfoDropdown] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Handle clicks outside dropdowns
+  useEffect(() => {
+    const handleClickOutside = event => {
+      if (showAdminDropdown || showInfoDropdown) {
+        const target = event.target;
+        const isDropdownButton = target.closest(
+          'button[onclick*="setShowAdminDropdown"], button[onclick*="setShowInfoDropdown"]'
+        );
+        const isDropdownContent = target.closest('.dropdown-content');
+
+        if (!isDropdownButton && !isDropdownContent) {
+          setShowAdminDropdown(false);
+          setShowInfoDropdown(false);
+        }
+      }
+    };
+
+    if (showAdminDropdown || showInfoDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          setShowAdminDropdown(false);
+          setShowInfoDropdown(false);
+        }
+      });
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAdminDropdown, showInfoDropdown]);
 
   const handleLogout = () => {
     logout();
@@ -53,13 +88,13 @@ const Navbar = () => {
 
   return (
     <nav
-      className='text-white shadow-lg fixed top-0 left-0 right-0 z-[60] relative overflow-hidden'
+      className='text-white shadow-lg fixed top-0 left-0 right-0 z-[60]'
       style={{
         backgroundColor: '#2d6b8a',
       }}
     >
       {/* Sea Components Background */}
-      <div className='absolute inset-0 pointer-events-none'>
+      <div className='absolute inset-0 pointer-events-none z-0'>
         {/* Shell - positioned on the left side */}
         <div className='absolute left-8 top-2 opacity-60 navbar-sea-component'>
           <img src='/arts/divemap_shell.png' alt='Shell' className='w-8 h-8 object-contain' />
@@ -135,7 +170,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      <div className='container mx-auto px-4 relative z-10'>
+      <div className='container mx-auto px-4 relative z-20'>
         <div className='flex justify-between items-center h-16'>
           <Link to='/' className='flex items-center space-x-2' onClick={closeMobileMenu}>
             <Logo size='small' showText={true} textOnly={false} textClassName='text-white' />
@@ -194,7 +229,7 @@ const Navbar = () => {
               </button>
 
               {showInfoDropdown && (
-                <div className='absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-[60]'>
+                <div className='absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-xl py-1 z-[9999] border-2 border-gray-300 dropdown-content'>
                   <Link
                     to='/about'
                     className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
@@ -245,7 +280,7 @@ const Navbar = () => {
                     </button>
 
                     {showAdminDropdown && (
-                      <div className='absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-[60]'>
+                      <div className='absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-xl py-1 z-[9999] border-2 border-gray-300 dropdown-content'>
                         <Link
                           to='/admin'
                           className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
@@ -593,25 +628,6 @@ const Navbar = () => {
           </div>
         )}
       </div>
-
-      {/* Click outside to close dropdowns */}
-      {(showAdminDropdown || showInfoDropdown) && (
-        <div
-          className='fixed inset-0 z-[55]'
-          onClick={() => {
-            setShowAdminDropdown(false);
-            setShowInfoDropdown(false);
-          }}
-          onKeyDown={event => {
-            if (event.key === 'Escape') {
-              setShowAdminDropdown(false);
-              setShowInfoDropdown(false);
-            }
-          }}
-          role='button'
-          tabIndex={0}
-        />
-      )}
     </nav>
   );
 };
