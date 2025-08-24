@@ -235,16 +235,10 @@ const DiveSitesFilterBar = ({
         {/* Active Filters Display - More Compact */}
         {activeFilters.length > 0 && (
           <div className='border-t border-gray-200 p-2 sm:p-3 bg-blue-50'>
-            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2'>
+            <div className='mb-2'>
               <span className='text-xs sm:text-sm font-medium text-blue-900 text-center sm:text-left'>
                 Active Filters:
               </span>
-              <button
-                onClick={onClearFilters}
-                className='text-xs sm:text-sm text-blue-600 hover:text-blue-800 active:text-blue-900 underline min-h-[32px] sm:min-h-0 touch-manipulation px-2 py-1 sm:px-0 sm:py-0 rounded-lg sm:rounded-none hover:bg-blue-100 sm:hover:bg-transparent transition-colors'
-              >
-                Clear All
-              </button>
             </div>
             <div className='flex flex-wrap gap-1.5 sm:gap-2 justify-center sm:justify-start'>
               {activeFilters.map(filter => (
