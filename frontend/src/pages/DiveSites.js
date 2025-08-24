@@ -536,28 +536,32 @@ const DiveSites = () => {
       case 'wrecks':
         setFilters(prev => ({
           ...prev,
-          search_query: 'wreck',
+          tag_ids: [8], // Wreck tag ID
+          search_query: '',
           difficulty_level: '',
         }));
         break;
       case 'reefs':
         setFilters(prev => ({
           ...prev,
-          search_query: 'reef',
+          tag_ids: [14], // Reef tag ID
+          search_query: '',
           difficulty_level: '',
         }));
         break;
       case 'boat_dive':
         setFilters(prev => ({
           ...prev,
-          search_query: 'boat dive',
+          tag_ids: [4], // Boat Dive tag ID
+          search_query: '',
           difficulty_level: '',
         }));
         break;
       case 'shore_dive':
         setFilters(prev => ({
           ...prev,
-          search_query: 'shore dive',
+          tag_ids: [13], // Shore Dive tag ID
+          search_query: '',
           difficulty_level: '',
         }));
         break;
@@ -567,6 +571,7 @@ const DiveSites = () => {
           ...prev,
           difficulty_level: '',
           search_query: '',
+          tag_ids: [],
         }));
         break;
       default:
