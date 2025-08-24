@@ -12,6 +12,7 @@ primary_region = 'fra'
   ACCESS_TOKEN_EXPIRE_MINUTES = '30'
   ALGORITHM = 'HS256'
   PYTHONPATH = '/app'
+  SUSPICIOUS_PROXY_CHAIN_LENGTH = '6'
 
 [processes]
   app = '/app/startup.sh'
