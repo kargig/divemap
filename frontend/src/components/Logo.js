@@ -29,18 +29,16 @@ const Logo = ({
   const getLogoSrc = size => {
     switch (size) {
       case 'small':
-        return '/divemap_navbar_logo.png';
       case 'medium':
-        return '/divemap-logo-medium.png';
       case 'large':
       case 'xlarge':
-        return '/divemap-logo-medium.png';
+        return '/divemap_navbar_logo.png';
       case 'hero':
         return '/divemap-logo-hero.png';
       case 'hero-large':
         return '/divemap-logo-hero-large.png';
       default:
-        return '/divemap-logo-medium.png';
+        return '/divemap_navbar_logo.png';
     }
   };
 

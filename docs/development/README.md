@@ -10,6 +10,7 @@ Welcome to the Divemap development documentation. This guide provides comprehens
 4. [Deployment](./deployment/README.md)
 5. [Security](./security/README.md)
 6. [Maintenance](./maintenance/README.md)
+7. [Changelog Maintenance](./maintenance/changelog-maintenance-rules.md)
 
 ### Current Projects
 - [Diving Centers UX Improvements](./diving-centers-ux-improvements-plan.md) - 🎉 **100% Complete**

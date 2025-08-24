@@ -2,7 +2,328 @@
 
 This document tracks all recent changes, improvements, and bug fixes to the Divemap application.
 
-## [Latest Release] - 2025-08-17
+## [Latest Release] - 2025-08-24
+
+### 🚀 Major Features
+
+#### **Nginx Reverse Proxy Architecture with Refresh Token Authentication**
+- **Complete Authentication System**: Implemented comprehensive refresh token system with automatic token renewal
+- **Token Rotation & Security**: Added token rotation, revocation capabilities, and audit logging
+- **Nginx Reverse Proxy**: Unified frontend/backend architecture solving cross-origin cookie issues
+- **Production Deployment**: Complete Fly.io production configuration with SSL termination and security headers
+- **Session Management**: 15-minute access tokens with 30-day refresh tokens for seamless user experience
+
+**Technical Implementation:**
+- **Backend**: TokenService class, refresh token endpoints, database models for RefreshToken and AuthAuditLog
+- **Frontend**: AuthContext with refresh token support, API interceptor for automatic renewal, SessionManager component
+- **Infrastructure**: Nginx proxy configuration, Docker containers, Fly.io deployment setup
+- **Security**: SameSite=strict cookies, HTTP-only storage, comprehensive rate limiting
+
+**User Experience Benefits:**
+- Users stay logged in for extended periods without manual re-authentication
+- Seamless cross-origin authentication through unified proxy architecture
+- Enhanced security with token rotation and audit logging
+- Professional-grade production deployment with enterprise security features
+
+#### **Enhanced Newsletter Parsing System**
+- **Greek Date Support**: Added comprehensive Greek date parsing (e.g., 'Σάββατο 23 Αυγούστου')
+- **Double Dive Handling**: Support for 'Διπλή βουτιά' (double dive) scenarios with same or different locations
+- **Improved AI Prompts**: Enhanced OpenAI prompts with Greek language rules and concrete examples
+- **Newsletter ID Display**: Added source newsletter tracking in admin interface for better data traceability
+- **Content Detection**: Improved handling of both quoted-printable and plain text newsletter content
+
+**Backend Enhancements:**
+- Enhanced logging configuration respecting LOG_LEVEL environment variable
+- Improved OpenAI prompt engineering for better date extraction accuracy
+- Newsletter ID integration in trip responses for complete data lineage
+- Comprehensive error handling and validation for newsletter parsing
+
+#### **Diving Center Reverse Geocoding System**
+- **Location Automation**: Comprehensive reverse geocoding for diving centers using OpenStreetMap Nominatim API
+- **Smart Location Cleaning**: Automatic removal of municipal and regional suffixes for cleaner location data
+- **Batch Processing**: New utility script for updating multiple diving center locations efficiently
+- **Rate Limiting**: Proper API rate limiting (75/minute for admins) with fallback handling
+- **Error Recovery**: Graceful degradation when external geocoding services are unavailable
+
+**New Features:**
+- `/api/v1/diving-centers/reverse-geocode` endpoint for location data retrieval
+- Automatic removal of 'Municipal Unit of', 'Municipality of', 'Regional Unit of' prefixes
+- Comprehensive debug logging for troubleshooting and monitoring
+- Support for both individual and batch location updates
+
+#### **Comprehensive Hero Section and Logo Integration**
+- **Visual Identity**: New navbar background with sea artifacts and marine-themed design elements
+- **Favicon System**: Complete favicon package including Android, Apple, and standard web formats
+- **Logo Integration**: Professional logo placement and branding throughout the application
+- **Responsive Design**: Optimized visual elements for all device sizes and orientations
+
+**Design Elements Added:**
+- Sea artifacts including coral, fish, shells, and bubble designs
+- Comprehensive favicon package with multiple sizes and formats
+- Professional logo integration in navbar and key UI components
+- Enhanced visual hierarchy and user experience
+
+### 🔧 API Changes
+
+#### **Rate Limiting Enhancements**
+- **Increased Limits**: All rate limits increased by 1.5x multiplier for better user experience
+- **Authentication**: Registration 5→8/min, Login 20→30/min, Google OAuth 20→30/min
+- **Content Operations**: Search 100→150/min, Details 200→300/min, Creation 10→15/min
+- **Proxy Security**: Configurable proxy chain security with SUSPICIOUS_PROXY_CHAIN_LENGTH environment variable
+- **Production Optimization**: Production environment configured for Cloudflare + Fly.io + nginx architecture
+
+**Configuration Updates:**
+- New environment variables for proxy chain security configuration
+- Production vs development rate limiting strategies
+- Enhanced security logging for suspicious IP detection
+- IPv6 support for Fly.io private address ranges
+
+#### **Dive Sites API Improvements**
+- **Tag Filtering Refactoring**: Eliminated code duplication and improved maintainability
+- **Search Optimization**: Enhanced fuzzy search with consistent filter application
+- **Pagination Fixes**: Fixed count vs results mismatch in tag-filtered searches
+- **Performance**: Removed redundant API calls and improved response efficiency
+
+**Technical Improvements:**
+- Extracted reusable filtering functions (apply_tag_filtering, apply_search_filters, etc.)
+- Reduced file size from 2233 to 2047 lines (186 lines removed)
+- Fixed import issues for DiveSiteTag model in utility functions
+- Consistent subquery approach for tag filtering across all endpoints
+
+#### **Diving Centers API Enhancements**
+- **Owner Authorization**: Comprehensive authorization system for diving center owners
+- **Gear Rental Management**: Owners can now manage gear rental items for their centers
+- **Organization Management**: Extended permissions for diving center organization relationships
+- **Dive Site Relationships**: Enhanced management of dive site associations
+
+**Authorization Rules:**
+- Admins and moderators can manage any diving center
+- Approved diving center owners can manage their own centers
+- Regular users are properly blocked from unauthorized access
+- Comprehensive testing coverage for all authorization scenarios
+
+### 🐛 Bug Fixes
+
+#### **Frontend Linting and Code Quality**
+- **ESLint Errors**: Fixed all frontend linting errors and import order issues
+- **Component Cleanup**: Removed unused JavaScript component files for cleaner codebase
+- **Import Optimization**: Fixed import order and removed unused imports throughout frontend
+- **Code Consistency**: Improved overall code quality and maintainability
+
+#### **UI/UX Issues Resolution**
+- **Sticky Positioning**: Fixed search box and filters floating behavior on mobile and desktop
+- **Mobile Controls**: Fixed mobile sorting controls and improved mobile user experience
+- **Dropdown Visibility**: Resolved navbar dropdown visibility and clickability issues
+- **Search Box Behavior**: Fixed search box and filters floating behavior across all viewports
+
+**Positioning Fixes:**
+- Implemented responsive sticky-below-navbar utility class
+- Fixed main content padding from pt-20 sm:pt-24 to pt-16
+- Consistent positioning across all viewports (desktop and mobile)
+- Eliminated gaps between navbar and floating elements
+
+#### **Nginx and Infrastructure Fixes**
+- **502 Error Resolution**: Fixed 'upstream sent too big header' errors from large response headers
+- **Header Optimization**: Limited X-Match-Types headers to 8KB with automatic fallback
+- **Buffer Configuration**: Increased proxy buffer sizes for large response headers
+- **Production Deployment**: Fixed redirect loops and SSL configuration issues
+
+**Infrastructure Improvements:**
+- Optimized response headers in all search endpoints
+- Enhanced nginx configuration for both development and production
+- Fixed invalid directive placement and configuration errors
+- Streamlined SSL handling since Fly.io manages TLS termination
+
+#### **Database and Backend Fixes**
+- **Datetime Serialization**: Fixed datetime serialization issues in newsletters trips endpoint
+- **Debug Messages**: Removed debug messages and restored zoom level indicators
+- **Test Coverage**: Improved backend test coverage with comprehensive router tests
+- **Code Quality**: Enhanced overall backend code quality and maintainability
+
+### 🗄️ Database Changes
+
+#### **Refresh Token System**
+- **New Tables**: Added `refresh_tokens` and `auth_audit_logs` tables
+- **Migration**: Created migration 0029_refresh_tokens for new authentication system
+- **Relationships**: Updated User model with refresh token relationships
+- **Audit Logging**: Comprehensive logging of authentication events and token operations
+
+**Schema Updates:**
+- RefreshToken model with proper relationships and constraints
+- AuthAuditLog model for comprehensive security monitoring
+- Server-side defaults for timestamp fields
+- Proper foreign key relationships and data integrity
+
+### 🎨 Frontend Changes
+
+#### **Mobile User Experience Improvements**
+- **Filter Overlay**: Mobile-optimized filter overlay with full-screen modal for better mobile UX
+- **Active Filters**: More compact active filters display with reduced padding/margins
+- **Tag Display**: Show actual tag names instead of 'X selected' in active filters
+- **Grid View**: Removed Grid view from mobile dive sites page for better mobile experience
+- **Responsive Design**: Enhanced responsive design for mobile filter experience
+
+**UX Enhancements:**
+- Mobile-optimized filter overlay with full-screen modal
+- Compact active filters with reduced padding and margins
+- Actual tag names displayed instead of generic counts
+- Conditional Grid view hiding on mobile devices
+- Improved mobile navigation and user interaction
+
+#### **Search and Filter Improvements**
+- **Quick Filter Replacement**: Replaced text-based searches with tag-based filtering
+- **Filter Consistency**: Consistent filter application across all search operations
+- **Performance**: Removed redundant API calls and improved response efficiency
+- **User Interface**: Enhanced filter interface with better visual organization
+
+**Filter Enhancements:**
+- 'wrecks' search replaced with tag ID 8 (Wreck)
+- 'reefs' search replaced with tag ID 14 (Reef)
+- 'boat_dive' search replaced with tag ID 4 (Boat Dive)
+- 'shore_dive' search replaced with tag ID 13 (Shore Dive)
+- Improved clear filter functionality
+
+#### **Component Refactoring and Cleanup**
+- **Code Organization**: Consolidated view controls within EnhancedMobileSortingControls component
+- **Duplicate Removal**: Eliminated duplicate view controls and headings
+- **Layout Consistency**: Improved visual consistency with other UI elements
+- **Maintainability**: Better code organization and reduced duplication
+
+**Component Improvements:**
+- Consolidated all view controls in single component
+- Removed left-side duplicate view controls
+- Fixed container layout and margins for proper alignment
+- Eliminated duplicate 'Sorting & View Controls' headings
+
+### ⚙️ Backend Changes
+
+#### **Authentication and Security Enhancements**
+- **Token Service**: New TokenService class for centralized token management
+- **Security Logging**: Enhanced suspicious IP detection and comprehensive security monitoring
+- **Rate Limiting**: Improved rate limiting with localhost exemptions and admin privileges
+- **IPv6 Support**: Added support for Fly.io private IPv6 addresses
+
+**Security Features:**
+- Comprehensive token rotation and revocation capabilities
+- Enhanced security logging for production environments
+- Configurable proxy chain security for different deployment scenarios
+- Improved rate limiting strategies for better user experience
+
+#### **Performance and Monitoring Improvements**
+- **Response Optimization**: Optimized API responses and reduced header sizes
+- **Logging Configuration**: Enhanced logging configuration with environment-based control
+- **Error Handling**: Improved error handling and user feedback
+- **Monitoring**: Better system monitoring and performance tracking
+
+**Performance Enhancements:**
+- Optimized X-Match-Types headers to prevent nginx buffer overflow
+- Enhanced logging configuration respecting environment variables
+- Improved error handling and user feedback mechanisms
+- Better system monitoring and performance tracking
+
+### 📚 Documentation Updates
+
+#### **CSS and Sticky Positioning Guide**
+- **Unified Documentation**: Consolidated three separate CSS documentation files into single comprehensive guide
+- **Sticky Positioning**: Complete sticky positioning system documentation with responsive utility classes
+- **Best Practices**: Comprehensive CSS best practices and troubleshooting guide
+- **Implementation**: Step-by-step implementation instructions for floating search and filter boxes
+
+**Documentation Consolidation:**
+- Merged css-best-practices.md, sticky-positioning-fix.md, and sticky-positioning-summary.md
+- Added comprehensive CSS custom properties and utility classes
+- Included troubleshooting section for common CSS issues
+- Added implementation guide for floating search filters
+
+#### **Development and Deployment Guides**
+- **Nginx Proxy Implementation**: Comprehensive nginx reverse proxy implementation plan
+- **Refresh Token System**: Complete refresh token system documentation and implementation guide
+- **Production Deployment**: Updated Fly.io deployment documentation with nginx proxy architecture
+- **Security Documentation**: Enhanced security documentation with refresh token system details
+
+**New Documentation:**
+- Nginx proxy implementation plan and architecture guide
+- Refresh token system implementation and security considerations
+- Production deployment guide with nginx proxy configuration
+- Enhanced security documentation with authentication system details
+
+#### **Utility Documentation**
+- **Consolidated README**: Merged separate utility READMEs into single comprehensive guide
+- **Location Updater Scripts**: Documentation for dive site and diving center location updater utilities
+- **Environment Configuration**: Example environment files and configuration guides
+- **Troubleshooting**: Comprehensive troubleshooting sections for common issues
+
+**Utility Guides:**
+- Single comprehensive utility README with table of contents
+- Location updater script documentation and usage examples
+- Environment configuration examples and setup guides
+- Troubleshooting sections for common utility issues
+
+### 🔒 Security Enhancements
+
+#### **Comprehensive Authentication System**
+- **Refresh Token Security**: HTTP-only cookies with SameSite=strict for maximum security
+- **Token Rotation**: Automatic token rotation and comprehensive audit logging
+- **Session Management**: Configurable session limits and automatic token invalidation
+- **Security Monitoring**: Enhanced suspicious IP detection and comprehensive security logging
+
+**Security Features:**
+- SameSite=strict cookies preventing CSRF attacks
+- HTTP-only cookie storage preventing XSS token theft
+- Comprehensive audit logging for security monitoring
+- Configurable proxy chain security for production environments
+
+#### **Authorization and Access Control**
+- **Diving Center Ownership**: Comprehensive authorization system for diving center owners
+- **Role-Based Access**: Enhanced role-based access control with proper permission validation
+- **Security Testing**: Comprehensive test coverage for all authorization scenarios
+- **Access Monitoring**: Enhanced logging and monitoring for security events
+
+**Authorization Improvements:**
+- Owners can manage their own diving centers with proper validation
+- Enhanced role-based access control across all endpoints
+- Comprehensive testing for authorization scenarios
+- Improved security monitoring and event logging
+
+### 🚀 Infrastructure Changes
+
+#### **Nginx Reverse Proxy Architecture**
+- **Development Environment**: Complete nginx proxy configuration for development with proper routing
+- **Production Deployment**: Production-ready nginx configuration for Fly.io deployment
+- **SSL Termination**: Proper SSL handling with Fly.io TLS termination
+- **Performance Optimization**: Optimized buffer sizes and response handling
+
+**Infrastructure Benefits:**
+- Unified entry point for frontend and backend services
+- Resolved cross-origin cookie issues for authentication
+- Enterprise-grade security features and performance optimization
+- Simplified deployment and maintenance
+
+#### **Docker and Container Updates**
+- **Container Optimization**: Updated .dockerignore for better Docker build efficiency
+- **Service Configuration**: Enhanced Docker Compose configuration with nginx proxy
+- **Environment Management**: Improved environment variable configuration and management
+- **Build Performance**: Optimized container builds and deployment processes
+
+**Container Improvements:**
+- Excluded virtual environment and media directories from builds
+- Enhanced service configuration and dependencies
+- Improved environment variable management
+- Better build performance and efficiency
+
+#### **Fly.io Production Deployment**
+- **Production Configuration**: Complete production deployment configuration for Fly.io
+- **Resource Management**: Proper resource allocation and auto-scaling configuration
+- **Health Monitoring**: Comprehensive health checks and monitoring setup
+- **Security Headers**: Enterprise-grade security headers and rate limiting
+
+**Production Features:**
+- Complete production deployment configuration
+- Proper resource allocation and auto-scaling
+- Comprehensive health monitoring and checks
+- Enterprise-grade security and performance features
+
+## [Previous Release] - 2025-08-17
 
 ### 🚀 Major Features
 

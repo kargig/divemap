@@ -247,6 +247,14 @@ const Navbar = () => {
                     API
                   </Link>
                   <Link
+                    to='/changelog'
+                    className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
+                    onClick={() => setShowInfoDropdown(false)}
+                  >
+                    <FileText className='h-4 w-4 mr-2' />
+                    Changelog
+                  </Link>
+                  <Link
                     to='/help'
                     className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
                     onClick={() => setShowInfoDropdown(false)}
