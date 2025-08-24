@@ -133,7 +133,7 @@ def calculate_phrase_aware_score(query: str, site_name: str, site_country: str, 
     return min(final_score, 1.0)
 
 
-def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: Session, similarity_threshold: float = 0.2, max_fuzzy_results: int = 10):
+def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: Session, similarity_threshold: float = 0.2, max_fuzzy_results: int = 10, **filters):
     """
     Enhance search results with fuzzy matching when exact results are insufficient.
     
@@ -143,6 +143,7 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
         db: Database session
         similarity_threshold: Minimum similarity score (0.0 to 1.0)
         max_fuzzy_results: Maximum number of fuzzy results to return
+        **filters: Additional filters to apply (tag_ids, difficulty_level, etc.)
     
     Returns:
         List of dive sites with exact results first, followed by fuzzy matches
@@ -163,13 +164,49 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
             })
         return final_results
     
-    # Get all dive sites for fuzzy matching
-    all_dive_sites = db.query(DiveSite).all()
+    # Build a filtered query that respects the same filters as the main query
+    filtered_query = db.query(DiveSite)
+    
+    # Apply the same filters that were used in the main query
+    if 'difficulty_level' in filters and filters['difficulty_level']:
+        filtered_query = filtered_query.filter(DiveSite.difficulty_level == filters['difficulty_level'])
+    
+    if 'country' in filters and filters['country']:
+        filtered_query = filtered_query.filter(DiveSite.country.ilike(f"%{filters['country']}%"))
+    
+    if 'region' in filters and filters['region']:
+        filtered_query = filtered_query.filter(DiveSite.region.ilike(f"%{filters['region']}%"))
+    
+    if 'min_rating' in filters and filters['min_rating'] is not None:
+        from app.models import SiteRating
+        dive_site_ids_with_min_rating = db.query(SiteRating.dive_site_id).group_by(
+            SiteRating.dive_site_id
+        ).having(
+            func.avg(SiteRating.score) >= filters['min_rating']
+        )
+        filtered_query = filtered_query.filter(DiveSite.id.in_(dive_site_ids_with_min_rating))
+    
+    if 'tag_ids' in filters and filters['tag_ids']:
+        from app.models import DiveSiteTag
+        # Apply the same tag filtering logic
+        tag_count = len(filters['tag_ids'])
+        dive_sites_with_all_tags = db.query(DiveSiteTag.dive_site_id).filter(
+            DiveSiteTag.tag_id.in_(filters['tag_ids'])
+        ).group_by(DiveSiteTag.dive_site_id).having(
+            func.count(DiveSiteTag.tag_id) == tag_count
+        ).subquery()
+        filtered_query = filtered_query.filter(DiveSite.id.in_(dive_sites_with_all_tags))
+    
+    if 'my_dive_sites' in filters and filters['my_dive_sites'] and 'current_user' in filters and filters['current_user']:
+        filtered_query = filtered_query.filter(DiveSite.created_by == filters['current_user'].id)
+    
+    # Get filtered dive sites for fuzzy matching
+    all_dive_sites = filtered_query.all()
     
     # Create a set of exact result IDs to avoid duplicates
     exact_ids = {site.id for site in exact_results}
     
-    # Perform fuzzy matching on all dive sites (case-insensitive)
+    # Perform fuzzy matching on filtered dive sites (case-insensitive)
     fuzzy_matches = []
     query_lower = query.lower()  # Convert query to lowercase for case-insensitive comparison
     
@@ -535,7 +572,6 @@ async def get_dive_sites(
     # Apply tag filtering
     if tag_ids:
         from app.models import DiveSiteTag
-        from sqlalchemy import select
         # Validate tag_ids to prevent injection
         if len(tag_ids) > 20:  # Limit number of tags
             raise HTTPException(
@@ -543,16 +579,24 @@ async def get_dive_sites(
                 detail="Too many tag filters"
             )
         # Use AND logic - dive site must have ALL selected tags
-        # First, get dive site IDs that have all the required tags
+        # Create a subquery that finds dive sites with all required tags
+        # This approach uses a more reliable SQL pattern
         tag_count = len(tag_ids)
-        dive_site_ids_with_all_tags = select(DiveSiteTag.dive_site_id).filter(
+        
+        # Build a subquery that finds dive site IDs that have ALL the required tags
+        tag_subquery = db.query(DiveSiteTag.dive_site_id).filter(
             DiveSiteTag.tag_id.in_(tag_ids)
         ).group_by(DiveSiteTag.dive_site_id).having(
             func.count(DiveSiteTag.tag_id) == tag_count
         )
-
-        # Then filter the main query by those dive site IDs
-        query = query.filter(DiveSite.id.in_(dive_site_ids_with_all_tags))
+        
+        # Convert to a list of IDs and filter the main query
+        dive_site_ids_with_tags = [row[0] for row in tag_subquery.all()]
+        if dive_site_ids_with_tags:
+            query = query.filter(DiveSite.id.in_(dive_site_ids_with_tags))
+        else:
+            # If no dive sites have all tags, return empty result
+            query = query.filter(DiveSite.id.is_(None))
 
     # Apply min_rating filtering
     if min_rating is not None:
@@ -682,14 +726,23 @@ async def get_dive_sites(
         
         if tag_ids:
             from app.models import DiveSiteTag
-            from sqlalchemy import select
-            tag_count = len(tag_ids)
-            dive_site_ids_with_all_tags = select(DiveSiteTag.dive_site_id).filter(
-                DiveSiteTag.tag_id.in_(tag_ids)
-            ).group_by(DiveSiteTag.dive_site_id).having(
-                func.count(DiveSiteTag.tag_id) == tag_count
-            )
-            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.id.in_(dive_site_ids_with_all_tags))
+            # Validate tag_ids to prevent injection
+            if len(tag_ids) > 20:  # Limit number of tags
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Too many tag filters"
+                )
+            # Use AND logic - dive site must have ALL selected tags
+            # Join with dive_site_tags table for each required tag to ensure all are present
+            for tag_id in tag_ids:
+                # Create a unique alias for each tag join to avoid conflicts
+                tag_alias = db.query(DiveSiteTag).filter(
+                    and_(
+                        DiveSiteTag.dive_site_id == DiveSite.id,
+                        DiveSiteTag.tag_id == tag_id
+                    )
+                ).exists()
+                all_dive_sites_query = all_dive_sites_query.filter(tag_alias)
         
         if min_rating is not None:
             dive_site_ids_with_min_rating = db.query(SiteRating.dive_site_id).group_by(
@@ -749,7 +802,15 @@ async def get_dive_sites(
                 exact_results, 
                 db, 
                 similarity_threshold=UNIFIED_TYPO_TOLERANCE['overall_threshold'],
-                max_fuzzy_results=10
+                max_fuzzy_results=10,
+                # Pass the current filters to ensure fuzzy search respects them
+                tag_ids=tag_ids,
+                difficulty_level=difficulty_level,
+                country=country,
+                region=region,
+                min_rating=min_rating,
+                my_dive_sites=my_dive_sites,
+                current_user=current_user
             )
             
             # Transform enhanced results back to the expected format
@@ -941,19 +1002,31 @@ async def get_dive_sites_count(
     # Apply tag filtering
     if tag_ids:
         from app.models import DiveSiteTag
-        from sqlalchemy import select
-        if len(tag_ids) > 20:
+        # Validate tag_ids to prevent injection
+        if len(tag_ids) > 20:  # Limit number of tags
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Too many tag filters"
             )
+        # Use AND logic - dive site must have ALL selected tags
+        # Create a subquery that finds dive sites with all required tags
+        # This approach uses a more reliable SQL pattern
         tag_count = len(tag_ids)
-        dive_site_ids_with_all_tags = select(DiveSiteTag.dive_site_id).filter(
+        
+        # Build a subquery that finds dive site IDs that have ALL the required tags
+        tag_subquery = db.query(DiveSiteTag.dive_site_id).filter(
             DiveSiteTag.tag_id.in_(tag_ids)
         ).group_by(DiveSiteTag.dive_site_id).having(
             func.count(DiveSiteTag.tag_id) == tag_count
         )
-        query = query.filter(DiveSite.id.in_(dive_site_ids_with_all_tags))
+        
+        # Convert to a list of IDs and filter the main query
+        dive_site_ids_with_tags = [row[0] for row in tag_subquery.all()]
+        if dive_site_ids_with_tags:
+            query = query.filter(DiveSite.id.in_(dive_site_ids_with_tags))
+        else:
+            # If no dive sites have all tags, return empty result
+            query = query.filter(DiveSite.id.is_(None))
 
     # Apply min_rating filtering
     if min_rating is not None:
