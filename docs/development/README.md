@@ -19,6 +19,10 @@ Welcome to the Divemap development documentation. This guide provides comprehens
 ### Search & Algorithm Documentation
 - [Fuzzy Search Implementation Plan](./fuzzy-search-implementation-plan.md) - **Complete guide to search implementation across all pages**
 - [Floating Search and Filter Boxes Guide](./floating-search-filters-guide.md) - **Complete guide to implementing floating search and filter boxes across all pages**
+- [CSS Best Practices & Sticky Positioning Guide](./css-and-sticky-positioning-guide.md) - **Includes sticky positioning solutions for search boxes and filters**
+
+### CSS & Styling
+- [CSS Best Practices & Sticky Positioning Guide](./css-and-sticky-positioning-guide.md) - **Comprehensive CSS guidelines and sticky positioning system - Single reference for all CSS-related problems**
 
 ### Infrastructure & Upgrades
 - [Node.js 20 Upgrade Guide](./nodejs-20-upgrade-guide.md) - **Complete guide to Node.js 20 upgrade and frontend improvements**
@@ -26,6 +30,7 @@ Welcome to the Divemap development documentation. This guide provides comprehens
 ## Recent Updates
 
 ### August 2025
+- **🎉 Sticky Positioning Fix - Complete**: Comprehensive solution for search box and filter positioning that eliminates gaps between navbar and floating elements. Implemented CSS custom properties and responsive positioning system across all pages. [View Details](./css-and-sticky-positioning-guide.md)
 - **🎉 Refresh Token Implementation - Complete**: Comprehensive refresh token system with automatic token renewal, token rotation, and enhanced security features. All implementation phases completed including nginx proxy integration and infinite refresh loop resolution. [View Plan](./refresh-token-implementation-plan.md)
 - **Nginx Proxy Implementation Plan**: Plan to implement nginx reverse proxy for both development and production environments to solve cross-origin cookie issues. [View Plan](./nginx-proxy-implementation-plan.md)
 
