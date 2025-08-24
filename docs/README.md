@@ -21,6 +21,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 - **Import Scripts** - Dive site import utilities with smart conflict resolution (see [Development README](./development/README.md#import-scripts))
 - **[Diving Organizations Admin](./development/diving-organizations-admin.md)** - Admin management for diving organizations
 - **[JavaScript Style Rules](./development/javascript-style-rules.md)** - Frontend coding standards and best practices
+- **[Floating Search and Filter Boxes Guide](./development/floating-search-filters-guide.md)** - Implementation guide for floating search and filter boxes
 - **[GitHub Actions](./development/github-actions.md)** - CI/CD workflow configuration
 - **[Permissions](./development/permissions.md)** - User roles, permissions, and access control
 
@@ -56,6 +57,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 7. **[Importing Data](./IMPORTING_DATA.md)** - Guide for importing dive sites and dives from Subsurface
 8. **[Rate Limiting Error Handling](./development/README.md#frontend-rate-limiting-error-handling)** - Frontend error handling for API rate limits
 9. **[Sorting Implementation](./development/sorting-implementation-plan.md)** - Comprehensive sorting functionality and admin restrictions
+10. **[Floating Search and Filter Boxes](./development/floating-search-filters-guide.md)** - Implementation guide for floating search and filter boxes
 
 ### For Deployment
 1. **[Deployment Overview](./deployment/README.md)** - Comprehensive deployment guide (includes Docker, Fly.io, and infrastructure)
