@@ -133,6 +133,239 @@ def calculate_phrase_aware_score(query: str, site_name: str, site_country: str, 
     return min(final_score, 1.0)
 
 
+def apply_tag_filtering(query, tag_ids, db):
+    """
+    Apply tag filtering to a query using consistent logic.
+    
+    Args:
+        query: SQLAlchemy query object to filter
+        tag_ids: List of tag IDs to filter by (AND logic)
+        db: Database session
+        
+    Returns:
+        Filtered query object
+        
+    Raises:
+        HTTPException: If too many tag filters are provided
+    """
+    if not tag_ids:
+        return query
+    
+    # Validate tag_ids to prevent injection
+    if len(tag_ids) > 20:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Too many tag filters"
+        )
+    
+    # Import required models
+    from app.models import DiveSiteTag
+    
+    # Use consistent subquery approach - dive site must have ALL selected tags
+    tag_count = len(tag_ids)
+    tag_subquery = db.query(DiveSiteTag.dive_site_id).filter(
+        DiveSiteTag.tag_id.in_(tag_ids)
+    ).group_by(DiveSiteTag.dive_site_id).having(
+        func.count(DiveSiteTag.tag_id) == tag_count
+    ).subquery()
+    
+    return query.filter(DiveSite.id.in_(tag_subquery))
+
+
+def apply_search_filters(query, search, name, db):
+    """
+    Apply search and name filtering to a query.
+    
+    Args:
+        query: SQLAlchemy query object to filter
+        search: Search query string
+        name: Name filter string
+        db: Database session
+        
+    Returns:
+        Filtered query object
+    """
+    if search:
+        # Sanitize search input to prevent injection
+        sanitized_search = search.strip()[:200]
+        # Search across name, country, region, description, and aliases (case-insensitive using ilike)
+        search_filter = or_(
+            DiveSite.name.ilike(f"%{sanitized_search}%"),
+            DiveSite.country.ilike(f"%{sanitized_search}%"),
+            DiveSite.region.ilike(f"%{sanitized_search}%"),
+            # Handle nullable description field safely
+            and_(DiveSite.description.isnot(None), DiveSite.description.ilike(f"%{sanitized_search}%")),
+            DiveSite.id.in_(
+                db.query(DiveSiteAlias.dive_site_id).filter(
+                    DiveSiteAlias.alias.ilike(f"%{sanitized_search}%")
+                )
+            )
+        )
+        query = query.filter(search_filter)
+    
+    if name:
+        # Sanitize name input to prevent injection
+        sanitized_name = name.strip()[:100]
+        # Search in both dive site names and aliases
+        query = query.filter(
+            or_(
+                DiveSite.name.ilike(f"%{sanitized_name}%"),
+                DiveSite.id.in_(
+                    db.query(DiveSiteAlias.dive_site_id).filter(
+                        DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
+                    )
+                )
+            )
+        )
+    
+    return query
+
+
+def apply_basic_filters(query, difficulty_level, country, region, my_dive_sites, current_user):
+    """
+    Apply basic filtering criteria to a query.
+    
+    Args:
+        query: SQLAlchemy query object to filter
+        difficulty_level: Difficulty level filter
+        country: Country filter
+        region: Region filter
+        my_dive_sites: Whether to filter by user's dive sites
+        current_user: Current authenticated user
+        
+    Returns:
+        Filtered query object
+    """
+    if difficulty_level:
+        query = query.filter(DiveSite.difficulty_level == difficulty_level)
+    
+    if country:
+        sanitized_country = country.strip()[:100]
+        query = query.filter(DiveSite.country.ilike(f"%{sanitized_country}%"))
+    
+    if region:
+        sanitized_region = region.strip()[:100]
+        query = query.filter(DiveSite.region.ilike(f"%{sanitized_region}%"))
+    
+    if my_dive_sites and current_user:
+        query = query.filter(DiveSite.created_by == current_user.id)
+    
+    return query
+
+
+def apply_rating_filtering(query, min_rating, db):
+    """
+    Apply minimum rating filtering to a query.
+    
+    Args:
+        query: SQLAlchemy query object to filter
+        min_rating: Minimum average rating threshold
+        db: Database session
+        
+    Returns:
+        Filtered query object
+    """
+    if min_rating is not None:
+        # Get dive site IDs that have an average rating >= min_rating
+        dive_site_ids_with_min_rating = db.query(SiteRating.dive_site_id).group_by(
+            SiteRating.dive_site_id
+        ).having(
+            func.avg(SiteRating.score) >= min_rating
+        )
+        query = query.filter(DiveSite.id.in_(dive_site_ids_with_min_rating))
+    
+    return query
+
+
+def apply_sorting(query, sort_by, sort_order, current_user):
+    """
+    Apply sorting logic to a query.
+    
+    Args:
+        query: SQLAlchemy query object to sort
+        sort_by: Field to sort by
+        sort_order: Sort order ('asc' or 'desc')
+        current_user: Current authenticated user
+        
+    Returns:
+        Sorted query object
+        
+    Raises:
+        HTTPException: If sort parameters are invalid
+    """
+    if sort_by:
+        # All valid sort fields (including admin-only ones)
+        valid_sort_fields = {
+            'name', 'country', 'region', 'difficulty_level', 
+            'view_count', 'comment_count', 'created_at', 'updated_at', 'average_rating'
+        }
+        
+        if sort_by not in valid_sort_fields:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}"
+            )
+        
+        # Validate sort_order parameter
+        if sort_order not in ['asc', 'desc']:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="sort_order must be 'asc' or 'desc'"
+            )
+        
+        # Apply sorting based on field
+        if sort_by == 'name':
+            sort_field = func.lower(DiveSite.name)
+        elif sort_by == 'country':
+            sort_field = func.lower(DiveSite.country)
+        elif sort_by == 'region':
+            sort_field = func.lower(DiveSite.region)
+        elif sort_by == 'difficulty_level':
+            sort_field = DiveSite.difficulty_level
+        elif sort_by == 'view_count':
+            # Only admin users can sort by view_count
+            if not current_user or not current_user.is_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Sorting by view_count is only available for admin users"
+                )
+            sort_field = DiveSite.view_count
+        elif sort_by == 'comment_count':
+            # Only admin users can sort by comment_count
+            if not current_user or not current_user.is_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Sorting by comment_count is only available for admin users"
+                )
+            # For comment count, we need to join with comments and group
+            query = query.outerjoin(SiteComment).group_by(DiveSite.id)
+            sort_field = func.count(SiteComment.id)
+        elif sort_by == 'created_at':
+            sort_field = DiveSite.created_at
+        elif sort_by == 'updated_at':
+            sort_field = DiveSite.updated_at
+        elif sort_by == 'average_rating':
+            # For average_rating, we'll handle this separately in the main function
+            # as it requires special processing
+            return query
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid sort_by field: {sort_by}"
+            )
+        
+        # Apply the sorting
+        if sort_order == 'asc':
+            query = query.order_by(sort_field.asc())
+        else:
+            query = query.order_by(sort_field.desc())
+    else:
+        # Default sorting by name (case-insensitive)
+        query = query.order_by(func.lower(DiveSite.name).asc())
+    
+    return query
+
+
 def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: Session, similarity_threshold: float = 0.2, max_fuzzy_results: int = 10, **filters):
     """
     Enhance search results with fuzzy matching when exact results are insufficient.
@@ -513,176 +746,25 @@ async def get_dive_sites(
 
     query = db.query(DiveSite)
 
-    # Apply unified search across multiple fields (case-insensitive)
+    # Store the search query for potential fuzzy search enhancement
+    search_query_for_fuzzy = None
     if search:
-        # Sanitize search input to prevent injection
-        sanitized_search = search.strip()[:200]
-        # Search across name, country, region, description, and aliases (case-insensitive using ilike)
-        query = query.filter(
-            or_(
-                DiveSite.name.ilike(f"%{sanitized_search}%"),
-                DiveSite.country.ilike(f"%{sanitized_search}%"),
-                DiveSite.region.ilike(f"%{sanitized_search}%"),
-                # Handle nullable description field safely
-                and_(DiveSite.description.isnot(None), DiveSite.description.ilike(f"%{sanitized_search}%")),
-                DiveSite.id.in_(
-                    db.query(DiveSiteAlias.dive_site_id).filter(
-                        DiveSiteAlias.alias.ilike(f"%{sanitized_search}%")
-                    )
-                )
-            )
-        )
-        
-        # Store the search query for potential fuzzy search enhancement
-        search_query_for_fuzzy = sanitized_search
+        search_query_for_fuzzy = search.strip()[:200]
 
-    # Apply filters with input validation
-    if name:
-        # Sanitize name input to prevent injection
-        sanitized_name = name.strip()[:100]
-        # Search in both dive site names and aliases
-        query = query.filter(
-            or_(
-                DiveSite.name.ilike(f"%{sanitized_name}%"),
-                DiveSite.id.in_(
-                    db.query(DiveSiteAlias.dive_site_id).filter(
-                        DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
-                    )
-                )
-            )
-        )
+    # Apply search and name filtering using utility function
+    query = apply_search_filters(query, search, name, db)
 
-    if difficulty_level:
-        query = query.filter(DiveSite.difficulty_level == difficulty_level)
+    # Apply basic filters using utility function
+    query = apply_basic_filters(query, difficulty_level, country, region, my_dive_sites, current_user)
 
-    # Apply country filtering
-    if country:
-        sanitized_country = country.strip()[:100]
-        query = query.filter(DiveSite.country.ilike(f"%{sanitized_country}%"))
+    # Apply tag filtering using utility function
+    query = apply_tag_filtering(query, tag_ids, db)
 
-    # Apply region filtering
-    if region:
-        sanitized_region = region.strip()[:100]
-        query = query.filter(DiveSite.region.ilike(f"%{sanitized_region}%"))
+    # Apply rating filtering using utility function
+    query = apply_rating_filtering(query, min_rating, db)
 
-    # Apply my_dive_sites filtering
-    if my_dive_sites and current_user:
-        query = query.filter(DiveSite.created_by == current_user.id)
-
-    # Apply tag filtering
-    if tag_ids:
-        from app.models import DiveSiteTag
-        # Validate tag_ids to prevent injection
-        if len(tag_ids) > 20:  # Limit number of tags
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Too many tag filters"
-            )
-        # Use AND logic - dive site must have ALL selected tags
-        # Create a subquery that finds dive sites with all required tags
-        # This approach uses a more reliable SQL pattern
-        tag_count = len(tag_ids)
-        
-        # Build a subquery that finds dive site IDs that have ALL the required tags
-        tag_subquery = db.query(DiveSiteTag.dive_site_id).filter(
-            DiveSiteTag.tag_id.in_(tag_ids)
-        ).group_by(DiveSiteTag.dive_site_id).having(
-            func.count(DiveSiteTag.tag_id) == tag_count
-        )
-        
-        # Convert to a list of IDs and filter the main query
-        dive_site_ids_with_tags = [row[0] for row in tag_subquery.all()]
-        if dive_site_ids_with_tags:
-            query = query.filter(DiveSite.id.in_(dive_site_ids_with_tags))
-        else:
-            # If no dive sites have all tags, return empty result
-            query = query.filter(DiveSite.id.is_(None))
-
-    # Apply min_rating filtering
-    if min_rating is not None:
-        # Get dive site IDs that have an average rating >= min_rating
-        # We need to join with ratings and group by dive site to calculate average
-        dive_site_ids_with_min_rating = db.query(SiteRating.dive_site_id).group_by(
-            SiteRating.dive_site_id
-        ).having(
-            func.avg(SiteRating.score) >= min_rating
-        )
-        
-        # Filter the main query by those dive site IDs
-        query = query.filter(DiveSite.id.in_(dive_site_ids_with_min_rating))
-
-    # Apply dynamic sorting based on parameters
-    if sort_by:
-        # All valid sort fields (including admin-only ones)
-        valid_sort_fields = {
-            'name', 'country', 'region', 'difficulty_level', 
-            'view_count', 'comment_count', 'created_at', 'updated_at', 'average_rating'
-        }
-        
-        if sort_by not in valid_sort_fields:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}"
-            )
-        
-        # Validate sort_order parameter
-        if sort_order not in ['asc', 'desc']:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="sort_order must be 'asc' or 'desc'"
-            )
-        
-        # Apply sorting based on field
-        if sort_by == 'name':
-            sort_field = func.lower(DiveSite.name)
-        elif sort_by == 'country':
-            sort_field = func.lower(DiveSite.country)
-        elif sort_by == 'region':
-            sort_field = func.lower(DiveSite.region)
-        elif sort_by == 'difficulty_level':
-            sort_field = DiveSite.difficulty_level
-        elif sort_by == 'view_count':
-            # Only admin users can sort by view_count
-            if not current_user or not current_user.is_admin:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Sorting by view_count is only available for admin users"
-                )
-            sort_field = DiveSite.view_count
-        elif sort_by == 'comment_count':
-            # Only admin users can sort by comment_count
-            if not current_user or not current_user.is_admin:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Sorting by comment_count is only available for admin users"
-                )
-            # For comment count, we need to join with comments and group
-            query = query.outerjoin(SiteComment).group_by(DiveSite.id)
-            sort_field = func.count(SiteComment.id)
-        elif sort_by == 'created_at':
-            sort_field = DiveSite.created_at
-        elif sort_by == 'updated_at':
-            sort_field = DiveSite.updated_at
-        elif sort_by == 'average_rating':
-            # For average rating, we need to join with ratings and group
-            # This will be handled in the main query to sort before pagination
-            pass
-        
-        # Apply the sorting (only if we have a sort_field defined)
-        if 'sort_field' in locals():
-            if sort_order == 'desc':
-                query = query.order_by(sort_field.desc())
-            else:
-                query = query.order_by(sort_field.asc())
-        elif sort_by != 'average_rating':
-            # If no sort_field and not average_rating, this is an error
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid sort_by field: {sort_by}"
-            )
-    else:
-        # Default sorting by name (case-insensitive)
-        query = query.order_by(func.lower(DiveSite.name).asc())
+    # Apply sorting using utility function
+    query = apply_sorting(query, sort_by, sort_order, current_user)
 
     # Get total count for pagination
     total_count = query.count()
@@ -696,61 +778,11 @@ async def get_dive_sites(
         # Get all dive sites with their average ratings for proper sorting
         all_dive_sites_query = db.query(DiveSite)
         
-        # Apply the same filters to the full query
-        if name:
-            sanitized_name = name.strip()[:100]
-            all_dive_sites_query = all_dive_sites_query.filter(
-                or_(
-                    DiveSite.name.ilike(f"%{sanitized_name}%"),
-                    DiveSite.id.in_(
-                        db.query(DiveSiteAlias.dive_site_id).filter(
-                            DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
-                        )
-                    )
-                )
-            )
-        
-        if difficulty_level:
-            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.difficulty_level == difficulty_level)
-        
-        if country:
-            sanitized_country = country.strip()[:100]
-            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.country.ilike(f"%{sanitized_country}%"))
-        
-        if region:
-            sanitized_region = region.strip()[:100]
-            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.region.ilike(f"%{sanitized_region}%"))
-        
-        if my_dive_sites and current_user:
-            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.created_by == current_user.id)
-        
-        if tag_ids:
-            from app.models import DiveSiteTag
-            # Validate tag_ids to prevent injection
-            if len(tag_ids) > 20:  # Limit number of tags
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Too many tag filters"
-                )
-            # Use AND logic - dive site must have ALL selected tags
-            # Join with dive_site_tags table for each required tag to ensure all are present
-            for tag_id in tag_ids:
-                # Create a unique alias for each tag join to avoid conflicts
-                tag_alias = db.query(DiveSiteTag).filter(
-                    and_(
-                        DiveSiteTag.dive_site_id == DiveSite.id,
-                        DiveSiteTag.tag_id == tag_id
-                    )
-                ).exists()
-                all_dive_sites_query = all_dive_sites_query.filter(tag_alias)
-        
-        if min_rating is not None:
-            dive_site_ids_with_min_rating = db.query(SiteRating.dive_site_id).group_by(
-                SiteRating.dive_site_id
-            ).having(
-                func.avg(SiteRating.score) >= min_rating
-            )
-            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.id.in_(dive_site_ids_with_min_rating))
+        # Apply the same filters to the full query using utility functions
+        all_dive_sites_query = apply_search_filters(all_dive_sites_query, search, name, db)
+        all_dive_sites_query = apply_basic_filters(all_dive_sites_query, difficulty_level, country, region, my_dive_sites, current_user)
+        all_dive_sites_query = apply_tag_filtering(all_dive_sites_query, tag_ids, db)
+        all_dive_sites_query = apply_rating_filtering(all_dive_sites_query, min_rating, db)
         
         # Get all dive sites that match the filters
         all_dive_sites = all_dive_sites_query.all()
@@ -967,79 +999,11 @@ async def get_dive_sites_count(
     """Get total count of dive sites matching the filters"""
     query = db.query(DiveSite)
 
-    # Apply my_dive_sites filtering
-    if my_dive_sites and current_user:
-        query = query.filter(DiveSite.created_by == current_user.id)
-
-    # Apply filters with input validation
-    if name:
-        sanitized_name = name.strip()[:100]
-        # Search in both dive site names and aliases
-        query = query.filter(
-            or_(
-                DiveSite.name.ilike(f"%{sanitized_name}%"),
-                DiveSite.id.in_(
-                    db.query(DiveSiteAlias.dive_site_id).filter(
-                        DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
-                    )
-                )
-            )
-        )
-
-    if difficulty_level:
-        query = query.filter(DiveSite.difficulty_level == difficulty_level)
-
-    # Apply country filtering
-    if country:
-        sanitized_country = country.strip()[:100]
-        query = query.filter(DiveSite.country.ilike(f"%{sanitized_country}%"))
-
-    # Apply region filtering
-    if region:
-        sanitized_region = region.strip()[:100]
-        query = query.filter(DiveSite.region.ilike(f"%{sanitized_region}%"))
-
-    # Apply tag filtering
-    if tag_ids:
-        from app.models import DiveSiteTag
-        # Validate tag_ids to prevent injection
-        if len(tag_ids) > 20:  # Limit number of tags
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Too many tag filters"
-            )
-        # Use AND logic - dive site must have ALL selected tags
-        # Create a subquery that finds dive sites with all required tags
-        # This approach uses a more reliable SQL pattern
-        tag_count = len(tag_ids)
-        
-        # Build a subquery that finds dive site IDs that have ALL the required tags
-        tag_subquery = db.query(DiveSiteTag.dive_site_id).filter(
-            DiveSiteTag.tag_id.in_(tag_ids)
-        ).group_by(DiveSiteTag.dive_site_id).having(
-            func.count(DiveSiteTag.tag_id) == tag_count
-        )
-        
-        # Convert to a list of IDs and filter the main query
-        dive_site_ids_with_tags = [row[0] for row in tag_subquery.all()]
-        if dive_site_ids_with_tags:
-            query = query.filter(DiveSite.id.in_(dive_site_ids_with_tags))
-        else:
-            # If no dive sites have all tags, return empty result
-            query = query.filter(DiveSite.id.is_(None))
-
-    # Apply min_rating filtering
-    if min_rating is not None:
-        # Get dive site IDs that have an average rating >= min_rating
-        # We need to join with ratings and group by dive site to calculate average
-        dive_site_ids_with_min_rating = db.query(SiteRating.dive_site_id).group_by(
-            SiteRating.dive_site_id
-        ).having(
-            func.avg(SiteRating.score) >= min_rating
-        )
-        
-        # Filter the main query by those dive site IDs
-        query = query.filter(DiveSite.id.in_(dive_site_ids_with_min_rating))
+    # Apply all filters using utility functions
+    query = apply_search_filters(query, None, name, db)  # No search parameter in count function
+    query = apply_basic_filters(query, difficulty_level, country, region, my_dive_sites, current_user)
+    query = apply_tag_filtering(query, tag_ids, db)
+    query = apply_rating_filtering(query, min_rating, db)
 
     # Get total count
     total_count = query.count()
