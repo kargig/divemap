@@ -222,33 +222,29 @@ const EditDivingCenter = () => {
     try {
       toast.loading('Looking up location...');
 
-      // Use Nominatim (OpenStreetMap) reverse geocoding service
+      // Use the backend reverse geocoding endpoint instead of calling Nominatim directly
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`,
+        `/api/v1/diving-centers/reverse-geocode?latitude=${lat}&longitude=${lng}`,
         {
+          method: 'GET',
           headers: {
-            'Accept-Language': 'en',
-            'User-Agent': 'Divemap/1.0',
+            'Content-Type': 'application/json',
           },
         }
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch location data');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
 
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      // Extract geographic information
-      const address = data.address;
+      // Extract geographic information from the backend response
       const suggestions = {
-        country: address.country || '',
-        region: address.state || address.region || address.province || '',
-        city: address.city || address.town || address.village || address.hamlet || '',
+        country: data.country || '',
+        region: data.region || '',
+        city: data.city || '',
       };
 
       // Update form data with suggestions
