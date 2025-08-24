@@ -262,6 +262,7 @@ async def reverse_geocode(
     request: Request,
     latitude: float = Query(..., ge=-90, le=90),
     longitude: float = Query(..., ge=-180, le=180),
+    debug: bool = Query(False, description="Enable debug logging for Nominatim API calls"),
     db: Session = Depends(get_db)
 ):
     """
@@ -281,29 +282,82 @@ async def reverse_geocode(
 
         # Add User-Agent header as required by Nominatim
         headers = {
-            "User-Agent": "Divemap/1.0 (https://github.com/your-repo/divemap)"
+            "User-Agent": "Divemap/1.0 (https://github.com/kargig/divemap)"
         }
 
         response = requests.get(url, params=params, headers=headers, timeout=15)
 
         # Log the response for debugging
-        print(f"Geocoding request: {url} with params {params}")
-        print(f"Response status: {response.status_code}")
-        print(f"Response content: {response.text[:500]}...")
-
+        if debug:
+            print(f"🔍 Nominatim API Request:")
+            print(f"   URL: {url}")
+            print(f"   Parameters: {params}")
+            print(f"   Headers: {headers}")
+            print(f"   Coordinates: lat={latitude}, lon={longitude}")
+        
         response.raise_for_status()
-
+        
         data = response.json()
+        
+        if debug:
+            print(f"📡 Nominatim API Response:")
+            print(f"   Status Code: {response.status_code}")
+            print(f"   Response Headers: {dict(response.headers)}")
+            print(f"   Full Response Content:")
+            print(f"   {json.dumps(data, indent=2)}")
+        
         address = data.get("address", {})
 
         # Extract country and region information
         country = address.get("country")
-        region = (
-            address.get("state") or
-            address.get("province") or
-            address.get("region") or
-            address.get("county")
-        )
+        
+        # Helper function to clean "Regional Unit" from text
+        # Only remove "Regional Unit" if it appears at the end, keep it if it appears at the beginning
+        def clean_regional_unit(text):
+            if text:
+                # Remove " Regional Unit" only if it appears at the end
+                if text.endswith(" Regional Unit"):
+                    return text[:-len(" Regional Unit")].strip()
+                # Remove "Regional Unit" only if it appears at the end (no leading space)
+                elif text.endswith("Regional Unit"):
+                    return text[:-len("Regional Unit")].strip()
+                return text
+            return text
+        
+        # Get and clean county and state_district fields
+        county = clean_regional_unit(address.get("county"))
+        state_district = clean_regional_unit(address.get("state_district"))
+        
+        if county and state_district:
+            region = f"{county}, {state_district}"
+        else:
+            # Fallback to previous priority order, also cleaning "Regional Unit"
+            region = (
+                clean_regional_unit(address.get("state")) or
+                clean_regional_unit(address.get("province")) or
+                clean_regional_unit(address.get("region")) or
+                county  # county alone if no state_district
+            )
+
+        # Log the extracted data
+        if debug:
+            print(f"📍 Extracted Location Data:")
+            print(f"   Country: '{country}'")
+            print(f"   Region: '{region}'")
+            print(f"   Full Address: '{data.get('display_name', '')}'")
+            print(f"   Raw Address Object: {json.dumps(address, indent=2)}")
+            
+            # Show which region fields were found and used
+            print(f"   Region Field Analysis:")
+            print(f"     county: '{address.get('county')}' → cleaned: '{county}'")
+            print(f"     state_district: '{address.get('state_district')}' → cleaned: '{state_district}'")
+            print(f"     state: '{address.get('state')}' → cleaned: '{clean_regional_unit(address.get('state'))}'")
+            print(f"     province: '{address.get('province')}' → cleaned: '{clean_regional_unit(address.get('province'))}'")
+            print(f"     region: '{address.get('region')}' → cleaned: '{clean_regional_unit(address.get('region'))}'")
+            if county and state_district:
+                print(f"     → Using concatenated: '{county}, {state_district}'")
+            else:
+                print(f"     → Using fallback: '{region}'")
 
         return {
             "country": country,
@@ -318,22 +372,33 @@ async def reverse_geocode(
         )
     except requests.exceptions.ConnectionError:
         # Fallback to basic location detection based on coordinates
-        print("OpenStreetMap API unavailable, using fallback location detection")
-        return get_fallback_location(latitude, longitude)
+        if debug:
+            print("❌ OpenStreetMap API unavailable, using fallback location detection")
+        fallback_result = get_fallback_location(latitude, longitude, debug)
+        if debug:
+            print(f"🔄 Fallback result: {fallback_result}")
+        return fallback_result
     except requests.RequestException as e:
         # Fallback to basic location detection based on coordinates
-        print(f"OpenStreetMap API error: {e}, using fallback location detection")
-        return get_fallback_location(latitude, longitude)
+        if debug:
+            print(f"❌ OpenStreetMap API error: {e}, using fallback location detection")
+        fallback_result = get_fallback_location(latitude, longitude, debug)
+        if debug:
+            print(f"🔄 Fallback result: {fallback_result}")
+        return fallback_result
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unexpected error during geocoding: {str(e)}"
         )
 
-def get_fallback_location(latitude: float, longitude: float):
+def get_fallback_location(latitude: float, longitude: float, debug: bool = False):
     """
     Fallback function to provide basic location information based on coordinates
     """
+    if debug:
+        print(f"🔄 Using fallback location detection for coordinates: lat={latitude}, lon={longitude}")
+    
     # Simple fallback based on coordinate ranges
     if -90 <= latitude <= 90 and -180 <= longitude <= 180:
         # Basic region detection based on longitude
@@ -362,12 +427,21 @@ def get_fallback_location(latitude: float, longitude: float):
         else:
             country = "Arctic Region"
 
-        return {
+        fallback_result = {
             "country": country,
             "region": region,
             "full_address": f"Coordinates: {latitude}, {longitude}"
         }
+        
+        if debug:
+            print(f"   Fallback region detection: {region}")
+            print(f"   Fallback country detection: {country}")
+            print(f"   Fallback result: {fallback_result}")
+        
+        return fallback_result
     else:
+        if debug:
+            print(f"   ❌ Invalid coordinates: lat={latitude}, lon={longitude}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid coordinates provided"
