@@ -539,7 +539,7 @@ const DivingCenters = () => {
       )}
 
       {/* Sticky Filter Bar - Mobile-First Responsive Design */}
-      <div className='sticky top-16 z-40 bg-white shadow-sm border-b border-gray-200 rounded-t-lg px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4'>
+      <div className='sticky top-0 sm:top-16 z-40 bg-white shadow-sm border-b border-gray-200 rounded-t-lg px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4'>
         {/* Smart Fuzzy Search Input - Enhanced search experience */}
         <div className='mb-3 sm:mb-4'>
           <div className='max-w-2xl mx-auto'>
