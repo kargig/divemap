@@ -40,6 +40,7 @@ const EnhancedMobileSortingControls = ({
   showThumbnails = false,
   compactLayout = false,
   onDisplayOptionChange = () => {},
+  hideGrid = false,
 }) => {
   const [pendingSortBy, setPendingSortBy] = useState(sortBy);
   const [pendingSortOrder, setPendingSortOrder] = useState(sortOrder);
@@ -64,6 +65,13 @@ const EnhancedMobileSortingControls = ({
     setPendingSortBy(sortBy);
     setPendingSortOrder(sortOrder);
   }, [sortBy, sortOrder]);
+
+  // Auto-switch to list view if grid view is hidden and current view is grid
+  useEffect(() => {
+    if (hideGrid && viewMode === 'grid') {
+      onViewModeChange('list');
+    }
+  }, [hideGrid, viewMode, onViewModeChange]);
 
   // Show gesture hint on first mobile visit
   useEffect(() => {
@@ -213,17 +221,19 @@ const EnhancedMobileSortingControls = ({
                   <List className='w-3 h-3 inline mr-1' />
                   List
                 </button>
-                <button
-                  onClick={() => handleViewModeChange('grid')}
-                  className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
-                    viewMode === 'grid'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <Grid className='w-3 h-3 inline mr-1' />
-                  Grid
-                </button>
+                {!hideGrid && (
+                  <button
+                    onClick={() => handleViewModeChange('grid')}
+                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                      viewMode === 'grid'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Grid className='w-3 h-3 inline mr-1' />
+                    Grid
+                  </button>
+                )}
                 <button
                   onClick={() => handleViewModeChange('map')}
                   className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
@@ -436,22 +446,24 @@ const EnhancedMobileSortingControls = ({
                           </div>
                         </button>
 
-                        <button
-                          onClick={() => handleViewModeChange('grid')}
-                          className={`w-full p-3 border rounded-lg text-left transition-colors ${
-                            viewMode === 'grid'
-                              ? 'bg-blue-50 border-blue-200 text-blue-900'
-                              : 'bg-white border-gray-200 hover:bg-gray-50'
-                          }`}
-                        >
-                          <div className='flex items-center gap-3'>
-                            <Grid className='w-5 h-5' />
-                            <div>
-                              <span className='text-sm font-medium'>Grid View</span>
-                              <p className='text-xs text-gray-500'>Card-based grid layout</p>
+                        {!hideGrid && (
+                          <button
+                            onClick={() => handleViewModeChange('grid')}
+                            className={`w-full p-3 border rounded-lg text-left transition-colors ${
+                              viewMode === 'grid'
+                                ? 'bg-blue-50 border-blue-200 text-blue-900'
+                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className='flex items-center gap-3'>
+                              <Grid className='w-5 h-5' />
+                              <div>
+                                <span className='text-sm font-medium'>Grid View</span>
+                                <p className='text-xs text-gray-500'>Card-based grid layout</p>
+                              </div>
                             </div>
-                          </div>
-                        </button>
+                          </button>
+                        )}
 
                         <button
                           onClick={() => handleViewModeChange('map')}
@@ -603,6 +615,7 @@ EnhancedMobileSortingControls.propTypes = {
   showThumbnails: PropTypes.bool,
   compactLayout: PropTypes.bool,
   onDisplayOptionChange: PropTypes.func,
+  hideGrid: PropTypes.bool,
 };
 
 export default EnhancedMobileSortingControls;

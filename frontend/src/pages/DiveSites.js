@@ -144,7 +144,7 @@ const DiveSites = () => {
       if (newViewMode) {
         if (newViewMode === 'map') {
           newSearchParams.set('view', 'map');
-        } else if (newViewMode === 'grid') {
+        } else if (newViewMode === 'grid' && !isMobile) {
           newSearchParams.set('view', 'grid');
         }
         // List view is default, so no need to set it
@@ -207,7 +207,7 @@ const DiveSites = () => {
       if (newViewMode) {
         if (newViewMode === 'map') {
           newSearchParams.set('view', 'map');
-        } else if (newViewMode === 'grid') {
+        } else if (newViewMode === 'grid' && !isMobile) {
           newSearchParams.set('view', 'grid');
         }
         // List view is default, so no need to set it
@@ -458,13 +458,18 @@ const DiveSites = () => {
   };
 
   const handleViewModeChange = newViewMode => {
+    // Prevent switching to grid view on mobile
+    if (isMobile && newViewMode === 'grid') {
+      return;
+    }
+
     setViewMode(newViewMode);
 
     // Update URL with new view mode
     const urlParams = new URLSearchParams(window.location.search);
     if (newViewMode === 'map') {
       urlParams.set('view', 'map');
-    } else if (newViewMode === 'grid') {
+    } else if (newViewMode === 'grid' && !isMobile) {
       urlParams.set('view', 'grid');
     } else {
       urlParams.delete('view'); // Default to list view
@@ -745,6 +750,7 @@ const DiveSites = () => {
               compactLayout={compactLayout}
               onDisplayOptionChange={handleDisplayOptionChange}
               mobileOptimized={true}
+              hideGrid={true}
             />
 
             {/* Mobile View Mode Quick Access */}
@@ -761,18 +767,6 @@ const DiveSites = () => {
                 >
                   <List className='h-5 w-5 inline mr-2' />
                   List
-                </button>
-                <button
-                  data-testid='grid-view-button'
-                  onClick={() => handleViewModeChange('grid')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    viewMode === 'grid'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } touch-manipulation min-h-[44px] ${viewMode === 'grid' ? 'active' : ''}`}
-                >
-                  <Grid className='h-5 w-5 inline mr-2' />
-                  Grid
                 </button>
                 <button
                   data-testid='map-view-button'
@@ -1012,7 +1006,7 @@ const DiveSites = () => {
           )}
 
           {/* Dive Sites Grid */}
-          {viewMode === 'grid' && diveSites?.results && (
+          {viewMode === 'grid' && !isMobile && diveSites?.results && (
             <div
               className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${compactLayout ? 'view-mode-compact' : ''}`}
             >
