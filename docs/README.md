@@ -38,6 +38,7 @@ Welcome to the Divemap documentation. This directory contains comprehensive docu
 - **[README.md](./maintenance/README.md)** - Maintenance overview and troubleshooting
 - **[Migrations.md](./maintenance/migrations.md)** - Database migrations guide
 - **[Changelog.md](./maintenance/changelog.md)** - Complete change history and API changes
+- **[Changelog Maintenance Rules](./maintenance/changelog-maintenance-rules.md)** - Guidelines for maintaining the changelog following Keep a Changelog standards
 
 ### 📋 Testing Strategy
 - **[TESTING_STRATEGY.md](./TESTING_STRATEGY.md)** - Comprehensive testing strategy and procedures
