@@ -18,6 +18,11 @@ from app.utils import get_client_ip, format_ip_for_logging, is_private_ip
 log_level = os.getenv("LOG_LEVEL", "WARNING").upper()
 numeric_level = getattr(logging, log_level, logging.WARNING)
 
+# Configure security settings based on environment variable
+# In production with Cloudflare + Fly.io + nginx + frontend + backend, 
+# we expect ~6 proxy hops, so we set a higher threshold
+suspicious_proxy_chain_length = int(os.getenv("SUSPICIOUS_PROXY_CHAIN_LENGTH", "3"))
+
 # Configure root logger
 logging.basicConfig(
     level=numeric_level,
@@ -38,6 +43,7 @@ logging.getLogger().setLevel(numeric_level)
 print(f"🔧 Logging level set to: {log_level} (numeric: {numeric_level})")
 print(f"🔧 Root logger level: {logging.getLogger().getEffectiveLevel()}")
 print(f"🔧 Uvicorn logger level: {logging.getLogger('uvicorn').getEffectiveLevel()}")
+print(f"🔧 Suspicious proxy chain length threshold: {suspicious_proxy_chain_length}")
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -149,11 +155,11 @@ async def enhanced_security_logging(request, call_next):
         ips = [ip.strip() for ip in forwarded_for.split(',')]
         suspicious_details.append(f"Suspicious IPs: {(ips)}")
         
-        # Only log if there are more than 3 IPs (unusual proxy chain)
+        # Only log if there are more than the configured threshold (unusual proxy chain)
         # or if the first IP looks suspicious
-        if len(ips) > 3:
+        if len(ips) > suspicious_proxy_chain_length:
             suspicious_activity = True
-            suspicious_details.append(f"Unusual proxy chain length: {len(ips)} IPs")
+            suspicious_details.append(f"Unusual proxy chain length: {len(ips)} IPs (threshold: {suspicious_proxy_chain_length})")
         
         # Check if first IP is private but others are public (potential spoofing)
         if len(ips) >= 2:

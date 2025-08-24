@@ -63,13 +63,13 @@ Security is a critical aspect of the Divemap application. This document outlines
 ### 2. Rate Limiting
 
 **Implemented Rate Limits:**
-- Registration: 5 requests/minute
-- Login: 10 requests/minute
-- Search endpoints: 100 requests/minute
-- Individual site access: 200 requests/minute
-- Content creation: 10-20 requests/minute
-- Comment creation: 5 requests/minute
-- Media upload: 20 requests/minute
+- Registration: 8 requests/minute
+- Login: 30 requests/minute
+- Search endpoints: 150 requests/minute
+- Individual site access: 300 requests/minute
+- Content creation: 15-30 requests/minute
+- Comment creation: 8 requests/minute
+- Media upload: 30 requests/minute
 
 **Rate Limiting Exemptions:**
 - **Localhost Requests**: All requests from localhost IPs (127.0.0.1, ::1, localhost) are exempt from rate limiting to facilitate development and testing
@@ -85,6 +85,9 @@ Security is a critical aspect of the Divemap application. This document outlines
 **Client IP Detection System:**
 - Robust client IP detection from various proxy headers (X-Forwarded-For, X-Real-IP, CF-Connecting-IP)
 - Intelligent proxy chain analysis to distinguish normal proxy patterns from suspicious activity
+- Configurable suspicious proxy chain length threshold via `SUSPICIOUS_PROXY_CHAIN_LENGTH` environment variable
+- Production: Set to 6 for Cloudflare + Fly.io + nginx + frontend + backend proxy chain
+- Development: Set to 3 for stricter monitoring in local environments
 - Enhanced security logging for truly suspicious IP patterns while reducing production log noise
 - Support for various CDN configurations (Cloudflare, Fly.io, etc.)
 - Localhost and private IP detection for development and internal network support
@@ -123,7 +126,19 @@ Security is a critical aspect of the Divemap application. This document outlines
 - Credentials support enabled
 - Max age set to 1 hour
 
-### 6. Container Security
+### 6. Environment Configuration
+
+**Security Environment Variables:**
+- `SUSPICIOUS_PROXY_CHAIN_LENGTH`: Configurable threshold for proxy chain monitoring
+  - Production: Set to 6 (Cloudflare + Fly.io + nginx + frontend + backend)
+  - Development: Set to 3 (stricter monitoring for local development)
+- `SECRET_KEY`: JWT signing secret (minimum 32 characters)
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: Short-lived access token duration
+- `REFRESH_TOKEN_EXPIRE_DAYS`: Long-lived refresh token duration
+- `ENABLE_AUDIT_LOGGING`: Enable comprehensive authentication audit logging
+- `MAX_ACTIVE_SESSIONS_PER_USER`: Limit concurrent user sessions
+
+### 7. Container Security
 
 **Docker Security:**
 - `no-new-privileges:true` for all containers

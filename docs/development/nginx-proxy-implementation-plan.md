@@ -193,8 +193,8 @@ http {
     }
     
     # Rate limiting
-    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
-    limit_req_zone $binary_remote_addr zone=auth:10m rate=5r/s;
+    limit_req_zone $binary_remote_addr zone=api:10m rate=15r/s;
+    limit_req_zone $binary_remote_addr zone=auth:10m rate=8r/s;
     
     server {
         listen 80;
