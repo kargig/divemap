@@ -1200,18 +1200,18 @@ The API implements comprehensive rate limiting to prevent abuse and ensure fair 
 
 | Endpoint Category | Rate Limit | Description |
 |------------------|------------|-------------|
-| **Dive Sites** | 100/minute | GET requests for dive site listings |
-| **Dive Site Details** | 200/minute | GET requests for individual dive sites |
-| **Dive Site Creation** | 10/minute | POST requests to create dive sites |
-| **Dive Site Updates** | 20/minute | PUT requests to update dive sites |
-| **Dive Site Deletion** | 10/minute | DELETE requests for dive sites |
-| **Dive Site Ratings** | 10/minute | POST requests to rate dive sites |
-| **Dive Site Comments** | 5/minute | POST requests to create comments |
-| **Dive Site Media** | 20/minute | POST/DELETE requests for media |
-| **Diving Centers** | 10/minute | POST requests for diving center operations |
-| **User Registration** | 5/minute | POST requests for user registration |
-| **User Login** | 10/minute | POST requests for authentication |
-| **Google OAuth** | 10/minute | POST requests for Google authentication |
+| **Dive Sites** | 150/minute | GET requests for dive site listings |
+| **Dive Site Details** | 300/minute | GET requests for individual dive sites |
+| **Dive Site Creation** | 15/minute | POST requests to create dive sites |
+| **Dive Site Updates** | 30/minute | PUT requests to update dive sites |
+| **Dive Site Deletion** | 15/minute | DELETE requests for dive sites |
+| **Dive Site Ratings** | 15/minute | POST requests to rate dive sites |
+| **Dive Site Comments** | 8/minute | POST requests to create comments |
+| **Dive Site Media** | 30/minute | POST/DELETE requests for media |
+| **Diving Centers** | 15/minute | POST requests for diving center operations |
+| **User Registration** | 8/minute | POST requests for user registration |
+| **User Login** | 30/minute | POST requests for authentication |
+| **Google OAuth** | 30/minute | POST requests for Google authentication |
 
 ### Rate Limiting Exemptions
 

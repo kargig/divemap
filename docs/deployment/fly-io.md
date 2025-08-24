@@ -706,8 +706,8 @@ No special environment variables are needed for SSL:
 ### Security Features
 
 #### **Rate Limiting**
-- **API endpoints**: 10 requests per second with 20 burst
-- **Login endpoint**: 5 requests per minute with 5 burst
+- **API endpoints**: 15 requests per second with 20 burst
+- **Login endpoint**: 8 requests per minute with 5 burst
 - **Frontend**: No rate limiting (static content)
 
 #### **Security Headers**
@@ -725,6 +725,12 @@ No special environment variables are needed for SSL:
 - **X-Real-IP**: Direct client IP
 - **X-Forwarded-Proto**: Protocol (http/https)
 
+#### **Proxy Chain Configuration**
+- **Production proxy chain**: Cloudflare → Fly.io → nginx → frontend → Fly.io → backend
+- **Expected proxy hops**: 6 IPs in X-Forwarded-For header
+- **Security threshold**: Configured via `SUSPICIOUS_PROXY_CHAIN_LENGTH=6`
+- **Development threshold**: Default 3 IPs for stricter monitoring
+
 ### Integration with Existing Apps
 
 #### **Backend Integration**
@@ -734,6 +740,9 @@ The backend app (`divemap-backend`) should be configured with:
 ```bash
 # CORS origins
 fly secrets set ALLOWED_ORIGINS="https://divemap.gr" -a divemap-backend
+
+# Security configuration for production proxy chain
+fly secrets set SUSPICIOUS_PROXY_CHAIN_LENGTH="6" -a divemap-backend
 
 # Trust proxy headers
 # (Already configured in the backend code)
