@@ -18,6 +18,7 @@ Welcome to the Divemap development documentation. This guide provides comprehens
 
 ### Search & Algorithm Documentation
 - [Fuzzy Search Implementation Plan](./fuzzy-search-implementation-plan.md) - **Complete guide to search implementation across all pages**
+- [Floating Search and Filter Boxes Guide](./floating-search-filters-guide.md) - **Complete guide to implementing floating search and filter boxes across all pages**
 
 ### Infrastructure & Upgrades
 - [Node.js 20 Upgrade Guide](./nodejs-20-upgrade-guide.md) - **Complete guide to Node.js 20 upgrade and frontend improvements**
