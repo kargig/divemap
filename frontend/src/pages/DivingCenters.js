@@ -475,7 +475,7 @@ const DivingCenters = () => {
   }
 
   return (
-    <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+    <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8'>
       {/* Hero Section */}
       <HeroSection
         title='Diving Centers'
@@ -538,10 +538,10 @@ const DivingCenters = () => {
         </div>
       )}
 
-      {/* Sticky Filter Bar - Mobile-First Responsive Design */}
-      <div className='sticky top-0 sm:top-16 z-40 bg-white shadow-sm border-b border-gray-200 rounded-t-lg px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4'>
-        {/* Smart Fuzzy Search Input - Enhanced search experience */}
-        <div className='mb-3 sm:mb-4'>
+      {/* Floating Search and Filters Container - Positioned right below navbar */}
+      <div className='sticky-below-navbar bg-white shadow-lg border border-gray-200 rounded-lg mx-3 sm:mx-4 lg:mx-6 xl:mx-8 mb-6'>
+        {/* Search Input Section */}
+        <div className='p-4 border-b border-gray-200'>
           <div className='max-w-2xl mx-auto'>
             <FuzzySearchInput
               data={divingCenters || []}
@@ -567,23 +567,26 @@ const DivingCenters = () => {
           </div>
         </div>
 
-        <DivingCentersFilterBar
-          showFilters={showAdvancedFilters}
-          onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
-          onClearFilters={clearFilters}
-          activeFiltersCount={getActiveFiltersCount()}
-          filters={filters}
-          onFilterChange={(key, value) => {
-            handleSearchChange({ target: { name: key, value } });
-          }}
-          variant='inline'
-          showAdvancedToggle={true}
-          mobileOptimized={true}
-        />
+        {/* Filters Section */}
+        <div className='p-4'>
+          <DivingCentersFilterBar
+            showFilters={showAdvancedFilters}
+            onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            onClearFilters={clearFilters}
+            activeFiltersCount={getActiveFiltersCount()}
+            filters={filters}
+            onFilterChange={(key, value) => {
+              handleSearchChange({ target: { name: key, value } });
+            }}
+            variant='inline'
+            showAdvancedToggle={true}
+            mobileOptimized={true}
+          />
+        </div>
       </div>
 
-      {/* Sorting & View Controls - Attached to Sticky Filters */}
-      <div className='bg-white shadow-sm border-b border-l border-r border-gray-200 rounded-b-lg'>
+      {/* Sorting & View Controls - Below the floating search/filters */}
+      <div className='bg-white shadow-sm border border-gray-200 rounded-lg mx-3 sm:mx-4 lg:mx-6 xl:mx-8 mb-6'>
         {viewMode === 'map' ? (
           <div className='p-3 sm:p-4'>
             <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4'>
@@ -599,228 +602,389 @@ const DivingCenters = () => {
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
                   }`}
                 >
-                  <List className='h-4 w-4 sm:h-4 sm:w-4' />
-                  <span className='hidden xs:inline'>List</span>
+                  <List className='w-4 h-4' />
+                  List View
                 </button>
                 <button
-                  onClick={() => handleViewModeChange('map')}
+                  onClick={() => handleViewModeChange('grid')}
                   className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
-                    viewMode === 'map'
+                    viewMode === 'grid'
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
                   }`}
                 >
-                  <Map className='h-4 w-4 sm:h-4 sm:w-4' />
-                  <span className='hidden xs:inline'>Map</span>
+                  <Grid className='w-4 h-4' />
+                  Grid View
                 </button>
               </div>
             </div>
           </div>
         ) : (
-          <div>
-            <EnhancedMobileSortingControls
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              sortOptions={getSortOptions('diving-centers')}
-              onSortChange={handleSortChange}
-              onSortApply={handleSortApply}
-              onReset={resetSorting}
-              entityType='diving-centers'
-              viewMode={viewMode}
-              onViewModeChange={handleViewModeChange}
-              showFilters={false} // Hide filters in this section for now
-              onToggleFilters={() => {}}
-              showQuickActions={true}
-              showFAB={true}
-              showTabs={true}
-              showThumbnails={showThumbnails}
-              compactLayout={compactLayout}
-              onDisplayOptionChange={handleDisplayOptionChange}
-            />
+          <div className='p-3 sm:p-4'>
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4'>
+              {/* Left side - View mode controls */}
+              <div className='flex flex-col sm:flex-row gap-2 sm:gap-3'>
+                <div className='flex gap-2'>
+                  <button
+                    onClick={() => handleViewModeChange('list')}
+                    className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
+                      viewMode === 'list'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
+                    }`}
+                  >
+                    <List className='w-4 h-4' />
+                    List
+                  </button>
+                  <button
+                    onClick={() => handleViewModeChange('grid')}
+                    className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
+                      viewMode === 'grid'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
+                    }`}
+                  >
+                    <Grid className='w-4 h-4' />
+                    Grid
+                  </button>
+                  <button
+                    onClick={() => handleViewModeChange('map')}
+                    className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
+                      viewMode === 'map'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
+                    }`}
+                  >
+                    <Map className='w-4 h-4' />
+                    Map
+                  </button>
+                </div>
 
-            {/* Mobile View Mode Quick Access */}
-            {isMobile && (
-              <div className='mt-4 flex justify-center gap-2'>
-                <button
-                  onClick={() => handleViewModeChange('list')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    viewMode === 'list'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } touch-manipulation min-h-[44px]`}
-                >
-                  <List className='h-5 w-5 inline mr-2' />
-                  List
-                </button>
-                <button
-                  onClick={() => handleViewModeChange('grid')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    viewMode === 'grid'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } touch-manipulation min-h-[44px]`}
-                >
-                  <Grid className='h-5 w-5 inline mr-2' />
-                  Grid
-                </button>
-                <button
-                  onClick={() => handleViewModeChange('map')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    viewMode === 'map'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } touch-manipulation min-h-[44px]`}
-                >
-                  <Map className='h-5 w-5 inline mr-2' />
-                  Map
-                </button>
+                {/* Display options */}
+                <div className='flex gap-2'>
+                  <button
+                    onClick={() => handleDisplayOptionChange('thumbnails')}
+                    className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
+                      showThumbnails
+                        ? 'bg-green-600 text-white shadow-sm'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
+                    }`}
+                    title='Toggle thumbnails'
+                  >
+                    <Building className='w-4 h-4' />
+                    {showThumbnails ? 'Hide' : 'Show'} Thumbnails
+                  </button>
+                  <button
+                    onClick={() => handleDisplayOptionChange('compact')}
+                    className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
+                      compactLayout
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
+                    }`}
+                    title='Toggle compact layout'
+                  >
+                    <List className='w-4 h-4' />
+                    {compactLayout ? 'Compact' : 'Spacious'}
+                  </button>
+                </div>
               </div>
-            )}
+
+              {/* Right side - Sorting controls */}
+              <div className='flex flex-col sm:flex-row gap-2 sm:gap-3'>
+                <EnhancedMobileSortingControls
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onSortChange={handleSortChange}
+                  sortOptions={getSortOptions('divingCenters')}
+                  className='mobile-sort-controls'
+                />
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Pagination Controls */}
-      <div className='mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 mb-8'>
-        {/* Page Size Controls */}
-        <div className='flex items-center gap-4'>
-          <div className='flex items-center gap-2'>
-            <span className='text-sm font-medium text-gray-700'>Show:</span>
-            <select
-              value={pagination.page_size}
-              onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-              className='px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-            <span className='text-sm text-gray-600'>per page</span>
+      {/* Content Container */}
+      <div className='px-3 sm:px-4 lg:px-6 xl:px-8'>
+        {/* Diving Centers List */}
+        {viewMode === 'list' && (
+          <div className={`space-y-2 ${compactLayout ? 'view-mode-compact' : ''}`}>
+            {divingCenters?.map(center => (
+              <div
+                key={center.id}
+                className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 hover:border-blue-300 ${
+                  compactLayout ? 'p-3' : 'p-4'
+                }`}
+              >
+                {/* Main content row */}
+                <div className='flex items-start gap-3'>
+                  {/* Left side - Main info */}
+                  <div className='flex-1 min-w-0'>
+                    {/* Title and rating row */}
+                    <div className='flex items-center justify-between mb-2'>
+                      <div className='flex items-center gap-2'>
+                        <h3 className='font-semibold text-gray-900 text-base truncate'>
+                          <Link
+                            to={`/diving-centers/${center.id}`}
+                            className='hover:text-blue-600 transition-colors'
+                          >
+                            {center.name}
+                          </Link>
+                        </h3>
+                        {/* Match type badge */}
+                        {matchTypes[center.id] && (
+                          <MatchTypeBadge
+                            matchType={matchTypes[center.id].type}
+                            score={matchTypes[center.id].score}
+                          />
+                        )}
+                      </div>
+                      {center.average_rating && (
+                        <div className='flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full'>
+                          <Star className='w-3 h-3 text-yellow-500 fill-current' />
+                          <span className='text-xs font-medium text-yellow-700'>
+                            {center.average_rating.toFixed(1)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Contact and location info row */}
+                    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-2'>
+                      {/* Email */}
+                      {center.email && (
+                        <div className='flex items-center gap-1 text-xs text-gray-600'>
+                          <Mail className='w-3 h-3 text-gray-400' />
+                          <span className='truncate'>
+                            <MaskedEmail email={center.email} />
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Website */}
+                      {center.website && (
+                        <div className='flex items-center gap-1 text-xs text-gray-600'>
+                          <Globe className='w-3 h-3 text-gray-400' />
+                          <a
+                            href={
+                              center.website.startsWith('http')
+                                ? center.website
+                                : `https://${center.website}`
+                            }
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='truncate hover:text-blue-600 transition-colors'
+                          >
+                            {center.website.replace(/^https?:\/\//, '')}
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Coordinates */}
+                      {center.latitude && center.longitude && (
+                        <div className='flex items-center gap-1 text-xs text-gray-600'>
+                          <MapPin className='w-3 h-3 text-gray-400' />
+                          <span className='truncate'>
+                            {center.latitude.toFixed(4)}, {center.longitude.toFixed(4)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Geographic fields */}
+                      {center.country && (
+                        <div className='flex items-center gap-1 text-xs text-gray-600'>
+                          <Globe className='w-3 h-3 text-gray-400' />
+                          <span className='truncate'>{center.country}</span>
+                        </div>
+                      )}
+
+                      {center.region && (
+                        <div className='flex items-center gap-1 text-xs text-gray-600'>
+                          <MapPin className='w-3 h-3 text-gray-400' />
+                          <span className='truncate'>{center.region}</span>
+                        </div>
+                      )}
+
+                      {center.city && (
+                        <div className='flex items-center gap-1 text-xs text-gray-600'>
+                          <Building className='w-3 h-3 text-gray-400' />
+                          <span className='truncate'>{center.city}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Description - truncated for compactness */}
+                    {center.description && (
+                      <p
+                        className={`text-gray-700 line-clamp-2 ${compactLayout ? 'text-xs' : 'text-sm'}`}
+                      >
+                        {center.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Right side - Actions */}
+                  <div className='flex flex-col gap-2 flex-shrink-0'>
+                    <Link
+                      to={`/diving-centers/${center.id}`}
+                      className='inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors'
+                    >
+                      <Eye className='w-3 h-3' />
+                      Details
+                    </Link>
+
+                    {center.phone && (
+                      <a
+                        href={`tel:${center.phone}`}
+                        className='inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors'
+                        title='Call center'
+                      >
+                        <Phone className='w-3 h-3' />
+                        Call
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
 
-        {/* Pagination Info and Navigation */}
-        <div className='flex items-center gap-4'>
-          <div className='text-sm text-gray-600'>
-            Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
-            {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of{' '}
-            {paginationInfo.totalCount} diving centers
-          </div>
+        {/* Diving Centers Grid */}
+        {viewMode === 'grid' && (
+          <div
+            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ${compactLayout ? 'view-mode-compact' : ''}`}
+          >
+            {divingCenters?.map(center => (
+              <div
+                key={center.id}
+                className={`dive-item bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${
+                  compactLayout ? 'p-4' : 'p-6'
+                }`}
+              >
+                {/* Header with thumbnail and rating */}
+                <div className='relative'>
+                  {showThumbnails && (
+                    <div className='dive-thumbnail bg-gradient-to-br from-blue-50 to-cyan-50 p-6 flex items-center justify-center border-b border-gray-100'>
+                      <div className='relative'>
+                        <Building className='w-16 h-16 text-blue-600' />
+                        {center.average_rating && (
+                          <div className='absolute -top-2 -right-2 bg-yellow-400 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center'>
+                            {Math.round(center.average_rating)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-          {/* Match Type Summary */}
-          {Object.keys(matchTypes).length > 0 && (
-            <div className='text-sm text-gray-600'>
-              <span className='font-medium'>Match Types:</span>
-              {Object.entries(
-                Object.values(matchTypes).reduce((acc, match) => {
-                  acc[match.type] = (acc[match.type] || 0) + 1;
-                  return acc;
-                }, {})
-              ).map(([type, count], index) => (
-                <span key={type}>
-                  {index > 0 ? ', ' : ' '}
-                  <span className='font-medium'>{count}</span> {type}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <div className='flex items-center gap-2'>
-            <button
-              onClick={() => handlePageChange(pagination.page - 1)}
-              disabled={!paginationInfo.hasPrevPage}
-              className='p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
-            >
-              <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M15 19l-7-7 7-7'
-                />
-              </svg>
-            </button>
-            <span className='text-sm font-medium text-gray-700'>
-              Page {pagination.page} of {paginationInfo.totalPages}
-            </span>
-            <button
-              onClick={() => handlePageChange(pagination.page + 1)}
-              disabled={!paginationInfo.hasNextPage}
-              className='p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
-            >
-              <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M9 5l7 7-7 7'
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Results Section */}
-      {/* Diving Centers List */}
-      {viewMode === 'list' && (
-        <div className={`space-y-2 ${compactLayout ? 'view-mode-compact' : ''}`}>
-          {divingCenters?.map(center => (
-            <div
-              key={center.id}
-              className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 hover:border-blue-300 ${
-                compactLayout ? 'p-3' : 'p-4'
-              }`}
-            >
-              {/* Main content row */}
-              <div className='flex items-start gap-3'>
-                {/* Left side - Main info */}
-                <div className='flex-1 min-w-0'>
+                <div className={`${compactLayout ? 'p-3' : 'p-5'}`}>
                   {/* Title and rating row */}
-                  <div className='flex items-center justify-between mb-2'>
-                    <div className='flex items-center gap-2'>
-                      <h3 className='font-semibold text-gray-900 text-base truncate'>
+                  <div className='flex items-start justify-between mb-2'>
+                    <div className='flex-1 pr-3'>
+                      <h3
+                        className={`font-bold text-gray-900 line-clamp-2 ${compactLayout ? 'text-base' : 'text-lg'}`}
+                      >
                         <Link
                           to={`/diving-centers/${center.id}`}
-                          className='hover:text-blue-600 transition-colors'
+                          className='hover:text-blue-600 transition-colors hover:underline'
                         >
                           {center.name}
                         </Link>
                       </h3>
                       {/* Match type badge */}
                       {matchTypes[center.id] && (
-                        <MatchTypeBadge
-                          matchType={matchTypes[center.id].type}
-                          score={matchTypes[center.id].score}
-                        />
+                        <div className='mt-1'>
+                          <MatchTypeBadge
+                            matchType={matchTypes[center.id].type}
+                            score={matchTypes[center.id].score}
+                          />
+                        </div>
                       )}
                     </div>
+
+                    {/* Rating badge - positioned to the right of title */}
                     {center.average_rating && (
-                      <div className='flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full'>
-                        <Star className='w-3 h-3 text-yellow-500 fill-current' />
-                        <span className='text-xs font-medium text-yellow-700'>
-                          {center.average_rating.toFixed(1)}
-                        </span>
+                      <div className='bg-yellow-100 rounded-full px-3 py-1 shadow-sm border border-yellow-200 flex-shrink-0'>
+                        <div className='flex items-center gap-1'>
+                          <Star className='w-4 h-4 text-yellow-500 fill-current' />
+                          <span className='text-sm font-semibold text-yellow-800'>
+                            {center.average_rating}/10
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Contact and location info row */}
-                  <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-2'>
-                    {/* Email */}
-                    {center.email && (
-                      <div className='flex items-center gap-1 text-xs text-gray-600'>
-                        <Mail className='w-3 h-3 text-gray-400' />
-                        <span className='truncate'>
-                          <MaskedEmail email={center.email} />
-                        </span>
+                  {/* Geolocation - always present for consistent spacing */}
+                  <div className='flex items-center gap-2 text-gray-600 mb-4'>
+                    <MapPin className='w-4 h-4 text-gray-400 flex-shrink-0' />
+                    <span className={`${compactLayout ? 'text-sm' : 'text-base'}`}>
+                      {center.latitude && center.longitude
+                        ? `${center.latitude}, ${center.longitude}`
+                        : center.address || 'Location N/A'}
+                    </span>
+                  </div>
+
+                  {/* Geographic fields */}
+                  {(center.country || center.region || center.city) && (
+                    <div className='flex flex-wrap gap-2 mb-4'>
+                      {center.country && (
+                        <div className='flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-full'>
+                          <Globe className='w-3 h-3 text-blue-600' />
+                          <span className='text-xs font-medium text-blue-700'>
+                            {center.country}
+                          </span>
+                        </div>
+                      )}
+                      {center.region && (
+                        <div className='flex items-center gap-1 bg-green-50 px-2 py-1 rounded-full'>
+                          <MapPin className='w-3 h-3 text-green-600' />
+                          <span className='text-xs font-medium text-green-700'>
+                            {center.region}
+                          </span>
+                        </div>
+                      )}
+                      {center.city && (
+                        <div className='flex items-center gap-1 bg-purple-50 px-2 py-1 rounded-full'>
+                          <Building className='w-3 h-3 text-purple-600' />
+                          <span className='text-xs font-medium text-purple-700'>{center.city}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Key information grid */}
+                  <div className='grid grid-cols-2 gap-3 mb-4'>
+                    {/* Show email if available, otherwise rating */}
+                    {center.email ? (
+                      <div className='flex items-center justify-center bg-blue-50 rounded-lg px-3 py-2'>
+                        <a
+                          href={`mailto:${center.email}`}
+                          className='text-blue-500 hover:text-blue-700 transition-colors'
+                          title={`Send email to ${center.email}`}
+                        >
+                          <Mail className='w-5 h-5' />
+                        </a>
+                      </div>
+                    ) : center.average_rating ? (
+                      <div className='flex items-center justify-center bg-yellow-50 rounded-lg px-3 py-2'>
+                        <div className='flex items-center gap-1'>
+                          <Star className='w-4 h-4 text-yellow-500 fill-current' />
+                          <span className='text-sm font-medium text-gray-700'>
+                            {center.average_rating}/10
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className='flex items-center justify-center bg-gray-50 rounded-lg px-3 py-2'>
+                        <span className='text-sm text-gray-500'>No email</span>
                       </div>
                     )}
 
-                    {/* Website */}
-                    {center.website && (
-                      <div className='flex items-center gap-1 text-xs text-gray-600'>
-                        <Globe className='w-3 h-3 text-gray-400' />
+                    {/* Show website if available, otherwise show rating if no email */}
+                    {center.website ? (
+                      <div className='flex items-center justify-center bg-green-50 rounded-lg px-3 py-2'>
                         <a
                           href={
                             center.website.startsWith('http')
@@ -829,303 +993,171 @@ const DivingCenters = () => {
                           }
                           target='_blank'
                           rel='noopener noreferrer'
-                          className='truncate hover:text-blue-600 transition-colors'
+                          className='text-green-500 hover:text-green-700 transition-colors'
+                          title={`Visit ${center.website}`}
                         >
-                          {center.website.replace(/^https?:\/\//, '')}
+                          <Globe className='w-5 h-5' />
                         </a>
                       </div>
-                    )}
-
-                    {/* Coordinates */}
-                    {center.latitude && center.longitude && (
-                      <div className='flex items-center gap-1 text-xs text-gray-600'>
-                        <MapPin className='w-3 h-3 text-gray-400' />
-                        <span className='truncate'>
-                          {center.latitude.toFixed(4)}, {center.longitude.toFixed(4)}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Geographic fields */}
-                    {center.country && (
-                      <div className='flex items-center gap-1 text-xs text-gray-600'>
-                        <Globe className='w-3 h-3 text-gray-400' />
-                        <span className='truncate'>{center.country}</span>
-                      </div>
-                    )}
-
-                    {center.region && (
-                      <div className='flex items-center gap-1 text-xs text-gray-600'>
-                        <MapPin className='w-3 h-3 text-gray-400' />
-                        <span className='truncate'>{center.region}</span>
-                      </div>
-                    )}
-
-                    {center.city && (
-                      <div className='flex items-center gap-1 text-xs text-gray-600'>
-                        <Building className='w-3 h-3 text-gray-400' />
-                        <span className='truncate'>{center.city}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Description - truncated for compactness */}
-                  {center.description && (
-                    <p
-                      className={`text-gray-700 line-clamp-2 ${compactLayout ? 'text-xs' : 'text-sm'}`}
-                    >
-                      {center.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Right side - Actions */}
-                <div className='flex flex-col gap-2 flex-shrink-0'>
-                  <Link
-                    to={`/diving-centers/${center.id}`}
-                    className='inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors'
-                  >
-                    <Eye className='w-3 h-3' />
-                    Details
-                  </Link>
-
-                  {center.phone && (
-                    <a
-                      href={`tel:${center.phone}`}
-                      className='inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors'
-                      title='Call center'
-                    >
-                      <Phone className='w-3 h-3' />
-                      Call
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Diving Centers Grid */}
-      {viewMode === 'grid' && (
-        <div
-          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ${compactLayout ? 'view-mode-compact' : ''}`}
-        >
-          {divingCenters?.map(center => (
-            <div
-              key={center.id}
-              className={`dive-item bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${
-                compactLayout ? 'p-4' : 'p-6'
-              }`}
-            >
-              {/* Header with thumbnail and rating */}
-              <div className='relative'>
-                {showThumbnails && (
-                  <div className='dive-thumbnail bg-gradient-to-br from-blue-50 to-cyan-50 p-6 flex items-center justify-center border-b border-gray-100'>
-                    <div className='relative'>
-                      <Building className='w-16 h-16 text-blue-600' />
-                      {center.average_rating && (
-                        <div className='absolute -top-2 -right-2 bg-yellow-400 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center'>
-                          {Math.round(center.average_rating)}
+                    ) : center.average_rating && !center.email ? (
+                      <div className='flex items-center justify-center bg-yellow-50 rounded-lg px-3 py-2'>
+                        <div className='flex items-center gap-1'>
+                          <Star className='w-4 h-4 text-yellow-500 fill-current' />
+                          <span className='text-sm font-medium text-gray-700'>
+                            {center.average_rating}/10
+                          </span>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className='flex items-center justify-center bg-gray-50 rounded-lg px-3 py-2'>
+                        <span className='text-sm text-gray-500'>No website</span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              <div className={`${compactLayout ? 'p-3' : 'p-5'}`}>
-                {/* Title and rating row */}
-                <div className='flex items-start justify-between mb-2'>
-                  <div className='flex-1 pr-3'>
-                    <h3
-                      className={`font-bold text-gray-900 line-clamp-2 ${compactLayout ? 'text-base' : 'text-lg'}`}
+                  {/* Description - always present for consistent card heights */}
+                  <div className='mb-4'>
+                    <p
+                      className={`text-gray-600 line-clamp-3 ${compactLayout ? 'text-sm' : 'text-base'}`}
                     >
-                      <Link
-                        to={`/diving-centers/${center.id}`}
-                        className='hover:text-blue-600 transition-colors hover:underline'
-                      >
-                        {center.name}
-                      </Link>
-                    </h3>
-                    {/* Match type badge */}
-                    {matchTypes[center.id] && (
-                      <div className='mt-1'>
-                        <MatchTypeBadge
-                          matchType={matchTypes[center.id].type}
-                          score={matchTypes[center.id].score}
-                        />
-                      </div>
-                    )}
+                      {center.description || 'No description available'}
+                    </p>
                   </div>
 
-                  {/* Rating badge - positioned to the right of title */}
-                  {center.average_rating && (
-                    <div className='bg-yellow-100 rounded-full px-3 py-1 shadow-sm border border-yellow-200 flex-shrink-0'>
-                      <div className='flex items-center gap-1'>
-                        <Star className='w-4 h-4 text-yellow-500 fill-current' />
-                        <span className='text-sm font-semibold text-yellow-800'>
-                          {center.average_rating}/10
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Geolocation - always present for consistent spacing */}
-                <div className='flex items-center gap-2 text-gray-600 mb-4'>
-                  <MapPin className='w-4 h-4 text-gray-400 flex-shrink-0' />
-                  <span className={`${compactLayout ? 'text-sm' : 'text-base'}`}>
-                    {center.latitude && center.longitude
-                      ? `${center.latitude}, ${center.longitude}`
-                      : center.address || 'Location N/A'}
-                  </span>
-                </div>
-
-                {/* Geographic fields */}
-                {(center.country || center.region || center.city) && (
-                  <div className='flex flex-wrap gap-2 mb-4'>
-                    {center.country && (
-                      <div className='flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-full'>
-                        <Globe className='w-3 h-3 text-blue-600' />
-                        <span className='text-xs font-medium text-blue-700'>{center.country}</span>
-                      </div>
-                    )}
-                    {center.region && (
-                      <div className='flex items-center gap-1 bg-green-50 px-2 py-1 rounded-full'>
-                        <MapPin className='w-3 h-3 text-green-600' />
-                        <span className='text-xs font-medium text-green-700'>{center.region}</span>
-                      </div>
-                    )}
-                    {center.city && (
-                      <div className='flex items-center gap-1 bg-purple-50 px-2 py-1 rounded-full'>
-                        <Building className='w-3 h-3 text-purple-600' />
-                        <span className='text-xs font-medium text-purple-700'>{center.city}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Key information grid */}
-                <div className='grid grid-cols-2 gap-3 mb-4'>
-                  {/* Show email if available, otherwise rating */}
-                  {center.email ? (
-                    <div className='flex items-center justify-center bg-blue-50 rounded-lg px-3 py-2'>
-                      <a
-                        href={`mailto:${center.email}`}
-                        className='text-blue-500 hover:text-blue-700 transition-colors'
-                        title={`Send email to ${center.email}`}
-                      >
-                        <Mail className='w-5 h-5' />
-                      </a>
-                    </div>
-                  ) : center.average_rating ? (
-                    <div className='flex items-center justify-center bg-yellow-50 rounded-lg px-3 py-2'>
-                      <div className='flex items-center gap-1'>
-                        <Star className='w-4 h-4 text-yellow-500 fill-current' />
-                        <span className='text-sm font-medium text-gray-700'>
-                          {center.average_rating}/10
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className='flex items-center justify-center bg-gray-50 rounded-lg px-3 py-2'>
-                      <span className='text-sm text-gray-500'>No email</span>
-                    </div>
-                  )}
-
-                  {/* Show website if available, otherwise show rating if no email */}
-                  {center.website ? (
-                    <div className='flex items-center justify-center bg-green-50 rounded-lg px-3 py-2'>
-                      <a
-                        href={
-                          center.website.startsWith('http')
-                            ? center.website
-                            : `https://${center.website}`
-                        }
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='text-green-500 hover:text-green-700 transition-colors'
-                        title={`Visit ${center.website}`}
-                      >
-                        <Globe className='w-5 h-5' />
-                      </a>
-                    </div>
-                  ) : center.average_rating && !center.email ? (
-                    <div className='flex items-center justify-center bg-yellow-50 rounded-lg px-3 py-2'>
-                      <div className='flex items-center gap-1'>
-                        <Star className='w-4 h-4 text-yellow-500 fill-current' />
-                        <span className='text-sm font-medium text-gray-700'>
-                          {center.average_rating}/10
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className='flex items-center justify-center bg-gray-50 rounded-lg px-3 py-2'>
-                      <span className='text-sm text-gray-500'>No website</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Description - always present for consistent card heights */}
-                <div className='mb-4'>
-                  <p
-                    className={`text-gray-600 line-clamp-3 ${compactLayout ? 'text-sm' : 'text-base'}`}
-                  >
-                    {center.description || 'No description available'}
-                  </p>
-                </div>
-
-                {/* Action buttons */}
-                <div className='flex gap-2'>
-                  <Link
-                    to={`/diving-centers/${center.id}`}
-                    className='flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors hover:shadow-md'
-                  >
-                    <Eye className='w-4 h-4' />
-                    View Details
-                  </Link>
-
-                  {center.phone && (
-                    <a
-                      href={`tel:${center.phone}`}
-                      className='inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors'
-                      title='Call center'
+                  {/* Action buttons */}
+                  <div className='flex gap-2'>
+                    <Link
+                      to={`/diving-centers/${center.id}`}
+                      className='flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors hover:shadow-md'
                     >
-                      <Phone className='w-4 h-4' />
-                    </a>
+                      <Eye className='w-4 h-4' />
+                      View Details
+                    </Link>
+
+                    {center.phone && (
+                      <a
+                        href={`tel:${center.phone}`}
+                        className='inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors'
+                        title='Call center'
+                      >
+                        <Phone className='w-4 h-4' />
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Additional info badges */}
+                  {center.services && center.services.length > 0 && (
+                    <div className='mt-4 pt-4 border-t border-gray-100'>
+                      <div className='flex flex-wrap gap-2'>
+                        {center.services.slice(0, 3).map((service, index) => (
+                          <span
+                            key={index}
+                            className='inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full'
+                          >
+                            {service}
+                          </span>
+                        ))}
+                        {center.services.length > 3 && (
+                          <span className='inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full'>
+                            +{center.services.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
-
-                {/* Additional info badges */}
-                {center.services && center.services.length > 0 && (
-                  <div className='mt-4 pt-4 border-t border-gray-100'>
-                    <div className='flex flex-wrap gap-2'>
-                      {center.services.slice(0, 3).map((service, index) => (
-                        <span
-                          key={index}
-                          className='inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full'
-                        >
-                          {service}
-                        </span>
-                      ))}
-                      {center.services.length > 3 && (
-                        <span className='inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full'>
-                          +{center.services.length - 3} more
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
+            ))}
+          </div>
+        )}
+
+        {divingCenters?.length === 0 && (
+          <div className='text-center py-12'>
+            <p className='text-gray-500 text-lg'>No diving centers found matching your criteria.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination Controls */}
+      {divingCenters && divingCenters.length > 0 && (
+        <div className='mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 mb-8'>
+          {/* Page Size Controls */}
+          <div className='flex items-center gap-4'>
+            <div className='flex items-center gap-2'>
+              <span className='text-sm font-medium text-gray-700'>Show:</span>
+              <select
+                value={pagination.page_size}
+                onChange={e => handlePageSizeChange(parseInt(e.target.value))}
+                className='px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className='text-sm text-gray-600'>per page</span>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
 
-      {divingCenters?.length === 0 && (
-        <div className='text-center py-12'>
-          <p className='text-gray-500 text-lg'>No diving centers found matching your criteria.</p>
+          {/* Pagination Info and Navigation */}
+          <div className='flex items-center gap-4'>
+            <div className='text-sm text-gray-600'>
+              Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
+              {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of{' '}
+              {paginationInfo.totalCount} diving centers
+            </div>
+
+            {/* Match Type Summary */}
+            {Object.keys(matchTypes).length > 0 && (
+              <div className='text-sm text-gray-600'>
+                <span className='font-medium'>Match Types:</span>
+                {Object.entries(
+                  Object.values(matchTypes).reduce((acc, match) => {
+                    acc[match.type] = (acc[match.type] || 0) + 1;
+                    return acc;
+                  }, {})
+                ).map(([type, count], index) => (
+                  <span key={type}>
+                    {index > 0 ? ', ' : ' '}
+                    <span className='font-medium'>{count}</span> {type}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className='flex items-center gap-2'>
+              <button
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={!paginationInfo.hasPrevPage}
+                className='p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+              >
+                <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M15 19l-7-7 7-7'
+                  />
+                </svg>
+              </button>
+              <span className='text-sm font-medium text-gray-700'>
+                Page {pagination.page} of {paginationInfo.totalPages}
+              </span>
+              <button
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={!paginationInfo.hasNextPage}
+                className='p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
+              >
+                <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M9 5l7 7-7 7'
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

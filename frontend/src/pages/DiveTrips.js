@@ -886,7 +886,7 @@ const DiveTrips = () => {
         )}
 
         {/* Sticky Filter Bar - Mobile-First Responsive Design */}
-        <div className='sticky top-16 z-40 bg-white shadow-sm border-b border-gray-200 rounded-t-lg px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4'>
+        <div className='sticky-below-navbar bg-white shadow-sm border-b border-gray-200 rounded-t-lg px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4'>
           <div className='flex flex-col sm:flex-row gap-3 sm:gap-4 items-end'>
             {/* Smart Fuzzy Search Input - Enhanced search experience */}
             <div className='flex-1 w-full'>

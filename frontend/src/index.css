@@ -2,7 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS Custom Properties for Layout */
+:root {
+  --navbar-height-desktop: 4rem; /* 64px - matches h-16 */
+  --navbar-height-mobile: 4rem;  /* 64px - matches h-16 */
+  --sticky-offset-desktop: calc(var(--navbar-height-desktop) + 0px); /* No gap */
+  --sticky-offset-mobile: calc(var(--navbar-height-mobile) + 0px);  /* No gap */
+}
+
 /* Custom styles */
+
+/* Sticky Positioning for Search and Filters */
+.sticky-below-navbar {
+  position: sticky;
+  top: var(--sticky-offset-desktop);
+  z-index: 40;
+}
+
+@media (max-width: 768px) {
+  .sticky-below-navbar {
+    top: var(--sticky-offset-mobile);
+  }
+}
+
 .line-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
