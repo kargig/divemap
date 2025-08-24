@@ -353,6 +353,16 @@ export default ComponentName;
 ### ESLint Rules Compliance
 Ensure all code passes these ESLint rules:
 
+### Floating Search and Filter Boxes Requirements
+- **ALWAYS implement floating search and filter boxes using the exact pattern from `docs/development/floating-search-filters-guide.md`**
+- **ALWAYS use `sticky top-16 z-[70]` for the sticky container to ensure proper positioning below navbar**
+- **ALWAYS ensure search box and filters are direct children of the same sticky container**
+- **NEVER use borders between search and filters sections - use padding only**
+- **ALWAYS verify z-index is higher than navbar z-index (typically `z-[70]` vs `z-[60]`)**
+- **ALWAYS test floating behavior on both desktop and mobile devices**
+- **ALWAYS ensure no gaps exist between navbar, search box, and filters**
+- **ALWAYS use solid white background with shadow to prevent content showing through**
+
 ```javascript
 // ✅ Complexity - Keep functions simple
 complexity: ['warn', 20]  // Maximum complexity of 20
