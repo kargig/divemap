@@ -23,13 +23,26 @@ const DiveSitesFilterBar = ({
   // Check if we're on mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      // More reliable mobile detection
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const userAgent = navigator.userAgent;
+
+      const isMobileDevice =
+        width <= 768 ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) ||
+        height <= 650; // Force mobile for small height screens
+
+      // Force mobile for very small screens (like 354x604)
+      const forceMobile = width <= 400 || height <= 650;
+
+      setIsMobile(isMobileDevice || forceMobile);
     };
 
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [showFilters, isExpanded]);
 
   // Tag color function - same as in Dives.js
   const getTagColor = tagName => {
@@ -368,14 +381,14 @@ const DiveSitesFilterBar = ({
 
       {/* Mobile: Filter Overlay */}
       {showFilters && isMobile && (
-        <div className='fixed inset-0 z-50 bg-black bg-opacity-50 flex items-end sm:items-center justify-center'>
-          <div className='bg-white w-full h-[85vh] sm:h-auto sm:max-w-md sm:max-h-[80vh] rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden'>
+        <div className='fixed inset-0 z-[60] bg-black bg-opacity-50 flex items-start justify-center'>
+          <div className='bg-white w-full h-screen rounded-none shadow-2xl overflow-hidden filter-overlay-mobile pt-safe pb-safe'>
             {/* Header */}
-            <div className='flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50'>
+            <div className='flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50 header'>
               <h3 className='text-lg font-semibold text-gray-900'>Filters</h3>
               <button
                 onClick={handleToggleFilters}
-                className='p-2 rounded-lg hover:bg-gray-200 transition-colors'
+                className='p-2 rounded-lg hover:bg-gray-200 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center'
                 aria-label='Close filters'
               >
                 <X className='h-5 w-5 text-gray-600' />
@@ -384,16 +397,16 @@ const DiveSitesFilterBar = ({
 
             {/* Scrollable Content */}
             <div className='flex-1 overflow-y-auto p-4'>
-              <div className='space-y-4'>
+              <div className='space-y-6'>
                 {/* Difficulty Level Filter */}
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>
                     Difficulty Level
                   </label>
                   <select
                     value={filters.difficulty_level || ''}
                     onChange={e => onFilterChange('difficulty_level', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                    className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
                   >
                     <option value=''>All Levels</option>
                     <option value='beginner'>Beginner</option>
@@ -405,7 +418,7 @@ const DiveSitesFilterBar = ({
 
                 {/* Min Rating Filter */}
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>
                     Min Rating (≥)
                   </label>
                   <input
@@ -416,41 +429,39 @@ const DiveSitesFilterBar = ({
                     placeholder='Show sites rated ≥ this value'
                     value={filters.min_rating || ''}
                     onChange={e => onFilterChange('min_rating', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                    className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
                   />
                 </div>
 
                 {/* Country Filter */}
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>Country</label>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>Country</label>
                   <input
                     type='text'
                     placeholder='Enter country name'
                     value={filters.country || ''}
                     onChange={e => onFilterChange('country', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                    className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
                   />
                 </div>
 
                 {/* Region Filter */}
                 <div>
-                  <label className='block text-xs sm:text-sm font-medium text-gray-700 mb-2'>
-                    Region
-                  </label>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>Region</label>
                   <input
                     type='text'
                     placeholder='Enter region name'
                     value={filters.region || ''}
                     onChange={e => onFilterChange('region', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                    className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
                   />
                 </div>
 
                 {/* Tags Filter */}
                 {filters.availableTags && filters.availableTags.length > 0 && (
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>Tags</label>
-                    <div className='flex flex-wrap gap-2'>
+                    <label className='block text-sm font-medium text-gray-700 mb-3'>Tags</label>
+                    <div className='flex flex-wrap gap-3 tags-grid'>
                       {filters.availableTags.map(tag => (
                         <button
                           key={tag.id}
@@ -463,7 +474,7 @@ const DiveSitesFilterBar = ({
                               : [...currentTagIds, tagId];
                             onFilterChange('tag_ids', newTagIds);
                           }}
-                          className={`px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                          className={`px-4 py-3 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 min-h-[48px] tag-button ${
                             (filters.tag_ids || []).includes(tag.id)
                               ? `${getTagColor(tag.name)} border-2 border-current shadow-md`
                               : `${getTagColor(tag.name)} opacity-60 hover:opacity-100 border-2 border-transparent`
@@ -479,16 +490,16 @@ const DiveSitesFilterBar = ({
             </div>
 
             {/* Footer Actions */}
-            <div className='border-t border-gray-200 p-4 bg-gray-50 flex gap-3'>
+            <div className='border-t border-gray-200 p-4 bg-gray-50 flex gap-3 footer-actions'>
               <button
                 onClick={onClearFilters}
-                className='flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'
+                className='flex-1 px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[48px]'
               >
                 Clear All
               </button>
               <button
                 onClick={handleToggleFilters}
-                className='flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors'
+                className='flex-1 px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors min-h-[48px]'
               >
                 Apply Filters
               </button>
