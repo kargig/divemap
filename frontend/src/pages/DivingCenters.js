@@ -621,85 +621,20 @@ const DivingCenters = () => {
           </div>
         ) : (
           <div className='p-3 sm:p-4'>
-            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4'>
-              {/* Left side - View mode controls */}
-              <div className='flex flex-col sm:flex-row gap-2 sm:gap-3'>
-                <div className='flex gap-2'>
-                  <button
-                    onClick={() => handleViewModeChange('list')}
-                    className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
-                      viewMode === 'list'
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
-                    }`}
-                  >
-                    <List className='w-4 h-4' />
-                    List
-                  </button>
-                  <button
-                    onClick={() => handleViewModeChange('grid')}
-                    className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
-                      viewMode === 'grid'
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
-                    }`}
-                  >
-                    <Grid className='w-4 h-4' />
-                    Grid
-                  </button>
-                  <button
-                    onClick={() => handleViewModeChange('map')}
-                    className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
-                      viewMode === 'map'
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
-                    }`}
-                  >
-                    <Map className='w-4 h-4' />
-                    Map
-                  </button>
-                </div>
-
-                {/* Display options */}
-                <div className='flex gap-2'>
-                  <button
-                    onClick={() => handleDisplayOptionChange('thumbnails')}
-                    className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
-                      showThumbnails
-                        ? 'bg-green-600 text-white shadow-sm'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
-                    }`}
-                    title='Toggle thumbnails'
-                  >
-                    <Building className='w-4 h-4' />
-                    {showThumbnails ? 'Hide' : 'Show'} Thumbnails
-                  </button>
-                  <button
-                    onClick={() => handleDisplayOptionChange('compact')}
-                    className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
-                      compactLayout
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
-                    }`}
-                    title='Toggle compact layout'
-                  >
-                    <List className='w-4 h-4' />
-                    {compactLayout ? 'Compact' : 'Spacious'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Right side - Sorting controls */}
-              <div className='flex flex-col sm:flex-row gap-2 sm:gap-3'>
-                <EnhancedMobileSortingControls
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                  onSortChange={handleSortChange}
-                  sortOptions={getSortOptions('divingCenters')}
-                  className='mobile-sort-controls'
-                />
-              </div>
-            </div>
+            <EnhancedMobileSortingControls
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortChange={handleSortChange}
+              onSortApply={handleSortApply}
+              onReset={resetSorting}
+              sortOptions={getSortOptions('divingCenters')}
+              className='mobile-sort-controls'
+              viewMode={viewMode}
+              onViewModeChange={handleViewModeChange}
+              showThumbnails={showThumbnails}
+              compactLayout={compactLayout}
+              onDisplayOptionChange={handleDisplayOptionChange}
+            />
           </div>
         )}
       </div>
