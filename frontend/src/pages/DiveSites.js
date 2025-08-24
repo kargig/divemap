@@ -116,11 +116,13 @@ const DiveSites = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  const effectivePageSize = Number(pagination.page_size) || 25;
+  // Calculate effective page size for pagination display
+  const effectivePageSize = pagination.page_size || 25;
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
     search_query: getInitialFilters().search_query,
     country: getInitialFilters().country,
     region: getInitialFilters().region,
+    location: getInitialFilters().location,
   });
 
   // Initialize sorting
@@ -319,47 +321,6 @@ const DiveSites = () => {
     }
   );
 
-  // Fetch total count
-  const { data: totalCountResponse } = useQuery(
-    [
-      'dive-sites-count',
-      debouncedSearchTerms.search_query,
-      debouncedSearchTerms.country,
-      debouncedSearchTerms.region,
-      filters.difficulty_level,
-      filters.min_rating,
-      filters.tag_ids,
-      filters.my_dive_sites,
-    ],
-    () => {
-      const params = new URLSearchParams();
-
-      if (debouncedSearchTerms.search_query)
-        params.append('search', debouncedSearchTerms.search_query);
-      if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
-      if (filters.min_rating) params.append('min_rating', filters.min_rating);
-      if (debouncedSearchTerms.country) params.append('country', debouncedSearchTerms.country);
-      if (debouncedSearchTerms.region) params.append('region', debouncedSearchTerms.region);
-
-      if (filters.tag_ids && Array.isArray(filters.tag_ids)) {
-        filters.tag_ids.forEach(tagId => {
-          if (tagId && tagId.toString && tagId.toString().trim()) {
-            params.append('tag_ids', tagId.toString());
-          }
-        });
-      }
-      if (filters.my_dive_sites) params.append('my_dive_sites', 'true');
-
-      return api.get(`/api/v1/dive-sites/count?${params.toString()}`).then(res => res.data);
-    },
-    {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
-
-  // Extract total count from response
-  const totalCount = totalCountResponse?.total || 0;
-
   // Fetch dive sites
   const {
     data: diveSitesResponse,
@@ -416,6 +377,16 @@ const DiveSites = () => {
 
       const response = await api.get(`/api/v1/dive-sites/?${params.toString()}`);
 
+      // Extract pagination info from response headers
+      const paginationInfo = {
+        totalCount: parseInt(response.headers['x-total-count'] || '0'),
+        totalPages: parseInt(response.headers['x-total-pages'] || '0'),
+        currentPage: parseInt(response.headers['x-current-page'] || '1'),
+        pageSize: parseInt(response.headers['x-page-size'] || '25'),
+        hasNextPage: response.headers['x-has-next-page'] === 'true',
+        hasPrevPage: response.headers['x-has-prev-page'] === 'true',
+      };
+
       // Extract match type information from response headers
       const matchTypesHeader = response.headers['x-match-types'];
       let matchTypes = {};
@@ -431,6 +402,7 @@ const DiveSites = () => {
       return {
         data: response.data,
         matchTypes: matchTypes,
+        paginationInfo: paginationInfo,
       };
     },
     {
@@ -444,16 +416,16 @@ const DiveSites = () => {
     : null;
   const matchTypes = diveSitesResponse?.matchTypes || {};
 
+  // Extract total count from the main API response headers (filtered results)
+  const totalCount = diveSitesResponse?.paginationInfo?.totalCount || 0;
+  const totalPages = diveSitesResponse?.paginationInfo?.totalPages || 0;
+  const hasNextPage = diveSitesResponse?.paginationInfo?.hasNextPage || false;
+  const hasPrevPage = diveSitesResponse?.paginationInfo?.hasPrevPage || false;
+
   // Show toast notifications for rate limiting errors
   useEffect(() => {
     handleRateLimitError(error, 'dive sites', () => window.location.reload());
   }, [error]);
-
-  useEffect(() => {
-    handleRateLimitError(totalCountResponse?.error, 'dive sites count', () =>
-      window.location.reload()
-    );
-  }, [totalCountResponse?.error]);
 
   useEffect(() => {
     handleRateLimitError(availableTags?.error, 'available tags', () => window.location.reload());
@@ -853,7 +825,7 @@ const DiveSites = () => {
                     <div className='flex items-center gap-2'>
                       <button
                         onClick={() => handlePageChange(pagination.page - 1)}
-                        disabled={pagination.page <= 1}
+                        disabled={!hasPrevPage}
                         className='px-3 py-2 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[44px] sm:min-h-0 touch-manipulation transition-colors'
                       >
                         <ChevronLeft className='h-4 w-4' />
@@ -861,12 +833,12 @@ const DiveSites = () => {
 
                       <span className='text-xs sm:text-sm text-gray-700 px-2'>
                         Page {pagination.page} of{' '}
-                        {Math.max(1, Math.ceil(totalCount / effectivePageSize))}
+                        {totalPages || Math.max(1, Math.ceil(totalCount / effectivePageSize))}
                       </span>
 
                       <button
                         onClick={() => handlePageChange(pagination.page + 1)}
-                        disabled={pagination.page >= Math.ceil(totalCount / effectivePageSize)}
+                        disabled={!hasNextPage}
                         className='px-3 py-2 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[44px] sm:min-h-0 touch-manipulation transition-colors'
                       >
                         <ChevronRight className='h-4 w-4' />
