@@ -32,7 +32,7 @@ class UserResponse(UserBase):
         from_attributes = True
 
 class LoginRequest(BaseModel):
-    username: str = Field(..., min_length=1, max_length=50)
+    username: str = Field(..., min_length=1, max_length=255, description="Username or email address")
     password: str = Field(..., min_length=1, max_length=128)
     turnstile_token: Optional[str] = Field(None, description="Cloudflare Turnstile token (required if Turnstile is enabled)")
 
