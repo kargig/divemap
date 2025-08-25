@@ -21,6 +21,7 @@ from app.google_auth import authenticate_google_user, verify_google_token, get_o
 from app.limiter import limiter, skip_rate_limit_for_admin
 from app.turnstile_service import TurnstileService
 
+from app.utils import get_client_ip
 router = APIRouter()
 
 # Initialize Turnstile service
@@ -50,7 +51,7 @@ async def register(
             )
         await turnstile_service.verify_token(
             user_data.turnstile_token,
-            request.client.host
+            get_client_ip(request)
         )
     
     # Validate password strength
@@ -130,7 +131,7 @@ async def login(
             )
         await turnstile_service.verify_token(
             login_data.turnstile_token,
-            request.client.host
+            get_client_ip(request)
         )
 
     user = authenticate_user(db, login_data.username, login_data.password)
