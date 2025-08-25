@@ -36,7 +36,9 @@ class TurnstileService:
         start_time = time.time()
         
         try:
-            async with httpx.AsyncClient() as client:
+            # ✅ Simplify async client usage to avoid potential context manager issues
+            client = httpx.AsyncClient()
+            try:
                 response = await client.post(
                     self.verify_url,
                     data={
@@ -60,7 +62,7 @@ class TurnstileService:
                         detail="Failed to verify Turnstile token"
                     )
                 
-                result = await response.json()
+                result = response.json()
                 response_time = (time.time() - start_time) * 1000
                 
                 if not result.get("success"):
@@ -84,6 +86,9 @@ class TurnstileService:
                 )
                 
                 return result
+                
+            finally:
+                await client.aclose()
                 
         except httpx.TimeoutException:
             response_time = (time.time() - start_time) * 1000

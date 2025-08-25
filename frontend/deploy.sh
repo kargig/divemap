@@ -40,8 +40,8 @@ fi
 
 # Check if REACT_APP_TURNSTILE_SITE_KEY is set (optional)
 if [ -n "$REACT_APP_TURNSTILE_SITE_KEY" ]; then
-    echo "Turnstile Site Key: ${REACT_APP_TURNSTILE_SITE_KEY:0:20}..."
-    TURNSTILE_BUILD_ARG="--build-arg REACT_APP_TURNSTILE_SITE_KEY=\"$REACT_APP_TURNSTILE_SITE_KEY\""
+    echo "Turnstile Site Key: ${REACT_APP_TURNSTILE_SITE_KEY:0:15}..."
+    TURNSTILE_BUILD_ARG="--build-arg REACT_APP_TURNSTILE_SITE_KEY=${REACT_APP_TURNSTILE_SITE_KEY}"
 else
     echo "Turnstile Site Key: Not set (Turnstile will be disabled)"
     TURNSTILE_BUILD_ARG=""

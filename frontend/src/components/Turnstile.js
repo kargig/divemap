@@ -15,6 +15,7 @@ const Turnstile = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [_token, setToken] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
   const turnstileRef = useRef(null);
   const widgetIdRef = useRef(null);
 
@@ -23,7 +24,14 @@ const Turnstile = ({
     token => {
       setToken(token);
       setIsExpired(false);
+      setIsVerified(true);
       onVerify?.(token);
+
+      // ✅ Hide the widget after successful verification
+      if (widgetIdRef.current) {
+        window.turnstile.remove(widgetIdRef.current);
+        widgetIdRef.current = null;
+      }
     },
     [onVerify]
   );
@@ -31,11 +39,13 @@ const Turnstile = ({
   const handleExpire = useCallback(() => {
     setToken(null);
     setIsExpired(true);
+    setIsVerified(false);
     onExpire?.();
   }, [onExpire]);
 
   const handleError = useCallback(() => {
     setToken(null);
+    setIsVerified(false);
     onError?.();
   }, [onError]);
 
@@ -66,11 +76,21 @@ const Turnstile = ({
 
   const reset = useCallback(() => {
     if (widgetIdRef.current) {
-      window.turnstile.reset(widgetIdRef.current);
-      setToken(null);
-      setIsExpired(false);
+      window.turnstile.remove(widgetIdRef.current);
+      widgetIdRef.current = null;
     }
+    setToken(null);
+    setIsExpired(false);
+    setIsVerified(false);
   }, []);
+
+  // Expose reset method to parent components
+  useEffect(() => {
+    if (window.turnstile && turnstileRef.current) {
+      // Store reset method on the ref so parent can access it
+      turnstileRef.current.resetTurnstile = reset;
+    }
+  }, [reset]);
 
   useEffect(() => {
     // Only load Turnstile script if the component is enabled and has a site key
@@ -128,6 +148,24 @@ const Turnstile = ({
   // Early return if not enabled or no site key - prevents any rendering
   if (!enabled || !siteKey) {
     return null;
+  }
+
+  // Show success message when verification is complete
+  if (isVerified) {
+    return (
+      <div className={`turnstile-container ${className}`}>
+        <div className='flex items-center justify-center p-3 bg-green-50 border border-green-200 rounded-md'>
+          <svg className='w-5 h-5 text-green-500 mr-2' fill='currentColor' viewBox='0 0 20 20'>
+            <path
+              fillRule='evenodd'
+              d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
+              clipRule='evenodd'
+            />
+          </svg>
+          <span className='text-sm text-green-700 font-medium'>Verification complete</span>
+        </div>
+      </div>
+    );
   }
 
   return (
