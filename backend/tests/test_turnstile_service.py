@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, AsyncMock
 from fastapi import HTTPException
 from app.turnstile_service import TurnstileService
+import httpx
 
 
 class TestTurnstileService:
@@ -74,16 +75,17 @@ class TestTurnstileService:
                     self.status_code = status_code
                     self._json_data = json_data
                 
-                async def json(self):
+                def json(self):
                     return self._json_data
             
             mock_response = MockResponse(200, {"success": True})
             
-            # Mock the httpx.AsyncClient context manager
+            # Mock the httpx.AsyncClient
             with patch('app.turnstile_service.httpx.AsyncClient') as mock_client_class:
                 mock_client = AsyncMock()
                 mock_client.post.return_value = mock_response
-                mock_client_class.return_value.__aenter__.return_value = mock_client
+                mock_client.aclose = AsyncMock()
+                mock_client_class.return_value = mock_client
                 
                 result = await service.verify_token("test_token", "127.0.0.1")
                 
@@ -105,7 +107,7 @@ class TestTurnstileService:
                     self.status_code = status_code
                     self._json_data = json_data
                 
-                async def json(self):
+                def json(self):
                     return self._json_data
             
             mock_response = MockResponse(200, {
@@ -113,11 +115,11 @@ class TestTurnstileService:
                 "error-codes": ["invalid-input-response"]
             })
             
-            # Mock the httpx.AsyncClient context manager
+            # Mock the httpx.AsyncClient
             with patch('app.turnstile_service.httpx.AsyncClient') as mock_client_class:
                 mock_client = AsyncMock()
                 mock_client.post.return_value = mock_response
-                mock_client_class.return_value.__aenter__.return_value = mock_client
+                mock_client_class.return_value = mock_client
                 
                 with pytest.raises(HTTPException) as exc_info:
                     await service.verify_token("test_token", "127.0.0.1")
@@ -134,11 +136,18 @@ class TestTurnstileService:
         }):
             service = TurnstileService()
             
-            mock_response = AsyncMock()
-            mock_response.status_code = 500
+            # Create a mock response for HTTP error
+            class MockResponse:
+                def __init__(self, status_code):
+                    self.status_code = status_code
             
-            with patch('httpx.AsyncClient') as mock_client:
-                mock_client.return_value.__aenter__.return_value.post.return_value = mock_response
+            mock_response = MockResponse(500)
+            
+            with patch('app.turnstile_service.httpx.AsyncClient') as mock_client_class:
+                mock_client = AsyncMock()
+                mock_client.post.return_value = mock_response
+                mock_client.aclose = AsyncMock()
+                mock_client_class.return_value = mock_client
                 
                 with pytest.raises(HTTPException) as exc_info:
                     await service.verify_token("test_token", "127.0.0.1")
@@ -155,15 +164,17 @@ class TestTurnstileService:
         }):
             service = TurnstileService()
             
-            with patch('httpx.AsyncClient') as mock_client:
-                mock_client.return_value.__aenter__.return_value.post.side_effect = \
-                    Exception("timeout")
+            with patch('app.turnstile_service.httpx.AsyncClient') as mock_client_class:
+                mock_client = AsyncMock()
+                mock_client.post.side_effect = httpx.TimeoutException("timeout")
+                mock_client.aclose = AsyncMock()
+                mock_client_class.return_value = mock_client
                 
                 with pytest.raises(HTTPException) as exc_info:
                     await service.verify_token("test_token", "127.0.0.1")
                 
-                assert exc_info.value.status_code == 500
-                assert "Turnstile verification error" in str(exc_info.value.detail)
+                assert exc_info.value.status_code == 408
+                assert "Turnstile verification timeout" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
     async def test_verify_token_not_enabled(self):
