@@ -1,11 +1,13 @@
-import { Eye, EyeOff, UserPlus } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 import Logo from '../components/Logo';
+import Turnstile from '../components/Turnstile';
 import { useAuth } from '../contexts/AuthContext';
 import googleAuth from '../utils/googleAuth';
+import { isTurnstileEnabled, getTurnstileConfig } from '../utils/turnstileConfig';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -19,15 +21,26 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [turnstileToken, setTurnstileToken] = useState(null);
+  const [turnstileError, setTurnstileError] = useState(false);
 
-  const { register, registerWithGoogle } = useAuth();
+  const { register: authRegister, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+
+  // Memoize Turnstile configuration to prevent infinite re-renders
+  const turnstileConfig = useMemo(() => {
+    const config = getTurnstileConfig();
+    return {
+      isEnabled: config.isEnabled,
+      siteKey: config.siteKey,
+    };
+  }, []);
 
   const handleGoogleSuccess = useCallback(
     async credential => {
       setGoogleLoading(true);
       try {
-        const success = await registerWithGoogle(credential);
+        const success = await loginWithGoogle(credential);
         if (success) {
           toast.success(
             'Google registration successful! Your account is now active and ready to use.'
@@ -39,13 +52,27 @@ const Register = () => {
         setGoogleLoading(false);
       }
     },
-    [registerWithGoogle, navigate]
+    [loginWithGoogle, navigate]
   );
 
   const handleGoogleError = useCallback(_error => {
     toast.error('Google Sign-In failed. Please try again.');
     setGoogleLoading(false);
   }, []);
+
+  const handleTurnstileVerify = token => {
+    setTurnstileToken(token);
+    setTurnstileError(false);
+  };
+
+  const handleTurnstileExpire = () => {
+    setTurnstileToken(null);
+  };
+
+  const handleTurnstileError = () => {
+    setTurnstileToken(null);
+    setTurnstileError(true);
+  };
 
   useEffect(() => {
     // Initialize Google Sign-In button only if client ID is configured
@@ -88,6 +115,11 @@ const Register = () => {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
+    // Only require Turnstile verification if it's enabled
+    if (turnstileConfig.isEnabled && !turnstileToken) {
+      newErrors.turnstile = 'Please complete the verification';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -117,7 +149,12 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const success = await register(formData.username, formData.email, formData.password);
+      const success = await authRegister(
+        formData.username,
+        formData.email,
+        formData.password,
+        turnstileToken
+      );
       if (success) {
         toast.success(
           "Registration successful! Your account is pending admin approval. You'll be notified once approved."
@@ -125,6 +162,7 @@ const Register = () => {
         navigate('/');
       }
     } catch (error) {
+      // Handle error
     } finally {
       setLoading(false);
     }
@@ -253,6 +291,29 @@ const Register = () => {
               )}
             </div>
           </div>
+
+          {/* Turnstile Widget */}
+          {turnstileConfig.isEnabled && turnstileConfig.siteKey && (
+            <div className='space-y-2'>
+              <Turnstile
+                siteKey={turnstileConfig.siteKey}
+                onVerify={handleTurnstileVerify}
+                onExpire={handleTurnstileExpire}
+                onError={handleTurnstileError}
+                theme='light'
+                size='normal'
+                className='flex justify-center'
+              />
+              {errors.turnstile && (
+                <p className='text-sm text-red-600 text-center'>{errors.turnstile}</p>
+              )}
+              {turnstileError && (
+                <p className='text-sm text-red-600 text-center'>
+                  Verification failed. Please try again.
+                </p>
+              )}
+            </div>
+          )}
 
           <div>
             <button

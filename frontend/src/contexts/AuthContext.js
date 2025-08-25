@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 
 import api from '../api';
 import googleAuth from '../utils/googleAuth';
+import { isTurnstileEnabled } from '../utils/turnstileConfig';
 
 const AuthContext = createContext();
 
@@ -71,12 +72,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (username, password) => {
+  const login = async (username, password, turnstileToken) => {
     try {
-      const response = await api.post('/api/v1/auth/login', {
+      const requestData = {
         username,
         password,
-      });
+      };
+
+      // Only include Turnstile token if it's enabled and provided
+      if (isTurnstileEnabled() && turnstileToken) {
+        requestData.turnstile_token = turnstileToken;
+      }
+
+      const response = await api.post('/api/v1/auth/login', requestData);
 
       const { access_token, expires_in } = response.data;
 
@@ -128,13 +136,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (username, email, password) => {
+  const register = async (username, email, password, turnstileToken) => {
     try {
-      const response = await api.post('/api/v1/auth/register', {
+      const requestData = {
         username,
         email,
         password,
-      });
+      };
+
+      // Only include Turnstile token if it's enabled and provided
+      if (isTurnstileEnabled() && turnstileToken) {
+        requestData.turnstile_token = turnstileToken;
+      }
+
+      const response = await api.post('/api/v1/auth/register', requestData);
 
       const { access_token, expires_in } = response.data;
 

@@ -23,7 +23,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
-import { getSystemOverview, getSystemHealth, getPlatformStats } from '../api';
+import { getSystemOverview, getSystemHealth, getPlatformStats, getTurnstileStats } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 const AdminSystemOverview = () => {
@@ -54,6 +54,15 @@ const AdminSystemOverview = () => {
     isLoading: statsLoading,
     error: statsError,
   } = useQuery(['platform-stats', refreshKey], getPlatformStats, {
+    refetchInterval: 30000, // Refetch every 30 seconds
+    enabled: !!user?.is_admin,
+  });
+
+  const {
+    data: turnstileStats,
+    isLoading: turnstileLoading,
+    error: turnstileError,
+  } = useQuery(['turnstile-stats', refreshKey], () => getTurnstileStats(24), {
     refetchInterval: 30000, // Refetch every 30 seconds
     enabled: !!user?.is_admin,
   });
@@ -107,7 +116,7 @@ const AdminSystemOverview = () => {
     return `${num.toFixed(1)}%`;
   };
 
-  if (overviewLoading || healthLoading || statsLoading) {
+  if (overviewLoading || healthLoading || statsLoading || turnstileLoading) {
     return (
       <div className='max-w-7xl mx-auto p-6'>
         <div className='flex items-center justify-center h-64'>
@@ -118,7 +127,7 @@ const AdminSystemOverview = () => {
     );
   }
 
-  if (overviewError || healthError || statsError) {
+  if (overviewError || healthError || statsError || turnstileError) {
     return (
       <div className='max-w-7xl mx-auto p-6'>
         <div className='text-center py-12'>
@@ -403,6 +412,125 @@ const AdminSystemOverview = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Turnstile Statistics */}
+      <div className='mb-8'>
+        <h2 className='text-xl font-semibold text-gray-900 mb-4'>Turnstile Bot Protection</h2>
+
+        {/* Turnstile Overview Cards */}
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
+          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm font-medium text-gray-600'>Success Rate</p>
+                <p className='text-2xl font-bold text-gray-900'>
+                  {turnstileStats?.success_rate
+                    ? formatPercentage(turnstileStats.success_rate * 100)
+                    : 'N/A'}
+                </p>
+                <p className='text-sm text-gray-500'>Verification success</p>
+              </div>
+              <CheckCircle className='h-8 w-8 text-green-600' />
+            </div>
+          </div>
+
+          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm font-medium text-gray-600'>Response Time</p>
+                <p className='text-2xl font-bold text-gray-900'>
+                  {turnstileStats?.average_response_time_ms
+                    ? `${turnstileStats.average_response_time_ms.toFixed(1)}ms`
+                    : 'N/A'}
+                </p>
+                <p className='text-sm text-gray-500'>Average verification</p>
+              </div>
+              <Activity className='h-8 w-8 text-blue-600' />
+            </div>
+          </div>
+
+          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm font-medium text-gray-600'>Total Events</p>
+                <p className='text-2xl font-bold text-gray-900'>
+                  {formatNumber(turnstileStats?.total_events || 0)}
+                </p>
+                <p className='text-sm text-gray-500'>Verification attempts</p>
+              </div>
+              <BarChart3 className='h-8 w-8 text-purple-600' />
+            </div>
+          </div>
+
+          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm font-medium text-gray-600'>Status</p>
+                <p className='text-2xl font-bold text-gray-900'>
+                  {turnstileStats?.monitoring_active ? 'Active' : 'Inactive'}
+                </p>
+                <p className='text-sm text-gray-500'>Monitoring system</p>
+              </div>
+              <Database className='h-8 w-8 text-indigo-600' />
+            </div>
+          </div>
+        </div>
+
+        {/* Error Breakdown */}
+        {turnstileStats?.error_breakdown &&
+          Object.keys(turnstileStats.error_breakdown).length > 0 && (
+            <div className='bg-white p-6 rounded-lg border shadow-sm mb-6'>
+              <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+                <AlertTriangle className='h-5 w-5 mr-2' />
+                Error Breakdown (Last 24h)
+              </h3>
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                {Object.entries(turnstileStats.error_breakdown).map(([errorCode, count]) => (
+                  <div
+                    key={errorCode}
+                    className='flex items-center justify-between p-3 bg-red-50 rounded-lg'
+                  >
+                    <span className='font-medium text-red-700'>{errorCode}</span>
+                    <span className='text-sm text-red-500'>{count} occurrences</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        {/* Top IP Addresses */}
+        {turnstileStats?.top_ips && turnstileStats.top_ips.length > 0 && (
+          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+              <Globe className='h-5 w-5 mr-2' />
+              Top IP Addresses (Last 24h)
+            </h3>
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+              {turnstileStats.top_ips.map(([ip, count], index) => (
+                <div
+                  key={index}
+                  className='flex items-center justify-between p-3 bg-gray-50 rounded-lg'
+                >
+                  <span className='font-medium text-gray-700 font-mono text-sm'>{ip}</span>
+                  <span className='text-sm text-gray-500'>{count} requests</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* No Data Message */}
+        {(!turnstileStats || turnstileStats.total_events === 0) && (
+          <div className='bg-gray-50 border border-gray-200 rounded-lg p-8 text-center'>
+            <Activity className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+            <h3 className='text-lg font-medium text-gray-900 mb-2'>No Turnstile Data Available</h3>
+            <p className='text-gray-500'>
+              Turnstile verification events will appear here once users start using the
+              authentication system.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Alerts */}

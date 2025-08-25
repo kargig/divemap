@@ -404,3 +404,8 @@ export const getRecentActivity = async (hours = 24, limit = 100) => {
   const response = await api.get(`/api/v1/admin/system/activity?hours=${hours}&limit=${limit}`);
   return response.data;
 };
+
+export const getTurnstileStats = async (timeWindow = 24) => {
+  const response = await api.get(`/api/v1/admin/system/turnstile-stats?time_window=${timeWindow}`);
+  return response.data;
+};
