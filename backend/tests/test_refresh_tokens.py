@@ -305,13 +305,14 @@ class TestAuthEndpoints:
 
     def test_register_with_refresh_token(self, client):
         """Test registration endpoint returns access token and sets refresh token as cookie"""
+
         response = client.post("/api/v1/auth/register", json={
             "username": "newuser",
             "email": "new@example.com",
             "password": "NewPass123!"
         })
-        
-        assert response.status_code == 200
+
+        assert response.status_code == 201
         data = response.json()
         
         # Check that access token is returned in JSON response

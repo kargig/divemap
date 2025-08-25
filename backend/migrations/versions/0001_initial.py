@@ -38,6 +38,7 @@ def upgrade() -> None:
             sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), nullable=False),
             sa.Column('is_admin', sa.Boolean(), server_default='0', nullable=False),
             sa.Column('is_moderator', sa.Boolean(), server_default='0', nullable=False),
+            sa.Column('enabled', sa.Boolean(), server_default='1', nullable=False),
             sa.PrimaryKeyConstraint('id'),
             sa.UniqueConstraint('email'),
             sa.UniqueConstraint('google_id'),

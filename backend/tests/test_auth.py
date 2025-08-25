@@ -14,7 +14,7 @@ class TestAuth:
             "password": "Password123!"
         })
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
         assert "access_token" in data
         assert data["token_type"] == "bearer"
@@ -350,7 +350,7 @@ class TestAuth:
             "password": "Password123!"
         })
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_201_CREATED
         
         # Verify the user was created in the database with enabled=False
         user = db_session.query(User).filter(User.username == "newuser").first()

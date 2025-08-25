@@ -53,12 +53,12 @@ class TestRateLimiting:
             assert 429 in responses, "Auth endpoints are not rate limited as expected"
 
     def test_register_endpoint_rate_limited(self, client):
-        """Test that the register endpoint is rate limited (5/minute limit)"""
+        """Test that the register endpoint is rate limited (10/minute limit)"""
         # Create a test client that simulates external IP to bypass localhost exemption
-        with patch('app.limiter.is_localhost_ip', return_value=False):
-            # Make multiple requests to register endpoint (which has 8/minute limit)
+        with patch('app.limiter.get_client_ip', return_value="192.168.1.100"):
+            # Make multiple requests to register endpoint (which has 10/minute limit)
             responses = []
-            for i in range(12):  # More than the new rate limit (8/minute)
+            for i in range(12):  # More than the rate limit (10/minute)
                 response = client.post("/api/v1/auth/register", json={
                     "username": f"testuser{i}",
                     "email": f"testuser{i}@example.com",
@@ -69,12 +69,12 @@ class TestRateLimiting:
             # Should have at least one rate limited response (429)
             assert 429 in responses, "Register endpoint is not rate limited as expected"
 
-            # Verify that the first few requests were successful (200 or 400 for duplicate)
-            successful_responses = [r for r in responses[:8] if r in [200, 400]]
+            # Verify that the first few requests were successful (201 for successful registration)
+            successful_responses = [r for r in responses[:10] if r in [201, 400]]
             assert len(successful_responses) > 0, "First requests should be successful"
 
             # Verify that later requests were rate limited
-            rate_limited_responses = [r for r in responses[8:] if r == 429]
+            rate_limited_responses = [r for r in responses[10:] if r == 429]
             assert len(rate_limited_responses) > 0, "Later requests should be rate limited"
 
     def test_rate_limiting_with_authentication(self, client, test_user):

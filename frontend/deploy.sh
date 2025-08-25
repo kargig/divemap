@@ -38,6 +38,15 @@ if [ -z "$REACT_APP_API_URL" ]; then
     exit 1
 fi
 
+# Check if REACT_APP_TURNSTILE_SITE_KEY is set (optional)
+if [ -n "$REACT_APP_TURNSTILE_SITE_KEY" ]; then
+    echo "Turnstile Site Key: ${REACT_APP_TURNSTILE_SITE_KEY:0:20}..."
+    TURNSTILE_BUILD_ARG="--build-arg REACT_APP_TURNSTILE_SITE_KEY=\"$REACT_APP_TURNSTILE_SITE_KEY\""
+else
+    echo "Turnstile Site Key: Not set (Turnstile will be disabled)"
+    TURNSTILE_BUILD_ARG=""
+fi
+
 echo "Deploying frontend with configuration from $ENV_FILE file..."
 echo "Google Client ID: ${REACT_APP_GOOGLE_CLIENT_ID:0:20}..."
 echo "API URL: $REACT_APP_API_URL"
@@ -45,7 +54,8 @@ echo "API URL: $REACT_APP_API_URL"
 # Deploy with build arguments
 fly deploy -a divemap-frontend \
   --build-arg REACT_APP_GOOGLE_CLIENT_ID="$REACT_APP_GOOGLE_CLIENT_ID" \
-  --build-arg REACT_APP_API_URL="$REACT_APP_API_URL"
+  --build-arg REACT_APP_API_URL="$REACT_APP_API_URL" \
+  $TURNSTILE_BUILD_ARG
 
 echo "Deployment completed successfully!"
 echo "Visit your app at: https://divemap.gr/" 
