@@ -396,14 +396,24 @@ class TestAuth:
         assert "User account is disabled" in me_response.json()["detail"]
 
     def test_login_invalid_username(self, client):
-        """Test login with invalid username."""
+        """Test login with invalid username or email."""
         response = client.post("/api/v1/auth/login", json={
             "username": "nonexistent",
             "password": "password"
         })
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert "Incorrect username or password" in response.json()["detail"]
+        assert "Incorrect username/email or password" in response.json()["detail"]
+
+    def test_login_invalid_email(self, client):
+        """Test login with invalid email."""
+        response = client.post("/api/v1/auth/login", json={
+            "username": "nonexistent@example.com",
+            "password": "password"
+        })
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "Incorrect username/email or password" in response.json()["detail"]
 
     def test_login_invalid_password(self, client, test_user):
         """Test login with invalid password."""
@@ -413,7 +423,31 @@ class TestAuth:
         })
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert "Incorrect username or password" in response.json()["detail"]
+        assert "Incorrect username/email or password" in response.json()["detail"]
+
+    def test_login_with_email(self, client, test_user):
+        """Test login with email instead of username."""
+        response = client.post("/api/v1/auth/login", json={
+            "username": "test@example.com",
+            "password": "TestPass123!"
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+
+    def test_login_with_username(self, client, test_user):
+        """Test login with username (existing functionality)."""
+        response = client.post("/api/v1/auth/login", json={
+            "username": "testuser",
+            "password": "TestPass123!"
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
 
     def test_login_missing_data(self, client):
         """Test login with missing data."""

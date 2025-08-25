@@ -45,7 +45,12 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
+    # Try to find user by username first, then by email
     user = db.query(User).filter(User.username == username).first()
+    if not user:
+        # If not found by username, try email
+        user = db.query(User).filter(User.email == username).first()
+    
     if not user:
         return None
     if not verify_password(password, user.password_hash):
