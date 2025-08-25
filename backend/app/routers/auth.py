@@ -19,8 +19,13 @@ from app.auth import (
 from app.token_service import token_service
 from app.google_auth import authenticate_google_user, verify_google_token, get_or_create_google_user
 from app.limiter import limiter, skip_rate_limit_for_admin
+from app.turnstile_service import TurnstileService
 
+from app.utils import get_client_ip
 router = APIRouter()
+
+# Initialize Turnstile service
+turnstile_service = TurnstileService()
 
 class GoogleLoginRequest(BaseModel):
     token: str
@@ -29,14 +34,26 @@ class GoogleLoginRequest(BaseModel):
 async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
     return current_user
 
-@router.post("/register", response_model=RegistrationResponse)
-@skip_rate_limit_for_admin("8/minute")  # Allow admins higher rate limit
+@router.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
+@skip_rate_limit_for_admin("10/minute")  # Allow admins higher rate limit
 async def register(
     request: Request,
     response: Response,
     user_data: UserCreate,
     db: Session = Depends(get_db)
 ):
+    # Verify Turnstile token if enabled
+    if turnstile_service.is_enabled():
+        if not user_data.turnstile_token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Turnstile verification is required"
+            )
+        await turnstile_service.verify_token(
+            user_data.turnstile_token,
+            get_client_ip(request)
+        )
+    
     # Validate password strength
     if not validate_password_strength(user_data.password):
         raise HTTPException(
@@ -105,6 +122,17 @@ async def login(
     login_data: LoginRequest,
     db: Session = Depends(get_db)
 ):
+    # Verify Turnstile token if enabled
+    if turnstile_service.is_enabled():
+        if not login_data.turnstile_token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Turnstile verification is required"
+            )
+        await turnstile_service.verify_token(
+            login_data.turnstile_token,
+            get_client_ip(request)
+        )
 
     user = authenticate_user(db, login_data.username, login_data.password)
     if not user:

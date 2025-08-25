@@ -1,11 +1,13 @@
-import { Eye, EyeOff, LogIn } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 import Logo from '../components/Logo';
+import Turnstile from '../components/Turnstile';
 import { useAuth } from '../contexts/AuthContext';
 import googleAuth from '../utils/googleAuth';
+import { isTurnstileEnabled, getTurnstileConfig } from '../utils/turnstileConfig';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -14,10 +16,21 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [_googleLoading, setGoogleLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState(null);
+  const [turnstileError, setTurnstileError] = useState(false);
 
-  const { login, loginWithGoogle } = useAuth();
+  const { login: authLogin, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+
+  // Memoize Turnstile configuration to prevent infinite re-renders
+  const turnstileConfig = useMemo(
+    () => ({
+      isEnabled: isTurnstileEnabled(),
+      siteKey: getTurnstileConfig()?.siteKey,
+    }),
+    []
+  );
 
   const handleGoogleSuccess = useCallback(
     async credential => {
@@ -39,6 +52,20 @@ const Login = () => {
     toast.error('Google Sign-In failed. Please try again.');
     setGoogleLoading(false);
   }, []);
+
+  const handleTurnstileVerify = token => {
+    setTurnstileToken(token);
+    setTurnstileError(false);
+  };
+
+  const handleTurnstileExpire = () => {
+    setTurnstileToken(null);
+  };
+
+  const handleTurnstileError = () => {
+    setTurnstileToken(null);
+    setTurnstileError(true);
+  };
 
   useEffect(() => {
     // Initialize Google Sign-In button only if client ID is configured
@@ -71,14 +98,23 @@ const Login = () => {
 
   const handleSubmit = async e => {
     e.preventDefault();
+
+    // Only require Turnstile verification if it's enabled
+    if (turnstileConfig.isEnabled && !turnstileToken) {
+      setTurnstileError(true);
+      toast.error('Please complete the verification');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const success = await login(formData.username, formData.password);
+      const success = await authLogin(formData.username, formData.password, turnstileToken);
       if (success) {
         navigate('/');
       }
     } catch (error) {
+      // Handle error
     } finally {
       setLoading(false);
     }
@@ -149,6 +185,26 @@ const Login = () => {
               </div>
             </div>
           </div>
+
+          {/* Turnstile Widget */}
+          {turnstileConfig.isEnabled && turnstileConfig.siteKey && (
+            <div className='space-y-2'>
+              <Turnstile
+                siteKey={turnstileConfig.siteKey}
+                onVerify={handleTurnstileVerify}
+                onExpire={handleTurnstileExpire}
+                onError={handleTurnstileError}
+                theme='light'
+                size='normal'
+                className='flex justify-center'
+              />
+              {turnstileError && (
+                <p className='text-sm text-red-600 text-center'>
+                  Please complete the verification to continue
+                </p>
+              )}
+            </div>
+          )}
 
           <div>
             <button

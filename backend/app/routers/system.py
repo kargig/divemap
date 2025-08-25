@@ -1,10 +1,11 @@
-from typing import Dict, Any, List
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from typing import Dict, Any, List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, desc, asc, text
 from datetime import datetime, timedelta
 import psutil
 import os
+import logging
 
 from app.database import get_db
 from app.models import (
@@ -15,8 +16,11 @@ from app.models import (
 from app.auth import get_current_admin_user
 from app.schemas import SystemOverviewResponse, SystemHealthResponse, PlatformStatsResponse
 from app.utils import get_client_ip, format_ip_for_logging
+from app.monitoring import get_turnstile_stats
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 @router.get("/overview", response_model=SystemOverviewResponse)
 async def get_system_overview(
@@ -458,3 +462,34 @@ async def get_client_ip_info(request: Request):
         "connection": connection_info,
         "timestamp": datetime.utcnow().isoformat()
     }
+
+@router.get("/turnstile-stats")
+async def get_turnstile_statistics(
+    current_user: User = Depends(get_current_admin_user),
+    time_window: Optional[int] = Query(24, description="Time window in hours")
+):
+    """Get Turnstile verification statistics for admin monitoring"""
+    
+    try:
+        # Convert hours to timedelta if specified
+        if time_window and time_window > 0:
+            window = timedelta(hours=time_window)
+        else:
+            window = None
+        
+        # Get Turnstile statistics
+        stats = get_turnstile_stats(window)
+        
+        # Add additional context
+        stats["timestamp"] = datetime.utcnow().isoformat()
+        stats["time_window_hours"] = time_window if time_window else None
+        stats["monitoring_active"] = True
+        
+        return stats
+        
+    except Exception as e:
+        logger.error(f"Error retrieving Turnstile statistics: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve Turnstile statistics"
+        )
