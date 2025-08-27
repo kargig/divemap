@@ -139,21 +139,21 @@ const StickyFilterBar = ({
 
       {/* Active Filters Display */}
       {activeFilters.length > 0 && (
-        <div className='border-t border-gray-200 p-3 bg-blue-50'>
-          <div className='flex items-center justify-between mb-2'>
-            <span className='text-sm font-medium text-blue-900'>Active Filters:</span>
+        <div className='border-t border-gray-200 py-2 px-3 bg-blue-50'>
+          <div className='flex items-center justify-between mb-1.5'>
+            <span className='text-xs font-medium text-blue-900'>Active Filters:</span>
             <button
               onClick={onClearFilters}
-              className='text-sm text-blue-600 hover:text-blue-800 underline'
+              className='text-xs text-blue-600 hover:text-blue-800 underline'
             >
               Clear All
             </button>
           </div>
-          <div className='flex flex-wrap gap-2'>
+          <div className='flex flex-wrap gap-1'>
             {activeFilters.map(filter => (
               <div
                 key={filter.key}
-                className='inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-800 text-sm rounded-full border border-blue-200'
+                className='inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200'
               >
                 <span className='font-medium'>{filter.label}:</span>
                 <span>{filter.value}</span>
@@ -162,7 +162,7 @@ const StickyFilterBar = ({
                   className='ml-1 text-blue-600 hover:text-blue-800 transition-colors'
                   title={`Remove ${filter.label} filter`}
                 >
-                  <X className='h-3 w-3' />
+                  <X className='h-2.5 w-2.5' />
                 </button>
               </div>
             ))}
