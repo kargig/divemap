@@ -19,14 +19,14 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
-import DivingCentersFilterBar from '../components/DivingCentersFilterBar';
+import DivingCentersDesktopSearchBar from '../components/DivingCentersDesktopSearchBar';
 import DivingCentersMap from '../components/DivingCentersMap';
-import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
-import FuzzySearchInput from '../components/FuzzySearchInput';
+import DivingCentersResponsiveFilterBar from '../components/DivingCentersResponsiveFilterBar';
 import HeroSection from '../components/HeroSection';
 import MaskedEmail from '../components/MaskedEmail';
 import MatchTypeBadge from '../components/MatchTypeBadge';
 import { useAuth } from '../contexts/AuthContext';
+import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getSortOptions } from '../utils/sortOptions';
 
@@ -62,19 +62,11 @@ const DivingCenters = () => {
   // Filter visibility state
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  // Mobile detection
-  const [isMobile, setIsMobile] = useState(false);
+  // Quick filter state
+  const [quickFilter, setQuickFilter] = useState('');
 
-  // Check if we're on mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  // Responsive detection using custom hook
+  const { isMobile } = useResponsive();
 
   // Get initial values from URL parameters
   const getInitialFilters = () => {
@@ -103,7 +95,7 @@ const DivingCenters = () => {
   });
 
   // Initialize sorting
-  const { sortBy, sortOrder, handleSortChange, handleSortApply, resetSorting, getSortParams } =
+  const { sortBy, sortOrder, handleSortChange, resetSorting, getSortParams } =
     useSorting('diving-centers');
 
   // Debounced URL update for search inputs
@@ -458,6 +450,40 @@ const DivingCenters = () => {
     }
   };
 
+  const handleQuickFilter = filterType => {
+    // Toggle the quick filter - if it's already active, deactivate it
+    if (quickFilter === filterType) {
+      setQuickFilter('');
+      // Clear the corresponding filter
+      switch (filterType) {
+        case 'min_rating':
+          setFilters(prev => ({ ...prev, min_rating: '' }));
+          break;
+        case 'country':
+          setFilters(prev => ({ ...prev, country: '' }));
+          break;
+        default:
+          break;
+      }
+    } else {
+      setQuickFilter(filterType);
+      // Apply the quick filter
+      switch (filterType) {
+        case 'min_rating':
+          setFilters(prev => ({ ...prev, min_rating: '4' }));
+          break;
+        case 'country':
+          setFilters(prev => ({ ...prev, country: 'Greece' }));
+          break;
+        default:
+          break;
+      }
+    }
+
+    // Reset to first page
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
   if (isLoading) {
     return (
       <div className='flex justify-center items-center h-64'>
@@ -519,6 +545,77 @@ const DivingCenters = () => {
         </div>
       </HeroSection>
 
+      {/* Pagination Controls - Mobile-first responsive design */}
+      {divingCenters && divingCenters.length > 0 && (
+        <div className='mb-4 sm:mb-6 lg:mb-8'>
+          <div className='bg-white rounded-lg shadow-md p-2 sm:p-4 lg:p-6'>
+            <div className='flex flex-col lg:flex-row justify-between items-center gap-2 sm:gap-4'>
+              {/* Pagination Controls */}
+              <div className='flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto'>
+                {/* Page Size Selection */}
+                <div className='flex items-center gap-1 sm:gap-2 w-full sm:w-auto justify-center sm:justify-start'>
+                  <label className='text-xs sm:text-sm font-medium text-gray-700'>Show:</label>
+                  <select
+                    value={pagination.page_size}
+                    onChange={e => handlePageSizeChange(parseInt(e.target.value))}
+                    className='px-1 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[36px] sm:min-h-0 touch-manipulation'
+                  >
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                  <span className='text-xs sm:text-sm text-gray-600'>per page</span>
+                </div>
+
+                {/* Pagination Info */}
+                <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
+                  Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
+                  {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of{' '}
+                  {paginationInfo.totalCount} diving centers
+                </div>
+
+                {/* Pagination Navigation */}
+                <div className='flex items-center gap-1 sm:gap-2'>
+                  <button
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    disabled={!paginationInfo.hasPrevPage}
+                    className='px-2 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[36px] sm:min-h-0 touch-manipulation transition-colors'
+                  >
+                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M15 19l-7-7 7-7'
+                      />
+                    </svg>
+                  </button>
+
+                  <span className='text-xs sm:text-sm text-gray-700 px-1 sm:px-2'>
+                    Page {pagination.page} of {paginationInfo.totalPages}
+                  </span>
+
+                  <button
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    disabled={!paginationInfo.hasNextPage}
+                    className='px-2 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[36px] sm:min-h-0 touch-manipulation transition-colors'
+                  >
+                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M9 5l7 7-7 7'
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Map Section - Show immediately when in map view */}
       {viewMode === 'map' && (
         <div className='mb-8'>
@@ -540,103 +637,50 @@ const DivingCenters = () => {
 
       {/* Floating Search and Filters Container - Positioned right below navbar */}
       <div className='sticky-below-navbar bg-white shadow-lg border border-gray-200 rounded-lg mx-3 sm:mx-4 lg:mx-6 xl:mx-8 mb-6'>
-        {/* Search Input Section */}
-        <div className='p-4 border-b border-gray-200'>
-          <div className='max-w-2xl mx-auto'>
-            <FuzzySearchInput
-              data={divingCenters || []}
-              searchValue={filters.search}
-              onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
-              onSearchSelect={selectedItem => {
-                handleSearchChange({ target: { name: 'search', value: selectedItem.name } });
-              }}
-              configType='divingCenters'
-              placeholder='Search diving centers by name, location, or services...'
-              minQueryLength={2}
-              maxSuggestions={8}
-              debounceDelay={300}
-              showSuggestions={true}
-              highlightMatches={true}
-              showScore={false}
-              showClearButton={true}
-              className='w-full'
-              inputClassName='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base'
-              suggestionsClassName='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto'
-              highlightClass='bg-blue-100 font-medium'
-            />
-          </div>
-        </div>
-
-        {/* Filters Section */}
-        <div className='p-4'>
-          <DivingCentersFilterBar
-            showFilters={showAdvancedFilters}
-            onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            onClearFilters={clearFilters}
-            activeFiltersCount={getActiveFiltersCount()}
-            filters={filters}
-            onFilterChange={(key, value) => {
-              handleSearchChange({ target: { name: key, value } });
+        {/* Desktop Search Bar - Only visible on desktop/tablet */}
+        {!isMobile && (
+          <DivingCentersDesktopSearchBar
+            searchValue={filters.search}
+            onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
+            onSearchSelect={selectedItem => {
+              handleSearchChange({ target: { name: 'search', value: selectedItem.name } });
             }}
-            variant='inline'
-            showAdvancedToggle={true}
-            mobileOptimized={true}
+            data={divingCenters || []}
+            configType='divingCenters'
+            placeholder='Search diving centers by name, location, or services...'
           />
-        </div>
-      </div>
-
-      {/* Sorting & View Controls - Below the floating search/filters */}
-      <div className='bg-white shadow-sm border border-gray-200 rounded-lg mx-3 sm:mx-4 lg:mx-6 xl:mx-8 mb-6'>
-        {viewMode === 'map' ? (
-          <div className='p-3 sm:p-4'>
-            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4'>
-              <h3 className='text-base sm:text-lg font-medium text-gray-900 text-center sm:text-left'>
-                View Mode
-              </h3>
-              <div className='flex justify-center sm:justify-end gap-2'>
-                <button
-                  onClick={() => handleViewModeChange('list')}
-                  className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
-                    viewMode === 'list'
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
-                  }`}
-                >
-                  <List className='w-4 h-4' />
-                  List View
-                </button>
-                <button
-                  onClick={() => handleViewModeChange('grid')}
-                  className={`px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation ${
-                    viewMode === 'grid'
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400'
-                  }`}
-                >
-                  <Grid className='w-4 h-4' />
-                  Grid View
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className='p-3 sm:p-4'>
-            <EnhancedMobileSortingControls
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              onSortChange={handleSortChange}
-              onSortApply={handleSortApply}
-              onReset={resetSorting}
-              sortOptions={getSortOptions('divingCenters')}
-              className='mobile-sort-controls'
-              viewMode={viewMode}
-              onViewModeChange={handleViewModeChange}
-              showThumbnails={showThumbnails}
-              compactLayout={compactLayout}
-              onDisplayOptionChange={handleDisplayOptionChange}
-            />
-          </div>
         )}
+
+        {/* Responsive Filter Bar - Handles both desktop and mobile */}
+        <DivingCentersResponsiveFilterBar
+          showFilters={showAdvancedFilters}
+          onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          onClearFilters={clearFilters}
+          activeFiltersCount={getActiveFiltersCount()}
+          filters={filters}
+          onFilterChange={(key, value) => {
+            handleSearchChange({ target: { name: key, value } });
+          }}
+          onQuickFilter={handleQuickFilter}
+          quickFilter={quickFilter}
+          variant='inline'
+          showQuickFilters={true}
+          showAdvancedToggle={true}
+          searchQuery={filters.search}
+          onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
+          onSearchSubmit={() => {}}
+          // Sorting and view props
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          sortOptions={getSortOptions('diving-centers')}
+          onSortChange={handleSortChange}
+          onReset={resetSorting}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          showThumbnails={showThumbnails}
+          compactLayout={compactLayout}
+          onDisplayOptionChange={handleDisplayOptionChange}
+        />
       </div>
 
       {/* Content Container */}
@@ -699,7 +743,7 @@ const DivingCenters = () => {
                       {/* Website */}
                       {center.website && (
                         <div className='flex items-center gap-1 text-xs text-gray-600'>
-                          <Globe className='w-3 h-3 text-gray-400' />
+                          <Globe className='w-3 h-3 text-gray-400 flex-shrink-0' />
                           <a
                             href={
                               center.website.startsWith('http')
@@ -708,16 +752,16 @@ const DivingCenters = () => {
                             }
                             target='_blank'
                             rel='noopener noreferrer'
-                            className='truncate hover:text-blue-600 transition-colors'
+                            className='truncate hover:text-blue-600 transition-colors min-w-0'
                           >
                             {center.website.replace(/^https?:\/\//, '')}
                           </a>
                         </div>
                       )}
 
-                      {/* Coordinates */}
+                      {/* Coordinates - Hidden on mobile for cleaner interface */}
                       {center.latitude && center.longitude && (
-                        <div className='flex items-center gap-1 text-xs text-gray-600'>
+                        <div className='hidden sm:flex items-center gap-1 text-xs text-gray-600'>
                           <MapPin className='w-3 h-3 text-gray-400' />
                           <span className='truncate'>
                             {center.latitude.toFixed(4)}, {center.longitude.toFixed(4)}
@@ -762,7 +806,7 @@ const DivingCenters = () => {
                   <div className='flex flex-col gap-2 flex-shrink-0'>
                     <Link
                       to={`/diving-centers/${center.id}`}
-                      className='inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors'
+                      className='hidden sm:inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors'
                     >
                       <Eye className='w-3 h-3' />
                       Details
@@ -851,8 +895,8 @@ const DivingCenters = () => {
                     )}
                   </div>
 
-                  {/* Geolocation - always present for consistent spacing */}
-                  <div className='flex items-center gap-2 text-gray-600 mb-4'>
+                  {/* Geolocation - Hidden on mobile for cleaner interface */}
+                  <div className='hidden sm:flex items-center gap-2 text-gray-600 mb-4'>
                     <MapPin className='w-4 h-4 text-gray-400 flex-shrink-0' />
                     <span className={`${compactLayout ? 'text-sm' : 'text-base'}`}>
                       {center.latitude && center.longitude
@@ -963,7 +1007,7 @@ const DivingCenters = () => {
                   <div className='flex gap-2'>
                     <Link
                       to={`/diving-centers/${center.id}`}
-                      className='flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors hover:shadow-md'
+                      className='hidden sm:flex-1 sm:inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors hover:shadow-md'
                     >
                       <Eye className='w-4 h-4' />
                       View Details
@@ -1012,89 +1056,6 @@ const DivingCenters = () => {
           </div>
         )}
       </div>
-
-      {/* Pagination Controls */}
-      {divingCenters && divingCenters.length > 0 && (
-        <div className='mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 mb-8'>
-          {/* Page Size Controls */}
-          <div className='flex items-center gap-4'>
-            <div className='flex items-center gap-2'>
-              <span className='text-sm font-medium text-gray-700'>Show:</span>
-              <select
-                value={pagination.page_size}
-                onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-                className='px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-              >
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-              <span className='text-sm text-gray-600'>per page</span>
-            </div>
-          </div>
-
-          {/* Pagination Info and Navigation */}
-          <div className='flex items-center gap-4'>
-            <div className='text-sm text-gray-600'>
-              Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
-              {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)} of{' '}
-              {paginationInfo.totalCount} diving centers
-            </div>
-
-            {/* Match Type Summary */}
-            {Object.keys(matchTypes).length > 0 && (
-              <div className='text-sm text-gray-600'>
-                <span className='font-medium'>Match Types:</span>
-                {Object.entries(
-                  Object.values(matchTypes).reduce((acc, match) => {
-                    acc[match.type] = (acc[match.type] || 0) + 1;
-                    return acc;
-                  }, {})
-                ).map(([type, count], index) => (
-                  <span key={type}>
-                    {index > 0 ? ', ' : ' '}
-                    <span className='font-medium'>{count}</span> {type}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <div className='flex items-center gap-2'>
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={!paginationInfo.hasPrevPage}
-                className='p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
-              >
-                <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M15 19l-7-7 7-7'
-                  />
-                </svg>
-              </button>
-              <span className='text-sm font-medium text-gray-700'>
-                Page {pagination.page} of {paginationInfo.totalPages}
-              </span>
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={!paginationInfo.hasNextPage}
-                className='p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors'
-              >
-                <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M9 5l7 7-7 7'
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
