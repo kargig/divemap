@@ -14,19 +14,34 @@ const useSorting = (entityType, initialSortBy = null, initialSortOrder = null) =
     const urlSortBy = searchParams.get('sort_by');
     const urlSortOrder = searchParams.get('sort_order');
 
-    // Validate URL params
-    if (urlSortBy && urlSortOrder) {
-      const validation = validateSortParams(urlSortBy, urlSortOrder, entityType);
+    let finalSortBy = initialSortBy || defaultSort.sortBy;
+    let finalSortOrder = initialSortOrder || defaultSort.sortOrder;
+
+    if (urlSortBy) {
+      // Validate sort_by if provided
+      const validation = validateSortParams(
+        urlSortBy,
+        urlSortOrder || defaultSort.sortOrder,
+        entityType
+      );
       if (validation.isValid) {
-        return { sortBy: urlSortBy, sortOrder: urlSortOrder };
+        finalSortBy = urlSortBy;
       }
     }
 
-    // Use provided initial values or defaults
-    return {
-      sortBy: initialSortBy || defaultSort.sortBy,
-      sortOrder: initialSortOrder || defaultSort.sortOrder,
-    };
+    if (urlSortOrder) {
+      // Validate sort_order if provided
+      const validation = validateSortParams(
+        urlSortBy || defaultSort.sortBy,
+        urlSortOrder,
+        entityType
+      );
+      if (validation.isValid) {
+        finalSortOrder = urlSortOrder;
+      }
+    }
+
+    return { sortBy: finalSortBy, sortOrder: finalSortOrder };
   });
 
   // No longer need this ref since we removed URL sync effect
