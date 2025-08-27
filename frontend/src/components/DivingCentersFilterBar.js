@@ -89,32 +89,32 @@ const DivingCentersFilterBar = ({
 
       {/* Active Filters Display */}
       {activeFilters.length > 0 && (
-        <div className='border-t border-gray-200 p-3 sm:p-4 bg-blue-50'>
-          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-2'>
-            <span className='text-sm font-medium text-blue-900 text-center sm:text-left'>
+        <div className='border-t border-gray-200 py-2 px-3 bg-blue-50'>
+          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1.5'>
+            <span className='text-xs font-medium text-blue-900 text-center sm:text-left'>
               Active Filters:
             </span>
             <button
               onClick={onClearFilters}
-              className='text-sm text-blue-600 hover:text-blue-800 active:text-blue-900 underline min-h-[44px] sm:min-h-0 touch-manipulation px-3 py-2 sm:px-0 sm:py-0 rounded-lg sm:rounded-none hover:bg-blue-100 sm:hover:bg-transparent transition-colors'
+              className='text-xs text-blue-600 hover:text-blue-800 active:text-blue-900 underline min-h-[44px] sm:min-h-0 touch-manipulation px-3 py-2 sm:px-0 sm:py-0 rounded-lg sm:rounded-none hover:bg-blue-100 sm:hover:bg-transparent transition-colors'
             >
               Clear All
             </button>
           </div>
-          <div className='flex flex-wrap gap-2 justify-center sm:justify-start'>
+          <div className='flex flex-wrap gap-1 justify-center sm:justify-start'>
             {activeFilters.map(filter => (
               <div
                 key={filter.key}
-                className='inline-flex items-center gap-2 px-3 py-2 sm:py-1.5 bg-blue-100 text-blue-800 text-sm rounded-full border border-blue-200'
+                className='inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200'
               >
                 <span className='font-medium'>{filter.label}:</span>
                 <span>{filter.value}</span>
                 <button
                   onClick={() => onFilterChange(filter.key, '')}
-                  className='ml-1 text-blue-600 hover:text-blue-800 active:text-blue-900 transition-colors p-1 rounded-full hover:bg-blue-200 active:bg-blue-300 min-h-[32px] sm:min-h-0 touch-manipulation'
+                  className='ml-1 text-blue-600 hover:text-blue-800 active:text-blue-900 transition-colors p-0.5 rounded-full hover:bg-blue-200 active:bg-blue-300 min-h-[32px] sm:min-h-0 touch-manipulation'
                   title={`Remove ${filter.label} filter`}
                 >
-                  <X className='h-3 w-3' />
+                  <X className='h-2.5 w-2.5' />
                 </button>
               </div>
             ))}

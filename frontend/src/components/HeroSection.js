@@ -41,16 +41,9 @@ const HeroSection = ({
       <>
         {/* Mobile Layout */}
         <section className='md:hidden'>
-          {/* Hero with logo background - align text to bottom for readability on mobile */}
-          <div className='relative min-h-[220px] flex items-end justify-center overflow-hidden pb-4'>
-            <img
-              src='/divemap-logo-hero-background-mobile.png'
-              alt=''
-              className='absolute inset-0 h-full w-full object-cover opacity-80'
-            />
-            {/* Bottom gradient to improve text contrast over logo */}
-            <div className='absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white/90 via-white/50 to-transparent pointer-events-none' />
-            <div className='relative z-10 text-center px-4'>
+          {/* Mobile: No background, simple text layout */}
+          <div className='min-h-[120px] flex items-center justify-center pb-4'>
+            <div className='text-center px-4'>
               <h1 className='text-2xl font-bold text-gray-900 mb-1'>{title}</h1>
               {subtitle && <p className='text-sm text-gray-800 max-w-xs mx-auto'>{subtitle}</p>}
             </div>

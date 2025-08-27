@@ -28,7 +28,6 @@ import { useQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { getParsedTrips, getDivingCenters, getDiveSites } from '../api';
-import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
 import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import RateLimitError from '../components/RateLimitError';
@@ -1002,31 +1001,7 @@ const DiveTrips = () => {
               </div>
             </div>
           </div>
-        ) : (
-          <div className='mb-6'>
-            <EnhancedMobileSortingControls
-              sortBy={sortOptions.sort_by}
-              sortOrder={sortOptions.sort_order}
-              sortOptions={getAvailableSortOptions()}
-              onSortChange={(sortBy, sortOrder) =>
-                setSortOptions(prev => ({ ...prev, sort_by: sortBy, sort_order: sortOrder }))
-              }
-              onSortApply={() => {}} // No separate apply needed for DiveTrips
-              onReset={() => setSortOptions({ sort_by: 'trip_date', sort_order: 'desc' })}
-              entityType='dive-trips'
-              viewMode={viewMode}
-              onViewModeChange={changeViewMode}
-              showFilters={false} // Hide filters in this section for now
-              onToggleFilters={() => {}}
-              showQuickActions={true}
-              showFAB={true}
-              showTabs={true}
-              showThumbnails={showThumbnails}
-              compactLayout={compactLayout}
-              onDisplayOptionChange={handleDisplayOptionChange}
-            />
-          </div>
-        )}
+        ) : null}
 
         {/* Mobile View Mode Quick Access */}
         {isMobile && (
