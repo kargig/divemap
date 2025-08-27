@@ -28,6 +28,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
+import { useResponsiveScroll } from '../hooks/useResponsive';
 
 import Logo from './Logo';
 
@@ -35,6 +36,7 @@ const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isMobile, navbarVisible } = useResponsiveScroll();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAdminDropdown, setShowAdminDropdown] = useState(false);
   const [showInfoDropdown, setShowInfoDropdown] = useState(false);
@@ -88,7 +90,9 @@ const Navbar = () => {
 
   return (
     <nav
-      className='text-white shadow-lg fixed top-0 left-0 right-0 z-[60]'
+      className={`text-white shadow-lg fixed top-0 left-0 right-0 z-[60] transition-transform duration-300 ease-in-out ${
+        isMobile && !navbarVisible ? '-translate-y-full' : 'translate-y-0'
+      }`}
       style={{
         backgroundColor: '#2d6b8a',
       }}

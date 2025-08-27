@@ -19,14 +19,14 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
-import DiveSitesFilterBar from '../components/DiveSitesFilterBar';
+import DesktopSearchBar from '../components/DesktopSearchBar';
 import DiveSitesMap from '../components/DiveSitesMap';
-import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
-import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import MatchTypeBadge from '../components/MatchTypeBadge';
 import RateLimitError from '../components/RateLimitError';
+import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
+import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
@@ -103,19 +103,8 @@ const DiveSites = () => {
     zoom: 2,
   });
 
-  // Mobile detection
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Check if we're on mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  // Responsive detection using custom hook
+  const { isMobile } = useResponsive();
   // Calculate effective page size for pagination display
   const effectivePageSize = pagination.page_size || 25;
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
@@ -126,7 +115,7 @@ const DiveSites = () => {
   });
 
   // Initialize sorting
-  const { sortBy, sortOrder, handleSortChange, handleSortApply, resetSorting, getSortParams } =
+  const { sortBy, sortOrder, handleSortChange, resetSorting, getSortParams } =
     useSorting('dive-sites');
 
   // Update viewMode when searchParams change
@@ -690,34 +679,21 @@ const DiveSites = () => {
         )}
         {/* Filter Bar - Sticky and compact with mobile-first responsive design */}
         <div className='sticky-below-navbar bg-white shadow-sm border-b border-gray-200 rounded-t-lg py-3 sm:py-4'>
-          {/* Smart Fuzzy Search Input - Enhanced search experience */}
-          <div className='px-3 sm:px-4 mb-3 sm:mb-4'>
-            <div className='max-w-2xl mx-auto'>
-              <FuzzySearchInput
-                data={diveSites?.results || []}
-                searchValue={filters.search_query}
-                onSearchChange={value => handleFilterChange('search_query', value)}
-                onSearchSelect={selectedItem => {
-                  handleFilterChange('search_query', selectedItem.name);
-                }}
-                configType='diveSites'
-                placeholder='Search dive sites by name, country, region, or description...'
-                minQueryLength={2}
-                maxSuggestions={8}
-                debounceDelay={300}
-                showSuggestions={true}
-                highlightMatches={true}
-                showScore={false}
-                showClearButton={true}
-                className='w-full'
-                inputClassName='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base'
-                suggestionsClassName='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto'
-                highlightClass='bg-blue-100 font-medium'
-              />
-            </div>
-          </div>
+          {/* Desktop Search Bar - Only visible on desktop/tablet */}
+          {!isMobile && (
+            <DesktopSearchBar
+              searchValue={filters.search_query}
+              onSearchChange={value => handleFilterChange('search_query', value)}
+              onSearchSelect={selectedItem => {
+                handleFilterChange('search_query', selectedItem.name);
+              }}
+              data={diveSites?.results || []}
+              configType='diveSites'
+              placeholder='Search dive sites by name, country, region, or description...'
+            />
+          )}
 
-          <DiveSitesFilterBar
+          <ResponsiveFilterBar
             showFilters={showAdvancedFilters}
             onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
             onClearFilters={clearFilters}
@@ -729,79 +705,37 @@ const DiveSites = () => {
             variant='inline'
             showQuickFilters={true}
             showAdvancedToggle={true}
-            mobileOptimized={true}
+            searchQuery={filters.search_query}
+            onSearchChange={value => handleFilterChange('search_query', value)}
+            onSearchSubmit={() => {}}
+            // Add sorting props
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            sortOptions={getSortOptions('dive-sites')}
+            onSortChange={handleSortChange}
+            onReset={resetSorting}
+            viewMode={viewMode}
+            onViewModeChange={handleViewModeChange}
+            showThumbnails={showThumbnails}
+            compactLayout={compactLayout}
+            onDisplayOptionChange={handleDisplayOptionChange}
           />
         </div>
         {/* Content Section */}
         <div className={`content-section ${mobileStyles.mobileMargin}`}>
-          {/* Enhanced Mobile Sorting Controls */}
-          <div className='bg-white shadow-sm border-b border-l border-r border-gray-200 rounded-b-lg'>
-            <EnhancedMobileSortingControls
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              sortOptions={getSortOptions('dive-sites')}
-              onSortChange={handleSortChange}
-              onSortApply={handleSortApply}
-              onReset={resetSorting}
-              entityType='dive-sites'
-              showFilters={false} // Hide filters in this section for now
-              onToggleFilters={() => {}}
-              viewMode={viewMode}
-              onViewModeChange={handleViewModeChange}
-              showQuickActions={true}
-              showFAB={true}
-              showTabs={true}
-              showThumbnails={showThumbnails}
-              compactLayout={compactLayout}
-              onDisplayOptionChange={handleDisplayOptionChange}
-              mobileOptimized={true}
-              hideGrid={true}
-            />
-
-            {/* Mobile View Mode Quick Access */}
-            {isMobile && (
-              <div data-testid='view-mode-toggle' className='mt-4 flex justify-center gap-2'>
-                <button
-                  data-testid='list-view-button'
-                  onClick={() => handleViewModeChange('list')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    viewMode === 'list'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } touch-manipulation min-h-[44px] ${viewMode === 'list' ? 'active' : ''}`}
-                >
-                  <List className='h-5 w-5 inline mr-2' />
-                  List
-                </button>
-                <button
-                  data-testid='map-view-button'
-                  onClick={() => handleViewModeChange('map')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    viewMode === 'map'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } touch-manipulation min-h-[44px] ${viewMode === 'map' ? 'active' : ''}`}
-                >
-                  <Map className='h-5 w-5 inline mr-2' />
-                  Map
-                </button>
-              </div>
-            )}
-          </div>
-
           {/* Pagination Controls - Mobile-first responsive design */}
-          <div className='mb-4 sm:mb-6 lg:mb-8'>
-            <div className='bg-white rounded-lg shadow-md p-3 sm:p-4 lg:p-6'>
-              <div className='flex flex-col lg:flex-row justify-between items-center gap-3 sm:gap-4'>
+          <div className='mb-2 sm:mb-6 lg:mb-8'>
+            <div className='bg-white rounded-lg shadow-md p-2 sm:p-4 lg:p-6'>
+              <div className='flex flex-col lg:flex-row justify-between items-center gap-2 sm:gap-4'>
                 {/* Pagination Controls */}
-                <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto'>
+                <div className='flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto'>
                   {/* Page Size Selection */}
-                  <div className='flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start'>
+                  <div className='flex items-center gap-1 sm:gap-2 w-full sm:w-auto justify-center sm:justify-start'>
                     <label className='text-xs sm:text-sm font-medium text-gray-700'>Show:</label>
                     <select
                       value={pagination.page_size}
                       onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-                      className='px-2 sm:px-3 py-2 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[44px] sm:min-h-0 touch-manipulation'
+                      className='px-1 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[36px] sm:min-h-0 touch-manipulation'
                     >
                       <option value={25}>25</option>
                       <option value={50}>50</option>
@@ -821,16 +755,16 @@ const DiveSites = () => {
 
                   {/* Pagination Navigation */}
                   {totalCount !== undefined && totalCount !== null && totalCount > 0 && (
-                    <div className='flex items-center gap-2'>
+                    <div className='flex items-center gap-1 sm:gap-2'>
                       <button
                         onClick={() => handlePageChange(pagination.page - 1)}
                         disabled={!hasPrevPage}
-                        className='px-3 py-2 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[44px] sm:min-h-0 touch-manipulation transition-colors'
+                        className='px-2 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[36px] sm:min-h-0 touch-manipulation transition-colors'
                       >
                         <ChevronLeft className='h-4 w-4' />
                       </button>
 
-                      <span className='text-xs sm:text-sm text-gray-700 px-2'>
+                      <span className='text-xs sm:text-sm text-gray-700 px-1 sm:px-2'>
                         Page {pagination.page} of{' '}
                         {totalPages || Math.max(1, Math.ceil(totalCount / effectivePageSize))}
                       </span>
@@ -838,7 +772,7 @@ const DiveSites = () => {
                       <button
                         onClick={() => handlePageChange(pagination.page + 1)}
                         disabled={!hasNextPage}
-                        className='px-3 py-2 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[44px] sm:min-h-0 touch-manipulation transition-colors'
+                        className='px-2 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[36px] sm:min-h-0 touch-manipulation transition-colors'
                       >
                         <ChevronRight className='h-4 w-4' />
                       </button>
@@ -874,11 +808,20 @@ const DiveSites = () => {
               {diveSites.results.map(site => (
                 <div
                   key={site.id}
-                  className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow ${
+                  className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow relative ${
                     compactLayout ? 'p-2 sm:p-3' : 'p-3 sm:p-4'
                   }`}
                 >
                   <div className='flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2'>
+                    {/* Mobile: View button in upper right corner */}
+                    <Link
+                      to={`/dive-sites/${site.id}`}
+                      className='sm:hidden absolute top-2 right-2 inline-flex items-center justify-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors min-h-[32px] touch-manipulation'
+                    >
+                      <Eye className='w-3 h-3' />
+                      <span>View</span>
+                    </Link>
+
                     <div className='flex-1 min-w-0'>
                       <div className='flex items-start gap-2 mb-2'>
                         {showThumbnails && (
@@ -887,9 +830,9 @@ const DiveSites = () => {
                           </div>
                         )}
                         <div className='min-w-0 flex-1'>
-                          <div className='flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2'>
+                          <div className='flex flex-col gap-0'>
                             <h3
-                              className={`font-semibold text-gray-900 truncate ${compactLayout ? 'text-sm' : 'text-base'}`}
+                              className={`font-semibold text-gray-900 truncate ${compactLayout ? 'text-sm' : 'text-base'} sm:mb-0 -mb-2 leading-tight sm:leading-normal`}
                             >
                               <Link
                                 to={`/dive-sites/${site.id}`}
@@ -899,32 +842,43 @@ const DiveSites = () => {
                                 {site.name}
                               </Link>
                             </h3>
-                            {/* Match Type Badge - Show when we have match type information */}
-                            {matchTypes[site.id] && (
-                              <MatchTypeBadge
-                                matchType={matchTypes[site.id].type}
-                                score={matchTypes[site.id].score}
-                                className='flex-shrink-0'
-                              />
-                            )}
+                            {/* Mobile: Country/Region as subtitle */}
                             {(site.country || site.region) && (
                               <span
-                                className={`text-gray-600 flex-shrink-0 ${compactLayout ? 'text-xs' : 'text-sm'}`}
+                                className={`text-gray-600 ${compactLayout ? 'text-xs' : 'text-sm'} sm:hidden -mt-3 leading-tight`}
                               >
                                 {[site.country, site.region].filter(Boolean).join(', ')}
                               </span>
                             )}
+                            {/* Desktop: Country/Region in original position */}
+                            <div className='hidden sm:flex sm:flex-row sm:items-center gap-1 sm:gap-2'>
+                              {/* Match Type Badge - Show when we have match type information */}
+                              {matchTypes[site.id] && (
+                                <MatchTypeBadge
+                                  matchType={matchTypes[site.id].type}
+                                  score={matchTypes[site.id].score}
+                                  className='flex-shrink-0'
+                                />
+                              )}
+                              {(site.country || site.region) && (
+                                <span
+                                  className={`text-gray-600 flex-shrink-0 ${compactLayout ? 'text-xs' : 'text-sm'}`}
+                                >
+                                  {[site.country, site.region].filter(Boolean).join(', ')}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
+                    {/* Desktop: View button in original position */}
                     <Link
                       to={`/dive-sites/${site.id}`}
-                      className='self-start sm:self-center flex-shrink-0 inline-flex items-center justify-center gap-1 px-3 py-2 sm:px-2 sm:py-1 text-xs sm:text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors min-h-[44px] sm:min-h-0 touch-manipulation'
+                      className='hidden sm:inline-flex self-center flex-shrink-0 items-center justify-center gap-1 px-2 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors'
                     >
-                      <Eye className='w-3 h-3 sm:w-3 sm:h-3' />
-                      <span className='sm:hidden'>View Details</span>
-                      <span className='hidden sm:inline'>View</span>
+                      <Eye className='w-3 h-3' />
+                      <span>View</span>
                     </Link>
                   </div>
 
@@ -950,18 +904,7 @@ const DiveSites = () => {
                         </span>
                       </div>
                     )}
-                    {site.latitude !== undefined &&
-                      site.latitude !== null &&
-                      site.longitude !== undefined &&
-                      site.longitude !== null && (
-                        <div className='flex items-center gap-1'>
-                          <MapPin className='w-3 h-3 text-gray-400' />
-                          <span className='text-xs text-gray-600'>
-                            {Number(site.latitude).toFixed(4)}°, {Number(site.longitude).toFixed(4)}
-                            °
-                          </span>
-                        </div>
-                      )}
+                    {/* Geo coordinates removed for mobile view */}
                   </div>
 
                   {site.description && (
@@ -1081,18 +1024,7 @@ const DiveSites = () => {
                           </span>
                         </div>
                       )}
-                      {site.latitude !== undefined &&
-                        site.latitude !== null &&
-                        site.longitude !== undefined &&
-                        site.longitude !== null && (
-                          <div className='flex items-center gap-2'>
-                            <MapPin className='w-4 h-4 text-gray-400' />
-                            <span className='text-sm text-gray-600'>
-                              {Number(site.latitude).toFixed(4)}°,{' '}
-                              {Number(site.longitude).toFixed(4)}°
-                            </span>
-                          </div>
-                        )}
+                      {/* Geo coordinates removed for grid view */}
                     </div>
 
                     {site.description && (

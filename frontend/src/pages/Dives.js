@@ -25,7 +25,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import api, { deleteDive } from '../api';
 import DivesMap from '../components/DivesMap';
-import EnhancedMobileSortingControls from '../components/EnhancedMobileSortingControls';
 import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import ImportDivesModal from '../components/ImportDivesModal';
@@ -101,8 +100,7 @@ const Dives = () => {
   });
 
   // Initialize sorting
-  const { sortBy, sortOrder, handleSortChange, handleSortApply, resetSorting, getSortParams } =
-    useSorting('dives');
+  const { sortBy, sortOrder, handleSortChange, resetSorting, getSortParams } = useSorting('dives');
 
   // Debounced URL update for search inputs
   const debouncedUpdateURL = useCallback(
@@ -977,29 +975,6 @@ const Dives = () => {
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Sorting Controls */}
-      <div className='mb-6 sm:mb-8'>
-        <EnhancedMobileSortingControls
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          sortOptions={getSortOptions('dives')}
-          onSortChange={handleSortChange}
-          onSortApply={handleSortApply}
-          onReset={resetSorting}
-          entityType='dives'
-          showFilters={false} // Hide filters in this section for now
-          onToggleFilters={() => {}}
-          viewMode={viewMode}
-          onViewModeChange={handleViewModeChange}
-          showQuickActions={true}
-          showFAB={true}
-          showTabs={true}
-          showThumbnails={showThumbnails}
-          compactLayout={compactLayout}
-          onDisplayOptionChange={handleDisplayOptionChange}
-        />
       </div>
 
       {/* Pagination Controls */}
