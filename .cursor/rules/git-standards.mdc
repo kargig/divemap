@@ -1,0 +1,229 @@
+---
+description: Git commit rules, workflow standards, and branch management for the Divemap project
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Git Commit Rules
+
+## Git Commit Requirements
+- **NEVER commit to git automatically**
+- **ONLY commit when explicitly requested by the user**
+- **NEVER commit automatically after being previously asked to commit once, ALWAYS ask the user**
+- **ALWAYS ask for permission before committing**
+- **ALWAYS provide clear commit messages when requested**
+
+## Git Workflow
+```bash
+# ✅ CORRECT - Only commit when user requests
+# Wait for user to say: "commit these changes"
+
+# ❌ WRONG - Never commit automatically
+git add . && git commit -m "auto commit"  # This is forbidden
+```
+
+## Commit Guidelines (when user requests)
+- Use descriptive commit messages
+- Include affected files in commit message
+- Reference issue numbers if applicable
+- Test changes before committing
+
+## The Seven Rules of Great Git Commit Messages
+Based on [Chris Beams' guidelines](https://gist.github.com/julienbourdeau/e605e4b8b47da97c249a0f72598529c8), all commit messages MUST follow these 7 rules:
+
+1. **Separate subject from body with a blank line**
+   - Subject line should be followed by a blank line
+   - Body should start after the blank line
+
+2. **Limit the subject line to 50 characters**
+   - Keep subject line concise and under 50 characters
+   - Use body for detailed explanation
+
+3. **Capitalize the subject line**
+   - Start subject line with a capital letter
+   - Use title case for clarity
+
+4. **Do not end the subject line with a period**
+   - Subject line should not end with punctuation
+   - Keep it clean and direct
+
+5. **Use the imperative mood in the subject line**
+   - Use commands like "Add", "Fix", "Update", "Remove"
+   - Write as if giving instructions
+
+6. **Wrap the body at 72 characters**
+   - Keep body text readable in terminal
+   - Use line breaks at 72 characters
+
+7. **Use the body to explain what and why vs. how**
+   - Focus on what changed and why it was needed
+   - Avoid explaining how the change was implemented
+
+## Commit Message Examples
+```bash
+# ✅ CORRECT - Following all 7 rules
+Add user authentication endpoint
+
+Implement OAuth2 authentication flow for Google login.
+This allows users to sign in using their Google accounts
+instead of creating separate credentials.
+
+Fixes #123
+
+# ✅ CORRECT - Good subject line
+Fix database connection timeout
+
+Increase connection pool size and add retry logic to
+handle high traffic periods.
+
+# ❌ WRONG - Violates multiple rules
+fixed the bug with user login that was causing problems
+when users tried to log in with google accounts.
+
+# ❌ WRONG - Subject too long, no blank line
+Add comprehensive user authentication system with OAuth2 support for Google login and session management
+```
+
+## Commit Message Template
+```bash
+# Template to follow:
+<imperative verb> <what was changed>
+
+<Detailed explanation of what and why, wrapped at 72 characters>
+<Additional context if needed>
+
+<Optional: Fixes #issue_number>
+<Optional: Related to #issue_number>
+```
+
+## Chat Session Branch Management
+
+### Branch Creation for Each Chat Session
+- **ALWAYS create a new branch for each chat session when making code changes**
+- **ALWAYS use descriptive branch names that reflect the chat session purpose**
+- **ALWAYS create the branch from the current master/main branch**
+- **NEVER work directly on master/main branch during chat sessions**
+
+### Branch Naming Convention
+```bash
+# ✅ CORRECT - Descriptive branch names for chat sessions
+feature/add-user-authentication
+fix/database-connection-issues
+enhancement/improve-frontend-performance
+refactor/backend-api-structure
+
+# ❌ WRONG - Generic or unclear branch names
+chat-branch
+temp-branch
+fix-stuff
+```
+
+### Chat Session Workflow
+1. **Create new branch at start of chat session**
+   ```bash
+   git checkout -b feature/descriptive-feature-name
+   ```
+
+2. **Make incremental commits after each batch of changes**
+   - Commit changes after completing logical units of work
+   - Use descriptive commit messages following the 7 rules
+   - Each commit should represent a complete, testable change
+
+3. **Continue development with multiple prompts**
+   - Each prompt can request additional changes
+   - Commit each batch of changes separately
+   - Maintain clean commit history for easy review
+
+4. **Final consolidation when user is satisfied**
+   - Squash all commits into a single commit
+   - Create comprehensive commit message covering all changes
+   - Ask user if they want to create a pull request
+
+### Commit Management During Chat Session
+```bash
+# ✅ CORRECT - Incremental commits during development
+git add file1.js file2.js
+git commit -m "Add user authentication components
+
+Implement login form and authentication context.
+Add form validation and error handling."
+
+# Make more changes based on next prompt
+git add file3.js file4.js
+git commit -m "Add user profile management
+
+Implement profile editing and avatar upload.
+Add user preferences and settings."
+
+# ❌ WRONG - Don't wait until end to commit
+# Don't accumulate all changes in working directory
+```
+
+### Final Commit Consolidation
+When the user indicates they are satisfied with all changes:
+
+1. **Squash all commits into one**
+   ```bash
+   git reset --soft HEAD~N  # Where N is the number of commits to squash
+   git commit -m "Comprehensive feature implementation
+
+   This commit consolidates all changes from the chat session:
+   - Add user authentication system
+   - Implement profile management
+   - Add form validation and error handling
+   - Update documentation and tests
+   
+   All changes have been tested and validated."
+   ```
+
+2. **Ask user about pull request creation**
+   - Confirm user is happy with the final consolidated commit
+   - Offer to create a pull request to merge into master
+   - Provide clear summary of what will be merged
+
+### Pull Request Workflow
+```bash
+# ✅ CORRECT - Create pull request after user approval
+git push origin feature/descriptive-feature-name
+
+# Create pull request with:
+# - Clear title describing the feature/fix
+# - Detailed description of all changes
+# - List of affected files and components
+# - Testing instructions
+# - Any breaking changes or considerations
+
+# ❌ WRONG - Don't create PR without user approval
+# Always confirm user wants to proceed with PR creation
+```
+
+### Chat Session Completion Checklist
+Before considering a chat session complete:
+- [ ] All requested changes have been implemented
+- [ ] All changes have been tested and validated
+- [ ] Code quality checks pass (linting, formatting, tests)
+- [ ] All commits have been consolidated into one final commit
+- [ ] User has confirmed they are satisfied with all changes
+- [ ] User has approved creation of pull request
+- [ ] Branch is ready for review and merging
+
+### Branch Cleanup
+After successful merge to master:
+- **ALWAYS delete the feature branch locally and remotely**
+- **ALWAYS ensure master branch is up to date**
+- **ALWAYS verify all changes are properly merged**
+
+```bash
+# ✅ CORRECT - Clean up after successful merge
+git checkout master
+git pull origin master
+git branch -d feature/descriptive-feature-name
+git push origin --delete feature/descriptive-feature-name
+
+# ❌ WRONG - Don't leave feature branches hanging
+# Always clean up after successful merge
+```
+description:
+globs:
+alwaysApply: true
+---

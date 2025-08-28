@@ -1,0 +1,113 @@
+---
+description: Documentation standards and requirements for maintaining project documentation in the Divemap project
+globs: ["docs/**/*", "**/*.md", "**/*.txt"]
+alwaysApply: false
+---
+
+# Documentation Requirements
+
+## Documentation Standards
+
+- **ALWAYS use consistent markdown formatting**
+- **ALWAYS include table of contents for files > 100 lines**
+- **ALWAYS include clear problem statements**
+- **ALWAYS provide step-by-step solutions**
+- **ALWAYS document all affected files**
+- **ALWAYS include troubleshooting sections**
+
+## Documentation Organization
+
+- **NEVER create documentation outside the docs/ directory**
+- **ALWAYS organize documentation by category (getting-started, development, deployment, security, maintenance)**
+- **ALWAYS update the main docs/README.md index when adding new documentation**
+- **ALWAYS use existing file names if the changes fit their titles**
+- **ONLY use new file names if the content and context is VERY different from existing files**
+
+## Documentation Workflow
+
+- **ALWAYS test documentation procedures before committing**
+- **ALWAYS include code examples and screenshots where appropriate**
+- **ALWAYS verify links and references**
+- **ALWAYS update related documentation when making changes**
+
+## Documentation Templates
+
+```markdown
+# [Title]
+
+Brief description of what this document covers.
+
+## Table of Contents
+
+1. [Section 1](#section-1)
+2. [Section 2](#section-2)
+3. [Section 3](#section-3)
+
+## Section 1
+
+Content with clear explanations and examples.
+
+### Subsection
+
+Detailed information with code examples:
+
+```bash
+# Example command
+command --option value
+```
+
+## Section 2
+
+More content with proper formatting.
+
+## Troubleshooting
+
+Common issues and solutions.
+
+## Related Documentation
+
+- [Link to related doc 1](./related-doc-1.md)
+- [Link to related doc 2](./related-doc-2.md)
+```
+
+## Documentation Quality Checklist
+
+- [ ] All links work correctly
+- [ ] Code examples are tested and functional
+- [ ] Screenshots are up-to-date
+- [ ] Table of contents is complete
+- [ ] Related documentation is updated
+- [ ] No broken references
+- [ ] Consistent formatting throughout
+
+## Code Documentation
+
+- Document all new features
+- Update README.md for user-facing changes
+- Update API_CHANGELOG.md for API changes
+- Update CHANGELOG.md for all changes
+
+## Migration Documentation
+
+- Document all database schema changes
+- Include migration files in version control
+- Provide rollback instructions
+- Test migration procedures
+
+## API Documentation
+
+- Document all API endpoints
+- Include request/response examples
+- Document authentication requirements
+- Provide error handling examples
+
+## Deployment Documentation
+
+- Document deployment procedures
+- Include environment setup instructions
+- Document troubleshooting steps
+- Provide rollback procedures
+description:
+globs:
+alwaysApply: true
+---

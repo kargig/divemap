@@ -1,0 +1,170 @@
+---
+description: Database migration rules and Alembic requirements for backend database schema changes
+globs: ["backend/migrations/**/*", "backend/app/models/**/*", "backend/create_migration.py", "backend/run_migrations.py"]
+alwaysApply: false
+---
+
+# Database Migration Rules
+
+## Alembic Migration Requirements
+- **MUST always take a full mysql backup BEFORE any database schema changes and name it according to the latest git commit**
+- **MUST use Alembic for ALL database schema changes**
+- **NEVER modify database schema manually**
+- **ALWAYS create migrations for schema changes**
+- **ALWAYS test migrations before applying**
+- **ALWAYS restore the most recent database backup when a migration script fails, and then try again with any necessary changes**
+
+## Migration Workflow
+```bash
+# ✅ CORRECT - Use Alembic for migrations
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+
+# Create new migration
+python create_migration.py "Description of changes"
+
+# Run migrations
+python run_migrations.py
+
+# ❌ WRONG - Never modify database manually
+# Direct SQL ALTER TABLE statements are forbidden
+```
+
+## Migration Best Practices
+- Always review auto-generated migrations
+- Test migrations on development database first
+- Backup production database before migrations
+- Use descriptive migration names
+- Handle dependencies between migrations
+
+## Migration Creation Anti-Hallucination Rule
+- **BEFORE creating any new migration file, ALWAYS examine previous successful migrations**
+- **ALWAYS look at the last 3-5 migration files to see which methods have worked successfully**
+- **NEVER invent new migration patterns without first checking existing working examples**
+- **ALWAYS use the same successful patterns from previous migrations for similar operations**
+- **If a migration pattern worked before, use it again instead of trying something new**
+- **When in doubt, copy the structure and approach from a similar previous migration**
+- **This prevents migration creation hallucinations and ensures consistency**
+
+## Migration Testing Requirements
+- **ALWAYS test new migration files on a test MySQL container before applying to production**
+- **ALWAYS use the same testing approach as the GitHub Actions workflow**
+- **NEVER assume a migration will work without testing it first**
+- **ALWAYS verify that the created tables match exactly what the models expect**
+
+## Migration Testing Workflow
+```bash
+# ✅ CORRECT - Test migrations on isolated MySQL container
+# 1. Start test MySQL container
+docker run --name divemap_test_mysql \
+  -e MYSQL_ROOT_PASSWORD=password \
+  -e MYSQL_DATABASE=divemap_test \
+  -d -p 3307:3306 mysql:8.0
+
+# 2. Wait for MySQL to be ready
+sleep 15
+docker exec divemap_test_mysql mysql -u root -ppassword -e "SELECT 1;"
+
+# 3. Set up Python environment
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+export DATABASE_URL="mysql+pymysql://root:password@localhost:3307/divemap_test"
+
+# 4. Run all migrations from scratch
+alembic upgrade head
+
+# 5. Verify all modified tables in the migration file match models. Example:
+docker exec divemap_test_mysql mysql -u root -ppassword divemap_test -e "DESCRIBE parsed_dive_trips;"
+
+# 6. Run backend tests to ensure compatibility
+python -m pytest tests/ -v
+
+# 7. Clean up test container
+docker stop divemap_test_mysql && docker rm divemap_test_mysql
+
+# ❌ WRONG - Don't skip migration testing
+# Never apply migrations without testing them first
+# Never assume migrations will work in production
+```
+
+## Migration Testing Checklist
+Before considering a migration ready for production:
+- [ ] Migration runs successfully on test MySQL container
+- [ ] All tables are created with correct structure
+- [ ] Column types match model definitions exactly
+- [ ] Indexes are created correctly
+- [ ] Constraints are applied properly
+- [ ] Backend tests pass with new schema
+- [ ] Models can successfully query the database
+- [ ] Test container is cleaned up after testing
+
+## Migration Filename Requirements
+- **MUST always use numerical ordering for migration filenames**
+- **MUST follow the format: `####_descriptive_name.py` where #### is a 4-digit number**
+- **MUST ensure sequential numbering (0001, 0002, 0003, etc.)**
+- **MUST use descriptive names that clearly indicate the migration purpose**
+- **NEVER use hash-based filenames (like `abc123_description.py`)**
+- **NEVER use non-numerical prefixes or random strings**
+- **ALWAYS check existing migration numbers before creating new ones**
+- **ALWAYS rename any migration files that don't follow this pattern**
+
+## Migration Revision ID Requirements
+- **Revision IDs can be hash-based strings (e.g., 'c85d7af66778', '9002229c2a67')**
+- **Revision IDs can be descriptive strings (e.g., 'consolidated_dive_system_final', 'add_parseddive_table_simple')**
+- **Revision IDs can be any valid Alembic identifier including text strings**
+- **Revision IDs are completely separate from filenames and can be any format**
+- **Only the filename prefix must follow numerical ordering (0001_, 0002_, etc.)**
+- **The actual revision ID in the file can be anything - hash, text, or descriptive string**
+
+## Migration Revision ID Length Requirements
+- **Revision IDs MUST fit within MySQL's VARCHAR(32) limit for the alembic_version.version_num column**
+- **MySQL's default alembic_version table uses VARCHAR(32) for version_num column**
+- **Revision IDs longer than 32 characters will cause "Data too long for column 'version_num'" errors**
+- **When encountering length errors, shorten the revision ID rather than modifying database schema**
+- **Keep revision IDs descriptive but concise (under 32 characters)**
+- **Examples of acceptable lengths:**
+  - Hash-based: 'c85d7af66778' (12 characters) ✅
+  - Short descriptive: '0018_depth_precision' (22 characters) ✅
+  - Medium descriptive: 'add_parseddive_table_simple' (31 characters) ✅
+  - Too long: '0018_increase_depth_precision_to_3_decimal_places' (45 characters) ❌
+- **If a revision ID is too long, shorten it while maintaining clarity and uniqueness**
+- **Always update subsequent migration files' down_revision fields when shortening revision IDs**
+- **Test migrations after shortening revision IDs to ensure chain consistency**
+
+## Migration Filename Examples
+```bash
+# ✅ CORRECT - Numerical ordering with descriptive names
+0001_initial.py
+0002_add_max_depth_and_alternative_names.py
+0003_add_country_region_fields.py
+0004_add_view_count_fields.py
+0005_add_user_diving_fields.py
+0006_add_diving_organizations_and_user_certifications.py
+0007_remove_unnecessary_certification_fields.py
+
+# ❌ WRONG - Hash-based or non-numerical filenames
+c85d7af66778_add_diving_organizations_and_user_.py
+abc123_description.py
+add_dive_name_and_privacy.py
+consolidated_dive_system_final.py
+```
+
+## Migration Filename Workflow
+```bash
+# ✅ CORRECT - Check existing migrations before creating new ones
+cd backend/migrations/versions
+ls -la *.py | grep -E '^[0-9]{4}_' | sort
+
+# Find the next available number
+# If highest is 0017, use 0018 for the next migration
+
+# ❌ WRONG - Don't use random or hash-based names
+# Don't create: abc123_description.py
+# Don't create: add_something.py
+```
+description:
+globs:
+alwaysApply: true
+---
