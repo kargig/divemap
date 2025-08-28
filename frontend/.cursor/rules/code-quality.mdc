@@ -1,0 +1,123 @@
+---
+description: Frontend code quality standards and ESLint validation requirements for React development
+globs: ["frontend/**/*", "src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"]
+alwaysApply: false
+---
+
+# Frontend Code Quality and ESLint Validation
+
+## Frontend File Change Requirements
+- **ALWAYS check frontend container logs for ESLint errors after making changes to frontend files**
+- **ALWAYS run ESLint validation within the frontend container**
+- **NEVER commit frontend changes without ESLint validation**
+- **ALWAYS fix ESLint errors before considering changes complete**
+
+## Frontend ESLint Validation Workflow
+```bash
+# ✅ CORRECT - Check frontend container logs for ESLint errors
+# After making changes to frontend files, check container logs:
+docker logs divemap_frontend | grep -i "eslint\|error\|warning"
+
+# Or check recent logs with --since flag (more efficient):
+docker logs divemap_frontend --since 5m | grep -i "eslint\|error\|warning"
+
+# Or run ESLint directly in the frontend container:
+docker-compose exec divemap_frontend npm run lint
+
+# Check for specific file errors:
+docker-compose exec divemap_frontend npm run lint -- --fix
+
+# ❌ WRONG - Don't ignore ESLint errors in frontend container
+# Always validate frontend code quality before proceeding
+```
+
+## Frontend Code Quality Standards
+- **ALWAYS ensure all JavaScript/JSX files pass ESLint validation**
+- **ALWAYS fix import order issues (import/order)**
+- **ALWAYS fix React hooks rules violations (react-hooks/rules-of-hooks)**
+- **ALWAYS fix Prettier formatting issues (prettier/prettier)**
+- **ALWAYS remove trailing whitespace (no-trailing-spaces)**
+- **ALWAYS fix unused variables and imports (no-unused-vars)**
+- **ALWAYS validate prop types where applicable (react/prop-types)**
+- **ALWAYS follow JavaScript style rules from `docs/development/javascript-style-rules.md`**
+
+## Frontend Error Categories to Address
+- **Critical**: ESLint errors that prevent compilation
+- **High Priority**: React hooks rules violations
+- **Medium Priority**: Import order and formatting issues
+- **Low Priority**: Unused variables and prop type warnings
+
+## Frontend Validation Checklist
+Before considering frontend changes complete:
+- [ ] ESLint validation passes in frontend container
+- [ ] No critical ESLint errors in container logs
+- [ ] Import order follows project standards
+- [ ] React hooks follow rules of hooks
+- [ ] Prettier formatting is consistent
+- [ ] No trailing whitespace in files
+- [ ] Unused variables and imports are cleaned up
+- [ ] Component prop types are validated (where applicable)
+
+## Code Quality and Formatting Requirements
+
+### Trailing Whitespace Prevention
+- **NEVER create files with trailing whitespace**
+- **ALWAYS remove trailing whitespace before committing**
+- **ALWAYS run whitespace checks before committing**
+- **ALWAYS use linting tools to catch whitespace issues**
+- **NEVER leave trailing spaces or tabs at the end of lines**
+
+### Code Formatting Standards
+- **ALWAYS use consistent indentation (4 spaces for Python, 2 spaces for JavaScript)**
+- **ALWAYS remove trailing whitespace from all lines**
+- **ALWAYS ensure files end with a single newline**
+- **ALWAYS use proper line endings (LF for Unix/Linux)**
+- **NEVER use mixed tabs and spaces**
+
+### Whitespace Checking Workflow
+```bash
+# ✅ CORRECT - Check for trailing whitespace before committing
+# Check Python files
+grep -r '[ \t]+$' --include="*.py" .
+
+# Check JavaScript/JSX files
+grep -r '[ \t]+$' --include="*.js" --include="*.jsx" .
+
+# Check all text files
+grep -r '[ \t]+$' --include="*.py" --include="*.js" --include="*.jsx" --include="*.md" --include="*.txt" .
+
+# ❌ WRONG - Don't commit files with trailing whitespace
+# Always clean whitespace before committing
+```
+
+### Automated Linting Setup
+- **ALWAYS configure pre-commit hooks for whitespace checking**
+- **ALWAYS use editor configurations to prevent trailing whitespace**
+- **ALWAYS run linting as part of the testing process**
+- **ALWAYS fix whitespace issues before running tests**
+
+### Editor Configuration Requirements
+- **ALWAYS configure editors to trim trailing whitespace on save**
+- **ALWAYS configure editors to show whitespace characters**
+- **ALWAYS use consistent line ending settings**
+- **ALWAYS enable automatic formatting on save**
+
+### Pre-commit Validation
+```bash
+# ✅ CORRECT - Validate code quality before committing
+# Run whitespace check
+./utils/check_whitespace.sh
+
+# Run linting
+./utils/lint_code.sh
+
+# Run tests
+./utils/run_tests.sh
+
+# ❌ WRONG - Don't commit without validation
+# Always run checks before committing
+```
+description:
+globs:
+alwaysApply: true
+---
