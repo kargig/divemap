@@ -16,7 +16,7 @@
 - [ ] Update frontend and backend environment variables
 - [ ] Test refresh token functionality end-to-end
 
-**Files:** `docs/development/work/nginx-proxy-implementation-plan.md`
+**Files:** `docs/development/work/2025-08-28-10-00-19-nginx-proxy-implementation/task.md`
 
 #### 2. Complete Fuzzy Search Implementation
 **Status:** In Progress  
@@ -30,7 +30,7 @@
 - [ ] Ensure consistent search experience across all content types
 - [ ] Test and validate search functionality
 
-**Files:** `docs/development/work/fuzzy-search-implementation-plan.md`
+**Files:** `docs/development/work/2025-08-28-10-00-19-extend-fuzzy-search/task.md`
 
 ### Medium Priority
 
