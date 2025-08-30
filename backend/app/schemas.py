@@ -9,7 +9,6 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8, max_length=128)
-    turnstile_token: Optional[str] = Field(None, description="Cloudflare Turnstile token (required if Turnstile is enabled)")
 
 class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
@@ -34,7 +33,6 @@ class UserResponse(UserBase):
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=255, description="Username or email address")
     password: str = Field(..., min_length=1, max_length=128)
-    turnstile_token: Optional[str] = Field(None, description="Cloudflare Turnstile token (required if Turnstile is enabled)")
 
 class Token(BaseModel):
     access_token: str

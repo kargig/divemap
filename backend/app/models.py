@@ -82,6 +82,7 @@ class User(Base):
     enabled = Column(Boolean, default=True)  # New field for user activation
     number_of_dives = Column(Integer, default=0, nullable=False)  # Number of dives completed
     avatar_url = Column(String(500), nullable=True)  # User avatar URL
+    turnstile_verified_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when Turnstile was verified
 
     # Relationships
     site_ratings = relationship("SiteRating", back_populates="user", cascade="all, delete-orphan")
