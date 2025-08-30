@@ -1,0 +1,58 @@
+---
+description: Compliance checklist and enforcement rules for ensuring all project standards are met in the Divemap project
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Compliance Checklist
+
+## Before Making Any Changes, Ensure:
+- [ ] Virtual environment is activated (for backend development)
+- [ ] PYTHONPATH is set correctly
+- [ ] No system packages are being installed
+- [ ] No npm/node commands are run on the system
+- [ ] All frontend commands use Docker containers
+- [ ] Alembic is used for database changes
+- [ ] Migration filenames follow numerical ordering (0001_, 0002_, etc.)
+- [ ] Tests run in virtual environment or Docker containers
+- [ ] User permission obtained before git commits
+- [ ] Commit messages follow the 7 rules of great git commits
+- [ ] Documentation is updated
+- [ ] Changes are tested thoroughly
+- [ ] Documentation follows standards
+- [ ] All links and references are verified
+- [ ] No trailing whitespace in any files
+- [ ] Code formatting is consistent
+- [ ] Linting checks pass
+- [ ] Whitespace validation passes
+- [ ] JavaScript style rules are followed for frontend code
+
+## Frontend-Specific Compliance
+- [ ] Frontend container logs checked for ESLint errors
+- [ ] ESLint validation passes in frontend container
+- [ ] Import order follows project standards
+- [ ] React hooks follow rules of hooks
+- [ ] Prettier formatting is consistent
+- [ ] No unused variables and imports
+- [ ] Component prop types are validated (where applicable)
+- [ ] JavaScript style rules from `docs/development/javascript-style-rules.md` are followed
+
+## Enforcement
+
+These rules are mandatory and must be followed:
+- Violations will result in immediate correction
+- System package installations are strictly forbidden
+- **Running npm, node, or frontend commands on the system is strictly forbidden if it's not for syntax check or linting**
+- **All frontend development must use Docker containers**
+- Manual database changes are not allowed
+- Automatic git commits are prohibited
+- All testing must use virtual environments or Docker containers
+- All documentation must follow standards
+- All migration filenames must follow numerical ordering
+- Hash-based or non-numerical migration filenames are strictly forbidden
+- **All commit messages must follow the 7 rules of great git commits**
+- **Trailing whitespace is strictly forbidden**
+- **All code must pass linting checks before committing**
+- **All files must have consistent formatting**
+- **All frontend changes must pass ESLint validation in container**
+- **Frontend container logs must be checked for errors after file changes**

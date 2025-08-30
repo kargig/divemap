@@ -1,0 +1,82 @@
+---
+description: Testing requirements and standards for backend and frontend development in the Divemap project
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Testing Requirements
+
+## Test Environment Rules
+- **ALWAYS run tests in virtual environments or within docker container**
+- **NEVER run tests in system Python**
+- **ALWAYS use project-specific test configurations**
+- **ALWAYS use project's testing strategy document for guidance on testing**
+
+## Backend Testing
+```bash
+# ✅ CORRECT - Use virtual environment for tests
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+python -m pytest tests/ -v
+
+# ❌ WRONG - Never test in system Python
+python -m pytest  # This is forbidden
+```
+
+## Frontend Testing
+```bash
+# ✅ CORRECT - Use Docker containers for frontend testing
+docker exec divemap_frontend npm test
+docker exec divemap_frontend node validate_frontend.js
+docker exec divemap_frontend node test_regressions.js
+
+# ❌ WRONG - Never run frontend commands on the system
+npm test  # This is forbidden
+node validate_frontend.js  # This is forbidden
+node test_regressions.js  # This is forbidden
+npx test  # This is forbidden
+```
+
+## Environment Setup
+1. Always activate virtual environment first
+2. Set PYTHONPATH for asdf Python environments
+3. Install packages only in virtual environment
+4. Test in isolated environment
+
+## Code Changes
+1. Make changes in appropriate virtual environment
+2. Test changes thoroughly
+3. Ask user before committing
+4. Provide clear documentation for changes
+
+## Database Changes
+1. Modify SQLAlchemy models
+2. Generate Alembic migration
+3. Review generated migration
+4. **ALWAYS rename migration file to follow numerical ordering if needed**
+5. **ALWAYS check existing migration numbers before creating new ones**
+6. Test migration on development database
+7. Apply migration only after testing
+
+## Documentation Changes
+1. Follow documentation standards
+2. Use appropriate template
+3. Update related documentation
+4. Test all procedures
+5. Update main documentation index
+
+## Error Handling
+
+### Common Issues
+- **ModuleNotFoundError**: Check PYTHONPATH and virtual environment
+- **Database Connection**: Verify database is running and accessible
+- **Migration Failures**: Check database state and migration history
+- **Package Installation**: Ensure virtual environment is activated
+
+### Troubleshooting Steps
+1. Verify virtual environment is activated
+2. Check PYTHONPATH for asdf environments
+3. Ensure database is running
+4. Check migration status with `alembic current`
+5. Verify all dependencies are installed

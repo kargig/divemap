@@ -1,0 +1,245 @@
+
+# FastAPI Rules and Best Practices
+
+## Core FastAPI Requirements
+
+### ✅ **Always Implement These**
+- Use type hints for all function parameters and return values
+- Use Pydantic models for request and response validation
+- Use appropriate HTTP methods with path operation decorators (@app.get, @app.post, etc.)
+- Use dependency injection for shared logic like database connections and authentication
+- Use proper status codes for responses (201 for creation, 404 for not found, etc.)
+- Use APIRouter for organizing routes by feature or resource
+- Use path parameters, query parameters, and request bodies appropriately
+
+## Advanced Patterns We Already Use
+
+### 🔧 **Custom Middleware Implementation**
+```python
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
+```
+
+### 🛡️ **Security Headers and CSP**
+```python
+# Content Security Policy with endpoint-specific rules
+if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
+    csp_policy = "default-src 'self'; script-src 'self' 'unsafe-inline'..."
+else:
+    csp_policy = "default-src 'self'; script-src 'self' 'unsafe-inline';..."
+
+response.headers["Content-Security-Policy"] = csp_policy
+response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+```
+
+### 📊 **Enhanced Logging and Monitoring**
+```python
+@app.middleware("http")
+async def enhanced_security_logging(request, call_next):
+    client_ip = get_client_ip(request)
+    # Log suspicious activity patterns
+    if suspicious_activity:
+        print(f"[SECURITY] Suspicious activity detected from IP: {formatted_ip}")
+    
+    response = await call_next(request)
+    if response.status_code >= 400 or suspicious_activity:
+        print(f"[SECURITY] {request.method} {request.url.path} - Status: {response.status_code}")
+    return response
+```
+
+### 🚦 **Rate Limiting Integration**
+```python
+from slowapi import Limiter
+from app.limiter import limiter, skip_rate_limit_for_admin
+
+@router.post("/register", response_model=RegistrationResponse)
+@skip_rate_limit_for_admin("10/minute")  # Admin exemptions
+async def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
+    # Rate limiting automatically applied
+    pass
+```
+
+### 🔐 **Advanced Authentication Patterns**
+```python
+# Multiple authentication levels
+async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.enabled:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User account disabled")
+    return current_user
+
+async def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    return current_user
+```
+
+### 📝 **Comprehensive Pydantic Validation**
+```python
+class UserCreate(UserBase):
+    password: str = Field(..., min_length=8, max_length=128)
+    turnstile_token: Optional[str] = Field(None, description="Cloudflare Turnstile token")
+
+class DiveSiteBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+    difficulty_level: Optional[int] = Field(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert")
+```
+
+### 🌐 **CORS Configuration with Environment Variables**
+```python
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+if allowed_origins_env:
+    allow_origins = [origin.strip() for origin in allowed_origins_env.split(",")]
+else:
+    allow_origins = ["http://localhost", "http://localhost:3000"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allow_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    expose_headers=["X-Total-Count", "X-Total-Pages", "X-Current-Page"]
+)
+```
+
+### 📁 **Static File Mounting with Security**
+```python
+# Mount uploads directory with security restrictions
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+```
+
+## Router Organization Patterns
+
+### 🗂️ **Feature-Based Router Structure**
+```python
+# Main app imports all feature routers
+from app.routers import (
+    auth, dive_sites, users, diving_centers, 
+    tags, diving_organizations, user_certifications, 
+    dives, newsletters, system, privacy
+)
+
+# Each router focuses on a specific domain
+router = APIRouter()
+router.include_router(auth.router, prefix="/auth", tags=["authentication"])
+router.include_router(dive_sites.router, prefix="/dive-sites", tags=["dive sites"])
+```
+
+### 🏷️ **Consistent Tagging for API Documentation**
+```python
+@router.get("/me", response_model=UserResponse, tags=["authentication"])
+@router.post("/register", response_model=RegistrationResponse, tags=["authentication"])
+@router.get("/dive-sites", response_model=List[DiveSiteResponse], tags=["dive sites"])
+```
+
+## Error Handling Patterns
+
+### ⚠️ **Comprehensive Exception Handling**
+```python
+from fastapi import HTTPException, status
+
+# Validation errors
+if not validate_password_strength(user_data.password):
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character"
+    )
+
+# Authorization errors
+if not current_user.is_admin:
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Admin access required"
+    )
+
+# Not found errors
+if not dive_site:
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Dive site not found"
+    )
+```
+
+### 🔄 **Database Transaction Handling**
+```python
+try:
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+except IntegrityError as e:
+    db.rollback()
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Username or email already registered"
+    )
+```
+
+## Performance and Scalability
+
+### 📊 **Pagination and Response Headers**
+```python
+# Custom pagination headers
+response.headers["X-Total-Count"] = str(total_count)
+response.headers["X-Total-Pages"] = str(total_pages)
+response.headers["X-Current-Page"] = str(current_page)
+response.headers["X-Page-Size"] = str(page_size)
+```
+
+### 🔍 **Advanced Search and Filtering**
+```python
+async def search_dive_sites(
+    search: Optional[str] = Query(None, description="Search query"),
+    country: Optional[str] = Query(None, description="Country filter"),
+    difficulty_level: Optional[int] = Query(None, ge=1, le=4),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page")
+):
+    # Implement search logic with proper validation
+    pass
+```
+
+## Environment and Configuration
+
+### ⚙️ **Environment-Based Configuration**
+```python
+# Logging configuration
+log_level = os.getenv("LOG_LEVEL", "WARNING").upper()
+numeric_level = getattr(logging, log_level, logging.WARNING)
+
+# Security thresholds
+suspicious_proxy_chain_length = int(os.getenv("SUSPICIOUS_PROXY_CHAIN_LENGTH", "3"))
+
+# CORS origins
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+```
+
+## Best Practices Summary
+
+1. **Always use type hints and Pydantic validation**
+2. **Implement custom middleware for security and logging**
+3. **Use dependency injection for all shared services**
+4. **Organize routes by feature with proper tagging**
+5. **Implement comprehensive error handling with proper status codes**
+6. **Use environment variables for configuration**
+7. **Add security headers and CORS properly**
+8. **Implement rate limiting for API protection**
+9. **Use proper database transaction handling**
+10. **Add pagination and response headers for large datasets**
+
+## Anti-Patterns to Avoid
+
+- ❌ Don't skip type hints
+- ❌ Don't use raw dictionaries instead of Pydantic models
+- ❌ Don't ignore error handling
+- ❌ Don't hardcode configuration values
+- ❌ Don't skip input validation
+- ❌ Don't use blocking operations for long-running tasks
+
+
