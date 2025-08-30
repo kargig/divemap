@@ -4,6 +4,8 @@
 
 ### High Priority
 
+
+
 #### 1. Complete Nginx Proxy Implementation
 **Status:** In Progress  
 **Priority:** High  
