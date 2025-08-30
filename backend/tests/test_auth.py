@@ -1,7 +1,8 @@
 import pytest
 from fastapi import status
 from app.models import User
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
+from datetime import datetime, timezone, timedelta
 
 class TestAuth:
     """Test authentication endpoints."""
@@ -42,11 +43,15 @@ class TestAuth:
 
     def test_register_duplicate_email(self, client, test_user):
         """Test registration with duplicate email."""
-        response = client.post("/api/v1/auth/register", json={
-            "username": "differentuser",
-            "email": "test@example.com",  # Already exists
-            "password": "Password123!"
-        })
+        # Mock Turnstile service to be disabled for this test
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = False
+            
+            response = client.post("/api/v1/auth/register", json={
+                "username": "differentuser",
+                "email": "test@example.com",  # Already exists
+                "password": "Password123!"
+            })
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Username or email already registered" in response.json()["detail"]
@@ -352,11 +357,15 @@ class TestAuth:
 
     def test_regular_registration_creates_disabled_user(self, client, db_session):
         """Test that regular registration creates a user with enabled=False."""
-        response = client.post("/api/v1/auth/register", json={
-            "username": "newuser",
-            "email": "newuser@example.com",
-            "password": "Password123!"
-        })
+        # Mock Turnstile service to be disabled for this test
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = False
+            
+            response = client.post("/api/v1/auth/register", json={
+                "username": "newuser",
+                "email": "newuser@example.com",
+                "password": "Password123!"
+            })
 
         assert response.status_code == status.HTTP_201_CREATED
         
@@ -368,10 +377,14 @@ class TestAuth:
 
     def test_login_success(self, client, test_user):
         """Test successful login."""
-        response = client.post("/api/v1/auth/login", json={
-            "username": "testuser",
-            "password": "TestPass123!"
-        })
+        # Mock Turnstile service to be disabled for this test
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = False
+            
+            response = client.post("/api/v1/auth/login", json={
+                "username": "testuser",
+                "password": "TestPass123!"
+            })
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -391,10 +404,14 @@ class TestAuth:
         db_session.add(disabled_user)
         db_session.commit()
 
-        response = client.post("/api/v1/auth/login", json={
-            "username": "disableduser",
-            "password": "password"
-        })
+        # Mock Turnstile service to be disabled for this test
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = False
+            
+            response = client.post("/api/v1/auth/login", json={
+                "username": "disableduser",
+                "password": "password"
+            })
 
         assert response.status_code == status.HTTP_200_OK  # Login succeeds
         # But accessing protected endpoints should fail
@@ -405,40 +422,56 @@ class TestAuth:
 
     def test_login_invalid_username(self, client):
         """Test login with invalid username or email."""
-        response = client.post("/api/v1/auth/login", json={
-            "username": "nonexistent",
-            "password": "password"
-        })
+        # Mock Turnstile service to be disabled for this test
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = False
+            
+            response = client.post("/api/v1/auth/login", json={
+                "username": "nonexistent",
+                "password": "password"
+            })
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert "Incorrect username/email or password" in response.json()["detail"]
 
     def test_login_invalid_email(self, client):
         """Test login with invalid email."""
-        response = client.post("/api/v1/auth/login", json={
-            "username": "nonexistent@example.com",
-            "password": "password"
-        })
+        # Mock Turnstile service to be disabled for this test
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = False
+            
+            response = client.post("/api/v1/auth/login", json={
+                "username": "nonexistent@example.com",
+                "password": "password"
+            })
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert "Incorrect username/email or password" in response.json()["detail"]
 
     def test_login_invalid_password(self, client, test_user):
         """Test login with invalid password."""
-        response = client.post("/api/v1/auth/login", json={
-            "username": "testuser",
-            "password": "wrongpassword"
-        })
+        # Mock Turnstile service to be disabled for this test
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = False
+            
+            response = client.post("/api/v1/auth/login", json={
+                "username": "testuser",
+                "password": "wrongpassword"
+            })
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert "Incorrect username/email or password" in response.json()["detail"]
 
     def test_login_with_email(self, client, test_user):
         """Test login with email instead of username."""
-        response = client.post("/api/v1/auth/login", json={
-            "username": "test@example.com",
-            "password": "TestPass123!"
-        })
+        # Mock Turnstile service to be disabled for this test
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = False
+            
+            response = client.post("/api/v1/auth/login", json={
+                "username": "test@example.com",
+                "password": "TestPass123!"
+            })
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -447,10 +480,14 @@ class TestAuth:
 
     def test_login_with_username(self, client, test_user):
         """Test login with username (existing functionality)."""
-        response = client.post("/api/v1/auth/login", json={
-            "username": "testuser",
-            "password": "TestPass123!"
-        })
+        # Mock Turnstile service to be disabled for this test
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = False
+            
+            response = client.post("/api/v1/auth/login", json={
+                "username": "testuser",
+                "password": "TestPass123!"
+            })
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -488,6 +525,64 @@ class TestAuth:
         response = client.get("/api/v1/auth/me")
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_turnstile_persistence_on_registration(self, client, db_session):
+        """Test that Turnstile data is persisted during registration when enabled."""
+        # Mock Turnstile service to be enabled and return success
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = True
+            mock_service.verify_token = AsyncMock(return_value={"success": True})
+            
+            response = client.post("/api/v1/auth/register", json={
+                "username": "turnstileuser",
+                "email": "turnstile@example.com",
+                "password": "Password123!"
+            })
+
+        assert response.status_code == status.HTTP_201_CREATED
+        
+        # Verify the user was created with Turnstile verification timestamp
+        user = db_session.query(User).filter(User.username == "turnstileuser").first()
+        assert user is not None
+        assert user.turnstile_verified_at is not None
+
+    def test_turnstile_persistence_on_login(self, client, test_user, db_session):
+        """Test that Turnstile data is persisted during login when enabled."""
+        # Mock Turnstile service to be enabled and return success
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = True
+            mock_service.verify_token = AsyncMock(return_value={"success": True})
+            
+            response = client.post("/api/v1/auth/login", json={
+                "username": "testuser",
+                "password": "TestPass123!"
+            })
+
+        assert response.status_code == status.HTTP_200_OK
+        
+        # Verify the user's Turnstile verification timestamp was updated
+        db_session.refresh(test_user)
+        assert test_user.turnstile_verified_at is not None
+
+    def test_turnstile_persistence_failure_handling(self, client, test_user, db_session):
+        """Test that login still succeeds even if Turnstile persistence fails."""
+        # Mock Turnstile service to be enabled and return success
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = True
+            mock_service.verify_token = AsyncMock(return_value={"success": True})
+            
+            # Test that login succeeds with Turnstile enabled
+            response = client.post("/api/v1/auth/login", json={
+                "username": "testuser",
+                "password": "TestPass123!"
+            })
+
+        # Login should succeed
+        assert response.status_code == status.HTTP_200_OK
+        
+        # Verify the user's Turnstile verification timestamp was updated
+        db_session.refresh(test_user)
+        assert test_user.turnstile_verified_at is not None
 
 
 class TestDivingCenterAuthorization:

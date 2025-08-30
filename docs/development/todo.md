@@ -36,21 +36,7 @@
 
 ### Medium Priority
 
-#### 3. Cloudflare Turnstile Integration
-**Status:** Planning  
-**Priority:** Medium  
-**Description:** Implement Cloudflare Turnstile for bot protection and improved security.
-
-**Tasks:**
-- [ ] Research Cloudflare Turnstile integration requirements
-- [ ] Implement backend API endpoints for turnstile validation
-- [ ] Add frontend turnstile widget to forms
-- [ ] Test bot protection effectiveness
-- [ ] Deploy to production
-
-**Files:** `docs/development/cloudflare-turnstile-integration.md`
-
-#### 4. Frontend Rate Limiting and Error Handling
+#### 3. Frontend Rate Limiting and Error Handling
 **Status:** Planning  
 **Priority:** Medium  
 **Description:** Implement comprehensive rate limiting and error handling for frontend API calls.
@@ -66,7 +52,7 @@
 
 ### Low Priority
 
-#### 5. CSS and Sticky Positioning Guide
+#### 4. CSS and Sticky Positioning Guide
 **Status:** Documentation  
 **Priority:** Low  
 **Description:** Create comprehensive guide for CSS sticky positioning and related layout techniques.
@@ -79,7 +65,7 @@
 
 **Files:** `docs/development/css-and-sticky-positioning-guide.md`
 
-#### 6. Floating Search Filters Guide
+#### 5. Floating Search Filters Guide
 **Status:** Documentation  
 **Priority:** Low  
 **Description:** Document the floating search filters implementation and usage patterns.
@@ -96,6 +82,7 @@
 
 The following tasks have been completed and moved to `docs/development/done/`:
 
+- ✅ **Cloudflare Turnstile Integration** - Complete bot protection with optimized database schema
 - ✅ **Mobile Sorting Consolidation** - Consolidated mobile controls into filter overlay
 - ✅ **Newsletter Parsing Implementation** - Complete newsletter parsing and trip display
 - ✅ **Sorting Functionality** - Comprehensive sorting across all entities
