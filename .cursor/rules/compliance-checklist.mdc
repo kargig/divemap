@@ -56,7 +56,3 @@ These rules are mandatory and must be followed:
 - **All files must have consistent formatting**
 - **All frontend changes must pass ESLint validation in container**
 - **Frontend container logs must be checked for errors after file changes**
-description:
-globs:
-alwaysApply: true
----

@@ -115,7 +115,3 @@ You will find credentials for various users in `local_testme` file. Use them whe
 - Use .env files for local development
 - Use environment variables in production
 - Validate environment configuration
-description:
-globs:
-alwaysApply: true
----

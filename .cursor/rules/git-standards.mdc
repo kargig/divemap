@@ -223,7 +223,3 @@ git push origin --delete feature/descriptive-feature-name
 # ❌ WRONG - Don't leave feature branches hanging
 # Always clean up after successful merge
 ```
-description:
-globs:
-alwaysApply: true
----

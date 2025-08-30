@@ -107,7 +107,3 @@ Common issues and solutions.
 - Include environment setup instructions
 - Document troubleshooting steps
 - Provide rollback procedures
-description:
-globs:
-alwaysApply: true
----

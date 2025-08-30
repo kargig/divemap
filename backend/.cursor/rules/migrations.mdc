@@ -164,7 +164,3 @@ ls -la *.py | grep -E '^[0-9]{4}_' | sort
 # Don't create: abc123_description.py
 # Don't create: add_something.py
 ```
-description:
-globs:
-alwaysApply: true
----

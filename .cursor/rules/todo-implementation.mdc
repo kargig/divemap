@@ -291,7 +291,3 @@ Structured workflow for implementing items from docs/development/todo.md. Work i
    - STOP: "Task complete! Please review all changes and commit/push if desired. Mark as complete? (y/n)" - USER handles all git operations, agent never commits
 
 3. STOP: "Task complete! Continue with next todo? (y/n)"
-description:
-globs:
-alwaysApply: true
----

@@ -117,7 +117,3 @@ grep -r '[ \t]+$' --include="*.py" --include="*.js" --include="*.jsx" --include=
 # ❌ WRONG - Don't commit without validation
 # Always run checks before committing
 ```
-description:
-globs:
-alwaysApply: true
----

@@ -80,7 +80,3 @@ npx test  # This is forbidden
 3. Ensure database is running
 4. Check migration status with `alembic current`
 5. Verify all dependencies are installed
-description:
-globs:
-alwaysApply: true
----
