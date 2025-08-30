@@ -24,11 +24,14 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import api, { deleteDive } from '../api';
+import DesktopSearchBar from '../components/DesktopSearchBar';
 import DivesMap from '../components/DivesMap';
 import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import ImportDivesModal from '../components/ImportDivesModal';
+import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
+import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { getSortOptions } from '../utils/sortOptions';
@@ -99,8 +102,25 @@ const Dives = () => {
     dive_site_name: getInitialFilters().dive_site_name,
   });
 
+  // Quick filter state
+  const [quickFilter, setQuickFilter] = useState('');
+
   // Initialize sorting
   const { sortBy, sortOrder, handleSortChange, resetSorting, getSortParams } = useSorting('dives');
+
+  // Responsive detection using custom hook
+  const { isMobile } = useResponsive();
+
+  // Mobile optimization styles
+  const mobileStyles = {
+    touchTarget: 'min-h-[44px] sm:min-h-0 touch-manipulation',
+    mobilePadding: 'p-3 sm:p-4 lg:p-6',
+    mobileMargin: 'mb-4 sm:mb-6 lg:mb-8',
+    mobileText: 'text-xs sm:text-sm lg:text-base',
+    mobileFlex: 'flex-col sm:flex-row',
+    mobileCenter: 'justify-center sm:justify-start',
+    mobileFullWidth: 'w-full sm:w-auto',
+  };
 
   // Debounced URL update for search inputs
   const debouncedUpdateURL = useCallback(
@@ -579,11 +599,63 @@ const Dives = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  const handleMyDivesToggle = () => {
-    setFilters(prev => ({
-      ...prev,
-      my_dives: !prev.my_dives,
-    }));
+  // Quick filter handler for dive types
+  const handleQuickFilter = filterType => {
+    setQuickFilter(filterType);
+
+    // Implement quick filter logic for dive types
+    switch (filterType) {
+      case 'my_dives': {
+        // Filter for user's own dives
+        setFilters(prev => ({
+          ...prev,
+          my_dives: true,
+        }));
+        break;
+      }
+      case 'wrecks': {
+        // Filter for wreck dives (this would need tag-based filtering)
+        // For now, we'll use a placeholder approach
+        setFilters(prev => ({
+          ...prev,
+          // Note: This would need to be implemented based on dive site tags
+        }));
+        break;
+      }
+      case 'reefs': {
+        // Filter for reef dives (this would need tag-based filtering)
+        setFilters(prev => ({
+          ...prev,
+          // Note: This would need to be implemented based on dive site tags
+        }));
+        break;
+      }
+      case 'boat_dive': {
+        // Filter for boat dives (this would need tag-based filtering)
+        setFilters(prev => ({
+          ...prev,
+          // Note: This would need to be implemented based on dive site tags
+        }));
+        break;
+      }
+      case 'shore_dive': {
+        // Filter for shore dives (this would need tag-based filtering)
+        setFilters(prev => ({
+          ...prev,
+          // Note: This would need to be implemented based on dive site tags
+        }));
+        break;
+      }
+      case 'clear': {
+        // Clear quick filters
+        setQuickFilter('');
+        clearFilters();
+        break;
+      }
+      default:
+        break;
+    }
+
     // Reset to first page when filters change
     setPagination(prev => ({ ...prev, page: 1 }));
   };
@@ -791,191 +863,88 @@ const Dives = () => {
             Browse Dives
           </button>
           {user && (
-            <button
-              onClick={() => navigate('/dives/create')}
-              className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-            >
-              <Plus size={20} />
-              Add Dive
-            </button>
+            <>
+              <button
+                onClick={() => setShowImportModal(true)}
+                className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+              >
+                <Upload size={20} />
+                Import Dives
+              </button>
+              <button
+                onClick={() => navigate('/dives/create')}
+                className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+              >
+                <Plus size={20} />
+                Add Dive
+              </button>
+            </>
           )}
         </div>
       </HeroSection>
 
-      {/* Mobile Filter Toggle Button */}
-      <div className='md:hidden mb-4'>
-        <button
-          onClick={toggleFilters}
-          className='w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
-        >
-          <Filter className='h-5 w-5' />
-          {showFilters ? 'Hide Filters' : 'Show Filters'}
-        </button>
-      </div>
+      {/* Desktop Search Bar - Only visible on desktop/tablet */}
+      {!isMobile && (
+        <DesktopSearchBar
+          searchValue={filters.dive_site_name}
+          onSearchChange={value =>
+            handleSearchChange({ target: { name: 'dive_site_name', value } })
+          }
+          onSearchSelect={selectedItem => {
+            // For dives, we need to handle the selected item appropriately
+            // Since dives don't have a direct name field, we'll use the dive site name
+            handleSearchChange({
+              target: {
+                name: 'dive_site_name',
+                value: selectedItem.name || selectedItem.dive_site?.name || '',
+              },
+            });
+          }}
+          data={dives || []}
+          configType='dives'
+          placeholder='Search dives by dive site name...'
+        />
+      )}
 
-      {/* Search and Filter Section */}
-      <div
-        className={`bg-white rounded-lg shadow-md mb-6 sm:mb-8 ${showFilters ? 'block' : 'hidden md:block'}`}
-      >
-        <div className='p-4 sm:p-6'>
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4'>
-            <div className='lg:col-span-2'>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Search Dives
-              </label>
-              <FuzzySearchInput
-                data={dives || []}
-                searchValue={filters.dive_site_name}
-                onSearchChange={value =>
-                  handleSearchChange({ target: { name: 'dive_site_name', value } })
-                }
-                onSearchSelect={selectedItem => {
-                  // For dives, we need to handle the selected item appropriately
-                  // Since dives don't have a direct name field, we'll use the dive site name
-                  handleSearchChange({
-                    target: {
-                      name: 'dive_site_name',
-                      value: selectedItem.name || selectedItem.dive_site?.name || '',
-                    },
-                  });
-                }}
-                configType='dives'
-                placeholder='Search by dive site name...'
-                minQueryLength={2}
-                maxSuggestions={8}
-                debounceDelay={300}
-                showSuggestions={true}
-                highlightMatches={true}
-                showScore={false}
-                showClearButton={true}
-                className='w-full'
-                inputClassName='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-                suggestionsClassName='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto'
-                highlightClass='bg-blue-100 font-medium'
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Difficulty Level
-              </label>
-              <select
-                name='difficulty_level'
-                value={filters.difficulty_level}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              >
-                <option value=''>All Levels</option>
-                <option value='beginner'>Beginner</option>
-                <option value='intermediate'>Intermediate</option>
-                <option value='advanced'>Advanced</option>
-                <option value='expert'>Expert</option>
-              </select>
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Min Depth (≥)
-              </label>
-              <input
-                type='number'
-                name='min_depth'
-                min='0'
-                step='any'
-                placeholder='Show dives deeper than this value'
-                value={filters.min_depth}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Min Rating (≥)
-              </label>
-              <input
-                type='number'
-                name='min_rating'
-                min='0'
-                max='10'
-                step='0.1'
-                placeholder='Show dives rated ≥ this value'
-                value={filters.min_rating}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                Start Date
-              </label>
-              <input
-                type='date'
-                name='start_date'
-                value={filters.start_date}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1 sm:mb-2'>
-                End Date
-              </label>
-              <input
-                type='date'
-                name='end_date'
-                value={filters.end_date}
-                onChange={handleSearchChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
-              />
-            </div>
-          </div>
-
-          {/* Tags Filter */}
-          {availableTags && availableTags.length > 0 && (
-            <div className='mt-4'>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Tags</label>
-              <div className='flex flex-wrap gap-2'>
-                {availableTags.map(tag => (
-                  <button
-                    key={tag.id}
-                    type='button'
-                    onClick={() => {
-                      const tagId = parseInt(tag.id);
-                      setFilters(prev => ({
-                        ...prev,
-                        tag_ids: prev.tag_ids.includes(tagId)
-                          ? prev.tag_ids.filter(id => id !== tagId)
-                          : [...prev.tag_ids, tagId],
-                      }));
-                      setPagination(prev => ({ ...prev, page: 1 }));
-                    }}
-                    className={`px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                      filters.tag_ids.includes(tag.id)
-                        ? `${getTagColor(tag.name)} border-2 border-current shadow-md`
-                        : `${getTagColor(tag.name)} opacity-60 hover:opacity-100 border-2 border-transparent`
-                    }`}
-                  >
-                    {tag.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Filter Actions */}
-          <div className='mt-4 flex flex-col sm:flex-row gap-2 sm:gap-4'>
-            <button
-              onClick={clearFilters}
-              className='px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-sm'
-            >
-              Clear Filters
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Responsive Filter Bar */}
+      <ResponsiveFilterBar
+        showFilters={showFilters}
+        onToggleFilters={toggleFilters}
+        onClearFilters={clearFilters}
+        activeFiltersCount={
+          Object.values(filters).filter(
+            value =>
+              value !== '' && value !== false && (Array.isArray(value) ? value.length > 0 : true)
+          ).length
+        }
+        filters={{
+          ...filters,
+          availableTags: availableTags || [],
+        }}
+        onFilterChange={handleSearchChange}
+        onQuickFilter={handleQuickFilter}
+        quickFilter={quickFilter}
+        variant='sticky'
+        showQuickFilters={true}
+        showAdvancedToggle={true}
+        searchQuery={filters.dive_site_name}
+        onSearchChange={value => handleSearchChange({ target: { name: 'dive_site_name', value } })}
+        onSearchSubmit={() => {}}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        sortOptions={getSortOptions('dives', isAdmin)}
+        onSortChange={handleSortChange}
+        onReset={resetSorting}
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+        showThumbnails={showThumbnails}
+        compactLayout={compactLayout}
+        onDisplayOptionChange={(option, value) => {
+          if (option === 'showThumbnails') setShowThumbnails(value);
+          if (option === 'compactLayout') setCompactLayout(value);
+        }}
+        pageType='dives'
+      />
 
       {/* Pagination Controls */}
       <div className='mb-6 sm:mb-8'>
@@ -1035,41 +1004,6 @@ const Dives = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className='flex flex-col sm:flex-row justify-between items-center mb-6 gap-4'>
-        {user && (
-          <button
-            onClick={handleMyDivesToggle}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-              filters.my_dives
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-            }`}
-          >
-            {filters.my_dives ? '✓ My Dives' : 'My Dives'}
-          </button>
-        )}
-
-        {user && (
-          <div className='flex flex-col sm:flex-row gap-3'>
-            <button
-              onClick={() => setShowImportModal(true)}
-              className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2'
-            >
-              <Upload size={20} />
-              Import Dives
-            </button>
-            <Link
-              to='/dives/create'
-              className='bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2'
-            >
-              <Plus size={20} />
-              Log New Dive
-            </Link>
-          </div>
-        )}
       </div>
 
       {/* Import Modal */}

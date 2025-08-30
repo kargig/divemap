@@ -44,6 +44,8 @@ const ResponsiveFilterBar = ({
   showThumbnails = false,
   compactLayout = false,
   onDisplayOptionChange = () => {},
+  // New prop for page-specific quick filters
+  pageType = 'dive-sites',
 }) => {
   const { isMobile, navbarVisible, searchBarVisible, quickFiltersVisible } = useResponsiveScroll();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -217,50 +219,115 @@ const ResponsiveFilterBar = ({
           {/* Quick Filters */}
           {showQuickFilters && (
             <div className='flex items-center gap-2 sm:ml-2 w-full sm:w-auto justify-center sm:justify-end'>
-              <button
-                onClick={() => onQuickFilter('wrecks')}
-                className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                  quickFilter === 'wrecks'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
-                    : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
-                }`}
-                title='Wreck dive sites'
-              >
-                🚢 <span className='hidden sm:inline'>Wreck</span>
-              </button>
-              <button
-                onClick={() => onQuickFilter('reefs')}
-                className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                  quickFilter === 'reefs'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
-                    : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
-                }`}
-                title='Reef dive sites'
-              >
-                🐠 <span className='hidden sm:inline'>Reef</span>
-              </button>
-              <button
-                onClick={() => onQuickFilter('boat_dive')}
-                className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                  quickFilter === 'boat_dive'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
-                    : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
-                }`}
-                title='Boat dive sites'
-              >
-                🚤 <span className='hidden sm:inline'>Boat</span>
-              </button>
-              <button
-                onClick={() => onQuickFilter('shore_dive')}
-                className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                  quickFilter === 'shore_dive'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
-                    : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
-                }`}
-                title='Shore dive sites'
-              >
-                🏖️ <span className='hidden sm:inline'>Shore</span>
-              </button>
+              {/* Page-specific quick filters */}
+              {pageType === 'dives' ? (
+                // Dives page quick filters
+                <>
+                  <button
+                    onClick={() => onQuickFilter('my_dives')}
+                    className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
+                      quickFilter === 'my_dives'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
+                    }`}
+                    title='My Dives'
+                  >
+                    👤 <span className='hidden sm:inline'>My Dives</span>
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('wrecks')}
+                    className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
+                      quickFilter === 'wrecks'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
+                    }`}
+                    title='Wreck dives'
+                  >
+                    🚢 <span className='hidden sm:inline'>Wreck</span>
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('reefs')}
+                    className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
+                      quickFilter === 'reefs'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
+                    }`}
+                    title='Reef dives'
+                  >
+                    🐠 <span className='hidden sm:inline'>Reef</span>
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('boat_dive')}
+                    className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
+                      quickFilter === 'boat_dive'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
+                    }`}
+                    title='Boat dives'
+                  >
+                    🚤 <span className='hidden sm:inline'>Boat</span>
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('shore_dive')}
+                    className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
+                      quickFilter === 'shore_dive'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
+                    }`}
+                    title='Shore dives'
+                  >
+                    🏖️ <span className='hidden sm:inline'>Shore</span>
+                  </button>
+                </>
+              ) : (
+                // Default dive-sites quick filters
+                <>
+                  <button
+                    onClick={() => onQuickFilter('wrecks')}
+                    className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
+                      quickFilter === 'wrecks'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
+                    }`}
+                    title='Wreck dive sites'
+                  >
+                    🚢 <span className='hidden sm:inline'>Wreck</span>
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('reefs')}
+                    className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
+                      quickFilter === 'reefs'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
+                    }`}
+                    title='Reef dive sites'
+                  >
+                    🐠 <span className='hidden sm:inline'>Reef</span>
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('boat_dive')}
+                    className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
+                      quickFilter === 'boat_dive'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
+                    }`}
+                    title='Boat dive sites'
+                  >
+                    🚤 <span className='hidden sm:inline'>Boat</span>
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('shore_dive')}
+                    className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
+                      quickFilter === 'shore_dive'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
+                    }`}
+                    title='Shore dive sites'
+                  >
+                    🏖️ <span className='hidden sm:inline'>Shore</span>
+                  </button>
+                </>
+              )}
             </div>
           )}
 
@@ -596,46 +663,115 @@ const ResponsiveFilterBar = ({
 
             {/* Quick Filter Buttons */}
             <div className='flex items-center gap-2 overflow-x-auto flex-1 ml-3'>
-              <button
-                onClick={() => onQuickFilter('wrecks')}
-                className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                  quickFilter === 'wrecks'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                }`}
-              >
-                🚢
-              </button>
-              <button
-                onClick={() => onQuickFilter('reefs')}
-                className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                  quickFilter === 'reefs'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                }`}
-              >
-                🐠
-              </button>
-              <button
-                onClick={() => onQuickFilter('boat_dive')}
-                className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                  quickFilter === 'boat_dive'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                }`}
-              >
-                🚤
-              </button>
-              <button
-                onClick={() => onQuickFilter('shore_dive')}
-                className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                  quickFilter === 'shore_dive'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                }`}
-              >
-                🏖️
-              </button>
+              {/* Page-specific mobile quick filters */}
+              {pageType === 'dives' ? (
+                // Dives page mobile quick filters
+                <>
+                  <button
+                    onClick={() => onQuickFilter('my_dives')}
+                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                      quickFilter === 'my_dives'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }`}
+                    title='My Dives'
+                  >
+                    👤
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('wrecks')}
+                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                      quickFilter === 'wrecks'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }`}
+                    title='Wreck dives'
+                  >
+                    🚢
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('reefs')}
+                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                      quickFilter === 'reefs'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }`}
+                    title='Wreck dives'
+                  >
+                    🐠
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('boat_dive')}
+                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                      quickFilter === 'boat_dive'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }`}
+                    title='Boat dives'
+                  >
+                    🚤
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('shore_dive')}
+                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                      quickFilter === 'shore_dive'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }`}
+                    title='Shore dives'
+                  >
+                    🏖️
+                  </button>
+                </>
+              ) : (
+                // Default dive-sites mobile quick filters
+                <>
+                  <button
+                    onClick={() => onQuickFilter('wrecks')}
+                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                      quickFilter === 'wrecks'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }`}
+                    title='Wreck dive sites'
+                  >
+                    🚢
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('reefs')}
+                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                      quickFilter === 'reefs'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }`}
+                    title='Reef dive sites'
+                  >
+                    🐠
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('boat_dive')}
+                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                      quickFilter === 'boat_dive'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }`}
+                    title='Boat dive sites'
+                  >
+                    🚤
+                  </button>
+                  <button
+                    onClick={() => onQuickFilter('shore_dive')}
+                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                      quickFilter === 'shore_dive'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }`}
+                    title='Shore dive sites'
+                  >
+                    🏖️
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -965,6 +1101,8 @@ ResponsiveFilterBar.propTypes = {
   showThumbnails: PropTypes.bool,
   compactLayout: PropTypes.bool,
   onDisplayOptionChange: PropTypes.func,
+  // New prop for page-specific quick filters
+  pageType: PropTypes.string,
 };
 
 export default ResponsiveFilterBar;
