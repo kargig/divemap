@@ -8,11 +8,15 @@ class TestAuth:
 
     def test_register_success(self, client):
         """Test successful user registration with enabled=False by default."""
-        response = client.post("/api/v1/auth/register", json={
-            "username": "newuser",
-            "email": "newuser@example.com",
-            "password": "Password123!"
-        })
+        # Mock Turnstile service to be disabled for this test
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = False
+            
+            response = client.post("/api/v1/auth/register", json={
+                "username": "newuser",
+                "email": "newuser@example.com",
+                "password": "Password123!"
+            })
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
@@ -23,11 +27,15 @@ class TestAuth:
 
     def test_register_duplicate_username(self, client, test_user):
         """Test registration with duplicate username."""
-        response = client.post("/api/v1/auth/register", json={
-            "username": "testuser",  # Already exists
-            "email": "different@example.com",
-            "password": "Password123!"
-        })
+        # Mock Turnstile service to be disabled for this test
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = False
+            
+            response = client.post("/api/v1/auth/register", json={
+                "username": "testuser",  # Already exists
+                "email": "different@example.com",
+                "password": "Password123!"
+            })
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Username or email already registered" in response.json()["detail"]
