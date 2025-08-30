@@ -1,7 +1,7 @@
 ---
 description: Structured workflow for implementing items from docs/development/todo.md with work isolation and completion tracking
 globs: ["docs/development/todo.md", "docs/development/work/**/*", "docs/development/done/**/*"]
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Todo Implementation Program

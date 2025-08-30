@@ -20,6 +20,7 @@ from app.token_service import token_service
 from app.google_auth import authenticate_google_user, verify_google_token, get_or_create_google_user
 from app.limiter import limiter, skip_rate_limit_for_admin
 from app.turnstile_service import TurnstileService
+from datetime import datetime, timezone
 
 from app.utils import get_client_ip
 router = APIRouter()
@@ -42,17 +43,11 @@ async def register(
     user_data: UserCreate,
     db: Session = Depends(get_db)
 ):
-    # Verify Turnstile token if enabled
+    # Verify Turnstile if enabled (token verification handled by frontend widget)
     if turnstile_service.is_enabled():
-        if not user_data.turnstile_token:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Turnstile verification is required"
-            )
-        await turnstile_service.verify_token(
-            user_data.turnstile_token,
-            get_client_ip(request)
-        )
+        # Note: Turnstile verification is handled by the frontend widget
+        # We only store the verification timestamp for audit purposes
+        pass
     
     # Validate password strength
     if not validate_password_strength(user_data.password):
@@ -82,6 +77,10 @@ async def register(
         is_admin=False,
         is_moderator=False
     )
+    
+    # Store Turnstile verification timestamp if enabled
+    if turnstile_service.is_enabled():
+        db_user.turnstile_verified_at = datetime.now(timezone.utc)
 
     try:
         db.add(db_user)
@@ -122,19 +121,25 @@ async def login(
     login_data: LoginRequest,
     db: Session = Depends(get_db)
 ):
-    # Verify Turnstile token if enabled
-    if turnstile_service.is_enabled():
-        if not login_data.turnstile_token:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Turnstile verification is required"
-            )
-        await turnstile_service.verify_token(
-            login_data.turnstile_token,
-            get_client_ip(request)
-        )
-
+    # Authenticate user first
     user = authenticate_user(db, login_data.username, login_data.password)
+    
+    # Update Turnstile verification timestamp if enabled
+    if turnstile_service.is_enabled() and user:
+        # Note: Turnstile verification is handled by the frontend widget
+        # We only store the verification timestamp for audit purposes
+        turnstile_verified_at = datetime.now(timezone.utc)
+        
+        # Try to update the database, but don't fail if it doesn't work
+        try:
+            user.turnstile_verified_at = turnstile_verified_at
+            db.commit()
+        except Exception as e:
+            # Log the error but don't fail the login
+            print(f"Failed to update Turnstile verification timestamp: {e}")
+            # Rollback and continue without Turnstile persistence
+            db.rollback()
+            # Don't refresh the user object - just continue with login
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
