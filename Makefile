@@ -1,9 +1,10 @@
 # Divemap Deployment Makefile
 # 
 # Usage:
-#   make deploy          - Deploy both backend and frontend
+#   make deploy          - Deploy backend, frontend, and nginx
 #   make deploy-backend  - Deploy only the backend
 #   make deploy-frontend - Deploy only the frontend
+#   make deploy-nginx    - Deploy only the nginx proxy
 #   make test           - Run all tests (backend and frontend)
 #   make test-backend   - Run backend tests
 #   make test-frontend  - Run frontend tests
@@ -11,27 +12,29 @@
 
 SHELL := /bin/bash
 
-.PHONY: help deploy deploy-backend deploy-frontend test test-backend test-frontend
+.PHONY: help deploy deploy-backend deploy-frontend deploy-nginx test test-backend test-frontend
 
 # Default target
 help:
 	@echo "Divemap Deployment Makefile"
 	@echo ""
 	@echo "Available targets:"
-	@echo "  deploy          - Deploy both backend and frontend"
+	@echo "  deploy          - Deploy backend, frontend, and nginx"
 	@echo "  deploy-backend  - Deploy only the backend"
 	@echo "  deploy-frontend - Deploy only the frontend"
+	@echo "  deploy-nginx    - Deploy only the nginx proxy"
 	@echo "  test            - Run all tests (backend and frontend)"
 	@echo "  test-backend    - Run backend tests"
 	@echo "  test-frontend   - Run frontend tests"
 	@echo "  help            - Show this help message"
 	@echo ""
 
-# Deploy both backend and frontend
-deploy: deploy-backend deploy-frontend
-	@echo "✅ Both backend and frontend deployed successfully!"
-	@echo "🌐 Frontend: https://divemap.fly.dev/"
+# Deploy backend, frontend, and nginx
+deploy: deploy-backend deploy-frontend deploy-nginx
+	@echo "✅ Backend, frontend, and nginx deployed successfully!"
+	@echo "🌐 Frontend: https://divemap-frontend.fly.dev/"
 	@echo "🔧 Backend: https://divemap-backend.fly.dev/"
+	@echo "🔄 Nginx Proxy: https://divemap.fly.dev/"
 
 # Deploy only the backend
 deploy-backend:
@@ -44,6 +47,12 @@ deploy-frontend:
 	@echo "🚀 Deploying frontend..."
 	@cd frontend && ./deploy.sh .env.production
 	@echo "✅ Frontend deployed successfully!"
+
+# Deploy only the nginx proxy
+deploy-nginx:
+	@echo "🚀 Deploying nginx proxy..."
+	@cd nginx && fly deploy
+	@echo "✅ Nginx proxy deployed successfully!"
 
 # Run all tests
 test: test-backend test-frontend
