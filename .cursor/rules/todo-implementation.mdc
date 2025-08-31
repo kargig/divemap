@@ -8,6 +8,57 @@ alwaysApply: true
 
 Structured workflow for implementing items from docs/development/todo.md. Work isolation in docs/development/work/, completion tracking in docs/development/done/. Enables concurrent work.
 
+## Markdown Writing Standards
+
+**CRITICAL: All markdown content MUST follow these rules:**
+
+### MD022 - Headings Must Be Surrounded by Blank Lines
+
+- **ALWAYS** add a blank line before and after every heading
+- **NEVER** have headings directly adjacent to content above or below
+- **Example:**
+
+  ```markdown
+  # Heading 1
+
+  Content here
+
+  ## Heading 2
+
+  More content
+  ```
+
+### MD032 - Lists Must Be Surrounded by Blank Lines
+
+- **ALWAYS** add a blank line before and after every list
+- **NEVER** have lists directly adjacent to content above or below
+- **Example:**
+
+  ```markdown
+  Content above
+
+  - List item 1
+  - List item 2
+
+  Content below
+  ```
+
+### Markdown Structure Requirements
+
+1. **Headings:** Must have blank lines above and below
+2. **Lists:** Must have blank lines above and below
+3. **Code blocks:** Must have blank lines above and below
+4. **Blockquotes:** Must have blank lines above and below
+5. **Tables:** Must have blank lines above and below
+
+### Enforcement
+
+- **VIOLATIONS WILL RESULT IN IMMEDIATE CORRECTION**
+- **All markdown files must pass markdownlint validation**
+- **No exceptions to these formatting rules**
+
+---
+
 ## Overall Guidance
 
 **CRITICAL: Follow all steps in the workflow! Do not miss executing any steps!**
@@ -44,6 +95,7 @@ Structured workflow for implementing items from docs/development/todo.md. Work i
 ## Description
 
 [Refined description]
+```
 
 ## Success Criteria
 
@@ -67,7 +119,6 @@ Structured workflow for implementing items from docs/development/todo.md. Work i
 - [ ] Quality: All existing tests continue to pass
 - [ ] User validation: Manual toggle test works in multiple browsers
 - [ ] Documentation: Settings page documented in project-description.md
-```
 
 ## Implementation Plan
 
@@ -118,9 +169,11 @@ Structured workflow for implementing items from docs/development/todo.md. Work i
 
 3. **Ensure directory structure and check for existing tasks**:
    - Create directories and find all existing tasks:
+
      ```bash
      mkdir -p spec docs/development/work docs/development/done && orphaned_count=0 && active_count=0 && for d in docs/development/work/*/task.md; do [ -f "$d" ] || continue; pid=$(grep "^**Agent PID:" "$d" | cut -d' ' -f3); task_name=$(basename $(dirname "$d")); task_title=$(head -1 "$d" | sed 's/^# //'); if [ -n "$pid" ] && ps -p "$pid" >/dev/null 2>&1; then active_count=$((active_count + 1)); echo "ACTIVE $active_count. $task_name: $task_title"; else orphaned_count=$((orphaned_count + 1)); echo "ORPHANED $orphaned_count. $task_name: $task_title"; fi; done
      ```
+
    - If existing tasks found (orphaned or active),
      - Present tasks to the user as numbered lists grouped by type (the user can not see the Bash tool outputs in full!)
      - STOP: "Found existing task(s). What would you like to do? (resume <type:number|name> / reset <type:number|name> / ignore all / new)"
@@ -155,9 +208,11 @@ Structured workflow for implementing items from docs/development/todo.md. Work i
        - Create unique task folder name with format: `[date]-brief-task-title`
        - Example: `2025-01-06-14-30-45-add-dark-mode-toggle`
      - Get agent-pid by running Bash tool:
+
        ```bash
        echo $PPID
        ```
+
    - Use parallel tool calls:
      - Create docs/development/work/[task-folder-name]/ directory
      - Create docs/development/work/[task-folder-name]/task.md with:
@@ -253,7 +308,7 @@ Structured workflow for implementing items from docs/development/todo.md. Work i
 
 1. **Critical self-assessment**:
    - Use parallel Task agents to analyze implementation for bugs, edge cases, code quality issues
-   - If applicable, use Playwright MCP to live test web server. Never run the dev server yourself. The dev server already runs within docker containers. If it's not running, ask the user to run it. The user should tell you the location of the test server, for example http://localhost.
+   - If applicable, use Playwright MCP to live test web server. Never run the dev server yourself. The dev server already runs within docker containers. If it's not running, ask the user to run it. The user should tell you the location of the test server, for example `http://localhost`.
    - Add findings to task.md Review section: "- [ ] Bug that needs fixing: ..." or "- [ ] Code that needs cleanup: ..."
    - If issues found, use instructions from Phase 3 step 2 to fix
 
@@ -276,6 +331,7 @@ Structured workflow for implementing items from docs/development/todo.md. Work i
    - If ANY criteria remain [ ] unchecked, task CANNOT be completed
    - Make sure all implementation plan items are completed and working.
    - Update status and move task to done:
+
      ```bash
      # Update status to Done in the task file
      sed -i '' 's/^\*\*Status:\*\* In Progress/\*\*Status:\*\* Done/' docs/development/work/[task-name]/task.md && \
@@ -288,6 +344,7 @@ Structured workflow for implementing items from docs/development/todo.md. Work i
          echo "Work directory contains additional files, left for manual cleanup"; \
      fi
      ```
+
    - STOP: "Task complete! Please review all changes and commit/push if desired. Mark as complete? (y/n)" - USER handles all git operations, agent never commits
 
 3. STOP: "Task complete! Continue with next todo? (y/n)"
