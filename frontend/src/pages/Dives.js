@@ -29,11 +29,13 @@ import DivesMap from '../components/DivesMap';
 import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import ImportDivesModal from '../components/ImportDivesModal';
+import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
 
 const Dives = () => {
@@ -506,6 +508,15 @@ const Dives = () => {
     }
   );
 
+  // Show toast notifications for rate limiting errors
+  useEffect(() => {
+    handleRateLimitError(error, 'dives', () => window.location.reload());
+  }, [error]);
+
+  useEffect(() => {
+    handleRateLimitError(totalCountResponse?.error, 'dives count', () => window.location.reload());
+  }, [totalCountResponse?.error]);
+
   const handleSearch = e => {
     e.preventDefault();
     setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when searching
@@ -823,8 +834,23 @@ const Dives = () => {
 
   if (error) {
     return (
-      <div className='text-center py-8'>
-        <p className='text-red-600'>Error loading dives: {error.message}</p>
+      <div className='py-6'>
+        {error.isRateLimited ? (
+          <RateLimitError
+            retryAfter={error.retryAfter}
+            onRetry={() => {
+              // Refetch the query when user clicks retry
+              window.location.reload();
+            }}
+          />
+        ) : (
+          <div className='text-center py-12'>
+            <p className='text-red-600'>Error loading dives: {error.message}</p>
+            <p className='text-sm text-gray-500 mt-2'>
+              {error.response?.data?.detail || error.message || 'An unexpected error occurred'}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
