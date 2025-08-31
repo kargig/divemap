@@ -25,9 +25,11 @@ import DivingCentersResponsiveFilterBar from '../components/DivingCentersRespons
 import HeroSection from '../components/HeroSection';
 import MaskedEmail from '../components/MaskedEmail';
 import MatchTypeBadge from '../components/MatchTypeBadge';
+import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
+import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
 
 // Helper function to safely extract error message
@@ -304,6 +306,11 @@ const DivingCenters = () => {
     }
   );
 
+  // Show toast notifications for rate limiting errors
+  useEffect(() => {
+    handleRateLimitError(error, 'diving centers', () => window.location.reload());
+  }, [error]);
+
   // Get pagination info from cached data
   const paginationInfo = queryClient.getQueryData([
     'diving-centers-pagination',
@@ -494,8 +501,23 @@ const DivingCenters = () => {
 
   if (error) {
     return (
-      <div className='text-center py-8'>
-        <p className='text-red-600'>Error loading diving centers: {getErrorMessage(error)}</p>
+      <div className='py-6'>
+        {error.isRateLimited ? (
+          <RateLimitError
+            retryAfter={error.retryAfter}
+            onRetry={() => {
+              // Refetch the query when user clicks retry
+              window.location.reload();
+            }}
+          />
+        ) : (
+          <div className='text-center py-12'>
+            <p className='text-red-600'>Error loading diving centers: {getErrorMessage(error)}</p>
+            <p className='text-sm text-gray-500 mt-2'>
+              {error.response?.data?.detail || error.message || 'An unexpected error occurred'}
+            </p>
+          </div>
+        )}
       </div>
     );
   }

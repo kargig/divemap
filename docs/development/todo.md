@@ -24,47 +24,7 @@
 
 **GitHub Issue:** [#51](https://github.com/kargig/divemap/issues/51)
 
-#### 2. Complete Fuzzy Search Implementation
-
-**Status:** In Progress
-
-**Priority:** Medium
-
-**Description:** Extend fuzzy search to remaining content types (Dives, Diving Organizations, Newsletters).
-
-**Tasks:**
-
-- [ ] Implement fuzzy search for Dives page
-- [ ] Implement fuzzy search for Diving Organizations page
-- [ ] Implement fuzzy search for Newsletters page
-- [ ] Ensure consistent search experience across all content types
-- [ ] Test and validate search functionality
-
-**Files:** `docs/development/work/2025-08-28-10-00-19-extend-fuzzy-search/task.md`
-
-**GitHub Issue:** [#52](https://github.com/kargig/divemap/issues/52)
-
 ### Medium Priority
-
-#### 3. Frontend Rate Limiting and Error Handling
-
-**Status:** Planning
-
-**Priority:** Medium
-
-**Description:** Implement comprehensive rate limiting and error handling for frontend API calls.
-
-**Tasks:**
-
-- [ ] Design rate limiting strategy
-- [ ] Implement client-side rate limiting
-- [ ] Add comprehensive error handling
-- [ ] Test error scenarios
-- [ ] Document error handling patterns
-
-**Files:** `docs/development/frontend-rate-limiting-error-handling.md`
-
-**GitHub Issue:** [#53](https://github.com/kargig/divemap/issues/53)
 
 #### 4. Map View for Dive Sites and Diving Centers
 
@@ -279,6 +239,8 @@ The following tasks have been completed and moved to `docs/development/done/`:
 - ✅ **Dive Sites UX Improvements** - Mobile-optimized with progressive disclosure
 - ✅ **Dive Trips UX Improvements** - Enhanced trip browsing and search
 - ✅ **Mobile Sorting UX** - Mobile-optimized sorting controls
+- ✅ **Fuzzy Search Implementation** - Complete fuzzy search across all public content types (Dives, Diving Centers, Dive Sites, Dive Trips) with consistent scoring, match type badges, and mobile-optimized interfaces
+- ✅ **Frontend Rate Limiting and Error Handling** - Complete rate limiting error handling integration across all major frontend pages (10/10 pages) with API interceptor, RateLimitError component, countdown timers, and comprehensive error handling patterns
 
 ## Notes
 

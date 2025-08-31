@@ -17,9 +17,11 @@ import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
 import api from '../api';
 import MaskedEmail from '../components/MaskedEmail';
 import MiniMap from '../components/MiniMap';
+import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { handleRateLimitError } from '../utils/rateLimitHandler';
 
 // Helper function to safely extract error message
 const getErrorMessage = error => {
@@ -60,6 +62,11 @@ const DiveSiteDetail = () => {
       // Error handled by error state
     },
   });
+
+  // Show toast notifications for rate limiting errors
+  useEffect(() => {
+    handleRateLimitError(error, 'dive site details', () => window.location.reload());
+  }, [error]);
 
   const { data: comments } = useQuery(
     ['dive-site-comments', id],
@@ -183,6 +190,20 @@ const DiveSiteDetail = () => {
   }
 
   if (error) {
+    if (error.isRateLimited) {
+      return (
+        <div className='py-6'>
+          <RateLimitError
+            retryAfter={error.retryAfter}
+            onRetry={() => {
+              // Refetch the query when user clicks retry
+              window.location.reload();
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className='text-center py-12'>
         <p className='text-red-600'>Error loading dive site. Please try again.</p>

@@ -18,7 +18,9 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 
 import api, { claimDivingCenterOwnership } from '../api';
 import MaskedEmail from '../components/MaskedEmail';
+import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
+import { handleRateLimitError } from '../utils/rateLimitHandler';
 
 // Helper function to safely extract error message
 const getErrorMessage = error => {
@@ -55,6 +57,11 @@ const DivingCenterDetail = () => {
     cacheTime: 10 * 60 * 1000, // 10 minutes,
     keepPreviousData: true, // Keep previous data while refetching
   });
+
+  // Show toast notifications for rate limiting errors
+  useEffect(() => {
+    handleRateLimitError(error, 'diving center details', () => window.location.reload());
+  }, [error]);
 
   // Check if user has edit privileges
   const canEdit =
@@ -252,6 +259,24 @@ const DivingCenterDetail = () => {
   }
 
   if (error) {
+    if (error.isRateLimited) {
+      return (
+        <div className='min-h-screen bg-gray-50 py-8'>
+          <div className='max-w-4xl mx-auto px-4'>
+            <div className='bg-white rounded-lg shadow-md p-6'>
+              <RateLimitError
+                retryAfter={error.retryAfter}
+                onRetry={() => {
+                  // Refetch the query when user clicks retry
+                  window.location.reload();
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className='min-h-screen bg-gray-50 py-8'>
         <div className='max-w-4xl mx-auto px-4'>

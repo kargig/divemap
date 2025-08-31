@@ -12,14 +12,16 @@ import {
   Download,
   Link,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
 
 import { getDive, deleteDive, deleteDiveMedia } from '../api';
+import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { handleRateLimitError } from '../utils/rateLimitHandler';
 
 const DiveDetail = () => {
   const { id } = useParams();
@@ -43,6 +45,11 @@ const DiveDetail = () => {
       enabled: !!id,
     }
   );
+
+  // Show toast notifications for rate limiting errors
+  useEffect(() => {
+    handleRateLimitError(error, 'dive details', () => window.location.reload());
+  }, [error]);
 
   // Delete dive mutation
   const deleteDiveMutation = useMutation(deleteDive, {
@@ -139,6 +146,20 @@ const DiveDetail = () => {
   }
 
   if (error) {
+    if (error.isRateLimited) {
+      return (
+        <div className='py-6'>
+          <RateLimitError
+            retryAfter={error.retryAfter}
+            onRetry={() => {
+              // Refetch the query when user clicks retry
+              window.location.reload();
+            }}
+          />
+        </div>
+      );
+    }
+
     let errorMessage = 'Unknown error occurred';
     if (error.response?.data?.detail) {
       if (Array.isArray(error.response.data.detail)) {
@@ -156,6 +177,9 @@ const DiveDetail = () => {
     return (
       <div className='text-center py-8'>
         <p className='text-red-600'>Error loading dive: {errorMessage}</p>
+        <p className='text-sm text-gray-500 mt-2'>
+          {error.response?.data?.detail || error.message || 'An unexpected error occurred'}
+        </p>
       </div>
     );
   }
