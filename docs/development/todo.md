@@ -4,26 +4,6 @@
 
 ### High Priority
 
-#### 1. Complete Nginx Proxy Implementation
-
-**Status:** In Progress
-
-**Priority:** High
-
-**Description:** Implement nginx as reverse proxy for development and production to solve cross-origin cookie issues with refresh tokens.
-
-**Tasks:**
-
-- [ ] Complete development environment nginx setup
-- [ ] Test cross-origin cookie resolution
-- [ ] Implement production nginx configuration with SSL
-- [ ] Update frontend and backend environment variables
-- [ ] Test refresh token functionality end-to-end
-
-**Files:** `docs/development/work/2025-08-28-10-00-19-nginx-proxy-implementation/task.md`
-
-**GitHub Issue:** [#51](https://github.com/kargig/divemap/issues/51)
-
 ### Medium Priority
 
 #### 4. Map View for Dive Sites and Diving Centers
@@ -241,6 +221,7 @@ The following tasks have been completed and moved to `docs/development/done/`:
 - ✅ **Mobile Sorting UX** - Mobile-optimized sorting controls
 - ✅ **Fuzzy Search Implementation** - Complete fuzzy search across all public content types (Dives, Diving Centers, Dive Sites, Dive Trips) with consistent scoring, match type badges, and mobile-optimized interfaces
 - ✅ **Frontend Rate Limiting and Error Handling** - Complete rate limiting error handling integration across all major frontend pages (10/10 pages) with API interceptor, RateLimitError component, countdown timers, and comprehensive error handling patterns
+- ✅ **Nginx Proxy Implementation** - Complete nginx reverse proxy for development and production environments, resolving cross-origin cookie issues with refresh tokens and providing unified origin for frontend and backend services
 
 ## Notes
 
