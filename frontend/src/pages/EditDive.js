@@ -13,6 +13,7 @@ import {
   getDivingCenters,
 } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { getDifficultyValue } from '../utils/difficultyHelpers';
 
 const EditDive = () => {
   const { id } = useParams();
@@ -308,7 +309,7 @@ const EditDive = () => {
       suit_type: formData.suit_type && formData.suit_type !== '' ? formData.suit_type : null,
       difficulty_level:
         formData.difficulty_level && formData.difficulty_level !== ''
-          ? formData.difficulty_level
+          ? getDifficultyValue(formData.difficulty_level)
           : null,
       visibility_rating: formData.visibility_rating ? parseInt(formData.visibility_rating) : null,
       user_rating: formData.user_rating ? parseInt(formData.user_rating) : null,
