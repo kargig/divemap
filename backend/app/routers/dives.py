@@ -11,7 +11,7 @@ import json
 import logging
 
 from app.database import get_db
-from app.models import Dive, DiveMedia, DiveTag, DiveSite, AvailableTag, User, DivingCenter, DiveSiteAlias, get_difficulty_label
+from app.models import Dive, DiveMedia, DiveTag, DiveSite, AvailableTag, User, DivingCenter, DiveSiteAlias, get_difficulty_label, get_difficulty_value
 from app.schemas import (
     DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse,
     DiveTagCreate, DiveTagResponse, DiveSearchParams
@@ -2054,7 +2054,7 @@ async def confirm_import_dives(
                 average_depth=dive_data.get('average_depth'),
                 gas_bottles_used=dive_data.get('gas_bottles_used'),
                 suit_type=dive_data.get('suit_type'),
-                difficulty_level=dive_data.get('difficulty_level', 'intermediate'),
+                difficulty_level=get_difficulty_value(dive_data.get('difficulty_level', 'intermediate')),
                 visibility_rating=dive_data.get('visibility_rating'),
                 user_rating=dive_data.get('user_rating'),
                 dive_date=dive_data['dive_date'],
@@ -2580,7 +2580,7 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
         'average_depth': None,  # Will be set from computer data if available
         'gas_bottles_used': gas_bottles_used,
         'suit_type': parsed_suit_type,
-        'difficulty_level': 'intermediate',  # Default
+        'difficulty_level': get_difficulty_value('intermediate'),  # Default
         'visibility_rating': parsed_visibility,
         'user_rating': parsed_rating,
         'dive_date': parsed_date.strftime('%Y-%m-%d') if parsed_date else None,
