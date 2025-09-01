@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
-import api from '../api';
+import api, { extractErrorMessage } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 const CreateDiveSite = () => {
@@ -40,7 +40,7 @@ const CreateDiveSite = () => {
       }
     },
     onError: error => {
-      toast.error(error.response?.data?.detail || 'Failed to create dive site');
+      toast.error(extractErrorMessage(error) || 'Failed to create dive site');
     },
   });
 
@@ -77,6 +77,13 @@ const CreateDiveSite = () => {
       submitData.max_depth = parseFloat(formData.max_depth);
     } else {
       submitData.max_depth = null;
+    }
+
+    // Convert difficulty_level to integer if provided, or set to null if empty
+    if (formData.difficulty_level && formData.difficulty_level.trim() !== '') {
+      submitData.difficulty_level = parseInt(formData.difficulty_level);
+    } else {
+      submitData.difficulty_level = null;
     }
 
     createDiveSiteMutation.mutate(submitData);
