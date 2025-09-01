@@ -34,8 +34,8 @@ primary_region = 'fra'
     grace_period = "10s"
     interval = "30s"
     method = "GET"
-    timeout = "5s"
-    path = "/health"
+    timeout = "10s"
+    path = "/nginx-health"
 
 # VM configuration
 [[vm]]

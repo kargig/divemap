@@ -594,7 +594,13 @@ const Dives = () => {
     // Don't reset pagination or trigger search on every change - only when Search button is clicked
   };
 
-  // handleTagChange function removed as it's now handled inline in the button onClick
+  const handleFilterChange = (name, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+    // Don't reset pagination or trigger search on every change - only when Search button is clicked
+  };
 
   const clearFilters = () => {
     setFilters({
@@ -613,59 +619,82 @@ const Dives = () => {
 
   // Quick filter handler for dive types
   const handleQuickFilter = filterType => {
-    setQuickFilter(filterType);
+    // Toggle the quick filter - if it's already active, deactivate it
+    if (quickFilter === filterType) {
+      setQuickFilter('');
+      // Clear the corresponding filter
+      switch (filterType) {
+        case 'my_dives':
+          setFilters(prev => ({ ...prev, my_dives: false }));
+          break;
+        case 'wrecks':
+        case 'reefs':
+        case 'boat_dive':
+        case 'shore_dive':
+          setFilters(prev => ({ ...prev, tag_ids: [] }));
+          break;
+        default:
+          break;
+      }
+    } else {
+      setQuickFilter(filterType);
 
-    // Implement quick filter logic for dive types
-    switch (filterType) {
-      case 'my_dives': {
-        // Filter for user's own dives
-        setFilters(prev => ({
-          ...prev,
-          my_dives: true,
-        }));
-        break;
+      // Apply the quick filter
+      switch (filterType) {
+        case 'my_dives': {
+          // Filter for user's own dives
+          setFilters(prev => ({
+            ...prev,
+            my_dives: true,
+            tag_ids: [], // Clear tag filters when switching to my dives
+          }));
+          break;
+        }
+        case 'wrecks': {
+          // Filter for wreck dives
+          setFilters(prev => ({
+            ...prev,
+            tag_ids: [8], // Wreck tag ID
+            my_dives: false, // Clear my dives filter
+          }));
+          break;
+        }
+        case 'reefs': {
+          // Filter for reef dives
+          setFilters(prev => ({
+            ...prev,
+            tag_ids: [14], // Reef tag ID
+            my_dives: false, // Clear my dives filter
+          }));
+          break;
+        }
+        case 'boat_dive': {
+          // Filter for boat dives
+          setFilters(prev => ({
+            ...prev,
+            tag_ids: [4], // Boat Dive tag ID
+            my_dives: false, // Clear my dives filter
+          }));
+          break;
+        }
+        case 'shore_dive': {
+          // Filter for shore dives
+          setFilters(prev => ({
+            ...prev,
+            tag_ids: [13], // Shore Dive tag ID
+            my_dives: false, // Clear my dives filter
+          }));
+          break;
+        }
+        case 'clear': {
+          // Clear quick filters
+          setQuickFilter('');
+          clearFilters();
+          break;
+        }
+        default:
+          break;
       }
-      case 'wrecks': {
-        // Filter for wreck dives (this would need tag-based filtering)
-        // For now, we'll use a placeholder approach
-        setFilters(prev => ({
-          ...prev,
-          // Note: This would need to be implemented based on dive site tags
-        }));
-        break;
-      }
-      case 'reefs': {
-        // Filter for reef dives (this would need tag-based filtering)
-        setFilters(prev => ({
-          ...prev,
-          // Note: This would need to be implemented based on dive site tags
-        }));
-        break;
-      }
-      case 'boat_dive': {
-        // Filter for boat dives (this would need tag-based filtering)
-        setFilters(prev => ({
-          ...prev,
-          // Note: This would need to be implemented based on dive site tags
-        }));
-        break;
-      }
-      case 'shore_dive': {
-        // Filter for shore dives (this would need tag-based filtering)
-        setFilters(prev => ({
-          ...prev,
-          // Note: This would need to be implemented based on dive site tags
-        }));
-        break;
-      }
-      case 'clear': {
-        // Clear quick filters
-        setQuickFilter('');
-        clearFilters();
-        break;
-      }
-      default:
-        break;
     }
 
     // Reset to first page when filters change
@@ -886,7 +915,7 @@ const Dives = () => {
           ...filters,
           availableTags: availableTags || [],
         }}
-        onFilterChange={handleSearchChange}
+        onFilterChange={handleFilterChange}
         onQuickFilter={handleQuickFilter}
         quickFilter={quickFilter}
         variant='sticky'
@@ -1003,9 +1032,11 @@ const Dives = () => {
               {dives?.map(dive => (
                 <div
                   key={dive.id}
-                  className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow ${
-                    compactLayout ? 'p-4' : 'p-6'
-                  }`}
+                  className={`dive-item rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow ${
+                    dive.is_private 
+                      ? 'bg-purple-50 border-purple-200' 
+                      : 'bg-white border-gray-200'
+                  } ${compactLayout ? 'p-4' : 'p-6'}`}
                 >
                   <div className='flex items-start justify-between mb-4'>
                     <div className='flex-1'>
@@ -1016,16 +1047,24 @@ const Dives = () => {
                           </div>
                         )}
                         <div>
-                          <h3
-                            className={`font-semibold text-gray-900 ${compactLayout ? 'text-base' : 'text-lg'}`}
-                          >
-                            <Link
-                              to={`/dives/${dive.id}`}
-                              className='hover:text-blue-600 transition-colors'
+                          <div className='flex items-center gap-2 mb-1'>
+                            <h3
+                              className={`font-semibold text-gray-900 ${compactLayout ? 'text-base' : 'text-lg'}`}
                             >
-                              {dive.name || `Dive #${dive.id}`}
-                            </Link>
-                          </h3>
+                              <Link
+                                to={`/dives/${dive.id}`}
+                                className='hover:text-blue-600 transition-colors'
+                              >
+                                {dive.name || `Dive #${dive.id}`}
+                              </Link>
+                            </h3>
+                            {dive.is_private && (
+                              <div className='flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium'>
+                                <Lock size={12} />
+                                Private
+                              </div>
+                            )}
+                          </div>
                           <p className={`text-gray-600 ${compactLayout ? 'text-sm' : 'text-base'}`}>
                             {new Date(dive.dive_date).toLocaleDateString('en-GB')} at{' '}
                             {new Date(dive.dive_date).toLocaleTimeString('en-GB', {
@@ -1078,12 +1117,23 @@ const Dives = () => {
                     {dive.tags && dive.tags.length > 0 && (
                       <div className='flex flex-wrap gap-1'>
                         {dive.tags.slice(0, 4).map(tag => (
-                          <span
+                          <button
                             key={tag.id}
-                            className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${getTagColor(tag.name)}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const tagId = parseInt(tag.id);
+                              const currentTagIds = filters.tag_ids || [];
+                              const newTagIds = currentTagIds.includes(tagId)
+                                ? currentTagIds.filter(id => id !== tagId)
+                                : [...currentTagIds, tagId];
+                              handleFilterChange('tag_ids', newTagIds);
+                            }}
+                            className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tag.name)}`}
+                            title={`Filter by ${tag.name}`}
                           >
                             {tag.name}
-                          </span>
+                          </button>
                         ))}
                         {dive.tags.length > 4 && (
                           <span className='inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full'>
@@ -1113,9 +1163,11 @@ const Dives = () => {
               {dives?.map(dive => (
                 <div
                   key={dive.id}
-                  className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
-                    compactLayout ? 'p-4' : 'p-6'
-                  }`}
+                  className={`dive-item rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-shadow ${
+                    dive.is_private 
+                      ? 'bg-purple-50 border-purple-200' 
+                      : 'bg-white border-gray-200'
+                  } ${compactLayout ? 'p-4' : 'p-6'}`}
                 >
                   {showThumbnails && (
                     <div className='dive-thumbnail bg-gray-100 p-4 flex items-center justify-center'>
@@ -1124,16 +1176,24 @@ const Dives = () => {
                   )}
 
                   <div className='p-4'>
-                    <h3
-                      className={`font-semibold text-gray-900 mb-2 ${compactLayout ? 'text-base' : 'text-lg'}`}
-                    >
-                      <Link
-                        to={`/dives/${dive.id}`}
-                        className='hover:text-blue-600 transition-colors'
+                    <div className='flex items-center gap-2 mb-2'>
+                      <h3
+                        className={`font-semibold text-gray-900 ${compactLayout ? 'text-base' : 'text-lg'}`}
                       >
-                        {dive.name || `Dive #${dive.id}`}
-                      </Link>
-                    </h3>
+                        <Link
+                          to={`/dives/${dive.id}`}
+                          className='hover:text-blue-600 transition-colors'
+                        >
+                          {dive.name || `Dive #${dive.id}`}
+                        </Link>
+                      </h3>
+                      {dive.is_private && (
+                        <div className='flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium'>
+                          <Lock size={12} />
+                          Private
+                        </div>
+                      )}
+                    </div>
 
                     <p className={`text-gray-600 mb-3 ${compactLayout ? 'text-sm' : 'text-base'}`}>
                       {new Date(dive.dive_date).toLocaleDateString('en-GB')} at{' '}
@@ -1179,12 +1239,23 @@ const Dives = () => {
                       {dive.tags && dive.tags.length > 0 && (
                         <div className='flex flex-wrap gap-1'>
                           {dive.tags.slice(0, 2).map(tag => (
-                            <span
+                            <button
                               key={tag.id}
-                              className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${getTagColor(tag.name)}`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const tagId = parseInt(tag.id);
+                                const currentTagIds = filters.tag_ids || [];
+                                const newTagIds = currentTagIds.includes(tagId)
+                                  ? currentTagIds.filter(id => id !== tagId)
+                                  : [...currentTagIds, tagId];
+                                handleFilterChange('tag_ids', newTagIds);
+                              }}
+                              className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tag.name)}`}
+                              title={`Filter by ${tag.name}`}
                             >
                               {tag.name}
-                            </span>
+                            </button>
                           ))}
                           {dive.tags.length > 2 && (
                             <span className='inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full'>
