@@ -7,6 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
+import { getDifficultyValue } from '../utils/difficultyHelpers';
 
 // Helper function to safely extract error message
 const getErrorMessage = error => {
@@ -402,6 +403,13 @@ const EditDiveSite = () => {
       updateData.max_depth = parseFloat(formData.max_depth);
     } else {
       updateData.max_depth = null;
+    }
+
+    // Convert difficulty_level to integer if provided, or set to null if empty
+    if (formData.difficulty_level && formData.difficulty_level.trim() !== '') {
+      updateData.difficulty_level = getDifficultyValue(formData.difficulty_level);
+    } else {
+      updateData.difficulty_level = null;
     }
 
     // Update the dive site first
