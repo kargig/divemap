@@ -37,6 +37,7 @@ import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
+import { getTagColor } from '../utils/tagHelpers';
 
 const Dives = () => {
   const { user, isAdmin } = useAuth();
@@ -768,69 +769,7 @@ const Dives = () => {
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
-  const getTagColor = tagName => {
-    // Create a consistent color mapping based on tag name
-    const colorMap = {
-      beginner: 'bg-green-100 text-green-800',
-      intermediate: 'bg-yellow-100 text-yellow-800',
-      advanced: 'bg-orange-100 text-orange-800',
-      expert: 'bg-red-100 text-red-800',
-      deep: 'bg-blue-100 text-blue-800',
-      shallow: 'bg-cyan-100 text-cyan-800',
-      wreck: 'bg-purple-100 text-purple-800',
-      reef: 'bg-emerald-100 text-emerald-800',
-      cave: 'bg-indigo-100 text-indigo-800',
-      wall: 'bg-slate-100 text-slate-800',
-      drift: 'bg-teal-100 text-teal-800',
-      night: 'bg-violet-100 text-violet-800',
-      photography: 'bg-pink-100 text-pink-800',
-      marine: 'bg-cyan-100 text-cyan-800',
-      training: 'bg-amber-100 text-amber-800',
-      tech: 'bg-red-100 text-red-800',
-      boat: 'bg-blue-100 text-blue-800',
-      shore: 'bg-green-100 text-green-800',
-    };
 
-    // Try exact match first
-    const lowerTagName = tagName.toLowerCase();
-    if (colorMap[lowerTagName]) {
-      return colorMap[lowerTagName];
-    }
-
-    // Try partial matches
-    for (const [key, color] of Object.entries(colorMap)) {
-      if (lowerTagName.includes(key) || key.includes(lowerTagName)) {
-        return color;
-      }
-    }
-
-    // Default color scheme based on hash of tag name
-    const colors = [
-      'bg-blue-100 text-blue-800',
-      'bg-green-100 text-green-800',
-      'bg-yellow-100 text-yellow-800',
-      'bg-orange-100 text-orange-800',
-      'bg-red-100 text-red-800',
-      'bg-purple-100 text-purple-800',
-      'bg-pink-100 text-pink-800',
-      'bg-indigo-100 text-indigo-800',
-      'bg-cyan-100 text-cyan-800',
-      'bg-teal-100 text-teal-800',
-      'bg-emerald-100 text-emerald-800',
-      'bg-amber-100 text-amber-800',
-      'bg-violet-100 text-violet-800',
-      'bg-slate-100 text-slate-800',
-    ];
-
-    // Simple hash function for consistent color assignment
-    let hash = 0;
-    for (let i = 0; i < tagName.length; i++) {
-      hash = (hash << 5) - hash + tagName.charCodeAt(i);
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-
-    return colors[Math.abs(hash) % colors.length];
-  };
 
   if (error) {
     return (
@@ -1129,11 +1068,30 @@ const Dives = () => {
                     </div>
                   </div>
 
-                  <div className='flex items-center gap-4 mb-4'>
+                  <div className='flex items-center justify-between mb-4'>
                     <div className='flex items-center gap-2'>
                       <Star className='w-4 h-4 text-yellow-400' />
-                      <span className='text-sm text-gray-600'>{dive.rating}/10</span>
+                      <span className='text-sm text-gray-600'>{dive.user_rating}/10</span>
                     </div>
+                    
+                    {/* Tags */}
+                    {dive.tags && dive.tags.length > 0 && (
+                      <div className='flex flex-wrap gap-1'>
+                        {dive.tags.slice(0, 4).map(tag => (
+                          <span
+                            key={tag.id}
+                            className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${getTagColor(tag.name)}`}
+                          >
+                            {tag.name}
+                          </span>
+                        ))}
+                        {dive.tags.length > 4 && (
+                          <span className='inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full'>
+                            +{dive.tags.length - 4}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <p className={`text-gray-700 ${compactLayout ? 'text-sm' : 'text-base'}`}>
@@ -1209,10 +1167,32 @@ const Dives = () => {
                         <Clock className='w-4 h-4 text-gray-400' />
                         <span className='text-sm text-gray-600'>{dive.duration}min</span>
                       </div>
+                    </div>
+
+                    <div className='flex items-center justify-between mb-4'>
                       <div className='flex items-center gap-2'>
                         <Star className='w-4 h-4 text-yellow-400' />
-                        <span className='text-sm text-gray-600'>{dive.rating}/10</span>
+                        <span className='text-sm text-gray-600'>{dive.user_rating}/10</span>
                       </div>
+                      
+                      {/* Tags */}
+                      {dive.tags && dive.tags.length > 0 && (
+                        <div className='flex flex-wrap gap-1'>
+                          {dive.tags.slice(0, 2).map(tag => (
+                            <span
+                              key={tag.id}
+                              className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${getTagColor(tag.name)}`}
+                            >
+                              {tag.name}
+                            </span>
+                          ))}
+                          {dive.tags.length > 2 && (
+                            <span className='inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full'>
+                              +{dive.tags.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <Link
