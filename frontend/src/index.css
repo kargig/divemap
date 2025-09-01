@@ -18,6 +18,11 @@
 
 /* Custom styles */
 
+/* Fix for main content padding to ensure it appears below navbar */
+main.pt-16 {
+  padding-top: 4rem !important; /* 64px - ensure content appears below navbar */
+}
+
 /* Safe Area Utility Classes */
 .pt-safe {
   padding-top: var(--safe-area-top);
