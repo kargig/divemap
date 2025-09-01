@@ -31,6 +31,7 @@ import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
+import { getTagColor } from '../utils/tagHelpers';
 
 const DiveSites = () => {
   const { user, isAdmin } = useAuth();
@@ -783,20 +784,7 @@ const DiveSites = () => {
             </div>
           </div>
 
-          {/* Action Buttons - Mobile-first responsive design */}
-          <div className='flex flex-col sm:flex-row justify-center sm:justify-end items-center mb-4 sm:mb-6 gap-3 sm:gap-4'>
-            {user && (
-              <div className='flex flex-col sm:flex-row gap-3 w-full sm:w-auto'>
-                <button
-                  onClick={() => navigate('/dive-sites/create')}
-                  className='bg-green-600 hover:bg-green-700 active:bg-green-800 text-white px-4 py-3 sm:py-2 rounded-lg flex items-center justify-center gap-2 text-sm sm:text-base font-medium shadow-sm transition-all duration-200 hover:shadow-md active:shadow-inner min-h-[44px] sm:min-h-0 touch-manipulation w-full sm:w-auto'
-                >
-                  <Plus size={20} />
-                  Create Dive Site
-                </button>
-              </div>
-            )}
-          </div>
+
 
           {/* Results Section - Mobile-first responsive design */}
           {/* Dive Sites List - Show when data is available and viewMode is list */}
@@ -936,7 +924,7 @@ const DiveSites = () => {
                       {site.tags.slice(0, 3).map((tag, index) => (
                         <span
                           key={index}
-                          className='inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded'
+                          className={`inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded ${getTagColor(tag.name || tag)}`}
                         >
                           {tag.name || tag}
                         </span>

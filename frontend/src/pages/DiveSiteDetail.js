@@ -22,6 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
+import { getTagColor } from '../utils/tagHelpers';
 
 // Helper function to safely extract error message
 const getErrorMessage = error => {
@@ -480,7 +481,7 @@ const DiveSiteDetail = () => {
                         {dive.tags.map(tag => (
                           <span
                             key={tag.id}
-                            className='px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full'
+                            className={`px-2 py-1 text-xs rounded-full ${getTagColor(tag.name)}`}
                           >
                             {tag.name}
                           </span>
@@ -835,7 +836,7 @@ const DiveSiteDetail = () => {
                 {diveSite.tags.map(tag => (
                   <span
                     key={tag.id}
-                    className='px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium'
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${getTagColor(tag.name)}`}
                   >
                     {tag.name}
                   </span>
