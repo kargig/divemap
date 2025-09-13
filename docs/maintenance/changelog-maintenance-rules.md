@@ -1,6 +1,8 @@
 # Changelog Maintenance Rules
 
-This document outlines the rules and guidelines for maintaining the Divemap project changelog following the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) standard.
+This document outlines the rules and guidelines for maintaining the Divemap
+project changelog following the [Keep a
+Changelog](https://keepachangelog.com/en/1.1.0/) standard.
 
 ## Table of Contents
 
@@ -15,19 +17,23 @@ This document outlines the rules and guidelines for maintaining the Divemap proj
 ## Changelog Format Standards
 
 ### File Structure
+
 - **File Name**: `docs/maintenance/changelog.md`
 - **Format**: Markdown with consistent structure
 - **Encoding**: UTF-8 with LF line endings
 - **Location**: Always in `docs/maintenance/` directory
 
 ### Header Format
+
 ```markdown
 # Divemap Changelog
 
-This document tracks all recent changes, improvements, and bug fixes to the Divemap application.
+This document tracks all recent changes, improvements, and bug fixes to the
+Divemap application.
 ```
 
 ### Version Entry Format
+
 ```markdown
 ## [Version Number] - YYYY-MM-DD
 
@@ -80,6 +86,7 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 ## Commit Analysis Guidelines
 
 ### Commit Selection Criteria
+
 - **Include**: All commits that affect user-facing functionality
 - **Include**: All commits that change API behavior
 - **Include**: All commits that modify database schema
@@ -88,12 +95,14 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 - **Include**: All commits that fix critical bugs
 
 ### Commit Exclusion Criteria
+
 - **Exclude**: Documentation-only commits (unless major)
 - **Exclude**: Minor formatting changes
 - **Exclude**: Test-only commits
 - **Exclude**: CI/CD configuration changes (unless user-impacting)
 
 ### Commit Analysis Process
+
 1. **Review Commit Message**: Understand the purpose and scope
 2. **Analyze Changed Files**: Identify affected components
 3. **Assess User Impact**: Determine if users will notice changes
@@ -103,12 +112,14 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 ## Change Categorization
 
 ### 🚀 Major Features
+
 - New functionality that users can interact with
 - Significant improvements to existing features
 - New pages, components, or major UI changes
 - New API endpoints or major API enhancements
 
 ### 🔧 API Changes
+
 - New API endpoints
 - Modified request/response formats
 - New query parameters or filters
@@ -116,12 +127,14 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 - Authentication method updates
 
 ### 🐛 Bug Fixes
+
 - Issues that prevented normal operation
 - UI bugs that affected user experience
 - Performance problems that caused delays
 - Security vulnerabilities that were patched
 
 ### 🗄️ Database Changes
+
 - New tables or columns
 - Modified table structures
 - New indexes or constraints
@@ -129,6 +142,7 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 - Schema optimization changes
 
 ### 🎨 Frontend Changes
+
 - UI/UX improvements
 - Component refactoring
 - Responsive design updates
@@ -136,6 +150,7 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 - Performance optimizations
 
 ### ⚙️ Backend Changes
+
 - Service architecture changes
 - Performance improvements
 - Security enhancements
@@ -143,12 +158,14 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 - Logging and monitoring updates
 
 ### 📚 Documentation Updates
+
 - New user guides
 - Updated API documentation
 - New development guides
 - Improved troubleshooting sections
 
 ### 🔒 Security Enhancements
+
 - New security features
 - Security vulnerability fixes
 - Authentication improvements
@@ -156,6 +173,7 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 - Rate limiting enhancements
 
 ### 🚀 Infrastructure Changes
+
 - Deployment improvements
 - Docker container updates
 - Nginx configuration changes
@@ -165,17 +183,20 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 ## Version Management
 
 ### Version Numbering
+
 - **Format**: Use semantic versioning (MAJOR.MINOR.PATCH)
 - **Major**: Breaking changes or major new features
 - **Minor**: New features or significant improvements
 - **Patch**: Bug fixes and minor improvements
 
 ### Release Dates
+
 - **Format**: YYYY-MM-DD (ISO 8601)
 - **Accuracy**: Use actual release date, not commit date
 - **Consistency**: Always include date with version
 
 ### Version Ordering
+
 - **Latest First**: Most recent version at the top
 - **Chronological**: Order by release date (newest first)
 - **Unreleased Section**: Track upcoming changes at the top
@@ -183,18 +204,21 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 ## Documentation Requirements
 
 ### Change Description Standards
+
 - **User-Focused**: Write for end users, not developers
 - **Clear Language**: Use simple, understandable terms
 - **Specific Details**: Include relevant technical information
 - **Impact Statement**: Explain how changes affect users
 
 ### Technical Details
+
 - **File Changes**: List major files that were modified
 - **API Endpoints**: Include new or changed endpoints
 - **Database Changes**: Reference migration files
 - **Configuration**: Note environment variable changes
 
 ### User Impact
+
 - **What Changed**: Clear description of the change
 - **Why It Matters**: Explanation of benefits
 - **How to Use**: Instructions for new features
@@ -203,18 +227,21 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 ## Quality Standards
 
 ### Content Quality
+
 - **Accuracy**: All information must be factually correct
 - **Completeness**: Include all relevant changes
 - **Clarity**: Use clear, concise language
 - **Consistency**: Maintain consistent formatting and style
 
 ### Formatting Standards
+
 - **Markdown**: Use proper markdown syntax
 - **Emojis**: Use appropriate emojis for categories
 - **Lists**: Use consistent list formatting
 - **Headers**: Use proper header hierarchy
 
 ### Review Process
+
 - **Self-Review**: Review your own changes before committing
 - **Peer Review**: Have another team member review changes
 - **User Testing**: Verify that descriptions are user-friendly
@@ -223,12 +250,14 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 ## Maintenance Workflow
 
 ### Regular Updates
+
 - **Frequency**: Update after each significant commit or release
 - **Scope**: Include all changes since last update
 - **Quality**: Maintain high standards for all entries
 - **Consistency**: Follow established patterns and formats
 
 ### Update Process
+
 1. **Analyze Commits**: Review all commits since last update
 2. **Categorize Changes**: Apply appropriate categories
 3. **Write Descriptions**: Create clear, user-friendly descriptions
@@ -238,6 +267,7 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 7. **Commit Changes**: Save updates to version control
 
 ### Maintenance Checklist
+
 - [ ] All significant commits are included
 - [ ] Changes are properly categorized
 - [ ] Descriptions are user-friendly
@@ -252,18 +282,21 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 ## Best Practices
 
 ### Writing Guidelines
+
 - **Be Specific**: Avoid vague descriptions like "improved performance"
 - **Focus on Users**: Explain what users will experience
 - **Include Context**: Provide enough detail to understand the change
 - **Use Active Voice**: Write in present tense with active verbs
 
 ### Organization Guidelines
+
 - **Logical Grouping**: Group related changes together
 - **Clear Categories**: Use consistent category names
 - **Proper Hierarchy**: Maintain logical information flow
 - **Easy Navigation**: Make information easy to find
 
 ### Maintenance Guidelines
+
 - **Regular Updates**: Don't let changes accumulate
 - **Quality Over Quantity**: Better to have fewer, better entries
 - **User Perspective**: Always consider the user's point of view
@@ -272,6 +305,7 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 ## Compliance Requirements
 
 ### Keep a Changelog Standards
+
 - **Human-Focused**: Write for humans, not machines
 - **Version Entries**: Include entry for every version
 - **Change Types**: Group same types of changes together
@@ -281,6 +315,7 @@ This document tracks all recent changes, improvements, and bug fixes to the Dive
 - **Semantic Versioning**: Mention if you follow semantic versioning
 
 ### Project-Specific Requirements
+
 - **File Location**: Always in `docs/maintenance/changelog.md`
 - **Markdown Format**: Use consistent markdown formatting
 - **Emoji Categories**: Use appropriate emojis for visual organization

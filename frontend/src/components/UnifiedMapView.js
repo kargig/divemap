@@ -13,8 +13,7 @@ import View from 'ol/View';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-import { useResponsive } from '../hooks/useResponsive';
-import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { getDifficultyLabel } from '../utils/difficultyHelpers';
 
 const UnifiedMapView = ({
   data,
@@ -27,7 +26,6 @@ const UnifiedMapView = ({
   const mapRef = useRef();
   const mapInstance = useRef();
   const lastDataKeyRef = useRef(null);
-  const { isMobile } = useResponsive();
 
   // State
   const [popupInfo, setPopupInfo] = useState(null);
@@ -128,19 +126,19 @@ const UnifiedMapView = ({
     });
   }, []);
 
-  // Create dive style for individual dive points
-  const createDiveStyle = useCallback(feature => {
-    const entityType = feature.get('entityType');
+  // Create dive style for individual dive points - currently unused but kept for future use
+  // const createDiveStyle = useCallback(feature => {
+  //   const entityType = feature.get('entityType');
 
-    // Use simple circle style for dives to ensure visibility
-    return new Style({
-      image: new Circle({
-        radius: 12,
-        fill: new Fill({ color: '#f59e0b' }),
-        stroke: new Stroke({ color: 'white', width: 3 }),
-      }),
-    });
-  }, []);
+  //   // Use simple circle style for dives to ensure visibility
+  //   return new Style({
+  //     image: new Circle({
+  //       radius: 12,
+  //       fill: new Fill({ color: '#f59e0b' }),
+  //       stroke: new Stroke({ color: 'white', width: 3 }),
+  //     }),
+  //   });
+  // }, []);
 
   // Initialize map
   useEffect(() => {
@@ -220,7 +218,7 @@ const UnifiedMapView = ({
 
       // Handle feature clicks
       map.on('click', event => {
-        const feature = map.forEachFeatureAtPixel(event.pixel, feature => feature);
+        const feature = map.forEachFeatureAtPixel(event.pixel, f => f);
 
         if (feature) {
           const features = feature.get('features');
@@ -242,7 +240,8 @@ const UnifiedMapView = ({
           setPopupPosition(null);
         }
       });
-    } catch (error) {
+    } catch {
+      // Silently handle map initialization errors
     }
 
     // Cleanup
@@ -251,7 +250,7 @@ const UnifiedMapView = ({
         mapInstance.current.setTarget(undefined);
       }
     };
-  }, [onViewportChange]);
+  }, [onViewportChange, viewport.latitude, viewport.longitude, viewport.zoom]);
 
   // Update map when data changes
   useEffect(() => {
@@ -302,7 +301,7 @@ const UnifiedMapView = ({
 
     // Process dives
     if (data.dives && selectedEntityType === 'dives') {
-      data.dives.forEach((dive, index) => {
+      data.dives.forEach(dive => {
         if (dive.dive_site?.latitude && dive.dive_site?.longitude) {
           const lonLat = [dive.dive_site.longitude, dive.dive_site.latitude];
           const projected = fromLonLat(lonLat);
@@ -355,7 +354,7 @@ const UnifiedMapView = ({
     // For dives, use a very simple style to ensure visibility
     const styleFunction =
       clusterDistance === 0
-        ? feature =>
+        ? () =>
             new Style({
               image: new Circle({
                 radius: 15,
@@ -371,7 +370,6 @@ const UnifiedMapView = ({
     });
 
     mapInstance.current.addLayer(vectorLayer);
-
 
     // Fit view to show all features if this is the first load
     if (limitedFeatures.length > 0) {

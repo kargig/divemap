@@ -1,13 +1,8 @@
-import { X, Search, Filter, MapPin, Calendar, Star, Waves, Eye } from 'lucide-react';
+import { X, Search, Filter, MapPin, Calendar, Star, Waves } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 
-const UnifiedMapFilters = ({
-  filters,
-  onFilterChange,
-  selectedEntityType,
-  onClose,
-}) => {
+const UnifiedMapFilters = ({ filters, onFilterChange, selectedEntityType, onClose }) => {
   const [localFilters, setLocalFilters] = useState(filters);
 
   // Update local filters when props change
@@ -22,12 +17,12 @@ const UnifiedMapFilters = ({
     onFilterChange(newFilters);
   };
 
-  // Handle multiple value changes (like tag_ids)
-  const handleMultiFilterChange = (key, value) => {
-    const newFilters = { ...localFilters, [key]: value };
-    setLocalFilters(newFilters);
-    onFilterChange(newFilters);
-  };
+  // Handle multiple value changes (like tag_ids) - currently unused but kept for future use
+  // const handleMultiFilterChange = (key, value) => {
+  //   const newFilters = { ...localFilters, [key]: value };
+  //   setLocalFilters(newFilters);
+  //   onFilterChange(newFilters);
+  // };
 
   // Reset all filters
   const resetFilters = () => {
@@ -82,14 +77,14 @@ const UnifiedMapFilters = ({
 
       {/* Content */}
       <div className='flex-1 overflow-y-auto p-4 space-y-6'>
-
         {/* Search */}
         <div>
-          <label className='block text-sm font-medium text-gray-700 mb-2'>
+          <label htmlFor='search-input' className='block text-sm font-medium text-gray-700 mb-2'>
             <Search className='w-4 h-4 inline mr-1' />
             Search
           </label>
           <input
+            id='search-input'
             type='text'
             value={localFilters.search}
             onChange={e => handleFilterChange('search', e.target.value)}
@@ -106,8 +101,11 @@ const UnifiedMapFilters = ({
           </h3>
 
           <div>
-            <label className='block text-xs text-gray-600 mb-1'>Country</label>
+            <label htmlFor='country-input' className='block text-xs text-gray-600 mb-1'>
+              Country
+            </label>
             <input
+              id='country-input'
               type='text'
               value={localFilters.country}
               onChange={e => handleFilterChange('country', e.target.value)}
@@ -117,8 +115,11 @@ const UnifiedMapFilters = ({
           </div>
 
           <div>
-            <label className='block text-xs text-gray-600 mb-1'>Region</label>
+            <label htmlFor='region-input' className='block text-xs text-gray-600 mb-1'>
+              Region
+            </label>
             <input
+              id='region-input'
               type='text'
               value={localFilters.region}
               onChange={e => handleFilterChange('region', e.target.value)}
@@ -137,8 +138,11 @@ const UnifiedMapFilters = ({
 
           <div className='grid grid-cols-2 gap-2'>
             <div>
-              <label className='block text-xs text-gray-600 mb-1'>Min Rating</label>
+              <label htmlFor='min-rating-select' className='block text-xs text-gray-600 mb-1'>
+                Min Rating
+              </label>
               <select
+                id='min-rating-select'
                 value={localFilters.min_rating}
                 onChange={e => handleFilterChange('min_rating', e.target.value)}
                 className='w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
@@ -153,8 +157,11 @@ const UnifiedMapFilters = ({
             </div>
 
             <div>
-              <label className='block text-xs text-gray-600 mb-1'>Max Rating</label>
+              <label htmlFor='max-rating-select' className='block text-xs text-gray-600 mb-1'>
+                Max Rating
+              </label>
               <select
+                id='max-rating-select'
                 value={localFilters.max_rating}
                 onChange={e => handleFilterChange('max_rating', e.target.value)}
                 className='w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
@@ -171,14 +178,17 @@ const UnifiedMapFilters = ({
         </div>
 
         {/* Difficulty Filter */}
-        {(selectedEntityType === 'dive-sites' ||
-          selectedEntityType === 'dives') && (
+        {(selectedEntityType === 'dive-sites' || selectedEntityType === 'dives') && (
           <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
+            <label
+              htmlFor='difficulty-select'
+              className='block text-sm font-medium text-gray-700 mb-2'
+            >
               <Waves className='w-4 h-4 inline mr-1' />
               Difficulty Level
             </label>
             <select
+              id='difficulty-select'
               value={localFilters.difficulty_level}
               onChange={e => handleFilterChange('difficulty_level', e.target.value)}
               className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
@@ -203,8 +213,11 @@ const UnifiedMapFilters = ({
 
             <div className='grid grid-cols-2 gap-2'>
               <div>
-                <label className='block text-xs text-gray-600 mb-1'>Min Depth (m)</label>
+                <label htmlFor='depth-min-input' className='block text-xs text-gray-600 mb-1'>
+                  Min Depth (m)
+                </label>
                 <input
+                  id='depth-min-input'
                   type='number'
                   value={localFilters.depth_min}
                   onChange={e => handleFilterChange('depth_min', e.target.value)}
@@ -214,8 +227,11 @@ const UnifiedMapFilters = ({
               </div>
 
               <div>
-                <label className='block text-xs text-gray-600 mb-1'>Max Depth (m)</label>
+                <label htmlFor='depth-max-input' className='block text-xs text-gray-600 mb-1'>
+                  Max Depth (m)
+                </label>
                 <input
+                  id='depth-max-input'
                   type='number'
                   value={localFilters.depth_max}
                   onChange={e => handleFilterChange('depth_max', e.target.value)}
@@ -227,8 +243,11 @@ const UnifiedMapFilters = ({
 
             <div className='grid grid-cols-2 gap-2'>
               <div>
-                <label className='block text-xs text-gray-600 mb-1'>Min Visibility (m)</label>
+                <label htmlFor='visibility-min-input' className='block text-xs text-gray-600 mb-1'>
+                  Min Visibility (m)
+                </label>
                 <input
+                  id='visibility-min-input'
                   type='number'
                   value={localFilters.visibility_min}
                   onChange={e => handleFilterChange('visibility_min', e.target.value)}
@@ -238,8 +257,11 @@ const UnifiedMapFilters = ({
               </div>
 
               <div>
-                <label className='block text-xs text-gray-600 mb-1'>Max Visibility (m)</label>
+                <label htmlFor='visibility-max-input' className='block text-xs text-gray-600 mb-1'>
+                  Max Visibility (m)
+                </label>
                 <input
+                  id='visibility-max-input'
                   type='number'
                   value={localFilters.visibility_max}
                   onChange={e => handleFilterChange('visibility_max', e.target.value)}
@@ -250,8 +272,11 @@ const UnifiedMapFilters = ({
             </div>
 
             <div>
-              <label className='block text-xs text-gray-600 mb-1'>Suit Type</label>
+              <label htmlFor='suit-type-select' className='block text-xs text-gray-600 mb-1'>
+                Suit Type
+              </label>
               <select
+                id='suit-type-select'
                 value={localFilters.suit_type}
                 onChange={e => handleFilterChange('suit_type', e.target.value)}
                 className='w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
@@ -275,8 +300,11 @@ const UnifiedMapFilters = ({
             </h3>
 
             <div>
-              <label className='block text-xs text-gray-600 mb-1'>From Date</label>
+              <label htmlFor='date-from-input' className='block text-xs text-gray-600 mb-1'>
+                From Date
+              </label>
               <input
+                id='date-from-input'
                 type='date'
                 value={localFilters.date_from}
                 onChange={e => handleFilterChange('date_from', e.target.value)}
@@ -285,8 +313,11 @@ const UnifiedMapFilters = ({
             </div>
 
             <div>
-              <label className='block text-xs text-gray-600 mb-1'>To Date</label>
+              <label htmlFor='date-to-input' className='block text-xs text-gray-600 mb-1'>
+                To Date
+              </label>
               <input
+                id='date-to-input'
                 type='date'
                 value={localFilters.date_to}
                 onChange={e => handleFilterChange('date_to', e.target.value)}

@@ -1,31 +1,18 @@
-import {
-  Map,
-  Filter,
-  Search,
-  Layers,
-  Settings,
-  Maximize2,
-  Minimize2,
-  X,
-  MapPin,
-  Loader2,
-} from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { Map, Filter, Layers, Maximize2, X, MapPin, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
 import LeafletMapView from '../components/LeafletMapView';
 import MapLayersPanel from '../components/MapLayersPanel';
 import MobileMapControls from '../components/MobileMapControls';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
-import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useViewportData } from '../hooks/useViewportData';
 
 const IndependentMapView = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user } = useAuth();
-  const { isMobile, isTablet } = useResponsive();
+  const { isMobile } = useResponsive();
 
   // Viewport state for map
   const [viewport, setViewport] = useState({
@@ -37,8 +24,6 @@ const IndependentMapView = () => {
 
   // Geolocation state
   const [geolocationStatus, setGeolocationStatus] = useState('idle'); // 'idle', 'requesting', 'granted', 'denied', 'error'
-  const [userLocation, setUserLocation] = useState(null);
-  const [locationPermissionAsked, setLocationPermissionAsked] = useState(false);
 
   // UI state
   const [showFilters, setShowFilters] = useState(false);
@@ -96,13 +81,10 @@ const IndependentMapView = () => {
   useEffect(() => {
     if (navigator.geolocation) {
       // Reset geolocation state when component mounts or entity type changes
-      setLocationPermissionAsked(false);
       setGeolocationStatus('idle');
-      setUserLocation(null);
 
       // Small delay to ensure state is reset before requesting location
       const timer = setTimeout(() => {
-        setLocationPermissionAsked(true);
         requestUserLocation();
       }, 100);
 
@@ -117,7 +99,6 @@ const IndependentMapView = () => {
     navigator.geolocation.getCurrentPosition(
       position => {
         const { latitude, longitude } = position.coords;
-        setUserLocation({ latitude, longitude });
         setGeolocationStatus('granted');
 
         // Update viewport to user location with zoom level 10
@@ -128,7 +109,7 @@ const IndependentMapView = () => {
           bounds: null,
         });
       },
-      error => {
+      () => {
         setGeolocationStatus('denied');
       },
       {
@@ -320,7 +301,11 @@ const IndependentMapView = () => {
                 }`}
                 title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
               >
-                {isFullscreen ? <X className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' /> : <Maximize2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />}
+                {isFullscreen ? (
+                  <X className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                ) : (
+                  <Maximize2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                )}
               </button>
             </div>
           </div>
