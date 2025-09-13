@@ -1,6 +1,8 @@
 # Maintenance Overview
 
-This document provides comprehensive information about maintaining the Divemap application, including regular maintenance tasks, troubleshooting procedures, and operational guidelines.
+This document provides comprehensive information about maintaining the Divemap
+application, including regular maintenance tasks, troubleshooting procedures,
+and operational guidelines.
 
 ## Table of Contents
 
@@ -16,7 +18,9 @@ This document provides comprehensive information about maintaining the Divemap a
 
 ## Overview
 
-Regular maintenance is essential for ensuring the reliability, security, and performance of the Divemap application. This document outlines the maintenance procedures and schedules for different components of the system.
+Regular maintenance is essential for ensuring the reliability, security, and
+performance of the Divemap application. This document outlines the maintenance
+procedures and schedules for different components of the system.
 
 ### Maintenance Objectives
 
@@ -44,10 +48,13 @@ Regular maintenance is essential for ensuring the reliability, security, and per
 When using `fly logs` commands for maintenance tasks:
 
 - **Oneshot Commands**: Use `fly logs -n` for one-time log checks and scripts
-- **Continuous Monitoring**: Use `fly logs` (without `-n`) for real-time monitoring
-- **Continuous Monitoring**: Use `fly logs` (without `-n`) for real-time monitoring
+- **Continuous Monitoring**: Use `fly logs` (without `-n`) for real-time
+  monitoring
+- **Continuous Monitoring**: Use `fly logs` (without `-n`) for real-time
+  monitoring
 
 **Examples:**
+
 ```bash
 # Quick log check (oneshot)
 fly logs -n -a divemap-backend
@@ -59,6 +66,7 @@ fly logs -a divemap-backend
 ### Daily Tasks
 
 #### 1. Health Checks
+
 ```bash
 # Check application health
 curl -f https://divemap.fly.dev/health
@@ -72,6 +80,7 @@ fly ssh console -C "mysql -u divemap_user -p divemap -e 'SELECT 1'"
 ```
 
 #### 2. Backup Verification
+
 ```bash
 # Verify backup completion
 ls -la /backups/
@@ -81,6 +90,7 @@ mysql -u root -p < /backups/latest_backup.sql
 ```
 
 #### 3. Log Review
+
 ```bash
 # Check application logs
 fly logs -n
@@ -95,6 +105,7 @@ curl https://divemap.fly.dev/metrics
 ### Weekly Tasks
 
 #### 1. Security Updates
+
 ```bash
 # Update dependencies
 pip install --upgrade -r requirements.txt
@@ -106,9 +117,11 @@ safety check
 ```
 
 #### 2. Performance Analysis
+
 ```bash
 # Analyze slow queries
-fly ssh console -a divemap-db -C "mysql -u divemap_user -p -e 'SHOW PROCESSLIST'"
+fly ssh console -a divemap-db -C "mysql -u divemap_user -p -e 'SHOW
+PROCESSLIST'"
 
 # Check resource usage
 fly status
@@ -118,6 +131,7 @@ curl -w "@curl-format.txt" -o /dev/null -s https://divemap.fly.dev/
 ```
 
 #### 3. Log Analysis
+
 ```bash
 # Analyze error patterns
 fly logs -n | grep -i error | wc -l
@@ -132,6 +146,7 @@ fly logs -n | grep -i "rate limit" | wc -l
 ### Monthly Tasks
 
 #### 1. Dependency Updates
+
 ```bash
 # Update Python dependencies
 cd backend
@@ -145,15 +160,18 @@ npm audit fix
 ```
 
 #### 2. Database Optimization
+
 ```bash
 # Analyze database performance
 fly ssh console -a divemap-db -C "mysql -u root -p -e 'SHOW TABLE STATUS'"
 
 # Check for unused indexes
-fly ssh console -a divemap-db -C "mysql -u root -p -e 'SELECT * FROM information_schema.statistics'"
+fly ssh console -a divemap-db -C "mysql -u root -p -e 'SELECT * FROM
+information_schema.statistics'"
 ```
 
 #### 3. Security Review
+
 ```bash
 # Review access logs
 fly logs -n | grep -i "unauthorized"
@@ -170,15 +188,19 @@ curl -I https://divemap.fly.dev/
 ### Backup Procedures
 
 #### Daily Backups
+
 ```bash
 # Create database backup
-fly ssh console -a divemap-db -C "mysqldump -u root -p divemap > /backups/divemap_$(date +%Y%m%d).sql"
+fly ssh console -a divemap-db -C "mysqldump -u root -p divemap >
+/backups/divemap_$(date +%Y%m%d).sql"
 
 # Verify backup integrity
-fly ssh console -a divemap-db -C "mysql -u root -p -e 'SELECT COUNT(*) FROM dive_sites'"
+fly ssh console -a divemap-db -C "mysql -u root -p -e 'SELECT COUNT(*) FROM
+dive_sites'"
 ```
 
 #### Backup Retention
+
 - **Daily backups**: Keep for 7 days
 - **Weekly backups**: Keep for 4 weeks
 - **Monthly backups**: Keep for 12 months
@@ -186,6 +208,7 @@ fly ssh console -a divemap-db -C "mysql -u root -p -e 'SELECT COUNT(*) FROM dive
 ### Migration Management
 
 #### Check Migration Status
+
 ```bash
 # Check current migration
 fly ssh console -a divemap-backend -C "alembic current"
@@ -195,6 +218,7 @@ fly ssh console -a divemap-backend -C "alembic history"
 ```
 
 #### Run Migrations
+
 ```bash
 # Run pending migrations
 fly ssh console -a divemap-backend -C "python run_migrations.py"
@@ -206,21 +230,26 @@ fly ssh console -a divemap-backend -C "alembic current"
 ### Performance Optimization
 
 #### Query Optimization
+
 ```bash
 # Check slow queries
 fly ssh console -a divemap-db -C "mysql -u root -p -e 'SHOW PROCESSLIST'"
 
 # Analyze query performance
-fly ssh console -a divemap-db -C "mysql -u root -p -e 'EXPLAIN SELECT * FROM dive_sites WHERE name LIKE \"%test%\"'"
+fly ssh console -a divemap-db -C "mysql -u root -p -e 'EXPLAIN SELECT * FROM
+dive_sites WHERE name LIKE \"%test%\"'"
 ```
 
 #### Index Management
+
 ```bash
 # Check index usage
-fly ssh console -a divemap-db -C "mysql -u root -p -e 'SHOW INDEX FROM dive_sites'"
+fly ssh console -a divemap-db -C "mysql -u root -p -e 'SHOW INDEX FROM
+dive_sites'"
 
 # Analyze index efficiency
-fly ssh console -a divemap-db -C "mysql -u root -p -e 'SELECT * FROM information_schema.statistics WHERE table_name = \"dive_sites\"'"
+fly ssh console -a divemap-db -C "mysql -u root -p -e 'SELECT * FROM
+information_schema.statistics WHERE table_name = \"dive_sites\"'"
 ```
 
 ## Application Maintenance
@@ -228,6 +257,7 @@ fly ssh console -a divemap-db -C "mysql -u root -p -e 'SELECT * FROM information
 ### Code Updates
 
 #### Backend Updates
+
 ```bash
 # Update backend code
 git pull origin main
@@ -245,6 +275,7 @@ fly deploy -a divemap-backend
 ```
 
 #### Frontend Updates
+
 ```bash
 # Update frontend code
 cd frontend
@@ -263,6 +294,7 @@ fly deploy -a divemap
 ### Configuration Management
 
 #### Environment Variables
+
 ```bash
 # List current secrets
 fly secrets list -a divemap-backend
@@ -275,6 +307,7 @@ fly secrets unset OLD_SECRET -a divemap-backend
 ```
 
 #### Configuration Files
+
 ```bash
 # Update configuration
 fly deploy -a divemap-backend
@@ -288,6 +321,7 @@ fly ssh console -a divemap-backend -C "cat /app/config.py"
 ### Container Management
 
 #### Container Health
+
 ```bash
 # Check container status
 fly status
@@ -299,6 +333,7 @@ fly restart -a divemap-db
 ```
 
 #### Resource Monitoring
+
 ```bash
 # Check resource usage
 fly status
@@ -313,6 +348,7 @@ fly ssh console -C "df -h"
 ### Network Maintenance
 
 #### SSL Certificate Management
+
 ```bash
 # Check SSL certificate status
 curl -I https://divemap.fly.dev/
@@ -322,6 +358,7 @@ openssl s_client -connect divemap.fly.dev:443 -servername divemap.fly.dev
 ```
 
 #### DNS Management
+
 ```bash
 # Check DNS resolution
 nslookup divemap.fly.dev
@@ -335,6 +372,7 @@ dig divemap.fly.dev
 ### Vulnerability Scanning
 
 #### Dependency Scanning
+
 ```bash
 # Scan Python dependencies
 cd backend
@@ -347,6 +385,7 @@ npm audit
 ```
 
 #### Application Scanning
+
 ```bash
 # Check for common vulnerabilities
 curl -X POST https://divemap-backend.fly.dev/auth/login \
@@ -357,15 +396,20 @@ curl -X POST https://divemap-backend.fly.dev/auth/login \
 ### Access Control
 
 #### User Management
+
 ```bash
 # Review user accounts
-fly ssh console -a divemap-backend -C "mysql -u divemap_user -p divemap -e 'SELECT username, email, role, is_active FROM users'"
+fly ssh console -a divemap-backend -C "mysql -u divemap_user -p divemap -e
+'SELECT username, email, role, is_active FROM users'"
 
 # Disable inactive users
-fly ssh console -a divemap-backend -C "mysql -u divemap_user -p divemap -e 'UPDATE users SET is_active = 0 WHERE last_login < DATE_SUB(NOW(), INTERVAL 90 DAY)'"
+fly ssh console -a divemap-backend -C "mysql -u divemap_user -p divemap -e
+'UPDATE users SET is_active = 0 WHERE last_login < DATE_SUB(NOW(), INTERVAL 90
+DAY)'"
 ```
 
 #### Authentication Review
+
 ```bash
 # Check failed login attempts
 fly logs -n -a divemap-backend | grep -i "failed login"
@@ -379,6 +423,7 @@ fly logs -n -a divemap-backend | grep -i "unauthorized"
 ### Health Monitoring
 
 #### Application Health
+
 ```bash
 # Monitor application health
 curl -f https://divemap.fly.dev/health
@@ -391,6 +436,7 @@ curl -w "@curl-format.txt" -o /dev/null -s https://divemap.fly.dev/
 ```
 
 #### Database Health
+
 ```bash
 # Check database connectivity
 fly ssh console -C "mysql -u divemap_user -p divemap -e 'SELECT 1'"
@@ -402,6 +448,7 @@ fly ssh console -a divemap-db -C "mysql -u root -p -e 'SHOW PROCESSLIST'"
 ### Alert Configuration
 
 #### Error Alerts
+
 ```bash
 # Monitor error rates
 fly logs -n | grep -i error | wc -l
@@ -411,6 +458,7 @@ fly logs -n | grep -i "critical\|fatal\|panic"
 ```
 
 #### Performance Alerts
+
 ```bash
 # Monitor response times
 curl -w "Time: %{time_total}s\n" -o /dev/null -s https://divemap.fly.dev/
@@ -424,6 +472,7 @@ fly status
 ### Quick Diagnosis
 
 #### Health Checks
+
 ```bash
 # Check application health
 curl -f https://divemap.fly.dev/health
@@ -439,6 +488,7 @@ fly ssh console -C "mysql -u divemap_user -p divemap -e 'SELECT 1'"
 ### Common Issues
 
 #### 1. Application Not Responding
+
 ```bash
 # Check logs
 fly logs -n -a divemap
@@ -451,6 +501,7 @@ fly status
 ```
 
 #### 2. Database Connection Issues
+
 ```bash
 # Check database status
 fly status -a divemap-db
@@ -463,6 +514,7 @@ fly ssh console -a divemap-backend -C "python run_migrations.py"
 ```
 
 #### 3. Authentication Issues
+
 ```bash
 # Check authentication logs
 fly logs -n -a divemap-backend | grep -i auth
@@ -474,6 +526,7 @@ curl -X POST https://divemap-backend.fly.dev/auth/login \
 ```
 
 #### 4. Migration Failures
+
 ```bash
 # Check migration status
 fly ssh console -a divemap-backend -C "alembic current"
@@ -486,6 +539,7 @@ fly ssh console -a divemap-backend -C "alembic stamp head"
 ```
 
 #### 5. Performance Issues
+
 ```bash
 # Check database performance
 fly ssh console -a divemap-db -C "mysql -u root -p -e 'SHOW PROCESSLIST'"
@@ -500,6 +554,7 @@ fly status
 ### Debug Procedures
 
 #### Enable Debug Logging
+
 ```bash
 # Enable debug mode
 fly secrets set DEBUG=true -a divemap-backend
@@ -509,6 +564,7 @@ fly logs -n -a divemap-backend | grep -i debug
 ```
 
 #### Manual Testing
+
 ```bash
 # Test API endpoints
 curl -X GET https://divemap-backend.fly.dev/dive-sites
@@ -522,14 +578,18 @@ curl -I https://divemap.fly.dev/
 
 ### Dive Site Import Scripts
 
-The application includes enhanced import scripts for managing dive site data with smart conflict resolution.
+The application includes enhanced import scripts for managing dive site data
+with smart conflict resolution.
 
 #### **import_subsurface_divesite.py**
-- **Purpose**: Import dive sites from text files with preference for updating existing sites
+
+- **Purpose**: Import dive sites from text files with preference for updating
+  existing sites
 - **Strategy**: Prevents duplicate creation by checking similarity and proximity
 - **Conflict Resolution**: Offers interactive, batch, and merge file modes
 
 **Maintenance Tasks:**
+
 ```bash
 # Verify import script functionality
 cd utils
@@ -543,6 +603,7 @@ python import_subsurface_divesite.py --create-merge-all
 ```
 
 **Key Features for Maintenance:**
+
 - **Smart Matching**: Uses similarity algorithms to detect existing sites
 - **Proximity Checking**: 200m threshold to prevent nearby duplicates
 - **Selective Updates**: Preserves existing data not in import files
@@ -550,21 +611,27 @@ python import_subsurface_divesite.py --create-merge-all
 - **Merge Files**: Manual review capability for complex updates
 
 **Update Behavior:**
+
 - **Always Updated**: name, description, latitude, longitude
-- **Preserved**: address, access_instructions, difficulty_level, marine_life, safety_information, aliases, country, region
+- **Preserved**: address, access_instructions, difficulty_level, marine_life,
+  safety_information, aliases, country, region
 - **Selective**: Only changes fields present in import data
 
 #### **import_kml_dive_sites.py**
+
 - **Purpose**: Import dive sites from KML files with automatic tag assignment
 - **Maintenance**: Verify icon-to-tag mapping accuracy
 
 **Maintenance Tasks:**
+
 ```bash
 # Test KML import functionality
 python import_kml_dive_sites.py sample_dive_sites.kml
 
 # Verify tag assignments
-mysql -u divemap_user -p divemap -e "SELECT name, GROUP_CONCAT(tag_name) FROM dive_sites ds JOIN dive_site_tags dst ON ds.id = dst.dive_site_id JOIN available_tags at ON dst.tag_id = at.id GROUP BY ds.id;"
+mysql -u divemap_user -p divemap -e "SELECT name, GROUP_CONCAT(tag_name) FROM
+dive_sites ds JOIN dive_site_tags dst ON ds.id = dst.dive_site_id JOIN
+available_tags at ON dst.tag_id = at.id GROUP BY ds.id;"
 ```
 
 ### Import Script Best Practices
@@ -579,15 +646,19 @@ mysql -u divemap_user -p divemap -e "SELECT name, GROUP_CONCAT(tag_name) FROM di
 ### Recovery Procedures
 
 #### Database Recovery
+
 ```bash
 # Restore from backup
-fly ssh console -a divemap-db -C "mysql -u root -p divemap < /backups/divemap_backup.sql"
+fly ssh console -a divemap-db -C "mysql -u root -p divemap <
+/backups/divemap_backup.sql"
 
 # Verify restoration
-fly ssh console -a divemap-db -C "mysql -u divemap_user -p divemap -e 'SELECT COUNT(*) FROM dive_sites'"
+fly ssh console -a divemap-db -C "mysql -u divemap_user -p divemap -e 'SELECT
+COUNT(*) FROM dive_sites'"
 ```
 
 #### Application Recovery
+
 ```bash
 # Restart all services
 fly restart -a divemap
@@ -601,24 +672,28 @@ curl -f https://divemap.fly.dev/health
 ## Maintenance Checklist
 
 ### Daily
+
 - [ ] Health checks
 - [ ] Backup verification
 - [ ] Log review
 - [ ] Error monitoring
 
 ### Weekly
+
 - [ ] Security updates
 - [ ] Performance analysis
 - [ ] Log analysis
 - [ ] Dependency checks
 
 ### Monthly
+
 - [ ] Dependency updates
 - [ ] Database optimization
 - [ ] Security review
 - [ ] Infrastructure review
 
 ### Quarterly
+
 - [ ] Comprehensive security audit
 - [ ] Performance optimization
 - [ ] Backup strategy review
@@ -626,11 +701,13 @@ curl -f https://divemap.fly.dev/health
 
 ## Database Export/Import
 
-For detailed information about exporting and importing diving centers and dive sites data between local development and fly.io production databases, see:
+For detailed information about exporting and importing diving centers and dive
+sites data between local development and fly.io production databases, see:
 
 - [Database Export/Import Guide](./database-export-import.md)
 
 This includes:
+
 - Full backup procedures
 - Selective table export/import
 - Data integrity maintenance
@@ -639,6 +716,7 @@ This includes:
 ## Support
 
 For maintenance issues:
+
 1. Check this troubleshooting guide
 2. Review logs for specific errors
 3. Test manual procedures
@@ -647,4 +725,6 @@ For maintenance issues:
 
 ## Conclusion
 
-Regular maintenance ensures the Divemap application remains reliable, secure, and performant. Following these procedures helps prevent issues and maintain high availability.
+Regular maintenance ensures the Divemap application remains reliable, secure,
+and performant. Following these procedures helps prevent issues and maintain
+high availability.

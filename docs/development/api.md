@@ -1,6 +1,8 @@
 # API Documentation
 
-This document provides comprehensive documentation for the Divemap API, including all endpoints, authentication methods, request/response formats, and usage examples.
+This document provides comprehensive documentation for the Divemap API,
+including all endpoints, authentication methods, request/response formats, and
+usage examples.
 
 ## Table of Contents
 
@@ -15,7 +17,10 @@ This document provides comprehensive documentation for the Divemap API, includin
 
 ## Overview
 
-The Divemap API is a RESTful API built with FastAPI that provides access to dive sites, diving centers, user management, and administrative functions. The API supports JSON request/response formats and includes comprehensive authentication and authorization.
+The Divemap API is a RESTful API built with FastAPI that provides access to dive
+sites, diving centers, user management, and administrative functions. The API
+supports JSON request/response formats and includes comprehensive authentication
+and authorization.
 
 ### API Features
 
@@ -30,17 +35,19 @@ The Divemap API is a RESTful API built with FastAPI that provides access to dive
 
 The API uses URL versioning with the current version being `v1`:
 
-```
+```text
 https://divemap-backend.fly.dev/api/v1/
-```
+```text
 
 ## Authentication
 
 ### JWT Authentication
 
-The API uses JSON Web Tokens (JWT) for authentication. Tokens are obtained through login endpoints and must be included in subsequent requests.
+The API uses JSON Web Tokens (JWT) for authentication. Tokens are obtained
+through login endpoints and must be included in subsequent requests.
 
 #### Token Format
+
 ```json
 {
   "sub": "user_id",
@@ -50,20 +57,23 @@ The API uses JSON Web Tokens (JWT) for authentication. Tokens are obtained throu
   "exp": 1640995200,
   "iat": 1640908800
 }
-```
+```text
 
 #### Including Tokens
+
 ```bash
 # Include token in Authorization header
 curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
      https://divemap-backend.fly.dev/api/v1/users/me
-```
+```text
 
 ### Google OAuth
 
-The API also supports Google OAuth authentication for enhanced security and user experience.
+The API also supports Google OAuth authentication for enhanced security and user
+experience.
 
 #### OAuth Flow
+
 1. User authenticates with Google
 2. Frontend receives Google ID token
 3. Frontend sends token to backend for verification
@@ -74,19 +84,22 @@ The API also supports Google OAuth authentication for enhanced security and user
 ## Base URL
 
 ### Production
-```
+
+```text
 https://divemap-backend.fly.dev/api/v1/
-```
+```text
 
 ### Development
-```
-http://localhost:8000/api/v1/
-```
 
-### API Documentation
-```
+```text
+http://localhost:8000/api/v1/
+```text
+
+### API Documentation URL
+
+```text
 https://divemap-backend.fly.dev/docs
-```
+```text
 
 ## Error Handling
 
@@ -105,13 +118,14 @@ https://divemap-backend.fly.dev/docs
 | 500 | Internal Server Error - Server error |
 
 ### Error Response Format
+
 ```json
 {
   "detail": "Error message description",
   "error_code": "ERROR_CODE",
   "timestamp": "2024-01-15T10:30:00Z"
 }
-```
+```text
 
 ### Common Error Codes
 
@@ -129,18 +143,21 @@ https://divemap-backend.fly.dev/docs
 ### Authentication Endpoints
 
 #### POST /auth/register
+
 Register a new user account.
 
 **Request Body:**
+
 ```json
 {
   "username": "newuser",
   "email": "user@example.com",
   "password": "SecurePassword123!"
 }
-```
+```text
 
 **Response:**
+
 ```json
 {
   "id": 1,
@@ -151,20 +168,23 @@ Register a new user account.
   "enabled": true,
   "created_at": "2024-01-15T10:30:00Z"
 }
-```
+```text
 
 #### POST /auth/login
+
 Authenticate user and receive JWT token.
 
 **Request Body:**
+
 ```json
 {
   "username": "user",
   "password": "password"
 }
-```
+```text
 
 **Response:**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -178,19 +198,22 @@ Authenticate user and receive JWT token.
     "enabled": true
   }
 }
-```
+```text
 
 #### POST /auth/google-login
+
 Authenticate using Google OAuth.
 
 **Request Body:**
+
 ```json
 {
   "id_token": "google_id_token_here"
 }
-```
+```text
 
 **Response:**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -204,14 +227,16 @@ Authenticate using Google OAuth.
     "enabled": true
   }
 }
-```
+```text
 
 #### GET /auth/me
+
 Get current user information.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Response:**
+
 ```json
 {
   "id": 1,
@@ -225,21 +250,24 @@ Get current user information.
   "created_at": "2024-01-15T10:30:00Z",
   "updated_at": "2024-01-15T10:30:00Z"
 }
-```
+```text
 
 ### User Management Endpoints
 
 #### GET /users/
+
 Get all users (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Query Parameters:**
+
 - `skip`: Number of records to skip (default: 0)
 - `limit`: Number of records to return (default: 100)
 - `search`: Search term for username or email
 
 **Response:**
+
 ```json
 [
   {
@@ -252,14 +280,16 @@ Get all users (admin only).
     "created_at": "2024-01-15T10:30:00Z"
   }
 ]
-```
+```text
 
 #### GET /users/{user_id}
+
 Get user by ID.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Response:**
+
 ```json
 {
   "id": 1,
@@ -273,42 +303,49 @@ Get user by ID.
   "created_at": "2024-01-15T10:30:00Z",
   "updated_at": "2024-01-15T10:30:00Z"
 }
-```
+```text
 
 #### PUT /users/{user_id}
+
 Update user profile.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Request Body:**
+
 ```json
 {
   "diving_certification": "PADI Advanced Open Water",
   "number_of_dives": 50
 }
-```
+```text
 
 #### POST /users/me/change-password
+
 Change user password.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Request Body:**
+
 ```json
 {
   "current_password": "oldpassword",
   "new_password": "NewSecurePassword123!"
 }
-```
+```text
 
 ### Dive Sites Endpoints
 
 #### GET /dive-sites/count
+
 Get total count of dive sites matching filters.
 
 **Query Parameters:**
+
 - `name`: Search term for dive site name
-- `difficulty_level`: Filter by difficulty (beginner, intermediate, advanced, expert)
+- `difficulty_level`: Filter by difficulty (beginner, intermediate, advanced,
+  expert)
 - `country`: Filter by country
 - `region`: Filter by region
 - `min_rating`: Minimum rating filter
@@ -316,23 +353,28 @@ Get total count of dive sites matching filters.
 - `tag_ids`: Comma-separated tag IDs
 
 **Response:**
+
 ```json
 {
   "total": 74
 }
-```
+```text
 
 #### GET /dive-sites/
+
 Get dive sites with comprehensive sorting and filtering.
 
 **Query Parameters:**
+
 - `page`: Page number (1-based, default: 1)
 - `page_size`: Page size (25, 50, or 100, default: 25)
 - `name`: Search term for dive site name
-- `difficulty_level`: Filter by difficulty (1=beginner, 2=intermediate, 3=advanced, 4=expert)
+- `difficulty_level`: Filter by difficulty (1=beginner, 2=intermediate,
+  3=advanced, 4=expert)
 - `country`: Filter by country
 - `region`: Filter by region
-- `sort_by`: Sort field (name, country, region, difficulty_level, view_count, comment_count, created_at, updated_at)
+- `sort_by`: Sort field (name, country, region, difficulty_level, view_count,
+  comment_count, created_at, updated_at)
 - `sort_order`: Sort order (asc, desc, default: asc)
 - `tag_ids`: Comma-separated tag IDs
 - `my_dive_sites`: Filter to show only dive sites created by the current user
@@ -340,6 +382,7 @@ Get dive sites with comprehensive sorting and filtering.
 **Note:** `view_count` and `comment_count` sorting require admin privileges.
 
 **Response Headers:**
+
 - `X-Total-Count`: Total number of records
 - `X-Total-Pages`: Total number of pages
 - `X-Current-Page`: Current page number
@@ -348,6 +391,7 @@ Get dive sites with comprehensive sorting and filtering.
 - `X-Has-Prev-Page`: Whether there's a previous page
 
 **Response:**
+
 ```json
 [
   {
@@ -387,14 +431,16 @@ Get dive sites with comprehensive sorting and filtering.
     "updated_at": "2024-01-15T10:30:00Z"
   }
 ]
-```
+```text
 
 #### POST /dive-sites/
+
 Create new dive site (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Request Body:**
+
 ```json
 {
   "name": "New Dive Site",
@@ -413,12 +459,14 @@ Create new dive site (admin/moderator only).
   "country": "Australia",
   "region": "Queensland"
 }
-```
+```text
 
 #### GET /dive-sites/{dive_site_id}
+
 Get dive site by ID.
 
 **Response:**
+
 ```json
 {
   "id": 1,
@@ -468,9 +516,10 @@ Get dive site by ID.
   "created_at": "2024-01-15T10:30:00Z",
   "updated_at": "2024-01-15T10:30:00Z"
 }
-```
+```text
 
 #### PUT /dive-sites/{dive_site_id}
+
 Update dive site (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
@@ -478,31 +527,37 @@ Update dive site (admin/moderator only).
 **Request Body:** Same format as POST /dive-sites/
 
 #### DELETE /dive-sites/{dive_site_id}
+
 Delete dive site (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 #### POST /dive-sites/{dive_site_id}/rate
+
 Rate a dive site.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Request Body:**
+
 ```json
 {
   "rating": 9,
   "comment": "Excellent dive site!"
 }
-```
+```text
 
 #### GET /dive-sites/{dive_site_id}/comments
+
 Get dive site comments.
 
 **Query Parameters:**
+
 - `skip`: Number of records to skip (default: 0)
 - `limit`: Number of records to return (default: 100)
 
 **Response:**
+
 ```json
 [
   {
@@ -516,52 +571,61 @@ Get dive site comments.
     "created_at": "2024-01-15T10:30:00Z"
   }
 ]
-```
+```text
 
 #### POST /dive-sites/{dive_site_id}/comments
+
 Add comment to dive site.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Request Body:**
+
 ```json
 {
   "content": "Great dive site with amazing marine life!"
 }
-```
+```text
 
 ### Diving Centers Endpoints
 
 #### GET /diving-centers/count
+
 Get total count of diving centers matching filters.
 
 **Query Parameters:**
+
 - `name`: Search term for diving center name
 - `min_rating`: Minimum rating filter
 - `max_rating`: Maximum rating filter
 
 **Response:**
+
 ```json
 {
   "total": 15
 }
-```
+```text
 
 #### GET /diving-centers/
+
 Get all diving centers with comprehensive sorting and filtering.
 
 **Query Parameters:**
+
 - `page`: Page number (1-based, default: 1)
 - `page_size`: Page size (25, 50, or 100, default: 25)
 - `name`: Search term for diving center name
 - `min_rating`: Minimum rating filter
 - `max_rating`: Maximum rating filter
-- `sort_by`: Sort field (name, view_count, comment_count, created_at, updated_at)
+- `sort_by`: Sort field (name, view_count, comment_count, created_at,
+  updated_at)
 - `sort_order`: Sort order (asc, desc, default: asc)
 
 **Note:** `view_count` and `comment_count` sorting require admin privileges.
 
 **Response Headers:**
+
 - `X-Total-Count`: Total number of records
 - `X-Total-Pages`: Total number of pages
 - `X-Current-Page`: Current page number
@@ -570,6 +634,7 @@ Get all diving centers with comprehensive sorting and filtering.
 - `X-Has-Prev-Page`: Whether there's a previous page
 
 **Response:**
+
 ```json
 [
   {
@@ -596,14 +661,16 @@ Get all diving centers with comprehensive sorting and filtering.
     "updated_at": "2024-01-15T10:30:00Z"
   }
 ]
-```
+```text
 
 #### POST /diving-centers/
+
 Create new diving center (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Request Body:**
+
 ```json
 {
   "name": "New Diving Center",
@@ -614,12 +681,14 @@ Create new diving center (admin/moderator only).
   "latitude": -16.9,
   "longitude": 145.7
 }
-```
+```text
 
 #### GET /diving-centers/{diving_center_id}
+
 Get diving center by ID.
 
 **Response:**
+
 ```json
 {
   "id": 1,
@@ -656,9 +725,10 @@ Get diving center by ID.
   "created_at": "2024-01-15T10:30:00Z",
   "updated_at": "2024-01-15T10:30:00Z"
 }
-```
+```text
 
 #### PUT /diving-centers/{diving_center_id}
+
 Update diving center (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
@@ -666,48 +736,57 @@ Update diving center (admin/moderator only).
 **Request Body:** Same format as POST /diving-centers/
 
 #### DELETE /diving-centers/{diving_center_id}
+
 Delete diving center (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 #### POST /diving-centers/{diving_center_id}/rate
+
 Rate a diving center.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Request Body:**
+
 ```json
 {
   "rating": 8,
   "comment": "Good service and equipment!"
 }
-```
+```text
 
 #### GET /diving-centers/{diving_center_id}/comments
+
 Get diving center comments.
 
 **Query Parameters:**
+
 - `skip`: Number of records to skip (default: 0)
 - `limit`: Number of records to return (default: 100)
 
 #### POST /diving-centers/{diving_center_id}/comments
+
 Add comment to diving center.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Request Body:**
+
 ```json
 {
   "content": "Excellent service and professional staff!"
 }
-```
+```text
 
 ### Gear Rental Management
 
 #### GET /diving-centers/{diving_center_id}/gear-rental
+
 Get diving center gear rental costs.
 
 **Response:**
+
 ```json
 [
   {
@@ -725,14 +804,16 @@ Get diving center gear rental costs.
     "duration": "per day"
   }
 ]
-```
+```text
 
 #### POST /diving-centers/{diving_center_id}/gear-rental
+
 Add gear rental cost (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Request Body:**
+
 ```json
 {
   "gear_type": "BCD",
@@ -740,9 +821,10 @@ Add gear rental cost (admin/moderator only).
   "currency": "AUD",
   "duration": "per day"
 }
-```
+```text
 
 #### PUT /diving-centers/{diving_center_id}/gear-rental/{gear_id}
+
 Update gear rental cost (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
@@ -750,6 +832,7 @@ Update gear rental cost (admin/moderator only).
 **Request Body:** Same format as POST
 
 #### DELETE /diving-centers/{diving_center_id}/gear-rental/{gear_id}
+
 Delete gear rental cost (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
@@ -757,9 +840,11 @@ Delete gear rental cost (admin/moderator only).
 ### Tag Management
 
 #### GET /tags/
+
 Get all available tags.
 
 **Response:**
+
 ```json
 [
   {
@@ -773,12 +858,14 @@ Get all available tags.
     "description": "Rich marine life"
   }
 ]
-```
+```text
 
 #### GET /tags/with-counts
+
 Get tags with dive site counts.
 
 **Response:**
+
 ```json
 [
   {
@@ -794,22 +881,25 @@ Get tags with dive site counts.
     "dive_site_count": 23
   }
 ]
-```
+```text
 
 #### POST /tags/
+
 Create new tag (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Request Body:**
+
 ```json
 {
   "name": "wreck",
   "description": "Shipwreck dive sites"
 }
-```
+```text
 
 #### PUT /tags/{tag_id}
+
 Update tag (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
@@ -817,23 +907,27 @@ Update tag (admin/moderator only).
 **Request Body:** Same format as POST /tags/
 
 #### DELETE /tags/{tag_id}
+
 Delete tag (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 #### POST /tags/dive-sites/{dive_site_id}/tags
+
 Add tag to dive site (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Request Body:**
+
 ```json
 {
   "tag_id": 1
 }
-```
+```text
 
 #### DELETE /tags/dive-sites/{dive_site_id}/tags/{tag_id}
+
 Remove tag from dive site (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
@@ -841,13 +935,16 @@ Remove tag from dive site (admin/moderator only).
 ### Diving Organizations Endpoints
 
 #### GET /diving-organizations/
+
 Get all diving organizations.
 
 **Query Parameters:**
+
 - `skip`: Number of records to skip (default: 0)
 - `limit`: Number of records to return (default: 100)
 
 **Response:**
+
 ```json
 [
   {
@@ -863,12 +960,14 @@ Get all diving organizations.
     "updated_at": "2024-01-15T10:30:00Z"
   }
 ]
-```
+```text
 
 #### GET /diving-organizations/{organization_id}
+
 Get diving organization by ID.
 
 **Response:**
+
 ```json
 {
   "id": 1,
@@ -882,14 +981,16 @@ Get diving organization by ID.
   "created_at": "2024-01-15T10:30:00Z",
   "updated_at": "2024-01-15T10:30:00Z"
 }
-```
+```text
 
 #### POST /diving-organizations/
+
 Create new diving organization (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Request Body:**
+
 ```json
 {
   "name": "Professional Association of Diving Instructors",
@@ -900,9 +1001,10 @@ Create new diving organization (admin only).
   "country": "United States",
   "founded_year": 1966
 }
-```
+```text
 
 #### PUT /diving-organizations/{organization_id}
+
 Update diving organization (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
@@ -910,6 +1012,7 @@ Update diving organization (admin only).
 **Request Body:** Same format as POST /diving-organizations/
 
 #### DELETE /diving-organizations/{organization_id}
+
 Delete diving organization (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
@@ -917,11 +1020,13 @@ Delete diving organization (admin only).
 ### User Certifications Endpoints
 
 #### GET /user-certifications/my-certifications
+
 Get current user's certifications.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Response:**
+
 ```json
 [
   {
@@ -939,12 +1044,14 @@ Get current user's certifications.
     "updated_at": "2024-01-15T10:30:00Z"
   }
 ]
-```
+```text
 
 #### GET /user-certifications/users/{user_id}/certifications
+
 Get public certifications for a specific user.
 
 **Response:**
+
 ```json
 [
   {
@@ -962,62 +1069,71 @@ Get public certifications for a specific user.
     "updated_at": "2024-01-15T10:30:00Z"
   }
 ]
-```
+```text
 
 #### POST /user-certifications/my-certifications
+
 Add new certification for current user.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Request Body:**
+
 ```json
 {
   "diving_organization_id": 1,
   "certification_level": "Open Water Diver",
   "is_active": true
 }
-```
+```text
 
 #### PUT /user-certifications/my-certifications/{certification_id}
+
 Update certification for current user.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Request Body:**
+
 ```json
 {
   "diving_organization_id": 1,
   "certification_level": "Advanced Open Water Diver",
   "is_active": true
 }
-```
+```text
 
 #### PATCH /user-certifications/my-certifications/{certification_id}/toggle
+
 Toggle certification active status.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Response:**
+
 ```json
 {
   "message": "Certification activated successfully",
   "is_active": true
 }
-```
+```text
 
 #### DELETE /user-certifications/my-certifications/{certification_id}
+
 Delete certification for current user.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Response:**
+
 ```json
 {
   "message": "Certification deleted successfully"
 }
-```
+```text
 
-#### DELETE /tags/dive-sites/{dive_site_id}/tags/{tag_id}
+#### DELETE /tags/dive-sites/{dive_site_id}/tags/{tag_id} (Duplicate)
+
 Remove tag from dive site (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
@@ -1025,6 +1141,7 @@ Remove tag from dive site (admin/moderator only).
 ## Data Models
 
 ### User Model
+
 ```json
 {
   "id": "integer",
@@ -1040,9 +1157,10 @@ Remove tag from dive site (admin/moderator only).
   "diving_certification": "string (optional)",
   "number_of_dives": "integer"
 }
-```
+```text
 
 ### Dive Site Model
+
 ```json
 {
   "id": "integer",
@@ -1065,9 +1183,10 @@ Remove tag from dive site (admin/moderator only).
   "created_at": "datetime",
   "updated_at": "datetime"
 }
-```
+```text
 
 ### Diving Center Model
+
 ```json
 {
   "id": "integer",
@@ -1082,18 +1201,20 @@ Remove tag from dive site (admin/moderator only).
   "created_at": "datetime",
   "updated_at": "datetime"
 }
-```
+```text
 
 ### Tag Model
+
 ```json
 {
   "id": "integer",
   "name": "string (unique)",
   "description": "string (optional)"
 }
-```
+```text
 
 ### Dive Model
+
 ```json
 {
   "id": "integer",
@@ -1119,9 +1240,10 @@ Remove tag from dive site (admin/moderator only).
   "tags": "array",
   "user_username": "string"
 }
-```
+```text
 
 ### Dive Media Model
+
 ```json
 {
   "id": "integer",
@@ -1133,9 +1255,10 @@ Remove tag from dive site (admin/moderator only).
   "thumbnail_url": "string (optional)",
   "created_at": "datetime"
 }
-```
+```text
 
 ### Dive Tag Model
+
 ```json
 {
   "id": "integer",
@@ -1143,18 +1266,20 @@ Remove tag from dive site (admin/moderator only).
   "tag_id": "integer",
   "created_at": "datetime"
 }
-```
+```text
 
 ### Newsletter Model
+
 ```json
 {
   "id": "integer",
   "content": "string",
   "received_at": "datetime"
 }
-```
+```text
 
 ### Parsed Dive Trip Model
+
 ```json
 {
   "id": "integer",
@@ -1175,9 +1300,10 @@ Remove tag from dive site (admin/moderator only).
   "created_at": "datetime",
   "updated_at": "datetime"
 }
-```
+```text
 
 ### Parsed Dive Model
+
 ```json
 {
   "id": "integer",
@@ -1190,11 +1316,13 @@ Remove tag from dive site (admin/moderator only).
   "created_at": "datetime",
   "updated_at": "datetime"
 }
-```
+```text
 
 ## Rate Limiting
 
-The API implements comprehensive rate limiting to prevent abuse and ensure fair usage. The rate limiting system includes special exemptions for localhost requests and admin users.
+The API implements comprehensive rate limiting to prevent abuse and ensure fair
+usage. The rate limiting system includes special exemptions for localhost
+requests and admin users.
 
 ### Rate Limits by Endpoint
 
@@ -1216,7 +1344,9 @@ The API implements comprehensive rate limiting to prevent abuse and ensure fair 
 ### Rate Limiting Exemptions
 
 #### Localhost Requests
+
 Requests from localhost IP addresses are exempt from rate limiting:
+
 - `127.0.0.1` (IPv4 localhost)
 - `::1` (IPv6 localhost)
 - `localhost` (hostname)
@@ -1224,66 +1354,87 @@ Requests from localhost IP addresses are exempt from rate limiting:
 This exemption facilitates development and testing.
 
 #### Admin Users
-Users with `is_admin=True` are exempt from rate limiting on **authenticated endpoints**. This allows administrators to perform bulk operations without being blocked.
 
-**Note**: Admin exemptions only apply to endpoints that require authentication. Public endpoints like `/register` and `/login` still apply rate limiting to all users for security reasons.
+Users with `is_admin=True` are exempt from rate limiting on **authenticated
+endpoints**. This allows administrators to perform bulk operations without being
+blocked.
+
+**Note**: Admin exemptions only apply to endpoints that require authentication.
+Public endpoints like `/register` and `/login` still apply rate limiting to all
+users for security reasons.
 
 ### Rate Limit Headers
-```
+
+```text
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 45
 X-RateLimit-Reset: 1640995200
-```
+```text
 
 ### Rate Limit Response
+
 ```json
 {
   "detail": "Rate limit exceeded",
   "error_code": "RATE_LIMIT_EXCEEDED",
   "retry_after": 60
 }
-```
+```text
 
 ### Rate Limiting Implementation
 
-The rate limiting system uses a custom decorator `@skip_rate_limit_for_admin()` that:
+The rate limiting system uses a custom decorator `@skip_rate_limit_for_admin()`
+that:
 
 1. **Checks for localhost requests** and skips rate limiting
 2. **Extracts and verifies JWT tokens** for admin user detection
 3. **Queries the database** to check if the user has admin privileges
 4. **Falls back to normal rate limiting** if neither condition is met
 
-This ensures robust protection while allowing legitimate administrative operations.
+This ensures robust protection while allowing legitimate administrative
+operations.
 
 ### Frontend Rate Limiting Error Handling
 
-The frontend implements comprehensive error handling for rate limiting responses to provide a better user experience when API rate limits are exceeded.
+The frontend implements comprehensive error handling for rate limiting responses
+to provide a better user experience when API rate limits are exceeded.
 
 #### **Frontend Error Handling Components**
 
-- **API Interceptor**: Automatically detects 429 responses and marks them as rate-limited
-- **RateLimitError Component**: User-friendly error display with countdown timer and retry button
-- **Rate Limit Handler Utility**: Centralized error handling with toast notifications
-- **Component Integration**: Consistent error handling across all React components
+- **API Interceptor**: Automatically detects 429 responses and marks them as
+  rate-limited
+- **RateLimitError Component**: User-friendly error display with countdown timer
+  and retry button
+- **Rate Limit Handler Utility**: Centralized error handling with toast
+  notifications
+- **Component Integration**: Consistent error handling across all React
+  components
 
 #### **Frontend Error Handling Flow**
 
 1. **API Call Fails** → 429 response received from backend
 2. **API Interceptor** → Marks error as rate-limited, extracts retry-after time
-3. **Component useEffect** → Detects rate-limited error, shows toast notification
+3. **Component useEffect** → Detects rate-limited error, shows toast
+notification
 4. **UI Rendering** → Shows RateLimitError component with countdown
-5. **User Experience** → Clear message, countdown timer, retry option after timeout
+5. **User Experience** → Clear message, countdown timer, retry option after
+timeout
 
 #### **Frontend Implementation Files**
 
-- **API Interceptor**: `frontend/src/api.js` - Response interceptor for 429 handling
-- **Error Component**: `frontend/src/components/RateLimitError.js` - Visual error display
-- **Utility Function**: `frontend/src/utils/rateLimitHandler.js` - Centralized error handling
-- **Component Usage**: `frontend/src/pages/DiveSites.js`, `frontend/src/pages/DiveTrips.js`
+- **API Interceptor**: `frontend/src/api.js` -
+  Response interceptor for 429 handling
+- **Error Component**: `frontend/src/components/RateLimitError.js` -
+  Visual error display
+- **Utility Function**: `frontend/src/utils/rateLimitHandler.js` -
+  Centralized error handling
+- **Component Usage**: `frontend/src/pages/DiveSites.js`,
+  `frontend/src/pages/DiveTrips.js`
 
 #### **Frontend User Experience Features**
 
-- **Immediate Feedback**: Toast notification appears telling user about rate limiting
+- **Immediate Feedback**: Toast notification appears telling user about rate
+  limiting
 - **Visual Error Display**: RateLimitError component shows with:
   - Clear explanation of what happened
   - Countdown timer showing when user can retry
@@ -1304,7 +1455,7 @@ docker exec divemap_frontend npm run lint -- src/pages/DiveSites.js
 # Test rate limiting error handling
 # Navigate to /dive-sites and trigger rate limiting (if possible)
 # Verify RateLimitError component displays correctly
-```
+```text
 
 ## Examples
 
@@ -1331,7 +1482,7 @@ curl -X POST "https://divemap-backend.fly.dev/api/v1/auth/login" \
 # 3. Use token for authenticated requests
 curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
      "https://divemap-backend.fly.dev/api/v1/users/me"
-```
+```text
 
 ### Creating a Dive Site
 
@@ -1349,7 +1500,7 @@ curl -X POST "https://divemap-backend.fly.dev/api/v1/dive-sites/" \
        "country": "Australia",
        "region": "Queensland"
      }'
-```
+```text
 
 ### Rating a Dive Site
 
@@ -1362,14 +1513,15 @@ curl -X POST "https://divemap-backend.fly.dev/api/v1/dive-sites/1/rate" \
        "rating": 9,
        "comment": "Amazing dive site with incredible marine life!"
      }'
-```
+```text
 
 ### Searching Dive Sites
 
 ```bash
 # Search dive sites with filters
-curl "https://divemap-backend.fly.dev/api/v1/dive-sites/?search=coral&difficulty_level=intermediate&country=Australia"
-```
+curl
+"https://divemap-backend.fly.dev/api/v1/dive-sites/?search=coral&difficulty_level=intermediate&country=Australia"
+```text
 
 ### Managing Tags
 
@@ -1390,7 +1542,7 @@ curl -X POST "https://divemap-backend.fly.dev/api/v1/tags/dive-sites/1/tags" \
      -d '{
        "tag_id": 1
      }'
-```
+```text
 
 ### Managing Diving Organizations
 
@@ -1422,20 +1574,23 @@ curl -X PUT "https://divemap-backend.fly.dev/api/v1/diving-organizations/1" \
 # Delete a diving organization (admin only)
 curl -X DELETE "https://divemap-backend.fly.dev/api/v1/diving-organizations/1" \
      -H "Authorization: Bearer ADMIN_TOKEN"
-```
+```text
 
 ### Managing User Certifications
 
 ```bash
 # Get user's certifications
 curl -H "Authorization: Bearer USER_TOKEN" \
-     "https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications"
+    
+"https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications"
 
 # Get public certifications for a user
-curl "https://divemap-backend.fly.dev/api/v1/user-certifications/users/1/certifications"
+curl
+"https://divemap-backend.fly.dev/api/v1/user-certifications/users/1/certifications"
 
 # Add a new certification
-curl -X POST "https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications" \
+curl -X POST
+"https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications" \
      -H "Authorization: Bearer USER_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{
@@ -1445,7 +1600,9 @@ curl -X POST "https://divemap-backend.fly.dev/api/v1/user-certifications/my-cert
      }'
 
 # Update a certification
-curl -X PUT "https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications/1" \
+curl -X PUT
+"https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications/1"
+\
      -H "Authorization: Bearer USER_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{
@@ -1454,27 +1611,36 @@ curl -X PUT "https://divemap-backend.fly.dev/api/v1/user-certifications/my-certi
      }'
 
 # Toggle certification active status
-curl -X PATCH "https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications/1/toggle" \
+curl -X PATCH
+"https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications/1/toggle"
+\
      -H "Authorization: Bearer USER_TOKEN"
 
 # Delete a certification
-curl -X DELETE "https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications/1" \
+curl -X DELETE
+"https://divemap-backend.fly.dev/api/v1/user-certifications/my-certifications/1"
+\
      -H "Authorization: Bearer USER_TOKEN"
-```
+```text
 
 ### Managing Dives
 
-The dive system allows users to log their diving experiences with comprehensive details including media uploads, tags, and statistics. Dives can be associated with both dive sites and diving centers, providing a complete record of the diving experience.
+The dive system allows users to log their diving experiences with comprehensive
+details including media uploads, tags, and statistics. Dives can be associated
+with both dive sites and diving centers, providing a complete record of the
+diving experience.
 
 #### Dive-Diving Center Relationship
 
-Dives can be associated with diving centers to track which diving center organized or facilitated the dive. This relationship is optional and can be:
+Dives can be associated with diving centers to track which diving center
+organized or facilitated the dive. This relationship is optional and can be:
 
 - **Added**: When creating or updating a dive, include `diving_center_id`
 - **Changed**: Update the `diving_center_id` to a different diving center
 - **Removed**: Set `diving_center_id` to `null`
 
-The API response includes both the diving center ID and the full diving center object with details like name, description, contact information, and location.
+The API response includes both the diving center ID and the full diving center
+object with details like name, description, contact information, and location.
 
 #### Dive Endpoints
 
@@ -1489,7 +1655,8 @@ curl -H "Authorization: Bearer USER_TOKEN" \
 
 # Get only current user's dives
 curl -H "Authorization: Bearer USER_TOKEN" \
-     "https://divemap-backend.fly.dev/api/v1/dives/?my_dives=true&page=1&page_size=25"
+    
+"https://divemap-backend.fly.dev/api/v1/dives/?my_dives=true&page=1&page_size=25"
 
 # Get a specific dive
 curl -H "Authorization: Bearer USER_TOKEN" \
@@ -1542,7 +1709,7 @@ curl -X PUT "https://divemap-backend.fly.dev/api/v1/dives/1" \
 # Delete a dive
 curl -X DELETE "https://divemap-backend.fly.dev/api/v1/dives/1" \
      -H "Authorization: Bearer USER_TOKEN"
-```
+```text
 
 #### Dive Media Management
 
@@ -1564,7 +1731,7 @@ curl -H "Authorization: Bearer USER_TOKEN" \
 # Delete media from a dive
 curl -X DELETE "https://divemap-backend.fly.dev/api/v1/dives/1/media/1" \
      -H "Authorization: Bearer USER_TOKEN"
-```
+```text
 
 #### Dive Tags
 
@@ -1580,7 +1747,7 @@ curl -X POST "https://divemap-backend.fly.dev/api/v1/dives/1/tags" \
 # Remove a tag from a dive
 curl -X DELETE "https://divemap-backend.fly.dev/api/v1/dives/1/tags/1" \
      -H "Authorization: Bearer USER_TOKEN"
-```
+```text
 
 #### Admin Dive Management
 
@@ -1600,34 +1767,41 @@ curl -X PUT "https://divemap-backend.fly.dev/api/v1/admin/dives/1" \
 # Delete any dive (admin only)
 curl -X DELETE "https://divemap-backend.fly.dev/api/v1/admin/dives/1" \
      -H "Authorization: Bearer ADMIN_TOKEN"
-```
+```text
 
 #### Dive Search and Filtering
 
 ```bash
 # Search dives with filters (alphabetically sorted)
 curl -H "Authorization: Bearer USER_TOKEN" \
-     "https://divemap-backend.fly.dev/api/v1/dives/?dive_site_name=coral&min_depth=20&max_depth=30&difficulty_level=intermediate&page=1&page_size=25"
+    
+"https://divemap-backend.fly.dev/api/v1/dives/?dive_site_name=coral&min_depth=20&max_depth=30&difficulty_level=intermediate&page=1&page_size=25"
 
 # Search with date range (alphabetically sorted)
 curl -H "Authorization: Bearer USER_TOKEN" \
-     "https://divemap-backend.fly.dev/api/v1/dives/?start_date=2024-01-01&end_date=2024-01-31&page=1&page_size=25"
-```
+    
+"https://divemap-backend.fly.dev/api/v1/dives/?start_date=2024-01-01&end_date=2024-01-31&page=1&page_size=25"
+```text
 
 ### Newsletter Management Endpoints
 
-The newsletter system provides comprehensive functionality for uploading, parsing, and managing dive trip information from newsletter files. The system supports both OpenAI-powered parsing and basic regex parsing.
+The newsletter system provides comprehensive functionality for uploading,
+parsing, and managing dive trip information from newsletter files. The system
+supports both OpenAI-powered parsing and basic regex parsing.
 
 #### GET /newsletters/
+
 Get all newsletters (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Query Parameters:**
+
 - `limit`: Number of records to return (default: 50)
 - `offset`: Number of records to skip (default: 0)
 
 **Response:**
+
 ```json
 [
   {
@@ -1637,14 +1811,16 @@ Get all newsletters (admin/moderator only).
     "trips_count": 3
   }
 ]
-```
+```text
 
 #### GET /newsletters/{newsletter_id}
+
 Get specific newsletter by ID (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Response:**
+
 ```json
 {
   "id": 1,
@@ -1652,112 +1828,135 @@ Get specific newsletter by ID (admin/moderator only).
   "received_at": "2024-01-15T10:30:00Z",
   "trips_count": 3
 }
-```
+```text
 
 #### PUT /newsletters/{newsletter_id}
+
 Update newsletter content (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Request Body:**
+
 ```json
 {
   "content": "Updated newsletter content..."
 }
-```
+```text
 
 #### DELETE /newsletters/{newsletter_id}
+
 Delete newsletter and all associated trips (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Response:**
+
 ```json
 {
   "message": "Newsletter and 3 associated trips deleted successfully"
 }
-```
+```text
 
 #### DELETE /newsletters/
+
 Mass delete multiple newsletters (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Request Body:**
+
 ```json
 {
   "newsletter_ids": [1, 2, 3]
 }
-```
+```text
 
 **Response:**
+
 ```json
 {
   "deleted_count": 3,
   "message": "Deleted 3 newsletters and 8 associated trips"
 }
-```
+```text
 
 #### POST /newsletters/upload
+
 Upload and parse newsletter (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Request Body:** `multipart/form-data`
+
 - `file`: Newsletter file (required, .txt format)
 - `use_openai`: Boolean to use OpenAI parsing (default: true)
 
 **Response:**
+
 ```json
 {
   "newsletter_id": 1,
   "trips_created": 3,
   "message": "Newsletter uploaded and parsed successfully"
 }
-```
+```text
 
 #### POST /newsletters/{newsletter_id}/reparse
+
 Re-parse existing newsletter (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Request Body:** `multipart/form-data`
+
 - `use_openai`: Boolean to use OpenAI parsing (default: true)
 
 **Response:**
+
 ```json
 {
   "newsletter_id": 1,
   "trips_created": 3,
-  "message": "Newsletter re-parsed successfully. 2 old trips deleted, 3 new trips created."
+  "message": "Newsletter re-parsed successfully. 2 old trips deleted, 3 new
+trips created."
 }
-```
+```text
 
 #### GET /newsletters/trips
-Get parsed dive trips with advanced search, filtering, and sorting (registered users only).
+
+Get parsed dive trips with advanced search, filtering, and sorting (registered
+users only).
 
 **Headers:** `Authorization: Bearer <user_token>`
 
 **Query Parameters:**
-- `search`: Full-text search across trip descriptions, special requirements, diving center names, dive site names, and dive descriptions
+
+- `search`: Full-text search across trip descriptions, special requirements,
+  diving center names, dive site names, and dive descriptions
 - `location`: Location-based search filtering by country, region, and address
 - `min_duration`: Minimum trip duration in minutes
 - `max_duration`: Maximum trip duration in minutes
-- `sort_by`: Sort field (trip_date, trip_price, trip_duration, trip_difficulty_level, popularity, distance, created_at)
+- `sort_by`: Sort field (trip_date, trip_price, trip_duration,
+  trip_difficulty_level, popularity, distance, created_at)
 - `sort_order`: Sort order (asc, desc, default: desc)
-- `user_lat`: User latitude for distance calculations (required for distance sorting)
-- `user_lon`: User longitude for distance calculations (required for distance sorting)
+- `user_lat`: User latitude for distance calculations (required for distance
+  sorting)
+- `user_lon`: User longitude for distance calculations (required for distance
+  sorting)
 - `skip`: Number of records to skip for pagination
 - `limit`: Maximum number of records to return
 - `start_date`: Filter by start date (YYYY-MM-DD)
 - `end_date`: Filter by end date (YYYY-MM-DD)
 - `diving_center_id`: Filter by diving center ID
 - `dive_site_id`: Filter by dive site ID
-- `trip_status`: Filter by trip status (scheduled, confirmed, cancelled, completed)
+- `trip_status`: Filter by trip status (scheduled, confirmed, cancelled,
+  completed)
 
 **Note:** `popularity` sorting requires admin privileges.
 
 **Response:**
+
 ```json
 [
   {
@@ -1795,9 +1994,10 @@ Get parsed dive trips with advanced search, filtering, and sorting (registered u
     "updated_at": "2024-01-15T10:30:00Z"
   }
 ]
-```
+```text
 
 #### GET /newsletters/trips/{trip_id}
+
 Get specific parsed dive trip (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
@@ -1805,11 +2005,13 @@ Get specific parsed dive trip (admin/moderator only).
 **Response:** Same format as GET /newsletters/trips
 
 #### POST /newsletters/trips
+
 Create new parsed dive trip (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Request Body:**
+
 ```json
 {
   "diving_center_id": 1,
@@ -1834,9 +2036,10 @@ Create new parsed dive trip (admin/moderator only).
     }
   ]
 }
-```
+```text
 
 #### PUT /newsletters/trips/{trip_id}
+
 Update parsed dive trip (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
@@ -1844,16 +2047,18 @@ Update parsed dive trip (admin/moderator only).
 **Request Body:** Same format as POST /newsletters/trips
 
 #### DELETE /newsletters/trips/{trip_id}
+
 Delete parsed dive trip (admin/moderator only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Response:**
+
 ```json
 {
   "message": "Trip deleted successfully"
 }
-```
+```text
 
 #### Newsletter Management Examples
 
@@ -1904,16 +2109,19 @@ curl -X PUT "https://divemap-backend.fly.dev/api/v1/newsletters/trips/1" \
 # Delete trip
 curl -X DELETE "https://divemap-backend.fly.dev/api/v1/newsletters/trips/1" \
      -H "Authorization: Bearer ADMIN_TOKEN"
-```
+```text
 
 ### System Management Endpoints
 
 #### GET /admin/system/overview
-Get comprehensive system overview with platform statistics and health metrics (admin only).
+
+Get comprehensive system overview with platform statistics and health metrics
+(admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Response:**
+
 ```json
 {
   "platform_stats": {
@@ -1940,14 +2148,16 @@ Get comprehensive system overview with platform statistics and health metrics (a
     "regions": 28
   }
 }
-```
+```text
 
 #### GET /admin/system/health
+
 Get detailed system health information (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Response:**
+
 ```json
 {
   "database": {
@@ -1965,18 +2175,21 @@ Get detailed system health information (admin only).
     "available_memory_mb": 1024
   }
 }
-```
+```text
 
 #### GET /admin/system/activity
+
 Get recent system activity with filtering options (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Query Parameters:**
+
 - `time_range`: Filter by time range (hour, 6hours, day, week, month)
 - `activity_type`: Filter by activity type (registrations, content, engagement)
 
 **Response:**
+
 ```json
 {
   "activity_stats": {
@@ -1996,14 +2209,16 @@ Get recent system activity with filtering options (admin only).
     }
   ]
 }
-```
+```text
 
 #### GET /admin/system/client-ip
+
 Debug endpoint to display client IP detection information (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
 
 **Response:**
+
 ```json
 {
   "detected_ip": "203.0.113.1",
@@ -2018,11 +2233,12 @@ Debug endpoint to display client IP detection information (admin only).
     "is_private": false
   }
 }
-```
+```text
 
 ## Conclusion
 
-This API documentation provides comprehensive information for integrating with the Divemap application. The API is designed to be:
+This API documentation provides comprehensive information for integrating with
+the Divemap application. The API is designed to be:
 
 1. **RESTful**: Following standard REST conventions
 2. **Secure**: Comprehensive authentication and authorization
@@ -2030,4 +2246,4 @@ This API documentation provides comprehensive information for integrating with t
 4. **Scalable**: Rate limiting and performance optimization
 5. **User-friendly**: Clear error messages and validation
 
-For interactive API documentation, visit: https://divemap-backend.fly.dev/docs
+For interactive API documentation, visit: <https://divemap-backend.fly.dev/docs>

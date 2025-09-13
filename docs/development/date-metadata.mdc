@@ -2,7 +2,8 @@
 
 ## Current Date Usage for Documentation
 
-When updating documentation files that contain "last updated" metadata, always use the current date from the `date` command.
+When updating documentation files that contain "last updated" metadata, always
+use the current date from the `date` command.
 
 ### Rule: Always Use Current Date
 
@@ -11,7 +12,8 @@ When updating documentation files that contain "last updated" metadata, always u
 - Updating changelog files
 - Updating documentation files with "last updated" metadata
 - Any file containing version or date metadata that needs updating
-- **NEW**: Updating markdown task files with "Created", "Updated", "Completed" metadata
+- **NEW**: Updating markdown task files with "Created", "Updated", "Completed"
+  metadata
 
 **How to apply:**
 
@@ -19,24 +21,29 @@ When updating documentation files that contain "last updated" metadata, always u
 2. Use this date for "Last Updated" fields
 3. Use this date for changelog entries
 4. Use this date for version metadata
-5. **NEW**: Use this date for "Updated" and "Completed" fields in markdown task files
+5. **NEW**: Use this date for "Updated" and "Completed" fields in markdown task
+files
 
 ### Date Format Standards
 
 **Primary Format:** `September 13, 2025` (Month DD, YYYY)
+
 - Use full month name
 - Use two-digit day with no leading zero
 - Use four-digit year
 - No ordinal suffixes (1st, 2nd, 3rd)
 
 **Alternative Formats:**
+
 - ISO format: `2025-09-13` (for technical documentation)
 - Short format: `Sep 13, 2025` (for space-constrained areas)
-- **NEW**: Task file format: `January 6, 2025` (for Created/Updated/Completed fields)
+- **NEW**: Task file format: `January 6, 2025` (for Created/Updated/Completed
+  fields)
 
 ### Examples
 
 **Documentation Footer:**
+
 ```markdown
 **Last Updated**: September 13, 2025  
 **Author**: AI Assistant  
@@ -44,6 +51,7 @@ When updating documentation files that contain "last updated" metadata, always u
 ```
 
 **Changelog Entry:**
+
 ```markdown
 ## [2.1.0] - 2025-09-13
 
@@ -52,6 +60,7 @@ When updating documentation files that contain "last updated" metadata, always u
 ```
 
 **Version Metadata:**
+
 ```markdown
 ---
 last_updated: September 13, 2025
@@ -61,6 +70,7 @@ author: AI Assistant
 ```
 
 **Task File Metadata (NEW):**
+
 ```markdown
 **Status:** Completed
 **Created:** January 6, 2025
@@ -72,26 +82,33 @@ author: AI Assistant
 ### Implementation
 
 When updating any file with date metadata:
-1. Check if the file contains "last updated", "last_updated", "updated", "created", "completed", or similar date fields
+
+1. Check if the file contains "last updated", "last_updated", "updated",
+"created", "completed", or similar date fields
 2. Run `date +"%B %d, %Y"` to get current date
 3. Replace the existing date with the current date
 4. Ensure the date format matches the existing pattern in the file
-5. **NEW**: For task files, update "Updated" field whenever changes are made, "Completed" when task is finished
+5. **NEW**: For task files, update "Updated" field whenever changes are made,
+"Completed" when task is finished
 
 ### Markdown Task File Metadata Standards
 
 **Required Fields:**
+
 - **Status**: In Progress | Completed | Cancelled
 - **Created**: Date when task was first created
 - **Updated**: Date when task was last modified (update on every change)
-- **Completed**: Date when task was marked as completed (only when Status = Completed)
+- **Completed**: Date when task was marked as completed (only when Status =
+  Completed)
 
 **Optional Fields:**
+
 - **Agent PID**: Process ID of the agent handling the task
 - **Started**: Date when implementation began
 - **Due**: Target completion date
 
 **Example Task File Header:**
+
 ```markdown
 # Task Title
 
