@@ -73,7 +73,7 @@ const MapMetadata = ({ onMetadataChange }) => {
     zoom: map?.getZoom() || 8,
     center: map?.getCenter() || { lat: 0, lng: 0 },
     bounds: null,
-    scale: null
+    scale: null,
   });
 
   useEffect(() => {
@@ -83,25 +83,25 @@ const MapMetadata = ({ onMetadataChange }) => {
       const zoom = map.getZoom();
       const center = map.getCenter();
       const bounds = map.getBounds();
-      
+
       // Calculate approximate scale (meters per pixel)
-      const scale = 156543.03392 * Math.cos(center.lat * Math.PI / 180) / Math.pow(2, zoom);
-      
+      const scale = (156543.03392 * Math.cos((center.lat * Math.PI) / 180)) / Math.pow(2, zoom);
+
       const newMetadata = {
         zoom: Math.round(zoom * 100) / 100, // Round to 2 decimal places
         center: {
           lat: Math.round(center.lat * 10000) / 10000, // Round to 4 decimal places
-          lng: Math.round(center.lng * 10000) / 10000
+          lng: Math.round(center.lng * 10000) / 10000,
         },
         bounds: {
           north: bounds.getNorth(),
           south: bounds.getSouth(),
           east: bounds.getEast(),
-          west: bounds.getWest()
+          west: bounds.getWest(),
         },
-        scale: Math.round(scale)
+        scale: Math.round(scale),
       };
-      
+
       setMetadata(newMetadata);
       if (onMetadataChange) {
         onMetadataChange(newMetadata);
@@ -462,7 +462,7 @@ const LeafletMapView = ({
         style={{ zIndex: 1 }}
       >
         <TileLayer
-          attribution=""
+          attribution=''
           url={selectedLayer?.url || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
         />
 

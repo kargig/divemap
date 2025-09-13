@@ -5,6 +5,7 @@
 ### **✅ What's Already Implemented:**
 
 #### **Backend Infrastructure (90% Complete)**
+
 - ✅ Database models: `ParsedDiveTrip`, `ParsedDive`, `Newsletter`
 - ✅ Newsletter upload and parsing API endpoints
 - ✅ AI-powered newsletter content extraction using OpenAI
@@ -14,6 +15,7 @@
 - ✅ Trip status management (scheduled, confirmed, cancelled, completed)
 
 #### **Admin Interface (70% Complete)**
+
 - ✅ Newsletter upload and management
 - ✅ Parsed trip viewing and editing
 - ✅ Trip creation and modification forms
@@ -21,11 +23,13 @@
 - ✅ Trip filtering and search
 
 #### **Frontend API Layer (80% Complete)**
+
 - ✅ API functions for newsletter management
 - ✅ API functions for parsed trip operations
 - ✅ Trip data fetching and caching
 
 ### **🔄 What's Partially Implemented:**
+
 - ✅ Trip display interface (Phase 1.1-1.3 COMPLETE)
 - 🔄 Map integration (placeholder exists, needs actual implementation)
 - ✅ User-facing trip browsing (Phase 1.1-1.3 COMPLETE)
@@ -33,6 +37,7 @@
 ### **❌ What's Missing:**
 
 #### **Frontend User Interface (30% Missing)**
+
 - ✅ Trip browsing interface for registered users (Phase 1.1-1.3 COMPLETE)
 - ❌ Trip calendar view integration
 - ❌ Interactive map display of trips
@@ -41,12 +46,14 @@
 - ✅ Trip detail pages (Phase 1.2 COMPLETE)
 
 #### **Map Integration (90% Missing)**
+
 - ❌ Actual map display of parsed dive trips
 - ❌ Trip location plotting on maps
 - ❌ Trip clustering and visualization
 - ❌ Interactive trip selection on maps
 
 #### **User Experience Features (80% Missing)**
+
 - ❌ Trip booking workflow
 - ❌ Trip notifications and reminders
 - ❌ Trip sharing and social features
@@ -58,9 +65,11 @@
 ## **🚀 Phased Implementation Plan**
 
 ### **Phase 1: Complete Frontend Trip Display (Priority: HIGH) - ✅ COMPLETE**
-**Estimated Time: 2-3 weeks (ACTUAL: 3 weeks)**
+
+**Estimated Time:** 2-3 weeks (ACTUAL: 3 weeks)
 
 #### **1.1 Enhance DiveTrips Page (Week 1)**
+
 - [x] **Fix parsed trip integration**
   - ✅ Ensure DiveTrips page actually displays parsed trips from newsletters
   - ✅ Fix data mapping between backend and frontend
@@ -79,6 +88,7 @@
   - ✅ Add difficulty level filtering
 
 #### **1.2 Implement Trip Detail Pages (Week 2)**
+
 - [x] **Create TripDetail component**
   - ✅ Full trip information display
   - ✅ Dive site details integration
@@ -92,10 +102,13 @@
   - ✅ Related trips suggestions
 
 #### **1.3 Add Trip Search and Discovery (Week 3) - ✅ COMPLETE**
+
 - [x] **Implement advanced search**
-  - ✅ Full-text search across trip descriptions, special requirements, diving center names, dive site names, and dive descriptions
+  - ✅ Full-text search across trip descriptions, special requirements, diving
+center names, dive site names, and dive descriptions
   - ✅ Date range search with start_date and end_date parameters
-  - ✅ Location-based search filtering by dive site country, region, address, and diving center name
+  - ✅ Location-based search filtering by dive site country, region, address, and
+diving center name
   - ✅ Price filtering with min_price and max_price parameters
   - ✅ Difficulty filtering with difficulty_level parameter
   - ✅ Duration filtering with min_duration and max_duration parameters
@@ -106,18 +119,25 @@
   - ✅ Sort by duration (trip_duration) - ascending/descending
   - ✅ Sort by difficulty (difficulty_level) - ascending/descending
   - ✅ Sort by popularity (view_count from dive sites) - descending
-  - ✅ Sort by distance from user location (Haversine formula) - ascending/descending
+  - ✅ Sort by distance from user location (Haversine formula) -
+ascending/descending
   - ✅ Sort by creation date (created_at) - ascending/descending
 
 **Security Implementation:**
-- ✅ **Authentication Required**: Endpoint now requires registered user authentication (`Depends(get_current_user)`)
-- ✅ **Public Access Removed**: Anonymous users cannot access dive trip data (returns 403 Forbidden)
-- ✅ **Registered Users Only**: All search, filtering, and sorting features available exclusively to authenticated users
+
+- ✅ **Authentication Required**: Endpoint now requires registered user
+  authentication (`Depends(get_current_user)`)
+- ✅ **Public Access Removed**: Anonymous users cannot access dive trip data
+  (returns 403 Forbidden)
+- ✅ **Registered Users Only**: All search, filtering, and sorting features
+  available exclusively to authenticated users
 
 ### **Phase 2: Map Integration and Visualization (Priority: HIGH) - ✅ COMPLETE**
-**Estimated Time: 2-3 weeks (ACTUAL: 1 week)**
+
+**Estimated Time:** 2-3 weeks (ACTUAL: 1 week)
 
 #### **2.1 Implement Trip Map Display (Week 1-2) - ✅ COMPLETE**
+
 - [x] **Create TripMap component**
   - ✅ Display all trips on interactive map
   - ✅ Plot trip locations using dive site coordinates
@@ -131,6 +151,7 @@
   - ✅ Toggle trip visibility on map
 
 #### **2.2 Enhance Map User Experience (Week 2-3) - ✅ COMPLETE**
+
 - [x] **Interactive trip selection**
   - ✅ Click trip markers to show details
   - ✅ Trip preview popups on map
@@ -144,9 +165,11 @@
   - ✅ Location-based trip filtering
 
 ### **Phase 3: Trip Booking and User Experience (Priority: MEDIUM)**
-**Estimated Time: 2-3 weeks**
+
+**Estimated Time:** 2-3 weeks
 
 #### **3.1 Implement Trip Booking System (Week 1-2)**
+
 - [ ] **Create booking workflow**
   - Trip availability checking
   - Booking form with participant details
@@ -160,6 +183,7 @@
   - Booking notifications
 
 #### **3.2 Enhance User Interface (Week 2-3)**
+
 - [ ] **Improve mobile experience**
   - Mobile-optimized trip browsing
   - Touch-friendly map interactions
@@ -173,9 +197,11 @@
   - User trip collections
 
 ### **Phase 4: Advanced Features and Optimization (Priority: LOW)**
-**Estimated Time: 2-3 weeks**
+
+**Estimated Time:** 2-3 weeks
 
 #### **4.1 Performance and Scalability (Week 1-2)**
+
 - [ ] **Optimize data loading**
   - Implement pagination for large trip lists
   - Add lazy loading for trip images
@@ -189,6 +215,7 @@
   - Add search analytics
 
 #### **4.2 Advanced Trip Features (Week 2-3)**
+
 - [ ] **Trip recommendations**
   - AI-powered trip suggestions
   - User preference learning
@@ -208,6 +235,7 @@
 ### **Frontend Components to Create/Enhance:**
 
 #### **New Components:**
+
 1. **TripDetail.js** - Individual trip detail page
 2. **TripMap.js** - Interactive map for trip visualization
 3. **TripCard.js** - Enhanced trip display card
@@ -216,6 +244,7 @@
 6. **TripBooking.js** - Booking workflow component
 
 #### **Components to Enhance:**
+
 1. **DiveTrips.js** - Integrate with parsed trips and add map view
 2. **DiveMap.js** - Add trip overlay and interaction
 3. **AdminNewsletters.js** - Improve trip management interface
@@ -223,6 +252,7 @@
 ### **Backend Enhancements Needed:**
 
 #### **API Endpoints to Add:**
+
 1. **Trip search and discovery**
    - `/api/v1/newsletters/trips/search` - Full-text search
    - `/api/v1/newsletters/trips/recommendations` - Trip suggestions
@@ -237,6 +267,7 @@
    - `/api/v1/bookings/availability` - Check trip availability
 
 #### **Database Optimizations:**
+
 1. **Add indexes for search performance**
    - Full-text search on trip descriptions
    - Composite indexes for filtering
@@ -250,6 +281,7 @@
 ### **Integration Points:**
 
 #### **Existing Systems to Integrate With:**
+
 1. **Dive Sites System** - Link trips to dive site details
 2. **Diving Centers System** - Link trips to center information
 3. **User System** - User preferences and booking history
@@ -261,6 +293,7 @@
 ## **📊 Success Metrics and Testing**
 
 ### **Key Performance Indicators:**
+
 1. **User Engagement**
    - Trip page views and time spent
    - Map interaction rates
@@ -280,6 +313,7 @@
    - Booking conversion rates
 
 ### **Testing Strategy:**
+
 1. **Unit Tests**
    - Component functionality testing
    - API endpoint testing
@@ -301,6 +335,7 @@
 ## **🚨 Risk Assessment and Mitigation**
 
 ### **High-Risk Areas:**
+
 1. **Map Performance** - Large numbers of trips could slow map rendering
    - **Mitigation**: Implement clustering, pagination, and lazy loading
 
@@ -311,6 +346,7 @@
    - **Mitigation**: Implement proper data validation and update workflows
 
 ### **Medium-Risk Areas:**
+
 1. **User Experience** - Complex trip interface could confuse users
    - **Mitigation**: Extensive user testing and iterative design improvements
 
@@ -318,6 +354,7 @@
    - **Mitigation**: Mobile-first design and performance optimization
 
 ### **Low-Risk Areas:**
+
 1. **Backend API** - Most endpoints already implemented and tested
 2. **Database Structure** - Models and relationships are well-established
 
@@ -328,17 +365,19 @@
 ### **Total Estimated Time: 8-12 weeks**
 
 - **Phase 1 (Weeks 1-3)**: ✅ Complete Frontend Trip Display - **COMPLETED**
-- **Phase 2 (Weeks 4-6)**: Map Integration and Visualization  
+- **Phase 2 (Weeks 4-6)**: Map Integration and Visualization
 - **Phase 3 (Weeks 7-9)**: Trip Booking and User Experience
 - **Phase 4 (Weeks 10-12)**: Advanced Features and Optimization
 
 ### **Critical Path Items:**
+
 1. ✅ **Week 3**: Complete basic trip display functionality - **COMPLETED**
 2. **Week 6**: Complete map integration
 3. **Week 9**: Complete booking system
 4. **Week 12**: Complete optimization and testing
 
 ### **Updated Timeline (August 2025):**
+
 - **Phase 1**: ✅ **COMPLETED** (3 weeks)
 - **Phase 2**: ✅ **COMPLETED** (1 week)
 - **Phase 3**: **READY TO START** (estimated 2-3 weeks)
@@ -349,42 +388,68 @@
 ## **🎯 Next Steps**
 
 ### **Immediate Actions (This Week):**
+
 1. ✅ **Audit current implementation** - Verified what's actually working
 2. ✅ **Set up development environment** - All dependencies are available
 3. ✅ **Create component structure** - Enhanced existing DiveTrips.js component
 4. ✅ **Complete Phase 1.1 implementation** - Trip display enhancements complete
-5. ✅ **Complete Phase 1.2 implementation** - Trip detail pages and navigation complete
-6. ✅ **Complete Phase 1.3 implementation** - Advanced search and sorting features complete
-7. ✅ **Implement security requirements** - Authentication required for dive trip access
+5. ✅ **Complete Phase 1.2 implementation** - Trip detail pages and navigation
+complete
+6. ✅ **Complete Phase 1.3 implementation** - Advanced search and sorting
+features complete
+7. ✅ **Implement security requirements** - Authentication required for dive trip
+access
 
 ### **Week 1 Goals:**
+
 1. ✅ **Complete trip display integration** - Parsed trips show correctly
-2. ✅ **Implement basic trip filtering** - Diving center, dive site, price, difficulty filters added
-3. ✅ **Create trip detail component** - Enhanced trip information display complete
+2. ✅ **Implement basic trip filtering** - Diving center, dive site, price,
+difficulty filters added
+3. ✅ **Create trip detail component** - Enhanced trip information display
+complete
 4. ✅ **Set up testing framework** - Component structure ready for testing
 
 ### **Week 2 Goals (Phase 1.2):**
+
 1. ✅ **Implement Trip Detail Pages** - Create dedicated trip detail components
 2. ✅ **Add trip navigation** - Link from trip list to detail pages
-3. ✅ **Enhance trip information display** - Show full trip details and requirements
+3. ✅ **Enhance trip information display** - Show full trip details and
+requirements
 
 ### **Week 3 Goals (Phase 1.3):**
-1. ✅ **Implement advanced search** - Full-text search across trip descriptions, special requirements, diving center names, dive site names, and dive descriptions
-2. ✅ **Add trip sorting options** - Sort by date, price, duration, difficulty, popularity, and distance from user location
-3. ✅ **Enhance search and discovery** - Date range search, location-based search, price and difficulty filtering
+
+1. ✅ **Implement advanced search** - Full-text search across trip descriptions,
+special requirements, diving center names, dive site names, and dive
+descriptions
+2. ✅ **Add trip sorting options** - Sort by date, price, duration, difficulty,
+popularity, and distance from user location
+3. ✅ **Enhance search and discovery** - Date range search, location-based
+search, price and difficulty filtering
 
 ### **Recent Progress (August 2025):**
-- ✅ **Phase 1.3 Implementation Complete** - All advanced search and sorting features implemented
-- ✅ **Backend API Enhanced** - New search, filter, and sorting parameters added to `/trips` endpoint
-- ✅ **Frontend UI Enhanced** - Search inputs, sorting controls, location search, and user location management
-- ✅ **Security Implementation** - Authentication required for dive trip access (registered users only)
-- ✅ **Technical Issues Resolved** - SQLAlchemy relationship traversal, authentication dependencies, and API errors fixed
-- ✅ **Full-Text Search** - Search across multiple fields with proper relationship handling
-- ✅ **Location-Based Search** - Filter by dive site and diving center geographic information
-- ✅ **Advanced Sorting** - Including popularity (view_count) and distance (Haversine formula) calculations
-- ✅ **User Location Support** - Manual coordinate input and geolocation API integration
+
+- ✅ **Phase 1.3 Implementation Complete** -
+  All advanced search and sorting features implemented
+- ✅ **Backend API Enhanced** -
+  New search, filter, and sorting parameters added to `/trips` endpoint
+- ✅ **Frontend UI Enhanced** -
+  Search inputs, sorting controls, location search, and user location management
+- ✅ **Security Implementation** -
+  Authentication required for dive trip access (registered users only)
+- ✅ **Technical Issues Resolved** -
+- ✅ **Technical Issues Resolved** - SQLAlchemy relationship traversal,
+  authentication dependencies, and API errors fixed
+- ✅ **Full-Text Search** -
+  Search across multiple fields with proper relationship handling
+- ✅ **Location-Based Search** -
+  Filter by dive site and diving center geographic information
+- ✅ **Advanced Sorting** -
+  Including popularity (view_count) and distance (Haversine formula) calculations
+- ✅ **User Location Support** -
+  Manual coordinate input and geolocation API integration
 
 ### **Success Criteria for Phase 1:**
+
 - [x] Users can browse all parsed dive trips
 - [x] Trip filtering works correctly
 - [x] Trip detail pages display complete information
@@ -398,8 +463,11 @@
 - [x] Authentication is required for trip access (security requirement met)
 
 ### **Phase 1.1 Status: COMPLETE ✅**
+
 ### **Phase 1.2 Status: COMPLETE ✅**
+
 ### **Phase 1.3 Status: COMPLETE ✅**
+
 ### **Phase 1 Overall Status: COMPLETE ✅**
 
 ---
@@ -409,23 +477,27 @@
 **Phase 1 has been successfully completed with all objectives met:**
 
 ### **✅ Phase 1.1: Enhanced DiveTrips Page**
+
 - Trip display integration with parsed newsletter data
 - Enhanced trip card design and responsive layout
 - Comprehensive filtering (diving center, dive site, price, difficulty)
 
 ### **✅ Phase 1.2: Trip Detail Pages**
+
 - Full trip information display with dive site integration
 - Navigation between trip list and detail views
 - Related trips and breadcrumb navigation
 
 ### **✅ Phase 1.3: Advanced Search and Discovery**
+
 - Full-text search across multiple trip fields
 - Location-based search with geographic filtering
 - Advanced sorting (date, price, duration, difficulty, popularity, distance)
 - User location support with Haversine distance calculations
 - Security implementation requiring user authentication
 
-### **🔧 Technical Achievements**
+### **🔧 Phase 2 Technical Achievements**
+
 - Backend API enhanced with comprehensive search parameters
 - Frontend UI with advanced search controls and user experience
 - SQLAlchemy relationship traversal correctly implemented
@@ -437,9 +509,11 @@
 ## **🚀 Next Phase Priorities**
 
 ### **Phase 2: Map Integration and Visualization (Priority: HIGH)**
-**Estimated Time: 2-3 weeks**
+
+**Estimated Time:** 2-3 weeks
 
 **Ready to begin with:**
+
 - Trip location data already available from Phase 1.3
 - User location support already implemented
 - Distance calculations already functional
@@ -452,40 +526,64 @@
 ### **Phase 1.3 Technical Solutions**
 
 #### **Backend API Enhancements (`backend/app/routers/newsletters.py`)**
-- **Full-Text Search**: Implemented using SQLAlchemy `or_` and `ilike` across multiple fields
-- **Relationship Traversal**: Correctly handled `ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(...))` pattern
-- **Distance Calculation**: Haversine formula implementation for geographic distance sorting
-- **Popularity Sorting**: Joined through relationships to access `DiveSite.view_count`
-- **Pagination**: Added `skip` and `limit` parameters for performance optimization
+
+- **Full-Text Search**: Implemented using SQLAlchemy `or_` and `ilike` across
+  multiple fields
+- **Relationship Traversal**: Correctly handled
+  `ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(...))` pattern
+- **Distance Calculation**: Haversine formula implementation for geographic
+  distance sorting
+- **Popularity Sorting**: Joined through relationships to access
+  `DiveSite.view_count`
+- **Pagination**: Added `skip` and `limit` parameters for performance
+  optimization
 
 #### **Frontend Enhancements (`frontend/src/pages/DiveTrips.js`)**
-- **State Management**: Enhanced with search filters, sorting options, and user location
-- **Geolocation API**: Integrated browser geolocation with fallback to manual input
+
+- **State Management**: Enhanced with search filters, sorting options, and user
+  location
+- **Geolocation API**: Integrated browser geolocation with fallback to manual
+  input
 - **Search Controls**: Dedicated search inputs for text and location queries
-- **Sorting Interface**: Dropdown controls for all sorting options including distance
-- **User Experience**: Warning messages for distance sorting without location data
+- **Sorting Interface**: Dropdown controls for all sorting options including
+  distance
+- **User Experience**: Warning messages for distance sorting without location
+  data
 
 #### **Security Implementation**
-- **Authentication**: Changed from `Depends(is_admin_or_moderator)` to `Depends(get_current_user)`
+
+- **Authentication**: Changed from `Depends(is_admin_or_moderator)` to
+  `Depends(get_current_user)`
 - **Access Control**: Ensures only registered users can access dive trip data
 - **API Protection**: Returns 403 Forbidden for unauthenticated requests
 
 #### **Database Query Optimization**
+
 - **Efficient Joins**: Used proper SQLAlchemy join patterns for related data
-- **Filter Chaining**: Applied multiple filters efficiently using query builder pattern
-- **Index Considerations**: Search fields should be indexed for production performance
+- **Filter Chaining**: Applied multiple filters efficiently using query builder
+  pattern
+- **Index Considerations**: Search fields should be indexed for production
+  performance
 
 ### **Key Technical Decisions**
-1. **Search Implementation**: Chose full-text search over complex indexing for flexibility
-2. **Distance Calculation**: Implemented Haversine formula for accurate geographic sorting
-3. **Authentication Level**: Selected user-level authentication over admin-only for broader access
-4. **UI State Management**: Used React hooks for complex filter and sort state management
-5. **Error Handling**: Implemented graceful fallbacks for geolocation and search failures
+
+1. **Search Implementation**: Chose full-text search over complex indexing for
+flexibility
+2. **Distance Calculation**: Implemented Haversine formula for accurate
+geographic sorting
+3. **Authentication Level**: Selected user-level authentication over admin-only
+for broader access
+4. **UI State Management**: Used React hooks for complex filter and sort state
+management
+5. **Error Handling**: Implemented graceful fallbacks for geolocation and search
+failures
 
 ### **Performance Considerations**
+
 - **Pagination**: Implemented to handle large trip datasets
 - **Query Optimization**: Minimized database round trips with efficient joins
-- **Frontend Caching**: React Query provides automatic caching and background updates
+- **Frontend Caching**: React Query provides automatic caching and background
+  updates
 - **Geolocation**: Cached user location to avoid repeated API calls
 
 ---
@@ -495,35 +593,55 @@
 ### **Phase 1.3 Implementation Challenges**
 
 #### **1. SQLAlchemy Relationship Traversal Issues**
-- **Problem**: Initially tried to access `ParsedDiveTrip.dive_site` directly, but the relationship is through `ParsedDive`
-- **Solution**: Used correct pattern: `ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(...))`
-- **Lesson**: Always verify relationship paths in SQLAlchemy models before implementing queries
+
+- **Problem**: Initially tried to access `ParsedDiveTrip.dive_site` directly,
+  but the relationship is through `ParsedDive`
+- **Solution**: Used correct pattern:
+  `ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(...))`
+- **Lesson**: Always verify relationship paths in SQLAlchemy models before
+  implementing queries
 
 #### **2. Authentication Dependency Confusion**
-- **Problem**: Initially removed authentication to make endpoint public, but user required registered-users-only access
-- **Solution**: Changed to `Depends(get_current_user)` for user-level authentication
-- **Lesson**: Clarify security requirements early and implement appropriate authentication levels
+
+- **Problem**: Initially removed authentication to make endpoint public, but
+  user required registered-users-only access
+- **Solution**: Changed to `Depends(get_current_user)` for user-level
+  authentication
+- **Lesson**: Clarify security requirements early and implement appropriate
+  authentication levels
 
 #### **3. SQLAlchemy Query Method Errors**
+
 - **Problem**: Used `db.or_` instead of importing `or_` from SQLAlchemy
 - **Solution**: Import `or_` and `and_` from `sqlalchemy` and use directly
-- **Lesson**: SQLAlchemy Session objects don't have `or_` method - use imported functions
+- **Lesson**: SQLAlchemy Session objects don't have `or_` method -
+  use imported functions
 
 #### **4. Frontend ESLint/Prettier Issues**
+
 - **Problem**: Code modifications introduced formatting inconsistencies
-- **Solution**: Used `docker exec divemap_frontend npm run lint -- --fix` to auto-fix
+- **Solution**: Used `docker exec divemap_frontend npm run lint -- --fix` to
+  auto-fix
 - **Lesson**: Always run linting after code changes to maintain code quality
 
 #### **5. Distance Calculation Implementation**
-- **Problem**: Needed to handle cases where dive sites might not have coordinates
-- **Solution**: Implemented fallback to diving center coordinates and added coordinate validation
+
+- **Problem**: Needed to handle cases where dive sites might not have
+  coordinates
+- **Solution**: Implemented fallback to diving center coordinates and added
+  coordinate validation
 - **Lesson**: Always implement fallbacks for optional geographic data
 
 ### **Best Practices Established**
-1. **Test API endpoints immediately after changes** - Use curl commands to verify functionality
-2. **Check container logs for errors** - Frontend and backend logs reveal issues quickly
-3. **Verify authentication requirements early** - Security changes affect API behavior significantly
-4. **Use proper SQLAlchemy patterns** - Relationship traversal requires understanding of model structure
+
+1. **Test API endpoints immediately after changes** - Use curl commands to
+verify functionality
+2. **Check container logs for errors** - Frontend and backend logs reveal issues
+quickly
+3. **Verify authentication requirements early** - Security changes affect API
+behavior significantly
+4. **Use proper SQLAlchemy patterns** - Relationship traversal requires
+understanding of model structure
 5. **Maintain code quality** - Run linting tools after every code modification
 
 ---
@@ -531,18 +649,27 @@
 ## **📚 Resources and References**
 
 ### **Technical Documentation:**
-- [DiveTrips.js](../frontend/src/pages/DiveTrips.js) - Enhanced trip display with search and sorting (Phase 1.3 complete)
-- [AdminNewsletters.js](../frontend/src/pages/AdminNewsletters.js) - Admin trip management
-- [newsletters.py](../backend/app/routers/newsletters.py) - Enhanced backend trip API with search, filtering, and sorting
+
+- [DiveTrips.js](../frontend/src/pages/DiveTrips.js) -
+  Enhanced trip display with search and sorting (Phase 1.3 complete)
+- [AdminNewsletters.js](../frontend/src/pages/AdminNewsletters.js) -
+  Admin trip management
+- [newsletters.py](../backend/app/routers/newsletters.py) -
+  Enhanced backend trip API with search, filtering, and sorting
 - [models.py](../backend/app/models.py) - Database models and relationships
-- [api.js](../frontend/src/api.js) - Frontend API client with enhanced trip fetching capabilities
+- [api.js](../frontend/src/api.js) -
+  Frontend API client with enhanced trip fetching capabilities
 
 ### **Related Systems:**
-- [Dive Sites System](./dive-sites-implementation.md) - Trip location integration
-- [Diving Centers System](./diving-centers-implementation.md) - Trip provider integration
+
+- [Dive Sites System](./dive-sites-implementation.md) -
+  Trip location integration
+- [Diving Centers System](./diving-centers-implementation.md) -
+  Trip provider integration
 - [Map System](./map-system-implementation.md) - Trip visualization integration
 
 ### **External Dependencies:**
+
 - React Query for data fetching and caching
 - Leaflet/OpenLayers for map integration
 - Tailwind CSS for styling and responsive design
@@ -555,27 +682,39 @@
 **Phase 2 has been successfully completed with all objectives met:**
 
 ### **✅ Phase 2.1: Trip Map Display**
+
 - **TripMap Component**: Full-featured interactive map component created
-- **Trip Markers**: Custom SVG icons with status-based coloring (scheduled=blue, confirmed=green, cancelled=red, completed=gray)
-- **Trip Clustering**: Automatic grouping of nearby trips for better visualization
+- **Trip Markers**: Custom SVG icons with status-based coloring (scheduled=blue,
+  confirmed=green, cancelled=red, completed=gray)
+- **Trip Clustering**: Automatic grouping of nearby trips for better
+  visualization
 - **Coordinate Handling**: Fallback from dive site to diving center coordinates
-- **Interactive Popups**: Click markers to view trip details and navigate to trip pages
+- **Interactive Popups**: Click markers to view trip details and navigate to
+  trip pages
 
 ### **✅ Phase 2.2: Enhanced Map User Experience**
-- **Map View Integration**: Seamless toggle between list and map views in DiveTrips page
-- **Map-Specific Controls**: Dedicated control panel with clustering toggle, marker legend, and user tips
-- **Filter Synchronization**: All existing filters work seamlessly with map view
-- **Mobile Optimization**: Responsive, touch-friendly design optimized for all device types
-- **Performance Optimization**: Efficient vector layer management and memory cleanup
 
-### **🔧 Technical Achievements**
+- **Map View Integration**: Seamless toggle between list and map views in
+  DiveTrips page
+- **Map-Specific Controls**: Dedicated control panel with clustering toggle,
+  marker legend, and user tips
+- **Filter Synchronization**: All existing filters work seamlessly with map view
+- **Mobile Optimization**: Responsive, touch-friendly design optimized for all
+  device types
+- **Performance Optimization**: Efficient vector layer management and memory
+  cleanup
+
+### **🔧 Technical Achievements 2**
+
 - **OpenLayers Integration**: Professional-grade mapping library implementation
-- **Custom Trip Icons**: Professional dive-themed SVG markers with status indicators
+- **Custom Trip Icons**: Professional dive-themed SVG markers with status
+  indicators
 - **Vector Layer Management**: Efficient trip data rendering and updates
 - **State Management**: Synchronized view modes and filter states
 - **Error Handling**: Graceful degradation for missing coordinate data
 
 ### **📱 User Experience Features**
+
 - **Interactive Trip Discovery**: Geographic exploration of dive trips
 - **Visual Trip Status**: Intuitive color-coded trip status representation
 - **Seamless Navigation**: Direct links from map markers to trip detail pages
@@ -587,6 +726,7 @@
 ## **🎯 Immediate Next Steps**
 
 ### **Phase 2: Map Integration - ✅ COMPLETED**
+
 Phase 2 has been successfully completed with all objectives met:
 
 1. **TripMap Component Created** ✅
@@ -605,6 +745,7 @@ Phase 2 has been successfully completed with all objectives met:
    - Performance-optimized rendering
 
 ### **Ready for Phase 3: Trip Booking and User Experience**
+
 With Phase 2 complete, the foundation is ready for trip booking features:
 
 1. **Map Integration Ready** ✅
@@ -623,14 +764,16 @@ With Phase 2 complete, the foundation is ready for trip booking features:
    - Performance optimizations in place
 
 ### **Phase 3 Starting Points**
+
 - **Trip Booking Workflow**: Can build on existing trip detail pages
 - **User Preference Management**: Can integrate with existing user system
 - **Social Features**: Can add sharing and reviews to existing trip display
 - **Advanced Recommendations**: Can leverage existing search and filter systems
 
 ### **Recommended Phase 3 Approach**
+
 1. **Week 1**: Implement basic trip booking workflow
 2. **Week 2**: Add user preference management and trip collections
 3. **Week 3**: Implement social features and advanced recommendations
 
-**Total Phase 3 Estimated Time: 2-3 weeks** 
+**Total Phase 3 Estimated Time:** 2-3 weeks

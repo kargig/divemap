@@ -79,7 +79,6 @@ api.interceptors.response.use(
         );
         const { access_token } = response.data;
 
-
         // Update localStorage with new token
         localStorage.setItem('access_token', access_token);
 
