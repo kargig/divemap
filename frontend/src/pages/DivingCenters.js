@@ -642,7 +642,7 @@ const DivingCenters = () => {
         <div className='mb-8'>
           <div className='bg-white rounded-lg shadow-md p-4 mb-6'>
             <h2 className='text-xl font-semibold text-gray-900 mb-4'>
-              Interactive Diving Centers Map
+              Map view of filtered Diving Centers
             </h2>
             <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200'>
               <DivingCentersMap
