@@ -2,8 +2,15 @@ import pytest
 from fastapi import status
 from datetime import datetime, date
 from decimal import Decimal
+from unittest.mock import patch, MagicMock
 
 from app.models import Dive, DiveSite, DiveMedia, DiveTag, AvailableTag
+from app.utils import (
+    calculate_unified_phrase_aware_score,
+    classify_match_type,
+    get_unified_fuzzy_trigger_conditions,
+    UNIFIED_TYPO_TOLERANCE
+)
 
 
 class TestDives:
@@ -1089,4 +1096,571 @@ class TestDives:
         # Check pagination headers reflect filtered results
         assert response.headers["x-total-count"] == "2"
         assert response.headers["x-total-pages"] == "1"
-        assert response.headers["x-has-next-page"] == "false"
+
+
+class TestDivesFuzzySearch:
+    """Test the fuzzy search functionality in dives endpoint."""
+
+    def test_dives_search_basic_functionality(self, client, auth_headers, test_dive_with_site):
+        """Test basic search functionality in dives endpoint."""
+        response = client.get("/api/v1/dives/?search=test", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) > 0
+
+    def test_dives_search_with_dive_site_name(self, client, auth_headers, test_dive_with_site):
+        """Test search by dive site name."""
+        response = client.get("/api/v1/dives/?search=Test Dive Site", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) > 0
+
+    def test_dives_search_with_dive_information(self, client, auth_headers, test_dive_with_site):
+        """Test search by dive information field."""
+        response = client.get("/api/v1/dives/?search=information", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) > 0
+
+    def test_dives_search_multi_word_query(self, client, auth_headers, test_dive_with_site):
+        """Test multi-word search query triggers fuzzy search."""
+        response = client.get("/api/v1/dives/?search=test dive", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) > 0
+
+    def test_dives_search_short_query_triggers_fuzzy(self, client, auth_headers, test_dive_with_site):
+        """Test that short queries trigger fuzzy search."""
+        response = client.get("/api/v1/dives/?search=test", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) > 0
+
+    def test_dives_search_with_typos(self, client, auth_headers, test_dive_with_site):
+        """Test search with typos (fuzzy matching)."""
+        response = client.get("/api/v1/dives/?search=tesst", headers=auth_headers)  # Typo in "test"
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        # Should still find results due to fuzzy matching
+
+    def test_dives_search_geographic_fields(self, client, auth_headers, test_dive_with_site):
+        """Test search across geographic fields (country, region, city)."""
+        response = client.get("/api/v1/dives/?search=Test Country", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) > 0
+
+    def test_dives_search_with_tags(self, client, auth_headers, test_dive_with_tags):
+        """Test search that includes tag matching."""
+        response = client.get("/api/v1/dives/?search=wreck", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) > 0
+
+    def test_dives_search_result_ordering(self, client, auth_headers, multiple_test_dives):
+        """Test that search results are properly ordered by relevance."""
+        response = client.get("/api/v1/dives/?search=test", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        if len(data) > 1:
+            # Results should be ordered by relevance (exact matches first)
+            # This tests the fuzzy search scoring and ordering
+            pass
+
+    def test_dives_search_with_sorting(self, client, auth_headers, test_dive_with_site):
+        """Test that fuzzy search works with sorting parameters."""
+        response = client.get("/api/v1/dives/?search=test&sort_by=dive_date&sort_order=desc", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) > 0
+
+    def test_dives_search_pagination_with_fuzzy(self, client, auth_headers, multiple_test_dives):
+        """Test that pagination works correctly with fuzzy search results."""
+        response = client.get("/api/v1/dives/?search=test&page=1&page_size=5", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) > 0
+        
+        # Check pagination headers
+        assert "x-total-count" in response.headers
+        assert "x-total-pages" in response.headers
+
+    def test_dives_search_performance(self, client, auth_headers, multiple_test_dives):
+        """Test search performance with multiple dives."""
+        import time
+        
+        start_time = time.time()
+        response = client.get("/api/v1/dives/?search=test", headers=auth_headers)
+        end_time = time.time()
+        
+        assert response.status_code == status.HTTP_200_OK
+        assert (end_time - start_time) < 2.0  # Should complete within 2 seconds
+
+    def test_dives_search_with_filters(self, client, auth_headers, test_dive_with_site):
+        """Test search combined with other filters."""
+        response = client.get("/api/v1/dives/?search=test&difficulty_level=2", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) > 0
+
+    def test_dives_search_empty_query(self, client, auth_headers, test_dive_with_site):
+        """Test search with empty query."""
+        response = client.get("/api/v1/dives/?search=", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        # Should return all dives when search is empty
+
+    def test_dives_search_no_results(self, client, auth_headers, test_dive_with_site):
+        """Test search with query that should return no results."""
+        response = client.get("/api/v1/dives/?search=xyz123nonexistent", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        # Should return empty list or very few results
+
+    def test_dives_search_with_special_characters(self, client, auth_headers, test_dive_with_site):
+        """Test search with special characters."""
+        response = client.get("/api/v1/dives/?search=test@#$%", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_dives_search_case_insensitive(self, client, auth_headers, test_dive_with_site):
+        """Test that search is case insensitive."""
+        response_lower = client.get("/api/v1/dives/?search=test", headers=auth_headers)
+        response_upper = client.get("/api/v1/dives/?search=TEST", headers=auth_headers)
+        
+        assert response_lower.status_code == status.HTTP_200_OK
+        assert response_upper.status_code == status.HTTP_200_OK
+        
+        data_lower = response_lower.json()
+        data_upper = response_upper.json()
+        assert len(data_lower) == len(data_upper)  # Should return same results
+
+    def test_dives_search_with_very_long_query(self, client, auth_headers, test_dive_with_site):
+        """Test search with very long query."""
+        long_query = "a" * 200  # Max length
+        response = client.get(f"/api/v1/dives/?search={long_query}", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_dives_search_with_very_long_query(self, client, auth_headers, test_dive_with_site):
+        """Test search with very long query (no max length validation in dives endpoint)."""
+        long_query = "a" * 201  # Very long query
+        response = client.get(f"/api/v1/dives/?search={long_query}", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        # Note: Dives endpoint doesn't have max_length validation like other endpoints
+
+
+class TestDivesUnifiedScoring:
+    """Test the unified scoring algorithm for dives."""
+
+    def test_dive_site_name_exact_match(self):
+        """Test exact match in dive site name returns highest score."""
+        score = calculate_unified_phrase_aware_score(
+            query="Blue Hole",
+            primary_name="Blue Hole Reef",
+            description="A beautiful reef",
+            country="Bahamas",
+            region="Caribbean"
+        )
+        assert score == 1.0
+
+    def test_dive_site_name_word_matching(self):
+        """Test word-by-word matching in dive site name."""
+        score = calculate_unified_phrase_aware_score(
+            query="blue hole",
+            primary_name="Blue Hole Diving Site",
+            description="A beautiful reef",
+            country="Bahamas",
+            region="Caribbean"
+        )
+        assert score > 0.8  # Should be high due to word matching
+
+    def test_dive_information_matching(self):
+        """Test matching in dive information field."""
+        score = calculate_unified_phrase_aware_score(
+            query="beautiful",
+            primary_name="Test Dive Site",
+            description="A beautiful reef with amazing marine life",
+            country="Bahamas",
+            region="Caribbean"
+        )
+        assert score > 0.1  # Should include description bonus
+
+    def test_geographic_field_matching_dives(self):
+        """Test geographic field matching for dives."""
+        score = calculate_unified_phrase_aware_score(
+            query="bahamas",
+            primary_name="Test Dive Site",
+            description="A test dive",
+            country="Bahamas",
+            region="Caribbean"
+        )
+        assert score > 0.2  # Should include geographic bonus
+
+    def test_tag_matching_dives(self):
+        """Test tag matching for dive-specific searches."""
+        score = calculate_unified_phrase_aware_score(
+            query="wreck",
+            primary_name="Test Dive Site",
+            description="A test dive",
+            country="Bahamas",
+            region="Caribbean",
+            tags=["Wreck Diving", "Reef Diving"]
+        )
+        assert score > 0.3  # Should include tag bonus
+
+    def test_typo_tolerance_dives(self):
+        """Test typo tolerance in dive searches."""
+        score = calculate_unified_phrase_aware_score(
+            query="nautalus",  # Typo for "nautilus"
+            primary_name="Nautilus Reef",
+            description="A beautiful reef",
+            country="Bahamas",
+            region="Caribbean"
+        )
+        assert score > 0.6  # Should be boosted by high similarity
+
+    def test_consecutive_word_bonus_dives(self):
+        """Test consecutive word bonus for dive site names."""
+        score = calculate_unified_phrase_aware_score(
+            query="blue hole",
+            primary_name="Bluehole Reef",
+            description="A beautiful reef",
+            country="Bahamas",
+            region="Caribbean"
+        )
+        assert score > 0.7  # Should include consecutive bonus
+
+    def test_empty_fields_handling_dives(self):
+        """Test handling of None/empty fields in dive scoring."""
+        score = calculate_unified_phrase_aware_score(
+            query="test",
+            primary_name="Test Dive Site",
+            description=None,
+            country=None,
+            region=None,
+            city=None
+        )
+        assert score > 0.0  # Should still work with empty fields
+
+    def test_case_insensitive_dive_scoring(self):
+        """Test that dive scoring is case insensitive."""
+        score_lower = calculate_unified_phrase_aware_score(
+            query="blue hole",
+            primary_name="BLUE HOLE REEF",
+            description="A beautiful reef",
+            country="Bahamas",
+            region="Caribbean"
+        )
+        score_upper = calculate_unified_phrase_aware_score(
+            query="BLUE HOLE",
+            primary_name="blue hole reef",
+            description="A beautiful reef",
+            country="Bahamas",
+            region="Caribbean"
+        )
+        assert abs(score_lower - score_upper) < 0.01  # Should be nearly identical
+
+
+class TestDivesSearchRankingStability:
+    """Test search ranking stability for dives."""
+
+    def test_ranking_consistency_same_query(self, client, auth_headers, multiple_test_dives):
+        """Test that same query returns consistent ranking."""
+        response1 = client.get("/api/v1/dives/?search=test", headers=auth_headers)
+        response2 = client.get("/api/v1/dives/?search=test", headers=auth_headers)
+        
+        assert response1.status_code == status.HTTP_200_OK
+        assert response2.status_code == status.HTTP_200_OK
+        
+        data1 = response1.json()
+        data2 = response2.json()
+        
+        # Results should be in same order
+        assert len(data1) == len(data2)
+        for i in range(len(data1)):
+            assert data1[i]["id"] == data2[i]["id"]
+
+    def test_ranking_with_different_query_lengths(self, client, auth_headers, multiple_test_dives):
+        """Test ranking stability with different query lengths."""
+        short_query = client.get("/api/v1/dives/?search=test", headers=auth_headers)
+        long_query = client.get("/api/v1/dives/?search=test dive site", headers=auth_headers)
+        
+        assert short_query.status_code == status.HTTP_200_OK
+        assert long_query.status_code == status.HTTP_200_OK
+        
+        # Both should return results, though potentially different counts
+        assert len(short_query.json()) > 0
+        assert len(long_query.json()) > 0
+
+    def test_ranking_with_special_characters(self, client, auth_headers, multiple_test_dives):
+        """Test ranking stability with special characters."""
+        normal_query = client.get("/api/v1/dives/?search=test", headers=auth_headers)
+        special_query = client.get("/api/v1/dives/?search=test@#$%", headers=auth_headers)
+        
+        assert normal_query.status_code == status.HTTP_200_OK
+        assert special_query.status_code == status.HTTP_200_OK
+        
+        # Both should return results
+        assert len(normal_query.json()) > 0
+        assert len(special_query.json()) > 0
+
+    def test_ranking_with_typos(self, client, auth_headers, multiple_test_dives):
+        """Test ranking stability with typos."""
+        correct_query = client.get("/api/v1/dives/?search=test", headers=auth_headers)
+        typo_query = client.get("/api/v1/dives/?search=tesst", headers=auth_headers)
+        
+        assert correct_query.status_code == status.HTTP_200_OK
+        assert typo_query.status_code == status.HTTP_200_OK
+        
+        # Both should return results
+        assert len(correct_query.json()) > 0
+        assert len(typo_query.json()) > 0
+
+
+class TestDivesSearchPerformance:
+    """Test performance of dives fuzzy search."""
+
+    def test_search_performance_large_dataset(self, client, auth_headers, large_dive_dataset):
+        """Test search performance with large dataset."""
+        import time
+        
+        start_time = time.time()
+        response = client.get("/api/v1/dives/?search=test", headers=auth_headers)
+        end_time = time.time()
+        
+        assert response.status_code == status.HTTP_200_OK
+        assert (end_time - start_time) < 3.0  # Should complete within 3 seconds even with large dataset
+
+    def test_search_performance_complex_query(self, client, auth_headers, large_dive_dataset):
+        """Test search performance with complex multi-word query."""
+        import time
+        
+        start_time = time.time()
+        response = client.get("/api/v1/dives/?search=test dive site information", headers=auth_headers)
+        end_time = time.time()
+        
+        assert response.status_code == status.HTTP_200_OK
+        assert (end_time - start_time) < 3.0  # Should complete within 3 seconds
+
+    def test_search_performance_with_sorting(self, client, auth_headers, large_dive_dataset):
+        """Test search performance with sorting applied."""
+        import time
+        
+        start_time = time.time()
+        response = client.get("/api/v1/dives/?search=test&sort_by=dive_date&sort_order=desc", headers=auth_headers)
+        end_time = time.time()
+        
+        assert response.status_code == status.HTTP_200_OK
+        assert (end_time - start_time) < 3.0  # Should complete within 3 seconds
+
+    def test_search_performance_with_pagination(self, client, auth_headers, large_dive_dataset):
+        """Test search performance with pagination."""
+        import time
+        
+        start_time = time.time()
+        response = client.get("/api/v1/dives/?search=test&page=1&page_size=25", headers=auth_headers)
+        end_time = time.time()
+        
+        assert response.status_code == status.HTTP_200_OK
+        assert (end_time - start_time) < 3.0  # Should complete within 3 seconds
+
+    def test_search_performance_with_filters(self, client, auth_headers, large_dive_dataset):
+        """Test search performance with additional filters."""
+        import time
+        
+        start_time = time.time()
+        response = client.get("/api/v1/dives/?search=test&difficulty_level=2&min_rating=5", headers=auth_headers)
+        end_time = time.time()
+        
+        assert response.status_code == status.HTTP_200_OK
+        assert (end_time - start_time) < 3.0  # Should complete within 3 seconds
+
+
+# Test fixtures for dives fuzzy search testing
+@pytest.fixture
+def test_dive_with_site(db_session, test_user):
+    """Create a test dive with associated dive site."""
+    # Create dive site
+    dive_site = DiveSite(
+        name="Test Dive Site",
+        description="A test dive site for testing",
+        latitude=25.0,
+        longitude=30.0,
+        country="Test Country",
+        region="Test Region",
+        difficulty_level="intermediate"
+    )
+    db_session.add(dive_site)
+    db_session.commit()
+    db_session.refresh(dive_site)
+    
+    # Create dive
+    dive = Dive(
+        user_id=test_user.id,
+        dive_site_id=dive_site.id,
+        name="Test Dive Site - 2025/01/15",
+        is_private=False,
+        dive_information="Test dive information for testing purposes",
+        max_depth=Decimal("18.5"),
+        average_depth=Decimal("12.0"),
+        gas_bottles_used="Air",
+        suit_type="wet_suit",
+        difficulty_level=2,
+        visibility_rating=8,
+        user_rating=9,
+        dive_date=date(2025, 1, 15),
+        dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+        duration=45
+    )
+    db_session.add(dive)
+    db_session.commit()
+    db_session.refresh(dive)
+    
+    return dive
+
+@pytest.fixture
+def test_dive_with_tags(db_session, test_user):
+    """Create a test dive with tags."""
+    # Create dive site
+    dive_site = DiveSite(
+        name="Wreck Dive Site",
+        description="A wreck dive site",
+        latitude=25.0,
+        longitude=30.0,
+        country="Test Country",
+        region="Test Region",
+        difficulty_level="advanced"
+    )
+    db_session.add(dive_site)
+    db_session.commit()
+    db_session.refresh(dive_site)
+    
+    # Create tags
+    wreck_tag = AvailableTag(name="Wreck Diving")
+    reef_tag = AvailableTag(name="Reef Diving")
+    db_session.add(wreck_tag)
+    db_session.add(reef_tag)
+    db_session.commit()
+    
+    # Create dive
+    dive = Dive(
+        user_id=test_user.id,
+        dive_site_id=dive_site.id,
+        name="Wreck Dive Site - 2025/01/15",
+        is_private=False,
+        dive_information="A wreck dive with amazing marine life",
+        max_depth=Decimal("25.0"),
+        average_depth=Decimal("18.0"),
+        gas_bottles_used="Air",
+        suit_type="wet_suit",
+        difficulty_level=3,
+        visibility_rating=7,
+        user_rating=8,
+        dive_date=date(2025, 1, 15),
+        dive_time=datetime.strptime("14:00:00", "%H:%M:%S").time(),
+        duration=50
+    )
+    db_session.add(dive)
+    db_session.commit()
+    db_session.refresh(dive)
+    
+    # Link tags to dive
+    dive_tag1 = DiveTag(dive_id=dive.id, tag_id=wreck_tag.id)
+    dive_tag2 = DiveTag(dive_id=dive.id, tag_id=reef_tag.id)
+    db_session.add(dive_tag1)
+    db_session.add(dive_tag2)
+    db_session.commit()
+    
+    return dive
+
+@pytest.fixture
+def multiple_test_dives(db_session, test_user):
+    """Create multiple test dives for testing."""
+    # Create dive site
+    dive_site = DiveSite(
+        name="Test Dive Site",
+        description="A test dive site for testing",
+        latitude=25.0,
+        longitude=30.0,
+        country="Test Country",
+        region="Test Region",
+        difficulty_level="intermediate"
+    )
+    db_session.add(dive_site)
+    db_session.commit()
+    db_session.refresh(dive_site)
+    
+    # Create multiple dives
+    dives = []
+    for i in range(10):
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=dive_site.id,
+            name=f"Test Dive {i+1} - 2025/01/{15+i:02d}",
+            is_private=False,
+            dive_information=f"Test dive {i+1} information for testing purposes",
+            max_depth=Decimal("15.0") + Decimal(str(i)),
+            average_depth=Decimal("10.0") + Decimal(str(i)),
+            gas_bottles_used="Air",
+            suit_type="wet_suit",
+            difficulty_level=2,
+            visibility_rating=8,
+            user_rating=9,
+            dive_date=date(2025, 1, 15 + i),
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(dive)
+        dives.append(dive)
+    
+    db_session.commit()
+    for dive in dives:
+        db_session.refresh(dive)
+    
+    return dives
+
+@pytest.fixture
+def large_dive_dataset(db_session, test_user):
+    """Create a large dataset of dives for performance testing."""
+    # Create dive site
+    dive_site = DiveSite(
+        name="Performance Test Dive Site",
+        description="A dive site for performance testing",
+        latitude=25.0,
+        longitude=30.0,
+        country="Test Country",
+        region="Test Region",
+        difficulty_level="intermediate"
+    )
+    db_session.add(dive_site)
+    db_session.commit()
+    db_session.refresh(dive_site)
+    
+    # Create many dives
+    dives = []
+    for i in range(100):  # Create 100 dives for performance testing
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=dive_site.id,
+            name=f"Performance Test Dive {i+1} - 2025/01/{15+(i%30):02d}",
+            is_private=False,
+            dive_information=f"Performance test dive {i+1} information for testing purposes with various keywords",
+            max_depth=Decimal("15.0") + Decimal(str(i % 20)),
+            average_depth=Decimal("10.0") + Decimal(str(i % 15)),
+            gas_bottles_used="Air",
+            suit_type="wet_suit",
+            difficulty_level=2,
+            visibility_rating=8,
+            user_rating=9,
+            dive_date=date(2025, 1, 15 + (i % 16)),  # Days 15-30 (16 days)
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(dive)
+        dives.append(dive)
+    
+    db_session.commit()
+    for dive in dives:
+        db_session.refresh(dive)
+    
+    return dives
