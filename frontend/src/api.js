@@ -42,9 +42,7 @@ const processQueue = (error, token = null) => {
 // Response interceptor for successful responses
 api.interceptors.response.use(
   response => {
-    // Log successful login responses for debugging
     if (response.config.url?.includes('/auth/login') && response.status === 200) {
-      console.log('Login successful - access token received');
     }
     return response;
   },
@@ -71,7 +69,6 @@ api.interceptors.response.use(
 
       try {
         // Attempt to renew token using refresh token from cookies
-        console.log('Attempting token refresh...');
 
         const response = await api.post(
           '/api/v1/auth/refresh',
@@ -82,14 +79,13 @@ api.interceptors.response.use(
         );
         const { access_token } = response.data;
 
-        console.log('Token refresh successful');
 
         // Update localStorage with new token
         localStorage.setItem('access_token', access_token);
 
         // Dispatch custom event to notify AuthContext of token refresh
         window.dispatchEvent(
-          new CustomEvent('tokenRefreshed', {
+          new window.CustomEvent('tokenRefreshed', {
             detail: { access_token },
           })
         );
@@ -101,7 +97,6 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
         return api(originalRequest);
       } catch (refreshError) {
-        console.log('Token refresh failed:', refreshError);
         // Process queued requests with error
         processQueue(refreshError, null);
 

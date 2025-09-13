@@ -732,16 +732,16 @@ async def get_dive_sites(
     sort_by: Optional[str] = Query(None, description="Sort field (name, country, region, difficulty_level, created_at, updated_at). Admin users can also sort by view_count and comment_count."),
     sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
-    page_size: int = Query(25, description="Page size (25, 50, or 100)"),
+    page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
 
-    # Validate page_size to only allow 25, 50, or 100
-    if page_size not in [1, 5, 25, 50, 100]:
+    # Validate page_size to only allow 25, 50, 100, or 1000
+    if page_size not in [1, 5, 25, 50, 100, 1000]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="page_size must be one of: 25, 50, 100"
+            detail="page_size must be one of: 25, 50, 100, 1000"
         )
 
     query = db.query(DiveSite)

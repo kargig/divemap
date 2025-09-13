@@ -798,8 +798,6 @@ const Dives = () => {
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
-
-
   if (error) {
     return (
       <div className='py-6'>
@@ -838,8 +836,7 @@ const Dives = () => {
         <div className='flex flex-col sm:flex-row gap-3 justify-center'>
           <button
             onClick={() => {
-              setViewMode('map');
-              navigate('/dives?view=map');
+              navigate('/map?type=dives');
             }}
             className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
           >
@@ -1033,9 +1030,7 @@ const Dives = () => {
                 <div
                   key={dive.id}
                   className={`dive-item rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow ${
-                    dive.is_private 
-                      ? 'bg-purple-50 border-purple-200' 
-                      : 'bg-white border-gray-200'
+                    dive.is_private ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-200'
                   } ${compactLayout ? 'p-4' : 'p-6'}`}
                 >
                   <div className='flex items-start justify-between mb-4'>
@@ -1112,14 +1107,14 @@ const Dives = () => {
                       <Star className='w-4 h-4 text-yellow-400' />
                       <span className='text-sm text-gray-600'>{dive.user_rating}/10</span>
                     </div>
-                    
+
                     {/* Tags */}
                     {dive.tags && dive.tags.length > 0 && (
                       <div className='flex flex-wrap gap-1'>
                         {dive.tags.slice(0, 4).map(tag => (
                           <button
                             key={tag.id}
-                            onClick={(e) => {
+                            onClick={e => {
                               e.preventDefault();
                               e.stopPropagation();
                               const tagId = parseInt(tag.id);
@@ -1164,9 +1159,7 @@ const Dives = () => {
                 <div
                   key={dive.id}
                   className={`dive-item rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-shadow ${
-                    dive.is_private 
-                      ? 'bg-purple-50 border-purple-200' 
-                      : 'bg-white border-gray-200'
+                    dive.is_private ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-200'
                   } ${compactLayout ? 'p-4' : 'p-6'}`}
                 >
                   {showThumbnails && (
@@ -1234,14 +1227,14 @@ const Dives = () => {
                         <Star className='w-4 h-4 text-yellow-400' />
                         <span className='text-sm text-gray-600'>{dive.user_rating}/10</span>
                       </div>
-                      
+
                       {/* Tags */}
                       {dive.tags && dive.tags.length > 0 && (
                         <div className='flex flex-wrap gap-1'>
                           {dive.tags.slice(0, 2).map(tag => (
                             <button
                               key={tag.id}
-                              onClick={(e) => {
+                              onClick={e => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 const tagId = parseInt(tag.id);

@@ -20,7 +20,7 @@ const useAnimatedCounter = (
   useEffect(() => {
     if (!isBackendAvailable && !hasBackendDataArrived) {
       // If backend is not available, show animated increasing numbers with custom growth pattern
-      const interval = setInterval(() => {
+      const interval = window.setInterval(() => {
         setCurrentValue(prev => {
           const increment =
             Math.floor(
@@ -30,7 +30,7 @@ const useAnimatedCounter = (
         });
       }, growthConfig.speed);
 
-      return () => clearInterval(interval);
+      return () => window.clearInterval(interval);
     } else if (isBackendAvailable && targetValue !== undefined) {
       // Backend data has arrived - transition from current animated value to actual value
       setHasBackendDataArrived(true);
@@ -49,11 +49,11 @@ const useAnimatedCounter = (
         setCurrentValue(current);
 
         if (progress < 1) {
-          requestAnimationFrame(animate);
+          window.requestAnimationFrame(animate);
         }
       };
 
-      requestAnimationFrame(animate);
+      window.requestAnimationFrame(animate);
     }
   }, [
     targetValue,
@@ -138,6 +138,13 @@ const Home = () => {
           className='bg-indigo-600 hover:bg-indigo-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
         >
           Browse Dives
+        </Link>
+        <Link
+          to='/map'
+          className='bg-purple-600 hover:bg-purple-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+        >
+          <Map className='h-5 w-5' />
+          Interactive Map
         </Link>
         <Link
           to='/register'

@@ -552,7 +552,7 @@ class TestDivingCenters:
         """Test that invalid page_size values are rejected."""
         response = client.get("/api/v1/diving-centers/?page=1&page_size=30")  # Invalid page size
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "page_size must be one of: 25, 50, 100" in response.json()["detail"]
+        assert "page_size must be one of: 25, 50, 100, 1000" in response.json()["detail"]
 
     def test_get_diving_centers_pagination_with_filters(self, client, db_session):
         """Test pagination with filters applied."""

@@ -27,13 +27,11 @@ export const AuthProvider = ({ children }) => {
   const scheduleTokenRenewal = useCallback(expiresIn => {
     // DISABLED: Proactive token renewal conflicts with API interceptor
     // The API interceptor will handle token renewal automatically
-    console.log('Proactive token renewal disabled - using API interceptor instead');
   }, []);
 
   const renewToken = async () => {
     // DISABLED: This function is no longer needed
     // The API interceptor handles token renewal automatically
-    console.log('Manual token renewal disabled - using API interceptor instead');
   };
 
   // Add token to requests if it exists
@@ -49,7 +47,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const handleTokenRefresh = event => {
       const { access_token } = event.detail;
-      console.log('Token refreshed via API interceptor, updating state');
       setToken(access_token);
     };
 
