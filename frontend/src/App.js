@@ -38,6 +38,7 @@ import EditDiveSite from './pages/EditDiveSite';
 import EditDivingCenter from './pages/EditDivingCenter';
 import Help from './pages/Help';
 import Home from './pages/Home';
+import IndependentMapView from './pages/IndependentMapView';
 import Login from './pages/Login';
 import Privacy from './pages/Privacy';
 import Profile from './pages/Profile';
@@ -252,6 +253,20 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+
+                {/* Independent Map View Routes */}
+                <Route path='/map' element={<IndependentMapView />} />
+                <Route path='/map/dive-sites' element={<IndependentMapView />} />
+                <Route path='/map/diving-centers' element={<IndependentMapView />} />
+                <Route
+                  path='/map/dives'
+                  element={
+                    <ProtectedRoute>
+                      <IndependentMapView />
+                    </ProtectedRoute>
+                  }
+                />
+
                 <Route
                   path='/admin/dives'
                   element={

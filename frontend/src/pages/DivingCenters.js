@@ -537,8 +537,7 @@ const DivingCenters = () => {
         <div className='flex flex-col sm:flex-row gap-3 justify-center'>
           <button
             onClick={() => {
-              setViewMode('map');
-              navigate('/diving-centers?view=map');
+              navigate('/map?type=diving-centers');
             }}
             className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
           >

@@ -488,16 +488,16 @@ async def get_diving_centers(
     sort_by: Optional[str] = Query(None, description="Sort field (name, view_count, comment_count, created_at, updated_at, country, region, city)"),
     sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
-    page_size: int = Query(25, description="Page size (25, 50, or 100)"),
+    page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
     """Get diving centers with filtering and pagination."""
     # Validate page_size
-    if page_size not in [1, 5, 25, 50, 100]:
+    if page_size not in [1, 5, 25, 50, 100, 1000]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="page_size must be one of: 25, 50, 100"
+            detail="page_size must be one of: 25, 50, 100, 1000"
         )
 
     query = db.query(DivingCenter)

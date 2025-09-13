@@ -960,7 +960,7 @@ def test_get_dive_sites_invalid_page_size(client, admin_token):
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert response.status_code == 400
-    assert "page_size must be one of: 25, 50, 100" in response.json()["detail"]
+    assert "page_size must be one of: 25, 50, 100, 1000" in response.json()["detail"]
 
 def test_get_dive_sites_pagination_with_filters(client, db_session, test_admin_user, admin_token):
     """Test pagination with filters applied"""

@@ -29,10 +29,10 @@ export const SessionManager = () => {
       }
     };
 
-    const interval = setInterval(checkSessionStatus, 1000);
+    const interval = window.setInterval(checkSessionStatus, 1000);
     checkSessionStatus();
 
-    return () => clearInterval(interval);
+    return () => window.clearInterval(interval);
   }, [user, token]);
 
   if (!showWarning) return null;

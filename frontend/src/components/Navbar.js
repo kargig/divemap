@@ -25,6 +25,7 @@ import {
   Code,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -40,6 +41,8 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAdminDropdown, setShowAdminDropdown] = useState(false);
   const [showInfoDropdown, setShowInfoDropdown] = useState(false);
+  const [showMobileInfoDropdown, setShowMobileInfoDropdown] = useState(false);
+  const [showMobileAdminDropdown, setShowMobileAdminDropdown] = useState(false);
 
   // Handle clicks outside dropdowns
   useEffect(() => {
@@ -86,6 +89,8 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
     setShowAdminDropdown(false);
     setShowInfoDropdown(false);
+    setShowMobileInfoDropdown(false);
+    setShowMobileAdminDropdown(false);
   };
 
   return (
@@ -188,6 +193,14 @@ const Navbar = () => {
             >
               <Home className='h-5 w-5' />
               <span>Home</span>
+            </Link>
+
+            <Link
+              to='/map'
+              className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
+            >
+              <MapPin className='h-5 w-5' />
+              <span>Map</span>
             </Link>
 
             <Link
@@ -423,221 +436,290 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Navigation Menu */}
-        {isMobileMenuOpen && (
-          <div className='md:hidden bg-blue-700 border-t border-blue-500 relative z-[60]'>
-            <div className='px-2 pt-2 pb-3 space-y-1 mobile-menu-container'>
-              <Link
-                to='/'
-                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                onClick={closeMobileMenu}
-              >
-                <Home className='h-5 w-5 mr-3' />
-                <span>Home</span>
-              </Link>
+        {/* Mobile Navigation Menu Overlay - Rendered via Portal */}
+        {isMobileMenuOpen && createPortal(
+          <>
+            {/* Backdrop */}
+            <div
+              className='fixed inset-0 bg-black bg-opacity-50'
+              style={{ zIndex: 99998 }}
+              onClick={closeMobileMenu}
+            />
 
-              <Link
-                to='/dives'
-                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                onClick={closeMobileMenu}
-              >
-                <Anchor className='h-5 w-5 mr-3' />
-                <span>Dives</span>
-              </Link>
-
-              <Link
-                to='/dive-sites'
-                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                onClick={closeMobileMenu}
-              >
-                <Map className='h-5 w-5 mr-3' />
-                <span>Dive Sites</span>
-              </Link>
-
-              <Link
-                to='/diving-centers'
-                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                onClick={closeMobileMenu}
-              >
-                <Building className='h-5 w-5 mr-3' />
-                <span>Diving Centers</span>
-              </Link>
-
-              <Link
-                to='/dive-trips'
-                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                onClick={closeMobileMenu}
-              >
-                <Calendar className='h-5 w-5 mr-3' />
-                <span>Dive Trips</span>
-              </Link>
-
-              <div className='px-3 py-2'>
-                <div className='text-xs text-blue-200 mb-2'>INFO</div>
+            {/* Mobile Menu */}
+            <div
+              className='fixed top-16 left-0 right-0 bg-blue-700 border-t border-blue-500 max-h-[calc(100vh-4rem)] overflow-y-auto'
+              style={{ 
+                zIndex: 99999,
+                position: 'fixed',
+                top: '4rem',
+                left: 0,
+                right: 0,
+                backgroundColor: '#1e40af',
+                borderTop: '1px solid #3b82f6',
+                maxHeight: 'calc(100vh - 4rem)',
+                overflowY: 'auto'
+              }}
+            >
+              <div className='px-2 pt-2 pb-3 space-y-1 mobile-menu-container'>
                 <Link
-                  to='/about'
+                  to='/'
                   className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
                   onClick={closeMobileMenu}
                 >
-                  <Info className='h-4 w-4 mr-3' />
-                  <span>About</span>
+                  <Home className='h-5 w-5 mr-3' />
+                  <span>Home</span>
                 </Link>
-                <Link
-                  to='/api'
-                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                  onClick={closeMobileMenu}
-                >
-                  <Code className='h-4 w-4 mr-3' />
-                  <span>API</span>
-                </Link>
-                <Link
-                  to='/help'
-                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                  onClick={closeMobileMenu}
-                >
-                  <HelpCircle className='h-4 w-4 mr-3' />
-                  <span>Help</span>
-                </Link>
-                <Link
-                  to='/privacy'
-                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                  onClick={closeMobileMenu}
-                >
-                  <Shield className='h-4 w-4 mr-3' />
-                  <span>Privacy</span>
-                </Link>
-              </div>
 
-              {user ? (
-                <>
-                  <div className='border-t border-blue-500 pt-2 mt-2'>
+                <Link
+                  to='/map'
+                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                  onClick={closeMobileMenu}
+                >
+                  <MapPin className='h-5 w-5 mr-3' />
+                  <span>Map</span>
+                </Link>
+
+                <Link
+                  to='/dives'
+                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                  onClick={closeMobileMenu}
+                >
+                  <Anchor className='h-5 w-5 mr-3' />
+                  <span>Dives</span>
+                </Link>
+
+                <Link
+                  to='/dive-sites'
+                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                  onClick={closeMobileMenu}
+                >
+                  <Map className='h-5 w-5 mr-3' />
+                  <span>Dive Sites</span>
+                </Link>
+
+                <Link
+                  to='/diving-centers'
+                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                  onClick={closeMobileMenu}
+                >
+                  <Building className='h-5 w-5 mr-3' />
+                  <span>Diving Centers</span>
+                </Link>
+
+                <Link
+                  to='/dive-trips'
+                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                  onClick={closeMobileMenu}
+                >
+                  <Calendar className='h-5 w-5 mr-3' />
+                  <span>Dive Trips</span>
+                </Link>
+
+                <div className='px-3 py-2'>
+                  <button
+                    onClick={() => setShowMobileInfoDropdown(!showMobileInfoDropdown)}
+                    className='flex items-center justify-between w-full px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                  >
+                    <div className='flex items-center'>
+                      <Info className='h-4 w-4 mr-3' />
+                      <span>Info</span>
+                    </div>
+                    <ChevronDown 
+                      className={`h-4 w-4 transition-transform duration-200 ${
+                        showMobileInfoDropdown ? 'rotate-180' : ''
+                      }`} 
+                    />
+                  </button>
+                  
+                  {showMobileInfoDropdown && (
+                    <div className='ml-7 mt-1 space-y-1'>
+                      <Link
+                        to='/about'
+                        className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                        onClick={closeMobileMenu}
+                      >
+                        <Info className='h-4 w-4 mr-3' />
+                        <span>About</span>
+                      </Link>
+                      <Link
+                        to='/api'
+                        className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                        onClick={closeMobileMenu}
+                      >
+                        <Code className='h-4 w-4 mr-3' />
+                        <span>API</span>
+                      </Link>
+                      <Link
+                        to='/help'
+                        className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                        onClick={closeMobileMenu}
+                      >
+                        <HelpCircle className='h-4 w-4 mr-3' />
+                        <span>Help</span>
+                      </Link>
+                      <Link
+                        to='/privacy'
+                        className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                        onClick={closeMobileMenu}
+                      >
+                        <Shield className='h-4 w-4 mr-3' />
+                        <span>Privacy</span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                {user ? (
+                  <>
+                    <div className='border-t border-blue-500 pt-2 mt-2'>
+                      <Link
+                        to='/profile'
+                        className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                        onClick={closeMobileMenu}
+                      >
+                        <User className='h-5 w-5 mr-3' />
+                        <span>{user.username}</span>
+                      </Link>
+
+                      {user.is_admin && (
+                        <div className='px-3 py-2'>
+                          <button
+                            onClick={() => setShowMobileAdminDropdown(!showMobileAdminDropdown)}
+                            className='flex items-center justify-between w-full px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          >
+                            <div className='flex items-center'>
+                              <Settings className='h-4 w-4 mr-3' />
+                              <span>Admin</span>
+                            </div>
+                            <ChevronDown 
+                              className={`h-4 w-4 transition-transform duration-200 ${
+                                showMobileAdminDropdown ? 'rotate-180' : ''
+                              }`} 
+                            />
+                          </button>
+                          
+                          {showMobileAdminDropdown && (
+                            <div className='ml-7 mt-1 space-y-1'>
+                              <Link
+                                to='/admin'
+                                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                onClick={closeMobileMenu}
+                              >
+                                <Settings className='h-4 w-4 mr-3' />
+                                <span>Dashboard</span>
+                              </Link>
+                              <Link
+                                to='/admin/dives'
+                                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                onClick={closeMobileMenu}
+                              >
+                                <Anchor className='h-4 w-4 mr-3' />
+                                <span>Dives</span>
+                              </Link>
+                              <Link
+                                to='/admin/dive-sites'
+                                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                onClick={closeMobileMenu}
+                              >
+                                <MapPin className='h-4 w-4 mr-3' />
+                                <span>Dive Sites</span>
+                              </Link>
+                              <Link
+                                to='/admin/diving-centers'
+                                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                onClick={closeMobileMenu}
+                              >
+                                <Building className='h-4 w-4 mr-3' />
+                                <span>Diving Centers</span>
+                              </Link>
+                              <Link
+                                to='/admin/tags'
+                                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                onClick={closeMobileMenu}
+                              >
+                                <Tags className='h-4 w-4 mr-3' />
+                                <span>Tags</span>
+                              </Link>
+                              <Link
+                                to='/admin/newsletters'
+                                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                onClick={closeMobileMenu}
+                              >
+                                <FileText className='h-4 w-4 mr-3' />
+                                <span>Newsletter Management</span>
+                              </Link>
+                              <Link
+                                to='/admin/ownership-requests'
+                                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                onClick={closeMobileMenu}
+                              >
+                                <Crown className='h-4 w-4 mr-3' />
+                                <span>Ownership Requests</span>
+                              </Link>
+                              <Link
+                                to='/admin/system-overview'
+                                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                onClick={closeMobileMenu}
+                              >
+                                <Activity className='h-4 w-4 mr-3' />
+                                <span>System Overview</span>
+                              </Link>
+                              <Link
+                                to='/admin/recent-activity'
+                                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                onClick={closeMobileMenu}
+                              >
+                                <Clock className='h-4 w-4 mr-3' />
+                                <span>Recent Activity</span>
+                              </Link>
+                              <Link
+                                to='/admin/users'
+                                className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                onClick={closeMobileMenu}
+                              >
+                                <Users className='h-4 w-4 mr-3' />
+                                <span>Users</span>
+                              </Link>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          closeMobileMenu();
+                        }}
+                        className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors w-full'
+                      >
+                        <LogOut className='h-5 w-5 mr-3' />
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className='border-t border-blue-500 pt-2 mt-2 space-y-2'>
                     <Link
-                      to='/profile'
-                      className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                      to='/login'
+                      className='block px-3 py-2 text-white hover:text-blue-200 transition-colors'
                       onClick={closeMobileMenu}
                     >
-                      <User className='h-5 w-5 mr-3' />
-                      <span>{user.username}</span>
+                      Login
                     </Link>
-
-                    {user.is_admin && (
-                      <div className='px-3 py-2'>
-                        <div className='text-xs text-blue-200 mb-2'>ADMIN</div>
-                        <Link
-                          to='/admin'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Settings className='h-4 w-4 mr-3' />
-                          <span>Dashboard</span>
-                        </Link>
-                        <Link
-                          to='/admin/dives'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Anchor className='h-4 w-4 mr-3' />
-                          <span>Dives</span>
-                        </Link>
-                        <Link
-                          to='/admin/dive-sites'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <MapPin className='h-4 w-4 mr-3' />
-                          <span>Dive Sites</span>
-                        </Link>
-                        <Link
-                          to='/admin/diving-centers'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Building className='h-4 w-4 mr-3' />
-                          <span>Diving Centers</span>
-                        </Link>
-                        <Link
-                          to='/admin/tags'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Tags className='h-4 w-4 mr-3' />
-                          <span>Tags</span>
-                        </Link>
-                        <Link
-                          to='/admin/newsletters'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <FileText className='h-4 w-4 mr-3' />
-                          <span>Newsletter Management</span>
-                        </Link>
-                        <Link
-                          to='/admin/ownership-requests'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Crown className='h-4 w-4 mr-3' />
-                          <span>Ownership Requests</span>
-                        </Link>
-                        <Link
-                          to='/admin/system-overview'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Activity className='h-4 w-4 mr-3' />
-                          <span>System Overview</span>
-                        </Link>
-                        <Link
-                          to='/admin/recent-activity'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Clock className='h-4 w-4 mr-3' />
-                          <span>Recent Activity</span>
-                        </Link>
-                        <Link
-                          to='/admin/users'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Users className='h-4 w-4 mr-3' />
-                          <span>Users</span>
-                        </Link>
-                      </div>
-                    )}
-
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        closeMobileMenu();
-                      }}
-                      className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors w-full'
+                    <Link
+                      to='/register'
+                      className='block px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                      onClick={closeMobileMenu}
                     >
-                      <LogOut className='h-5 w-5 mr-3' />
-                      <span>Logout</span>
-                    </button>
+                      Register
+                    </Link>
                   </div>
-                </>
-              ) : (
-                <div className='border-t border-blue-500 pt-2 mt-2 space-y-2'>
-                  <Link
-                    to='/login'
-                    className='block px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                    onClick={closeMobileMenu}
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to='/register'
-                    className='block px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                    onClick={closeMobileMenu}
-                  >
-                    Register
-                  </Link>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
+          </>,
+          document.body
         )}
       </div>
     </nav>

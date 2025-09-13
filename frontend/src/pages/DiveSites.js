@@ -636,8 +636,7 @@ const DiveSites = () => {
           <div className='flex flex-col sm:flex-row gap-3 justify-center'>
             <button
               onClick={() => {
-                setViewMode('map');
-                navigate('/dive-sites?view=map');
+                navigate('/map?type=dive-sites');
               }}
               className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
             >
@@ -784,8 +783,6 @@ const DiveSites = () => {
             </div>
           </div>
 
-
-
           {/* Results Section - Mobile-first responsive design */}
           {/* Dive Sites List - Show when data is available and viewMode is list */}
           {viewMode === 'list' && diveSites?.results && (
@@ -927,7 +924,7 @@ const DiveSites = () => {
                         return (
                           <button
                             key={index}
-                            onClick={(e) => {
+                            onClick={e => {
                               e.preventDefault();
                               e.stopPropagation();
                               const currentTagIds = filters.tag_ids || [];
@@ -1062,7 +1059,7 @@ const DiveSites = () => {
                             return (
                               <button
                                 key={index}
-                                onClick={(e) => {
+                                onClick={e => {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   const currentTagIds = filters.tag_ids || [];

@@ -1,6 +1,6 @@
 /**
  * Tag Color Utility Functions
- * 
+ *
  * Provides consistent tag color mapping across the application
  * to ensure visual consistency between filter tags and display tags.
  */
