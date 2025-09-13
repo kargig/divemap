@@ -6,30 +6,122 @@
 
 ### Medium Priority
 
-#### 4. Map View for Dive Sites and Diving Centers
+#### 4. Create Constants File for Magic Numbers
 
 **Status:** Planning
 
 **Priority:** Medium
 
-**Description:** Implement independent map view for dive sites and diving centers that is separate from list/grid views and their filters/pagination.
+**Description:** Extract magic numbers (debounce delays, viewport limits) into a centralized constants file to improve code maintainability and reduce duplication.
 
 **Tasks:**
 
-- [ ] Design map view architecture independent of list/grid views
-- [ ] Implement region-based map display showing all dive sites/centers in viewport
-- [ ] Add data point clustering for performance optimization
-- [ ] Implement progressive clustering breakdown on zoom
-- [ ] Ensure mobile-responsive design and touch interactions
-- [ ] Set performance limits to prevent map slowdown
-- [ ] Test map performance with large datasets
-- [ ] Validate mobile and desktop user experience
+- [ ] Identify all magic numbers in the codebase (debounce delays, viewport limits, etc.)
+- [ ] Create centralized constants file with meaningful names
+- [ ] Replace magic numbers with named constants
+- [ ] Make configuration values easily adjustable
+- [ ] Update documentation to reference constants file
 
-**Files:** `docs/development/map-view-implementation.md`
+**Files:** `frontend/src/constants/index.js`
 
-**GitHub Issue:** [#54](https://github.com/kargig/divemap/issues/54)
+#### 5. Implement Custom Hooks for Repeated Patterns
 
-#### 5. Media Upload/Download with Cloudflare R2 and External Links
+**Status:** Planning
+
+**Priority:** Medium
+
+**Description:** Create `useDropdownState()` hook for managing multiple dropdown states and refactor repeated dropdown logic in Navbar component.
+
+**Tasks:**
+
+- [ ] Create `useDropdownState()` custom hook
+- [ ] Refactor Navbar component to use the new hook
+- [ ] Improve code reusability and consistency
+- [ ] Test hook functionality across different components
+- [ ] Document hook usage patterns
+
+**Files:** `frontend/src/hooks/useDropdownState.js`
+
+#### 6. Add Error Boundaries for React Components
+
+**Status:** Planning
+
+**Priority:** Medium
+
+**Description:** Implement React error boundaries to catch and handle component errors gracefully, preventing entire app crashes from single component failures.
+
+**Tasks:**
+
+- [ ] Create error boundary components
+- [ ] Implement error boundary wrapper for main app
+- [ ] Add error logging and reporting
+- [ ] Create user-friendly error fallback UI
+- [ ] Test error boundary functionality
+- [ ] Document error boundary usage
+
+**Files:** `frontend/src/components/ErrorBoundary.js`
+
+#### 7. Consider TypeScript Migration
+
+**Status:** Planning
+
+**Priority:** Medium
+
+**Description:** Evaluate migrating from JavaScript to TypeScript for better type safety, improved developer experience, and reduced runtime errors.
+
+**Tasks:**
+
+- [ ] Evaluate TypeScript migration feasibility
+- [ ] Create migration plan and timeline
+- [ ] Set up TypeScript configuration
+- [ ] Migrate core components to TypeScript
+- [ ] Update build process and tooling
+- [ ] Train team on TypeScript best practices
+
+**Files:** `tsconfig.json`, `frontend/src/`
+
+#### 8. Add Comprehensive PropTypes Validation
+
+**Status:** Planning
+
+**Priority:** Medium
+
+**Description:** Add PropTypes validation to all React components to improve component documentation and catch prop-related bugs during development.
+
+**Tasks:**
+
+- [ ] Audit existing components for PropTypes usage
+- [ ] Add PropTypes to all components missing validation
+- [ ] Improve component documentation and usage clarity
+- [ ] Set up PropTypes validation in development mode
+- [ ] Create PropTypes documentation guidelines
+
+**Files:** `frontend/src/components/`
+
+#### 9. ~~Map View for Dive Sites and Diving Centers~~ **COMPLETED**
+
+**Status:** Completed
+
+**Priority:** ~~Medium~~ **N/A**
+
+**Description:** ~~Implement independent map view for dive sites and diving centers that is separate from list/grid views and their filters/pagination.~~ **This has been implemented as IndependentMapView system.**
+
+**Tasks:**
+
+- [x] Design map view architecture independent of list/grid views
+- [x] Implement region-based map display showing all dive sites/centers in viewport
+- [x] Add data point clustering for performance optimization
+- [x] Implement progressive clustering breakdown on zoom
+- [x] Ensure mobile-responsive design and touch interactions
+- [x] Set performance limits to prevent map slowdown
+- [x] Test map performance with large datasets
+- [x] Validate mobile and desktop user experience
+
+**Files:** `frontend/src/pages/IndependentMapView.js`, `frontend/src/components/LeafletMapView.js`
+
+**GitHub Issue:** [#54](https://github.com/kargig/divemap/issues/54) - **COMPLETED**
+
+#### 10. Media Upload/Download with Cloudflare R2 and External Links
 
 **Status:** Planning
 
@@ -54,7 +146,7 @@
 
 **GitHub Issue:** [#55](https://github.com/kargig/divemap/issues/55)
 
-#### 6. Dive Route Drawing and Selection
+#### 11. Dive Route Drawing and Selection
 
 **Status:** Planning
 
@@ -83,7 +175,7 @@
 
 **GitHub Issue:** [#56](https://github.com/kargig/divemap/issues/56)
 
-#### 7. Dive Route Annotations and Points of Interest
+#### 12. Dive Route Annotations and Points of Interest
 
 **Status:** Planning
 
@@ -111,7 +203,7 @@
 
 **GitHub Issue:** [#57](https://github.com/kargig/divemap/issues/57)
 
-#### 8. Email Notifications System
+#### 13. Email Notifications System
 
 **Status:** Planning
 
@@ -139,7 +231,7 @@
 
 **GitHub Issue:** [#19](https://github.com/kargig/divemap/issues/19)
 
-#### 9. Enhanced Subsurface Dive Import with Interactive Dive Profiles
+#### 14. Enhanced Subsurface Dive Import with Interactive Dive Profiles
 
 **Status:** Planning
 
@@ -168,7 +260,102 @@
 
 ### Low Priority
 
-#### 10. CSS and Sticky Positioning Guide
+#### 15. Refactor Dropdown State Management
+
+**Status:** Planning
+
+**Priority:** Low
+
+**Description:** Consolidate dropdown state management using custom hooks to reduce state duplication across components and improve code organization.
+
+**Tasks:**
+
+- [ ] Analyze existing dropdown state patterns
+- [ ] Create comprehensive dropdown state management hook
+- [ ] Refactor all dropdown implementations
+- [ ] Reduce state duplication across components
+- [ ] Improve code organization and maintainability
+- [ ] Test dropdown functionality across all components
+
+**Files:** `frontend/src/hooks/useDropdownState.js`
+
+#### 16. Implement Proper Error Logging Service
+
+**Status:** Planning
+
+**Priority:** Low
+
+**Description:** Create centralized error logging service for frontend to implement proper error reporting and monitoring for production issues.
+
+**Tasks:**
+
+- [ ] Design error logging service architecture
+- [ ] Implement centralized error logging service
+- [ ] Add error reporting and monitoring capabilities
+- [ ] Integrate with existing error handling
+- [ ] Improve debugging capabilities for production issues
+- [ ] Test error logging functionality
+
+**Files:** `frontend/src/services/errorLogging.js`
+
+#### 17. Add Performance Monitoring for Map Operations
+
+**Status:** Planning
+
+**Priority:** Low
+
+**Description:** Implement performance monitoring for map rendering and data loading to track and optimize map performance metrics.
+
+**Tasks:**
+
+- [ ] Design performance monitoring system
+- [ ] Implement map rendering performance tracking
+- [ ] Add data loading performance metrics
+- [ ] Create performance dashboard/visualization
+- [ ] Identify performance bottlenecks in real-time
+- [ ] Optimize based on performance data
+
+**Files:** `frontend/src/services/performanceMonitoring.js`
+
+#### 18. Consider Code Splitting for Large Components
+
+**Status:** Planning
+
+**Priority:** Low
+
+**Description:** Implement code splitting for large React components to improve initial page load performance and optimize bundle size.
+
+**Tasks:**
+
+- [ ] Identify large components suitable for code splitting
+- [ ] Implement React.lazy() for component splitting
+- [ ] Add Suspense boundaries for loading states
+- [ ] Optimize bundle size and loading times
+- [ ] Test code splitting performance improvements
+- [ ] Monitor bundle size changes
+
+**Files:** `frontend/src/components/`
+
+#### 19. Add Comprehensive Test Coverage
+
+**Status:** Planning
+
+**Priority:** Low
+
+**Description:** Implement comprehensive test suite for all components to ensure code reliability and prevent regressions.
+
+**Tasks:**
+
+- [ ] Set up testing framework and tools
+- [ ] Add unit tests for all components
+- [ ] Implement integration tests
+- [ ] Add end-to-end tests
+- [ ] Ensure code reliability and prevent regressions
+- [ ] Set up continuous testing pipeline
+
+**Files:** `frontend/src/__tests__/`
+
+#### 20. CSS and Sticky Positioning Guide
 
 **Status:** Documentation
 
@@ -187,7 +374,134 @@
 
 **GitHub Issue:** [#59](https://github.com/kargig/divemap/issues/59)
 
-#### 11. Floating Search Filters Guide
+#### 21. Remove Obsolete OpenLayers Map Components (Partial)
+
+**Status:** Planning
+
+**Priority:** High
+
+**Description:** Remove redundant OpenLayers-based map components that are no longer used after implementing the new Leaflet-based IndependentMapView system. **NOTE: TripMap.js must be preserved as it has trip-specific functionality not covered by IndependentMapView.**
+
+**Tasks:**
+
+- [ ] Remove `DiveMap.js` component (430 lines) - replaced by LeafletMapView
+- [ ] Remove `DiveSitesMap.js` component (694 lines) - replaced by LeafletMapView
+- [ ] Remove `DivingCentersMap.js` component - replaced by LeafletMapView
+- [ ] Remove `DivesMap.js` component (757 lines) - replaced by LeafletMapView
+- [ ] **PRESERVE `TripMap.js` component (961 lines)** - has unique trip-specific features:
+  - Trip status-based icon colors (scheduled/confirmed/cancelled/completed)
+  - Trip-specific filtering (price, status, diving center, dive sites)
+  - Trip popup with detailed trip information
+  - Status toggle filtering logic
+  - Trip-specific coordinate grouping and clustering
+- [ ] Remove `DiveTripsMap.js` component (685 lines) - **UNUSED** (not imported anywhere)
+- [ ] Remove `UnifiedMapView.js` component (508 lines) - replaced by LeafletMapView
+- [ ] Update imports in pages that reference removed components
+- [ ] **KEEP OpenLayers dependencies in package.json** - still needed for TripMap.js (until Task #25 migration)
+- [ ] Clean up unused map-related utility functions
+
+**Files:** `frontend/src/components/`, `frontend/package.json`
+
+**Important:** IndependentMapView only supports 'dive-sites', 'diving-centers', and 'dives' entity types. It does NOT support dive trips, which have unique requirements like trip status visualization, trip-specific filtering, and trip popup content. Only TripMap.js is needed for dive trip functionality.
+
+#### 22. Remove Obsolete Map Pages
+
+**Status:** Planning
+
+**Priority:** High
+
+**Description:** Remove redundant map pages that are no longer needed after implementing the unified IndependentMapView.
+
+**Tasks:**
+
+- [ ] Remove `DiveMapView.js` page (541 lines) - replaced by IndependentMapView
+- [ ] Remove `DiveSiteMap.js` page (436 lines) - replaced by IndependentMapView
+- [ ] Update App.js routing to remove obsolete routes
+- [ ] Remove `/dives/map` route
+- [ ] Remove `/dive-sites/:id/map` route
+- [ ] Update navigation links to use `/map` instead of specific map routes
+- [ ] Clean up unused imports and dependencies
+
+**Files:** `frontend/src/pages/`, `frontend/src/App.js`
+
+#### 23. Consolidate Map-Related Utilities
+
+**Status:** Planning
+
+**Priority:** Medium
+
+**Description:** Consolidate and clean up map-related utility functions that are no longer needed after removing obsolete OpenLayers components (while keeping OpenLayers for TripMap.js).
+
+**Tasks:**
+
+- [ ] Review `difficultyHelpers.js` for map-specific functions that can be removed
+- [ ] Check for unused OpenLayers-specific utility functions
+- [ ] Consolidate icon creation logic (currently duplicated across components)
+- [ ] Remove unused clustering and viewport management utilities
+- [ ] Optimize remaining utility functions for Leaflet usage
+
+**Files:** `frontend/src/utils/`
+
+#### 24. Update Package Dependencies (Partial)
+
+**Status:** Planning
+
+**Priority:** Medium
+
+**Description:** Clean up package dependencies after removing obsolete map components while preserving OpenLayers for TripMap functionality.
+
+**Tasks:**
+
+- [ ] **KEEP OpenLayers packages: `ol`, `ol-react`** - still needed for TripMap.js (until Task #25 migration)
+- [ ] Remove only unused OpenLayers-related dependencies (if any)
+- [ ] Update package-lock.json
+- [ ] Verify OpenLayers imports only remain in TripMap components
+- [ ] Test application functionality after dependency cleanup
+- [ ] **DEPENDENCY:** Complete Task #25 (Migrate TripMap to Leaflet) before removing OpenLayers
+
+**Files:** `frontend/package.json`, `frontend/package-lock.json`
+
+**Note:** OpenLayers must be preserved until Task #25 (Migrate TripMap to Leaflet) is completed. After migration, all OpenLayers dependencies can be removed.
+
+#### 25. Migrate TripMap to Leaflet Implementation
+
+**Status:** Planning
+
+**Priority:** High
+
+**Description:** Migrate TripMap.js from OpenLayers to Leaflet to enable complete removal of OpenLayers dependencies and unify all map implementations under Leaflet.
+
+**Tasks:**
+
+- [ ] Analyze TripMap.js OpenLayers implementation and identify required features
+- [ ] Create Leaflet-based TripMap component with equivalent functionality:
+  - Trip status-based icon colors (scheduled/confirmed/cancelled/completed)
+  - Trip-specific filtering (price, status, diving center, dive sites)
+  - Trip popup with detailed trip information
+  - Status toggle filtering logic
+  - Trip-specific coordinate grouping and clustering
+- [ ] Implement Leaflet clustering for trip markers
+- [ ] Create custom trip status icons for Leaflet markers
+- [ ] Implement trip popup content with all existing details
+- [ ] Add trip-specific filtering capabilities
+- [ ] Test all trip map functionality with Leaflet implementation
+- [ ] Update DiveTrips.js to use new Leaflet TripMap component
+- [ ] Remove old OpenLayers TripMap.js component
+- [ ] Remove all OpenLayers dependencies from package.json
+- [ ] Verify no OpenLayers imports remain in codebase
+- [ ] Test application functionality after complete OpenLayers removal
+
+**Files:** `frontend/src/components/TripMap.js`, `frontend/src/pages/DiveTrips.js`, `frontend/package.json`
+
+**Benefits:**
+
+- Complete removal of OpenLayers dependencies
+- Unified map implementation across all components
+- Reduced bundle size
+- Consistent map behavior and styling
+- Easier maintenance with single map library
+
+#### 26. Floating Search Filters Guide
 
 **Status:** Documentation
 

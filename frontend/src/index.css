@@ -47,6 +47,44 @@ main.pt-16 {
   z-index: 40;
 }
 
+/* Ensure Leaflet map doesn't interfere with mobile menu */
+.leaflet-container {
+  z-index: -1 !important;
+}
+
+.leaflet-pane {
+  z-index: -1 !important;
+}
+
+.leaflet-control-container {
+  z-index: -1 !important;
+}
+
+.leaflet-top,
+.leaflet-bottom,
+.leaflet-left,
+.leaflet-right {
+  z-index: -1 !important;
+}
+
+/* Ensure mobile menu has highest z-index */
+.mobile-menu-container {
+  z-index: 999999 !important;
+}
+
+/* Force mobile menu to be above everything */
+div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
+  z-index: 999999 !important;
+  position: fixed !important;
+  top: 4rem !important;
+  left: 0 !important;
+  right: 0 !important;
+  background-color: #1e40af !important;
+  border-top: 1px solid #3b82f6 !important;
+  max-height: calc(100vh - 4rem) !important;
+  overflow-y: auto !important;
+}
+
 @media (max-width: 768px) {
   .sticky-below-navbar {
     top: var(--sticky-offset-mobile);
@@ -828,7 +866,6 @@ main.pt-16 {
   }
 }
 
-/* Debug styles to help identify mobile overlay issues */
 .filter-overlay-mobile {
   /* Ensure mobile overlay is visible */
   display: block !important;

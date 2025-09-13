@@ -591,7 +591,6 @@ const DiveTripsMap = ({ diveTrips = [], viewport, onViewportChange }) => {
         {diveTrips?.length || 0} trips loaded
       </div>
 
-      {/* Zoom Level Debug Indicator */}
       <div className='absolute top-2 right-2 bg-white bg-opacity-90 px-2 py-1 rounded text-xs'>
         Zoom: {currentZoom.toFixed(1)} / Max: {maxZoom}{' '}
         {useClustering ? '(Clustered)' : '(Individual)'}

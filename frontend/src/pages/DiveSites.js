@@ -636,8 +636,7 @@ const DiveSites = () => {
           <div className='flex flex-col sm:flex-row gap-3 justify-center'>
             <button
               onClick={() => {
-                setViewMode('map');
-                navigate('/dive-sites?view=map');
+                navigate('/map?type=dive-sites');
               }}
               className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
             >
@@ -670,7 +669,7 @@ const DiveSites = () => {
           <div className='mb-8'>
             <div className='bg-white rounded-lg shadow-md p-4 mb-6'>
               <h2 className='text-xl font-semibold text-gray-900 mb-4'>
-                Interactive Dive Sites Map
+                Map view of filtered Dive Sites
               </h2>
               <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200'>
                 <DiveSitesMap data-testid='dive-sites-map' diveSites={diveSites?.results || []} />
@@ -783,8 +782,6 @@ const DiveSites = () => {
               </div>
             </div>
           </div>
-
-
 
           {/* Results Section - Mobile-first responsive design */}
           {/* Dive Sites List - Show when data is available and viewMode is list */}
@@ -927,7 +924,7 @@ const DiveSites = () => {
                         return (
                           <button
                             key={index}
-                            onClick={(e) => {
+                            onClick={e => {
                               e.preventDefault();
                               e.stopPropagation();
                               const currentTagIds = filters.tag_ids || [];
@@ -1062,7 +1059,7 @@ const DiveSites = () => {
                             return (
                               <button
                                 key={index}
-                                onClick={(e) => {
+                                onClick={e => {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   const currentTagIds = filters.tag_ids || [];

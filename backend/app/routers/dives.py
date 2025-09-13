@@ -861,14 +861,14 @@ def get_dives(
     sort_by: Optional[str] = Query(None, description="Sort field (dive_date, max_depth, duration, difficulty_level, visibility_rating, user_rating, created_at, updated_at). Admin users can also sort by view_count."),
     sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
-    page_size: int = Query(25, description="Page size (25, 50, or 100)")
+    page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)")
 ):
     """Get dives with filtering options. Can view own dives and public dives from other users. Unauthenticated users can view public dives."""
     # Validate page_size
-    if page_size not in [1, 5, 25, 50, 100]:
+    if page_size not in [1, 5, 25, 50, 100, 1000]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="page_size must be one of: 25, 50, 100"
+            detail="page_size must be one of: 25, 50, 100, 1000"
         )
 
     # Check if user is authenticated and enabled

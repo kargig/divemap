@@ -1032,7 +1032,7 @@ class TestDives:
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "page_size must be one of: 25, 50, 100" in response.json()["detail"]
+        assert "page_size must be one of: 25, 50, 100, 1000" in response.json()["detail"]
 
     def test_get_dives_pagination_with_filters(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test pagination with filters applied."""
