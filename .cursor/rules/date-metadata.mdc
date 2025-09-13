@@ -1,0 +1,77 @@
+---
+description: Date metadata rules for documentation files, changelogs, and version tracking
+globs: ["**/*.md", "**/changelog*", "**/CHANGELOG*"]
+alwaysApply: true
+---
+
+# Date Metadata Rules
+
+## Current Date Usage for Documentation
+
+When updating documentation files that contain "last updated" metadata, always use the current date from the `date` command.
+
+### Rule: Always Use Current Date
+
+**When to apply:**
+- Updating changelog files
+- Updating documentation files with "last updated" metadata
+- Any file containing version or date metadata that needs updating
+
+**How to apply:**
+1. Run `date +"%B %d, %Y"` to get the current date in "Month DD, YYYY" format
+2. Use this date for "Last Updated" fields
+3. Use this date for changelog entries
+4. Use this date for version metadata
+
+### Date Format Standards
+
+**Primary Format:** `September 13, 2025` (Month DD, YYYY)
+- Use full month name
+- Use two-digit day with no leading zero
+- Use four-digit year
+- No ordinal suffixes (1st, 2nd, 3rd)
+
+**Alternative Formats:**
+- ISO format: `2025-09-13` (for technical documentation)
+- Short format: `Sep 13, 2025` (for space-constrained areas)
+
+### Examples
+
+**Documentation Footer:**
+```markdown
+**Last Updated**: September 13, 2025  
+**Author**: AI Assistant  
+**Version**: 2.1 - Enhanced with debugging tools
+```
+
+**Changelog Entry:**
+```markdown
+## [2.1.0] - 2025-09-13
+
+### 🚀 Major Features
+- Enhanced floating search filters guide with debugging tools
+```
+
+**Version Metadata:**
+```markdown
+---
+last_updated: September 13, 2025
+version: 2.1.0
+author: AI Assistant
+---
+```
+
+### Implementation
+
+When updating any file with date metadata:
+1. Check if the file contains "last updated", "last_updated", "updated", or similar date fields
+2. Run `date +"%B %d, %Y"` to get current date
+3. Replace the existing date with the current date
+4. Ensure the date format matches the existing pattern in the file
+
+### Enforcement
+
+- **Mandatory**: Always use current date when updating date metadata
+- **Consistent**: Use the same date format throughout the project
+- **Accurate**: Use the actual current date, not a placeholder or old date
+- **Complete**: Update all date fields in the file, not just one
