@@ -29,6 +29,7 @@ import DivesMap from '../components/DivesMap';
 import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import ImportDivesModal from '../components/ImportDivesModal';
+import MatchTypeBadge from '../components/MatchTypeBadge';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
@@ -53,6 +54,7 @@ const Dives = () => {
 
   const getInitialFilters = () => {
     return {
+      search: searchParams.get('search') || '',
       dive_site_name: searchParams.get('dive_site_name') || '',
       min_depth: searchParams.get('min_depth') || '',
       duration_min: searchParams.get('duration_min') || '',
@@ -94,6 +96,9 @@ const Dives = () => {
     latitude: 0,
     zoom: 2,
   });
+
+  // Match types state for fuzzy search results
+  const [matchTypes, setMatchTypes] = useState({});
 
   const [showFilters, setShowFilters] = useState(false);
   const [showMobileSorting, setShowMobileSorting] = useState(false);
@@ -368,11 +373,11 @@ const Dives = () => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearchTerms({
-        dive_site_name: filters.dive_site_name,
+        search: filters.search,
       });
     }, 800);
     return () => clearTimeout(timeoutId);
-  }, [filters.dive_site_name]);
+  }, [filters.search]);
 
   // Immediate URL update for non-search filters
   useEffect(() => {
@@ -407,7 +412,7 @@ const Dives = () => {
   const { data: totalCountResponse } = useQuery(
     [
       'dives-count',
-      debouncedSearchTerms.dive_site_name,
+      debouncedSearchTerms.search,
       filters.dive_site_id,
       filters.difficulty_level,
       filters.min_depth,
@@ -421,8 +426,7 @@ const Dives = () => {
       const params = new URLSearchParams();
 
       if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
-      if (debouncedSearchTerms.dive_site_name)
-        params.append('dive_site_name', debouncedSearchTerms.dive_site_name);
+      if (debouncedSearchTerms.search) params.append('search', debouncedSearchTerms.search);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
       if (filters.min_depth) params.append('min_depth', filters.min_depth);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
@@ -458,7 +462,7 @@ const Dives = () => {
   } = useQuery(
     [
       'dives',
-      debouncedSearchTerms.dive_site_name,
+      debouncedSearchTerms.search,
       filters.dive_site_id,
       filters.difficulty_level,
       filters.min_depth,
@@ -476,8 +480,7 @@ const Dives = () => {
       const params = new URLSearchParams();
 
       if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
-      if (debouncedSearchTerms.dive_site_name)
-        params.append('dive_site_name', debouncedSearchTerms.dive_site_name);
+      if (debouncedSearchTerms.search) params.append('search', debouncedSearchTerms.search);
       if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
       if (filters.min_depth) params.append('min_depth', filters.min_depth);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
@@ -502,7 +505,22 @@ const Dives = () => {
         params.append('per_page', pagination.per_page.toString());
       }
 
-      return api.get(`/api/v1/dives/?${params.toString()}`).then(res => res.data);
+      return api.get(`/api/v1/dives/?${params.toString()}`).then(res => {
+        // Extract match types from response headers
+        const matchTypesHeader = res.headers['x-match-types'];
+        if (matchTypesHeader) {
+          try {
+            const parsedMatchTypes = JSON.parse(matchTypesHeader);
+            setMatchTypes(parsedMatchTypes);
+          } catch (error) {
+            console.warn('Failed to parse match types header:', error);
+            setMatchTypes({});
+          }
+        } else {
+          setMatchTypes({});
+        }
+        return res.data;
+      });
     },
     {
       staleTime: 5 * 60 * 1000, // 5 minutes
@@ -535,8 +553,8 @@ const Dives = () => {
     }
 
     // Add search filters with safety checks
-    if (filters.dive_site_name && filters.dive_site_name.toString) {
-      newSearchParams.set('dive_site_name', filters.dive_site_name.toString());
+    if (filters.search && filters.search.toString) {
+      newSearchParams.set('search', filters.search.toString());
     }
 
     // Add other filters with safety checks
@@ -877,23 +895,21 @@ const Dives = () => {
       {/* Desktop Search Bar - Only visible on desktop/tablet */}
       {!isMobile && (
         <DesktopSearchBar
-          searchValue={filters.dive_site_name}
-          onSearchChange={value =>
-            handleSearchChange({ target: { name: 'dive_site_name', value } })
-          }
+          searchValue={filters.search}
+          onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
           onSearchSelect={selectedItem => {
             // For dives, we need to handle the selected item appropriately
             // Since dives don't have a direct name field, we'll use the dive site name
             handleSearchChange({
               target: {
-                name: 'dive_site_name',
+                name: 'search',
                 value: selectedItem.name || selectedItem.dive_site?.name || '',
               },
             });
           }}
           data={dives || []}
           configType='dives'
-          placeholder='Search dives by dive site name...'
+          placeholder='Search dives by dive site name, description, or notes...'
         />
       )}
 
@@ -918,8 +934,8 @@ const Dives = () => {
         variant='sticky'
         showQuickFilters={true}
         showAdvancedToggle={true}
-        searchQuery={filters.dive_site_name}
-        onSearchChange={value => handleSearchChange({ target: { name: 'dive_site_name', value } })}
+        searchQuery={filters.search}
+        onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
         onSearchSubmit={() => {}}
         sortBy={sortBy}
         sortOrder={sortOrder}
@@ -1053,6 +1069,12 @@ const Dives = () => {
                                 {dive.name || `Dive #${dive.id}`}
                               </Link>
                             </h3>
+                            {matchTypes[dive.id] && (
+                              <MatchTypeBadge
+                                matchType={matchTypes[dive.id].type}
+                                score={matchTypes[dive.id].score}
+                              />
+                            )}
                             {dive.is_private && (
                               <div className='flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium'>
                                 <Lock size={12} />
@@ -1180,6 +1202,12 @@ const Dives = () => {
                           {dive.name || `Dive #${dive.id}`}
                         </Link>
                       </h3>
+                      {matchTypes[dive.id] && (
+                        <MatchTypeBadge
+                          matchType={matchTypes[dive.id].type}
+                          score={matchTypes[dive.id].score}
+                        />
+                      )}
                       {dive.is_private && (
                         <div className='flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium'>
                           <Lock size={12} />
