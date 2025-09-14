@@ -98,10 +98,11 @@ class TestRateLimiting:
         """Test that the decorator can be imported and used"""
         try:
             from app.limiter import skip_rate_limit_for_admin
+            from fastapi import Request
 
             # Test that it can be used as a decorator
             @skip_rate_limit_for_admin("15/minute")
-            def test_function():
+            def test_function(request: Request):
                 return "success"
 
             assert callable(test_function)
