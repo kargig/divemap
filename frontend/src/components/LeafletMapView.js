@@ -653,12 +653,15 @@ const LeafletMapView = ({
   }
 
   return (
-    <div className='relative w-full h-full' style={{ zIndex: 1 }}>
+    <div className='relative w-full h-full map-container' style={{ zIndex: 1 }}>
       <MapContainer
         center={mapCenter}
         zoom={viewport?.zoom || (markers.length > 0 ? 10 : 8)}
         className='w-full h-full'
-        style={{ zIndex: 1 }}
+        style={{ 
+          zIndex: 1,
+          touchAction: 'pan-x pan-y'
+        }}
       >
         <TileLayer
           attribution=''

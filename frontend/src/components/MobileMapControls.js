@@ -1,4 +1,19 @@
-import { Filter, Layers, Search, MapPin, Plus, Minus, RotateCcw } from 'lucide-react';
+import { 
+  Filter, 
+  Layers, 
+  Search, 
+  MapPin, 
+  Plus, 
+  Minus, 
+  RotateCcw, 
+  Wrench, 
+  Settings, 
+  X,
+  ZoomIn,
+  ZoomOut,
+  Share,
+  Maximize
+} from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 
@@ -10,23 +25,8 @@ const MobileMapControls = ({
   showLayers,
   hasActiveFilters = false,
 }) => {
-  const [isVisible, setIsVisible] = useState(true);
-  const [lastTouchTime, setLastTouchTime] = useState(0);
-
-  // Auto-hide controls after inactivity
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [lastTouchTime]);
-
-  // Show controls on touch
-  const handleTouch = () => {
-    setLastTouchTime(Date.now());
-    setIsVisible(true);
-  };
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState('tools');
 
   // Handle map zoom controls
   const handleZoomIn = () => {
@@ -44,111 +44,248 @@ const MobileMapControls = ({
     }
   };
 
-  return (
-    <div className='absolute inset-0 pointer-events-none z-30' style={{ zIndex: 30 }}>
-      {/* Touch overlay to show controls */}
-      <div
-        className='absolute inset-0 pointer-events-auto'
-        onTouchStart={handleTouch}
-        onClick={handleTouch}
-      />
+  const handleToggleExpanded = () => {
+    setIsExpanded(!isExpanded);
+    setActiveTab('tools'); // Reset to tools tab when opening
+  };
 
-      {/* Top controls */}
-      <div
-        className={`absolute top-4 left-4 right-4 transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
-        }`}
-      >
-        <div className='flex justify-between items-center'>
-          {/* Left side - Filter and Layers */}
-          <div className='flex space-x-2'>
-            <button
-              onClick={onToggleFilters}
-              className={`p-3 rounded-full shadow-lg transition-all duration-200 ${
-                showFilters
-                  ? 'bg-blue-600 text-white'
-                  : hasActiveFilters
-                    ? 'bg-orange-500 text-white hover:bg-orange-600'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-              title={hasActiveFilters ? 'Filters are active' : 'Toggle filters'}
-            >
-              <Filter className='w-5 h-5' />
-            </button>
-
-            <button
-              onClick={onToggleLayers}
-              className={`p-3 rounded-full shadow-lg transition-all duration-200 ${
-                showLayers ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'
-              }`}
-            >
-              <Layers className='w-5 h-5' />
-            </button>
-          </div>
-
-          {/* Right side - Search */}
-          <button className='p-3 bg-white text-gray-700 rounded-full shadow-lg hover:bg-gray-50 transition-colors'>
-            <Search className='w-5 h-5' />
-          </button>
-        </div>
-      </div>
-
-      {/* Bottom controls - Zoom and Reset */}
-      <div
-        className={`absolute bottom-4 right-4 transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
-        }`}
-      >
-        <div className='flex flex-col space-y-2'>
-          {/* Zoom controls */}
-          <div className='flex flex-col space-y-1'>
-            <button
-              onClick={handleZoomIn}
-              className='p-3 bg-white text-gray-700 rounded-full shadow-lg hover:bg-gray-50 transition-colors'
-            >
-              <Plus className='w-5 h-5' />
-            </button>
-
-            <button
-              onClick={handleZoomOut}
-              className='p-3 bg-white text-gray-700 rounded-full shadow-lg hover:bg-gray-50 transition-colors'
-            >
-              <Minus className='w-5 h-5' />
-            </button>
-          </div>
-
-          {/* Reset view */}
-          <button
-            onClick={handleResetView}
-            className='p-3 bg-white text-gray-700 rounded-full shadow-lg hover:bg-gray-50 transition-colors'
-          >
-            <RotateCcw className='w-5 h-5' />
-          </button>
-        </div>
-      </div>
-
-      {/* Center - Location indicator */}
-      <div
-        className={`absolute bottom-20 left-1/2 transform -translate-x-1/2 transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
-        }`}
-      >
-        <button className='p-3 bg-white text-gray-700 rounded-full shadow-lg hover:bg-gray-50 transition-colors'>
-          <MapPin className='w-5 h-5' />
+  // Compact view - just the wrench button
+  if (!isExpanded) {
+    return (
+      <div className='fixed bottom-6 right-6 z-50'>
+        <button
+          onClick={handleToggleExpanded}
+          className='w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 flex items-center justify-center touch-manipulation'
+          aria-label='Toggle Map Tools'
+        >
+          <Wrench className='h-6 w-6' />
         </button>
       </div>
+    );
+  }
 
-      {/* Gesture hints */}
-      <div
-        className={`absolute bottom-4 left-4 transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
-        }`}
-      >
-        <div className='bg-black bg-opacity-75 text-white text-xs px-3 py-2 rounded-lg'>
-          <div className='flex items-center space-x-2'>
-            <div className='w-2 h-2 bg-white rounded-full'></div>
-            <span>Pinch to zoom • Drag to pan</span>
-          </div>
+  // Expanded view - full overlay
+  return (
+    <div className='fixed inset-0 z-[200] bg-black bg-opacity-50 flex flex-col'>
+      <div className='bg-white w-full h-full flex flex-col'>
+        {/* Header */}
+        <div className='flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50'>
+          <h3 className='text-lg font-semibold text-gray-900'>Map Tools</h3>
+          <button
+            onClick={handleToggleExpanded}
+            className='p-2 rounded-lg hover:bg-gray-200 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center'
+            aria-label='Close tools'
+          >
+            <X className='h-5 w-5 text-gray-600' />
+          </button>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className='flex border-b border-gray-200 bg-white'>
+          <button
+            onClick={() => setActiveTab('tools')}
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'tools'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+            }`}
+          >
+            <Wrench className='h-4 w-4 inline mr-2' />
+            Tools
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'settings'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+            }`}
+          >
+            <Settings className='h-4 w-4 inline mr-2' />
+            Settings
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div className='flex-1 overflow-y-auto min-h-0'>
+          {/* Tools Tab */}
+          {activeTab === 'tools' && (
+            <div className='p-4 space-y-6 pb-4'>
+              {/* Map Controls */}
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 mb-3'>Map Controls</h4>
+                <div className='grid grid-cols-2 gap-3'>
+                  <button
+                    onClick={onToggleFilters}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition-colors min-h-[80px] ${
+                      showFilters
+                        ? 'bg-blue-50 border-blue-200 text-blue-900'
+                        : hasActiveFilters
+                          ? 'bg-orange-50 border-orange-200 text-orange-900'
+                          : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Filter className='w-6 h-6' />
+                    <span className='text-sm font-medium'>Filters</span>
+                    {hasActiveFilters && (
+                      <span className='text-xs text-orange-600'>Active</span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={onToggleLayers}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition-colors min-h-[80px] ${
+                      showLayers
+                        ? 'bg-blue-50 border-blue-200 text-blue-900'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Layers className='w-6 h-6' />
+                    <span className='text-sm font-medium'>Layers</span>
+                  </button>
+
+                  <button className='flex flex-col items-center gap-2 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors min-h-[80px]'>
+                    <Search className='w-6 h-6' />
+                    <span className='text-sm font-medium'>Search</span>
+                  </button>
+
+                  <button className='flex flex-col items-center gap-2 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors min-h-[80px]'>
+                    <MapPin className='w-6 h-6' />
+                    <span className='text-sm font-medium'>Location</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Zoom Controls */}
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 mb-3'>Zoom Controls</h4>
+                <div className='flex gap-3'>
+                  <button
+                    onClick={handleZoomIn}
+                    className='flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors min-h-[48px]'
+                  >
+                    <ZoomIn className='w-5 h-5' />
+                    <span className='text-sm font-medium'>Zoom In</span>
+                  </button>
+                  <button
+                    onClick={handleZoomOut}
+                    className='flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors min-h-[48px]'
+                  >
+                    <ZoomOut className='w-5 h-5' />
+                    <span className='text-sm font-medium'>Zoom Out</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 mb-3'>Quick Actions</h4>
+                <div className='space-y-2'>
+                  <button
+                    onClick={handleResetView}
+                    className='w-full flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors min-h-[48px]'
+                  >
+                    <RotateCcw className='w-5 h-5 text-gray-600' />
+                    <span className='text-sm text-gray-700'>Reset View</span>
+                  </button>
+                  <button className='w-full flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors min-h-[48px]'>
+                    <Share className='w-5 h-5 text-gray-600' />
+                    <span className='text-sm text-gray-700'>Share Map</span>
+                  </button>
+                  <button className='w-full flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors min-h-[48px]'>
+                    <Maximize className='w-5 h-5 text-gray-600' />
+                    <span className='text-sm text-gray-700'>Fullscreen</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === 'settings' && (
+            <div className='p-4 space-y-6 pb-4'>
+              {/* Map Settings */}
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 mb-3'>Map Settings</h4>
+                <div className='space-y-2'>
+                  <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
+                    <input
+                      type='checkbox'
+                      className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                      defaultChecked
+                    />
+                    <span className='text-sm text-gray-700'>Show dive sites</span>
+                  </label>
+                  <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
+                    <input
+                      type='checkbox'
+                      className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                      defaultChecked
+                    />
+                    <span className='text-sm text-gray-700'>Show dive centers</span>
+                  </label>
+                  <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
+                    <input
+                      type='checkbox'
+                      className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                    />
+                    <span className='text-sm text-gray-700'>Show my dives</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Display Options */}
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 mb-3'>Display Options</h4>
+                <div className='space-y-2'>
+                  <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
+                    <input
+                      type='checkbox'
+                      className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                      defaultChecked
+                    />
+                    <span className='text-sm text-gray-700'>Show cluster labels</span>
+                  </label>
+                  <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
+                    <input
+                      type='checkbox'
+                      className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                    />
+                    <span className='text-sm text-gray-700'>Auto-zoom to fit</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Gesture Hints */}
+              <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
+                <h4 className='text-sm font-medium text-blue-900 mb-2'>Touch Gestures</h4>
+                <div className='space-y-1 text-sm text-blue-800'>
+                  <div className='flex items-center gap-2'>
+                    <div className='w-2 h-2 bg-blue-600 rounded-full'></div>
+                    <span>Pinch to zoom in/out</span>
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <div className='w-2 h-2 bg-blue-600 rounded-full'></div>
+                    <span>Drag to pan around</span>
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <div className='w-2 h-2 bg-blue-600 rounded-full'></div>
+                    <span>Tap markers for details</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className='border-t border-gray-200 p-4 bg-gray-50'>
+          <button
+            onClick={handleToggleExpanded}
+            className='w-full px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors min-h-[48px]'
+          >
+            Done
+          </button>
         </div>
       </div>
     </div>

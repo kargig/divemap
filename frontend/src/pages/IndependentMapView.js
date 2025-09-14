@@ -10,6 +10,7 @@ import {
   Copy,
   Check,
   RotateCcw,
+  Wrench,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGeolocated } from 'react-geolocated';
@@ -17,7 +18,6 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 
 import LeafletMapView from '../components/LeafletMapView';
 import MapLayersPanel from '../components/MapLayersPanel';
-import MobileMapControls from '../components/MobileMapControls';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
 import { useResponsive } from '../hooks/useResponsive';
 import { useViewportData } from '../hooks/useViewportData';
@@ -87,6 +87,7 @@ const IndependentMapView = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showLayers, setShowLayers] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showMobileControls, setShowMobileControls] = useState(false);
   const [selectedEntityType, setSelectedEntityType] = useState('dive-sites'); // 'dive-sites', 'diving-centers', 'dives', 'dive-trips'
   const [popupInfo, setPopupInfo] = useState(null);
   const [popupPosition, setPopupPosition] = useState(null);
@@ -526,143 +527,162 @@ const IndependentMapView = () => {
     <div
       className={`${isFullscreen ? 'h-screen' : 'h-[calc(100vh-4rem)]'} bg-gray-50 overflow-hidden flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
     >
-      {/* Header */}
-      <div
-        className={`bg-white border-b border-gray-200 shadow-sm flex-shrink-0 ${isFullscreen ? 'z-[9999]' : ''}`}
-      >
-        <div className='px-4 py-3'>
-          <div className='flex items-center justify-between'>
-            {/* Left side - Navigation and title */}
-            <div className='flex items-center space-x-4'>
-              <button
-                onClick={() => navigate(-1)}
-                className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
-              >
-                <Map className='w-5 h-5' />
-              </button>
-              <div>
-                <h1 className='text-xl font-semibold text-gray-900'>Interactive Map</h1>
-                <p className='text-sm text-gray-600'>Explore dive sites, centers, and dives</p>
+        {/* Header */}
+        <div
+          className={`bg-white border-b border-gray-200 shadow-sm flex-shrink-0 ${isFullscreen ? 'z-[9999]' : ''}`}
+        >
+          <div className='px-2 py-2'>
+            {/* Top row - Title and back button */}
+            <div className='flex items-center justify-between mb-2'>
+              <div className='flex items-center space-x-2'>
+                <button
+                  onClick={() => navigate(-1)}
+                  className='p-1.5 hover:bg-gray-100 rounded-lg transition-colors'
+                >
+                  <Map className='w-4 h-4' />
+                </button>
+                <h1 className='text-lg font-semibold text-gray-900'>Interactive Map</h1>
               </div>
+              {/* Wrench button - Mobile controls toggle */}
+              <button
+                onClick={() => setShowMobileControls(!showMobileControls)}
+                className={`p-2 rounded-lg border transition-colors ${
+                  showMobileControls
+                    ? 'bg-blue-500 text-white border-blue-600'
+                    : 'bg-gray-500 text-white border-gray-600 hover:bg-gray-600'
+                }`}
+                title='Toggle map controls'
+              >
+                <Wrench className='w-4 h-4' />
+              </button>
             </div>
 
-            {/* Right side - Controls */}
-            <div className='flex items-center space-x-1 sm:space-x-2 flex-wrap gap-1 sm:gap-0 max-w-full overflow-hidden'>
-              {/* Performance indicator - Hidden on mobile */}
-              {performanceMetrics.dataPoints > 0 && (
-                <div className='hidden sm:flex items-center space-x-2 text-xs text-gray-500'>
-                  <span>{performanceMetrics.dataPoints} points</span>
-                  <div className='w-2 h-2 bg-green-500 rounded-full'></div>
-                </div>
-              )}
-
-              {/* Entity type selector - Responsive sizing */}
+            {/* Bottom row - Description and dropdown */}
+            <div className='flex items-center justify-between'>
+              <p className='text-xs text-gray-600'>Explore dive sites, centers, and dives</p>
+              {/* Entity type selector */}
               <select
                 value={selectedEntityType}
                 onChange={e => handleEntityTypeChange(e.target.value)}
-                className='px-2 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-0 flex-shrink-0 max-w-[120px] sm:max-w-none'
+                className='px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
               >
                 <option value='dives'>Dives</option>
                 <option value='dive-sites'>Dive Sites</option>
                 <option value='diving-centers'>Diving Centers</option>
                 <option value='dive-trips'>Dive Trips</option>
               </select>
-
-              {/* Filter button - Smaller on mobile */}
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
-                  showFilters
-                    ? 'bg-blue-100 text-blue-600'
-                    : hasActiveFilters()
-                      ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
-                      : 'hover:bg-gray-100 text-gray-600'
-                }`}
-                title={hasActiveFilters() ? 'Filters are active' : 'Toggle filters'}
-              >
-                <Filter className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
-              </button>
-
-              {/* Layers button - Smaller on mobile */}
-              <button
-                onClick={() => {
-                  setShowLayers(!showLayers);
-                }}
-                className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
-                  showLayers ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'
-                }`}
-              >
-                <Layers className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
-              </button>
-
-              {/* Geolocation button - Smaller on mobile */}
-              <button
-                onClick={handleGeolocationRequest}
-                disabled={geolocationStatus === 'requesting'}
-                className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
-                  geolocationStatus === 'granted'
-                    ? 'bg-green-100 text-green-600'
-                    : geolocationStatus === 'denied' || geolocationStatus === 'error'
-                      ? 'bg-red-100 text-red-600'
-                      : 'hover:bg-gray-100 text-gray-600'
-                } ${geolocationStatus === 'requesting' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title={
-                  geolocationStatus === 'granted'
-                    ? 'Location found - Click to refresh'
-                    : geolocationStatus === 'denied'
-                      ? 'Location denied - Click to try again'
-                      : geolocationStatus === 'error'
-                        ? 'Location failed/timed out - Click to try again'
-                        : 'Find my location'
-                }
-              >
-                {geolocationStatus === 'requesting' ? (
-                  <Loader2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 animate-spin' />
-                ) : (
-                  <MapPin className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
-                )}
-              </button>
-
-              {/* Reset zoom button - Smaller on mobile */}
-              <button
-                onClick={handleResetZoom}
-                className='p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600'
-                title={
-                  geolocationStatus === 'granted'
-                    ? 'Reset to your location'
-                    : 'Reset to show all points'
-                }
-              >
-                <RotateCcw className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
-              </button>
-
-              {/* Share button - Smaller on mobile */}
-              <button
-                onClick={handleShareClick}
-                className='p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600'
-                title='Share current map view'
-              >
-                <Share2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
-              </button>
-
-              {/* Fullscreen button - Smaller on mobile */}
-              <button
-                onClick={toggleFullscreen}
-                className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
-                  isFullscreen
-                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg'
-                    : 'hover:bg-gray-100 text-gray-600'
-                }`}
-                title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-              >
-                {isFullscreen ? (
-                  <X className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
-                ) : (
-                  <Maximize2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
-                )}
-              </button>
             </div>
-          </div>
+
+          {/* Collapsible Controls Section */}
+          {showMobileControls && (
+            <div className='mt-4 pt-4 border-t border-gray-200'>
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center space-x-1 sm:space-x-2 flex-wrap gap-1 sm:gap-0 max-w-full overflow-hidden'>
+                  {/* Performance indicator - Hidden on mobile */}
+                  {performanceMetrics.dataPoints > 0 && (
+                    <div className='hidden sm:flex items-center space-x-2 text-xs text-gray-500'>
+                      <span>{performanceMetrics.dataPoints} points</span>
+                      <div className='w-2 h-2 bg-green-500 rounded-full'></div>
+                    </div>
+                  )}
+
+                  {/* Filter button - Smaller on mobile */}
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
+                      showFilters
+                        ? 'bg-blue-100 text-blue-600'
+                        : hasActiveFilters()
+                          ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                          : 'hover:bg-gray-100 text-gray-600'
+                    }`}
+                    title={hasActiveFilters() ? 'Filters are active' : 'Toggle filters'}
+                  >
+                    <Filter className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                  </button>
+
+                  {/* Layers button - Smaller on mobile */}
+                  <button
+                    onClick={() => {
+                      setShowLayers(!showLayers);
+                    }}
+                    className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
+                      showLayers ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    <Layers className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                  </button>
+
+                  {/* Geolocation button - Smaller on mobile */}
+                  <button
+                    onClick={handleGeolocationRequest}
+                    disabled={geolocationStatus === 'requesting'}
+                    className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
+                      geolocationStatus === 'granted'
+                        ? 'bg-green-100 text-green-600'
+                        : geolocationStatus === 'denied' || geolocationStatus === 'error'
+                          ? 'bg-red-100 text-red-600'
+                          : 'hover:bg-gray-100 text-gray-600'
+                    } ${geolocationStatus === 'requesting' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    title={
+                      geolocationStatus === 'granted'
+                        ? 'Location found - Click to refresh'
+                        : geolocationStatus === 'denied'
+                          ? 'Location denied - Click to try again'
+                          : geolocationStatus === 'error'
+                            ? 'Location failed/timed out - Click to try again'
+                            : 'Find my location'
+                    }
+                  >
+                    {geolocationStatus === 'requesting' ? (
+                      <Loader2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 animate-spin' />
+                    ) : (
+                      <MapPin className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                    )}
+                  </button>
+
+                  {/* Reset zoom button - Smaller on mobile */}
+                  <button
+                    onClick={handleResetZoom}
+                    className='p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600'
+                    title={
+                      geolocationStatus === 'granted'
+                        ? 'Reset to your location'
+                        : 'Reset to show all points'
+                    }
+                  >
+                    <RotateCcw className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                  </button>
+
+                  {/* Share button - Smaller on mobile */}
+                  <button
+                    onClick={handleShareClick}
+                    className='p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600'
+                    title='Share current map view'
+                  >
+                    <Share2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                  </button>
+
+                  {/* Fullscreen button - Smaller on mobile */}
+                  <button
+                    onClick={toggleFullscreen}
+                    className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
+                      isFullscreen
+                        ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg'
+                        : 'hover:bg-gray-100 text-gray-600'
+                    }`}
+                    title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                  >
+                    {isFullscreen ? (
+                      <X className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                    ) : (
+                      <Maximize2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -735,7 +755,7 @@ const IndependentMapView = () => {
 
         {/* Map area */}
         <div
-          className={`${isMobile ? 'w-full h-full' : 'flex-1 min-h-0'} relative overflow-hidden`}
+          className={`${isMobile ? 'w-full h-full' : 'flex-1 min-h-0'} relative overflow-hidden map-container`}
         >
           <LeafletMapView
             data={mapData}
@@ -762,17 +782,6 @@ const IndependentMapView = () => {
             onLayerChange={handleLayerChange}
           />
 
-          {/* Mobile controls overlay */}
-          {isMobile && (
-            <MobileMapControls
-              onToggleFilters={() => setShowFilters(!showFilters)}
-              onToggleLayers={() => setShowLayers(!showLayers)}
-              onResetZoom={handleResetZoom}
-              showFilters={showFilters}
-              showLayers={showLayers}
-              hasActiveFilters={hasActiveFilters()}
-            />
-          )}
         </div>
       </div>
 
