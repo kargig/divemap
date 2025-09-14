@@ -2,7 +2,13 @@ import { X, Search, Filter, MapPin, Calendar, Star, Waves } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 
-const UnifiedMapFilters = ({ filters, onFilterChange, selectedEntityType, onClose }) => {
+const UnifiedMapFilters = ({
+  filters,
+  onFilterChange,
+  selectedEntityType,
+  onClose,
+  divingCenters = [],
+}) => {
   const [localFilters, setLocalFilters] = useState(filters);
 
   // Update local filters when props change
@@ -26,6 +32,12 @@ const UnifiedMapFilters = ({ filters, onFilterChange, selectedEntityType, onClos
 
   // Reset all filters
   const resetFilters = () => {
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 14); // 14 days ago
+    const endDate = new Date(today);
+    endDate.setFullYear(today.getFullYear() + 1); // 1 year ahead
+
     const resetFilters = {
       search: '',
       difficulty_level: '',
@@ -41,6 +53,13 @@ const UnifiedMapFilters = ({ filters, onFilterChange, selectedEntityType, onClos
       visibility_max: '',
       suit_type: '',
       tag_ids: [],
+      // Dive-trips specific filters with default date range
+      diving_center_id: '',
+      trip_status: '',
+      min_price: '',
+      max_price: '',
+      start_date: selectedEntityType === 'dive-trips' ? startDate.toISOString().split('T')[0] : '',
+      end_date: selectedEntityType === 'dive-trips' ? endDate.toISOString().split('T')[0] : '',
     };
     setLocalFilters(resetFilters);
     onFilterChange(resetFilters);
@@ -326,6 +345,99 @@ const UnifiedMapFilters = ({ filters, onFilterChange, selectedEntityType, onClos
             </div>
           </div>
         )}
+
+        {/* Dive-trips specific filters */}
+        {selectedEntityType === 'dive-trips' && (
+          <div className='space-y-3'>
+            <h3 className='text-sm font-medium text-gray-700 flex items-center'>
+              <MapPin className='w-4 h-4 mr-1' />
+              Trip Filters
+            </h3>
+
+            {/* Diving Center Filter */}
+            <div>
+              <label htmlFor='diving-center-select' className='block text-xs text-gray-600 mb-1'>
+                Diving Center
+              </label>
+              <select
+                id='diving-center-select'
+                value={localFilters.diving_center_id || ''}
+                onChange={e => handleFilterChange('diving_center_id', e.target.value)}
+                className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+              >
+                <option value=''>All Centers</option>
+                {divingCenters.map(center => (
+                  <option key={center.id} value={center.id}>
+                    {center.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Trip Status Filter */}
+            <div>
+              <label htmlFor='trip-status-select' className='block text-xs text-gray-600 mb-1'>
+                Trip Status
+              </label>
+              <select
+                id='trip-status-select'
+                value={localFilters.trip_status || ''}
+                onChange={e => handleFilterChange('trip_status', e.target.value)}
+                className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+              >
+                <option value=''>All Statuses</option>
+                <option value='scheduled'>Scheduled</option>
+                <option value='confirmed'>Confirmed</option>
+                <option value='cancelled'>Cancelled</option>
+                <option value='completed'>Completed</option>
+              </select>
+            </div>
+
+            {/* Date Range Filter */}
+            <div>
+              <label className='block text-xs text-gray-600 mb-1'>Trip Date Range</label>
+              <div className='space-y-2'>
+                <input
+                  type='date'
+                  value={localFilters.start_date || ''}
+                  onChange={e => handleFilterChange('start_date', e.target.value)}
+                  className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Start Date'
+                />
+                <input
+                  type='date'
+                  value={localFilters.end_date || ''}
+                  onChange={e => handleFilterChange('end_date', e.target.value)}
+                  className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='End Date'
+                />
+              </div>
+            </div>
+
+            {/* Price Range Filter */}
+            <div>
+              <label className='block text-xs text-gray-600 mb-1'>Price Range (EUR)</label>
+              <div className='space-y-2'>
+                <input
+                  type='number'
+                  value={localFilters.min_price || ''}
+                  onChange={e => handleFilterChange('min_price', e.target.value)}
+                  className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Min Price'
+                  min='0'
+                />
+                <input
+                  type='number'
+                  value={localFilters.max_price || ''}
+                  onChange={e => handleFilterChange('max_price', e.target.value)}
+                  className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Max Price'
+                  min='0'
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer */}
@@ -354,6 +466,7 @@ UnifiedMapFilters.propTypes = {
   onFilterChange: PropTypes.func.isRequired,
   selectedEntityType: PropTypes.string.isRequired,
   onClose: PropTypes.func.isRequired,
+  divingCenters: PropTypes.array,
 };
 
 export default UnifiedMapFilters;

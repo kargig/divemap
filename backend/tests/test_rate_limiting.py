@@ -29,7 +29,7 @@ class TestRateLimiting:
         with patch('app.limiter.is_localhost_ip', return_value=False):
             # Make multiple requests to a rate-limited endpoint
             responses = []
-            for i in range(160):  # More than the new rate limit (150/minute)
+            for i in range(260):  # More than the new rate limit (250/minute)
                 response = client.get("/api/v1/dive-sites/")
                 responses.append(response.status_code)
 
@@ -87,7 +87,7 @@ class TestRateLimiting:
         with patch('app.limiter.is_localhost_ip', return_value=False):
             # Make multiple requests to a rate-limited endpoint
             responses = []
-            for i in range(160):  # More than the new rate limit (150/minute)
+            for i in range(260):  # More than the new rate limit (250/minute)
                 response = client.get("/api/v1/dive-sites/", headers=headers)
                 responses.append(response.status_code)
 
@@ -98,10 +98,11 @@ class TestRateLimiting:
         """Test that the decorator can be imported and used"""
         try:
             from app.limiter import skip_rate_limit_for_admin
+            from fastapi import Request
 
             # Test that it can be used as a decorator
             @skip_rate_limit_for_admin("15/minute")
-            def test_function():
+            def test_function(request: Request):
                 return "success"
 
             assert callable(test_function)

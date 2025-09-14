@@ -43,22 +43,22 @@ const MapLayersPanel = ({ isOpen, onClose, selectedLayer, onLayerChange }) => {
   if (!isOpen) return null;
 
   return (
-    <div className='absolute top-16 right-4 z-[9999] bg-white rounded-lg shadow-lg border border-gray-200 w-64'>
+    <div className='absolute top-16 left-2 right-2 sm:left-auto sm:right-4 sm:w-64 z-[9999] bg-white rounded-lg shadow-lg border border-gray-200 max-h-[calc(100vh-8rem)] flex flex-col'>
       {/* Header */}
-      <div className='flex items-center justify-between p-4 border-b border-gray-200'>
-        <h3 className='text-lg font-semibold text-gray-900'>Map Layers</h3>
+      <div className='flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 flex-shrink-0'>
+        <h3 className='text-base sm:text-lg font-semibold text-gray-900'>Map Layers</h3>
         <button onClick={onClose} className='p-1 hover:bg-gray-100 rounded-full transition-colors'>
-          <X className='w-5 h-5 text-gray-500' />
+          <X className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500' />
         </button>
       </div>
 
-      {/* Layer options */}
-      <div className='p-2'>
+      {/* Layer options - Scrollable */}
+      <div className='flex-1 overflow-y-auto p-2'>
         {layers.map(layer => (
           <button
             key={layer.id}
             onClick={() => onLayerChange(layer)}
-            className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors text-left ${
+            className={`w-full flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-lg transition-colors text-left ${
               selectedLayer?.id === layer.id
                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
                 : 'hover:bg-gray-50 text-gray-700'
@@ -72,8 +72,8 @@ const MapLayersPanel = ({ isOpen, onClose, selectedLayer, onLayerChange }) => {
               {layer.icon}
             </div>
             <div className='flex-1 min-w-0'>
-              <div className='font-medium'>{layer.name}</div>
-              <div className='text-sm text-gray-500'>{layer.description}</div>
+              <div className='font-medium text-sm sm:text-base'>{layer.name}</div>
+              <div className='text-xs sm:text-sm text-gray-500'>{layer.description}</div>
             </div>
             {selectedLayer?.id === layer.id && (
               <div className='flex-shrink-0'>
@@ -85,7 +85,7 @@ const MapLayersPanel = ({ isOpen, onClose, selectedLayer, onLayerChange }) => {
       </div>
 
       {/* Footer */}
-      <div className='px-4 py-2 border-t border-gray-200'>
+      <div className='px-3 py-2 sm:px-4 border-t border-gray-200 flex-shrink-0'>
         <p className='text-xs text-gray-500'>
           Switch between different map views to find the best perspective for your needs.
         </p>
