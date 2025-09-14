@@ -26,7 +26,7 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedViewport(viewport);
-    }, 300); // 300ms debounce
+    }, 1000); // 1 second debounce to reduce API calls
 
     return () => clearTimeout(timer);
   }, [viewport]);
@@ -49,20 +49,61 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
 
   // Check if viewport has changed significantly
   const hasViewportChanged = useCallback((newViewport, oldViewport) => {
-    if (!oldViewport || !newViewport?.bounds) return true;
+    // If no old viewport, this is the first load
+    if (!oldViewport) return true;
+
+    // If new viewport has no bounds, don't refetch (wait for bounds to be calculated)
+    if (!newViewport?.bounds) return false;
 
     const oldBounds = oldViewport?.bounds;
     const newBounds = newViewport?.bounds;
 
-    // Check if bounds have changed by more than 10%
-    if (!oldBounds || !newBounds) return true;
+    // If old viewport had no bounds but new one does, this is a significant change
+    if (!oldBounds && newBounds) return true;
 
-    const latDiff =
-      Math.abs(newBounds.north - oldBounds.north) / Math.abs(oldBounds.north - oldBounds.south);
-    const lonDiff =
-      Math.abs(newBounds.east - oldBounds.east) / Math.abs(oldBounds.east - oldBounds.west);
+    // If both have bounds, check if they've changed significantly
+    if (oldBounds && newBounds) {
+      // Safety checks for bounds properties
+      if (
+        typeof oldBounds.north !== 'number' ||
+        typeof oldBounds.south !== 'number' ||
+        typeof oldBounds.east !== 'number' ||
+        typeof oldBounds.west !== 'number' ||
+        typeof newBounds.north !== 'number' ||
+        typeof newBounds.south !== 'number' ||
+        typeof newBounds.east !== 'number' ||
+        typeof newBounds.west !== 'number'
+      ) {
+        return false; // Invalid bounds, don't refetch
+      }
 
-    return latDiff > 0.1 || lonDiff > 0.1 || Math.abs(newViewport.zoom - oldViewport.zoom) > 1;
+      // Calculate the size of the viewport to determine relative changes
+      const oldLatRange = Math.abs(oldBounds.north - oldBounds.south);
+      const oldLonRange = Math.abs(oldBounds.east - oldBounds.west);
+      const newLatRange = Math.abs(newBounds.north - newBounds.south);
+      const newLonRange = Math.abs(newBounds.east - newBounds.west);
+
+      // Calculate relative changes (more sensitive to zoom changes)
+      const latDiff = Math.abs(newBounds.north - oldBounds.north) / oldLatRange;
+      const lonDiff = Math.abs(newBounds.east - oldBounds.east) / oldLonRange;
+      const latRangeDiff = Math.abs(newLatRange - oldLatRange) / oldLatRange;
+      const lonRangeDiff = Math.abs(newLonRange - oldLonRange) / oldLonRange;
+
+      // Only refetch for very significant changes to prevent rate limiting:
+      // - Position change > 100% of viewport size (user moved to completely different area)
+      // - Viewport size change > 50% (major zoom change)
+      // - Zoom level change > 3 levels
+      return (
+        latDiff > 1.0 ||
+        lonDiff > 1.0 ||
+        latRangeDiff > 0.5 ||
+        lonRangeDiff > 0.5 ||
+        Math.abs(newViewport.zoom - oldViewport.zoom) > 3
+      );
+    }
+
+    // If we get here, don't refetch
+    return false;
   }, []);
 
   // Fetch data from existing APIs
@@ -78,7 +119,7 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
 
     try {
       // Fetch dive sites if needed
-      if (entityType === 'dive-sites') {
+      if (entityType === 'dive-sites' || entityType === 'dive-trips') {
         const diveSitesParams = new URLSearchParams();
         diveSitesParams.append('page_size', '1000'); // Max allowed page size
         diveSitesParams.append('page', '1');
@@ -113,7 +154,7 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
       }
 
       // Fetch diving centers if needed
-      if (entityType === 'diving-centers') {
+      if (entityType === 'diving-centers' || entityType === 'dive-trips') {
         const divingCentersParams = new URLSearchParams();
         divingCentersParams.append('page_size', '1000'); // Max allowed page size
         divingCentersParams.append('page', '1');
@@ -181,16 +222,67 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
         results.dives = divesResponse.data || [];
       }
 
+      // Fetch dive trips if needed
+      if (entityType === 'dive-trips') {
+        const tripsParams = new URLSearchParams();
+        tripsParams.append('page_size', '1000'); // Max allowed page size
+        tripsParams.append('page', '1');
+
+        // Add filters
+        Object.entries(filters).forEach(([key, value]) => {
+          if (
+            value &&
+            value !== '' &&
+            [
+              'search',
+              'dive_site_id',
+              'diving_center_id',
+              'min_rating',
+              'max_rating',
+              'trip_status',
+              'difficulty_level',
+              'min_price',
+              'max_price',
+              'start_date',
+              'end_date',
+              'tag_ids',
+            ].includes(key)
+          ) {
+            if (Array.isArray(value)) {
+              value.forEach(v => tripsParams.append(key, v));
+            } else {
+              tripsParams.append(key, value);
+            }
+          }
+        });
+
+        const tripsResponse = await api.get(`/api/v1/newsletters/trips?${tripsParams.toString()}`);
+        results.dive_trips = tripsResponse.data || [];
+      }
+
       return results;
     } catch (error) {
       console.error('Error fetching map data:', error);
-      return results;
+      // Re-throw the error with more context for better error handling
+      throw {
+        ...error,
+        isRateLimited: error?.response?.status === 429,
+        retryAfter: error?.response?.headers?.['retry-after'],
+        message:
+          error?.response?.status === 429
+            ? 'Rate limit exceeded. Please wait before trying again.'
+            : error?.message || 'Failed to load map data',
+      };
     }
   }, []);
 
-  // Main data fetching query
+  // Disable automatic viewport change detection for smooth map movement
+  // Data will only be loaded once on initial load and when filters/entity type changes
+  const shouldRefetch = false; // Always false to prevent automatic refetches
+
+  // Main data fetching query - only load once on initial load and when filters/entity type changes
   const { data, isLoading, error, refetch } = useQuery(
-    ['viewport-data', debouncedViewport, filters, selectedEntityType],
+    ['viewport-data', filters, selectedEntityType], // Removed refetchTrigger - no automatic viewport refetches
     async () => {
       const cacheKey = generateCacheKey(debouncedViewport, filters, selectedEntityType);
 
@@ -227,10 +319,81 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
 
       // Update performance metrics
       const loadTime = Date.now() - loadStartTimeRef.current;
-      const totalPoints =
-        (data?.dive_sites?.length || 0) +
-        (data?.diving_centers?.length || 0) +
-        (data?.dives?.length || 0);
+
+      // Calculate points based on selected entity type and filter for valid coordinates
+      let totalPoints = 0;
+      if (selectedEntityType === 'dive-sites') {
+        totalPoints = (data?.dive_sites || []).filter(
+          site => site.latitude && site.longitude
+        ).length;
+      } else if (selectedEntityType === 'diving-centers') {
+        totalPoints = (data?.diving_centers || []).filter(
+          center => center.latitude && center.longitude
+        ).length;
+      } else if (selectedEntityType === 'dives') {
+        totalPoints = (data?.dives || []).filter(
+          dive => dive.dive_site?.latitude && dive.dive_site?.longitude
+        ).length;
+      } else if (selectedEntityType === 'dive-trips') {
+        // For dive trips, we need to count only those that have valid coordinates
+        totalPoints = (data?.dive_trips || []).filter(trip => {
+          // Check if trip has coordinates from dive sites or diving centers
+          let hasCoordinates = false;
+
+          // Check dive sites coordinates
+          if (trip.dives && trip.dives.length > 0 && data?.dive_sites) {
+            const firstDive = trip.dives[0];
+            if (firstDive.dive_site_id) {
+              const diveSite = data.dive_sites.find(site => site.id === firstDive.dive_site_id);
+              if (diveSite && diveSite.latitude && diveSite.longitude) {
+                hasCoordinates = true;
+              }
+            }
+          }
+
+          // Check diving centers coordinates
+          if (!hasCoordinates && trip.diving_center_id && data?.diving_centers) {
+            const divingCenter = data.diving_centers.find(
+              center => center.id === trip.diving_center_id
+            );
+            if (divingCenter && divingCenter.latitude && divingCenter.longitude) {
+              hasCoordinates = true;
+            }
+          }
+
+          return hasCoordinates;
+        }).length;
+      } else {
+        // Fallback: count all entities if entity type is unknown
+        totalPoints =
+          (data?.dive_sites || []).filter(site => site.latitude && site.longitude).length +
+          (data?.diving_centers || []).filter(center => center.latitude && center.longitude)
+            .length +
+          (data?.dives || []).filter(dive => dive.dive_site?.latitude && dive.dive_site?.longitude)
+            .length +
+          (data?.dive_trips || []).filter(trip => {
+            // Same logic as above for dive trips
+            let hasCoordinates = false;
+            if (trip.dives && trip.dives.length > 0 && data?.dive_sites) {
+              const firstDive = trip.dives[0];
+              if (firstDive.dive_site_id) {
+                const diveSite = data.dive_sites.find(site => site.id === firstDive.dive_site_id);
+                if (diveSite && diveSite.latitude && diveSite.longitude) {
+                  hasCoordinates = true;
+                }
+              }
+            }
+            if (!hasCoordinates && trip.diving_center_id && data?.diving_centers) {
+              const divingCenter = data.diving_centers.find(
+                center => center.id === trip.diving_center_id
+              );
+              if (divingCenter && divingCenter.latitude && divingCenter.longitude) {
+                hasCoordinates = true;
+              }
+            }
+            return hasCoordinates;
+          }).length;
+      }
 
       setPerformanceMetrics(prev => ({
         ...prev,
@@ -242,13 +405,23 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
       return data;
     },
     {
-      enabled: true, // Always enabled to allow initial data loading
-      staleTime: 30000, // 30 seconds
-      cacheTime: 300000, // 5 minutes
+      enabled: !!debouncedViewport, // Always enabled when viewport is available
+      staleTime: 300000, // 5 minutes - data stays fresh longer
+      cacheTime: 600000, // 10 minutes - keep in cache longer
       refetchOnWindowFocus: false,
       refetchOnMount: false,
-      retry: 2,
-      retryDelay: 1000,
+      retry: (failureCount, error) => {
+        // Don't retry on 429 errors (rate limiting)
+        if (error?.response?.status === 429) {
+          return false;
+        }
+        // Retry other errors up to 2 times
+        return failureCount < 2;
+      },
+      retryDelay: attemptIndex => {
+        // Exponential backoff for retries, but don't retry 429 errors
+        return Math.min(1000 * Math.pow(2, attemptIndex), 5000);
+      },
     }
   );
 
@@ -273,14 +446,12 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
     }
   }, [selectedEntityType]);
 
-  // Check if we should refetch data
-  const shouldRefetch = hasViewportChanged(debouncedViewport, lastViewportRef.current);
-
+  // Update lastViewportRef when data is successfully loaded
   useEffect(() => {
-    if (shouldRefetch && !isLoading) {
+    if (data && !isLoading) {
       lastViewportRef.current = debouncedViewport;
     }
-  }, [shouldRefetch, isLoading, debouncedViewport]);
+  }, [data, isLoading]);
 
   // Clear cache function
   const clearCache = useCallback(() => {

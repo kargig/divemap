@@ -47,24 +47,51 @@ main.pt-16 {
   z-index: 40;
 }
 
-/* Ensure Leaflet map doesn't interfere with mobile menu */
+/* Ensure Leaflet map has proper z-index for touch interactions */
 .leaflet-container {
-  z-index: -1 !important;
+  z-index: 1 !important;
+  touch-action: pan-x pan-y !important;
 }
 
 .leaflet-pane {
-  z-index: -1 !important;
+  z-index: 1 !important;
+  touch-action: pan-x pan-y !important;
 }
 
 .leaflet-control-container {
-  z-index: -1 !important;
+  z-index: 50 !important;
 }
 
 .leaflet-top,
 .leaflet-bottom,
 .leaflet-left,
 .leaflet-right {
-  z-index: -1 !important;
+  z-index: 50 !important;
+}
+
+/* Ensure Leaflet zoom controls are above mobile controls */
+.leaflet-control-zoom {
+  z-index: 50 !important;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  z-index: 50 !important;
+}
+
+/* Ensure map tiles are interactive */
+.leaflet-tile-pane {
+  z-index: 1 !important;
+  touch-action: pan-x pan-y !important;
+}
+
+.leaflet-marker-pane {
+  z-index: 2 !important;
+  touch-action: pan-x pan-y !important;
+}
+
+.leaflet-popup-pane {
+  z-index: 3 !important;
 }
 
 /* Ensure mobile menu has highest z-index */
@@ -646,6 +673,38 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
   select,
   textarea {
     font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Ensure map container allows touch interactions */
+  .leaflet-container {
+    touch-action: pan-x pan-y !important;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Ensure map tiles are touchable */
+  .leaflet-tile {
+    touch-action: pan-x pan-y !important;
+  }
+
+  /* Fix for mobile map controls overlay */
+  .mobile-map-controls-overlay {
+    pointer-events: none;
+    z-index: 30;
+  }
+
+  .mobile-map-controls-overlay > * {
+    pointer-events: auto;
+  }
+
+  /* Ensure map is above other content but below mobile controls */
+  .map-container {
+    z-index: 1;
+    position: relative;
   }
 }
 

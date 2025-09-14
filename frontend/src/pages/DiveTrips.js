@@ -32,7 +32,6 @@ import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import RateLimitError from '../components/RateLimitError';
 import StickyFilterBar from '../components/StickyFilterBar';
-import TripMap from '../components/TripMap';
 import { useAuth } from '../contexts/AuthContext';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
@@ -75,22 +74,7 @@ const DiveTrips = () => {
     return params.get('compact_layout') !== 'false'; // Default to true (compact)
   });
 
-  // Add viewport state for map functionality
-  const [viewport, setViewport] = useState({
-    longitude: 0,
-    latitude: 0,
-    zoom: 2,
-  });
-
   const [showFilters, setShowFilters] = useState(false);
-  const [mappedTripsCount, setMappedTripsCount] = useState(0);
-  const [statusToggles, setStatusToggles] = useState({
-    scheduled: true,
-    confirmed: true,
-    completed: true,
-    cancelled: true,
-  });
-  const [clustering, setClustering] = useState(false);
   const [filters, setFilters] = useState({
     start_date: '',
     end_date: '',
@@ -119,7 +103,6 @@ const DiveTrips = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [showMapInfo, setShowMapInfo] = useState(false);
 
   // Helper function to get active filters count
   const getActiveFiltersCount = () => {
@@ -475,11 +458,6 @@ const DiveTrips = () => {
     });
   };
 
-  // Callback to handle mapped trips count from TripMap component
-  const handleMappedTripsCountChange = count => {
-    setMappedTripsCount(count);
-  };
-
   // Helper function to get dive site rating
   const getDiveSiteRating = diveSiteId => {
     if (!diveSiteId || !diveSites) return null;
@@ -709,134 +687,33 @@ const DiveTrips = () => {
       </div>
       {/* Main Content */}
       <div className='max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8'>
-        {/* Map Section - Immediate Visual Impact */}
+        {/* Map Section - Redirect to Unified Map */}
         {viewMode === 'map' && (
-          <>
-            {/* Map View Info - Merged and Foldable */}
-            <div className='mb-4 bg-blue-50 rounded-lg border border-blue-200'>
+          <div className='mb-6 bg-white rounded-lg shadow-md p-8 text-center'>
+            <Map className='h-16 w-16 text-blue-600 mx-auto mb-4' />
+            <h3 className='text-xl font-semibold text-gray-900 mb-2'>Interactive Map View</h3>
+            <p className='text-gray-600 mb-6'>
+              The map view has been moved to our unified interactive map for a better experience.
+            </p>
+            <div className='flex flex-col sm:flex-row gap-3 justify-center'>
               <button
-                onClick={() => setShowMapInfo(prev => !prev)}
-                className='w-full p-3 text-left flex items-center justify-between hover:bg-blue-100 transition-colors'
+                onClick={() => {
+                  navigate('/map?type=dive-trips');
+                }}
+                className='bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2'
               >
-                <div className='flex items-center space-x-2'>
-                  <Map className='h-4 w-4 text-blue-600' />
-                  <span className='text-sm text-gray-700 font-medium'>Map View Information</span>
-                </div>
-                <ChevronDown
-                  className={`h-4 w-4 text-blue-600 transition-transform ${
-                    showMapInfo ? 'rotate-180' : ''
-                  }`}
-                />
+                <Map className='w-5 h-5' />
+                Open Interactive Map
               </button>
-
-              {showMapInfo && (
-                <div className='px-3 pb-3 border-t border-blue-200'>
-                  <div className='pt-3 space-y-3'>
-                    {/* Basic Info */}
-                    <div className='text-sm text-gray-700'>
-                      <strong>Instructions:</strong> Click on trip markers to view details and
-                      navigate to trip pages
-                    </div>
-
-                    {/* Map Summary */}
-                    <div className='text-sm text-gray-700'>
-                      <strong>Status:</strong> Showing {mappedTripsCount} dive site
-                      {mappedTripsCount !== 1 ? 's' : ''}
-                      {mappedTripsCount !== sortedTrips.length && (
-                        <span className='text-gray-500 ml-1'>
-                          (from {sortedTrips.length} trips)
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Additional Info */}
-                    <div className='text-sm text-gray-600'>
-                      Click markers for trip details • Use filters to refine results
-                    </div>
-
-                    {/* Warning for missing coordinates */}
-                    {mappedTripsCount !== sortedTrips.length && (
-                      <div className='text-sm text-orange-600 bg-orange-50 p-2 rounded border border-orange-200'>
-                        ⚠️ {sortedTrips.length - mappedTripsCount} dive site
-                        {sortedTrips.length - mappedTripsCount !== 1 ? 's' : ''} belonging to{' '}
-                        {sortedTrips.length} dive trips not shown (no dive site coordinates)
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              <button
+                onClick={() => changeViewMode('list')}
+                className='bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2'
+              >
+                <List className='w-5 h-5' />
+                Back to List View
+              </button>
             </div>
-
-            <div className='mb-6 bg-white rounded-lg shadow-md'>
-              {/* Status Toggle Controls */}
-              <div className='p-4 bg-white border-b border-gray-200'>
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center space-x-4'>
-                    <span className='text-sm font-medium text-gray-700'>Show Status:</span>
-                    {Object.entries(statusToggles).map(([status, enabled]) => (
-                      <label key={status} className='flex items-center space-x-2'>
-                        <input
-                          type='checkbox'
-                          checked={enabled}
-                          onChange={e => {
-                            setStatusToggles(prev => ({
-                              ...prev,
-                              [status]: e.target.checked,
-                            }));
-                          }}
-                          className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                        />
-                        <span className='text-sm text-gray-600 capitalize'>{status}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <div className='flex items-center space-x-4'>
-                    <label className='flex items-center space-x-2'>
-                      <input
-                        type='checkbox'
-                        checked={clustering}
-                        onChange={e => setClustering(e.target.checked)}
-                        className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                      />
-                      <span className='text-sm text-gray-600'>Clustering</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Main Map */}
-              {isLoading ? (
-                <div className='h-96 sm:h-[500px] lg:h-[600px] bg-gray-100 flex items-center justify-center'>
-                  <div className='text-center'>
-                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4'></div>
-                    <p className='text-gray-600'>Loading map data...</p>
-                  </div>
-                </div>
-              ) : trips && trips.length > 0 ? (
-                <div className='h-96 sm:h-[500px] lg:h-[600px] bg-gray-100 overflow-hidden'>
-                  <TripMap
-                    trips={trips}
-                    onMappedTripsCountChange={handleMappedTripsCountChange}
-                    viewport={viewport}
-                    onViewportChange={setViewport}
-                    statusToggles={statusToggles}
-                    onStatusToggleChange={setStatusToggles}
-                    clustering={clustering}
-                    onClusteringChange={setClustering}
-                    diveSites={diveSites}
-                    divingCenters={divingCenters}
-                  />
-                </div>
-              ) : (
-                <div className='h-96 sm:h-[500px] lg:h-[600px] bg-gray-100 flex items-center justify-center'>
-                  <div className='text-center'>
-                    <Map className='h-16 w-16 text-gray-400 mx-auto mb-4' />
-                    <p className='text-gray-600'>No trips available to display on map</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </>
+          </div>
         )}
 
         {/* Date Filter Confirmation Message */}
