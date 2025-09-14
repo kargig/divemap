@@ -1,18 +1,18 @@
-import { 
-  Filter, 
-  Layers, 
-  Search, 
-  MapPin, 
-  Plus, 
-  Minus, 
-  RotateCcw, 
-  Wrench, 
-  Settings, 
+import {
+  Filter,
+  Layers,
+  Search,
+  MapPin,
+  Plus,
+  Minus,
+  RotateCcw,
+  Wrench,
+  Settings,
   X,
   ZoomIn,
   ZoomOut,
   Share,
-  Maximize
+  Maximize,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
@@ -127,9 +127,7 @@ const MobileMapControls = ({
                   >
                     <Filter className='w-6 h-6' />
                     <span className='text-sm font-medium'>Filters</span>
-                    {hasActiveFilters && (
-                      <span className='text-xs text-orange-600'>Active</span>
-                    )}
+                    {hasActiveFilters && <span className='text-xs text-orange-600'>Active</span>}
                   </button>
 
                   <button

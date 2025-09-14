@@ -532,51 +532,51 @@ const IndependentMapView = () => {
     <div
       className={`${isFullscreen ? 'h-screen' : 'h-[calc(100vh-4rem)]'} bg-gray-50 overflow-hidden flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
     >
-        {/* Header */}
-        <div
-          className={`bg-white border-b border-gray-200 shadow-sm flex-shrink-0 ${isFullscreen ? 'z-[9999]' : ''}`}
-        >
-          <div className='px-2 py-2'>
-            {/* Top row - Title and back button */}
-            <div className='flex items-center justify-between mb-2'>
-              <div className='flex items-center space-x-2'>
-                <button
-                  onClick={() => navigate(-1)}
-                  className='p-1.5 hover:bg-gray-100 rounded-lg transition-colors'
-                >
-                  <Map className='w-4 h-4' />
-                </button>
-                <h1 className='text-lg font-semibold text-gray-900'>Interactive Map</h1>
-              </div>
-              {/* Wrench button - Mobile controls toggle */}
+      {/* Header */}
+      <div
+        className={`bg-white border-b border-gray-200 shadow-sm flex-shrink-0 ${isFullscreen ? 'z-[9999]' : ''}`}
+      >
+        <div className='px-2 py-2'>
+          {/* Top row - Title and back button */}
+          <div className='flex items-center justify-between mb-2'>
+            <div className='flex items-center space-x-2'>
               <button
-                onClick={() => setShowMobileControls(!showMobileControls)}
-                className={`p-2 rounded-lg border transition-colors ${
-                  showMobileControls
-                    ? 'bg-blue-500 text-white border-blue-600'
-                    : 'bg-gray-500 text-white border-gray-600 hover:bg-gray-600'
-                }`}
-                title='Toggle map controls'
+                onClick={() => navigate(-1)}
+                className='p-1.5 hover:bg-gray-100 rounded-lg transition-colors'
               >
-                <Wrench className='w-4 h-4' />
+                <Map className='w-4 h-4' />
               </button>
+              <h1 className='text-lg font-semibold text-gray-900'>Interactive Map</h1>
             </div>
+            {/* Wrench button - Mobile controls toggle */}
+            <button
+              onClick={() => setShowMobileControls(!showMobileControls)}
+              className={`p-2 rounded-lg border transition-colors ${
+                showMobileControls
+                  ? 'bg-blue-500 text-white border-blue-600'
+                  : 'bg-gray-500 text-white border-gray-600 hover:bg-gray-600'
+              }`}
+              title='Toggle map controls'
+            >
+              <Wrench className='w-4 h-4' />
+            </button>
+          </div>
 
-            {/* Bottom row - Description and dropdown */}
-            <div className='flex items-center justify-between'>
-              <p className='text-xs text-gray-600'>Explore dive sites, centers, and dives</p>
-              {/* Entity type selector */}
-              <select
-                value={selectedEntityType}
-                onChange={e => handleEntityTypeChange(e.target.value)}
-                className='px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value='dives'>Dives</option>
-                <option value='dive-sites'>Dive Sites</option>
-                <option value='diving-centers'>Diving Centers</option>
-                <option value='dive-trips'>Dive Trips</option>
-              </select>
-            </div>
+          {/* Bottom row - Description and dropdown */}
+          <div className='flex items-center justify-between'>
+            <p className='text-xs text-gray-600'>Explore dive sites, centers, and dives</p>
+            {/* Entity type selector */}
+            <select
+              value={selectedEntityType}
+              onChange={e => handleEntityTypeChange(e.target.value)}
+              className='px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+            >
+              <option value='dives'>Dives</option>
+              <option value='dive-sites'>Dive Sites</option>
+              <option value='diving-centers'>Diving Centers</option>
+              <option value='dive-trips'>Dive Trips</option>
+            </select>
+          </div>
 
           {/* Collapsible Controls Section */}
           {showMobileControls && (
@@ -786,7 +786,6 @@ const IndependentMapView = () => {
             selectedLayer={selectedLayer}
             onLayerChange={handleLayerChange}
           />
-
         </div>
       </div>
 
