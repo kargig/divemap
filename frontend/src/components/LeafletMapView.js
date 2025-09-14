@@ -126,129 +126,198 @@ const MapMetadata = ({ onMetadataChange }) => {
   return null; // This component doesn't render anything
 };
 
-const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange }) => {
+// Component to capture map instance and pass it to parent
+const MapInstanceCapture = ({ onMapInstance }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (map && onMapInstance) {
+      onMapInstance(map);
+    }
+  }, [map, onMapInstance]);
+
+  return null;
+};
+
+const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, resetTrigger }) => {
   const map = useMap();
   const clusterRef = useRef();
   const hasAutoFittedRef = useRef(false);
   const userHasZoomedRef = useRef(false);
   const [mapMetadata, setMapMetadata] = useState(null);
+  const onViewportChangeRef = useRef(onViewportChange);
+
+  // Update ref when function changes
+  useEffect(() => {
+    onViewportChangeRef.current = onViewportChange;
+  }, [onViewportChange]);
 
   // Create cluster group
   useEffect(() => {
     if (!map) return;
 
-    // Clear existing cluster group
-    if (clusterRef.current) {
-      map.removeLayer(clusterRef.current);
-    }
-
-    // Create new cluster group
-    const clusterGroup = L.markerClusterGroup({
-      chunkedLoading: true,
-      maxClusterRadius: 50,
-      spiderfyOnMaxZoom: true,
-      showCoverageOnHover: false,
-      zoomToBoundsOnClick: true,
-      iconCreateFunction: cluster => {
-        const childCount = cluster.getChildCount();
-        let c = ' marker-cluster-';
-        if (childCount < 10) {
-          c += 'small';
-        } else if (childCount < 100) {
-          c += 'medium';
-        } else {
-          c += 'large';
+    // Add a small delay to prevent race conditions when switching entity types
+    const timeoutId = setTimeout(() => {
+      // Clear existing cluster group with proper cleanup
+      if (clusterRef.current) {
+        try {
+          // Clear all markers from the cluster group first
+          clusterRef.current.clearLayers();
+          // Remove the cluster group from the map
+          map.removeLayer(clusterRef.current);
+          // Clear the reference
+          clusterRef.current = null;
+        } catch (error) {
+          console.warn('Error clearing cluster group:', error);
         }
+      }
 
-        return L.divIcon({
-          html: `<div><span>${childCount}</span></div>`,
-          className: `marker-cluster${c}`,
-          iconSize: new L.Point(40, 40),
-        });
-      },
-    });
+      // Only create markers if we have data
+      if (markers.length === 0) {
+        return;
+      }
 
-    // Add markers to cluster group
-    markers.forEach(marker => {
-      const leafletMarker = L.marker(marker.position, { icon: marker.icon });
+      // Create new cluster group
+      const clusterGroup = L.markerClusterGroup({
+        chunkedLoading: true,
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+        iconCreateFunction: cluster => {
+          const childCount = cluster.getChildCount();
+          let c = ' marker-cluster-';
+          if (childCount < 10) {
+            c += 'small';
+          } else if (childCount < 100) {
+            c += 'medium';
+          } else {
+            c += 'large';
+          }
 
-      // Add popup with clickable title
-      const popupContent = `
-        <div class="p-2">
-          <h3 class="font-semibold text-lg mb-2">
-            <a href="/${
-              marker.entityType === 'dive_site'
-                ? 'dive-sites'
-                : marker.entityType === 'diving_center'
-                  ? 'diving-centers'
-                  : 'dives'
-            }/${marker.data.id}" 
-               class="text-blue-600 hover:text-blue-800 hover:underline">
-              ${marker.entityType === 'dive_site' ? marker.data.name : ''}
-              ${marker.entityType === 'diving_center' ? marker.data.name : ''}
-              ${marker.entityType === 'dive' ? `Dive #${marker.data.id}` : ''}
-            </a>
-          </h3>
-          <p class="text-sm text-gray-600">
-            ${marker.entityType === 'dive_site' ? marker.data.description : ''}
-            ${marker.entityType === 'diving_center' ? marker.data.description : ''}
-            ${marker.entityType === 'dive' ? `Dive at ${marker.data.dive_site?.name || 'Unknown Site'}` : ''}
-          </p>
-          <p class="text-xs text-gray-500 mt-1">
-            ${marker.position[0].toFixed(4)}, ${marker.position[1].toFixed(4)}
-          </p>
-        </div>
-      `;
+          return L.divIcon({
+            html: `<div><span>${childCount}</span></div>`,
+            className: `marker-cluster${c}`,
+            iconSize: new L.Point(40, 40),
+          });
+        },
+      });
 
-      leafletMarker.bindPopup(popupContent);
-      clusterGroup.addLayer(leafletMarker);
-    });
+      // Add markers to cluster group with error handling
+      markers.forEach(marker => {
+        try {
+          // Validate marker position
+          if (!marker.position || !Array.isArray(marker.position) || marker.position.length !== 2) {
+            console.warn('Invalid marker position:', marker);
+            return;
+          }
 
-    // Add cluster group to map
-    map.addLayer(clusterGroup);
-    clusterRef.current = clusterGroup;
+          const [lat, lng] = marker.position;
+          if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+            console.warn('Invalid marker coordinates:', marker);
+            return;
+          }
+
+          const leafletMarker = L.marker([lat, lng], { icon: marker.icon });
+
+          // Add popup with clickable title
+          const popupContent = `
+          <div class="p-2">
+            <h3 class="font-semibold text-lg mb-2">
+              <a href="/${
+                marker.entityType === 'dive_site'
+                  ? 'dive-sites'
+                  : marker.entityType === 'diving_center'
+                    ? 'diving-centers'
+                    : marker.entityType === 'dive'
+                      ? 'dives'
+                      : 'dive-trips'
+              }/${marker.data.id}" 
+                 class="text-blue-600 hover:text-blue-800 hover:underline">
+                ${marker.entityType === 'dive_site' ? marker.data.name : ''}
+                ${marker.entityType === 'diving_center' ? marker.data.name : ''}
+                ${marker.entityType === 'dive' ? `Dive #${marker.data.id}` : ''}
+                ${marker.entityType === 'dive_trip' ? `Trip #${marker.data.id}` : ''}
+              </a>
+            </h3>
+            <p class="text-sm text-gray-600">
+              ${marker.entityType === 'dive_site' ? marker.data.description : ''}
+              ${marker.entityType === 'diving_center' ? marker.data.description : ''}
+              ${marker.entityType === 'dive' ? `Dive at ${marker.data.dive_site?.name || 'Unknown Site'}` : ''}
+              ${marker.entityType === 'dive_trip' ? `Trip on ${new Date(marker.data.trip_date).toLocaleDateString()} - ${marker.data.diving_center_name || 'Unknown Center'}` : ''}
+              ${marker.entityType === 'dive_trip' && marker.data.trip_description ? `<br/><span class="text-xs text-gray-500">${marker.data.trip_description.substring(0, 100)}${marker.data.trip_description.length > 100 ? '...' : ''}</span>` : ''}
+            </p>
+            <p class="text-xs text-gray-500 mt-1">
+              ${lat.toFixed(4)}, ${lng.toFixed(4)}
+            </p>
+          </div>
+        `;
+
+          leafletMarker.bindPopup(popupContent);
+          clusterGroup.addLayer(leafletMarker);
+        } catch (error) {
+          console.warn('Error creating marker:', error, marker);
+        }
+      });
+
+      // Add cluster group to map
+      try {
+        map.addLayer(clusterGroup);
+        clusterRef.current = clusterGroup;
+      } catch (error) {
+        console.warn('Error adding cluster group to map:', error);
+      }
+    }, 50); // Small delay to prevent race conditions
 
     // Handle viewport changes - completely disabled to prevent auto-zoom issue
     const handleMoveEnd = () => {
       // Mark that user has manually interacted with the map
       userHasZoomedRef.current = true;
 
-      // Completely disabled to prevent auto-zoom issue
-      // The viewport change callback was causing the parent component to re-fetch data
-      // which was triggering the auto-fit again
-      // if (onViewportChange) {
-      //   const center = map.getCenter();
-      //   const zoom = map.getZoom();
-      //   const bounds = map.getBounds();
-      //
-      //   onViewportChange({
-      //     latitude: center.lat,
-      //     longitude: center.lng,
-      //     zoom: zoom,
-      //     bounds: {
-      //       north: bounds.getNorth(),
-      //       south: bounds.getSouth(),
-      //       east: bounds.getEast(),
-      //       west: bounds.getWest()
-      //     }
-      //   });
-      // }
+      // Update viewport state for share functionality
+      // This doesn't trigger data re-fetching, just updates the viewport state
+      if (onViewportChangeRef.current) {
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        const bounds = map.getBounds();
+
+        onViewportChangeRef.current({
+          latitude: center.lat,
+          longitude: center.lng,
+          zoom: zoom,
+          bounds: {
+            north: bounds.getNorth(),
+            south: bounds.getSouth(),
+            east: bounds.getEast(),
+            west: bounds.getWest(),
+          },
+        });
+      }
     };
 
     map.on('moveend', handleMoveEnd);
 
     return () => {
+      clearTimeout(timeoutId);
       if (clusterRef.current) {
-        map.removeLayer(clusterRef.current);
+        try {
+          clusterRef.current.clearLayers();
+          map.removeLayer(clusterRef.current);
+          clusterRef.current = null;
+        } catch (error) {
+          console.warn('Error cleaning up cluster group:', error);
+        }
       }
       map.off('moveend', handleMoveEnd);
     };
-  }, [markers, map, onViewportChange]);
+  }, [markers, map]);
 
   // Separate effect for auto-fit to prevent re-triggering on every marker change
   useEffect(() => {
-    // Don't auto-fit if we have a geolocation viewport (user's location)
-    if (viewport && viewport.latitude && viewport.longitude) {
+    // Only skip auto-fit if we have a high-zoom geolocation viewport (user's actual location)
+    // Low zoom levels (like 2) should still trigger auto-fit
+    if (viewport && viewport.latitude && viewport.longitude && viewport.zoom >= 10) {
+      // This looks like a geolocation viewport (high zoom level), skip auto-fit
       hasAutoFittedRef.current = true;
       return;
     }
@@ -261,18 +330,86 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange })
       setTimeout(() => {
         if (clusterRef.current && !hasAutoFittedRef.current && !userHasZoomedRef.current) {
           const group = new L.featureGroup(clusterRef.current.getLayers());
-          map.fitBounds(group.getBounds().pad(0.1));
-          hasAutoFittedRef.current = true;
+          const bounds = group.getBounds();
+          if (bounds && bounds.isValid && bounds.isValid()) {
+            // Calculate center and appropriate zoom level
+            const center = bounds.getCenter();
+            const latRange = bounds.getNorth() - bounds.getSouth();
+            const lngRange = bounds.getEast() - bounds.getWest();
+            const maxRange = Math.max(latRange, lngRange);
+
+            // Calculate zoom level based on the range
+            let zoom = 10; // Default zoom
+            if (maxRange > 180) zoom = 2;
+            else if (maxRange > 90) zoom = 3;
+            else if (maxRange > 45) zoom = 4;
+            else if (maxRange > 20) zoom = 5;
+            else if (maxRange > 10) zoom = 6;
+            else if (maxRange > 5) zoom = 7;
+            else if (maxRange > 2) zoom = 8;
+            else if (maxRange > 1) zoom = 9;
+            else if (maxRange > 0.5) zoom = 10;
+            else if (maxRange > 0.2) zoom = 11;
+            else if (maxRange > 0.1) zoom = 12;
+            else zoom = 13;
+
+            // Set the map view directly
+            map.setView(center, zoom);
+            hasAutoFittedRef.current = true;
+          }
         }
-      }, 100);
+      }, 200); // Increased timeout to ensure everything is ready
     }
-  }, [map, selectedEntityType, viewport]);
+  }, [map, selectedEntityType, viewport, markers.length]);
 
   // Reset auto-fit flag when entity type changes
   useEffect(() => {
     hasAutoFittedRef.current = false;
     userHasZoomedRef.current = false; // Reset user zoom flag when switching entity types
   }, [selectedEntityType]);
+
+  // Handle reset trigger - force auto-fit to bounds
+  useEffect(() => {
+    if (resetTrigger && map && clusterRef.current && markers.length > 0) {
+      // Reset the flags to allow auto-fit
+      hasAutoFittedRef.current = false;
+      userHasZoomedRef.current = false;
+
+      // Force auto-fit to bounds
+      setTimeout(() => {
+        if (clusterRef.current) {
+          const group = new L.featureGroup(clusterRef.current.getLayers());
+          const bounds = group.getBounds();
+          if (bounds && bounds.isValid && bounds.isValid()) {
+            // Calculate center and appropriate zoom level
+            const center = bounds.getCenter();
+            const latRange = bounds.getNorth() - bounds.getSouth();
+            const lngRange = bounds.getEast() - bounds.getWest();
+            const maxRange = Math.max(latRange, lngRange);
+
+            // Calculate zoom level based on the range
+            let zoom = 10; // Default zoom
+            if (maxRange > 180) zoom = 2;
+            else if (maxRange > 90) zoom = 3;
+            else if (maxRange > 45) zoom = 4;
+            else if (maxRange > 20) zoom = 5;
+            else if (maxRange > 10) zoom = 6;
+            else if (maxRange > 5) zoom = 7;
+            else if (maxRange > 2) zoom = 8;
+            else if (maxRange > 1) zoom = 9;
+            else if (maxRange > 0.5) zoom = 10;
+            else if (maxRange > 0.2) zoom = 11;
+            else if (maxRange > 0.1) zoom = 12;
+            else zoom = 13;
+
+            // Set the map view directly
+            map.setView(center, zoom);
+            hasAutoFittedRef.current = true;
+          }
+        }
+      }, 100);
+    }
+  }, [resetTrigger, map, markers.length]);
 
   return null;
 };
@@ -290,6 +427,8 @@ const LeafletMapView = ({
   error,
   selectedLayer,
   onLayerChange,
+  onMapInstance,
+  resetTrigger,
 }) => {
   const [mapMetadata, setMapMetadata] = useState(null);
   // Create custom icons for different entity types
@@ -338,6 +477,23 @@ const LeafletMapView = ({
           </svg>
         `;
         break;
+      case 'dive_trip': {
+        // Trip icon with status-based color
+        const baseColor = '#3b82f6'; // Default blue for scheduled
+        svg = `
+          <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Background circle -->
+            <circle cx="12" cy="12" r="10" fill="${baseColor}" stroke="white" stroke-width="2"/>
+            <!-- Diver silhouette -->
+            <circle cx="12" cy="9" r="2" fill="white"/>
+            <path d="M8 15 Q12 19 16 15" stroke="white" stroke-width="2" fill="none"/>
+            <!-- Flag -->
+            <rect x="15" y="7" width="4" height="3" fill="white" rx="1"/>
+            <line x1="15" y1="7" x2="15" y2="10" stroke="white" stroke-width="1"/>
+          </svg>
+        `;
+        break;
+      }
       default:
         // Default gray circle
         svg = `
@@ -409,6 +565,49 @@ const LeafletMapView = ({
       });
     }
 
+    // Process dive trips
+    if (data.dive_trips && selectedEntityType === 'dive-trips') {
+      data.dive_trips.forEach(trip => {
+        // For trips, we need to find coordinates from associated dive sites or diving centers
+        let latitude, longitude;
+
+        // Priority 1: Look for dive site coordinates from trip's dives
+        if (trip.dives && trip.dives.length > 0) {
+          const firstDive = trip.dives[0];
+          if (firstDive.dive_site_id && data.dive_sites) {
+            // Find the dive site by ID in the loaded dive sites data
+            const diveSite = data.dive_sites.find(site => site.id === firstDive.dive_site_id);
+            if (diveSite && diveSite.latitude && diveSite.longitude) {
+              latitude = diveSite.latitude;
+              longitude = diveSite.longitude;
+            }
+          }
+        }
+
+        // Priority 2: Look for diving center coordinates
+        if ((!latitude || !longitude) && trip.diving_center_id && data.diving_centers) {
+          // Find the diving center by ID in the loaded diving centers data
+          const divingCenter = data.diving_centers.find(
+            center => center.id === trip.diving_center_id
+          );
+          if (divingCenter && divingCenter.latitude && divingCenter.longitude) {
+            latitude = divingCenter.latitude;
+            longitude = divingCenter.longitude;
+          }
+        }
+
+        if (latitude && longitude) {
+          allMarkers.push({
+            id: `trip-${trip.id}`,
+            position: [latitude, longitude],
+            entityType: 'dive_trip',
+            data: trip,
+            icon: createEntityIcon('dive_trip'),
+          });
+        }
+      });
+    }
+
     return allMarkers;
   }, [data, selectedEntityType, createEntityIcon]);
 
@@ -467,11 +666,13 @@ const LeafletMapView = ({
         />
 
         <MapMetadata onMetadataChange={setMapMetadata} />
+        <MapInstanceCapture onMapInstance={onMapInstance} />
         <MapContent
           markers={markers}
           selectedEntityType={selectedEntityType}
           viewport={viewport}
           onViewportChange={onViewportChange}
+          resetTrigger={resetTrigger}
         />
       </MapContainer>
 

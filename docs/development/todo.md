@@ -463,43 +463,6 @@
 
 **Note:** OpenLayers must be preserved until Task #25 (Migrate TripMap to Leaflet) is completed. After migration, all OpenLayers dependencies can be removed.
 
-#### 25. Migrate TripMap to Leaflet Implementation
-
-**Status:** Planning
-
-**Priority:** High
-
-**Description:** Migrate TripMap.js from OpenLayers to Leaflet to enable complete removal of OpenLayers dependencies and unify all map implementations under Leaflet.
-
-**Tasks:**
-
-- [ ] Analyze TripMap.js OpenLayers implementation and identify required features
-- [ ] Create Leaflet-based TripMap component with equivalent functionality:
-  - Trip status-based icon colors (scheduled/confirmed/cancelled/completed)
-  - Trip-specific filtering (price, status, diving center, dive sites)
-  - Trip popup with detailed trip information
-  - Status toggle filtering logic
-  - Trip-specific coordinate grouping and clustering
-- [ ] Implement Leaflet clustering for trip markers
-- [ ] Create custom trip status icons for Leaflet markers
-- [ ] Implement trip popup content with all existing details
-- [ ] Add trip-specific filtering capabilities
-- [ ] Test all trip map functionality with Leaflet implementation
-- [ ] Update DiveTrips.js to use new Leaflet TripMap component
-- [ ] Remove old OpenLayers TripMap.js component
-- [ ] Remove all OpenLayers dependencies from package.json
-- [ ] Verify no OpenLayers imports remain in codebase
-- [ ] Test application functionality after complete OpenLayers removal
-
-**Files:** `frontend/src/components/TripMap.js`, `frontend/src/pages/DiveTrips.js`, `frontend/package.json`
-
-**Benefits:**
-
-- Complete removal of OpenLayers dependencies
-- Unified map implementation across all components
-- Reduced bundle size
-- Consistent map behavior and styling
-- Easier maintenance with single map library
 
 #### 26. Floating Search Filters Guide
 

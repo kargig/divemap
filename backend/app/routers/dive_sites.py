@@ -718,7 +718,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
         )
 
 @router.get("/", response_model=List[DiveSiteResponse])
-@skip_rate_limit_for_admin("150/minute")
+@skip_rate_limit_for_admin("250/minute")
 async def get_dive_sites(
     request: Request,
     search: Optional[str] = Query(None, max_length=200, description="Unified search across name, country, region, and description"),
@@ -983,7 +983,7 @@ async def get_dive_sites(
     return response
 
 @router.get("/count")
-@skip_rate_limit_for_admin("150/minute")
+@skip_rate_limit_for_admin("250/minute")
 async def get_dive_sites_count(
     request: Request,
     name: Optional[str] = Query(None, max_length=100),
@@ -1127,7 +1127,7 @@ async def get_dive_site(
     return response_data
 
 @router.get("/{dive_site_id}/media", response_model=List[SiteMediaResponse])
-@skip_rate_limit_for_admin("150/minute")
+@skip_rate_limit_for_admin("250/minute")
 async def get_dive_site_media(
     request: Request,
     dive_site_id: int,
@@ -1214,7 +1214,7 @@ async def delete_dive_site_media(
     return {"message": "Media deleted successfully"}
 
 @router.get("/{dive_site_id}/diving-centers")
-@skip_rate_limit_for_admin("150/minute")
+@skip_rate_limit_for_admin("250/minute")
 async def get_dive_site_diving_centers(
     request: Request,
     dive_site_id: int,
@@ -1506,7 +1506,7 @@ async def rate_dive_site(
         return db_rating
 
 @router.get("/{dive_site_id}/comments", response_model=List[SiteCommentResponse])
-@skip_rate_limit_for_admin("150/minute")
+@skip_rate_limit_for_admin("250/minute")
 async def get_dive_site_comments(
     request: Request,
     dive_site_id: int,
@@ -1611,7 +1611,7 @@ async def create_dive_site_comment(
     }
 
 @router.get("/{dive_site_id}/nearby", response_model=List[DiveSiteResponse])
-@skip_rate_limit_for_admin("150/minute")
+@skip_rate_limit_for_admin("250/minute")
 async def get_nearby_dive_sites(
     request: Request,
     dive_site_id: int,
@@ -1724,7 +1724,7 @@ async def get_nearby_dive_sites(
     return nearby_sites
 
 @router.get("/{dive_site_id}/dives", response_model=List[DiveResponse])
-@skip_rate_limit_for_admin("150/minute")
+@skip_rate_limit_for_admin("250/minute")
 async def get_dive_site_dives(
     request: Request,
     dive_site_id: int,

@@ -2,7 +2,14 @@ import { Filter, Layers, Search, MapPin, Plus, Minus, RotateCcw } from 'lucide-r
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 
-const MobileMapControls = ({ onToggleFilters, onToggleLayers, showFilters, showLayers }) => {
+const MobileMapControls = ({
+  onToggleFilters,
+  onToggleLayers,
+  onResetZoom,
+  showFilters,
+  showLayers,
+  hasActiveFilters = false,
+}) => {
   const [isVisible, setIsVisible] = useState(true);
   const [lastTouchTime, setLastTouchTime] = useState(0);
 
@@ -32,7 +39,9 @@ const MobileMapControls = ({ onToggleFilters, onToggleLayers, showFilters, showL
   };
 
   const handleResetView = () => {
-    // This would be handled by the parent map component
+    if (onResetZoom) {
+      onResetZoom();
+    }
   };
 
   return (
@@ -56,8 +65,13 @@ const MobileMapControls = ({ onToggleFilters, onToggleLayers, showFilters, showL
             <button
               onClick={onToggleFilters}
               className={`p-3 rounded-full shadow-lg transition-all duration-200 ${
-                showFilters ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'
+                showFilters
+                  ? 'bg-blue-600 text-white'
+                  : hasActiveFilters
+                    ? 'bg-orange-500 text-white hover:bg-orange-600'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
               }`}
+              title={hasActiveFilters ? 'Filters are active' : 'Toggle filters'}
             >
               <Filter className='w-5 h-5' />
             </button>
@@ -144,8 +158,10 @@ const MobileMapControls = ({ onToggleFilters, onToggleLayers, showFilters, showL
 MobileMapControls.propTypes = {
   onToggleFilters: PropTypes.func.isRequired,
   onToggleLayers: PropTypes.func.isRequired,
+  onResetZoom: PropTypes.func,
   showFilters: PropTypes.bool.isRequired,
   showLayers: PropTypes.bool.isRequired,
+  hasActiveFilters: PropTypes.bool,
 };
 
 export default MobileMapControls;
