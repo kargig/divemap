@@ -87,8 +87,13 @@ const IndependentMapView = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showLayers, setShowLayers] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showMobileControls, setShowMobileControls] = useState(false);
+  const [showMobileControls, setShowMobileControls] = useState(!isMobile);
   const [selectedEntityType, setSelectedEntityType] = useState('dive-sites'); // 'dive-sites', 'diving-centers', 'dives', 'dive-trips'
+
+  // Update mobile controls visibility based on screen size
+  useEffect(() => {
+    setShowMobileControls(!isMobile);
+  }, [isMobile]);
   const [popupInfo, setPopupInfo] = useState(null);
   const [popupPosition, setPopupPosition] = useState(null);
 
