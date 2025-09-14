@@ -658,9 +658,9 @@ const LeafletMapView = ({
         center={mapCenter}
         zoom={viewport?.zoom || (markers.length > 0 ? 10 : 8)}
         className='w-full h-full'
-        style={{ 
+        style={{
           zIndex: 1,
-          touchAction: 'pan-x pan-y'
+          touchAction: 'pan-x pan-y',
         }}
       >
         <TileLayer
