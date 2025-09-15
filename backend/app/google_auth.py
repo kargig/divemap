@@ -2,7 +2,7 @@ import os
 from typing import Optional, Dict, Any
 from google.auth.transport import requests
 from google.oauth2 import id_token
-from google.auth.exceptions import GoogleAuthError
+from google.auth.exceptions import GoogleAuthError as GoogleAuthLibraryError
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models import User
@@ -12,10 +12,21 @@ from app.auth import ACCESS_TOKEN_EXPIRE_MINUTES
 import re
 from sqlalchemy.exc import IntegrityError
 import time
+import logging
 
 # Google OAuth configuration
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+# Validate Google OAuth configuration (only when actually using Google OAuth)
+def validate_google_config():
+    """Validate that Google OAuth configuration is available"""
+    if not GOOGLE_CLIENT_ID:
+        logger.error("GOOGLE_CLIENT_ID environment variable is not set")
+        raise ValueError("GOOGLE_CLIENT_ID environment variable is required for Google OAuth")
 
 class GoogleAuthError(Exception):
     """Custom exception for Google authentication errors"""
@@ -35,6 +46,18 @@ def verify_google_token(token: str) -> Dict[str, Any]:
         GoogleAuthError: If token verification fails
     """
     try:
+        # Validate Google OAuth configuration
+        validate_google_config()
+        
+        # Basic token format validation
+        if not token or not isinstance(token, str):
+            raise GoogleAuthError("Token is required and must be a string")
+        
+        # Check if token has the basic JWT structure (3 parts separated by dots)
+        token_parts = token.split('.')
+        if len(token_parts) != 3:
+            raise GoogleAuthError("Invalid token format: JWT token must have 3 parts separated by dots")
+        
         # Verify the token
         idinfo = id_token.verify_oauth2_token(
             token,
@@ -51,9 +74,11 @@ def verify_google_token(token: str) -> Dict[str, Any]:
 
         return idinfo
 
-    except GoogleAuthError as e:
+    except GoogleAuthLibraryError as e:
+        logger.error(f"Google library error during token verification: {str(e)}")
         raise GoogleAuthError(f"Invalid Google token: {str(e)}")
     except Exception as e:
+        logger.error(f"Unexpected error during token verification: {str(e)}")
         raise GoogleAuthError(f"Token verification failed: {str(e)}")
 
 def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> User:
@@ -100,10 +125,15 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
     full_name = google_user_info.get('name', '')
     
     # Create new user
+    # Generate a random password hash for Google users (they won't use password login)
+    random_password = f"google_oauth_{google_id}_{int(time.time())}"
+    password_hash = get_password_hash(random_password)
+    
     new_user = User(
         username=username,
         name=full_name,  # Store the full name from Google
         email=email,
+        password_hash=password_hash,  # Required field - random password for Google users
         google_id=google_id,
         avatar_url=picture_url,
         enabled=True,  # Google users are enabled by default
