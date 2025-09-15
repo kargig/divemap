@@ -21,10 +21,12 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Validate Google OAuth configuration
-if not GOOGLE_CLIENT_ID:
-    logger.error("GOOGLE_CLIENT_ID environment variable is not set")
-    raise ValueError("GOOGLE_CLIENT_ID environment variable is required for Google OAuth")
+# Validate Google OAuth configuration (only when actually using Google OAuth)
+def validate_google_config():
+    """Validate that Google OAuth configuration is available"""
+    if not GOOGLE_CLIENT_ID:
+        logger.error("GOOGLE_CLIENT_ID environment variable is not set")
+        raise ValueError("GOOGLE_CLIENT_ID environment variable is required for Google OAuth")
 
 class GoogleAuthError(Exception):
     """Custom exception for Google authentication errors"""
@@ -44,6 +46,9 @@ def verify_google_token(token: str) -> Dict[str, Any]:
         GoogleAuthError: If token verification fails
     """
     try:
+        # Validate Google OAuth configuration
+        validate_google_config()
+        
         # Basic token format validation
         if not token or not isinstance(token, str):
             raise GoogleAuthError("Token is required and must be a string")
