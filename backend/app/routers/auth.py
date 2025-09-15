@@ -226,10 +226,23 @@ async def google_login(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Google authentication failed"
-        )
+        # Log the actual error for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Google login error: {str(e)}", exc_info=True)
+        
+        # Return 400 for client errors (invalid token format, etc.)
+        # Return 500 for server errors (database issues, etc.)
+        if "Invalid token format" in str(e) or "Token is required" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid token: {str(e)}"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Google authentication failed"
+            )
 
 @router.post("/refresh", response_model=Token)
 async def refresh_token(
