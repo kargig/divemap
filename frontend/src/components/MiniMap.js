@@ -1,82 +1,30 @@
+import L, { Icon } from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { Maximize2, X } from 'lucide-react';
-import { Feature } from 'ol';
-import { Point } from 'ol/geom';
-import TileLayer from 'ol/layer/Tile';
-import VectorLayer from 'ol/layer/Vector';
-import Map from 'ol/Map';
-import { fromLonLat } from 'ol/proj';
-import OSM from 'ol/source/OSM';
-import VectorSource from 'ol/source/Vector';
-import { Style, Circle as CircleStyle, Fill, Stroke } from 'ol/style';
-import View from 'ol/View';
 import PropTypes from 'prop-types';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+
+// Fix default marker icons (so they appear without bundler asset config)
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+const Recenter = ({ lat, lng, zoom }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (!map) return;
+    map.setView([lat, lng], zoom, { animate: false });
+  }, [map, lat, lng, zoom]);
+  return null;
+};
 
 const MiniMap = ({ latitude, longitude, name, onMaximize, isMaximized = false, onClose }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const mapRef = useRef();
-  const mapInstance = useRef();
-
-  const position = [longitude, latitude];
-
-  useEffect(() => {
-    if (!mapRef.current) return;
-
-    try {
-      // Create map
-      const map = new Map({
-        target: mapRef.current,
-        layers: [
-          new TileLayer({
-            source: new OSM(),
-          }),
-        ],
-        view: new View({
-          center: fromLonLat(position),
-          zoom: isExpanded ? 12 : 10,
-        }),
-      });
-
-      mapInstance.current = map;
-
-      // Create and add marker
-      const feature = new Feature({
-        geometry: new Point(fromLonLat(position)),
-      });
-
-      const vectorSource = new VectorSource({
-        features: [feature],
-      });
-
-      const vectorLayer = new VectorLayer({
-        source: vectorSource,
-        style: new Style({
-          image: new CircleStyle({
-            radius: 8,
-            fill: new Fill({
-              color: '#2563ea',
-            }),
-            stroke: new Stroke({
-              color: 'white',
-              width: 2,
-            }),
-          }),
-        }),
-      });
-
-      map.addLayer(vectorLayer);
-    } catch (error) {
-      // Error creating map
-    }
-
-    // Cleanup
-    return () => {
-      if (mapInstance.current) {
-        mapInstance.current.setTarget(undefined);
-      }
-    };
-  }, [longitude, latitude, isExpanded]);
 
   const handleMaximize = () => {
     if (onMaximize) {
@@ -107,7 +55,21 @@ const MiniMap = ({ latitude, longitude, name, onMaximize, isMaximized = false, o
             </button>
           </div>
           <div className='h-full'>
-            <div ref={mapRef} className='w-full h-full rounded-b-lg' />
+            <div className='w-full h-full rounded-b-lg'>
+              <MapContainer
+                center={[latitude, longitude]}
+                zoom={12}
+                className='w-full h-full rounded-b-lg'
+                style={{ zIndex: 1 }}
+              >
+                <TileLayer
+                  attribution=''
+                  url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                />
+                <Recenter lat={latitude} lng={longitude} zoom={12} />
+                <Marker position={[latitude, longitude]} />
+              </MapContainer>
+            </div>
           </div>
         </div>
       </div>,
@@ -116,7 +78,11 @@ const MiniMap = ({ latitude, longitude, name, onMaximize, isMaximized = false, o
   }
 
   return (
-    <div className={`relative ${isExpanded ? 'h-64' : 'h-32'} transition-all duration-300`}>
+    <div
+      className={`relative ${
+        isExpanded ? 'h-64 md:h-96' : 'h-32 md:h-48'
+      } transition-all duration-300`}
+    >
       <div className='absolute top-2 right-2 z-10'>
         <button
           onClick={handleMaximize}
@@ -126,7 +92,18 @@ const MiniMap = ({ latitude, longitude, name, onMaximize, isMaximized = false, o
           <Maximize2 className='w-4 h-4' />
         </button>
       </div>
-      <div ref={mapRef} className='w-full h-full rounded-lg' />
+      <div className='w-full h-full rounded-lg'>
+        <MapContainer
+          center={[latitude, longitude]}
+          zoom={isExpanded ? 12 : 10}
+          className='w-full h-full rounded-lg'
+          style={{ zIndex: 1 }}
+        >
+          <TileLayer attribution='' url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' />
+          <Recenter lat={latitude} lng={longitude} zoom={isExpanded ? 12 : 10} />
+          <Marker position={[latitude, longitude]} />
+        </MapContainer>
+      </div>
     </div>
   );
 };
