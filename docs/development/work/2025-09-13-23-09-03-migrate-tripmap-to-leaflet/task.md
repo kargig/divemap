@@ -378,3 +378,33 @@ This represents a significant improvement in user experience and system performa
 - **Error Handling**: Comprehensive error handling for all rate limiting scenarios
 
 **Result**: Rate limiting system now works correctly with proper request counting, accurate rate limits, and clean logging. All 250 requests per minute are allowed before rate limiting kicks in, exactly as configured.
+
+## OpenLayers → Leaflet Migration Status
+
+The goal is to completely remove OpenLayers from the frontend and standardize on Leaflet/react-leaflet.
+
+### Completed (migrated to Leaflet)
+
+- [x] `frontend/src/components/MiniMap.js` → Leaflet with `MapContainer`, `TileLayer`, `Marker`, modal maximize, responsive height tweaks
+- [x] `frontend/src/pages/DiveSiteMap.js` → Leaflet full-screen map with popups, default zoom 16, defensive coordinate handling, close button overlay, distinct main-site marker styling
+
+### Pending (still using OpenLayers)
+
+- [ ] `frontend/src/components/DiveSitesMap.js` (OL)
+- [ ] `frontend/src/components/DivingCentersMap.js` (OL)
+- [ ] `frontend/src/components/DivesMap.js` (OL)
+- [ ] `frontend/src/components/DiveTripsMap.js` (OL)
+- [ ] `frontend/src/components/DiveMap.js` (OL)
+- [ ] `frontend/src/components/UnifiedMapView.js` (OL; candidate for replacement with `LeafletMapView` or consolidation)
+
+### Cleanup
+
+- [ ] Verify no remaining `ol/*` imports after the above migrations
+- [ ] Remove OpenLayers from `package.json` dependencies once code is clean
+- [ ] Remove any dead OL-specific utilities/styles
+
+### Notes on Implementation
+
+- Leaflet default marker icons are configured via CDN URLs to avoid bundler asset issues
+- Popups provide clickable links to entity detail pages and display coordinates
+- Defensive guards ensure maps render even when coordinates are missing (fall back to Athens center)
