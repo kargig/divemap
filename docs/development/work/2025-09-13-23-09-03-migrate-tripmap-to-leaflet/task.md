@@ -387,24 +387,317 @@ The goal is to completely remove OpenLayers from the frontend and standardize on
 
 - [x] `frontend/src/components/MiniMap.js` → Leaflet with `MapContainer`, `TileLayer`, `Marker`, modal maximize, responsive height tweaks
 - [x] `frontend/src/pages/DiveSiteMap.js` → Leaflet full-screen map with popups, default zoom 16, defensive coordinate handling, close button overlay, distinct main-site marker styling
+- [x] `frontend/src/components/DiveSitesMap.js` → Leaflet with custom dive flag icons, popups, zoom controls, bounds fitting, dynamic clustering, and enhanced zoom level display
+- [x] `frontend/src/components/DivingCentersMap.js` → Leaflet with custom anchor icons, popups, zoom controls, bounds fitting, dynamic clustering, and enhanced zoom level display
+- [x] `frontend/src/components/DivesMap.js` → Leaflet with custom dive mask icons, popups, zoom controls, bounds fitting, dynamic clustering, and enhanced zoom level display
 
 ### Pending (still using OpenLayers)
 
-- [ ] `frontend/src/components/DiveSitesMap.js` (OL)
-- [ ] `frontend/src/components/DivingCentersMap.js` (OL)
-- [ ] `frontend/src/components/DivesMap.js` (OL)
-- [ ] `frontend/src/components/DiveTripsMap.js` (OL)
-- [ ] `frontend/src/components/DiveMap.js` (OL)
-- [ ] `frontend/src/components/UnifiedMapView.js` (OL; candidate for replacement with `LeafletMapView` or consolidation)
+- [ ] No remaining OpenLayers components (all migrated or removed)
+
+### Removed (unused/obsolete components)
+
+- [x] `frontend/src/components/DiveTripsMap.js` - **REMOVED** (unused, no imports)
+- [x] `frontend/src/components/DiveMap.js` - **REMOVED** (unused, no imports)  
+- [x] `frontend/src/pages/DiveMapView.js` - **REMOVED** (replaced by unified map system)
+- [x] `frontend/src/components/UnifiedMapView.js` - **REMOVED** (unused, replaced by LeafletMapView)
+- [x] `frontend/src/components/TripMap.js` - **REMOVED** (unused, no imports, 961 lines of dead OpenLayers code)
+- [x] `/dives/map` route - **REMOVED** (obsolete route)
 
 ### Cleanup
 
-- [ ] Verify no remaining `ol/*` imports after the above migrations
-- [ ] Remove OpenLayers from `package.json` dependencies once code is clean
-- [ ] Remove any dead OL-specific utilities/styles
+- [x] Verify no remaining `ol/*` imports after the above migrations
+- [x] Remove OpenLayers from `package.json` dependencies once code is clean
+- [x] Remove any dead OL-specific utilities/styles
 
 ### Notes on Implementation
 
 - Leaflet default marker icons are configured via CDN URLs to avoid bundler asset issues
 - Popups provide clickable links to entity detail pages and display coordinates
 - Defensive guards ensure maps render even when coordinates are missing (fall back to Athens center)
+- Clustering implemented using Leaflet MarkerClusterGroup with dynamic zoom-based enabling/disabling
+- Cluster styling matches original OpenLayers design (red circles for dive sites, blue for diving centers)
+- Enhanced zoom display shows current zoom, max zoom, and clustering status
+- Zoom level display positioned next to zoom controls with clean white box styling
+- Real-time zoom level updates with proper z-index to avoid blocking map controls
+
+### Zoom Level Display Implementation
+
+**DiveSitesMap Component Enhancement:**
+
+1. **Clean Design**: Implemented subtle white box with rounded corners positioned next to zoom controls
+2. **Proper Positioning**: Moved from `top-2 left-2` to `top-2 left-12` to avoid blocking zoom controls
+3. **Correct Z-Index**: Reduced from `z-20` to `z-10` to prevent interfering with map interactions
+4. **Real-time Updates**: Zoom level updates correctly when users click zoom in/out buttons
+5. **Clustering Integration**: Display works seamlessly with dynamic clustering functionality
+
+**Technical Details:**
+- **Styling**: `bg-white rounded px-2 py-1 text-xs font-medium z-10 shadow-sm border border-gray-200`
+- **Position**: `absolute top-2 left-12` (positioned next to zoom controls)
+- **Content**: Shows current zoom level (e.g., "Zoom: 3.0")
+- **Responsive**: Updates in real-time as user zooms in/out
+- **User Experience**: Clean, professional appearance that doesn't interfere with map functionality
+
+**Verification:**
+- ✅ Zoom In: Successfully tested - zoom level increases (3.0 → 4.0)
+- ✅ Zoom Out: Successfully tested - zoom level decreases (4.0 → 3.0)
+- ✅ Clustering: Works correctly with dynamic clustering based on zoom level
+- ✅ Controls: Zoom controls are not blocked by the display
+- ✅ Visual Design: Clean, professional appearance matching requested design
+
+**DivingCentersMap Component Enhancement:**
+
+1. **Clean Design**: Implemented subtle white box with rounded corners positioned next to zoom controls
+2. **Proper Positioning**: Moved from `top-2 right-2` to `top-2 left-12` to avoid blocking zoom controls
+3. **Correct Z-Index**: Reduced from `z-20` to `z-10` to prevent interfering with map interactions
+4. **Real-time Updates**: Zoom level updates correctly when users click zoom in/out buttons
+5. **Clustering Integration**: Display works seamlessly with dynamic clustering functionality
+
+**Technical Details:**
+- **Styling**: `bg-white rounded px-2 py-1 text-xs font-medium z-10 shadow-sm border border-gray-200`
+- **Position**: `absolute top-2 left-12` (positioned next to zoom controls)
+- **Content**: Shows current zoom level (e.g., "Zoom: 6.0")
+- **Responsive**: Updates in real-time as user zooms in/out
+- **User Experience**: Clean, professional appearance that doesn't interfere with map functionality
+
+**Verification:**
+- ✅ Zoom In: Successfully tested - zoom level increases (6.0 → 7.0)
+- ✅ Zoom Out: Successfully tested - zoom level decreases (7.0 → 6.0)
+- ✅ Clustering: Works correctly with dynamic clustering based on zoom level
+- ✅ Controls: Zoom controls are not blocked by the display
+- ✅ Visual Design: Clean, professional appearance matching DiveSitesMap design
+
+**Phase 10 - DivesMap Migration (Completed):**
+
+### ✅ Migrated DivesMap.js from OpenLayers to Leaflet
+
+**Key Features Implemented:**
+
+1. **Custom Dive Icons**:
+   - Green circle with white dive mask symbol
+   - SVG-based custom icons for individual dives
+   - Proper sizing, anchoring, and popup positioning
+
+2. **Dynamic Clustering**:
+   - Leaflet MarkerClusterGroup with zoom-based enabling/disabling
+   - Clustering enabled at zoom <= 11, disabled at zoom > 11
+   - Red cluster circles with white borders and count
+   - Same clustering behavior as DiveSitesMap and DivingCentersMap
+
+3. **Enhanced Zoom Level Display**:
+   - Clean white box with rounded corners positioned next to zoom controls
+   - Styling: `bg-white rounded px-2 py-1 text-xs font-medium z-10 shadow-sm border border-gray-200`
+   - Position: `absolute top-2 left-12` (next to zoom controls)
+   - Real-time updates showing current zoom level
+
+4. **Rich Popup Content**:
+   - Dive information with date, time, difficulty level
+   - Max depth, duration, and user rating display
+   - Dive information text and tags
+   - Clickable "View Details" link to dive detail page
+   - Proper formatting and styling
+
+5. **Defensive Programming**:
+   - Coordinate validation for dive sites
+   - Graceful handling of missing dive site data
+   - Proper bounds calculation and map fitting
+   - Error handling for invalid coordinates
+
+6. **Consistent Styling**:
+   - Matches design patterns from other migrated components
+   - Responsive design with proper mobile support
+   - Clean, professional appearance
+   - Consistent popup styling and content structure
+
+**Technical Implementation:**
+- **Map Container**: Uses `MapContainer` with proper center and zoom state
+- **Clustering**: `MarkerClusterGroup` with custom cluster styling
+- **Icons**: Custom SVG dive mask icons (green circle with white mask)
+- **Popups**: Rich HTML popups with dive information and styling
+- **Bounds Fitting**: Automatic map fitting to show all dives
+- **Zoom Tracking**: Real-time zoom level updates and clustering state
+
+**Verification:**
+- ✅ Custom dive icons display correctly
+- ✅ Clustering works at appropriate zoom levels
+- ✅ Zoom level display updates in real-time
+- ✅ Popups show rich dive information
+- ✅ Map fits bounds to show all dives
+- ✅ Defensive handling of missing data
+- ✅ Consistent styling with other map components
+
+**Phase 11 - OpenLayers Usage Analysis (Completed):**
+
+### ✅ Frontend Codebase OpenLayers Audit
+
+**Remaining OpenLayers Usage:**
+
+1. **TripMap.js** (961 lines) - **REMOVED**
+   - **Status**: No imports or references found anywhere in frontend
+   - **OpenLayers Imports**: 10 imports from `ol/*` packages
+   - **Reason**: Completely unused, dead code
+   - **Action**: ✅ Deleted file
+
+2. **CSS Styles** - **LEGACY STYLES**
+   - **File**: `frontend/src/index.css`
+   - **Styles**: `.ol-popup`, `.ol-popup-closer` classes (lines 736-800)
+   - **Status**: Legacy styles from old OpenLayers implementation
+   - **Action**: Can be safely removed
+
+3. **Documentation References** - **OUTDATED**
+   - **Files**: `About.js`, `Privacy.js`
+   - **Content**: References to "OpenLayers for interactive maps"
+   - **Status**: Outdated documentation
+   - **Action**: Should be updated to mention Leaflet
+
+4. **Package Dependencies** - **UNUSED**
+   - **Package**: `ol: ^10.6.1` in `package.json`
+   - **Status**: No longer used by any active components
+   - **Action**: Can be safely removed
+
+**Cleanup Recommendations:**
+
+1. **✅ Remove TripMap.js** - Completely unused, 961 lines of dead code
+2. **✅ Remove OpenLayers CSS** - Legacy styles no longer needed
+3. **✅ Update Documentation** - Replace OpenLayers references with Leaflet
+4. **✅ Remove Package Dependency** - Remove `ol` package from package.json
+
+**Verification Results:**
+- ✅ No active OpenLayers components in use
+- ✅ All map functionality now uses Leaflet
+- ✅ TripMap.js removed (was completely unused)
+- ✅ OpenLayers package removed from package.json
+- ✅ OpenLayers CSS styles removed
+- ✅ Documentation updated to mention Leaflet
+- ✅ No remaining `ol/*` imports in codebase
+
+**Phase 9 - Component Cleanup (Completed):**
+
+### ✅ Removed Unused OpenLayers Components
+
+1. **✅ DiveTripsMap.js** - Completely unused component (685 lines)
+   - **Status**: No imports found anywhere in codebase
+   - **Reason**: Replaced by unified map system
+   - **Action**: Deleted file
+
+2. **✅ DiveMap.js** - Completely unused component (430 lines)
+   - **Status**: No imports found anywhere in codebase
+   - **Reason**: Replaced by LeafletMapView
+   - **Action**: Deleted file
+
+3. **✅ DiveMapView.js** - Obsolete page component (541 lines)
+   - **Status**: Had route but was unused
+   - **Reason**: Replaced by IndependentMapView
+   - **Action**: Deleted file and removed route
+
+4. **✅ UnifiedMapView.js** - Unused OpenLayers component (508 lines)
+   - **Status**: No imports or references found
+   - **Reason**: Replaced by LeafletMapView
+   - **Action**: Deleted file
+
+5. **✅ TripMap.js** - Unused OpenLayers component (961 lines)
+   - **Status**: No imports or references found
+   - **Reason**: Completely unused, dead code
+   - **Action**: Deleted file
+
+6. **✅ /dives/map route** - Obsolete route
+   - **Status**: Route existed but was unused
+   - **Reason**: Replaced by unified map system
+   - **Action**: Removed route and import from App.js
+
+**Cleanup Results:**
+- **Files Removed**: 5 components (3,125 lines total)
+- **Routes Removed**: 1 obsolete route
+- **Imports Cleaned**: Removed unused import from App.js
+- **Codebase Status**: Cleaner, no orphaned components
+
+**Verification:**
+- ✅ No broken imports or references
+- ✅ No orphaned components
+- ✅ All routes functional
+- ✅ Map functionality preserved through unified system
+
+### Required Features for Future OpenLayers → Leaflet Migrations
+
+**All future map component migrations MUST include these standardized features:**
+
+1. **Enhanced Zoom Level Display**:
+   - Clean white box with rounded corners positioned next to zoom controls
+   - Styling: `bg-white rounded px-2 py-1 text-xs font-medium z-10 shadow-sm border border-gray-200`
+   - Position: `absolute top-2 left-12` (next to zoom controls, not blocking them)
+   - Real-time updates showing current zoom level (e.g., "Zoom: 6.0")
+   - Proper z-index to avoid interfering with map interactions
+
+2. **Dynamic Clustering**:
+   - Leaflet MarkerClusterGroup with zoom-based enabling/disabling
+   - Clustering enabled at zoom <= 11, disabled at zoom > 11
+   - Custom cluster styling matching original OpenLayers design
+   - Red circles for dive sites, blue circles for diving centers
+   - Cluster size based on child count with maximum size limits
+
+3. **Custom Icons**:
+   - SVG-based custom icons for different entity types
+   - Dive sites: Red rectangle with white diagonal stripe (diver flag)
+   - Diving centers: Blue circle with white anchor symbol
+   - Proper icon sizing, anchoring, and popup positioning
+
+4. **Zoom Controls Integration**:
+   - Standard Leaflet zoom in/out controls
+   - MapContainer using currentZoom state (not hardcoded values)
+   - Real-time zoom level tracking and display updates
+   - Proper event handling for zoom changes
+
+5. **Defensive Programming**:
+   - Coordinate validation and fallback handling
+   - Graceful degradation when coordinates are missing
+   - Error handling for invalid marker data
+   - Proper cleanup of cluster groups and markers
+
+6. **Consistent Styling**:
+   - Uniform zoom level display across all map components
+   - Consistent popup styling and content structure
+   - Responsive design with proper mobile support
+   - Clean, professional appearance matching design standards
+
+**Implementation Checklist for Each Migration:**
+
+- [x] Enhanced zoom level display with proper positioning
+- [ ] Dynamic clustering with zoom-based enabling/disabling
+- [ ] Custom SVG icons for entity type
+- [ ] Real-time zoom level updates
+- [ ] Defensive coordinate handling
+- [ ] Consistent styling and user experience
+- [ ] Proper cleanup and memory management
+- [ ] Mobile responsiveness
+- [ ] Cross-browser compatibility testing
+
+
+## Phase 12 - ESLint Error Resolution (Completed)
+
+**Status:** ✅ **COMPLETED**
+
+**Objective:** Fix all ESLint errors and reduce warnings in map components
+
+**Issues Resolved:**
+
+### Critical Errors Fixed:
+- ✅ **Import order violations** - Fixed `leaflet` import order before `lucide-react`
+- ✅ **Prettier formatting errors** - Fixed template literal formatting issues
+- ✅ **Unicode escape sequence errors** - Replaced nested template literals with string concatenation
+- ✅ **Undefined variable errors** - Fixed `maxZoom` undefined errors in MapContainer
+
+### Warnings Reduced:
+- ✅ **Prop-types validation** - Added missing prop-types for all helper components
+- ✅ **Unused variables** - Removed unused `setMaxZoom`, `viewport`, and event parameters
+- ✅ **Event handler cleanup** - Fixed unused `e` parameters in cluster click handlers
+
+**Results:**
+- ✅ **0 ESLint errors** (down from 21 errors)
+- ✅ **559 warnings** (down from 587 warnings)
+- ✅ **All map components pass ESLint validation**
+- ✅ **Code quality significantly improved**
+
+**Files Modified:**
+- `frontend/src/components/DiveSitesMap.js`
+- `frontend/src/components/DivingCentersMap.js` 
+- `frontend/src/components/DivesMap.js`
