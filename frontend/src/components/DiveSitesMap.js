@@ -109,7 +109,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
                 : ''
             }
           </div>
-          <a href="/dive-sites/${marker.id}" class="block w-full text-center px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">
+          <a href="/dive-sites/${marker.id}" class="block w-full text-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm !text-white">
             View Details
           </a>
         </div>
@@ -220,13 +220,6 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
   // Handle zoom changes
   const handleZoomChange = zoom => {
     setCurrentZoom(zoom);
-    if (onViewportChange) {
-      onViewportChange({
-        latitude: mapCenter[0],
-        longitude: mapCenter[1],
-        zoom: zoom,
-      });
-    }
   };
 
   // Handle clustering changes
@@ -242,13 +235,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
 
   // Handle map viewport changes
   const handleViewportChange = () => {
-    if (onViewportChange) {
-      onViewportChange({
-        latitude: mapCenter[0],
-        longitude: mapCenter[1],
-        zoom: currentZoom,
-      });
-    }
+    // Intentionally no-op to avoid render loops with parent state
   };
 
   return (
@@ -303,7 +290,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
                   </div>
                   <Link
                     to={`/dive-sites/${site.id}`}
-                    className='block w-full text-center px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors'
+                    className='block w-full text-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm !text-white'
                   >
                     View Details
                   </Link>
@@ -329,7 +316,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
 DiveSitesMap.propTypes = {
   diveSites: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.number.isRequired,
+      id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
       name: PropTypes.string.isRequired,
       latitude: PropTypes.number.isRequired,
       longitude: PropTypes.number.isRequired,

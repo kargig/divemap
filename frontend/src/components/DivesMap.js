@@ -183,7 +183,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
                 : ''
             }
           </div>
-          <a href="/dives/${marker.id}" class="block w-full text-center px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">
+          <a href="/dives/${marker.id}" class="block w-full text-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm !text-white">
             View Details
           </a>
         </div>
@@ -299,13 +299,6 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
   // Handle zoom changes
   const handleZoomChange = zoom => {
     setCurrentZoom(zoom);
-    if (onViewportChange) {
-      onViewportChange({
-        latitude: mapCenter[0],
-        longitude: mapCenter[1],
-        zoom: zoom,
-      });
-    }
   };
 
   // Handle clustering changes
@@ -321,13 +314,7 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
 
   // Handle map viewport changes
   const handleViewportChange = () => {
-    if (onViewportChange) {
-      onViewportChange({
-        latitude: mapCenter[0],
-        longitude: mapCenter[1],
-        zoom: currentZoom,
-      });
-    }
+    // Intentionally no-op to avoid render loops with parent state
   };
 
   const formatDate = dateString => {
@@ -446,7 +433,7 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
 
                   <Link
                     to={`/dives/${dive.id}`}
-                    className='block w-full text-center px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors'
+                    className='block w-full text-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm !text-white'
                   >
                     View Details
                   </Link>
@@ -472,7 +459,7 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
 DivesMap.propTypes = {
   dives: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.number.isRequired,
+      id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
       name: PropTypes.string,
       dive_date: PropTypes.string.isRequired,
       dive_time: PropTypes.string,
@@ -482,14 +469,14 @@ DivesMap.propTypes = {
       difficulty_level: PropTypes.string,
       dive_information: PropTypes.string,
       dive_site: PropTypes.shape({
-        id: PropTypes.number.isRequired,
+        id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
         name: PropTypes.string.isRequired,
         latitude: PropTypes.number.isRequired,
         longitude: PropTypes.number.isRequired,
       }).isRequired,
       tags: PropTypes.arrayOf(
         PropTypes.shape({
-          id: PropTypes.number.isRequired,
+          id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
           name: PropTypes.string.isRequired,
         })
       ),

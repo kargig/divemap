@@ -197,18 +197,21 @@ const DiveSiteMap = () => {
           {markers.map(m => (
             <Marker key={m.id} position={m.position} icon={createDiveSiteIcon(m.isMain)}>
               <Popup>
-                <div className='p-1'>
-                  <a
-                    href={`/dive-sites/${m.data.id}`}
-                    className='text-blue-600 hover:text-blue-800 hover:underline font-medium'
-                  >
+                <div className='p-3'>
+                  <h3 className='font-semibold text-gray-900 mb-2'>
                     {m.data.name || `Dive Site #${m.data.id}`}
-                  </a>
-                  <div className='text-xs text-gray-600 mt-1'>
+                  </h3>
+                  <div className='text-xs text-gray-600 mb-3'>
                     {Array.isArray(m.position) && m.position.length === 2
                       ? `${Number(m.position[0]).toFixed(4)}, ${Number(m.position[1]).toFixed(4)}`
                       : 'N/A'}
                   </div>
+                  <a
+                    href={`/dive-sites/${m.data.id}`}
+                    className='block w-full text-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm !text-white'
+                  >
+                    View Details
+                  </a>
                 </div>
               </Popup>
             </Marker>
