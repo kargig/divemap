@@ -109,7 +109,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
                 : ''
             }
           </div>
-          <a href="/dive-sites/${marker.id}" class="block w-full text-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm !text-white">
+          <a href="/dive-sites/${marker.id}" class="block w-full text-center px-3 py-2 bg-blue-600 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm" style="color: white !important;">
             View Details
           </a>
         </div>
@@ -239,7 +239,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
   };
 
   return (
-    <div className='h-[60rem] w-full rounded-lg overflow-hidden shadow-md relative'>
+    <div className='w-full h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden shadow-md relative'>
       <MapContainer
         center={calculatedCenter}
         zoom={currentZoom}
@@ -290,7 +290,8 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
                   </div>
                   <Link
                     to={`/dive-sites/${site.id}`}
-                    className='block w-full text-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm !text-white'
+                    className='block w-full text-center px-3 py-2 bg-blue-600 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm'
+                    style={{ color: 'white !important' }}
                   >
                     View Details
                   </Link>

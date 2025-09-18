@@ -119,7 +119,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
             ${marker.phone ? `<div class="text-xs text-gray-500">📞 ${marker.phone}</div>` : ''}
             ${marker.website ? `<div class="text-xs text-gray-500">🌐 ${marker.website}</div>` : ''}
           </div>
-          <a href="/diving-centers/${marker.id}" class="block w-full text-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm !text-white">
+          <a href="/diving-centers/${marker.id}" class="block w-full text-center px-3 py-2 bg-blue-600 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm" style="color: white !important;">
             View Details
           </a>
         </div>
@@ -279,38 +279,39 @@ const DivingCentersMap = ({ divingCenters, onViewportChange }) => {
             <Marker key={center.id} position={center.position} icon={createDivingCenterIcon()}>
               <Popup>
                 <div className='p-2'>
-          <div className='flex justify-between items-start mb-2'>
+                  <div className='flex justify-between items-start mb-2'>
                     <h3 className='text-lg font-semibold text-gray-900 pr-2'>{center.name}</h3>
                     {center.average_rating && (
-              <span className='text-sm font-semibold text-gray-700'>
+                      <span className='text-sm font-semibold text-gray-700'>
                         {center.average_rating.toFixed(1)}/10
-              </span>
-            )}
-          </div>
+                      </span>
+                    )}
+                  </div>
 
                   {center.description && (
                     <p className='text-sm text-gray-600 mb-3 line-clamp-2'>{center.description}</p>
-          )}
+                  )}
 
-          <div className='space-y-1 mb-3'>
+                  <div className='space-y-1 mb-3'>
                     {center.email && (
-              <div className='text-xs text-gray-500'>
+                      <div className='text-xs text-gray-500'>
                         📧 <MaskedEmail email={center.email} />
-              </div>
-            )}
+                      </div>
+                    )}
                     {center.phone && <div className='text-xs text-gray-500'>📞 {center.phone}</div>}
                     {center.website && (
                       <div className='text-xs text-gray-500'>🌐 {center.website}</div>
-            )}
-          </div>
+                    )}
+                  </div>
 
-          <Link
+                  <Link
                     to={`/diving-centers/${center.id}`}
-                    className='block w-full text-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm !text-white'
-          >
-            View Details
-          </Link>
-        </div>
+                    className='block w-full text-center px-3 py-2 bg-blue-600 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm'
+                    style={{ color: 'white !important' }}
+                  >
+                    View Details
+                  </Link>
+                </div>
               </Popup>
             </Marker>
           ))
