@@ -546,23 +546,17 @@ const DivingCenters = () => {
           </button>
           <button
             onClick={() => {
-              setViewMode('list');
-              navigate('/diving-centers');
+              if (!user) {
+                window.alert('You need an account for this action.\nPlease Login or Register.');
+                return;
+              }
+              navigate('/diving-centers/create');
             }}
-            className='bg-indigo-600 hover:bg-indigo-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+            className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
           >
-            <Globe className='w-5 h-5' />
-            Browse Centers
+            <Plus size={20} />
+            Add Center
           </button>
-          {user && (
-            <button
-              onClick={() => navigate('/diving-centers/create')}
-              className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-            >
-              <Plus size={20} />
-              Add Center
-            </button>
-          )}
         </div>
       </HeroSection>
 

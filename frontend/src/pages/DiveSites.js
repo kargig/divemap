@@ -645,23 +645,17 @@ const DiveSites = () => {
             </button>
             <button
               onClick={() => {
-                setViewMode('list');
-                navigate('/dive-sites');
+                if (!user) {
+                  window.alert('You need an account for this action.\\nPlease Login or Register.');
+                  return;
+                }
+                navigate('/dive-sites/create');
               }}
-              className='bg-indigo-600 hover:bg-indigo-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+              className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
             >
-              <Globe className='w-5 h-5' />
-              Browse Sites
+              <Plus size={20} />
+              Add Dive Site
             </button>
-            {user && (
-              <button
-                onClick={() => navigate('/dive-sites/create')}
-                className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-              >
-                <Plus size={20} />
-                Add Dive Site
-              </button>
-            )}
           </div>
         </HeroSection>
         {/* Map Section - Show immediately when in map view */}
