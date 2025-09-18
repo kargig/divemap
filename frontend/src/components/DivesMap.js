@@ -89,7 +89,10 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
 
     // Add markers to cluster group
     markers.forEach(marker => {
-      const leafletMarker = L.marker(marker.position, { icon: createIcon() });
+      const leafletMarker = L.marker(marker.position, {
+        icon: createIcon(),
+        markerData: marker, // Store marker data for cluster popup
+      });
 
       // Add popup
       leafletMarker.bindPopup(`
@@ -197,10 +200,57 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
     clusterGroupRef.current = clusterGroup;
 
     // Handle cluster click
-    clusterGroup.on('clusterclick', () => {
+    clusterGroup.on('clusterclick', e => {
       if (onClusterClick) {
         onClusterClick();
       }
+
+      // Generate cluster popup
+      const cluster = e.layer;
+      const childMarkers = cluster.getAllChildMarkers();
+      const childCount = childMarkers.length;
+
+      // Create cluster popup content
+      const clusterPopupContent = `
+        <div class="p-2">
+          <h3 class="font-semibold text-gray-900 mb-2">${childCount} Dives</h3>
+          <div class="space-y-2 max-h-48 overflow-y-auto">
+            ${childMarkers
+              .map(marker => {
+                const markerData = marker.options.markerData || {};
+                return `
+                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <div class="flex-1">
+                    <h4 class="text-sm font-medium text-gray-900">${markerData.name || markerData.dive_site?.name || 'Unnamed Dive'}</h4>
+                    ${markerData.dive_site?.description ? `<p class="text-xs text-gray-600 line-clamp-1">${markerData.dive_site.description}</p>` : ''}
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    ${
+                      markerData.difficulty_level
+                        ? `
+                      <span class="px-1 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                        ${markerData.difficulty_level}
+                      </span>
+                    `
+                        : ''
+                    }
+                    <a href="/dives/${markerData.id}" class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" style="color: white !important;">
+                      View
+                    </a>
+                  </div>
+                </div>
+              `;
+              })
+              .join('')}
+          </div>
+        </div>
+      `;
+
+      // Create and show cluster popup
+      const clusterPopup = L.popup()
+        .setLatLng(cluster.getLatLng())
+        .setContent(clusterPopupContent)
+        .openOn(map);
     });
 
     return () => {
@@ -433,8 +483,7 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
 
                   <Link
                     to={`/dives/${dive.id}`}
-                    className='block w-full text-center px-3 py-2 bg-blue-600 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm'
-                    style={{ color: 'white !important' }}
+                    className='block w-full text-center px-3 py-2 bg-blue-600 text-white !text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm'
                   >
                     View Details
                   </Link>

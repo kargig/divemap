@@ -863,32 +863,30 @@ const Dives = () => {
           </button>
           <button
             onClick={() => {
-              setViewMode('list');
-              navigate('/dives');
+              if (!user) {
+                window.alert('You need an account for this action.\nPlease Login or Register.');
+                return;
+              }
+              setShowImportModal(true);
+            }}
+            className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+          >
+            <Upload size={20} />
+            Import Dives
+          </button>
+          <button
+            onClick={() => {
+              if (!user) {
+                window.alert('You need an account for this action.\nPlease Login or Register.');
+                return;
+              }
+              navigate('/dives/create');
             }}
             className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
           >
-            <List className='w-5 h-5' />
-            Browse Dives
+            <Plus size={20} />
+            Add Dive
           </button>
-          {user && (
-            <>
-              <button
-                onClick={() => setShowImportModal(true)}
-                className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-              >
-                <Upload size={20} />
-                Import Dives
-              </button>
-              <button
-                onClick={() => navigate('/dives/create')}
-                className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-              >
-                <Plus size={20} />
-                Add Dive
-              </button>
-            </>
-          )}
         </div>
       </HeroSection>
 
