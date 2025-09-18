@@ -25,7 +25,6 @@ import CreateDive from './pages/CreateDive';
 import CreateDiveSite from './pages/CreateDiveSite';
 import CreateDivingCenter from './pages/CreateDivingCenter';
 import DiveDetail from './pages/DiveDetail';
-import DiveMapView from './pages/DiveMapView';
 import Dives from './pages/Dives';
 import DiveSiteDetail from './pages/DiveSiteDetail';
 import DiveSiteMap from './pages/DiveSiteMap';
@@ -228,14 +227,6 @@ function App() {
                   }
                 />
                 <Route path='/dives' element={<Dives />} />
-                <Route
-                  path='/dives/map'
-                  element={
-                    <ProtectedRoute>
-                      <DiveMapView />
-                    </ProtectedRoute>
-                  }
-                />
                 <Route
                   path='/dives/create'
                   element={
