@@ -89,7 +89,10 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
 
     // Add markers to cluster group
     markers.forEach(marker => {
-      const leafletMarker = L.marker(marker.position, { icon: createIcon() });
+      const leafletMarker = L.marker(marker.position, { 
+        icon: createIcon(),
+        markerData: marker // Store marker data for cluster popup
+      });
 
       // Add popup
       leafletMarker.bindPopup(`
@@ -197,10 +200,51 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
     clusterGroupRef.current = clusterGroup;
 
     // Handle cluster click
-    clusterGroup.on('clusterclick', () => {
+    clusterGroup.on('clusterclick', (e) => {
       if (onClusterClick) {
         onClusterClick();
       }
+      
+      // Generate cluster popup
+      const cluster = e.layer;
+      const childMarkers = cluster.getAllChildMarkers();
+      const childCount = childMarkers.length;
+      
+      // Create cluster popup content
+      const clusterPopupContent = `
+        <div class="p-2">
+          <h3 class="font-semibold text-gray-900 mb-2">${childCount} Dives</h3>
+          <div class="space-y-2 max-h-48 overflow-y-auto">
+            ${childMarkers.map(marker => {
+              const markerData = marker.options.markerData || {};
+              return `
+                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <div class="flex-1">
+                    <h4 class="text-sm font-medium text-gray-900">${markerData.name || markerData.dive_site?.name || 'Unnamed Dive'}</h4>
+                    ${markerData.dive_site?.description ? `<p class="text-xs text-gray-600 line-clamp-1">${markerData.dive_site.description}</p>` : ''}
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    ${markerData.difficulty_level ? `
+                      <span class="px-1 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                        ${markerData.difficulty_level}
+                      </span>
+                    ` : ''}
+                    <a href="/dives/${markerData.id}" class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" style="color: white !important;">
+                      View
+                    </a>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+      
+      // Create and show cluster popup
+      const clusterPopup = L.popup()
+        .setLatLng(cluster.getLatLng())
+        .setContent(clusterPopupContent)
+        .openOn(map);
     });
 
     return () => {
@@ -360,84 +404,83 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
           processedDives.map(dive => (
             <Marker key={dive.id} position={dive.position} icon={createDiveIcon()}>
               <Popup>
-                <div className='p-2'>
-                  <div className='flex items-center justify-between mb-2'>
-                    <h3 className='font-semibold text-gray-900'>
+          <div className='p-2'>
+            <div className='flex items-center justify-between mb-2'>
+              <h3 className='font-semibold text-gray-900'>
                       {dive.name || dive.dive_site?.name || 'Unnamed Dive'}
-                    </h3>
-                    <span className='px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800'>
-                      Dive
-                    </span>
-                  </div>
+              </h3>
+              <span className='px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800'>
+                Dive
+              </span>
+            </div>
 
-                  <div className='space-y-2 mb-3'>
-                    <div className='flex items-center text-sm text-gray-600'>
-                      <Calendar className='h-4 w-4 mr-1' />
+            <div className='space-y-2 mb-3'>
+              <div className='flex items-center text-sm text-gray-600'>
+                <Calendar className='h-4 w-4 mr-1' />
                       <span>{formatDate(dive.dive_date)}</span>
                       {dive.dive_time && (
-                        <>
-                          <Clock className='h-4 w-4 mr-1 ml-2' />
+                  <>
+                    <Clock className='h-4 w-4 mr-1 ml-2' />
                           <span>{formatTime(dive.dive_time)}</span>
-                        </>
-                      )}
-                    </div>
+                  </>
+                )}
+              </div>
 
                     {dive.difficulty_level && (
-                      <div className='flex items-center'>
-                        <span
+                <div className='flex items-center'>
+                  <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_level)}`}
-                        >
+                  >
                           {getDifficultyLabel(dive.difficulty_level)}
-                        </span>
-                      </div>
-                    )}
+                  </span>
+                </div>
+              )}
 
-                    <div className='flex items-center gap-4 text-sm text-gray-600'>
+              <div className='flex items-center gap-4 text-sm text-gray-600'>
                       {dive.max_depth && (
-                        <div className='flex items-center gap-1'>
-                          <Thermometer size={14} />
+                  <div className='flex items-center gap-1'>
+                    <Thermometer size={14} />
                           <span>{dive.max_depth}m max</span>
-                        </div>
-                      )}
+                  </div>
+                )}
                       {dive.duration && (
-                        <div className='flex items-center gap-1'>
-                          <Clock size={14} />
+                  <div className='flex items-center gap-1'>
+                    <Clock size={14} />
                           <span>{dive.duration}min</span>
-                        </div>
-                      )}
+                  </div>
+                )}
                       {dive.user_rating && (
-                        <div className='flex items-center gap-1'>
-                          <Star size={14} className='text-yellow-500' />
+                  <div className='flex items-center gap-1'>
+                    <Star size={14} className='text-yellow-500' />
                           <span>{dive.user_rating}/10</span>
-                        </div>
-                      )}
-                    </div>
+                  </div>
+                )}
+              </div>
 
                     {dive.dive_information && (
                       <p className='text-sm text-gray-700 line-clamp-2'>{dive.dive_information}</p>
-                    )}
+              )}
 
                     {dive.tags && dive.tags.length > 0 && (
-                      <div className='flex flex-wrap gap-1'>
+                <div className='flex flex-wrap gap-1'>
                         {dive.tags.map(tag => (
-                          <span
-                            key={tag.id}
-                            className='px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full'
-                          >
-                            {tag.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                    <span
+                      key={tag.id}
+                      className='px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full'
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
 
-                  <Link
+            <Link
                     to={`/dives/${dive.id}`}
-                    className='block w-full text-center px-3 py-2 bg-blue-600 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm'
-                    style={{ color: 'white !important' }}
-                  >
-                    View Details
-                  </Link>
+                    className='block w-full text-center px-3 py-2 bg-blue-600 text-white !text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm'
+            >
+              View Details
+            </Link>
                 </div>
               </Popup>
             </Marker>
@@ -448,11 +491,11 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
       {/* Info overlays */}
       <div className='absolute bottom-2 left-2 bg-white bg-opacity-90 px-2 py-1 rounded text-xs'>
         {processedDives.length} dives loaded
-      </div>
+          </div>
 
       <div className='absolute top-2 left-12 bg-white rounded px-2 py-1 text-xs font-medium z-10 shadow-sm border border-gray-200'>
         Zoom: {currentZoom.toFixed(1)}
-      </div>
+        </div>
     </div>
   );
 };
