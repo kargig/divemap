@@ -19,6 +19,7 @@ import MaskedEmail from '../components/MaskedEmail';
 import MiniMap from '../components/MiniMap';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
@@ -68,6 +69,13 @@ const DiveSiteDetail = () => {
   useEffect(() => {
     handleRateLimitError(error, 'dive site details', () => window.location.reload());
   }, [error]);
+
+  // Set dynamic page title
+  const pageTitle = diveSite
+    ? `Divemap - Dive Site - ${diveSite.name}`
+    : 'Divemap - Dive Site Details';
+
+  usePageTitle(pageTitle, !isLoading);
 
   const { data: comments } = useQuery(
     ['dive-site-comments', id],

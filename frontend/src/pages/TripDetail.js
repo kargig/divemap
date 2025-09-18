@@ -6,6 +6,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getParsedTrip, getDiveSite, getDivingCenter } from '../api';
 import MaskedEmail from '../components/MaskedEmail';
 import TripHeader from '../components/TripHeader';
+import usePageTitle from '../hooks/usePageTitle';
 import { generateTripName } from '../utils/tripNameGenerator';
 const TripDetail = () => {
   const { id } = useParams();
@@ -38,6 +39,12 @@ const TripDetail = () => {
       retry: 1,
     }
   );
+
+  // Set dynamic page title
+  const tripName = trip ? generateTripName(trip) : 'Trip Details';
+  const pageTitle = `Divemap - Dive Trip - ${tripName}`;
+  usePageTitle(pageTitle, !tripLoading);
+
   if (tripLoading) {
     return (
       <div className='flex justify-center items-center h-64'>

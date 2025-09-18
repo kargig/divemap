@@ -33,6 +33,7 @@ import HeroSection from '../components/HeroSection';
 import RateLimitError from '../components/RateLimitError';
 import StickyFilterBar from '../components/StickyFilterBar';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
@@ -357,6 +358,10 @@ const DiveTrips = () => {
       refetchInterval: 30000, // Refetch every 30 seconds
     }
   );
+
+  // Set dynamic page title
+  const pageTitle = 'Divemap - Dive Trips';
+  usePageTitle(pageTitle);
 
   // Query for diving centers and dive sites for filters
   const { data: divingCentersData, error: divingCentersError } = useQuery(
