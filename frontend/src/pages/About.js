@@ -86,7 +86,7 @@ const About = () => {
                 <li>• React with React Router DOM</li>
                 <li>• React Query for data management</li>
                 <li>• Tailwind CSS for styling</li>
-                <li>• OpenLayers for interactive maps</li>
+                <li>• Leaflet for interactive maps</li>
                 <li>• Google Identity Services for OAuth</li>
               </ul>
             </div>

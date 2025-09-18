@@ -359,16 +359,15 @@ const Privacy = () => {
           </p>
         </section>
 
-        {/* OpenLayers Maps */}
+        {/* Leaflet Maps */}
         <section className='mb-8'>
           <h2 className='text-2xl font-bold text-gray-900 mb-6 flex items-center'>
             <Map className='h-6 w-6 text-blue-600 mr-3' />
-            OpenLayers Mapping Service
+            Leaflet Mapping Service
           </h2>
           <p className='text-gray-600 mb-4'>
-            Our website uses OpenLayers, an open-source mapping library, to provide interactive maps
-            and location services. OpenLayers is developed and maintained by the OpenLayers
-            community.
+            Our website uses Leaflet, an open-source mapping library, to provide interactive maps
+            and location services. Leaflet is developed and maintained by the Leaflet community.
           </p>
           <p className='text-gray-600 mb-4'>
             When you use our mapping features, the following information may be processed:
@@ -379,7 +378,7 @@ const Privacy = () => {
             <li>Map interaction data (zoom levels, pan positions)</li>
           </ul>
           <p className='text-gray-600'>
-            OpenLayers is a client-side library that runs in your browser. We do not share your
+            Leaflet is a client-side library that runs in your browser. We do not share your
             location data with third-party mapping services unless you explicitly choose to do so.
           </p>
         </section>
