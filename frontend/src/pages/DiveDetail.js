@@ -20,6 +20,7 @@ import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
 import { getDive, deleteDive, deleteDiveMedia } from '../api';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 
@@ -50,6 +51,25 @@ const DiveDetail = () => {
   useEffect(() => {
     handleRateLimitError(error, 'dive details', () => window.location.reload());
   }, [error]);
+
+  // Set dynamic page title
+  const formatDateForTitle = dateString => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date
+      .toLocaleDateString('en-GB', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+      .replace(/\//g, '/');
+  };
+
+  const pageTitle = dive 
+    ? `Divemap - Dive - ${dive.name || dive.dive_site?.name || 'Unnamed Dive Site'}`
+    : 'Divemap - Dive Details';
+
+  usePageTitle(pageTitle, !isLoading);
 
   // Delete dive mutation
   const deleteDiveMutation = useMutation(deleteDive, {
