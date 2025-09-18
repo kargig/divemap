@@ -20,6 +20,7 @@ import api, { claimDivingCenterOwnership } from '../api';
 import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 
 // Helper function to safely extract error message
@@ -62,6 +63,13 @@ const DivingCenterDetail = () => {
   useEffect(() => {
     handleRateLimitError(error, 'diving center details', () => window.location.reload());
   }, [error]);
+
+  // Set dynamic page title
+  const pageTitle = center
+    ? `Divemap - Diving Centers - ${center.name}`
+    : 'Divemap - Diving Center Details';
+
+  usePageTitle(pageTitle, !isLoading);
 
   // Check if user has edit privileges
   const canEdit =
