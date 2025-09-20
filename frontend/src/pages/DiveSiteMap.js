@@ -30,7 +30,7 @@ const Recenter = ({ lat, lng, zoom }) => {
 const DiveSiteMap = () => {
   // Set page title
   usePageTitle('Divemap - Map');
-  
+
   const { id } = useParams();
   const navigate = useNavigate();
   const [currentZoom, setCurrentZoom] = useState(16);

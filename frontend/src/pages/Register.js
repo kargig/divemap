@@ -13,7 +13,7 @@ import { isTurnstileEnabled, getTurnstileConfig } from '../utils/turnstileConfig
 const Register = () => {
   // Set page title
   usePageTitle('Divemap - Register');
-  
+
   const [formData, setFormData] = useState({
     username: '',
     email: '',
