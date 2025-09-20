@@ -6,10 +6,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../components/Logo';
 import Turnstile from '../components/Turnstile';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 import googleAuth from '../utils/googleAuth';
 import { isTurnstileEnabled, getTurnstileConfig } from '../utils/turnstileConfig';
 
 const Login = () => {
+  // Set page title
+  usePageTitle('Divemap - Login');
+
   const [formData, setFormData] = useState({
     username: '',
     password: '',

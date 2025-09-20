@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import BackgroundLogo from '../components/BackgroundLogo';
 import HeroSection from '../components/HeroSection';
+import usePageTitle from '../hooks/usePageTitle';
 
 // Custom hook for animated counters with configurable growth patterns
 const useAnimatedCounter = (
@@ -69,6 +70,9 @@ const useAnimatedCounter = (
 };
 
 const Home = () => {
+  // Set page title
+  usePageTitle('Divemap - Home');
+
   // Fetch statistics
   const {
     data: stats,

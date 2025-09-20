@@ -29,6 +29,7 @@ import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
+import usePageTitle from '../hooks/usePageTitle';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
 
@@ -46,6 +47,9 @@ const DivingCenters = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+
+  // Set page title
+  usePageTitle('Divemap - Diving Centers');
 
   // View mode state
   const [viewMode, setViewMode] = useState(() => {
@@ -656,7 +660,7 @@ const DivingCenters = () => {
         {!isMobile && (
           <DivingCentersDesktopSearchBar
             searchValue={filters.search}
-            onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
+            onSearchChange={handleSearchChange}
             onSearchSelect={selectedItem => {
               handleSearchChange({ target: { name: 'search', value: selectedItem.name } });
             }}
@@ -716,21 +720,23 @@ const DivingCenters = () => {
                   <div className='flex-1 min-w-0'>
                     {/* Title and rating row */}
                     <div className='flex items-center justify-between mb-2'>
-                      <div className='flex items-center gap-2'>
-                        <h3 className='font-semibold text-gray-900 text-base truncate'>
+                      <div className='flex items-center gap-2 flex-1 min-w-0'>
+                        <h3 className='font-semibold text-gray-900 text-base flex-1 min-w-0'>
                           <Link
                             to={`/diving-centers/${center.id}`}
-                            className='hover:text-blue-600 transition-colors'
+                            className='hover:text-blue-600 transition-colors block truncate'
                           >
                             {center.name}
                           </Link>
                         </h3>
                         {/* Match type badge */}
                         {matchTypes[center.id] && (
-                          <MatchTypeBadge
-                            matchType={matchTypes[center.id].type}
-                            score={matchTypes[center.id].score}
-                          />
+                          <div className='flex-shrink-0'>
+                            <MatchTypeBadge
+                              matchType={matchTypes[center.id].type}
+                              score={matchTypes[center.id].score}
+                            />
+                          </div>
                         )}
                       </div>
                       {center.average_rating && (
@@ -875,26 +881,28 @@ const DivingCenters = () => {
                 <div className={`${compactLayout ? 'p-3' : 'p-5'}`}>
                   {/* Title and rating row */}
                   <div className='flex items-start justify-between mb-2'>
-                    <div className='flex-1 pr-3'>
-                      <h3
-                        className={`font-bold text-gray-900 line-clamp-2 ${compactLayout ? 'text-base' : 'text-lg'}`}
-                      >
-                        <Link
-                          to={`/diving-centers/${center.id}`}
-                          className='hover:text-blue-600 transition-colors hover:underline'
+                    <div className='flex-1 pr-3 min-w-0'>
+                      <div className='flex items-start gap-2 mb-1'>
+                        <h3
+                          className={`font-bold text-gray-900 line-clamp-2 flex-1 min-w-0 ${compactLayout ? 'text-base' : 'text-lg'}`}
                         >
-                          {center.name}
-                        </Link>
-                      </h3>
-                      {/* Match type badge */}
-                      {matchTypes[center.id] && (
-                        <div className='mt-1'>
-                          <MatchTypeBadge
-                            matchType={matchTypes[center.id].type}
-                            score={matchTypes[center.id].score}
-                          />
-                        </div>
-                      )}
+                          <Link
+                            to={`/diving-centers/${center.id}`}
+                            className='hover:text-blue-600 transition-colors hover:underline block'
+                          >
+                            {center.name}
+                          </Link>
+                        </h3>
+                        {/* Match type badge */}
+                        {matchTypes[center.id] && (
+                          <div className='flex-shrink-0'>
+                            <MatchTypeBadge
+                              matchType={matchTypes[center.id].type}
+                              score={matchTypes[center.id].score}
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Rating badge - positioned to the right of title */}

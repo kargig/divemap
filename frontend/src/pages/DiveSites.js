@@ -28,6 +28,7 @@ import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
+import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
@@ -38,6 +39,9 @@ const DiveSites = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+
+  // Set page title
+  usePageTitle('Divemap - Dive Sites');
 
   // Enhanced state for mobile UX
   const [viewMode, setViewMode] = useState(() => {
