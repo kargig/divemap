@@ -20,8 +20,11 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import MaskedEmail from '../components/MaskedEmail';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 const Profile = () => {
+  // Set page title
+  usePageTitle('Divemap - Profile');
   const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);

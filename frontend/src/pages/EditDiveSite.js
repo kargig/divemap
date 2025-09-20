@@ -6,6 +6,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
 import { getDifficultyValue } from '../utils/difficultyHelpers';
 
@@ -19,6 +20,8 @@ const getErrorMessage = error => {
 };
 
 const EditDiveSite = () => {
+  // Set page title
+  usePageTitle('Divemap - Edit Dive Site');
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();

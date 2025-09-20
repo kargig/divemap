@@ -21,8 +21,11 @@ import MapLayersPanel from '../components/MapLayersPanel';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
 import { useResponsive } from '../hooks/useResponsive';
 import { useViewportData } from '../hooks/useViewportData';
+import usePageTitle from '../hooks/usePageTitle';
 
 const IndependentMapView = () => {
+  // Set page title
+  usePageTitle('Divemap - Map View');
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isMobile } = useResponsive();

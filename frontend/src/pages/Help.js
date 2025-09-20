@@ -17,7 +17,11 @@ import {
   Eye,
 } from 'lucide-react';
 
+import usePageTitle from '../hooks/usePageTitle';
+
 const Help = () => {
+  // Set page title
+  usePageTitle('Divemap - Help');
   return (
     <div className='max-w-4xl mx-auto'>
       <div className='bg-white rounded-lg shadow-lg p-8'>
