@@ -6,7 +6,7 @@ const MatchTypeBadge = ({ matchType, score, className = '' }) => {
 
   const getBadgeConfig = (type, score) => {
     const percentage = score ? Math.round(score * 100) : 0;
-    
+
     switch (type) {
       case 'exact':
       case 'exact_phrase':

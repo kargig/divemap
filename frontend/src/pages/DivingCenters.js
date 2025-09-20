@@ -27,9 +27,9 @@ import MaskedEmail from '../components/MaskedEmail';
 import MatchTypeBadge from '../components/MatchTypeBadge';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
-import usePageTitle from '../hooks/usePageTitle';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
 
