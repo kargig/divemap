@@ -8,6 +8,7 @@ import {
   getOwnershipRequests,
   revokeDivingCenterOwnership,
 } from '../api';
+import usePageTitle from '../hooks/usePageTitle';
 
 // Extracted components to reduce complexity
 const LoadingSpinner = () => (

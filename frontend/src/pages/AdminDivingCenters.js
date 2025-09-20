@@ -17,11 +17,15 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 const AdminDivingCenters = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Set page title
+  usePageTitle('Divemap - Admin - Diving Centers');
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });

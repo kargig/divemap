@@ -65,7 +65,7 @@ const DiveDetail = () => {
       .replace(/\//g, '/');
   };
 
-  const pageTitle = dive 
+  const pageTitle = dive
     ? `Divemap - Dive - ${dive.name || dive.dive_site?.name || 'Unnamed Dive Site'}`
     : 'Divemap - Dive Details';
 

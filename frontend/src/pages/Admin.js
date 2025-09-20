@@ -13,10 +13,14 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 const Admin = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Set page title
+  usePageTitle('Divemap - Admin');
 
   if (!user?.is_admin) {
     return (

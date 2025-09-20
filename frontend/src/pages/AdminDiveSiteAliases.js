@@ -6,12 +6,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 const AdminDiveSiteAliases = () => {
   const { diveSiteId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+
+  // Set page title
+  usePageTitle('Divemap - Admin - Dive Site Aliases');
 
   const [editingAlias, setEditingAlias] = useState(null);
   const [newAlias, setNewAlias] = useState({ alias: '' });

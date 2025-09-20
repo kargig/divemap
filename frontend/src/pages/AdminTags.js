@@ -5,10 +5,14 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 const AdminTags = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Set page title
+  usePageTitle('Divemap - Admin - Tags');
 
   // Tag management state
   const [showCreateTagModal, setShowCreateTagModal] = useState(false);

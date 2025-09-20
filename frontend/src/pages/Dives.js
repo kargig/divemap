@@ -33,6 +33,7 @@ import MatchTypeBadge from '../components/MatchTypeBadge';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
@@ -45,6 +46,9 @@ const Dives = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+
+  // Set page title
+  usePageTitle('Divemap - Dives');
 
   // Get initial values from URL parameters
   const getInitialViewMode = () => {
@@ -1057,22 +1061,26 @@ const Dives = () => {
                         )}
                         <div>
                           <div className='flex items-center gap-2 mb-1'>
-                            <h3
-                              className={`font-semibold text-gray-900 ${compactLayout ? 'text-base' : 'text-lg'}`}
-                            >
-                              <Link
-                                to={`/dives/${dive.id}`}
-                                className='hover:text-blue-600 transition-colors'
+                            <div className='flex items-center gap-2 flex-1 min-w-0'>
+                              <h3
+                                className={`font-semibold text-gray-900 flex-1 min-w-0 ${compactLayout ? 'text-base' : 'text-lg'}`}
                               >
-                                {dive.name || `Dive #${dive.id}`}
-                              </Link>
-                            </h3>
-                            {matchTypes[dive.id] && (
-                              <MatchTypeBadge
-                                matchType={matchTypes[dive.id].type}
-                                score={matchTypes[dive.id].score}
-                              />
-                            )}
+                                <Link
+                                  to={`/dives/${dive.id}`}
+                                  className='hover:text-blue-600 transition-colors block truncate'
+                                >
+                                  {dive.name || `Dive #${dive.id}`}
+                                </Link>
+                              </h3>
+                              {matchTypes[dive.id] && (
+                                <div className='flex-shrink-0'>
+                                  <MatchTypeBadge
+                                    matchType={matchTypes[dive.id].type}
+                                    score={matchTypes[dive.id].score}
+                                  />
+                                </div>
+                              )}
+                            </div>
                             {dive.is_private && (
                               <div className='flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium'>
                                 <Lock size={12} />
@@ -1190,22 +1198,26 @@ const Dives = () => {
 
                   <div className='p-4'>
                     <div className='flex items-center gap-2 mb-2'>
-                      <h3
-                        className={`font-semibold text-gray-900 ${compactLayout ? 'text-base' : 'text-lg'}`}
-                      >
-                        <Link
-                          to={`/dives/${dive.id}`}
-                          className='hover:text-blue-600 transition-colors'
+                      <div className='flex items-center gap-2 flex-1 min-w-0'>
+                        <h3
+                          className={`font-semibold text-gray-900 flex-1 min-w-0 ${compactLayout ? 'text-base' : 'text-lg'}`}
                         >
-                          {dive.name || `Dive #${dive.id}`}
-                        </Link>
-                      </h3>
-                      {matchTypes[dive.id] && (
-                        <MatchTypeBadge
-                          matchType={matchTypes[dive.id].type}
-                          score={matchTypes[dive.id].score}
-                        />
-                      )}
+                          <Link
+                            to={`/dives/${dive.id}`}
+                            className='hover:text-blue-600 transition-colors block truncate'
+                          >
+                            {dive.name || `Dive #${dive.id}`}
+                          </Link>
+                        </h3>
+                        {matchTypes[dive.id] && (
+                          <div className='flex-shrink-0'>
+                            <MatchTypeBadge
+                              matchType={matchTypes[dive.id].type}
+                              score={matchTypes[dive.id].score}
+                            />
+                          </div>
+                        )}
+                      </div>
                       {dive.is_private && (
                         <div className='flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium'>
                           <Lock size={12} />
