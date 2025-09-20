@@ -16,10 +16,14 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 const AdminDives = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Set page title
+  usePageTitle('Divemap - Admin - Dives');
 
   // Dive management state
   const [showEditDiveModal, setShowEditDiveModal] = useState(false);

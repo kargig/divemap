@@ -17,12 +17,16 @@ import { useQuery } from 'react-query';
 
 import { getRecentActivity } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 const AdminRecentActivity = () => {
   const { user } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
   const [timeFilter, setTimeFilter] = useState(24);
   const [activityFilter, setActivityFilter] = useState('all');
+
+  // Set page title
+  usePageTitle('Divemap - Admin - Recent Activity');
 
   // Fetch recent activity data
   const {

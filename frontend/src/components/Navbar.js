@@ -256,7 +256,7 @@ const Navbar = () => {
                     About
                   </Link>
                   <Link
-                    to='/api'
+                    to='/api-docs'
                     className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
                     onClick={() => setShowInfoDropdown(false)}
                   >
@@ -544,7 +544,7 @@ const Navbar = () => {
                           <span>About</span>
                         </Link>
                         <Link
-                          to='/api'
+                          to='/api-docs'
                           className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
                           onClick={closeMobileMenu}
                         >
