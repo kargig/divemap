@@ -13,9 +13,12 @@ import {
   getDivingCenters,
 } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyValue } from '../utils/difficultyHelpers';
 
 const EditDive = () => {
+  // Set page title
+  usePageTitle('Divemap - Edit Dive');
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();

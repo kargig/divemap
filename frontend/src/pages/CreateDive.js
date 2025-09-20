@@ -12,8 +12,11 @@ import {
   addDiveMedia,
   getDivingCenters,
 } from '../api';
+import usePageTitle from '../hooks/usePageTitle';
 
 const CreateDive = () => {
+  // Set page title
+  usePageTitle('Divemap - Create Dive');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({

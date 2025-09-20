@@ -6,6 +6,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
 
 // Helper function to safely extract error message
@@ -18,6 +19,8 @@ const getErrorMessage = error => {
 };
 
 const EditDivingCenter = () => {
+  // Set page title
+  usePageTitle('Divemap - Edit Diving Center');
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();

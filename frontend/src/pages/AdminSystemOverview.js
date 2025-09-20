@@ -25,8 +25,11 @@ import { useQuery } from 'react-query';
 
 import { getSystemOverview, getSystemHealth, getPlatformStats, getTurnstileStats } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 const AdminSystemOverview = () => {
+  // Set page title
+  usePageTitle('Divemap - Admin - System Overview');
   const { user } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
 

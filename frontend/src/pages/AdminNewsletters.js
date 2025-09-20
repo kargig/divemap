@@ -35,8 +35,11 @@ import {
   getDivingCenters,
   getDiveSite,
 } from '../api';
+import usePageTitle from '../hooks/usePageTitle';
 
 const AdminNewsletters = () => {
+  // Set page title
+  usePageTitle('Divemap - Admin - Newsletters');
   const [selectedFile, setSelectedFile] = useState(null);
   const [useOpenai, setUseOpenai] = useState(true);
   const [isUploading, setIsUploading] = useState(false);

@@ -6,8 +6,11 @@ import { useNavigate } from 'react-router-dom';
 
 import api, { extractErrorMessage } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 const CreateDiveSite = () => {
+  // Set page title
+  usePageTitle('Divemap - Create Dive Site');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();

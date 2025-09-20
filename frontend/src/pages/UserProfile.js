@@ -4,8 +4,11 @@ import { useParams, Link } from 'react-router-dom';
 
 import { getUserPublicProfile } from '../api';
 import Avatar from '../components/Avatar';
+import usePageTitle from '../hooks/usePageTitle';
 
 const UserProfile = () => {
+  // Set page title
+  usePageTitle('Divemap - User Profile');
   const { username } = useParams();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);

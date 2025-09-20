@@ -8,6 +8,7 @@ import { useQuery } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
+import usePageTitle from '../hooks/usePageTitle';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -27,6 +28,9 @@ const Recenter = ({ lat, lng, zoom }) => {
 };
 
 const DiveSiteMap = () => {
+  // Set page title
+  usePageTitle('Divemap - Map');
+  
   const { id } = useParams();
   const navigate = useNavigate();
   const [currentZoom, setCurrentZoom] = useState(16);
