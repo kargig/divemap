@@ -1190,7 +1190,8 @@ const Dives = () => {
                         if (dive.deco_model) stats.push(`Deco Model: ${dive.deco_model}`);
                         if (dive.weights) stats.push(`Weights: ${dive.weights}`);
                         if (dive.duration) stats.push(`Duration: ${dive.duration} min`);
-                        if (dive.visibility_rating) stats.push(`Visibility: ${dive.visibility_rating}/10`);
+                        if (dive.visibility_rating)
+                          stats.push(`Visibility: ${dive.visibility_rating}/10`);
                         if (dive.user_rating) stats.push(`Rating: ${dive.user_rating}/10`);
 
                         return stats.length > 0

@@ -81,7 +81,7 @@ class TestDiveProfileAPI:
         response = client.get(f"/api/v1/dives/{test_dive.id}/profile", headers=auth_headers)
         
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "Profile not found" in response.json()["detail"]
+        assert "No profile uploaded" in response.json()["detail"]
 
     def test_get_dive_profile_file_not_found(self, client, auth_headers, test_dive, db_session):
         """Test dive profile retrieval when file doesn't exist in storage."""
