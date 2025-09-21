@@ -188,6 +188,7 @@ const DiveDetail = () => {
     return new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
+      hour12: false, // Use 24-hour format
     });
   };
 
@@ -570,7 +571,7 @@ const DiveDetail = () => {
               <AdvancedDiveProfileChart
                 profileData={profileData}
                 isLoading={profileLoading}
-                error={profileError?.message}
+                error={profileError?.response?.data?.detail || profileError?.message}
                 showTemperature={true}
                 screenSize='desktop'
                 onDecoStatusChange={profileHasDeco => {

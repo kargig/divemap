@@ -23,7 +23,13 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
-import { getSystemOverview, getSystemHealth, getPlatformStats, getTurnstileStats, getStorageHealth } from '../api';
+import {
+  getSystemOverview,
+  getSystemHealth,
+  getPlatformStats,
+  getTurnstileStats,
+  getStorageHealth,
+} from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 
@@ -279,10 +285,14 @@ const AdminSystemOverview = () => {
                     {storageHealth?.r2_available ? 'Configured' : 'Not Configured'}
                   </p>
                   <p className='text-sm text-gray-500'>
-                    {storageHealth?.r2_available ? 'Environment variables present' : 'Missing credentials'}
+                    {storageHealth?.r2_available
+                      ? 'Environment variables present'
+                      : 'Missing credentials'}
                   </p>
                 </div>
-                <div className={`p-2 rounded-full ${storageHealth?.r2_available ? 'bg-green-100' : 'bg-red-100'}`}>
+                <div
+                  className={`p-2 rounded-full ${storageHealth?.r2_available ? 'bg-green-100' : 'bg-red-100'}`}
+                >
                   {storageHealth?.r2_available ? (
                     <CheckCircle className='h-6 w-6 text-green-600' />
                   ) : (
@@ -304,7 +314,9 @@ const AdminSystemOverview = () => {
                     {storageHealth?.r2_connectivity ? 'Bucket accessible' : 'Cannot reach R2'}
                   </p>
                 </div>
-                <div className={`p-2 rounded-full ${storageHealth?.r2_connectivity ? 'bg-green-100' : 'bg-red-100'}`}>
+                <div
+                  className={`p-2 rounded-full ${storageHealth?.r2_connectivity ? 'bg-green-100' : 'bg-red-100'}`}
+                >
                   {storageHealth?.r2_connectivity ? (
                     <CheckCircle className='h-6 w-6 text-green-600' />
                   ) : (
@@ -326,7 +338,9 @@ const AdminSystemOverview = () => {
                     {storageHealth?.local_storage_writable ? 'Writable' : 'Read-only'}
                   </p>
                 </div>
-                <div className={`p-2 rounded-full ${storageHealth?.local_storage_available ? 'bg-green-100' : 'bg-red-100'}`}>
+                <div
+                  className={`p-2 rounded-full ${storageHealth?.local_storage_available ? 'bg-green-100' : 'bg-red-100'}`}
+                >
                   {storageHealth?.local_storage_available ? (
                     <CheckCircle className='h-6 w-6 text-green-600' />
                   ) : (
@@ -345,10 +359,14 @@ const AdminSystemOverview = () => {
                     {storageHealth?.r2_connectivity ? 'R2 Cloud' : 'Local Only'}
                   </p>
                   <p className='text-sm text-gray-500'>
-                    {storageHealth?.r2_connectivity ? 'Using cloud storage' : 'Using local fallback'}
+                    {storageHealth?.r2_connectivity
+                      ? 'Using cloud storage'
+                      : 'Using local fallback'}
                   </p>
                 </div>
-                <div className={`p-2 rounded-full ${storageHealth?.r2_connectivity ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                <div
+                  className={`p-2 rounded-full ${storageHealth?.r2_connectivity ? 'bg-green-100' : 'bg-yellow-100'}`}
+                >
                   {storageHealth?.r2_connectivity ? (
                     <Globe className='h-6 w-6 text-green-600' />
                   ) : (

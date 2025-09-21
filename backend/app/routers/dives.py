@@ -1312,6 +1312,9 @@ def get_dives(
         dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).order_by(AvailableTag.name.asc()).all()
         tags_list = [{"id": tag.id, "name": tag.name} for tag in dive_tags]
 
+        # Parse dive information to extract individual fields
+        parsed_info = parse_dive_information_text(dive.dive_information)
+
         dive_dict = {
             "id": dive.id,
             "user_id": dive.user_id,
@@ -1337,7 +1340,15 @@ def get_dives(
             "diving_center": diving_center_info,
             "media": [],
             "tags": tags_list,
-            "user_username": dive.user.username
+            "user_username": dive.user.username,
+            # Add parsed fields from dive_information
+            "buddy": parsed_info.get('buddy'),
+            "sac": parsed_info.get('sac'),
+            "otu": parsed_info.get('otu'),
+            "cns": parsed_info.get('cns'),
+            "water_temperature": parsed_info.get('water_temperature'),
+            "deco_model": parsed_info.get('deco_model'),
+            "weights": parsed_info.get('weights')
         }
         dive_list.append(dive_dict)
 
@@ -1466,6 +1477,9 @@ def get_dive(
         for tag in dive_tags
     ]
 
+    # Parse dive information to extract individual fields
+    parsed_info = parse_dive_information_text(dive.dive_information)
+
     # Convert SQLAlchemy object to dictionary to avoid serialization issues
     dive_dict = {
         "id": dive.id,
@@ -1496,7 +1510,15 @@ def get_dive(
         "diving_center": diving_center_info,
         "media": [],
         "tags": tags_dict,
-        "user_username": dive.user.username
+        "user_username": dive.user.username,
+        # Add parsed fields from dive_information
+        "buddy": parsed_info.get('buddy'),
+        "sac": parsed_info.get('sac'),
+        "otu": parsed_info.get('otu'),
+        "cns": parsed_info.get('cns'),
+        "water_temperature": parsed_info.get('water_temperature'),
+        "deco_model": parsed_info.get('deco_model'),
+        "weights": parsed_info.get('weights')
     }
 
     return dive_dict
@@ -2122,7 +2144,24 @@ async def import_subsurface_xml(
 
         # Extract dives
         parsed_dives = []
-        for dive_elem in root.findall('.//dives/dive'):
+        # Look for dives in different XML structures
+        dive_elements = []
+        if root.tag == 'dives':
+            dive_elements = root.findall('dive')
+        elif root.tag == 'divelog':
+            # Check if there's a dives container inside divelog
+            dives_container = root.find('dives')
+            if dives_container is not None:
+                dive_elements = dives_container.findall('dive')
+            else:
+                dive_elements = root.findall('dive')
+        elif root.tag == 'dive':
+            dive_elements = [root]
+        else:
+            # Try to find dives anywhere in the XML
+            dive_elements = root.findall('.//dive')
+        
+        for dive_elem in dive_elements:
             dive_data = parse_dive_element(dive_elem, dive_sites, db)
             if dive_data:
                 parsed_dives.append(dive_data)
@@ -2163,6 +2202,54 @@ async def import_subsurface_xml(
             detail=f"Error processing XML file: {str(e)}"
         )
 
+
+def parse_dive_information_text(dive_information):
+    """Parse dive information text to extract individual fields like buddy, sac, otu, etc."""
+    if not dive_information:
+        return {}
+    
+    parsed_fields = {}
+    
+    # Parse buddy - handle multiline text
+    buddy_match = re.search(r'Buddy:\s*([^\n]+?)(?=\nSAC:|$)', dive_information, re.MULTILINE)
+    if buddy_match:
+        parsed_fields['buddy'] = buddy_match.group(1).strip()
+    
+    # Parse SAC
+    sac_match = re.search(r'SAC:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if sac_match:
+        parsed_fields['sac'] = sac_match.group(1).strip()
+    
+    # Parse OTU
+    otu_match = re.search(r'OTU:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if otu_match:
+        parsed_fields['otu'] = otu_match.group(1).strip()
+    
+    # Parse CNS
+    cns_match = re.search(r'CNS:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if cns_match:
+        parsed_fields['cns'] = cns_match.group(1).strip()
+    
+    # Parse Water Temp
+    water_temp_match = re.search(r'Water Temp:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if water_temp_match:
+        parsed_fields['water_temperature'] = water_temp_match.group(1).strip()
+    
+    # Parse Deco Model
+    deco_model_match = re.search(r'Deco Model:\s*([^\n]+?)(?=\nWeights:|$)', dive_information, re.MULTILINE)
+    if deco_model_match:
+        parsed_fields['deco_model'] = deco_model_match.group(1).strip()
+    
+    # Parse Weights
+    weights_match = re.search(r'Weights:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if weights_match:
+        weights_value = weights_match.group(1).strip()
+        # Clean up weights value - remove extra "weight" text if present
+        if weights_value.endswith(' weight'):
+            weights_value = weights_value[:-7]  # Remove " weight" (7 characters)
+        parsed_fields['weights'] = weights_value
+    
+    return parsed_fields
 
 def parse_dive_profile_samples(computer_elem):
     import xml.etree.ElementTree as ET
@@ -2212,6 +2299,16 @@ def parse_dive_profile_samples(computer_elem):
         cns = sample.get('cns')
         if cns:
             sample_data['cns_percent'] = parse_cns_value(cns)
+        
+        # Parse decompression stop time
+        stoptime = sample.get('stoptime')
+        if stoptime:
+            sample_data['stoptime_minutes'] = parse_time_to_minutes(stoptime)
+        
+        # Parse stop depth
+        stopdepth = sample.get('stopdepth')
+        if stopdepth:
+            sample_data['stopdepth'] = parse_depth_value(stopdepth)
         
         # Only add sample if it has essential data
         if 'time_minutes' in sample_data and 'depth' in sample_data:
@@ -2266,19 +2363,19 @@ def parse_time_to_minutes(time_str):
         if ':' in time_str:
             parts = time_str.split(':')
             if len(parts) == 2:
-                # Format: MM:SS or HH:MM:SS (heuristic: if first part > 2 digits, assume HH:MM:SS)
-                if len(parts[0]) > 2:
-                    hours = int(parts[0]) if parts[0] else 0
-                    minutes = int(parts[1]) if parts[1] else 0
-                    seconds = int(parts[2]) if len(parts) > 2 and parts[2] else 0
-                    return hours * 60 + minutes + (seconds / 60.0)
-                else:  # Format: MM:SS
-                    minutes = int(parts[0]) if parts[0] else 0
-                    seconds = int(parts[1]) if parts[1] else 0
-                    return minutes + (seconds / 60.0)
-        
-        # If no colon, assume it's already in minutes
-        return float(time_str)
+                # Format: MM:SS
+                minutes = int(parts[0]) if parts[0] else 0
+                seconds = int(parts[1]) if parts[1] else 0
+                return minutes + (seconds / 60.0)
+            elif len(parts) == 3:
+                # Format: HH:MM:SS
+                hours = int(parts[0]) if parts[0] else 0
+                minutes = int(parts[1]) if parts[1] else 0
+                seconds = int(parts[2]) if parts[2] else 0
+                return hours * 60 + minutes + (seconds / 60.0)
+        else:
+            # If no colon, assume it's already in minutes
+            return float(time_str)
     except (ValueError, AttributeError):
         return 0.0
 
@@ -2375,6 +2472,7 @@ async def confirm_import_dives(
                 errors.append(f"Dive {i+1}: Missing dive date")
                 continue
 
+
             # Create dive
             dive_create = DiveCreate(
                 dive_site_id=dive_data.get('dive_site_id'),
@@ -2394,10 +2492,20 @@ async def confirm_import_dives(
                 duration=dive_data.get('duration')
             )
 
+            # Parse date and time for SQLite compatibility
+            dive_date = datetime.strptime(dive_data['dive_date'], "%Y-%m-%d").date()
+            dive_time = None
+            if dive_data.get('dive_time'):
+                dive_time = datetime.strptime(dive_data['dive_time'], "%H:%M:%S").time()
+
             # Create the dive
+            dive_data_dict = dive_create.dict(exclude_unset=True)
+            dive_data_dict['dive_date'] = dive_date  # Use parsed date object
+            dive_data_dict['dive_time'] = dive_time  # Use parsed time object
+            
             dive = Dive(
                 user_id=current_user.id,
-                **dive_create.dict(exclude_unset=True)
+                **dive_data_dict
             )
 
             # Generate name if not provided
@@ -2509,10 +2617,11 @@ def parse_dive_element(dive_elem, dive_sites, db):
         if computer_elem is not None:
             computer_data = parse_divecomputer(computer_elem)
 
-        # Parse dive profile samples
+        # Parse dive profile samples - look for samples in divecomputer element (Subsurface format)
         profile_data = None
-        if computer_elem is not None:
-            profile_data = parse_dive_profile_samples(computer_elem)
+        divecomputer_elem = dive_elem.find('divecomputer')
+        if divecomputer_elem is not None:
+            profile_data = parse_dive_profile_samples(divecomputer_elem)
 
         # Convert to Divemap format
         divemap_dive = convert_to_divemap_format(
@@ -3099,7 +3208,7 @@ def get_dive_profile(
     
     # Check if dive has profile data
     if not dive.profile_xml_path:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No profile uploaded")
     
     try:
         # Download profile from R2 or local storage
