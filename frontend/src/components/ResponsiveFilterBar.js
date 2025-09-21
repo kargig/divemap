@@ -46,6 +46,7 @@ const ResponsiveFilterBar = ({
   onDisplayOptionChange = () => {},
   // New prop for page-specific quick filters
   pageType = 'dive-sites',
+  user = null,
 }) => {
   const { isMobile, navbarVisible, searchBarVisible, quickFiltersVisible } = useResponsiveScroll();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -223,17 +224,19 @@ const ResponsiveFilterBar = ({
               {pageType === 'dives' ? (
                 // Dives page quick filters
                 <>
-                  <button
-                    onClick={() => onQuickFilter('my_dives')}
-                    className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                      quickFilter === 'my_dives'
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
-                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
-                    }`}
-                    title='My Dives'
-                  >
-                    👤 <span className='hidden sm:inline'>My Dives</span>
-                  </button>
+                  {user && user.id && (
+                    <button
+                      onClick={() => onQuickFilter('my_dives')}
+                      className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
+                        quickFilter === 'my_dives'
+                          ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
+                      }`}
+                      title='My Dives'
+                    >
+                      👤 <span className='hidden sm:inline'>My Dives</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => onQuickFilter('wrecks')}
                     className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
@@ -667,17 +670,19 @@ const ResponsiveFilterBar = ({
               {pageType === 'dives' ? (
                 // Dives page mobile quick filters
                 <>
-                  <button
-                    onClick={() => onQuickFilter('my_dives')}
-                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                      quickFilter === 'my_dives'
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                    }`}
-                    title='My Dives'
-                  >
-                    👤
-                  </button>
+                  {user && user.id && (
+                    <button
+                      onClick={() => onQuickFilter('my_dives')}
+                      className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                        quickFilter === 'my_dives'
+                          ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                          : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                      }`}
+                      title='My Dives'
+                    >
+                      👤
+                    </button>
+                  )}
                   <button
                     onClick={() => onQuickFilter('wrecks')}
                     className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
@@ -1103,6 +1108,7 @@ ResponsiveFilterBar.propTypes = {
   onDisplayOptionChange: PropTypes.func,
   // New prop for page-specific quick filters
   pageType: PropTypes.string,
+  user: PropTypes.object,
 };
 
 export default ResponsiveFilterBar;

@@ -953,6 +953,7 @@ const Dives = () => {
           if (option === 'compactLayout') setCompactLayout(value);
         }}
         pageType='dives'
+        user={user}
       />
 
       {/* Pagination Controls */}
@@ -1167,12 +1168,18 @@ const Dives = () => {
                     )}
                   </div>
 
-                  <p className={`text-gray-700 ${compactLayout ? 'text-sm' : 'text-base'}`}>
-                    Buddy: {dive.buddy} SAC: {dive.sac} l/min OTU: {dive.otu} CNS: {dive.cns}% Max
-                    Depth: {dive.max_depth} m Avg Depth: {dive.avg_depth} m Water Temp:{' '}
-                    {dive.water_temp} C Deco Model: {dive.deco_model} Weights: {dive.weights} kg
-                    weight
-                  </p>
+                  {dive.dive_information && dive.dive_information.trim() ? (
+                    <p className={`text-gray-700 ${compactLayout ? 'text-sm' : 'text-base'}`}>
+                      {dive.dive_information.replace(/\n/g, ' | ')}
+                    </p>
+                  ) : (
+                    <p className={`text-gray-700 ${compactLayout ? 'text-sm' : 'text-base'}`}>
+                      Max Depth: {dive.max_depth || 'N/A'} m | Avg Depth:{' '}
+                      {dive.average_depth || 'N/A'} m | Duration: {dive.duration || 'N/A'} min |
+                      Visibility: {dive.visibility_rating || 'N/A'}/10 | Rating:{' '}
+                      {dive.user_rating || 'N/A'}/10
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
