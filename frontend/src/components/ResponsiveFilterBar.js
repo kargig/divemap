@@ -224,7 +224,7 @@ const ResponsiveFilterBar = ({
               {pageType === 'dives' ? (
                 // Dives page quick filters
                 <>
-                  {user && (
+                  {user && user.id && (
                     <button
                       onClick={() => onQuickFilter('my_dives')}
                       className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
@@ -670,7 +670,7 @@ const ResponsiveFilterBar = ({
               {pageType === 'dives' ? (
                 // Dives page mobile quick filters
                 <>
-                  {user && (
+                  {user && user.id && (
                     <button
                       onClick={() => onQuickFilter('my_dives')}
                       className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${

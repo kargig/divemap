@@ -1168,9 +1168,16 @@ const Dives = () => {
                     )}
                   </div>
 
-                  {dive.dive_information && (
+                  {dive.dive_information && dive.dive_information.trim() ? (
                     <p className={`text-gray-700 ${compactLayout ? 'text-sm' : 'text-base'}`}>
                       {dive.dive_information.replace(/\n/g, ' | ')}
+                    </p>
+                  ) : (
+                    <p className={`text-gray-700 ${compactLayout ? 'text-sm' : 'text-base'}`}>
+                      Max Depth: {dive.max_depth || 'N/A'} m | Avg Depth:{' '}
+                      {dive.average_depth || 'N/A'} m | Duration: {dive.duration || 'N/A'} min |
+                      Visibility: {dive.visibility_rating || 'N/A'}/10 | Rating:{' '}
+                      {dive.user_rating || 'N/A'}/10
                     </p>
                   )}
                 </div>
