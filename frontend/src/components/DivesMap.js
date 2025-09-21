@@ -376,6 +376,7 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
     return new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
+      hour12: false, // Use 24-hour format
     });
   };
 

@@ -31,3 +31,5 @@ cryptography==45.0.5
 openai==1.98.0
 # System monitoring
 psutil==6.1.0
+# Cloudflare R2 storage (S3-compatible)
+boto3==1.35.0

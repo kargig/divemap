@@ -13,6 +13,7 @@ import {
   getDivingCenters,
 } from '../api';
 import usePageTitle from '../hooks/usePageTitle';
+import { getDifficultyValue } from '../utils/difficultyHelpers';
 
 const CreateDive = () => {
   // Set page title
@@ -276,7 +277,7 @@ const CreateDive = () => {
       suit_type: formData.suit_type && formData.suit_type !== '' ? formData.suit_type : null,
       difficulty_level:
         formData.difficulty_level && formData.difficulty_level !== ''
-          ? formData.difficulty_level
+          ? getDifficultyValue(formData.difficulty_level)
           : null,
       dive_information:
         formData.dive_information && formData.dive_information !== ''
@@ -286,7 +287,8 @@ const CreateDive = () => {
         formData.gas_bottles_used && formData.gas_bottles_used !== ''
           ? formData.gas_bottles_used
           : null,
-      dive_time: formData.dive_time && formData.dive_time !== '' ? formData.dive_time : null,
+      dive_time:
+        formData.dive_time && formData.dive_time !== '' ? `${formData.dive_time}:00` : null,
     };
 
     try {
