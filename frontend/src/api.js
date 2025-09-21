@@ -389,6 +389,11 @@ export const getSystemHealth = async () => {
   return response.data;
 };
 
+export const getStorageHealth = async () => {
+  const response = await api.get('/api/v1/dives/storage/health');
+  return response.data;
+};
+
 export const getPlatformStats = async () => {
   const response = await api.get('/api/v1/admin/system/stats');
   return response.data;

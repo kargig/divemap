@@ -407,6 +407,11 @@ class Dive(Base):
     dive_time = Column(Time, nullable=True)
     duration = Column(Integer)  # Duration in minutes
     view_count = Column(Integer, default=0, nullable=False)  # Number of views
+    # Dive profile metadata
+    profile_xml_path = Column(String(500), nullable=True)  # Path to XML profile file
+    profile_sample_count = Column(Integer, nullable=True)  # Number of sample points
+    profile_max_depth = Column(DECIMAL(6, 3), nullable=True)  # Max depth from profile
+    profile_duration_minutes = Column(Integer, nullable=True)  # Duration from profile
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

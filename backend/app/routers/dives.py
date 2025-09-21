@@ -9,6 +9,7 @@ from io import BytesIO
 from difflib import SequenceMatcher
 import json
 import logging
+import os
 
 from app.database import get_db
 from app.models import Dive, DiveMedia, DiveTag, DiveSite, AvailableTag, User, DivingCenter, DiveSiteAlias, get_difficulty_label, get_difficulty_value
@@ -23,6 +24,7 @@ from app.utils import (
     get_unified_fuzzy_trigger_conditions,
     UNIFIED_TYPO_TOLERANCE
 )
+from app.services.r2_storage_service import r2_storage
 
 router = APIRouter()
 
@@ -30,6 +32,31 @@ router = APIRouter()
 def generate_dive_name(dive_site_name: str, dive_date: date) -> str:
     """Generate automatic dive name from dive site and date"""
     return f"{dive_site_name} - {dive_date.strftime('%Y/%m/%d')}"
+
+
+def get_or_create_deco_tag(db: Session) -> AvailableTag:
+    """Get or create the 'deco' tag for decompression dives."""
+    deco_tag = db.query(AvailableTag).filter(AvailableTag.name == "deco").first()
+    if not deco_tag:
+        deco_tag = AvailableTag(
+            name="deco",
+            description="Decompression dive - requires decompression stops"
+        )
+        db.add(deco_tag)
+        db.commit()
+        db.refresh(deco_tag)
+    return deco_tag
+
+
+def has_deco_profile(profile_data: dict) -> bool:
+    """Check if dive profile contains any samples with in_deco=True."""
+    if not profile_data or 'samples' not in profile_data:
+        return False
+    
+    for sample in profile_data['samples']:
+        if sample.get('in_deco') is True:
+            return True
+    return False
 
 
 def search_dives_with_fuzzy(query: str, exact_results: List[Dive], db: Session, similarity_threshold: float = UNIFIED_TYPO_TOLERANCE['overall_threshold'], max_fuzzy_results: int = 10, sort_by: str = None, sort_order: str = 'asc'):
@@ -1285,6 +1312,9 @@ def get_dives(
         dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).order_by(AvailableTag.name.asc()).all()
         tags_list = [{"id": tag.id, "name": tag.name} for tag in dive_tags]
 
+        # Parse dive information to extract individual fields
+        parsed_info = parse_dive_information_text(dive.dive_information)
+
         dive_dict = {
             "id": dive.id,
             "user_id": dive.user_id,
@@ -1310,7 +1340,15 @@ def get_dives(
             "diving_center": diving_center_info,
             "media": [],
             "tags": tags_list,
-            "user_username": dive.user.username
+            "user_username": dive.user.username,
+            # Add parsed fields from dive_information
+            "buddy": parsed_info.get('buddy'),
+            "sac": parsed_info.get('sac'),
+            "otu": parsed_info.get('otu'),
+            "cns": parsed_info.get('cns'),
+            "water_temperature": parsed_info.get('water_temperature'),
+            "deco_model": parsed_info.get('deco_model'),
+            "weights": parsed_info.get('weights')
         }
         dive_list.append(dive_dict)
 
@@ -1439,6 +1477,9 @@ def get_dive(
         for tag in dive_tags
     ]
 
+    # Parse dive information to extract individual fields
+    parsed_info = parse_dive_information_text(dive.dive_information)
+
     # Convert SQLAlchemy object to dictionary to avoid serialization issues
     dive_dict = {
         "id": dive.id,
@@ -1459,13 +1500,25 @@ def get_dive(
         "dive_time": dive.dive_time.strftime("%H:%M:%S") if dive.dive_time else None,
         "duration": dive.duration,
         "view_count": dive.view_count,
+        "profile_xml_path": dive.profile_xml_path,
+        "profile_sample_count": dive.profile_sample_count,
+        "profile_max_depth": float(dive.profile_max_depth) if dive.profile_max_depth else None,
+        "profile_duration_minutes": dive.profile_duration_minutes,
         "created_at": dive.created_at,
         "updated_at": dive.updated_at,
         "dive_site": dive_site_info,
         "diving_center": diving_center_info,
         "media": [],
         "tags": tags_dict,
-        "user_username": dive.user.username
+        "user_username": dive.user.username,
+        # Add parsed fields from dive_information
+        "buddy": parsed_info.get('buddy'),
+        "sac": parsed_info.get('sac'),
+        "otu": parsed_info.get('otu'),
+        "cns": parsed_info.get('cns'),
+        "water_temperature": parsed_info.get('water_temperature'),
+        "deco_model": parsed_info.get('deco_model'),
+        "weights": parsed_info.get('weights')
     }
 
     return dive_dict
@@ -2091,7 +2144,24 @@ async def import_subsurface_xml(
 
         # Extract dives
         parsed_dives = []
-        for dive_elem in root.findall('.//dives/dive'):
+        # Look for dives in different XML structures
+        dive_elements = []
+        if root.tag == 'dives':
+            dive_elements = root.findall('dive')
+        elif root.tag == 'divelog':
+            # Check if there's a dives container inside divelog
+            dives_container = root.find('dives')
+            if dives_container is not None:
+                dive_elements = dives_container.findall('dive')
+            else:
+                dive_elements = root.findall('dive')
+        elif root.tag == 'dive':
+            dive_elements = [root]
+        else:
+            # Try to find dives anywhere in the XML
+            dive_elements = root.findall('.//dive')
+        
+        for dive_elem in dive_elements:
             dive_data = parse_dive_element(dive_elem, dive_sites, db)
             if dive_data:
                 parsed_dives.append(dive_data)
@@ -2133,6 +2203,250 @@ async def import_subsurface_xml(
         )
 
 
+def parse_dive_information_text(dive_information):
+    """Parse dive information text to extract individual fields like buddy, sac, otu, etc."""
+    if not dive_information:
+        return {}
+    
+    parsed_fields = {}
+    
+    # Parse buddy - handle multiline text
+    buddy_match = re.search(r'Buddy:\s*([^\n]+?)(?=\nSAC:|$)', dive_information, re.MULTILINE)
+    if buddy_match:
+        parsed_fields['buddy'] = buddy_match.group(1).strip()
+    
+    # Parse SAC
+    sac_match = re.search(r'SAC:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if sac_match:
+        parsed_fields['sac'] = sac_match.group(1).strip()
+    
+    # Parse OTU
+    otu_match = re.search(r'OTU:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if otu_match:
+        parsed_fields['otu'] = otu_match.group(1).strip()
+    
+    # Parse CNS
+    cns_match = re.search(r'CNS:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if cns_match:
+        parsed_fields['cns'] = cns_match.group(1).strip()
+    
+    # Parse Water Temp
+    water_temp_match = re.search(r'Water Temp:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if water_temp_match:
+        parsed_fields['water_temperature'] = water_temp_match.group(1).strip()
+    
+    # Parse Deco Model
+    deco_model_match = re.search(r'Deco Model:\s*([^\n]+?)(?=\nWeights:|$)', dive_information, re.MULTILINE)
+    if deco_model_match:
+        parsed_fields['deco_model'] = deco_model_match.group(1).strip()
+    
+    # Parse Weights
+    weights_match = re.search(r'Weights:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if weights_match:
+        weights_value = weights_match.group(1).strip()
+        # Clean up weights value - remove extra "weight" text if present
+        if weights_value.endswith(' weight'):
+            weights_value = weights_value[:-7]  # Remove " weight" (7 characters)
+        parsed_fields['weights'] = weights_value
+    
+    return parsed_fields
+
+def parse_dive_profile_samples(computer_elem):
+    import xml.etree.ElementTree as ET
+    
+    # Handle both XML element and XML string
+    if isinstance(computer_elem, str):
+        try:
+            computer_elem = ET.fromstring(computer_elem)
+        except ET.ParseError:
+            return None
+    """Parse dive profile samples and events from dive computer element"""
+    samples = []
+    events = []
+    
+    # Find all sample elements
+    sample_elements = computer_elem.findall('sample')
+    for sample in sample_elements:
+        sample_data = {}
+        
+        # Parse time (convert to minutes)
+        time_str = sample.get('time')
+        if time_str:
+            sample_data['time'] = time_str
+            sample_data['time_minutes'] = parse_time_to_minutes(time_str)
+        
+        # Parse depth
+        depth = sample.get('depth')
+        if depth:
+            sample_data['depth'] = parse_depth_value(depth)
+        
+        # Parse temperature
+        temp = sample.get('temp')
+        if temp:
+            sample_data['temperature'] = parse_temperature_value(temp)
+        
+        # Parse NDL (No Decompression Limit)
+        ndl = sample.get('ndl')
+        if ndl:
+            sample_data['ndl_minutes'] = parse_time_to_minutes(ndl)
+        
+        # Parse in_deco status
+        in_deco = sample.get('in_deco')
+        if in_deco is not None:
+            sample_data['in_deco'] = in_deco == '1'
+        
+        # Parse CNS
+        cns = sample.get('cns')
+        if cns:
+            sample_data['cns_percent'] = parse_cns_value(cns)
+        
+        # Parse decompression stop time
+        stoptime = sample.get('stoptime')
+        if stoptime:
+            sample_data['stoptime_minutes'] = parse_time_to_minutes(stoptime)
+        
+        # Parse stop depth
+        stopdepth = sample.get('stopdepth')
+        if stopdepth:
+            sample_data['stopdepth'] = parse_depth_value(stopdepth)
+        
+        # Only add sample if it has essential data
+        if 'time_minutes' in sample_data and 'depth' in sample_data:
+            samples.append(sample_data)
+    
+    # Parse events
+    event_elements = computer_elem.findall('event')
+    for event in event_elements:
+        event_data = {
+            'time': event.get('time'),
+            'time_minutes': parse_time_to_minutes(event.get('time', '0:00 min')),
+            'type': event.get('type'),
+            'flags': event.get('flags'),
+            'name': event.get('name'),
+            'cylinder': event.get('cylinder'),
+            'o2': event.get('o2')
+        }
+        events.append(event_data)
+    
+    if not samples:
+        return None
+    
+    # Calculate derived metrics
+    depths = [s['depth'] for s in samples if 'depth' in s]
+    temperatures = [s['temperature'] for s in samples if 'temperature' in s]
+    
+    profile_data = {
+        'samples': samples,
+        'events': events,
+        'sample_count': len(samples),
+        'calculated_max_depth': max(depths) if depths else 0,
+        'calculated_avg_depth': sum(depths) / len(depths) if depths else 0,
+        'calculated_duration_minutes': samples[-1].get('time_minutes', 0) if samples else 0,
+        'temperature_range': {
+            'min': min(temperatures) if temperatures else None,
+            'max': max(temperatures) if temperatures else None
+        }
+    }
+    
+    return profile_data
+
+
+def parse_time_to_minutes(time_str):
+    """Parse time string to minutes (float)"""
+    if not time_str:
+        return 0.0
+    
+    try:
+        # Handle formats like "1:30 min", "30:00 min", "0:10 min", "54:30 min"
+        time_str = time_str.replace('min', '').strip()
+        
+        if ':' in time_str:
+            parts = time_str.split(':')
+            if len(parts) == 2:
+                # Format: MM:SS
+                minutes = int(parts[0]) if parts[0] else 0
+                seconds = int(parts[1]) if parts[1] else 0
+                return minutes + (seconds / 60.0)
+            elif len(parts) == 3:
+                # Format: HH:MM:SS
+                hours = int(parts[0]) if parts[0] else 0
+                minutes = int(parts[1]) if parts[1] else 0
+                seconds = int(parts[2]) if parts[2] else 0
+                return hours * 60 + minutes + (seconds / 60.0)
+        else:
+            # If no colon, assume it's already in minutes
+            return float(time_str)
+    except (ValueError, AttributeError):
+        return 0.0
+
+
+def parse_depth_value(depth_str):
+    """Parse depth string to float meters"""
+    if not depth_str:
+        return 0.0
+    
+    try:
+        # Handle formats like "28.7 m", "0.0 m"
+        depth_str = depth_str.replace(' m', '').strip()
+        return float(depth_str)
+    except (ValueError, AttributeError):
+        return 0.0
+
+
+def parse_temperature_value(temp_str):
+    """Parse temperature string to float Celsius"""
+    if not temp_str:
+        return None
+    
+    try:
+        # Handle formats like "19.0 C", "27.7 C"
+        temp_str = temp_str.replace(' C', '').strip()
+        return float(temp_str)
+    except (ValueError, AttributeError):
+        return None
+
+
+def parse_cns_value(cns_str):
+    """Parse CNS string to float percentage"""
+    if not cns_str:
+        return None
+    
+    try:
+        # Handle formats like "3%", "0%"
+        cns_str = cns_str.replace('%', '').strip()
+        return float(cns_str)
+    except (ValueError, AttributeError):
+        return None
+
+
+def save_dive_profile_data(dive, profile_data, db):
+    """Save dive profile data as JSON file and update dive record"""
+    try:
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"dive_{dive.id}_profile_{timestamp}.json"
+        
+        # Convert profile data to JSON bytes
+        json_content = json.dumps(profile_data, indent=2).encode('utf-8')
+        
+        # Upload to R2 or local storage
+        stored_path = r2_storage.upload_profile(dive.user_id, filename, json_content)
+        
+        # Update dive record with profile metadata
+        dive.profile_xml_path = stored_path
+        dive.profile_sample_count = len(profile_data.get('samples', []))
+        dive.profile_max_depth = profile_data.get('calculated_max_depth', 0)
+        dive.profile_duration_minutes = profile_data.get('calculated_duration_minutes', 0)
+        
+        # Commit the changes
+        db.commit()
+        
+    except Exception as e:
+        # Rollback on error
+        db.rollback()
+        raise e
+
+
 @router.post("/import/confirm")
 async def confirm_import_dives(
     dives_data: List[dict],
@@ -2158,6 +2472,7 @@ async def confirm_import_dives(
                 errors.append(f"Dive {i+1}: Missing dive date")
                 continue
 
+
             # Create dive
             dive_create = DiveCreate(
                 dive_site_id=dive_data.get('dive_site_id'),
@@ -2177,10 +2492,20 @@ async def confirm_import_dives(
                 duration=dive_data.get('duration')
             )
 
+            # Parse date and time for SQLite compatibility
+            dive_date = datetime.strptime(dive_data['dive_date'], "%Y-%m-%d").date()
+            dive_time = None
+            if dive_data.get('dive_time'):
+                dive_time = datetime.strptime(dive_data['dive_time'], "%H:%M:%S").time()
+
             # Create the dive
+            dive_data_dict = dive_create.dict(exclude_unset=True)
+            dive_data_dict['dive_date'] = dive_date  # Use parsed date object
+            dive_data_dict['dive_time'] = dive_time  # Use parsed time object
+            
             dive = Dive(
                 user_id=current_user.id,
-                **dive_create.dict(exclude_unset=True)
+                **dive_data_dict
             )
 
             # Generate name if not provided
@@ -2196,6 +2521,25 @@ async def confirm_import_dives(
 
             db.add(dive)
             db.flush()  # Get the dive ID
+
+            # Check if dive has decompression profile and add deco tag
+            if 'profile_data' in dive_data and dive_data['profile_data']:
+                if has_deco_profile(dive_data['profile_data']):
+                    try:
+                        deco_tag = get_or_create_deco_tag(db)
+                        dive_tag = DiveTag(dive_id=dive.id, tag_id=deco_tag.id)
+                        db.add(dive_tag)
+                    except Exception as e:
+                        # Log error but don't fail the import
+                        print(f"Warning: Failed to add deco tag for dive {dive.id}: {str(e)}")
+
+            # Save dive profile data if available
+            if 'profile_data' in dive_data and dive_data['profile_data']:
+                try:
+                    save_dive_profile_data(dive, dive_data['profile_data'], db)
+                except Exception as e:
+                    # Log error but don't fail the import
+                    print(f"Warning: Failed to save profile data for dive {dive.id}: {str(e)}")
 
             # Get dive site name for response
             dive_site_name = None
@@ -2273,6 +2617,12 @@ def parse_dive_element(dive_elem, dive_sites, db):
         if computer_elem is not None:
             computer_data = parse_divecomputer(computer_elem)
 
+        # Parse dive profile samples - look for samples in divecomputer element (Subsurface format)
+        profile_data = None
+        divecomputer_elem = dive_elem.find('divecomputer')
+        if divecomputer_elem is not None:
+            profile_data = parse_dive_profile_samples(divecomputer_elem)
+
         # Convert to Divemap format
         divemap_dive = convert_to_divemap_format(
             dive_number, rating, visibility, sac, otu, cns, tags,
@@ -2280,6 +2630,10 @@ def parse_dive_element(dive_elem, dive_sites, db):
             buddy, suit, cylinders, weights, computer_data,
             dive_sites, db
         )
+
+        # Add profile data to the dive
+        if profile_data:
+            divemap_dive['profile_data'] = profile_data
 
         return divemap_dive
 
@@ -2831,3 +3185,217 @@ def search_dives_with_fuzzy(query: str, exact_results: List[Dive], db: Session, 
     final_results.extend(fuzzy_matches)
     
     return final_results
+
+
+# Dive Profile endpoints
+@router.get("/{dive_id}/profile")
+def get_dive_profile(
+    dive_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Get dive profile data"""
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    
+    dive = db.query(Dive).filter(Dive.id == dive_id).first()
+    if not dive:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found")
+    
+    # Check if user owns the dive or is admin
+    if dive.user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    
+    # Check if dive has profile data
+    if not dive.profile_xml_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No profile uploaded")
+    
+    try:
+        # Download profile from R2 or local storage
+        profile_content = r2_storage.download_profile(dive.user_id, dive.profile_xml_path)
+        if not profile_content:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile file not found")
+        
+        # Check file extension to determine parsing method
+        if dive.profile_xml_path.endswith('.json'):
+            # Imported profile (JSON format)
+            profile_data = json.loads(profile_content.decode('utf-8'))
+        else:
+            # Manually uploaded profile (XML format) - save temporarily and parse
+            from app.services.dive_profile_parser import DiveProfileParser
+            import tempfile
+            
+            with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as temp_file:
+                temp_file.write(profile_content)
+                temp_path = temp_file.name
+            
+            try:
+                parser = DiveProfileParser()
+                profile_data = parser.parse_xml_file(temp_path)
+            finally:
+                # Clean up temporary file
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+        
+        return profile_data
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 404 errors) as-is
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error parsing profile: {str(e)}")
+
+
+@router.post("/{dive_id}/profile")
+async def upload_dive_profile(
+    dive_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Upload dive profile XML file"""
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    
+    # Check if dive exists and user owns it
+    dive = db.query(Dive).filter(Dive.id == dive_id).first()
+    if not dive:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found")
+    
+    if dive.user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    
+    # Validate file type
+    if not file.filename.lower().endswith('.xml'):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only XML files are allowed")
+    
+    try:
+        # Read file content
+        content = await file.read()
+        
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"dive_{dive_id}_profile_{timestamp}.xml"
+        
+        # Parse profile data first to validate
+        from app.services.dive_profile_parser import DiveProfileParser
+        import tempfile
+        import xml.etree.ElementTree as ET
+        
+        with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
+        
+        try:
+            parser = DiveProfileParser()
+            profile_data = parser.parse_xml_file(temp_path)
+            
+            if not profile_data or not profile_data.get('samples'):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid dive profile data")
+            
+            # Upload to R2 or local storage
+            stored_path = r2_storage.upload_profile(dive.user_id, filename, content)
+            
+            # Update dive record with profile metadata
+            dive.profile_xml_path = stored_path
+            dive.profile_sample_count = len(profile_data.get('samples', []))
+            dive.profile_max_depth = profile_data.get('calculated_max_depth', 0)
+            dive.profile_duration_minutes = profile_data.get('calculated_duration_minutes', 0)
+            
+            db.commit()
+            
+            return {
+                "message": "Dive profile uploaded successfully",
+                "profile_data": profile_data
+            }
+            
+        except (ET.ParseError, FileNotFoundError, ValueError) as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid dive profile data: {str(e)}")
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 400 errors) as-is
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error uploading profile: {str(e)}")
+
+
+@router.delete("/{dive_id}/profile")
+def delete_dive_profile(
+    dive_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Delete dive profile"""
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    
+    # Check if dive exists and user owns it
+    dive = db.query(Dive).filter(Dive.id == dive_id).first()
+    if not dive:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found")
+    
+    if dive.user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    
+    if not dive.profile_xml_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No profile found")
+    
+    try:
+        # Delete profile from R2 or local storage
+        r2_storage.delete_profile(dive.user_id, dive.profile_xml_path)
+        
+        # Clear profile metadata from dive record
+        dive.profile_xml_path = None
+        dive.profile_sample_count = None
+        dive.profile_max_depth = None
+        dive.profile_duration_minutes = None
+        
+        db.commit()
+        
+        return {"message": "Dive profile deleted successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error deleting profile: {str(e)}")
+
+
+@router.delete("/profiles/user/{user_id}")
+def delete_user_profiles(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Delete all dive profiles for a specific user (admin only)"""
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    
+    try:
+        # Delete all profiles for the user
+        success = r2_storage.delete_user_profiles(user_id)
+        
+        if success:
+            return {"message": f"All profiles for user {user_id} deleted successfully"}
+        else:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete user profiles")
+        
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error deleting user profiles: {str(e)}")
+
+
+@router.get("/storage/health")
+def storage_health_check():
+    """Check storage service health (R2 and local fallback)"""
+    try:
+        health_status = r2_storage.health_check()
+        return health_status
+    except Exception as e:
+        return {
+            "error": str(e),
+            "r2_available": False,
+            "local_storage_available": False
+        }

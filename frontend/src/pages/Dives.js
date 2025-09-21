@@ -806,6 +806,7 @@ const Dives = () => {
     return new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
+      hour12: false, // Use 24-hour format
     });
   };
 
@@ -1174,10 +1175,29 @@ const Dives = () => {
                     </p>
                   ) : (
                     <p className={`text-gray-700 ${compactLayout ? 'text-sm' : 'text-base'}`}>
-                      Max Depth: {dive.max_depth || 'N/A'} m | Avg Depth:{' '}
-                      {dive.average_depth || 'N/A'} m | Duration: {dive.duration || 'N/A'} min |
-                      Visibility: {dive.visibility_rating || 'N/A'}/10 | Rating:{' '}
-                      {dive.user_rating || 'N/A'}/10
+                      {(() => {
+                        const stats = [];
+
+                        // Only add fields that have values
+                        if (dive.buddy) stats.push(`Buddy: ${dive.buddy}`);
+                        if (dive.sac) stats.push(`SAC: ${dive.sac}`);
+                        if (dive.otu) stats.push(`OTU: ${dive.otu}`);
+                        if (dive.cns) stats.push(`CNS: ${dive.cns}`);
+                        if (dive.max_depth) stats.push(`Max Depth: ${dive.max_depth} m`);
+                        if (dive.average_depth) stats.push(`Avg Depth: ${dive.average_depth} m`);
+                        if (dive.water_temperature)
+                          stats.push(`Water Temp: ${dive.water_temperature}`);
+                        if (dive.deco_model) stats.push(`Deco Model: ${dive.deco_model}`);
+                        if (dive.weights) stats.push(`Weights: ${dive.weights}`);
+                        if (dive.duration) stats.push(`Duration: ${dive.duration} min`);
+                        if (dive.visibility_rating)
+                          stats.push(`Visibility: ${dive.visibility_rating}/10`);
+                        if (dive.user_rating) stats.push(`Rating: ${dive.user_rating}/10`);
+
+                        return stats.length > 0
+                          ? stats.join(' | ')
+                          : 'No additional dive statistics available';
+                      })()}
                     </p>
                   )}
                 </div>
@@ -1234,11 +1254,8 @@ const Dives = () => {
                     </div>
 
                     <p className={`text-gray-600 mb-3 ${compactLayout ? 'text-sm' : 'text-base'}`}>
-                      {new Date(dive.dive_date).toLocaleDateString('en-GB')} at{' '}
-                      {new Date(dive.dive_date).toLocaleTimeString('en-GB', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {new Date(dive.dive_date).toLocaleDateString('en-GB')}
+                      {dive.dive_time && ` at ${formatTime(dive.dive_time)}`}
                     </p>
 
                     <div className='space-y-2 mb-4'>

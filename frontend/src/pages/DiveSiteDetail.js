@@ -435,6 +435,7 @@ const DiveSiteDetail = () => {
                             {new Date(`2000-01-01T${dive.dive_time}`).toLocaleTimeString([], {
                               hour: '2-digit',
                               minute: '2-digit',
+                              hour12: false, // Use 24-hour format
                             })}
                           </span>
                         )}
