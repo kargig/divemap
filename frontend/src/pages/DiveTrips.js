@@ -20,7 +20,6 @@ import {
   Star,
   ChevronDown,
   Compass,
-  Globe,
   Plus,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -667,16 +666,6 @@ const DiveTrips = () => {
             >
               <Compass className='w-5 h-5' />
               Explore Map
-            </button>
-            <button
-              onClick={() => {
-                setViewMode('list');
-                navigate('/dive-trips');
-              }}
-              className='bg-indigo-600 hover:bg-indigo-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-            >
-              <Globe className='w-5 h-5' />
-              Browse Trips
             </button>
             {user && (
               <button
