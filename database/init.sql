@@ -1,8 +1,5 @@
 -- Divemap Database Initialization Script
-
--- Create database if not exists
-CREATE DATABASE IF NOT EXISTS divemap;
-USE divemap;
+-- This script runs after MySQL automatically creates the database and user from environment variables
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
