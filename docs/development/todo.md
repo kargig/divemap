@@ -231,33 +231,6 @@
 
 **GitHub Issue:** [#19](https://github.com/kargig/divemap/issues/19)
 
-#### 14. Enhanced Subsurface Dive Import with Interactive Dive Profiles
-
-**Status:** Planning
-
-**Priority:** Medium
-
-**Description:** Improve importing of dives from Subsurface to include detailed timing data (10sec, 30sec, 1min intervals) with dive computer information such as temperature, NDL, CNS%, deco stops, gas switches, and other events. Implement interactive dive profile graphs with depth vs time visualization, multiple data series, and exportable/shareable dive profiles.
-
-**Tasks:**
-
-- [ ] Enhance Subsurface import to capture detailed timing intervals (configurable: 10sec, 30sec, 1min)
-- [ ] Import dive computer data for each timing: temperature, NDL, CNS%, deco status, gas switches
-- [ ] Design database schema for storing detailed dive timing and event data
-- [ ] Implement interactive dive profile graph with depth vs time (Y: depth, X: time)
-- [ ] Add secondary Y-axis for temperature and CNS% data visualization
-- [ ] Implement event markers for gas switches, deco starts/stops, and other dive events
-- [ ] Create configurable graph display options (which data series to show)
-- [ ] Add graph export functionality (PNG, PDF, data export)
-- [ ] Implement shareable dive profile URLs for other users
-- [ ] Ensure mobile-responsive graph interaction and display
-- [ ] Test with various Subsurface export formats and dive computer data
-- [ ] Optimize graph rendering performance for large datasets
-
-**Files:** `docs/development/enhanced-subsurface-import-implementation.md`
-
-**GitHub Issue:** [#61](https://github.com/kargig/divemap/issues/61)
-
 ### Low Priority
 
 #### 15. Refactor Dropdown State Management
@@ -462,7 +435,6 @@
 **Files:** `frontend/package.json`, `frontend/package-lock.json`
 
 **Note:** OpenLayers must be preserved until Task #25 (Migrate TripMap to Leaflet) is completed. After migration, all OpenLayers dependencies can be removed.
-
 
 #### 26. Floating Search Filters Guide
 

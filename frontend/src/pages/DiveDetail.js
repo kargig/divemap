@@ -11,13 +11,15 @@ import {
   EyeOff,
   Download,
   Link,
+  Activity,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Link as RouterLink } from 'react-router-dom';
 
-import { getDive, deleteDive, deleteDiveMedia } from '../api';
+import api, { getDive, deleteDive, deleteDiveMedia } from '../api';
+import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -27,9 +29,27 @@ import { handleRateLimitError } from '../utils/rateLimitHandler';
 const DiveDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [selectedMedia, setSelectedMedia] = useState(null);
+  const [activeTab, setActiveTab] = useState(() => {
+    const tabParam = searchParams.get('tab');
+    return tabParam === 'profile' ? 'profile' : 'details';
+  });
+  const [hasDeco, setHasDeco] = useState(false);
+
+  // Handle tab change and update URL
+  const handleTabChange = tab => {
+    setActiveTab(tab);
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (tab === 'profile') {
+      newSearchParams.set('tab', 'profile');
+    } else {
+      newSearchParams.delete('tab');
+    }
+    setSearchParams(newSearchParams);
+  };
 
   // Fetch dive data
   const {
@@ -44,6 +64,32 @@ const DiveDetail = () => {
     },
     {
       enabled: !!id,
+    }
+  );
+
+  // Check if dive has deco tag (case-insensitive)
+  useEffect(() => {
+    if (dive?.tags) {
+      const hasDecoTag = dive.tags.some(
+        tag => tag.name && tag.name.toLowerCase().trim() === 'deco'
+      );
+      setHasDeco(hasDecoTag);
+    }
+  }, [dive?.tags]);
+
+  // Fetch dive profile data
+  const {
+    data: profileData,
+    isLoading: profileLoading,
+    error: profileError,
+  } = useQuery(
+    ['dive-profile', id],
+    () => {
+      return api.get(`/api/v1/dives/${id}/profile`).then(res => res.data);
+    },
+    {
+      enabled: !!id && activeTab === 'profile',
+      retry: false, // Don't retry on 404
     }
   );
 
@@ -270,197 +316,270 @@ const DiveDetail = () => {
         </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div className='mb-6'>
+        <div className='border-b border-gray-200'>
+          <nav className='-mb-px flex space-x-8'>
+            <button
+              onClick={() => handleTabChange('details')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'details'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className='flex items-center'>
+                <Activity className='h-4 w-4 mr-2' />
+                Details
+              </div>
+            </button>
+            <button
+              onClick={() => handleTabChange('profile')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'profile'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className='flex items-center'>
+                <Activity className='h-4 w-4 mr-2' />
+                Profile
+              </div>
+            </button>
+          </nav>
+        </div>
+      </div>
+
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
         {/* Main Content */}
         <div className='lg:col-span-2 space-y-6'>
-          {/* Basic Information */}
-          <div className='bg-white rounded-lg shadow p-6'>
-            <h2 className='text-xl font-semibold mb-4'>Dive Information</h2>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <div className='flex items-center gap-2'>
-                <Calendar size={16} className='text-gray-500' />
-                <span className='text-sm text-gray-600'>Date:</span>
-                <span className='font-medium'>{formatDate(dive.dive_date)}</span>
-              </div>
-
-              {dive.dive_time && (
-                <div className='flex items-center gap-2'>
-                  <Clock size={16} className='text-gray-500' />
-                  <span className='text-sm text-gray-600'>Time:</span>
-                  <span className='font-medium'>{formatTime(dive.dive_time)}</span>
+          {activeTab === 'details' && (
+            <>
+              {/* Basic Information */}
+              <div className='bg-white rounded-lg shadow p-6'>
+                <div className='flex items-center gap-2 mb-4'>
+                  <h2 className='text-xl font-semibold'>Dive Information</h2>
+                  {hasDeco && <span className='text-red-500 font-medium'>Deco dive</span>}
                 </div>
-              )}
-
-              {dive.duration && (
-                <div className='flex items-center gap-2'>
-                  <Clock size={16} className='text-gray-500' />
-                  <span className='text-sm text-gray-600'>Duration:</span>
-                  <span className='font-medium'>{dive.duration} minutes</span>
-                </div>
-              )}
-
-              {dive.max_depth && (
-                <div className='flex items-center gap-2'>
-                  <Thermometer size={16} className='text-gray-500' />
-                  <span className='text-sm text-gray-600'>Max Depth:</span>
-                  <span className='font-medium'>{dive.max_depth}m</span>
-                </div>
-              )}
-
-              {dive.average_depth && (
-                <div className='flex items-center gap-2'>
-                  <Thermometer size={16} className='text-gray-500' />
-                  <span className='text-sm text-gray-600'>Avg Depth:</span>
-                  <span className='font-medium'>{dive.average_depth}m</span>
-                </div>
-              )}
-
-              {dive.visibility_rating && (
-                <div className='flex items-center gap-2'>
-                  <Eye size={16} className='text-gray-500' />
-                  <span className='text-sm text-gray-600'>Visibility:</span>
-                  <span className='font-medium'>{dive.visibility_rating}/10</span>
-                </div>
-              )}
-
-              {dive.user_rating && (
-                <div className='flex items-center gap-2'>
-                  <Star size={16} className='text-yellow-500' />
-                  <span className='text-sm text-gray-600'>Your Rating:</span>
-                  <span className='font-medium'>{dive.user_rating}/10</span>
-                </div>
-              )}
-            </div>
-
-            {dive.difficulty_level && (
-              <div className='mt-4'>
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColorClasses(dive.difficulty_level)}`}
-                >
-                  {getDifficultyLabel(dive.difficulty_level)}
-                </span>
-              </div>
-            )}
-
-            {dive.suit_type && (
-              <div className='mt-2'>
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${getSuitTypeColor(dive.suit_type)}`}
-                >
-                  {dive.suit_type.replace('_', ' ')}
-                </span>
-              </div>
-            )}
-
-            {dive.gas_bottles_used && (
-              <div className='mt-4'>
-                <h3 className='text-sm font-medium text-gray-700 mb-1'>Gas Bottles Used</h3>
-                <p className='text-gray-600'>{dive.gas_bottles_used}</p>
-              </div>
-            )}
-
-            {dive.dive_information && (
-              <div className='mt-4'>
-                <h3 className='text-sm font-medium text-gray-700 mb-1'>Dive Description</h3>
-                <p className='text-gray-600 whitespace-pre-wrap'>{dive.dive_information}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Media Gallery */}
-          {dive.media && dive.media.length > 0 && (
-            <div className='bg-white rounded-lg shadow p-6'>
-              <h2 className='text-xl font-semibold mb-4'>Media</h2>
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                {dive.media.map(media => (
-                  <div key={media.id} className='relative group'>
-                    <div className='aspect-square bg-gray-100 rounded-lg overflow-hidden'>
-                      {media.media_type === 'photo' && (
-                        <img
-                          src={media.url}
-                          alt={media.description || 'Dive photo'}
-                          className='w-full h-full object-cover cursor-pointer'
-                          onClick={() => setSelectedMedia(media)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              setSelectedMedia(media);
-                            }
-                          }}
-                          role='button'
-                          tabIndex={0}
-                        />
-                      )}
-                      {media.media_type === 'video' && (
-                        <video src={media.url} controls className='w-full h-full object-cover' />
-                      )}
-                      {media.media_type === 'dive_plan' && (
-                        <div className='w-full h-full flex items-center justify-center'>
-                          <div className='text-center'>
-                            <Download size={32} className='mx-auto text-gray-400 mb-2' />
-                            <p className='text-sm text-gray-600'>Dive Plan</p>
-                            <a
-                              href={media.url}
-                              target='_blank'
-                              rel='noopener noreferrer'
-                              className='text-blue-600 hover:text-blue-800 text-sm'
-                            >
-                              Download
-                            </a>
-                          </div>
-                        </div>
-                      )}
-                      {media.media_type === 'external_link' && (
-                        <div className='w-full h-full flex items-center justify-center'>
-                          <div className='text-center'>
-                            <Link size={32} className='mx-auto text-gray-400 mb-2' />
-                            <p className='text-sm text-gray-600'>
-                              {media.title || 'External Link'}
-                            </p>
-                            <a
-                              href={media.url}
-                              target='_blank'
-                              rel='noopener noreferrer'
-                              className='text-blue-600 hover:text-blue-800 text-sm'
-                            >
-                              Visit Link
-                            </a>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className='absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity'>
-                      <button
-                        onClick={() => handleDeleteMedia(media.id)}
-                        className='bg-red-600 text-white p-1 rounded-full hover:bg-red-700'
-                        title='Delete media'
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                    {media.description && (
-                      <p className='text-xs text-gray-600 mt-1'>{media.description}</p>
-                    )}
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div className='flex items-center gap-2'>
+                    <Calendar size={16} className='text-gray-500' />
+                    <span className='text-sm text-gray-600'>Date:</span>
+                    <span className='font-medium'>{formatDate(dive.dive_date)}</span>
                   </div>
-                ))}
+
+                  {dive.dive_time && (
+                    <div className='flex items-center gap-2'>
+                      <Clock size={16} className='text-gray-500' />
+                      <span className='text-sm text-gray-600'>Time:</span>
+                      <span className='font-medium'>{formatTime(dive.dive_time)}</span>
+                    </div>
+                  )}
+
+                  {dive.duration && (
+                    <div className='flex items-center gap-2'>
+                      <Clock size={16} className='text-gray-500' />
+                      <span className='text-sm text-gray-600'>Duration:</span>
+                      <span className='font-medium'>{dive.duration} minutes</span>
+                    </div>
+                  )}
+
+                  {dive.max_depth && (
+                    <div className='flex items-center gap-2'>
+                      <Thermometer size={16} className='text-gray-500' />
+                      <span className='text-sm text-gray-600'>Max Depth:</span>
+                      <span className='font-medium'>{dive.max_depth}m</span>
+                    </div>
+                  )}
+
+                  {dive.average_depth && (
+                    <div className='flex items-center gap-2'>
+                      <Thermometer size={16} className='text-gray-500' />
+                      <span className='text-sm text-gray-600'>Avg Depth:</span>
+                      <span className='font-medium'>{dive.average_depth}m</span>
+                    </div>
+                  )}
+
+                  {dive.visibility_rating && (
+                    <div className='flex items-center gap-2'>
+                      <Eye size={16} className='text-gray-500' />
+                      <span className='text-sm text-gray-600'>Visibility:</span>
+                      <span className='font-medium'>{dive.visibility_rating}/10</span>
+                    </div>
+                  )}
+
+                  {dive.user_rating && (
+                    <div className='flex items-center gap-2'>
+                      <Star size={16} className='text-yellow-500' />
+                      <span className='text-sm text-gray-600'>Your Rating:</span>
+                      <span className='font-medium'>{dive.user_rating}/10</span>
+                    </div>
+                  )}
+                </div>
+
+                {dive.difficulty_level && (
+                  <div className='mt-4'>
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColorClasses(dive.difficulty_level)}`}
+                    >
+                      {getDifficultyLabel(dive.difficulty_level)}
+                    </span>
+                  </div>
+                )}
+
+                {dive.suit_type && (
+                  <div className='mt-2'>
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${getSuitTypeColor(dive.suit_type)}`}
+                    >
+                      {dive.suit_type.replace('_', ' ')}
+                    </span>
+                  </div>
+                )}
+
+                {/* Tags */}
+                {dive.tags && dive.tags.length > 0 && (
+                  <div className='mt-2'>
+                    <div className='flex flex-wrap gap-2'>
+                      {dive.tags.map(tag => (
+                        <span
+                          key={tag.id}
+                          className='px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full'
+                        >
+                          {tag.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {dive.gas_bottles_used && (
+                  <div className='mt-4'>
+                    <h3 className='text-sm font-medium text-gray-700 mb-1'>Gas Bottles Used</h3>
+                    <div className='text-gray-600'>
+                      {dive.gas_bottles_used.split('\n').map((bottle, index) => (
+                        <div key={index} className={index > 0 ? 'mt-1' : ''}>
+                          {bottle.trim()}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {dive.dive_information && (
+                  <div className='mt-4'>
+                    <h3 className='text-sm font-medium text-gray-700 mb-1'>Dive Description</h3>
+                    <p className='text-gray-600 whitespace-pre-wrap'>{dive.dive_information}</p>
+                  </div>
+                )}
               </div>
-            </div>
+
+              {/* Media Gallery */}
+              {dive.media && dive.media.length > 0 && (
+                <div className='bg-white rounded-lg shadow p-6'>
+                  <h2 className='text-xl font-semibold mb-4'>Media</h2>
+                  <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                    {dive.media.map(media => (
+                      <div key={media.id} className='relative group'>
+                        <div className='aspect-square bg-gray-100 rounded-lg overflow-hidden'>
+                          {media.media_type === 'photo' && (
+                            <img
+                              src={media.url}
+                              alt={media.description || 'Dive photo'}
+                              className='w-full h-full object-cover cursor-pointer'
+                              onClick={() => setSelectedMedia(media)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  setSelectedMedia(media);
+                                }
+                              }}
+                              role='button'
+                              tabIndex={0}
+                            />
+                          )}
+                          {media.media_type === 'video' && (
+                            <video
+                              src={media.url}
+                              controls
+                              className='w-full h-full object-cover'
+                            />
+                          )}
+                          {media.media_type === 'dive_plan' && (
+                            <div className='w-full h-full flex items-center justify-center'>
+                              <div className='text-center'>
+                                <Download size={32} className='mx-auto text-gray-400 mb-2' />
+                                <p className='text-sm text-gray-600'>Dive Plan</p>
+                                <a
+                                  href={media.url}
+                                  target='_blank'
+                                  rel='noopener noreferrer'
+                                  className='text-blue-600 hover:text-blue-800 text-sm'
+                                >
+                                  Download
+                                </a>
+                              </div>
+                            </div>
+                          )}
+                          {media.media_type === 'external_link' && (
+                            <div className='w-full h-full flex items-center justify-center'>
+                              <div className='text-center'>
+                                <Link size={32} className='mx-auto text-gray-400 mb-2' />
+                                <p className='text-sm text-gray-600'>
+                                  {media.title || 'External Link'}
+                                </p>
+                                <a
+                                  href={media.url}
+                                  target='_blank'
+                                  rel='noopener noreferrer'
+                                  className='text-blue-600 hover:text-blue-800 text-sm'
+                                >
+                                  Visit Link
+                                </a>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div className='absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity'>
+                          <button
+                            onClick={() => handleDeleteMedia(media.id)}
+                            className='bg-red-600 text-white p-1 rounded-full hover:bg-red-700'
+                            title='Delete media'
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                        {media.description && (
+                          <p className='text-xs text-gray-600 mt-1'>{media.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
-          {/* Tags */}
-          {dive.tags && dive.tags.length > 0 && (
+          {activeTab === 'profile' && (
             <div className='bg-white rounded-lg shadow p-6'>
-              <h2 className='text-xl font-semibold mb-4'>Tags</h2>
-              <div className='flex flex-wrap gap-2'>
-                {dive.tags.map(tag => (
-                  <span
-                    key={tag.id}
-                    className='px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full'
-                  >
-                    {tag.name}
-                  </span>
-                ))}
+              <div className='flex items-center gap-2 mb-4'>
+                <h2 className='text-xl font-semibold'>Dive Profile</h2>
+                {hasDeco && <span className='text-red-500 font-medium'>Deco dive</span>}
               </div>
+
+              <AdvancedDiveProfileChart
+                profileData={profileData}
+                isLoading={profileLoading}
+                error={profileError?.message}
+                showTemperature={true}
+                screenSize='desktop'
+                onDecoStatusChange={profileHasDeco => {
+                  // If profile data is available, use it; otherwise keep tag-based detection
+                  if (profileHasDeco !== undefined) {
+                    setHasDeco(profileHasDeco);
+                  }
+                }}
+              />
             </div>
           )}
         </div>

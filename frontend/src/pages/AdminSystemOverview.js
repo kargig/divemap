@@ -23,7 +23,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
-import { getSystemOverview, getSystemHealth, getPlatformStats, getTurnstileStats } from '../api';
+import { getSystemOverview, getSystemHealth, getPlatformStats, getTurnstileStats, getStorageHealth } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 
@@ -66,6 +66,15 @@ const AdminSystemOverview = () => {
     isLoading: turnstileLoading,
     error: turnstileError,
   } = useQuery(['turnstile-stats', refreshKey], () => getTurnstileStats(24), {
+    refetchInterval: 30000, // Refetch every 30 seconds
+    enabled: !!user?.is_admin,
+  });
+
+  const {
+    data: storageHealth,
+    isLoading: storageLoading,
+    error: storageError,
+  } = useQuery(['storage-health', refreshKey], getStorageHealth, {
     refetchInterval: 30000, // Refetch every 30 seconds
     enabled: !!user?.is_admin,
   });
@@ -236,6 +245,120 @@ const AdminSystemOverview = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Storage Health Status */}
+      <div className='mb-8'>
+        <h2 className='text-xl font-semibold text-gray-900 mb-4'>Storage Health</h2>
+        {storageLoading ? (
+          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='flex items-center justify-center'>
+              <div className='flex items-center space-x-3'>
+                <RefreshCw className='h-6 w-6 text-blue-600 animate-spin' />
+                <span className='text-gray-600'>Loading storage health status...</span>
+              </div>
+            </div>
+          </div>
+        ) : storageError ? (
+          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='flex items-center justify-center'>
+              <div className='flex items-center space-x-3'>
+                <XCircle className='h-6 w-6 text-red-600' />
+                <span className='text-red-600'>Failed to load storage health status</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+            {/* R2 Configuration Status */}
+            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <p className='text-sm font-medium text-gray-600'>R2 Configuration</p>
+                  <p className='text-2xl font-bold text-gray-900'>
+                    {storageHealth?.r2_available ? 'Configured' : 'Not Configured'}
+                  </p>
+                  <p className='text-sm text-gray-500'>
+                    {storageHealth?.r2_available ? 'Environment variables present' : 'Missing credentials'}
+                  </p>
+                </div>
+                <div className={`p-2 rounded-full ${storageHealth?.r2_available ? 'bg-green-100' : 'bg-red-100'}`}>
+                  {storageHealth?.r2_available ? (
+                    <CheckCircle className='h-6 w-6 text-green-600' />
+                  ) : (
+                    <XCircle className='h-6 w-6 text-red-600' />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* R2 Connectivity Status */}
+            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <p className='text-sm font-medium text-gray-600'>R2 Connectivity</p>
+                  <p className='text-2xl font-bold text-gray-900'>
+                    {storageHealth?.r2_connectivity ? 'Connected' : 'Disconnected'}
+                  </p>
+                  <p className='text-sm text-gray-500'>
+                    {storageHealth?.r2_connectivity ? 'Bucket accessible' : 'Cannot reach R2'}
+                  </p>
+                </div>
+                <div className={`p-2 rounded-full ${storageHealth?.r2_connectivity ? 'bg-green-100' : 'bg-red-100'}`}>
+                  {storageHealth?.r2_connectivity ? (
+                    <CheckCircle className='h-6 w-6 text-green-600' />
+                  ) : (
+                    <XCircle className='h-6 w-6 text-red-600' />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Local Storage Status */}
+            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <p className='text-sm font-medium text-gray-600'>Local Storage</p>
+                  <p className='text-2xl font-bold text-gray-900'>
+                    {storageHealth?.local_storage_available ? 'Available' : 'Unavailable'}
+                  </p>
+                  <p className='text-sm text-gray-500'>
+                    {storageHealth?.local_storage_writable ? 'Writable' : 'Read-only'}
+                  </p>
+                </div>
+                <div className={`p-2 rounded-full ${storageHealth?.local_storage_available ? 'bg-green-100' : 'bg-red-100'}`}>
+                  {storageHealth?.local_storage_available ? (
+                    <CheckCircle className='h-6 w-6 text-green-600' />
+                  ) : (
+                    <XCircle className='h-6 w-6 text-red-600' />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Active Storage Mode */}
+            <div className='bg-white p-6 rounded-lg border shadow-sm'>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <p className='text-sm font-medium text-gray-600'>Active Storage</p>
+                  <p className='text-2xl font-bold text-gray-900'>
+                    {storageHealth?.r2_connectivity ? 'R2 Cloud' : 'Local Only'}
+                  </p>
+                  <p className='text-sm text-gray-500'>
+                    {storageHealth?.r2_connectivity ? 'Using cloud storage' : 'Using local fallback'}
+                  </p>
+                </div>
+                <div className={`p-2 rounded-full ${storageHealth?.r2_connectivity ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                  {storageHealth?.r2_connectivity ? (
+                    <Globe className='h-6 w-6 text-green-600' />
+                  ) : (
+                    <HardDrive className='h-6 w-6 text-yellow-600' />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Platform Statistics */}

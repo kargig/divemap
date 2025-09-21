@@ -1,4 +1,5 @@
 import pytest
+from datetime import date
 import asyncio
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -8,7 +9,7 @@ from unittest.mock import Mock
 
 from app.main import app
 from app.database import get_db, Base
-from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment, DivingOrganization, UserCertification, RefreshToken, AuthAuditLog
+from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment, DivingOrganization, UserCertification, RefreshToken, AuthAuditLog, Dive
 from app.auth import create_access_token
 
 # Test database URL
@@ -160,6 +161,27 @@ def test_diving_center(db_session):
     db_session.commit()
     db_session.refresh(diving_center)
     return diving_center
+
+@pytest.fixture
+def test_dive(db_session, test_user, test_dive_site):
+    """Create a test dive."""
+    dive = Dive(
+        user_id=test_user.id,
+        dive_site_id=test_dive_site.id,
+        name="Test Dive",
+        dive_date=date(2024, 1, 15),
+        max_depth=30.0,
+        duration=45,
+        difficulty_level=2,
+        user_rating=8,
+        dive_information="Test dive notes",
+        visibility_rating=4,
+        is_private=False
+    )
+    db_session.add(dive)
+    db_session.commit()
+    db_session.refresh(dive)
+    return dive
 
 @pytest.fixture
 def user_token(test_user):
