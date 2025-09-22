@@ -3194,17 +3194,25 @@ def get_dive_profile(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """Get dive profile data"""
-    if not current_user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    """Get dive profile data. Unauthenticated users can view public dives. Private dives are restricted to owner or admins."""
+    # If authenticated, ensure account is enabled (mirror behavior of get_dive)
+    if current_user and not current_user.enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled"
+        )
     
     dive = db.query(Dive).filter(Dive.id == dive_id).first()
     if not dive:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found")
     
-    # Check if user owns the dive or is admin
-    if dive.user_id != current_user.id and not current_user.is_admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    # Access control: allow public dives for everyone; private dives only for owner or admins
+    if dive.is_private:
+        if not current_user or (dive.user_id != current_user.id and not current_user.is_admin):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This dive is private"
+            )
     
     # Check if dive has profile data
     if not dive.profile_xml_path:
