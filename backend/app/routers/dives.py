@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func
 from typing import List, Optional
-from datetime import datetime, date
+from datetime import datetime, date, time
 import re
 import xml.etree.ElementTree as ET
 from io import BytesIO
@@ -2492,11 +2492,20 @@ async def confirm_import_dives(
                 duration=dive_data.get('duration')
             )
 
-            # Parse date and time for SQLite compatibility
-            dive_date = datetime.strptime(dive_data['dive_date'], "%Y-%m-%d").date()
+            # Parse date and time for SQLite compatibility (accept both str and date/time objects)
+            raw_dive_date = dive_data['dive_date']
+            if isinstance(raw_dive_date, date):
+                dive_date = raw_dive_date
+            else:
+                dive_date = datetime.strptime(raw_dive_date, "%Y-%m-%d").date()
+
             dive_time = None
-            if dive_data.get('dive_time'):
-                dive_time = datetime.strptime(dive_data['dive_time'], "%H:%M:%S").time()
+            raw_dive_time = dive_data.get('dive_time')
+            if raw_dive_time is not None:
+                if isinstance(raw_dive_time, time):
+                    dive_time = raw_dive_time
+                else:
+                    dive_time = datetime.strptime(raw_dive_time, "%H:%M:%S").time()
 
             # Create the dive
             dive_data_dict = dive_create.dict(exclude_unset=True)
@@ -2513,8 +2522,11 @@ async def confirm_import_dives(
                 if dive.dive_site_id:
                     dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
                     if dive_site:
-                        # Convert string date to date object for generate_dive_name
-                        dive_date_obj = datetime.strptime(dive.dive_date, '%Y-%m-%d').date()
+                        # Use date object directly when available
+                        if isinstance(dive.dive_date, date):
+                            dive_date_obj = dive.dive_date
+                        else:
+                            dive_date_obj = datetime.strptime(dive.dive_date, '%Y-%m-%d').date()
                         dive.name = generate_dive_name(dive_site.name, dive_date_obj)
                 else:
                     dive.name = f"Dive - {dive.dive_date}"
