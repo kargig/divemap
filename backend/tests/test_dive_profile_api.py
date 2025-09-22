@@ -96,11 +96,16 @@ class TestDiveProfileAPI:
             assert response.status_code == status.HTTP_404_NOT_FOUND
             assert "Profile file not found" in response.json()["detail"]
 
-    def test_get_dive_profile_unauthorized(self, client, test_dive):
-        """Test dive profile retrieval without authentication."""
-        response = client.get(f"/api/v1/dives/{test_dive.id}/profile")
-        
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    def test_get_dive_profile_unauthorized_private(self, client, test_dive, sample_profile_data):
+        """Unauthenticated users cannot view private dive profiles (expect 403)."""
+        # Make the dive private and ensure a profile exists to avoid 404
+        test_dive.is_private = True
+        test_dive.profile_xml_path = "user_1/2025/09/test_profile.json"
+
+        with patch('app.routers.dives.r2_storage') as mock_r2:
+            mock_r2.download_profile.return_value = json.dumps(sample_profile_data).encode('utf-8')
+            response = client.get(f"/api/v1/dives/{test_dive.id}/profile")
+            assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_get_dive_profile_dive_not_found(self, client, auth_headers):
         """Test dive profile retrieval for non-existent dive."""
