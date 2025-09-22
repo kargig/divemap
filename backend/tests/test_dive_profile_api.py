@@ -83,6 +83,22 @@ class TestDiveProfileAPI:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "No profile uploaded" in response.json()["detail"]
 
+    def test_get_dive_profile_public_unauthenticated_success(self, client, test_dive, sample_profile_data, db_session):
+        """Unauthenticated users can view public dive profiles (200)."""
+        from app.database import get_db
+        client.app.dependency_overrides[get_db] = lambda: db_session
+        # Public dive with existing profile
+        test_dive.is_private = False
+        test_dive.profile_xml_path = "user_1/2025/09/test_profile.json"
+        db_session.commit()
+        with patch('app.routers.dives.r2_storage') as mock_r2:
+            mock_r2.download_profile.return_value = json.dumps(sample_profile_data).encode('utf-8')
+            response = client.get(f"/api/v1/dives/{test_dive.id}/profile")
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert data['calculated_max_depth'] == 20
+            assert len(data['samples']) == 6
+
     def test_get_dive_profile_file_not_found(self, client, auth_headers, test_dive, db_session):
         """Test dive profile retrieval when file doesn't exist in storage."""
         test_dive.profile_xml_path = "user_1/2025/09/nonexistent.json"
@@ -96,11 +112,78 @@ class TestDiveProfileAPI:
             assert response.status_code == status.HTTP_404_NOT_FOUND
             assert "Profile file not found" in response.json()["detail"]
 
-    def test_get_dive_profile_unauthorized(self, client, test_dive):
-        """Test dive profile retrieval without authentication."""
-        response = client.get(f"/api/v1/dives/{test_dive.id}/profile")
-        
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    def test_get_dive_profile_private_authenticated_non_owner_forbidden(self, client, test_dive, db_session):
+        """Authenticated user who is not owner cannot view private profile (403)."""
+        from app.database import get_db
+        from app.auth import create_access_token
+        from app.models import User
+        client.app.dependency_overrides[get_db] = lambda: db_session
+        # Make dive private and ensure profile exists
+        test_dive.is_private = True
+        test_dive.profile_xml_path = "user_1/2025/09/test_profile.json"
+        db_session.commit()
+        # Create another enabled user
+        other_user = User(
+            username="otheruser2",
+            email="other2@example.com",
+            password_hash="hash",
+            is_admin=False,
+            enabled=True
+        )
+        db_session.add(other_user)
+        db_session.commit()
+        token = create_access_token(data={"sub": other_user.username})
+        headers = {"Authorization": f"Bearer {token}"}
+        response = client.get(f"/api/v1/dives/{test_dive.id}/profile", headers=headers)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_dive_profile_private_admin_success(self, client, admin_headers, test_dive, sample_profile_data, db_session):
+        """Admin can view private profile (200)."""
+        from app.database import get_db
+        client.app.dependency_overrides[get_db] = lambda: db_session
+        test_dive.is_private = True
+        test_dive.profile_xml_path = "user_1/2025/09/test_profile.json"
+        db_session.commit()
+        with patch('app.routers.dives.r2_storage') as mock_r2:
+            mock_r2.download_profile.return_value = json.dumps(sample_profile_data).encode('utf-8')
+            response = client.get(f"/api/v1/dives/{test_dive.id}/profile", headers=admin_headers)
+            assert response.status_code == status.HTTP_200_OK
+
+    def test_get_dive_profile_disabled_user_forbidden(self, client, test_dive, db_session):
+        """Disabled authenticated user gets 403 for profile access."""
+        from app.database import get_db
+        from app.auth import create_access_token
+        from app.models import User
+        client.app.dependency_overrides[get_db] = lambda: db_session
+        # Public dive with profile
+        test_dive.is_private = False
+        test_dive.profile_xml_path = "user_1/2025/09/test_profile.json"
+        db_session.commit()
+        # Create disabled user
+        disabled_user = User(
+            username="disableduser",
+            email="disabled@example.com",
+            password_hash="hash",
+            is_admin=False,
+            enabled=False
+        )
+        db_session.add(disabled_user)
+        db_session.commit()
+        token = create_access_token(data={"sub": disabled_user.username})
+        headers = {"Authorization": f"Bearer {token}"}
+        response = client.get(f"/api/v1/dives/{test_dive.id}/profile", headers=headers)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_dive_profile_unauthorized_private(self, client, test_dive, sample_profile_data):
+        """Unauthenticated users cannot view private dive profiles (expect 403)."""
+        # Make the dive private and ensure a profile exists to avoid 404
+        test_dive.is_private = True
+        test_dive.profile_xml_path = "user_1/2025/09/test_profile.json"
+
+        with patch('app.routers.dives.r2_storage') as mock_r2:
+            mock_r2.download_profile.return_value = json.dumps(sample_profile_data).encode('utf-8')
+            response = client.get(f"/api/v1/dives/{test_dive.id}/profile")
+            assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_get_dive_profile_dive_not_found(self, client, auth_headers):
         """Test dive profile retrieval for non-existent dive."""
