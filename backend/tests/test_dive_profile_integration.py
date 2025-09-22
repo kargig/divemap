@@ -332,11 +332,16 @@ class TestDiveProfileIntegration:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "No profile found" in response.json()["detail"]
 
-    def test_authentication_workflow(self, client, test_dive):
+    def test_authentication_workflow(self, client, test_dive, db_session):
         """Test authentication requirements in dive profile workflow."""
-        # Test 1: Profile retrieval without authentication
+        # Test 1: Profile retrieval without authentication on private dive -> 403
+        from app.database import get_db
+        client.app.dependency_overrides[get_db] = lambda: db_session
+        test_dive.is_private = True
+        test_dive.profile_xml_path = "user_1/2025/09/test_profile.json"
+        db_session.commit()
         response = client.get(f"/api/v1/dives/{test_dive.id}/profile")
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_403_FORBIDDEN
         
         # Test 2: Profile upload without authentication
         files = {"file": ("test.xml", "test content", "application/xml")}
