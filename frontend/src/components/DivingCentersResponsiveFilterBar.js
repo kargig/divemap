@@ -45,7 +45,6 @@ const DivingCentersResponsiveFilterBar = ({
   onReset = () => {},
   viewMode = 'list',
   onViewModeChange = () => {},
-  showThumbnails = false,
   compactLayout = false,
   onDisplayOptionChange = () => {},
 }) => {
@@ -314,17 +313,8 @@ const DivingCentersResponsiveFilterBar = ({
                   <label className='flex items-center gap-1 text-sm text-gray-700'>
                     <input
                       type='checkbox'
-                      checked={showThumbnails}
-                      onChange={e => onDisplayOptionChange('showThumbnails', e.target.checked)}
-                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                    />
-                    Thumbnails
-                  </label>
-                  <label className='flex items-center gap-1 text-sm text-gray-700'>
-                    <input
-                      type='checkbox'
                       checked={compactLayout}
-                      onChange={e => onDisplayOptionChange('compactLayout', e.target.checked)}
+                      onChange={() => onDisplayOptionChange('compact')}
                       className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
                     />
                     Compact
@@ -648,20 +638,10 @@ const DivingCentersResponsiveFilterBar = ({
                     </div>
                   </div>
 
-                  {/* Display Options - Compact Checkboxes */}
+                  {/* Display Options - Compact Checkbox */}
                   <div>
                     <h4 className='text-sm font-medium text-gray-700 mb-3'>Display Options</h4>
                     <div className='space-y-2'>
-                      <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
-                        <input
-                          type='checkbox'
-                          className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                          checked={showThumbnails}
-                          onChange={() => onDisplayOptionChange('thumbnails')}
-                        />
-                        <span className='text-sm font-medium'>Thumbnails</span>
-                      </label>
-
                       <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
                         <input
                           type='checkbox'
@@ -742,7 +722,6 @@ DivingCentersResponsiveFilterBar.propTypes = {
   onReset: PropTypes.func,
   viewMode: PropTypes.oneOf(['list', 'map']),
   onViewModeChange: PropTypes.func,
-  showThumbnails: PropTypes.bool,
   compactLayout: PropTypes.bool,
   onDisplayOptionChange: PropTypes.func,
 };

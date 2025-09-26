@@ -65,10 +65,7 @@ const DiveTrips = () => {
     const viewMode = params.get('view');
     return viewMode === 'map' ? 'map' : viewMode === 'grid' ? 'grid' : 'list';
   });
-  const [showThumbnails, setShowThumbnails] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('show_thumbnails') === 'true';
-  });
+  // Thumbnails feature removed
   const [compactLayout, setCompactLayout] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('compact_layout') !== 'false'; // Default to true (compact)
@@ -153,19 +150,7 @@ const DiveTrips = () => {
   };
 
   const handleDisplayOptionChange = option => {
-    if (option === 'thumbnails') {
-      const newShowThumbnails = !showThumbnails;
-      setShowThumbnails(newShowThumbnails);
-
-      // Update URL
-      const urlParams = new URLSearchParams(window.location.search);
-      if (newShowThumbnails) {
-        urlParams.set('show_thumbnails', 'true');
-      } else {
-        urlParams.delete('show_thumbnails');
-      }
-      navigate(`?${urlParams.toString()}`, { replace: true });
-    } else if (option === 'compact') {
+    if (option === 'compact') {
       const newCompactLayout = !compactLayout;
       setCompactLayout(newCompactLayout);
 
@@ -1044,11 +1029,7 @@ const DiveTrips = () => {
                 <div className='flex items-start justify-between mb-4'>
                   <div className='flex-1'>
                     <div className='flex items-center gap-3 mb-2'>
-                      {showThumbnails && (
-                        <div className='dive-thumbnail'>
-                          <Calendar className='w-8 h-8' />
-                        </div>
-                      )}
+                      {/* Thumbnail removed */}
                       <div>
                         <h3
                           className={`font-semibold text-gray-900 ${compactLayout ? 'text-base' : 'text-lg'}`}
@@ -1325,11 +1306,7 @@ const DiveTrips = () => {
                   compactLayout ? 'p-4' : 'p-6'
                 }`}
               >
-                {showThumbnails && (
-                  <div className='dive-thumbnail bg-gray-100 p-4 flex items-center justify-center'>
-                    <Calendar className='w-12 h-12 text-gray-400' />
-                  </div>
-                )}
+                {/* Thumbnail removed */}
 
                 <div className='p-4'>
                   <h3

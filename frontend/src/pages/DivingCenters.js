@@ -56,10 +56,7 @@ const DivingCenters = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get('view') || 'list';
   });
-  const [showThumbnails, setShowThumbnails] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('show_thumbnails') === 'true';
-  });
+  // Thumbnails feature removed
   const [compactLayout, setCompactLayout] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('compact_layout') !== 'false'; // Default to true (compact)
@@ -70,6 +67,23 @@ const DivingCenters = () => {
 
   // Quick filter state
   const [quickFilter, setQuickFilter] = useState('');
+  // Track which center emails are revealed in grid view
+  const [revealedEmails, setRevealedEmails] = useState({});
+  // Track expanded descriptions per center in grid view
+  const [expandedDescriptions, setExpandedDescriptions] = useState({});
+
+  const maskEmailForTooltip = email => {
+    if (!email || !email.includes('@')) return email;
+    const [localPart, domain] = email.split('@');
+    if (localPart.length <= 2) {
+      return `${localPart.charAt(0)}***@${domain}`;
+    } else {
+      const firstChar = localPart.charAt(0);
+      const lastChar = localPart.charAt(localPart.length - 1);
+      const maskedPart = '*'.repeat(localPart.length - 2);
+      return `${firstChar}${maskedPart}${lastChar}@${domain}`;
+    }
+  };
 
   // Responsive detection using custom hook
   const { isMobile } = useResponsive();
@@ -434,19 +448,7 @@ const DivingCenters = () => {
   };
 
   const handleDisplayOptionChange = option => {
-    if (option === 'thumbnails') {
-      const newShowThumbnails = !showThumbnails;
-      setShowThumbnails(newShowThumbnails);
-
-      // Update URL
-      const urlParams = new URLSearchParams(window.location.search);
-      if (newShowThumbnails) {
-        urlParams.set('show_thumbnails', 'true');
-      } else {
-        urlParams.delete('show_thumbnails');
-      }
-      navigate(`?${urlParams.toString()}`, { replace: true });
-    } else if (option === 'compact') {
+    if (option === 'compact') {
       const newCompactLayout = !compactLayout;
       setCompactLayout(newCompactLayout);
 
@@ -493,6 +495,16 @@ const DivingCenters = () => {
 
     // Reset to first page
     setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  // Apply a filter when clicking a badge (country, region, city)
+  const applyFilterTag = (key, value) => {
+    if (!value) return;
+    const newFilters = { ...filters, [key]: value };
+    const newPagination = { ...pagination, page: 1 };
+    setFilters(newFilters);
+    setPagination(newPagination);
+    immediateUpdateURL(newFilters, newPagination, viewMode);
   };
 
   if (isLoading) {
@@ -696,7 +708,6 @@ const DivingCenters = () => {
           onReset={resetSorting}
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
-          showThumbnails={showThumbnails}
           compactLayout={compactLayout}
           onDisplayOptionChange={handleDisplayOptionChange}
         />
@@ -780,36 +791,43 @@ const DivingCenters = () => {
                         </div>
                       )}
 
-                      {/* Coordinates - Hidden on mobile for cleaner interface */}
-                      {center.latitude && center.longitude && (
-                        <div className='hidden sm:flex items-center gap-1 text-xs text-gray-600'>
-                          <MapPin className='w-3 h-3 text-gray-400' />
-                          <span className='truncate'>
-                            {center.latitude.toFixed(4)}, {center.longitude.toFixed(4)}
-                          </span>
-                        </div>
-                      )}
+                      {/* Coordinates removed to save space */}
 
-                      {/* Geographic fields */}
+                      {/* Geographic fields (clickable badges) */}
                       {center.country && (
-                        <div className='flex items-center gap-1 text-xs text-gray-600'>
-                          <Globe className='w-3 h-3 text-gray-400' />
+                        <button
+                          type='button'
+                          onClick={() => applyFilterTag('country', center.country)}
+                          className='flex items-center gap-1 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded'
+                          title={`Filter by country: ${center.country}`}
+                        >
+                          <Globe className='w-3 h-3 text-blue-600' />
                           <span className='truncate'>{center.country}</span>
-                        </div>
+                        </button>
                       )}
 
                       {center.region && (
-                        <div className='flex items-center gap-1 text-xs text-gray-600'>
-                          <MapPin className='w-3 h-3 text-gray-400' />
+                        <button
+                          type='button'
+                          onClick={() => applyFilterTag('region', center.region)}
+                          className='flex items-center gap-1 text-xs text-green-700 bg-green-50 hover:bg-green-100 px-2 py-1 rounded'
+                          title={`Filter by region: ${center.region}`}
+                        >
+                          <MapPin className='w-3 h-3 text-green-600' />
                           <span className='truncate'>{center.region}</span>
-                        </div>
+                        </button>
                       )}
 
                       {center.city && (
-                        <div className='flex items-center gap-1 text-xs text-gray-600'>
-                          <Building className='w-3 h-3 text-gray-400' />
+                        <button
+                          type='button'
+                          onClick={() => applyFilterTag('city', center.city)}
+                          className='flex items-center gap-1 text-xs text-purple-700 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded'
+                          title={`Filter by city: ${center.city}`}
+                        >
+                          <Building className='w-3 h-3 text-purple-600' />
                           <span className='truncate'>{center.city}</span>
-                        </div>
+                        </button>
                       )}
                     </div>
 
@@ -853,7 +871,7 @@ const DivingCenters = () => {
         {/* Diving Centers Grid */}
         {viewMode === 'grid' && (
           <div
-            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ${compactLayout ? 'view-mode-compact' : ''}`}
+            className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${compactLayout ? 'view-mode-compact' : ''}`}
           >
             {divingCenters?.map(center => (
               <div
@@ -862,21 +880,7 @@ const DivingCenters = () => {
                   compactLayout ? 'p-4' : 'p-6'
                 }`}
               >
-                {/* Header with thumbnail and rating */}
-                <div className='relative'>
-                  {showThumbnails && (
-                    <div className='dive-thumbnail bg-gradient-to-br from-blue-50 to-cyan-50 p-6 flex items-center justify-center border-b border-gray-100'>
-                      <div className='relative'>
-                        <Building className='w-16 h-16 text-blue-600' />
-                        {center.average_rating && (
-                          <div className='absolute -top-2 -right-2 bg-yellow-400 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center'>
-                            {Math.round(center.average_rating)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {/* Header thumbnail removed */}
 
                 <div className={`${compactLayout ? 'p-3' : 'p-5'}`}>
                   {/* Title and rating row */}
@@ -918,40 +922,47 @@ const DivingCenters = () => {
                     )}
                   </div>
 
-                  {/* Geolocation - Hidden on mobile for cleaner interface */}
-                  <div className='hidden sm:flex items-center gap-2 text-gray-600 mb-4'>
-                    <MapPin className='w-4 h-4 text-gray-400 flex-shrink-0' />
-                    <span className={`${compactLayout ? 'text-sm' : 'text-base'}`}>
-                      {center.latitude && center.longitude
-                        ? `${center.latitude}, ${center.longitude}`
-                        : center.address || 'Location N/A'}
-                    </span>
-                  </div>
+                  {/* Geolocation removed to save space */}
 
                   {/* Geographic fields */}
                   {(center.country || center.region || center.city) && (
                     <div className='flex flex-wrap gap-2 mb-4'>
                       {center.country && (
-                        <div className='flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-full'>
+                        <button
+                          type='button'
+                          onClick={() => applyFilterTag('country', center.country)}
+                          className='flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-full hover:bg-blue-100'
+                          title={`Filter by country: ${center.country}`}
+                        >
                           <Globe className='w-3 h-3 text-blue-600' />
                           <span className='text-xs font-medium text-blue-700'>
                             {center.country}
                           </span>
-                        </div>
+                        </button>
                       )}
                       {center.region && (
-                        <div className='flex items-center gap-1 bg-green-50 px-2 py-1 rounded-full'>
+                        <button
+                          type='button'
+                          onClick={() => applyFilterTag('region', center.region)}
+                          className='flex items-center gap-1 bg-green-50 px-2 py-1 rounded-full hover:bg-green-100'
+                          title={`Filter by region: ${center.region}`}
+                        >
                           <MapPin className='w-3 h-3 text-green-600' />
                           <span className='text-xs font-medium text-green-700'>
                             {center.region}
                           </span>
-                        </div>
+                        </button>
                       )}
                       {center.city && (
-                        <div className='flex items-center gap-1 bg-purple-50 px-2 py-1 rounded-full'>
+                        <button
+                          type='button'
+                          onClick={() => applyFilterTag('city', center.city)}
+                          className='flex items-center gap-1 bg-purple-50 px-2 py-1 rounded-full hover:bg-purple-100'
+                          title={`Filter by city: ${center.city}`}
+                        >
                           <Building className='w-3 h-3 text-purple-600' />
                           <span className='text-xs font-medium text-purple-700'>{center.city}</span>
-                        </div>
+                        </button>
                       )}
                     </div>
                   )}
@@ -961,13 +972,26 @@ const DivingCenters = () => {
                     {/* Show email if available, otherwise rating */}
                     {center.email ? (
                       <div className='flex items-center justify-center bg-blue-50 rounded-lg px-3 py-2'>
-                        <a
-                          href={`mailto:${center.email}`}
-                          className='text-blue-500 hover:text-blue-700 transition-colors'
-                          title={`Send email to ${center.email}`}
-                        >
-                          <Mail className='w-5 h-5' />
-                        </a>
+                        {revealedEmails[center.id] ? (
+                          <a
+                            href={`mailto:${center.email}`}
+                            className='text-blue-500 hover:text-blue-700 transition-colors'
+                            aria-label={`Send email to ${center.name}`}
+                            title={`Send email to ${center.email}`}
+                          >
+                            <Mail className='w-5 h-5' />
+                          </a>
+                        ) : (
+                          <button
+                            type='button'
+                            onClick={() => setRevealedEmails(prev => ({ ...prev, [center.id]: true }))}
+                            className='text-blue-500 hover:text-blue-700 transition-colors'
+                            aria-label='Reveal email'
+                            title='Click to reveal'
+                          >
+                            <Mail className='w-5 h-5' />
+                          </button>
+                        )}
                       </div>
                     ) : center.average_rating ? (
                       <div className='flex items-center justify-center bg-yellow-50 rounded-lg px-3 py-2'>
@@ -1017,13 +1041,30 @@ const DivingCenters = () => {
                     )}
                   </div>
 
-                  {/* Description - always present for consistent card heights */}
+                  {/* Description with expandable toggle for long texts */}
                   <div className='mb-4'>
                     <p
-                      className={`text-gray-600 line-clamp-3 ${compactLayout ? 'text-sm' : 'text-base'}`}
+                      className={`text-gray-600 ${
+                        expandedDescriptions[center.id] ? '' : 'line-clamp-3'
+                      } ${compactLayout ? 'text-sm' : 'text-base'}`}
                     >
                       {center.description || 'No description available'}
                     </p>
+                    {center.description && center.description.length > 180 && (
+                      <button
+                        type='button'
+                        onClick={() =>
+                          setExpandedDescriptions(prev => ({
+                            ...prev,
+                            [center.id]: !prev[center.id],
+                          }))
+                        }
+                        className='mt-1 text-blue-600 hover:text-blue-700 text-sm font-medium'
+                        aria-expanded={!!expandedDescriptions[center.id]}
+                      >
+                        {expandedDescriptions[center.id] ? 'Less' : 'More'}
+                      </button>
+                    )}
                   </div>
 
                   {/* Action buttons */}

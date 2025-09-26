@@ -710,7 +710,6 @@ A comprehensive filter bar component with responsive behavior and advanced featu
 | `onReset` | function | `() => {}` | Reset handler |
 | `viewMode` | string | `'list'` | View mode: 'list' or 'map' |
 | `onViewModeChange` | function | `() => {}` | View mode change handler |
-| `showThumbnails` | boolean | `false` | Whether to show thumbnails |
 | `compactLayout` | boolean | `false` | Whether to use compact layout |
 | `onDisplayOptionChange` | function | `() => {}` | Display option change handler |
 | `pageType` | string | `'dive-sites'` | Page type for quick filters |
@@ -921,7 +920,6 @@ Main page implementations using the `.sticky-below-navbar` class for consistent 
     onReset={handleReset}
     viewMode={viewMode}
     onViewModeChange={setViewMode}
-    showThumbnails={showThumbnails}
     compactLayout={compactLayout}
     onDisplayOptionChange={handleDisplayOptionChange}
     pageType='dive-sites'

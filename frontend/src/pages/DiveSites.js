@@ -52,11 +52,7 @@ const DiveSites = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [quickFilter, setQuickFilter] = useState('');
 
-  // View mode state
-  const [showThumbnails, setShowThumbnails] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('show_thumbnails') === 'true';
-  });
+  // Thumbnails feature removed
   const [compactLayout, setCompactLayout] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('compact_layout') !== 'false'; // Default to true (compact)
@@ -474,19 +470,7 @@ const DiveSites = () => {
   };
 
   const handleDisplayOptionChange = option => {
-    if (option === 'thumbnails') {
-      const newShowThumbnails = !showThumbnails;
-      setShowThumbnails(newShowThumbnails);
-
-      // Update URL
-      const urlParams = new URLSearchParams(window.location.search);
-      if (newShowThumbnails) {
-        urlParams.set('show_thumbnails', 'true');
-      } else {
-        urlParams.delete('show_thumbnails');
-      }
-      navigate(`?${urlParams.toString()}`, { replace: true });
-    } else if (option === 'compact') {
+    if (option === 'compact') {
       const newCompactLayout = !compactLayout;
       setCompactLayout(newCompactLayout);
 
@@ -714,7 +698,6 @@ const DiveSites = () => {
             onReset={resetSorting}
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
-            showThumbnails={showThumbnails}
             compactLayout={compactLayout}
             onDisplayOptionChange={handleDisplayOptionChange}
           />
@@ -807,11 +790,7 @@ const DiveSites = () => {
 
                     <div className='flex-1 min-w-0'>
                       <div className='flex items-start gap-2 mb-2'>
-                        {showThumbnails && (
-                          <div className='dive-thumbnail flex-shrink-0 mt-0.5'>
-                            <MapPin className='w-5 h-5 sm:w-6 sm:h-6 text-gray-400' />
-                          </div>
-                        )}
+                        {/* Thumbnail removed */}
                         <div className='min-w-0 flex-1'>
                           <div className='flex flex-col gap-0'>
                             <h3
@@ -962,11 +941,7 @@ const DiveSites = () => {
                     compactLayout ? 'p-3' : 'p-4'
                   }`}
                 >
-                  {showThumbnails && (
-                    <div className='dive-thumbnail bg-gray-100 p-3 flex items-center justify-center'>
-                      <MapPin className='w-10 h-10 text-gray-400' />
-                    </div>
-                  )}
+          {/* Thumbnail removed */}
 
                   <div className='p-3'>
                     <div className='flex items-center gap-3 mb-2'>
