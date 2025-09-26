@@ -1053,7 +1053,7 @@ const Dives = () => {
                     dive.is_private ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-200'
                   } ${compactLayout ? 'p-4' : 'p-6'}`}
                 >
-                  <div className='flex items-start justify-between mb-4'>
+                  <div className='flex items-start justify-between mb-4 relative'>
                     <div className='flex-1'>
                       <div className='flex items-center gap-3 mb-2'>
                         {showThumbnails && (
@@ -1062,14 +1062,14 @@ const Dives = () => {
                           </div>
                         )}
                         <div>
-                          <div className='flex items-center gap-2 mb-1'>
+                          <div className='flex flex-wrap items-center gap-2 mb-1'>
                             <div className='flex items-center gap-2 flex-1 min-w-0'>
                               <h3
                                 className={`font-semibold text-gray-900 flex-1 min-w-0 ${compactLayout ? 'text-base' : 'text-lg'}`}
                               >
                                 <Link
                                   to={`/dives/${dive.id}`}
-                                  className='hover:text-blue-600 transition-colors block truncate'
+                                  className='hover:text-blue-600 transition-colors block whitespace-normal break-words'
                                 >
                                   {dive.name || `Dive #${dive.id}`}
                                 </Link>
@@ -1102,7 +1102,7 @@ const Dives = () => {
                     </div>
                     <Link
                       to={`/dives/${dive.id}`}
-                      className='inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
+                      className='hidden sm:inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
                     >
                       <Eye className='w-4 h-4' />
                       View Dive
@@ -1231,7 +1231,7 @@ const Dives = () => {
                         >
                           <Link
                             to={`/dives/${dive.id}`}
-                            className='hover:text-blue-600 transition-colors block truncate'
+                            className='hover:text-blue-600 transition-colors block whitespace-normal break-words'
                           >
                             {dive.name || `Dive #${dive.id}`}
                           </Link>
