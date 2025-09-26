@@ -1091,11 +1091,8 @@ const Dives = () => {
                             )}
                           </div>
                           <p className={`text-gray-600 ${compactLayout ? 'text-sm' : 'text-base'}`}>
-                            {new Date(dive.dive_date).toLocaleDateString('en-GB')} at{' '}
-                            {new Date(dive.dive_date).toLocaleTimeString('en-GB', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            {new Date(dive.dive_date).toLocaleDateString('en-GB')}
+                            {dive.dive_time && ` at ${formatTime(dive.dive_time)}`}
                           </p>
                         </div>
                       </div>
