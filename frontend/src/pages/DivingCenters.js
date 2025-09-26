@@ -67,6 +67,8 @@ const DivingCenters = () => {
 
   // Quick filter state
   const [quickFilter, setQuickFilter] = useState('');
+  // Track which center emails are revealed in grid view
+  const [revealedEmails, setRevealedEmails] = useState({});
 
   // Responsive detection using custom hook
   const { isMobile } = useResponsive();
@@ -931,13 +933,24 @@ const DivingCenters = () => {
                     {/* Show email if available, otherwise rating */}
                     {center.email ? (
                       <div className='flex items-center justify-center bg-blue-50 rounded-lg px-3 py-2'>
-                        <a
-                          href={`mailto:${center.email}`}
-                          className='text-blue-500 hover:text-blue-700 transition-colors'
-                          title={`Send email to ${center.email}`}
-                        >
-                          <Mail className='w-5 h-5' />
-                        </a>
+                        {revealedEmails[center.id] ? (
+                          <span className='text-blue-600 text-sm'>
+                            {/* Use MaskedEmail to keep consistent behavior with list view */}
+                            <MaskedEmail email={center.email} className='font-medium' showMailto={true} />
+                          </span>
+                        ) : (
+                          <button
+                            type='button'
+                            onClick={() =>
+                              setRevealedEmails(prev => ({ ...prev, [center.id]: true }))
+                            }
+                            className='text-blue-500 hover:text-blue-700 transition-colors'
+                            aria-label='Reveal email'
+                            title='Click to reveal email'
+                          >
+                            <Mail className='w-5 h-5' />
+                          </button>
+                        )}
                       </div>
                     ) : center.average_rating ? (
                       <div className='flex items-center justify-center bg-yellow-50 rounded-lg px-3 py-2'>
