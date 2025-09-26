@@ -69,6 +69,21 @@ const DivingCenters = () => {
   const [quickFilter, setQuickFilter] = useState('');
   // Track which center emails are revealed in grid view
   const [revealedEmails, setRevealedEmails] = useState({});
+  // Track expanded descriptions per center in grid view
+  const [expandedDescriptions, setExpandedDescriptions] = useState({});
+
+  const maskEmailForTooltip = email => {
+    if (!email || !email.includes('@')) return email;
+    const [localPart, domain] = email.split('@');
+    if (localPart.length <= 2) {
+      return `${localPart.charAt(0)}***@${domain}`;
+    } else {
+      const firstChar = localPart.charAt(0);
+      const lastChar = localPart.charAt(localPart.length - 1);
+      const maskedPart = '*'.repeat(localPart.length - 2);
+      return `${firstChar}${maskedPart}${lastChar}@${domain}`;
+    }
+  };
 
   // Responsive detection using custom hook
   const { isMobile } = useResponsive();
@@ -766,15 +781,7 @@ const DivingCenters = () => {
                         </div>
                       )}
 
-                      {/* Coordinates - Hidden on mobile for cleaner interface */}
-                      {center.latitude && center.longitude && (
-                        <div className='hidden sm:flex items-center gap-1 text-xs text-gray-600'>
-                          <MapPin className='w-3 h-3 text-gray-400' />
-                          <span className='truncate'>
-                            {center.latitude.toFixed(4)}, {center.longitude.toFixed(4)}
-                          </span>
-                        </div>
-                      )}
+                      {/* Coordinates removed to save space */}
 
                       {/* Geographic fields */}
                       {center.country && (
@@ -839,7 +846,7 @@ const DivingCenters = () => {
         {/* Diving Centers Grid */}
         {viewMode === 'grid' && (
           <div
-            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ${compactLayout ? 'view-mode-compact' : ''}`}
+            className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${compactLayout ? 'view-mode-compact' : ''}`}
           >
             {divingCenters?.map(center => (
               <div
@@ -890,15 +897,7 @@ const DivingCenters = () => {
                     )}
                   </div>
 
-                  {/* Geolocation - Hidden on mobile for cleaner interface */}
-                  <div className='hidden sm:flex items-center gap-2 text-gray-600 mb-4'>
-                    <MapPin className='w-4 h-4 text-gray-400 flex-shrink-0' />
-                    <span className={`${compactLayout ? 'text-sm' : 'text-base'}`}>
-                      {center.latitude && center.longitude
-                        ? `${center.latitude}, ${center.longitude}`
-                        : center.address || 'Location N/A'}
-                    </span>
-                  </div>
+                  {/* Geolocation removed to save space */}
 
                   {/* Geographic fields */}
                   {(center.country || center.region || center.city) && (
@@ -934,19 +933,21 @@ const DivingCenters = () => {
                     {center.email ? (
                       <div className='flex items-center justify-center bg-blue-50 rounded-lg px-3 py-2'>
                         {revealedEmails[center.id] ? (
-                          <span className='text-blue-600 text-sm'>
-                            {/* Use MaskedEmail to keep consistent behavior with list view */}
-                            <MaskedEmail email={center.email} className='font-medium' showMailto={true} />
-                          </span>
+                          <a
+                            href={`mailto:${center.email}`}
+                            className='text-blue-500 hover:text-blue-700 transition-colors'
+                            aria-label={`Send email to ${center.name}`}
+                            title={`Send email to ${center.email}`}
+                          >
+                            <Mail className='w-5 h-5' />
+                          </a>
                         ) : (
                           <button
                             type='button'
-                            onClick={() =>
-                              setRevealedEmails(prev => ({ ...prev, [center.id]: true }))
-                            }
+                            onClick={() => setRevealedEmails(prev => ({ ...prev, [center.id]: true }))}
                             className='text-blue-500 hover:text-blue-700 transition-colors'
                             aria-label='Reveal email'
-                            title='Click to reveal email'
+                            title='Click to reveal'
                           >
                             <Mail className='w-5 h-5' />
                           </button>
@@ -1000,13 +1001,30 @@ const DivingCenters = () => {
                     )}
                   </div>
 
-                  {/* Description - always present for consistent card heights */}
+                  {/* Description with expandable toggle for long texts */}
                   <div className='mb-4'>
                     <p
-                      className={`text-gray-600 line-clamp-3 ${compactLayout ? 'text-sm' : 'text-base'}`}
+                      className={`text-gray-600 ${
+                        expandedDescriptions[center.id] ? '' : 'line-clamp-3'
+                      } ${compactLayout ? 'text-sm' : 'text-base'}`}
                     >
                       {center.description || 'No description available'}
                     </p>
+                    {center.description && center.description.length > 180 && (
+                      <button
+                        type='button'
+                        onClick={() =>
+                          setExpandedDescriptions(prev => ({
+                            ...prev,
+                            [center.id]: !prev[center.id],
+                          }))
+                        }
+                        className='mt-1 text-blue-600 hover:text-blue-700 text-sm font-medium'
+                        aria-expanded={!!expandedDescriptions[center.id]}
+                      >
+                        {expandedDescriptions[center.id] ? 'Less' : 'More'}
+                      </button>
+                    )}
                   </div>
 
                   {/* Action buttons */}
