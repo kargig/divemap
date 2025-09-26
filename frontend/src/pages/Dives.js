@@ -85,10 +85,6 @@ const Dives = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get('view') || 'list';
   });
-  const [showThumbnails, setShowThumbnails] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('show_thumbnails') === 'true';
-  });
   const [compactLayout, setCompactLayout] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('compact_layout') !== 'false'; // Default to true (compact)
@@ -753,19 +749,7 @@ const Dives = () => {
   };
 
   const handleDisplayOptionChange = option => {
-    if (option === 'thumbnails') {
-      const newShowThumbnails = !showThumbnails;
-      setShowThumbnails(newShowThumbnails);
-
-      // Update URL
-      const urlParams = new URLSearchParams(window.location.search);
-      if (newShowThumbnails) {
-        urlParams.set('show_thumbnails', 'true');
-      } else {
-        urlParams.delete('show_thumbnails');
-      }
-      navigate(`?${urlParams.toString()}`, { replace: true });
-    } else if (option === 'compact') {
+    if (option === 'compact') {
       const newCompactLayout = !compactLayout;
       setCompactLayout(newCompactLayout);
 
@@ -947,10 +931,8 @@ const Dives = () => {
         onReset={resetSorting}
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
-        showThumbnails={showThumbnails}
         compactLayout={compactLayout}
         onDisplayOptionChange={(option, value) => {
-          if (option === 'showThumbnails') setShowThumbnails(value);
           if (option === 'compactLayout') setCompactLayout(value);
         }}
         pageType='dives'
@@ -1056,11 +1038,6 @@ const Dives = () => {
                   <div className='flex items-start justify-between mb-4 relative'>
                     <div className='flex-1'>
                       <div className='flex items-center gap-3 mb-2'>
-                        {showThumbnails && (
-                          <div className='dive-thumbnail'>
-                            <Calendar className='w-8 h-8' />
-                          </div>
-                        )}
                         <div>
                           <div className='flex flex-wrap items-center gap-2 mb-1'>
                             <div className='flex items-center gap-2 flex-1 min-w-0'>
@@ -1214,12 +1191,6 @@ const Dives = () => {
                     dive.is_private ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-200'
                   } ${compactLayout ? 'p-4' : 'p-6'}`}
                 >
-                  {showThumbnails && (
-                    <div className='dive-thumbnail bg-gray-100 p-4 flex items-center justify-center'>
-                      <Calendar className='w-12 h-12 text-gray-400' />
-                    </div>
-                  )}
-
                   <div className='p-4'>
                     <div className='flex items-center gap-2 mb-2'>
                       <div className='flex items-center gap-2 flex-1 min-w-0'>

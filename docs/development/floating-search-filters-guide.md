@@ -97,7 +97,6 @@ The current implementation uses this structure across all pages:
     onReset={resetSorting}
     viewMode={viewMode}
     onViewModeChange={handleViewModeChange}
-    showThumbnails={showThumbnails}
     compactLayout={compactLayout}
     onDisplayOptionChange={handleDisplayOptionChange}
   />
@@ -174,7 +173,6 @@ The current implementation uses this structure across all pages:
     onReset={resetSorting}
     viewMode={viewMode}
     onViewModeChange={handleViewModeChange}
-    showThumbnails={showThumbnails}
     compactLayout={compactLayout}
     onDisplayOptionChange={handleDisplayOptionChange}
   />
@@ -222,7 +220,6 @@ The current implementation uses this structure across all pages:
     onReset={resetSorting}
     viewMode={viewMode}
     onViewModeChange={handleViewModeChange}
-    showThumbnails={showThumbnails}
     compactLayout={compactLayout}
     onDisplayOptionChange={handleDisplayOptionChange}
   />
@@ -286,7 +283,6 @@ The current implementation uses this structure across all pages:
       onReset={resetSorting}
       viewMode={viewMode}
       onViewModeChange={handleViewModeChange}
-      showThumbnails={showThumbnails}
       compactLayout={compactLayout}
       onDisplayOptionChange={handleDisplayOptionChange}
     />
@@ -402,7 +398,7 @@ z-index: 200  /* Modal dialogs, full-screen overlays */
 - `onSearchChange`: Function to handle search input changes
 - `sortBy`, `sortOrder`, `sortOptions`: Sorting configuration
 - `viewMode`, `onViewModeChange`: View mode controls
-- `showThumbnails`, `compactLayout`: Display options
+- `compactLayout`: Display option (thumbnails removed)
 
 **Usage Pattern**:
 

@@ -56,10 +56,7 @@ const DivingCenters = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get('view') || 'list';
   });
-  const [showThumbnails, setShowThumbnails] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('show_thumbnails') === 'true';
-  });
+  // Thumbnails feature removed
   const [compactLayout, setCompactLayout] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('compact_layout') !== 'false'; // Default to true (compact)
@@ -434,19 +431,7 @@ const DivingCenters = () => {
   };
 
   const handleDisplayOptionChange = option => {
-    if (option === 'thumbnails') {
-      const newShowThumbnails = !showThumbnails;
-      setShowThumbnails(newShowThumbnails);
-
-      // Update URL
-      const urlParams = new URLSearchParams(window.location.search);
-      if (newShowThumbnails) {
-        urlParams.set('show_thumbnails', 'true');
-      } else {
-        urlParams.delete('show_thumbnails');
-      }
-      navigate(`?${urlParams.toString()}`, { replace: true });
-    } else if (option === 'compact') {
+    if (option === 'compact') {
       const newCompactLayout = !compactLayout;
       setCompactLayout(newCompactLayout);
 
@@ -696,7 +681,6 @@ const DivingCenters = () => {
           onReset={resetSorting}
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
-          showThumbnails={showThumbnails}
           compactLayout={compactLayout}
           onDisplayOptionChange={handleDisplayOptionChange}
         />
@@ -862,21 +846,7 @@ const DivingCenters = () => {
                   compactLayout ? 'p-4' : 'p-6'
                 }`}
               >
-                {/* Header with thumbnail and rating */}
-                <div className='relative'>
-                  {showThumbnails && (
-                    <div className='dive-thumbnail bg-gradient-to-br from-blue-50 to-cyan-50 p-6 flex items-center justify-center border-b border-gray-100'>
-                      <div className='relative'>
-                        <Building className='w-16 h-16 text-blue-600' />
-                        {center.average_rating && (
-                          <div className='absolute -top-2 -right-2 bg-yellow-400 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center'>
-                            {Math.round(center.average_rating)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {/* Header thumbnail removed */}
 
                 <div className={`${compactLayout ? 'p-3' : 'p-5'}`}>
                   {/* Title and rating row */}

@@ -642,7 +642,7 @@ The application will follow a microservices-oriented or a well-separated monolit
     * url (link to stored media or external URL)
     * description (optional)
     * title (optional, for external links)
-    * thumbnail\_url (optional, for external links)
+    * thumbnail\_url (optional, for external links). Note: UI no longer exposes a thumbnail display toggle; images are handled contextually per page.
   * dive\_tags table: - NEW TABLE
     * id (PK)
     * dive\_id (FK to dives)
