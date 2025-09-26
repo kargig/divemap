@@ -984,7 +984,9 @@ const DivingCenters = () => {
                         ) : (
                           <button
                             type='button'
-                            onClick={() => setRevealedEmails(prev => ({ ...prev, [center.id]: true }))}
+                            onClick={() =>
+                              setRevealedEmails(prev => ({ ...prev, [center.id]: true }))
+                            }
                             className='text-blue-500 hover:text-blue-700 transition-colors'
                             aria-label='Reveal email'
                             title='Click to reveal'

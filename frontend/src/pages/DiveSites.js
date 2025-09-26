@@ -941,7 +941,7 @@ const DiveSites = () => {
                     compactLayout ? 'p-3' : 'p-4'
                   }`}
                 >
-          {/* Thumbnail removed */}
+                  {/* Thumbnail removed */}
 
                   <div className='p-3'>
                     <div className='flex items-center gap-3 mb-2'>
