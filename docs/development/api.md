@@ -1252,7 +1252,7 @@ Remove tag from dive site (admin/moderator only).
   "url": "string",
   "description": "string (optional)",
   "title": "string (optional)",
-  "thumbnail_url": "string (optional)",
+  "thumbnail_url": "string (optional)", // UI thumbnail toggle removed; field remains for image references
   "created_at": "datetime"
 }
 ```text

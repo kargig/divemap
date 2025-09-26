@@ -85,10 +85,6 @@ const Dives = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get('view') || 'list';
   });
-  const [showThumbnails, setShowThumbnails] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('show_thumbnails') === 'true';
-  });
   const [compactLayout, setCompactLayout] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('compact_layout') !== 'false'; // Default to true (compact)
@@ -753,19 +749,7 @@ const Dives = () => {
   };
 
   const handleDisplayOptionChange = option => {
-    if (option === 'thumbnails') {
-      const newShowThumbnails = !showThumbnails;
-      setShowThumbnails(newShowThumbnails);
-
-      // Update URL
-      const urlParams = new URLSearchParams(window.location.search);
-      if (newShowThumbnails) {
-        urlParams.set('show_thumbnails', 'true');
-      } else {
-        urlParams.delete('show_thumbnails');
-      }
-      navigate(`?${urlParams.toString()}`, { replace: true });
-    } else if (option === 'compact') {
+    if (option === 'compact') {
       const newCompactLayout = !compactLayout;
       setCompactLayout(newCompactLayout);
 
@@ -947,10 +931,8 @@ const Dives = () => {
         onReset={resetSorting}
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
-        showThumbnails={showThumbnails}
         compactLayout={compactLayout}
         onDisplayOptionChange={(option, value) => {
-          if (option === 'showThumbnails') setShowThumbnails(value);
           if (option === 'compactLayout') setCompactLayout(value);
         }}
         pageType='dives'
@@ -1053,23 +1035,18 @@ const Dives = () => {
                     dive.is_private ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-200'
                   } ${compactLayout ? 'p-4' : 'p-6'}`}
                 >
-                  <div className='flex items-start justify-between mb-4'>
+                  <div className='flex items-start justify-between mb-4 relative'>
                     <div className='flex-1'>
                       <div className='flex items-center gap-3 mb-2'>
-                        {showThumbnails && (
-                          <div className='dive-thumbnail'>
-                            <Calendar className='w-8 h-8' />
-                          </div>
-                        )}
                         <div>
-                          <div className='flex items-center gap-2 mb-1'>
+                          <div className='flex flex-wrap items-center gap-2 mb-1'>
                             <div className='flex items-center gap-2 flex-1 min-w-0'>
                               <h3
                                 className={`font-semibold text-gray-900 flex-1 min-w-0 ${compactLayout ? 'text-base' : 'text-lg'}`}
                               >
                                 <Link
                                   to={`/dives/${dive.id}`}
-                                  className='hover:text-blue-600 transition-colors block truncate'
+                                  className='hover:text-blue-600 transition-colors block whitespace-normal break-words'
                                 >
                                   {dive.name || `Dive #${dive.id}`}
                                 </Link>
@@ -1091,18 +1068,15 @@ const Dives = () => {
                             )}
                           </div>
                           <p className={`text-gray-600 ${compactLayout ? 'text-sm' : 'text-base'}`}>
-                            {new Date(dive.dive_date).toLocaleDateString('en-GB')} at{' '}
-                            {new Date(dive.dive_date).toLocaleTimeString('en-GB', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            {new Date(dive.dive_date).toLocaleDateString('en-GB')}
+                            {dive.dive_time && ` at ${formatTime(dive.dive_time)}`}
                           </p>
                         </div>
                       </div>
                     </div>
                     <Link
                       to={`/dives/${dive.id}`}
-                      className='inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
+                      className='hidden sm:inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
                     >
                       <Eye className='w-4 h-4' />
                       View Dive
@@ -1217,12 +1191,6 @@ const Dives = () => {
                     dive.is_private ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-200'
                   } ${compactLayout ? 'p-4' : 'p-6'}`}
                 >
-                  {showThumbnails && (
-                    <div className='dive-thumbnail bg-gray-100 p-4 flex items-center justify-center'>
-                      <Calendar className='w-12 h-12 text-gray-400' />
-                    </div>
-                  )}
-
                   <div className='p-4'>
                     <div className='flex items-center gap-2 mb-2'>
                       <div className='flex items-center gap-2 flex-1 min-w-0'>
@@ -1231,7 +1199,7 @@ const Dives = () => {
                         >
                           <Link
                             to={`/dives/${dive.id}`}
-                            className='hover:text-blue-600 transition-colors block truncate'
+                            className='hover:text-blue-600 transition-colors block whitespace-normal break-words'
                           >
                             {dive.name || `Dive #${dive.id}`}
                           </Link>

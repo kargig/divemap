@@ -77,7 +77,7 @@
 
 - [x] **Improve trip display layout**
   - ✅ Enhance trip card design with better visual hierarchy
-  - ✅ Add trip images/thumbnails support (placeholder implemented)
+  - ✅ Add trip images support (placeholder implemented); thumbnails option removed globally
   - ✅ Improve responsive design for mobile devices
   - ✅ Add trip duration and pricing display
 
