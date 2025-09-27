@@ -3,9 +3,175 @@
 This document tracks all recent changes, improvements, and bug fixes to the
 Divemap application.
 
-## [Latest Release] - 2025-08-25
+## [Latest Release] - September 27, 2025
 
 ### 🚀 Major Features
+
+#### **Comprehensive Dive Profile Visualization System - ✅ COMPLETE**
+
+- **Interactive Dive Charts**: Professional-grade dive profile visualization with
+  Recharts integration
+- **Advanced Data Visualization**: Depth vs time, temperature profiles, NDL/CNS
+  indicators, and gas change markers
+- **Mobile Touch Support**: Pan and zoom functionality optimized for mobile devices
+- **Chart Export Capabilities**: PNG and PDF export using html2canvas/jsPDF
+- **Smart Performance Optimization**: Intelligent sampling for 1000+ data points
+- **Accessibility Features**: High contrast mode and ARIA compliance
+
+**Technical Implementation:**
+
+- **Backend**: R2StorageService with Cloudflare R2 integration and local fallback
+- **Database**: New dive profile metadata columns with comprehensive schema updates
+- **API Integration**: Complete CRUD operations for dive profile management
+- **Frontend**: AdvancedDiveProfileChart component with mobile-first design
+- **Storage**: User-specific storage paths with automatic fallback mechanisms
+- **Admin Monitoring**: Real-time R2 storage health monitoring in admin dashboard
+
+**User Experience Features:**
+
+- Interactive dive analysis with professional-grade visualization tools
+- Mobile-optimized touch interactions for chart exploration
+- Export functionality for sharing dive profiles
+- Tabbed navigation in dive detail pages with URL parameter support
+- Real-time data fetching with React Query integration
+- Comprehensive error handling and loading states
+
+**Files Added/Modified:**
+
+- `backend/app/services/dive_profile_parser.py` - Subsurface XML parsing
+- `backend/app/services/r2_storage_service.py` - Cloud storage integration
+- `frontend/src/components/AdvancedDiveProfileChart.js` - Interactive charts
+- `frontend/src/components/DiveProfileUpload.js` - Profile upload interface
+- `frontend/src/utils/diveProfileHelpers.js` - Data processing utilities
+- `backend/migrations/versions/0032_add_dive_profile_metadata.py` - Schema updates
+
+#### **OpenLayers to Leaflet Migration - ✅ COMPLETE**
+
+- **Complete Map System Overhaul**: Migrated entire mapping infrastructure from
+  OpenLayers to Leaflet
+- **Enhanced Performance**: Improved map rendering and reduced bundle size
+- **Mobile-First Design**: Responsive map components optimized for all devices
+- **Custom Icon System**: SVG-based markers for dive sites, diving centers, and dives
+- **Dynamic Clustering**: Intelligent marker clustering with zoom-based enabling
+- **Professional UI**: Enhanced zoom level display and clustering status indicators
+
+**Migration Details:**
+
+- **Components Migrated**: MiniMap, DiveSiteMap, DiveSitesMap, DivingCentersMap, DivesMap
+- **Features Implemented**: Custom SVG icons, dynamic clustering, popup functionality
+- **Cleanup Completed**: Removed all OpenLayers dependencies and unused components
+- **Code Quality**: Fixed ESLint errors and improved maintainability
+- **Documentation**: Updated all references from OpenLayers to Leaflet
+
+**Technical Achievements:**
+
+- **Bundle Size Reduction**: Eliminated OpenLayers package (significant size reduction)
+- **Performance Optimization**: Faster map rendering and smoother interactions
+- **Cross-Browser Compatibility**: Improved support across all modern browsers
+- **Mobile Optimization**: Touch-friendly interactions and responsive design
+- **Code Maintainability**: Cleaner, more maintainable codebase with better structure
+
+#### **Enhanced Mobile User Experience - ✅ COMPLETE**
+
+- **Mobile Landscape Optimization**: Fixed modal scrolling issues in mobile landscape mode
+- **Additive Quick Filters**: Multiple simultaneous tag filters (Wreck AND Reef)
+- **Stopdepth Ceiling Visualization**: Decompression stop visualization with area graphs
+- **Comprehensive Help System**: Enhanced help page with visual improvements
+- **Page Title Implementation**: Dynamic page titles across all pages for better UX
+
+**Mobile Improvements:**
+
+- **Modal Optimization**: Ultra-compact header design for mobile landscape (655x305 viewport)
+- **Space Utilization**: 15% more chart space through optimized padding and margins
+- **Touch Interactions**: Enhanced mobile touch support for chart interactions
+- **Responsive Design**: Better mobile experience across all screen sizes
+- **User Guidance**: Mobile landscape suggestions for better chart viewing
+
+**Filter Enhancements:**
+
+- **Additive Filtering**: Users can select multiple quick filters simultaneously
+- **AND Logic**: Multiple tag filters now apply AND logic instead of replacing selections
+- **UI Consistency**: Maintained mutually exclusive behavior for difficulty filters
+- **Mobile Support**: Enhanced mobile filter interface with better usability
+
+### 🔧 API Changes
+
+#### **Dive Profile API Integration**
+
+- **Profile Management**: Complete CRUD operations for dive profile data
+- **Storage Integration**: Cloud storage with automatic local fallback
+- **Data Processing**: Subsurface XML parsing and profile extraction
+- **Admin Monitoring**: Real-time storage health monitoring
+- **Public Access**: Public dive profile access for shared dives
+
+#### **Enhanced Search and Filtering**
+
+- **Fuzzy Search**: Comprehensive fuzzy search functionality across dive pages
+- **Additive Filters**: Multiple simultaneous tag filters with AND logic
+- **Mobile Optimization**: Mobile-optimized API responses and filtering
+- **Performance**: Improved search performance and response times
+
+### 🐛 Bug Fixes
+
+#### **Recent Bug Fixes and Improvements**
+
+- **Mobile Modal Scrolling**: Fixed modal scrolling issues in mobile landscape mode (655x305 viewport)
+- **Dive Information Display**: Resolved dive-information and My Dives display issues for logged-in users
+- **Google Login Authentication**: Fixed Google OAuth authentication errors and token handling
+- **Import Date Handling**: Fixed confirm import date handling and name generation in dive import process
+- **Public Dive Access**: Enabled public access to public dive profiles for better user experience
+- **Map View Architecture**: Implemented independent map view architecture with improved performance
+- **Fuzzy Search Integration**: Added comprehensive fuzzy search tests and unified search functionality
+
+### 🎨 Frontend Changes
+
+#### **Recent Frontend Enhancements**
+
+- **Dive Profile Visualization**: Complete interactive dive profile charts with mobile touch support
+- **Map System Migration**: Complete OpenLayers to Leaflet migration with enhanced performance
+- **Mobile Landscape Optimization**: Ultra-compact modal design for mobile landscape viewing
+- **Additive Quick Filters**: Multiple simultaneous tag filters with AND logic
+- **Stopdepth Ceiling Visualization**: Decompression stop visualization with area graphs
+- **Page Title Implementation**: Dynamic page titles across all pages for better UX
+- **Help System Enhancement**: Comprehensive help page with visual improvements
+- **Fuzzy Search Integration**: Unified fuzzy search functionality across dive pages
+
+### 🔒 Security Enhancements
+
+#### **Data Protection and Storage Security**
+
+- **Secure Storage**: R2 storage integration with local fallback for data protection
+- **User Data Protection**: Enhanced user data protection and privacy controls
+- **Public Profile Controls**: Secure public profile access with proper authorization
+- **Mobile Security**: Mobile-specific security optimizations and protections
+
+### 🐛 Bug Fixes (September 2025)
+
+#### **September 2025 Bug Fixes and Improvements**
+
+- **Mobile Modal Scrolling**: Fixed modal scrolling issues in mobile landscape mode (655x305 viewport)
+- **Dive Information Display**: Resolved dive-information and My Dives display issues for logged-in users
+- **Google Login Authentication**: Fixed Google OAuth authentication errors and token handling
+- **Import Date Handling**: Fixed confirm import date handling and name generation in dive import process
+- **Public Dive Access**: Enabled public access to public dive profiles for better user experience
+- **Map View Architecture**: Implemented independent map view architecture with improved performance
+- **Fuzzy Search Integration**: Added comprehensive fuzzy search tests and unified search functionality
+
+### 🚀 Infrastructure Changes
+
+#### **Map System and Performance Improvements**
+
+- **Complete Map Migration**: Full migration from OpenLayers to Leaflet for better performance
+- **Mobile-First Design**: Responsive design implementation across all components
+- **Bundle Optimization**: Significant bundle size reduction and performance improvements
+- **Cross-Browser Support**: Enhanced compatibility across all modern browsers
+- **Touch Optimization**: Mobile touch interactions and responsive design
+
+---
+
+## [Previous Release] - August 24, 2025
+
+### 🚀 Major Features (August 2025)
 
 #### **Cloudflare Turnstile Integration - ✅ COMPLETE**
 
@@ -108,6 +274,93 @@ Divemap application.
 - **Operational Insights**: Comprehensive statistics for operational decision
   making
 
+#### **Comprehensive Dive Profile Visualization System - ✅ COMPLETE**
+
+- **Interactive Dive Charts**: Professional-grade dive profile visualization with
+  Recharts integration
+- **Advanced Data Visualization**: Depth vs time, temperature profiles, NDL/CNS
+  indicators, and gas change markers
+- **Mobile Touch Support**: Pan and zoom functionality optimized for mobile devices
+- **Chart Export Capabilities**: PNG and PDF export using html2canvas/jsPDF
+- **Smart Performance Optimization**: Intelligent sampling for 1000+ data points
+- **Accessibility Features**: High contrast mode and ARIA compliance
+
+**Technical Implementation:**
+
+- **Backend**: R2StorageService with Cloudflare R2 integration and local fallback
+- **Database**: New dive profile metadata columns with comprehensive schema updates
+- **API Integration**: Complete CRUD operations for dive profile management
+- **Frontend**: AdvancedDiveProfileChart component with mobile-first design
+- **Storage**: User-specific storage paths with automatic fallback mechanisms
+- **Admin Monitoring**: Real-time R2 storage health monitoring in admin dashboard
+
+**User Experience Features:**
+
+- Interactive dive analysis with professional-grade visualization tools
+- Mobile-optimized touch interactions for chart exploration
+- Export functionality for sharing dive profiles
+- Tabbed navigation in dive detail pages with URL parameter support
+- Real-time data fetching with React Query integration
+- Comprehensive error handling and loading states
+
+**Files Added/Modified:**
+
+- `backend/app/services/dive_profile_parser.py` - Subsurface XML parsing
+- `backend/app/services/r2_storage_service.py` - Cloud storage integration
+- `frontend/src/components/AdvancedDiveProfileChart.js` - Interactive charts
+- `frontend/src/components/DiveProfileUpload.js` - Profile upload interface
+- `frontend/src/utils/diveProfileHelpers.js` - Data processing utilities
+- `backend/migrations/versions/0032_add_dive_profile_metadata.py` - Schema updates
+
+#### **OpenLayers to Leaflet Migration - ✅ COMPLETE**
+
+- **Complete Map System Overhaul**: Migrated entire mapping infrastructure from
+  OpenLayers to Leaflet
+- **Enhanced Performance**: Improved map rendering and reduced bundle size
+- **Mobile-First Design**: Responsive map components optimized for all devices
+- **Custom Icon System**: SVG-based markers for dive sites, diving centers, and dives
+- **Dynamic Clustering**: Intelligent marker clustering with zoom-based enabling
+- **Professional UI**: Enhanced zoom level display and clustering status indicators
+
+**Migration Details:**
+
+- **Components Migrated**: MiniMap, DiveSiteMap, DiveSitesMap, DivingCentersMap, DivesMap
+- **Features Implemented**: Custom SVG icons, dynamic clustering, popup functionality
+- **Cleanup Completed**: Removed all OpenLayers dependencies and unused components
+- **Code Quality**: Fixed ESLint errors and improved maintainability
+- **Documentation**: Updated all references from OpenLayers to Leaflet
+
+**Technical Achievements:**
+
+- **Bundle Size Reduction**: Eliminated OpenLayers package (significant size reduction)
+- **Performance Optimization**: Faster map rendering and smoother interactions
+- **Cross-Browser Compatibility**: Improved support across all modern browsers
+- **Mobile Optimization**: Touch-friendly interactions and responsive design
+- **Code Maintainability**: Cleaner, more maintainable codebase with better structure
+
+#### **Enhanced Mobile User Experience - ✅ COMPLETE**
+
+- **Mobile Landscape Optimization**: Fixed modal scrolling issues in mobile landscape mode
+- **Additive Quick Filters**: Multiple simultaneous tag filters (Wreck AND Reef)
+- **Stopdepth Ceiling Visualization**: Decompression stop visualization with area graphs
+- **Comprehensive Help System**: Enhanced help page with visual improvements
+- **Page Title Implementation**: Dynamic page titles across all pages for better UX
+
+**Mobile Improvements:**
+
+- **Modal Optimization**: Ultra-compact header design for mobile landscape (655x305 viewport)
+- **Space Utilization**: 15% more chart space through optimized padding and margins
+- **Touch Interactions**: Enhanced mobile touch support for chart interactions
+- **Responsive Design**: Better mobile experience across all screen sizes
+- **User Guidance**: Mobile landscape suggestions for better chart viewing
+
+**Filter Enhancements:**
+
+- **Additive Filtering**: Users can select multiple quick filters simultaneously
+- **AND Logic**: Multiple tag filters now apply AND logic instead of replacing selections
+- **UI Consistency**: Maintained mutually exclusive behavior for difficulty filters
+- **Mobile Support**: Enhanced mobile filter interface with better usability
+
 #### **Nginx Reverse Proxy Architecture with Refresh Token Authentication**
 
 - **Complete Authentication System**: Implemented comprehensive refresh token
@@ -198,7 +451,7 @@ Divemap application.
 - Professional logo integration in navbar and key UI components
 - Enhanced visual hierarchy and user experience
 
-### 🔧 API Changes
+### 🔧 API Changes (August 2025)
 
 #### **Rate Limiting Enhancements**
 
@@ -254,7 +507,7 @@ Divemap application.
 - Regular users are properly blocked from unauthorized access
 - Comprehensive testing coverage for all authorization scenarios
 
-### 🐛 Bug Fixes
+### 🐛 Bug Fixes (August 2025)
 
 #### **Frontend Linting and Code Quality**
 
@@ -264,297 +517,6 @@ Divemap application.
 - **Import Optimization**: Fixed import order and removed unused imports
   throughout frontend
 - **Code Consistency**: Improved overall code quality and maintainability
-
-#### **UI/UX Issues Resolution**
-
-- **Sticky Positioning**: Fixed search box and filters floating behavior on
-  mobile and desktop
-- **Mobile Controls**: Fixed mobile sorting controls and improved mobile user
-  experience
-- **Dropdown Visibility**: Resolved navbar dropdown visibility and clickability
-  issues
-- **Search Box Behavior**: Fixed search box and filters floating behavior across
-  all viewports
-
-**Positioning Fixes:**
-
-- Implemented responsive sticky-below-navbar utility class
-- Fixed main content padding from pt-20 sm:pt-24 to pt-16
-- Consistent positioning across all viewports (desktop and mobile)
-- Eliminated gaps between navbar and floating elements
-
-#### **Nginx and Infrastructure Fixes**
-
-- **502 Error Resolution**: Fixed 'upstream sent too big header' errors from
-  large response headers
-- **Header Optimization**: Limited X-Match-Types headers to 8KB with automatic
-  fallback
-- **Buffer Configuration**: Increased proxy buffer sizes for large response
-  headers
-- **Production Deployment**: Fixed redirect loops and SSL configuration issues
-
-**Infrastructure Improvements:**
-
-- Optimized response headers in all search endpoints
-- Enhanced nginx configuration for both development and production
-- Fixed invalid directive placement and configuration errors
-- Streamlined SSL handling since Fly.io manages TLS termination
-
-#### **Database and Backend Fixes**
-
-- **Datetime Serialization**: Fixed datetime serialization issues in newsletters
-  trips endpoint
-- **Debug Messages**: Removed debug messages and restored zoom level indicators
-- **Test Coverage**: Improved backend test coverage with comprehensive router
-  tests
-- **Code Quality**: Enhanced overall backend code quality and maintainability
-
-### 🗄️ Database Changes
-
-#### **Refresh Token System**
-
-- **New Tables**: Added `refresh_tokens` and `auth_audit_logs` tables
-- **Migration**: Created migration 0029_refresh_tokens for new authentication
-  system
-- **Relationships**: Updated User model with refresh token relationships
-- **Audit Logging**: Comprehensive logging of authentication events and token
-  operations
-
-**Schema Updates:**
-
-- RefreshToken model with proper relationships and constraints
-- AuthAuditLog model for comprehensive security monitoring
-- Server-side defaults for timestamp fields
-- Proper foreign key relationships and data integrity
-
-### 🎨 Frontend Changes
-
-#### **Mobile User Experience Improvements**
-
-- **Filter Overlay**: Mobile-optimized filter overlay with full-screen modal for
-  better mobile UX
-- **Active Filters**: More compact active filters display with reduced
-  padding/margins
-- **Tag Display**: Show actual tag names instead of 'X selected' in active
-  filters
-- **Grid View**: Removed Grid view from mobile dive sites page for better mobile
-  experience
-- **Responsive Design**: Enhanced responsive design for mobile filter experience
-
-**UX Enhancements:**
-
-- Mobile-optimized filter overlay with full-screen modal
-- Compact active filters with reduced padding and margins
-- Actual tag names displayed instead of generic counts
-- Conditional Grid view hiding on mobile devices
-- Improved mobile navigation and user interaction
-
-#### **Search and Filter Improvements**
-
-- **Quick Filter Replacement**: Replaced text-based searches with tag-based
-  filtering
-- **Filter Consistency**: Consistent filter application across all search
-  operations
-- **Performance**: Removed redundant API calls and improved response efficiency
-- **User Interface**: Enhanced filter interface with better visual organization
-
-**Filter Enhancements:**
-
-- 'wrecks' search replaced with tag ID 8 (Wreck)
-- 'reefs' search replaced with tag ID 14 (Reef)
-- 'boat_dive' search replaced with tag ID 4 (Boat Dive)
-- 'shore_dive' search replaced with tag ID 13 (Shore Dive)
-- Improved clear filter functionality
-
-#### **Component Refactoring and Cleanup**
-
-- **Code Organization**: Consolidated view controls within
-  EnhancedMobileSortingControls component
-- **Duplicate Removal**: Eliminated duplicate view controls and headings
-- **Layout Consistency**: Improved visual consistency with other UI elements
-- **Maintainability**: Better code organization and reduced duplication
-
-**Component Improvements:**
-
-- Consolidated all view controls in single component
-- Removed left-side duplicate view controls
-- Fixed container layout and margins for proper alignment
-- Eliminated duplicate 'Sorting & View Controls' headings
-
-### ⚙️ Backend Changes
-
-#### **Authentication and Security Enhancements**
-
-- **Token Service**: New TokenService class for centralized token management
-- **Security Logging**: Enhanced suspicious IP detection and comprehensive
-  security monitoring
-- **Rate Limiting**: Improved rate limiting with localhost exemptions and admin
-  privileges
-- **IPv6 Support**: Added support for Fly.io private IPv6 addresses
-
-**Security Features:**
-
-- Comprehensive token rotation and revocation capabilities
-- Enhanced security logging for production environments
-- Configurable proxy chain security for different deployment scenarios
-- Improved rate limiting strategies for better user experience
-
-#### **Performance and Monitoring Improvements**
-
-- **Response Optimization**: Optimized API responses and reduced header sizes
-- **Logging Configuration**: Enhanced logging configuration with
-  environment-based control
-- **Error Handling**: Improved error handling and user feedback
-- **Monitoring**: Better system monitoring and performance tracking
-
-**Performance Enhancements:**
-
-- Optimized X-Match-Types headers to prevent nginx buffer overflow
-- Enhanced logging configuration respecting environment variables
-- Improved error handling and user feedback mechanisms
-- Better system monitoring and performance tracking
-
-### 📚 Documentation Updates
-
-#### **CSS and Sticky Positioning Guide**
-
-- **Unified Documentation**: Consolidated three separate CSS documentation files
-  into single comprehensive guide
-- **Sticky Positioning**: Complete sticky positioning system documentation with
-  responsive utility classes
-- **Best Practices**: Comprehensive CSS best practices and troubleshooting guide
-- **Implementation**: Step-by-step implementation instructions for floating
-  search and filter boxes
-
-**Documentation Consolidation:**
-
-- Merged css-best-practices.md, sticky-positioning-fix.md, and
-  sticky-positioning-summary.md
-- Added comprehensive CSS custom properties and utility classes
-- Included troubleshooting section for common CSS issues
-- Added implementation guide for floating search filters
-
-#### **Development and Deployment Guides**
-
-- **Nginx Proxy Implementation**: Comprehensive nginx reverse proxy
-  implementation plan
-- **Refresh Token System**: Complete refresh token system documentation and
-  implementation guide
-- **Production Deployment**: Updated Fly.io deployment documentation with nginx
-  proxy architecture
-- **Security Documentation**: Enhanced security documentation with refresh token
-  system details
-
-**New Documentation:**
-
-- Nginx proxy implementation plan and architecture guide
-- Refresh token system implementation and security considerations
-- Production deployment guide with nginx proxy configuration
-- Enhanced security documentation with authentication system details
-
-#### **Utility Documentation**
-
-- **Consolidated README**: Merged separate utility READMEs into single
-  comprehensive guide
-- **Location Updater Scripts**: Documentation for dive site and diving center
-  location updater utilities
-- **Environment Configuration**: Example environment files and configuration
-  guides
-- **Troubleshooting**: Comprehensive troubleshooting sections for common issues
-
-**Utility Guides:**
-
-- Single comprehensive utility README with table of contents
-- Location updater script documentation and usage examples
-- Environment configuration examples and setup guides
-- Troubleshooting sections for common utility issues
-
-### 🔒 Security Enhancements
-
-#### **Comprehensive Authentication System**
-
-- **Refresh Token Security**: HTTP-only cookies with SameSite=strict for maximum
-  security
-- **Token Rotation**: Automatic token rotation and comprehensive audit logging
-- **Session Management**: Configurable session limits and automatic token
-  invalidation
-- **Security Monitoring**: Enhanced suspicious IP detection and comprehensive
-  security logging
-
-**Security Features:**
-
-- SameSite=strict cookies preventing CSRF attacks
-- HTTP-only cookie storage preventing XSS token theft
-- Comprehensive audit logging for security monitoring
-- Configurable proxy chain security for production environments
-
-#### **Authorization and Access Control**
-
-- **Diving Center Ownership**: Comprehensive authorization system for diving
-  center owners
-- **Role-Based Access**: Enhanced role-based access control with proper
-  permission validation
-- **Security Testing**: Comprehensive test coverage for all authorization
-  scenarios
-- **Access Monitoring**: Enhanced logging and monitoring for security events
-
-**Authorization Improvements:**
-
-- Owners can manage their own diving centers with proper validation
-- Enhanced role-based access control across all endpoints
-- Comprehensive testing for authorization scenarios
-- Improved security monitoring and event logging
-
-### 🚀 Infrastructure Changes
-
-#### **Nginx Reverse Proxy Architecture**
-
-- **Development Environment**: Complete nginx proxy configuration for
-  development with proper routing
-- **Production Deployment**: Production-ready nginx configuration for Fly.io
-  deployment
-- **SSL Termination**: Proper SSL handling with Fly.io TLS termination
-- **Performance Optimization**: Optimized buffer sizes and response handling
-
-**Infrastructure Benefits:**
-
-- Unified entry point for frontend and backend services
-- Resolved cross-origin cookie issues for authentication
-- Enterprise-grade security features and performance optimization
-- Simplified deployment and maintenance
-
-#### **Docker and Container Updates**
-
-- **Container Optimization**: Updated .dockerignore for better Docker build
-  efficiency
-- **Service Configuration**: Enhanced Docker Compose configuration with nginx
-  proxy
-- **Environment Management**: Improved environment variable configuration and
-  management
-- **Build Performance**: Optimized container builds and deployment processes
-
-**Container Improvements:**
-
-- Excluded virtual environment and media directories from builds
-- Enhanced service configuration and dependencies
-- Improved environment variable management
-- Better build performance and efficiency
-
-#### **Fly.io Production Deployment**
-
-- **Production Configuration**: Complete production deployment configuration for
-  Fly.io
-- **Resource Management**: Proper resource allocation and auto-scaling
-  configuration
-- **Health Monitoring**: Comprehensive health checks and monitoring setup
-- **Security Headers**: Enterprise-grade security headers and rate limiting
-
-**Production Features:**
-
-- Complete production deployment configuration
-- Proper resource allocation and auto-scaling
-- Comprehensive health monitoring and checks
-- Enterprise-grade security and performance features
 
 ## [Previous Release] - 2025-08-17
 

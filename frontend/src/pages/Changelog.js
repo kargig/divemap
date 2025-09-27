@@ -25,7 +25,86 @@ const Changelog = () => {
           <div className='prose prose-lg max-w-none'>
             <h2 className='text-2xl font-semibold text-gray-900 mb-6 flex items-center'>
               <Calendar className='h-6 w-6 mr-3 text-blue-600' />
-              Latest Release - August 24, 2025
+              Latest Release - September 27, 2025
+            </h2>
+
+            <div className='grid md:grid-cols-2 gap-6 mb-8'>
+              <div className='bg-blue-50 p-6 rounded-lg border border-blue-200'>
+                <h3 className='text-lg font-semibold text-blue-900 mb-3 flex items-center'>
+                  🚀 Major Features
+                </h3>
+                <ul className='text-blue-800 space-y-2'>
+                  <li>• Interactive Dive Profile Charts with Mobile Touch Support</li>
+                  <li>• Complete Map System Upgrade for Better Performance</li>
+                  <li>• Enhanced Mobile Experience with Landscape Optimization</li>
+                  <li>• Multiple Filter Selection (Wreck AND Reef filters)</li>
+                  <li>• Decompression Stop Visualization</li>
+                </ul>
+              </div>
+
+              <div className='bg-green-50 p-6 rounded-lg border border-green-200'>
+                <h3 className='text-lg font-semibold text-green-900 mb-3 flex items-center'>
+                  🔧 Improvements
+                </h3>
+                <ul className='text-green-800 space-y-2'>
+                  <li>• Enhanced Search with Better Results</li>
+                  <li>• Improved Mobile Interface</li>
+                  <li>• Better Page Navigation with Dynamic Titles</li>
+                  <li>• Comprehensive Help System</li>
+                  <li>• Public Dive Profile Sharing</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className='grid md:grid-cols-2 gap-6 mb-8'>
+              <div className='bg-orange-50 p-6 rounded-lg border border-orange-200'>
+                <h3 className='text-lg font-semibold text-orange-900 mb-3 flex items-center'>
+                  🐛 Bug Fixes
+                </h3>
+                <ul className='text-orange-800 space-y-2'>
+                  <li>• Fixed Mobile Modal Scrolling Issues</li>
+                  <li>• Resolved Google Login Problems</li>
+                  <li>• Fixed Dive Information Display</li>
+                  <li>• Improved Import Date Handling</li>
+                  <li>• Enhanced Map Performance</li>
+                </ul>
+              </div>
+
+              <div className='bg-purple-50 p-6 rounded-lg border border-purple-200'>
+                <h3 className='text-lg font-semibold text-purple-900 mb-3 flex items-center'>
+                  🔒 Security & Privacy
+                </h3>
+                <ul className='text-purple-800 space-y-2'>
+                  <li>• Enhanced Data Protection</li>
+                  <li>• Secure Profile Storage</li>
+                  <li>• Better Privacy Controls</li>
+                  <li>• Mobile Security Improvements</li>
+                  <li>• Safe Public Profile Sharing</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className='bg-gray-50 p-6 rounded-lg border border-gray-200 mb-8'>
+              <h3 className='text-lg font-semibold text-gray-900 mb-3 flex items-center'>
+                🚀 Performance & Infrastructure
+              </h3>
+              <ul className='text-gray-800 space-y-2'>
+                <li>• Faster Map Loading and Rendering</li>
+                <li>• Better Mobile Experience Across All Devices</li>
+                <li>• Improved App Performance and Speed</li>
+                <li>• Enhanced Compatibility with All Browsers</li>
+                <li>• Touch-Optimized Mobile Interactions</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Previous Release */}
+        <div className='bg-white rounded-lg shadow-lg p-8 mb-8'>
+          <div className='prose prose-lg max-w-none'>
+            <h2 className='text-2xl font-semibold text-gray-900 mb-6 flex items-center'>
+              <Calendar className='h-6 w-6 mr-3 text-blue-600' />
+              Previous Release - August 24, 2025
             </h2>
 
             <div className='grid md:grid-cols-2 gap-6 mb-8'>
@@ -173,7 +252,7 @@ const Changelog = () => {
               </a>{' '}
               standard for clear, user-friendly documentation of all changes.
             </p>
-            <p className='text-sm text-gray-500'>Last updated: August 24, 2025</p>
+            <p className='text-sm text-gray-500'>Last updated: September 27, 2025</p>
           </div>
         </div>
       </div>
