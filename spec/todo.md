@@ -2,6 +2,20 @@
 
 ## Active Development Tasks
 
+### Backend Refactoring
+
+- [ ] **Refactor dives.py router into multiple focused modules**
+  - Split oversized dives.py file (130KB, 3,400+ lines) into focused modules
+  - Create dives_crud.py for core CRUD operations
+  - Create dives_admin.py for admin operations  
+  - Create dives_media.py for media and tag operations
+  - Create dives_search.py for search functionality
+  - Create dives_import.py for Subsurface XML import
+  - Create dives_profiles.py for dive profile management
+  - Create dives_utils.py for utility functions
+  - Maintain all existing API endpoints and functionality
+  - Update tests and dependencies to reference new modules
+
 ### UI/UX Enhancements
 
 - [x] **Improve dive profile visualization colorblind accessibility**
