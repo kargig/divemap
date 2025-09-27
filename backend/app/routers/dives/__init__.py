@@ -17,45 +17,14 @@ This module contains the refactored dives router split into focused modules:
 """
 
 from .dives_shared import router
-from .dives_crud import *
-from .dives_admin import *
-from .dives_media import *
-from .dives_search import *
-from .dives_import import *
-from .dives_profiles import *
-from .dives_utils import *
+from . import dives_crud
+from . import dives_admin
+from . import dives_media
+from . import dives_search
+from . import dives_import
+from . import dives_profiles
+from . import dives_utils
 
 __all__ = [
     "router",
-    # CRUD operations
-    "create_dive",
-    "get_dives",
-    "get_dive",
-    "update_dive",
-    "delete_dive",
-    "get_dive_details",
-    "get_dives_count",
-    # Admin operations
-    "get_all_dives_admin",
-    "get_all_dives_count_admin",
-    "update_dive_admin",
-    "delete_dive_admin",
-    # Media operations
-    "add_dive_media",
-    "get_dive_media",
-    "delete_dive_media",
-    "add_dive_tag",
-    "remove_dive_tag",
-    # Search operations
-    "search_dives_with_fuzzy",
-    # Import operations
-    "import_subsurface_xml",
-    "confirm_import_dives",
-    # Profile operations
-    "get_dive_profile",
-    "upload_dive_profile",
-    "delete_dive_profile",
-    "delete_user_profiles",
-    # Utility operations
-    "storage_health_check",
 ]

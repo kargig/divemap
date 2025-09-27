@@ -19,11 +19,11 @@ from .dives_shared import router, get_db, get_current_user, User, Dive, DiveMedi
 from .dives_db_utils import get_dive_by_id
 from .dives_errors import raise_dive_not_found, raise_media_not_found, raise_tag_not_found, raise_validation_error
 from .dives_logging import log_dive_operation, log_error
-from ..schemas import DiveMediaResponse, DiveTagResponse
+from app.schemas import DiveMediaResponse, DiveTagResponse
 
 
 @router.post("/{dive_id}/media", response_model=DiveMediaResponse)
-def add_dive_media(
+async def add_dive_media(
     dive_id: int,
     file: UploadFile = File(...),
     caption: str = "",

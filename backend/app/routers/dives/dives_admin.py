@@ -17,7 +17,7 @@ from .dives_shared import router, get_db, get_current_admin_user, User, Dive, Di
 from .dives_db_utils import get_dive_by_id, get_dive_with_relations
 from .dives_errors import raise_dive_not_found, raise_validation_error
 from .dives_logging import log_admin_operation, log_error
-from ..schemas import DiveResponse, DiveUpdate
+from app.schemas import DiveResponse, DiveUpdate
 
 
 @router.get("/admin/dives/count")

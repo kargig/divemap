@@ -6,6 +6,7 @@ that are shared across multiple dives modules.
 """
 
 from sqlalchemy.orm import Session
+from typing import Optional
 from app.models import Dive, DiveSite, AvailableTag
 from .dives_shared import logger
 

@@ -180,27 +180,27 @@ Phase: SHARED_CODE_EXTRACTION | Status: Complete"
 
 ### Phase 4: Move Functions to Modules (Incremental)
 
-- [ ] **Code change**: Move CRUD functions to `dives_crud.py` (create_dive, get_dives, get_dive, update_dive, delete_dive, get_dive_details, get_dives_count)
-- [ ] **Automated test**: Test CRUD module after migration
-- [ ] **User test**: Verify CRUD functionality works correctly
-- [ ] **Code change**: Move admin functions to `dives_admin.py` (get_all_dives_admin, get_all_dives_count_admin, update_dive_admin, delete_dive_admin)
-- [ ] **Automated test**: Test admin module after migration
-- [ ] **User test**: Verify admin functionality works correctly
-- [ ] **Code change**: Move media/tag functions to `dives_media.py` (add_dive_media, get_dive_media, delete_dive_media, add_dive_tag, remove_dive_tag)
-- [ ] **Automated test**: Test media module after migration
-- [ ] **User test**: Verify media functionality works correctly
-- [ ] **Code change**: Move search functions to `dives_search.py` (search_dives_with_fuzzy variants)
-- [ ] **Automated test**: Test search module after migration
-- [ ] **User test**: Verify search functionality works correctly
-- [ ] **Code change**: Move import functions to `dives_import.py` (import_subsurface_xml, convert_to_divemap_format, parse_* functions)
-- [ ] **Automated test**: Test import module after migration
-- [ ] **User test**: Verify import functionality works correctly
-- [ ] **Code change**: Move profile functions to `dives_profiles.py` (get_dive_profile, upload_dive_profile, delete_dive_profile, save_dive_profile_data)
-- [ ] **Automated test**: Test profile module after migration
-- [ ] **User test**: Verify profile functionality works correctly
-- [ ] **Code change**: Move utility functions to `dives_utils.py` (calculate_similarity, find_dive_site_by_import_id, storage_health_check)
-- [ ] **Automated test**: Test utils module after migration
-- [ ] **User test**: Verify utility functionality works correctly
+- [x] **Code change**: Move CRUD functions to `dives_crud.py` (create_dive, get_dives, get_dive, update_dive, delete_dive, get_dive_details, get_dives_count)
+- [x] **Automated test**: Test CRUD module after migration
+- [x] **User test**: Verify CRUD functionality works correctly
+- [x] **Code change**: Move admin functions to `dives_admin.py` (get_all_dives_admin, get_all_dives_count_admin, update_dive_admin, delete_dive_admin)
+- [x] **Automated test**: Test admin module after migration
+- [x] **User test**: Verify admin functionality works correctly
+- [x] **Code change**: Move media/tag functions to `dives_media.py` (add_dive_media, get_dive_media, delete_dive_media, add_dive_tag, remove_dive_tag)
+- [x] **Automated test**: Test media module after migration
+- [x] **User test**: Verify media functionality works correctly
+- [x] **Code change**: Move search functions to `dives_search.py` (search_dives_with_fuzzy variants)
+- [x] **Automated test**: Test search module after migration
+- [x] **User test**: Verify search functionality works correctly
+- [x] **Code change**: Move import functions to `dives_import.py` (import_subsurface_xml, convert_to_divemap_format, parse_* functions)
+- [x] **Automated test**: Test import module after migration
+- [x] **User test**: Verify import functionality works correctly
+- [x] **Code change**: Move profile functions to `dives_profiles.py` (get_dive_profile, upload_dive_profile, delete_dive_profile, save_dive_profile_data)
+- [x] **Automated test**: Test profile module after migration
+- [x] **User test**: Verify profile functionality works correctly
+- [x] **Code change**: Move utility functions to `dives_utils.py` (calculate_similarity, find_dive_site_by_import_id, storage_health_check)
+- [x] **Automated test**: Test utils module after migration
+- [x] **User test**: Verify utility functionality works correctly
 
 **COMMIT CHECKPOINT**: After Phase 4 completion, run:
 ```bash
@@ -692,3 +692,17 @@ Phase: COMPLETE | Status: Done"
 - **If Tests Fail**: Fix imports systematically, one module at a time
 - **If Import Errors**: Check module __init__.py exports
 - **If Router Errors**: Verify main.py registration
+
+## Testing Imports with Backend divemap_venv
+
+**Command for testing Python imports without Docker:**
+```bash
+cd /home/kargig/src/divemap
+PYTHONPATH="/home/kargig/src/divemap/backend:/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages" /home/kargig/src/divemap/backend/divemap_venv/bin/python test_script.py
+```
+
+**Key Points:**
+- Virtual environment: `/home/kargig/src/divemap/backend/divemap_venv`
+- PYTHONPATH must include both backend directory and venv site-packages
+- Contains FastAPI, Pydantic, Uvicorn, and all backend dependencies
+- Successfully tested: dives router (24 routes) and main app (134 total routes)

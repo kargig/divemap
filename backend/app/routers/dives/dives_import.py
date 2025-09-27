@@ -34,7 +34,7 @@ from .dives_shared import router, get_db, get_current_user, User, Dive, DiveSite
 from .dives_db_utils import get_or_create_deco_tag
 from .dives_errors import raise_validation_error, raise_internal_error
 from .dives_logging import log_import_operation, log_error
-from ..schemas import DiveCreate
+from app.schemas import DiveCreate
 
 
 def parse_dive_information_text(dive_information):

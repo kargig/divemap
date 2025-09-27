@@ -12,7 +12,7 @@ from difflib import SequenceMatcher
 
 from .dives_shared import router, get_db, get_current_user_optional, User, Dive, DiveSite, UNIFIED_TYPO_TOLERANCE
 from .dives_logging import log_error
-from ..schemas import DiveResponse
+from app.schemas import DiveResponse
 
 
 def calculate_similarity(str1: str, str2: str) -> float:
