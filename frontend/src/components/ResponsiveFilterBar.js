@@ -26,7 +26,7 @@ const ResponsiveFilterBar = ({
   filters = {},
   onFilterChange = () => {},
   onQuickFilter = () => {},
-  quickFilter = '',
+  quickFilters = [],
   className = '',
   variant = 'sticky',
   showQuickFilters = true,
@@ -228,7 +228,7 @@ const ResponsiveFilterBar = ({
                     <button
                       onClick={() => onQuickFilter('my_dives')}
                       className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                        quickFilter === 'my_dives'
+                        quickFilters.includes('my_dives')
                           ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
                           : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
                       }`}
@@ -240,7 +240,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('wrecks')}
                     className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                      quickFilter === 'wrecks'
+                      quickFilters.includes('wrecks')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
                         : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
                     }`}
@@ -251,7 +251,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('reefs')}
                     className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                      quickFilter === 'reefs'
+                      quickFilters.includes('reefs')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
                         : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
                     }`}
@@ -262,7 +262,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('boat_dive')}
                     className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                      quickFilter === 'boat_dive'
+                      quickFilters.includes('boat_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
                         : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
                     }`}
@@ -273,7 +273,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('shore_dive')}
                     className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                      quickFilter === 'shore_dive'
+                      quickFilters.includes('shore_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
                         : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
                     }`}
@@ -288,7 +288,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('wrecks')}
                     className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                      quickFilter === 'wrecks'
+                      quickFilters.includes('wrecks')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
                         : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
                     }`}
@@ -299,7 +299,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('reefs')}
                     className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                      quickFilter === 'reefs'
+                      quickFilters.includes('reefs')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
                         : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
                     }`}
@@ -310,7 +310,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('boat_dive')}
                     className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                      quickFilter === 'boat_dive'
+                      quickFilters.includes('boat_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
                         : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
                     }`}
@@ -321,7 +321,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('shore_dive')}
                     className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                      quickFilter === 'shore_dive'
+                      quickFilters.includes('shore_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
                         : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
                     }`}
@@ -665,7 +665,7 @@ const ResponsiveFilterBar = ({
                     <button
                       onClick={() => onQuickFilter('my_dives')}
                       className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                        quickFilter === 'my_dives'
+                        quickFilters.includes('my_dives')
                           ? 'bg-blue-100 text-blue-700 border border-blue-300'
                           : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
                       }`}
@@ -677,7 +677,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('wrecks')}
                     className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                      quickFilter === 'wrecks'
+                      quickFilters.includes('wrecks')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
                     }`}
@@ -688,7 +688,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('reefs')}
                     className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                      quickFilter === 'reefs'
+                      quickFilters.includes('reefs')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
                     }`}
@@ -699,7 +699,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('boat_dive')}
                     className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                      quickFilter === 'boat_dive'
+                      quickFilters.includes('boat_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
                     }`}
@@ -710,7 +710,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('shore_dive')}
                     className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                      quickFilter === 'shore_dive'
+                      quickFilters.includes('shore_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
                     }`}
@@ -725,7 +725,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('wrecks')}
                     className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                      quickFilter === 'wrecks'
+                      quickFilters.includes('wrecks')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
                     }`}
@@ -736,7 +736,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('reefs')}
                     className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                      quickFilter === 'reefs'
+                      quickFilters.includes('reefs')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
                     }`}
@@ -747,7 +747,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('boat_dive')}
                     className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                      quickFilter === 'boat_dive'
+                      quickFilters.includes('boat_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
                     }`}
@@ -758,7 +758,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('shore_dive')}
                     className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                      quickFilter === 'shore_dive'
+                      quickFilters.includes('shore_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
                     }`}
@@ -1061,7 +1061,7 @@ ResponsiveFilterBar.propTypes = {
   filters: PropTypes.object,
   onFilterChange: PropTypes.func,
   onQuickFilter: PropTypes.func,
-  quickFilter: PropTypes.string,
+  quickFilters: PropTypes.array,
   className: PropTypes.string,
   variant: PropTypes.oneOf(['sticky', 'floating', 'inline']),
   showQuickFilters: PropTypes.bool,
