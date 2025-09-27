@@ -232,16 +232,16 @@ const AdvancedDiveProfileChart = ({
         lastKnownStopdepth = 0;
       }
 
-            // Handle stoptime persistence logic
-            if (lastKnownInDeco) {
-              // When in decompression, use stoptime_minutes if present, otherwise maintain previous value
-              if (sample.stoptime_minutes !== null && sample.stoptime_minutes !== undefined) {
-                lastKnownStoptime = sample.stoptime_minutes;
-              }
-            } else {
-              // When not in decompression, reset stoptime to null (no stop time)
-              lastKnownStoptime = null;
-            }
+      // Handle stoptime persistence logic
+      if (lastKnownInDeco) {
+        // When in decompression, use stoptime_minutes if present, otherwise maintain previous value
+        if (sample.stoptime_minutes !== null && sample.stoptime_minutes !== undefined) {
+          lastKnownStoptime = sample.stoptime_minutes;
+        }
+      } else {
+        // When not in decompression, reset stoptime to null (no stop time)
+        lastKnownStoptime = null;
+      }
 
       return {
         time: sample.time_minutes || 0,
@@ -291,12 +291,12 @@ const AdvancedDiveProfileChart = ({
   }, [chartData]);
 
   // Format stoptime for display
-  const formatStoptime = (stoptime) => {
+  const formatStoptime = stoptime => {
     if (!stoptime || stoptime <= 0) return '0:00';
-    
+
     const minutes = Math.floor(stoptime);
     const seconds = Math.round((stoptime - minutes) * 60);
-    
+
     if (seconds === 60) {
       return `${minutes + 1}:00`;
     } else if (seconds < 10) {
@@ -641,17 +641,21 @@ const AdvancedDiveProfileChart = ({
                 <span className='text-sm text-gray-600'>Ceiling</span>
               </label>
             )}
-            {hasDeco && chartData.some(sample => sample.stoptime !== null && sample.stoptime !== undefined && sample.stoptime > 0) && (
-              <label className='flex items-center'>
-                <input
-                  type='checkbox'
-                  checked={showStoptime}
-                  onChange={e => setShowStoptime(e.target.checked)}
-                  className='mr-2'
-                />
-                <span className='text-sm text-gray-600'>Stop Time</span>
-              </label>
-            )}
+            {hasDeco &&
+              chartData.some(
+                sample =>
+                  sample.stoptime !== null && sample.stoptime !== undefined && sample.stoptime > 0
+              ) && (
+                <label className='flex items-center'>
+                  <input
+                    type='checkbox'
+                    checked={showStoptime}
+                    onChange={e => setShowStoptime(e.target.checked)}
+                    className='mr-2'
+                  />
+                  <span className='text-sm text-gray-600'>Stop Time</span>
+                </label>
+              )}
           </div>
 
           <div className='flex items-center gap-2'>
@@ -726,9 +730,16 @@ const AdvancedDiveProfileChart = ({
         <div className='sm:hidden bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2'>
           <div className='flex items-center justify-center space-x-2 text-sm text-blue-700'>
             <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' />
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
+              />
             </svg>
-            <span className='font-medium'>Tip: Rotate your phone to landscape for a better view of the dive profile</span>
+            <span className='font-medium'>
+              Tip: Rotate your phone to landscape for a better view of the dive profile
+            </span>
           </div>
         </div>
 
@@ -843,7 +854,15 @@ const AdvancedDiveProfileChart = ({
                 />
               )}
 
-              <Tooltip content={<CustomTooltip showCNS={showCNS} showCeiling={showCeiling} showStoptime={showStoptime} />} />
+              <Tooltip
+                content={
+                  <CustomTooltip
+                    showCNS={showCNS}
+                    showCeiling={showCeiling}
+                    showStoptime={showStoptime}
+                  />
+                }
+              />
 
               {/* Stopdepth ceiling area - only show if dive has decompression stops */}
               <Area

@@ -25,49 +25,49 @@ export const processDiveProfileData = profileData => {
   const samples = profileData.samples;
   const events = profileData.events || [];
 
-      // Process samples for chart data with running average depth, stopdepth and stoptime persistence
-      let runningDepthSum = 0;
-      let lastKnownStopdepth = 0; // Initialize stopdepth to 0 (surface)
-      let lastKnownStoptime = null; // Initialize stoptime to null (no stop time at surface)
-      const chartData = samples.map((sample, index) => {
-        const depth = sample.depth || 0;
-        runningDepthSum += depth;
-        const averageDepth = runningDepthSum / (index + 1);
+  // Process samples for chart data with running average depth, stopdepth and stoptime persistence
+  let runningDepthSum = 0;
+  let lastKnownStopdepth = 0; // Initialize stopdepth to 0 (surface)
+  let lastKnownStoptime = null; // Initialize stoptime to null (no stop time at surface)
+  const chartData = samples.map((sample, index) => {
+    const depth = sample.depth || 0;
+    runningDepthSum += depth;
+    const averageDepth = runningDepthSum / (index + 1);
 
-        // Handle stopdepth persistence logic
-        if (sample.in_deco === true) {
-          // When in decompression, use stopdepth if present, otherwise maintain previous value
-          if (sample.stopdepth !== null && sample.stopdepth !== undefined) {
-            lastKnownStopdepth = sample.stopdepth;
-          }
-        } else {
-          // When not in decompression, reset stopdepth to 0 (surface)
-          lastKnownStopdepth = 0;
-        }
+    // Handle stopdepth persistence logic
+    if (sample.in_deco === true) {
+      // When in decompression, use stopdepth if present, otherwise maintain previous value
+      if (sample.stopdepth !== null && sample.stopdepth !== undefined) {
+        lastKnownStopdepth = sample.stopdepth;
+      }
+    } else {
+      // When not in decompression, reset stopdepth to 0 (surface)
+      lastKnownStopdepth = 0;
+    }
 
-        // Handle stoptime persistence logic
-        if (sample.in_deco === true) {
-          // When in decompression, use stoptime_minutes if present, otherwise maintain previous value
-          if (sample.stoptime_minutes !== null && sample.stoptime_minutes !== undefined) {
-            lastKnownStoptime = sample.stoptime_minutes;
-          }
-        } else {
-          // When not in decompression, reset stoptime to null (no stop time)
-          lastKnownStoptime = null;
-        }
+    // Handle stoptime persistence logic
+    if (sample.in_deco === true) {
+      // When in decompression, use stoptime_minutes if present, otherwise maintain previous value
+      if (sample.stoptime_minutes !== null && sample.stoptime_minutes !== undefined) {
+        lastKnownStoptime = sample.stoptime_minutes;
+      }
+    } else {
+      // When not in decompression, reset stoptime to null (no stop time)
+      lastKnownStoptime = null;
+    }
 
-        return {
-          time: sample.time_minutes || 0,
-          depth: depth, // Keep original depth values
-          averageDepth: Math.round(averageDepth * 100) / 100, // Round to 2 decimal places
-          temperature: sample.temperature || null,
-          ndl: sample.ndl_minutes || null,
-          cns: sample.cns_percent || null,
-          in_deco: sample.in_deco || false,
-          stopdepth: lastKnownStopdepth, // Add stopdepth with persistence logic
-          stoptime: lastKnownStoptime, // Add stoptime with persistence logic
-        };
-      });
+    return {
+      time: sample.time_minutes || 0,
+      depth: depth, // Keep original depth values
+      averageDepth: Math.round(averageDepth * 100) / 100, // Round to 2 decimal places
+      temperature: sample.temperature || null,
+      ndl: sample.ndl_minutes || null,
+      cns: sample.cns_percent || null,
+      in_deco: sample.in_deco || false,
+      stopdepth: lastKnownStopdepth, // Add stopdepth with persistence logic
+      stoptime: lastKnownStoptime, // Add stoptime with persistence logic
+    };
+  });
 
   // Calculate average depth
   const depths = samples.map(s => s.depth).filter(d => d !== null && d !== undefined);
