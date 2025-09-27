@@ -1,6 +1,6 @@
 # Add maximize icon to dive profile visualization
 
-**Status:** Done
+**Status:** In Progress
 **Started:** 2025-09-27T12:45:00Z
 **Created:** 2025-09-27-12-39-34
 **Agent PID:** 498724

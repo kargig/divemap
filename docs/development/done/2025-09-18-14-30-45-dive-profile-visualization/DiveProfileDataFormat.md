@@ -43,6 +43,8 @@ interface Sample {
   ndl_minutes?: number;           // No Decompression Limit in minutes
   in_deco?: boolean;              // Decompression status (true = in decompression)
   cns_percent?: number;           // Central Nervous System percentage
+  stopdepth?: number;             // Decompression ceiling depth in meters (when in_deco=true)
+  stoptime?: number;              // Mandatory stop time at ceiling in minutes (when in_deco=true)
   
   // Calculated fields
   averageDepth: number;           // Running average depth in meters
@@ -73,6 +75,8 @@ interface Sample {
   "ndl_minutes": 0,
   "in_deco": true,
   "cns_percent": 15.3,
+  "stopdepth": 18.0,
+  "stoptime": 2.5,
   "averageDepth": 18.7
 }
 ```
@@ -161,6 +165,12 @@ The system supports multiple time formats from different dive computers:
 2. **Depth Range**: `depth` should be reasonable (0-200m typical)
 3. **Temperature Range**: `temperature` should be reasonable (-2°C to 40°C)
 4. **NDL Logic**: If `in_deco` is true, `ndl_minutes` should be 0 or undefined
+5. **Stopdepth Logic**: If `in_deco` is true, `stopdepth` should be present and > 0
+6. **Stopdepth Persistence**: When `in_deco` is true but `stopdepth` is missing, use previous value
+7. **Stopdepth Reset**: When `in_deco` is false, `stopdepth` should be 0 or undefined
+8. **Stoptime Logic**: If `in_deco` is true, `stoptime` should be present and > 0
+9. **Stoptime Persistence**: When `in_deco` is true but `stoptime` is missing, use previous value
+10. **Stoptime Reset**: When `in_deco` is false, `stoptime` should be null
 
 ## Data Processing
 
@@ -200,6 +210,72 @@ function calculateAverageDepth(samples: Sample[]): number[] {
   return averages;
 }
 ```
+
+### Stopdepth Persistence Logic
+
+Stopdepth values are processed with persistence logic to handle missing values:
+
+```typescript
+function processStopdepthData(samples: Sample[]): Sample[] {
+  let lastKnownStopdepth = 0; // Initialize to surface (0m)
+  
+  return samples.map(sample => {
+    if (sample.in_deco === true) {
+      // When in decompression, use stopdepth if present, otherwise maintain previous value
+      if (sample.stopdepth !== null && sample.stopdepth !== undefined) {
+        lastKnownStopdepth = sample.stopdepth;
+      }
+    } else {
+      // When not in decompression, reset stopdepth to 0 (surface)
+      lastKnownStopdepth = 0;
+    }
+    
+    return {
+      ...sample,
+      stopdepth: lastKnownStopdepth
+    };
+  });
+}
+```
+
+**Key Rules:**
+1. **Initial State**: Stopdepth starts at 0 (surface level)
+2. **In Decompression**: When `in_deco=true`, use provided `stopdepth` or maintain previous value
+3. **Out of Decompression**: When `in_deco=false`, reset `stopdepth` to 0
+4. **Persistence**: Missing `stopdepth` values maintain the last known value during decompression
+
+### Stoptime Persistence Logic
+
+Stoptime values are processed with persistence logic similar to stopdepth:
+
+```typescript
+function processStoptimeData(samples: Sample[]): Sample[] {
+  let lastKnownStoptime = null; // Initialize to null (no stop time at surface)
+  
+  return samples.map(sample => {
+    if (sample.in_deco === true) {
+      // When in decompression, use stoptime if present, otherwise maintain previous value
+      if (sample.stoptime !== null && sample.stoptime !== undefined) {
+        lastKnownStoptime = sample.stoptime;
+      }
+    } else {
+      // When not in decompression, reset stoptime to null (no stop time)
+      lastKnownStoptime = null;
+    }
+    
+    return {
+      ...sample,
+      stoptime: lastKnownStoptime
+    };
+  });
+}
+```
+
+**Key Rules:**
+1. **Initial State**: Stoptime starts at null (no stop time at surface)
+2. **In Decompression**: When `in_deco=true`, use provided `stoptime` or maintain previous value
+3. **Out of Decompression**: When `in_deco=false`, reset `stoptime` to null
+4. **Persistence**: Missing `stoptime` values maintain the last known value during decompression
 
 ## Import/Export Formats
 
@@ -308,4 +384,6 @@ const profileData = await fetch(`/api/v1/dives/${diveId}/profile`).then(r => r.j
 - **v1.1.0**: Added event support and gas change markers
 - **v1.2.0**: Added smart sampling and performance optimizations
 - **v1.3.0**: Enhanced validation and error handling
+- **v1.4.0**: Added stopdepth field and decompression ceiling visualization support
+- **v1.5.0**: Added stoptime field and mandatory stop time tooltip display
 
