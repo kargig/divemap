@@ -6,6 +6,7 @@ import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
   ComposedChart,
   Line,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -25,6 +26,9 @@ const AdvancedDiveProfileChart = ({
 }) => {
   const [, setHoveredPoint] = useState(null);
   const [showTemperature, setShowTemperature] = useState(initialShowTemperature);
+  const [showCNS, setShowCNS] = useState(true);
+  const [showCeiling, setShowCeiling] = useState(true);
+  const [showStoptime, setShowStoptime] = useState(true);
   const chartRef = useRef(null);
   const [highContrastMode, setHighContrastMode] = useState(false);
   const [showAllSamples, setShowAllSamples] = useState(false);
@@ -37,6 +41,14 @@ const AdvancedDiveProfileChart = ({
   const hasDeco = useMemo(() => {
     if (!profileData?.samples) return false;
     return profileData.samples.some(sample => sample.in_deco === true);
+  }, [profileData]);
+
+  // Check if dive has any stopdepth data (for conditional ceiling display)
+  const hasStopdepth = useMemo(() => {
+    if (!profileData?.samples) return false;
+    return profileData.samples.some(
+      sample => sample.stopdepth !== null && sample.stopdepth !== undefined && sample.stopdepth > 0
+    );
   }, [profileData]);
 
   // Process gas change events
@@ -177,11 +189,13 @@ const AdvancedDiveProfileChart = ({
       }))
       .filter(item => item.temperature !== null && item.temperature !== undefined);
 
-    // Create stepped temperature, NDL, and CNS data - hold last known values
+    // Create stepped temperature, NDL, CNS, and stopdepth data - hold last known values
     let lastKnownTemperature = null;
     let lastKnownNDL = null;
     let lastKnownInDeco = false;
     let lastKnownCNS = null;
+    let lastKnownStopdepth = 0; // Initialize stopdepth to 0 (surface)
+    let lastKnownStoptime = null; // Initialize stoptime to null (no stop time at surface)
     const steppedSamples = samplesToProcess.map((sample, index) => {
       const depth = sample.depth || 0;
       runningDepthSum += depth;
@@ -207,6 +221,28 @@ const AdvancedDiveProfileChart = ({
         lastKnownCNS = sample.cns_percent;
       }
 
+      // Handle stopdepth persistence logic
+      if (lastKnownInDeco) {
+        // When in decompression, use stopdepth if present, otherwise maintain previous value
+        if (sample.stopdepth !== null && sample.stopdepth !== undefined) {
+          lastKnownStopdepth = sample.stopdepth;
+        }
+      } else {
+        // When not in decompression, reset stopdepth to 0 (surface)
+        lastKnownStopdepth = 0;
+      }
+
+            // Handle stoptime persistence logic
+            if (lastKnownInDeco) {
+              // When in decompression, use stoptime_minutes if present, otherwise maintain previous value
+              if (sample.stoptime_minutes !== null && sample.stoptime_minutes !== undefined) {
+                lastKnownStoptime = sample.stoptime_minutes;
+              }
+            } else {
+              // When not in decompression, reset stoptime to null (no stop time)
+              lastKnownStoptime = null;
+            }
+
       return {
         time: sample.time_minutes || 0,
         depth: depth,
@@ -215,6 +251,8 @@ const AdvancedDiveProfileChart = ({
         ndl: lastKnownNDL,
         cns: lastKnownCNS,
         in_deco: lastKnownInDeco,
+        stopdepth: lastKnownStopdepth, // Add stopdepth with persistence logic
+        stoptime: lastKnownStoptime, // Add stoptime with persistence logic
       };
     });
 
@@ -252,8 +290,24 @@ const AdvancedDiveProfileChart = ({
     };
   }, [chartData]);
 
+  // Format stoptime for display
+  const formatStoptime = (stoptime) => {
+    if (!stoptime || stoptime <= 0) return '0:00';
+    
+    const minutes = Math.floor(stoptime);
+    const seconds = Math.round((stoptime - minutes) * 60);
+    
+    if (seconds === 60) {
+      return `${minutes + 1}:00`;
+    } else if (seconds < 10) {
+      return `${minutes}:0${seconds}`;
+    } else {
+      return `${minutes}:${seconds}`;
+    }
+  };
+
   // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }) => {
+  const CustomTooltip = ({ active, payload, label, showCNS, showCeiling, showStoptime }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
@@ -292,10 +346,22 @@ const AdvancedDiveProfileChart = ({
                 )}
               </span>
             </div>
-            {data.cns && (
+            {data.cns && showCNS && (
               <div className='flex justify-between'>
                 <span className='text-purple-600'>CNS:</span>
                 <span className='font-medium'>{data.cns?.toFixed(1)}%</span>
+              </div>
+            )}
+            {data.stopdepth > 0 && showCeiling && (
+              <div className='flex justify-between'>
+                <span className='text-red-600'>Ceiling:</span>
+                <span className='font-medium'>{data.stopdepth?.toFixed(1)}m</span>
+              </div>
+            )}
+            {data.stoptime > 0 && data.in_deco && showStoptime && (
+              <div className='flex justify-between'>
+                <span className='text-orange-600'>Stop Time:</span>
+                <span className='font-medium'>{formatStoptime(data.stoptime)}</span>
               </div>
             )}
           </div>
@@ -553,6 +619,39 @@ const AdvancedDiveProfileChart = ({
               />
               <span className='text-sm text-gray-600'>Temperature</span>
             </label>
+            {chartData.some(sample => sample.cns !== null && sample.cns !== undefined) && (
+              <label className='flex items-center'>
+                <input
+                  type='checkbox'
+                  checked={showCNS}
+                  onChange={e => setShowCNS(e.target.checked)}
+                  className='mr-2'
+                />
+                <span className='text-sm text-gray-600'>CNS</span>
+              </label>
+            )}
+            {hasDeco && hasStopdepth && (
+              <label className='flex items-center'>
+                <input
+                  type='checkbox'
+                  checked={showCeiling}
+                  onChange={e => setShowCeiling(e.target.checked)}
+                  className='mr-2'
+                />
+                <span className='text-sm text-gray-600'>Ceiling</span>
+              </label>
+            )}
+            {hasDeco && chartData.some(sample => sample.stoptime !== null && sample.stoptime !== undefined && sample.stoptime > 0) && (
+              <label className='flex items-center'>
+                <input
+                  type='checkbox'
+                  checked={showStoptime}
+                  onChange={e => setShowStoptime(e.target.checked)}
+                  className='mr-2'
+                />
+                <span className='text-sm text-gray-600'>Stop Time</span>
+              </label>
+            )}
           </div>
 
           <div className='flex items-center gap-2'>
@@ -623,6 +722,16 @@ const AdvancedDiveProfileChart = ({
           </div>
         </div>
 
+        {/* Mobile landscape suggestion - only show on mobile devices in portrait mode */}
+        <div className='sm:hidden bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2'>
+          <div className='flex items-center justify-center space-x-2 text-sm text-blue-700'>
+            <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' />
+            </svg>
+            <span className='font-medium'>Tip: Rotate your phone to landscape for a better view of the dive profile</span>
+          </div>
+        </div>
+
         {/* Chart Legend */}
         <div className='bg-gray-50 rounded-lg border border-gray-200 p-3 mb-2'>
           <div className='flex items-center justify-center space-x-6 text-sm'>
@@ -638,6 +747,12 @@ const AdvancedDiveProfileChart = ({
               <div className='w-4 h-0.5 bg-green-500 border-dashed border-t-2'></div>
               <span className='text-gray-700'>Temperature</span>
             </div>
+            {hasDeco && hasStopdepth && (
+              <div className='flex items-center space-x-2'>
+                <div className='w-4 h-0.5 bg-red-500 border-dashed border-t-2'></div>
+                <span className='text-gray-700'>Decompression Ceiling</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -728,7 +843,20 @@ const AdvancedDiveProfileChart = ({
                 />
               )}
 
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip showCNS={showCNS} showCeiling={showCeiling} showStoptime={showStoptime} />} />
+
+              {/* Stopdepth ceiling area - only show if dive has decompression stops */}
+              <Area
+                type='monotone'
+                dataKey='stopdepth'
+                fill='#ef4444'
+                fillOpacity={hasDeco && hasStopdepth ? 0.2 : 0}
+                stroke='#dc2626'
+                strokeWidth={hasDeco && hasStopdepth ? 1 : 0}
+                strokeDasharray='3 3'
+                name='Decompression Ceiling'
+                hide={!hasDeco || !hasStopdepth}
+              />
 
               {/* Main depth line */}
               <Line
