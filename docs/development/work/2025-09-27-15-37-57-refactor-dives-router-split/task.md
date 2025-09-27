@@ -124,15 +124,15 @@ Phase: DEPENDENCY_MAPPING | Status: Complete"
 
 ### Phase 2: Create Module Structure
 
-- [ ] **Code change**: Create `backend/app/routers/dives/` directory
-- [ ] **Code change**: Create `__init__.py` with proper exports
-- [ ] **Code change**: Create `dives_crud.py` for core CRUD operations
-- [ ] **Code change**: Create `dives_admin.py` for admin operations
-- [ ] **Code change**: Create `dives_media.py` for media and tag operations
-- [ ] **Code change**: Create `dives_search.py` for search functionality
-- [ ] **Code change**: Create `dives_import.py` for Subsurface XML import
-- [ ] **Code change**: Create `dives_profiles.py` for dive profile management
-- [ ] **Code change**: Create `dives_utils.py` for utility functions
+- [x] **Code change**: Create `backend/app/routers/dives/` directory
+- [x] **Code change**: Create `__init__.py` with proper exports
+- [x] **Code change**: Create `dives_crud.py` for core CRUD operations
+- [x] **Code change**: Create `dives_admin.py` for admin operations
+- [x] **Code change**: Create `dives_media.py` for media and tag operations
+- [x] **Code change**: Create `dives_search.py` for search functionality
+- [x] **Code change**: Create `dives_import.py` for Subsurface XML import
+- [x] **Code change**: Create `dives_profiles.py` for dive profile management
+- [x] **Code change**: Create `dives_utils.py` for utility functions
 
 **COMMIT CHECKPOINT**: After Phase 2 completion, run:
 ```bash
