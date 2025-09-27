@@ -29,65 +29,119 @@ def search_dives_with_fuzzy(
     sort_by: str = None,
     sort_order: str = 'asc'
 ) -> List[Dive]:
-    """Search dives with fuzzy matching"""
+    """
+    Enhance search results with fuzzy matching when exact results are insufficient.
+    
+    Args:
+        query: The search query string
+        exact_results: List of dives from exact search
+        db: Database session
+        similarity_threshold: Minimum similarity score (0.0 to 1.0)
+        max_fuzzy_results: Maximum number of fuzzy results to return
+        sort_by: Sort field
+        sort_order: Sort order (asc/desc)
+    
+    Returns:
+        List of dives with enhanced scoring and match type classification
+    """
     try:
-        if not query or len(query.strip()) < 2:
-            return exact_results
+        query_lower = query.lower()
         
-        # Get all dives for fuzzy search
-        all_dives = db.query(Dive).join(DiveSite).all()
-        
-        # Calculate similarity scores
-        dive_scores = []
-        for dive in all_dives:
-            # Skip if already in exact results
-            if dive in exact_results:
+        # First, score the exact results
+        exact_results_with_scores = []
+        for dive in exact_results:
+            # Get dive site information for scoring
+            dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
+            if not dive_site:
                 continue
+                
+            # Get tags for this dive for scoring
+            dive_tags = []
+            if hasattr(dive, 'tags') and dive.tags:
+                dive_tags = [tag.name if hasattr(tag, 'name') else str(tag) for tag in dive.tags]
             
-            # Calculate similarity with dive site name
-            site_similarity = calculate_similarity(query, dive.dive_site.name)
-            
-            # Calculate similarity with dive name
-            name_similarity = calculate_similarity(query, dive.name or "")
-            
-            # Calculate similarity with notes
-            notes_similarity = calculate_similarity(query, dive.notes or "")
-            
-            # Calculate similarity with buddy
-            buddy_similarity = calculate_similarity(query, dive.buddy or "")
-            
-            # Use the highest similarity score
-            max_similarity = max(site_similarity, name_similarity, notes_similarity, buddy_similarity)
-            
-            if max_similarity >= similarity_threshold:
-                dive_scores.append((dive, max_similarity))
+            from .dives_shared import calculate_unified_phrase_aware_score, classify_match_type
+            score = calculate_unified_phrase_aware_score(
+                query_lower, 
+                dive_site.name, 
+                dive_site.description, 
+                dive_site.country, 
+                dive_site.region, 
+                dive_site.city, 
+                dive_tags
+            )
+            exact_results_with_scores.append({
+                'dive': dive,
+                'match_type': 'exact' if score >= 0.9 else 'exact_words' if score >= 0.7 else 'partial_words',
+                'score': score,
+                'name_contains': query_lower in dive_site.name.lower(),
+                'description_contains': dive_site.description and query_lower in dive_site.description.lower(),
+            })
         
-        # Sort by similarity score
-        dive_scores.sort(key=lambda x: x[1], reverse=True)
+        # If we have enough exact results and no fuzzy search needed, return them
+        if len(exact_results) >= 10:
+            return exact_results_with_scores
         
-        # Get top results
-        fuzzy_results = [dive for dive, score in dive_scores[:max_fuzzy_results]]
+        # Get all dives for fuzzy matching (with dive site info)
+        all_dives = db.query(Dive).join(DiveSite, Dive.dive_site_id == DiveSite.id).all()
+        
+        # Create a set of exact result IDs to avoid duplicates
+        exact_ids = {dive.id for dive in exact_results}
+        
+        # Perform fuzzy matching on remaining dives
+        fuzzy_matches = []
+        for dive in all_dives:
+            if dive.id in exact_ids:
+                continue
+                
+            # Get dive site information for scoring
+            dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
+            if not dive_site:
+                continue
+                
+            # Get tags for this dive for scoring
+            dive_tags = []
+            if hasattr(dive, 'tags') and dive.tags:
+                dive_tags = [tag.name if hasattr(tag, 'name') else str(tag) for tag in dive.tags]
+            
+            weighted_score = calculate_unified_phrase_aware_score(
+                query_lower, 
+                dive_site.name, 
+                dive_site.description, 
+                dive_site.country, 
+                dive_site.region, 
+                dive_site.city, 
+                dive_tags
+            )
+            
+            # Check for partial matches (substring matches) for match type classification
+            name_contains = query_lower in dive_site.name.lower()
+            description_contains = dive_site.description and query_lower in dive_site.description.lower()
+            
+            # Include if similarity above threshold
+            if weighted_score > similarity_threshold:
+                # Determine match type using unified classification
+                match_type = classify_match_type(weighted_score)
+                
+                fuzzy_matches.append({
+                    'dive': dive,
+                    'match_type': match_type,
+                    'score': weighted_score,
+                    'name_contains': name_contains,
+                    'description_contains': description_contains,
+                })
+        
+        # Sort fuzzy matches by score (descending)
+        fuzzy_matches.sort(key=lambda x: x['score'], reverse=True)
+        
+        # Limit fuzzy results
+        fuzzy_matches = fuzzy_matches[:max_fuzzy_results]
         
         # Combine exact and fuzzy results
-        all_results = exact_results + fuzzy_results
+        all_results = exact_results_with_scores + fuzzy_matches
         
-        # Apply sorting if specified
-        if sort_by:
-            if sort_by == "dive_date":
-                if sort_order == "asc":
-                    all_results.sort(key=lambda x: x.dive_date)
-                else:
-                    all_results.sort(key=lambda x: x.dive_date, reverse=True)
-            elif sort_by == "depth":
-                if sort_order == "asc":
-                    all_results.sort(key=lambda x: x.depth or 0)
-                else:
-                    all_results.sort(key=lambda x: x.depth or 0, reverse=True)
-            elif sort_by == "rating":
-                if sort_order == "asc":
-                    all_results.sort(key=lambda x: x.rating or 0)
-                else:
-                    all_results.sort(key=lambda x: x.rating or 0, reverse=True)
+        # Sort all results by score (descending)
+        all_results.sort(key=lambda x: x['score'], reverse=True)
         
         return all_results
         

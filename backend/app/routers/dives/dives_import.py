@@ -37,166 +37,260 @@ from .dives_logging import log_import_operation, log_error
 from ..schemas import DiveCreate
 
 
-def parse_dive_information_text(info_text: str) -> Dict[str, Any]:
-    """Parse dive information text from Subsurface XML"""
-    info = {}
+def parse_dive_information_text(dive_information):
+    """Parse dive information text to extract individual fields like buddy, sac, otu, etc."""
+    if not dive_information:
+        return {}
     
-    if not info_text:
-        return info
+    parsed_fields = {}
     
-    # Parse depth
-    depth_match = re.search(r'Max depth: (\d+(?:\.\d+)?)m', info_text)
-    if depth_match:
-        info['max_depth'] = float(depth_match.group(1))
+    # Parse buddy - handle multiline text
+    buddy_match = re.search(r'Buddy:\s*([^\n]+?)(?=\nSAC:|$)', dive_information, re.MULTILINE)
+    if buddy_match:
+        parsed_fields['buddy'] = buddy_match.group(1).strip()
     
-    # Parse duration
-    duration_match = re.search(r'Duration: (\d+):(\d+)', info_text)
-    if duration_match:
-        minutes = int(duration_match.group(1))
-        seconds = int(duration_match.group(2))
-        info['duration'] = minutes * 60 + seconds
+    # Parse SAC
+    sac_match = re.search(r'SAC:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if sac_match:
+        parsed_fields['sac'] = sac_match.group(1).strip()
     
-    # Parse temperature
-    temp_match = re.search(r'Water temp: (\d+(?:\.\d+)?)°C', info_text)
-    if temp_match:
-        info['temperature'] = float(temp_match.group(1))
+    # Parse OTU
+    otu_match = re.search(r'OTU:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if otu_match:
+        parsed_fields['otu'] = otu_match.group(1).strip()
     
-    # Parse visibility
-    vis_match = re.search(r'Visibility: (\d+(?:\.\d+)?)m', info_text)
-    if vis_match:
-        info['visibility'] = float(vis_match.group(1))
+    # Parse CNS
+    cns_match = re.search(r'CNS:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if cns_match:
+        parsed_fields['cns'] = cns_match.group(1).strip()
     
-    return info
+    # Parse Water Temp
+    water_temp_match = re.search(r'Water Temp:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if water_temp_match:
+        parsed_fields['water_temperature'] = water_temp_match.group(1).strip()
+    
+    # Parse Deco Model
+    deco_model_match = re.search(r'Deco Model:\s*([^\n]+?)(?=\nWeights:|$)', dive_information, re.MULTILINE)
+    if deco_model_match:
+        parsed_fields['deco_model'] = deco_model_match.group(1).strip()
+    
+    # Parse Weights
+    weights_match = re.search(r'Weights:\s*([^\n]+)', dive_information, re.MULTILINE)
+    if weights_match:
+        weights_value = weights_match.group(1).strip()
+        # Clean up weights value - remove extra "weight" text if present
+        if weights_value.endswith(' weight'):
+            weights_value = weights_value[:-7]  # Remove " weight" (7 characters)
+        parsed_fields['weights'] = weights_value
+    
+    return parsed_fields
 
 
-def parse_dive_profile_samples(profile_data: str) -> List[Dict[str, Any]]:
-    """Parse dive profile samples from Subsurface XML"""
-    samples = []
+def parse_dive_profile_samples(computer_elem):
+    import xml.etree.ElementTree as ET
     
-    if not profile_data:
-        return samples
-    
-    # Split by lines and parse each sample
-    lines = profile_data.strip().split('\n')
-    for line in lines:
-        if not line.strip():
-            continue
-        
-        # Parse sample format: time,depth,temperature
-        parts = line.strip().split(',')
-        if len(parts) >= 2:
-            sample = {
-                'time': int(parts[0]) if parts[0].isdigit() else 0,
-                'depth': float(parts[1]) if parts[1].replace('.', '').isdigit() else 0.0
-            }
-            
-            if len(parts) >= 3 and parts[2].replace('.', '').isdigit():
-                sample['temperature'] = float(parts[2])
-            
-            samples.append(sample)
-    
-    return samples
-
-
-def parse_time_to_minutes(time_str: str) -> int:
-    """Parse time string to minutes"""
-    if not time_str:
-        return 0
-    
-    # Handle format like "1:23" or "83" (minutes)
-    if ':' in time_str:
-        parts = time_str.split(':')
-        if len(parts) == 2:
-            try:
-                hours = int(parts[0])
-                minutes = int(parts[1])
-                return hours * 60 + minutes
-            except ValueError:
-                return 0
-    else:
+    # Handle both XML element and XML string
+    if isinstance(computer_elem, str):
         try:
-            return int(time_str)
-        except ValueError:
-            return 0
+            computer_elem = ET.fromstring(computer_elem)
+        except ET.ParseError:
+            return None
+    """Parse dive profile samples and events from dive computer element"""
+    samples = []
+    events = []
     
-    return 0
-
-
-def parse_depth_value(depth_str: str) -> Optional[float]:
-    """Parse depth string to float value"""
-    if not depth_str:
+    # Find all sample elements
+    sample_elements = computer_elem.findall('sample')
+    for sample in sample_elements:
+        sample_data = {}
+        
+        # Parse time (convert to minutes)
+        time_str = sample.get('time')
+        if time_str:
+            sample_data['time'] = time_str
+            sample_data['time_minutes'] = parse_time_to_minutes(time_str)
+        
+        # Parse depth
+        depth = sample.get('depth')
+        if depth:
+            sample_data['depth'] = parse_depth_value(depth)
+        
+        # Parse temperature
+        temp = sample.get('temp')
+        if temp:
+            sample_data['temperature'] = parse_temperature_value(temp)
+        
+        # Parse NDL (No Decompression Limit)
+        ndl = sample.get('ndl')
+        if ndl:
+            sample_data['ndl_minutes'] = parse_time_to_minutes(ndl)
+        
+        # Parse in_deco status
+        in_deco = sample.get('in_deco')
+        if in_deco is not None:
+            sample_data['in_deco'] = in_deco == '1'
+        
+        # Parse CNS
+        cns = sample.get('cns')
+        if cns:
+            sample_data['cns_percent'] = parse_cns_value(cns)
+        
+        # Parse decompression stop time
+        stoptime = sample.get('stoptime')
+        if stoptime:
+            sample_data['stoptime_minutes'] = parse_time_to_minutes(stoptime)
+        
+        # Parse stop depth
+        stopdepth = sample.get('stopdepth')
+        if stopdepth:
+            sample_data['stopdepth'] = parse_depth_value(stopdepth)
+        
+        # Only add sample if it has essential data
+        if 'time_minutes' in sample_data and 'depth' in sample_data:
+            samples.append(sample_data)
+    
+    # Parse events
+    event_elements = computer_elem.findall('event')
+    for event in event_elements:
+        event_data = {
+            'time': event.get('time'),
+            'time_minutes': parse_time_to_minutes(event.get('time', '0:00 min')),
+            'type': event.get('type'),
+            'flags': event.get('flags'),
+            'name': event.get('name'),
+            'cylinder': event.get('cylinder'),
+            'o2': event.get('o2')
+        }
+        events.append(event_data)
+    
+    if not samples:
         return None
     
-    # Extract numeric value from string like "25.5m" or "25.5"
-    depth_match = re.search(r'(\d+(?:\.\d+)?)', depth_str)
-    if depth_match:
-        try:
-            return float(depth_match.group(1))
-        except ValueError:
-            return None
+    # Calculate derived metrics
+    depths = [s['depth'] for s in samples if 'depth' in s]
+    temperatures = [s['temperature'] for s in samples if 'temperature' in s]
     
-    return None
+    profile_data = {
+        'samples': samples,
+        'events': events,
+        'sample_count': len(samples),
+        'calculated_max_depth': max(depths) if depths else 0,
+        'calculated_avg_depth': sum(depths) / len(depths) if depths else 0,
+        'calculated_duration_minutes': samples[-1].get('time_minutes', 0) if samples else 0,
+        'temperature_range': {
+            'min': min(temperatures) if temperatures else None,
+            'max': max(temperatures) if temperatures else None
+        }
+    }
+    
+    return profile_data
 
 
-def parse_temperature_value(temp_str: str) -> Optional[float]:
-    """Parse temperature string to float value"""
+def parse_time_to_minutes(time_str):
+    """Parse time string to minutes (float)"""
+    if not time_str:
+        return 0.0
+    
+    try:
+        # Handle formats like "1:30 min", "30:00 min", "0:10 min", "54:30 min"
+        time_str = time_str.replace('min', '').strip()
+        
+        if ':' in time_str:
+            parts = time_str.split(':')
+            if len(parts) == 2:
+                # Format: MM:SS
+                minutes = int(parts[0]) if parts[0] else 0
+                seconds = int(parts[1]) if parts[1] else 0
+                return minutes + (seconds / 60.0)
+            elif len(parts) == 3:
+                # Format: HH:MM:SS
+                hours = int(parts[0]) if parts[0] else 0
+                minutes = int(parts[1]) if parts[1] else 0
+                seconds = int(parts[2]) if parts[2] else 0
+                return hours * 60 + minutes + (seconds / 60.0)
+        else:
+            # If no colon, assume it's already in minutes
+            return float(time_str)
+    except (ValueError, AttributeError):
+        return 0.0
+
+
+def parse_depth_value(depth_str):
+    """Parse depth string to float meters"""
+    if not depth_str:
+        return 0.0
+    
+    try:
+        # Handle formats like "28.7 m", "0.0 m"
+        depth_str = depth_str.replace(' m', '').strip()
+        return float(depth_str)
+    except (ValueError, AttributeError):
+        return 0.0
+
+
+def parse_temperature_value(temp_str):
+    """Parse temperature string to float Celsius"""
     if not temp_str:
         return None
     
-    # Extract numeric value from string like "22.5°C" or "22.5"
-    temp_match = re.search(r'(\d+(?:\.\d+)?)', temp_str)
-    if temp_match:
-        try:
-            return float(temp_match.group(1))
-        except ValueError:
-            return None
-    
-    return None
+    try:
+        # Handle formats like "19.0 C", "27.7 C"
+        temp_str = temp_str.replace(' C', '').strip()
+        return float(temp_str)
+    except (ValueError, AttributeError):
+        return None
 
 
-def parse_cns_value(cns_str: str) -> Optional[float]:
-    """Parse CNS value from string"""
+def parse_cns_value(cns_str):
+    """Parse CNS string to float percentage"""
     if not cns_str:
         return None
     
-    # Extract numeric value
-    cns_match = re.search(r'(\d+(?:\.\d+)?)', cns_str)
-    if cns_match:
-        try:
-            return float(cns_match.group(1))
-        except ValueError:
-            return None
-    
-    return None
+    try:
+        # Handle formats like "3%", "0%"
+        cns_str = cns_str.replace('%', '').strip()
+        return float(cns_str)
+    except (ValueError, AttributeError):
+        return None
 
 
 def has_deco_profile(profile_data: dict) -> bool:
-    """Check if dive has decompression profile"""
+    """Check if dive profile contains any samples with in_deco=True."""
     if not profile_data or 'samples' not in profile_data:
         return False
     
-    samples = profile_data['samples']
-    if not samples:
-        return False
-    
-    # Check if any sample has decompression stop (depth < 0)
-    for sample in samples:
-        if sample.get('depth', 0) < 0:
+    for sample in profile_data['samples']:
+        if sample.get('in_deco') is True:
             return True
-    
     return False
 
 
-def save_dive_profile_data(dive_id: int, profile_data: dict, db: Session) -> bool:
-    """Save dive profile data to database"""
+def save_dive_profile_data(dive, profile_data, db):
+    """Save dive profile data as JSON file and update dive record"""
     try:
-        # This would save profile data to a dive_profiles table
-        # For now, we'll just return True as a placeholder
-        # In a real implementation, you'd save the profile data here
-        return True
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"dive_{dive.id}_profile_{timestamp}.json"
+        
+        # Convert profile data to JSON bytes
+        json_content = json.dumps(profile_data, indent=2).encode('utf-8')
+        
+        # Upload to R2 or local storage
+        stored_path = r2_storage.upload_profile(dive.user_id, filename, json_content)
+        
+        # Update dive record with profile metadata
+        dive.profile_xml_path = stored_path
+        dive.profile_sample_count = len(profile_data.get('samples', []))
+        dive.profile_max_depth = profile_data.get('calculated_max_depth', 0)
+        dive.profile_duration_minutes = profile_data.get('calculated_duration_minutes', 0)
+        
+        # Commit the changes
+        db.commit()
+        
     except Exception as e:
-        log_error("save_dive_profile_data", e, dive_id=dive_id)
-        return False
+        # Rollback on error
+        db.rollback()
+        raise e
 
 
 def parse_cylinder(cylinder_elem) -> Dict[str, Any]:

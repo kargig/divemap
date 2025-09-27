@@ -56,19 +56,13 @@ def generate_dive_name(dive_site_name: str, dive_date) -> str:
 
 
 def has_deco_profile(profile_data: dict) -> bool:
-    """Check if dive has decompression profile"""
+    """Check if dive profile contains any samples with in_deco=True."""
     if not profile_data or 'samples' not in profile_data:
         return False
     
-    samples = profile_data['samples']
-    if not samples:
-        return False
-    
-    # Check if any sample has decompression stop (depth < 0)
-    for sample in samples:
-        if sample.get('depth', 0) < 0:
+    for sample in profile_data['samples']:
+        if sample.get('in_deco') is True:
             return True
-    
     return False
 
 
