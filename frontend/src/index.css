@@ -2,13 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Colorblind-Safe Tag Colors using Okabe-Ito Palette */
+@layer components {
+  .tag-color-okabe-blue {
+    background-color: #E6F2FF;
+    color: #0072B2;
+    border: 1px solid #B3D9FF;
+  }
+
+  .tag-color-okabe-orange {
+    background-color: #FFF2E6;
+    color: #E69F00;
+    border: 1px solid #FFD9B3;
+  }
+
+  .tag-color-okabe-green {
+    background-color: #E6F7F0;
+    color: #009E73;
+    border: 1px solid #B3E6D1;
+  }
+
+  .tag-color-okabe-vermillion {
+    background-color: #FFE6E6;
+    color: #D55E00;
+    border: 1px solid #FFB3B3;
+  }
+
+  .tag-color-okabe-purple {
+    background-color: #F0E6F7;
+    color: #CC79A7;
+    border: 1px solid #D9B3E6;
+  }
+
+  .tag-color-okabe-yellow {
+    background-color: #FFFCE6;
+    color: #F0E442;
+    border: 1px solid #FFF2B3;
+  }
+
+  .tag-color-okabe-sky {
+    background-color: #E6F7FF;
+    color: #56B4E9;
+    border: 1px solid #B3E6FF;
+  }
+}
+
 /* CSS Custom Properties for Layout */
 :root {
   --navbar-height-desktop: 4rem; /* 64px - matches h-16 */
   --navbar-height-mobile: 4rem;  /* 64px - matches h-16 */
   --sticky-offset-desktop: calc(var(--navbar-height-desktop) + 0px); /* No gap */
   --sticky-offset-mobile: calc(var(--navbar-height-mobile) + 0px);  /* No gap */
-  
+
   /* Safe area variables for modern mobile devices */
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
@@ -778,7 +823,7 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
     height: 100vh !important;
     height: 100dvh !important; /* Dynamic viewport height for mobile browsers */
   }
-  
+
   /* Optimize form elements for small screens */
   .filter-overlay-mobile input,
   .filter-overlay-mobile select,
@@ -786,12 +831,12 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
     min-height: 48px;
     font-size: 16px;
   }
-  
+
   /* Better spacing for small screens */
   .filter-overlay-mobile .space-y-6 > * + * {
     margin-top: 1.5rem;
   }
-  
+
   /* Ensure footer actions are always visible */
   .filter-overlay-mobile .footer-actions {
     position: sticky;
@@ -817,12 +862,12 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
     border-radius: 0 !important;
     box-shadow: none !important;
   }
-  
+
   /* Ensure all filter content is visible */
   .filter-overlay-mobile .space-y-6 {
     padding-bottom: 80px; /* Space for footer actions */
   }
-  
+
   /* Make footer actions sticky at bottom */
   .filter-overlay-mobile .footer-actions {
     position: fixed !important;
@@ -843,7 +888,7 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
   .filter-overlay-mobile * {
     position: relative !important;
   }
-  
+
   /* Ensure proper mobile layout */
   .filter-overlay-mobile {
     display: flex !important;
@@ -851,7 +896,7 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
     height: 100vh !important;
     height: 100dvh !important;
   }
-  
+
   /* Make content scrollable */
   .filter-overlay-mobile .space-y-6 {
     flex: 1 !important;
@@ -901,7 +946,7 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
     border-radius: 0 !important;
     box-shadow: none !important;
   }
-  
+
   /* Hide desktop filters on small screens */
   .filter-overlay-mobile + .desktop-filters {
     display: none !important;
@@ -931,22 +976,22 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
   .filter-overlay-mobile {
     padding: 0.75rem;
   }
-  
+
   .filter-overlay-mobile .space-y-6 > * + * {
     margin-top: 1.25rem;
   }
-  
+
   .filter-overlay-mobile input,
   .filter-overlay-mobile select,
   .filter-overlay-mobile button {
     min-height: 44px;
     padding: 0.75rem 1rem;
   }
-  
+
   .filter-overlay-mobile .tags-grid {
     gap: 0.5rem;
   }
-  
+
   .filter-overlay-mobile .tag-button {
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
@@ -958,11 +1003,11 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
   .filter-overlay-mobile {
     padding: 0.5rem;
   }
-  
+
   .filter-overlay-mobile .space-y-6 > * + * {
     margin-top: 1rem;
   }
-  
+
   .filter-overlay-mobile input,
   .filter-overlay-mobile select,
   .filter-overlay-mobile button {
@@ -970,25 +1015,25 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
     padding: 0.5rem 0.75rem;
     font-size: 14px;
   }
-  
+
   .filter-overlay-mobile .tags-grid {
     gap: 0.375rem;
   }
-  
+
   .filter-overlay-mobile .tag-button {
     padding: 0.375rem 0.625rem;
     font-size: 0.75rem;
     min-height: 36px;
   }
-  
+
   .filter-overlay-mobile .header h3 {
     font-size: 1rem;
   }
-  
+
   .filter-overlay-mobile .footer-actions {
     padding: 0.75rem;
   }
-  
+
   .filter-overlay-mobile .footer-actions button {
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
@@ -1337,25 +1382,25 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
     top: 0; /* Always at top of viewport when scrolling */
     height: 56px; /* Reduced height for small viewport */
   }
-  
+
   .mobile-quick-filters {
     top: 56px; /* Position below search bar */
     height: 56px; /* Reduced height for small viewport */
   }
-  
+
   .mobile-filter-overlay-content {
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
   }
-  
+
   .mobile-filter-overlay-header {
     padding: 0.75rem;
   }
-  
+
   .mobile-filter-overlay-content-scrollable {
     padding: 0.75rem;
   }
-  
+
   .mobile-filter-overlay-footer {
     padding: 0.75rem;
   }
