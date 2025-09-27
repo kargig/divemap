@@ -1,0 +1,65 @@
+---
+description: Colorblind-safe color palette enforcement for frontend development
+globs: ["frontend/**/*", "src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"]
+alwaysApply: true
+---
+
+# Colorblind-Safe Color Palette Rules
+
+## Mandatory Color Usage
+
+- **ALWAYS use only approved Okabe-Ito colorblind-safe palette**
+- **NEVER use red-green combinations** (affects ~8% of men, 0.5% of women)
+- **ALWAYS import colors from `src/utils/colorPalette.js`**
+- **NEVER use hardcoded colors outside the approved palette**
+
+## Approved Colors Only
+
+```javascript
+// ✅ CORRECT - Use these exact colors
+const COLORS = {
+  depth: '#0072B2',        // Okabe-Ito Blue
+  avgDepth: '#E69F00',     // Okabe-Ito Orange  
+  temperature: '#009E73',  // Okabe-Ito Bluish Green
+  ndl: '#D55E00',          // Okabe-Ito Vermillion
+  cns: '#CC79A7',          // Okabe-Ito Reddish Purple
+  events: '#F0E442',       // Okabe-Ito Yellow
+  gasEvents: '#56B4E9',    // Okabe-Ito Sky Blue
+  grid: '#E5E7EB',         // Light Gray
+  text: '#374151'          // Dark Gray
+};
+```
+
+## Prohibited Colors
+
+- ❌ **Red**: `#dc2626`, `#ef4444`, `#f87171`
+- ❌ **Green**: `#059669`, `#10b981`, `#22c55e`  
+- ❌ **Old Blue**: `#2563eb`, `#3b82f6`
+- ❌ **Old Purple**: `#7c3aed`, `#8b5cf6`
+- ❌ **Old Amber**: `#f59e0b`, `#fbbf24`
+
+## Implementation Requirements
+
+- **ALWAYS use `CHART_COLORS` or `UI_COLORS` from colorPalette.js**
+- **ALWAYS test with colorblind simulation tools**
+- **ALWAYS ensure 4.5:1 contrast ratio minimum**
+- **NEVER mix old and new color schemes**
+
+## Code Examples
+
+```jsx
+// ✅ CORRECT
+import { CHART_COLORS } from '../utils/colorPalette';
+<div style={{ color: CHART_COLORS.depth }}>Depth</div>
+
+// ❌ WRONG
+<div className="text-red-600">Depth</div>
+<div style={{ color: '#dc2626' }}>Depth</div>
+```
+
+## Enforcement
+
+- **MANDATORY**: All colors must be from approved palette
+- **NO EXCEPTIONS**: Even for temporary or quick fixes
+- **VALIDATION**: Test with Color Oracle or similar tools
+- **REVIEW**: Code reviews must verify color compliance

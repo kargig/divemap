@@ -16,6 +16,7 @@ import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 
 import { useResponsiveScroll } from '../hooks/useResponsive';
+import { getTagColor } from '../utils/tagHelpers';
 
 const ResponsiveFilterBar = ({
   showFilters = false,
