@@ -374,7 +374,7 @@ class TestDiveProfileAPI:
 
     def test_parse_dive_profile_samples_success(self, client, auth_headers, test_dive):
         """Test dive profile samples parsing during import."""
-        from app.routers.dives import parse_dive_profile_samples
+        from app.routers.dives.dives_import import parse_dive_profile_samples
         
         sample_xml = """<samples>
             <sample time='0:10 min' depth='2.7 m' temperature='34 C' />
@@ -393,7 +393,7 @@ class TestDiveProfileAPI:
 
     def test_parse_dive_profile_samples_empty(self, client, auth_headers, test_dive):
         """Test dive profile samples parsing with empty samples."""
-        from app.routers.dives import parse_dive_profile_samples
+        from app.routers.dives.dives_import import parse_dive_profile_samples
         
         sample_xml = """<samples></samples>"""
         
@@ -403,7 +403,7 @@ class TestDiveProfileAPI:
 
     def test_parse_dive_profile_samples_invalid_xml(self, client, auth_headers, test_dive):
         """Test dive profile samples parsing with invalid XML."""
-        from app.routers.dives import parse_dive_profile_samples
+        from app.routers.dives.dives_import import parse_dive_profile_samples
         
         sample_xml = """<samples>
             <sample time='invalid' depth='invalid' />
@@ -418,7 +418,7 @@ class TestDiveProfileAPI:
 
     def test_save_dive_profile_data_success(self, client, auth_headers, test_dive, sample_profile_data, db_session):
         """Test saving dive profile data to storage."""
-        from app.routers.dives import save_dive_profile_data
+        from app.routers.dives.dives_import import save_dive_profile_data
         
         with patch('app.routers.dives.r2_storage') as mock_r2:
             mock_r2.upload_profile.return_value = "user_1/2025/09/test_profile.json"
@@ -432,7 +432,7 @@ class TestDiveProfileAPI:
 
     def test_save_dive_profile_data_error(self, client, auth_headers, test_dive, sample_profile_data):
         """Test saving dive profile data with error."""
-        from app.routers.dives import save_dive_profile_data
+        from app.routers.dives.dives_import import save_dive_profile_data
         
         with patch('app.routers.dives.r2_storage') as mock_r2:
             mock_r2.upload_profile.side_effect = Exception("Storage error")

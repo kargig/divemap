@@ -12,12 +12,11 @@ from difflib import SequenceMatcher
 
 from .dives_shared import router, get_db, get_current_user_optional, User, Dive, DiveSite, UNIFIED_TYPO_TOLERANCE
 from .dives_logging import log_error
+from .dives_utils import calculate_similarity
 from app.schemas import DiveResponse
 
 
-def calculate_similarity(str1: str, str2: str) -> float:
-    """Calculate similarity between two strings using SequenceMatcher"""
-    return SequenceMatcher(None, str1.lower(), str2.lower()).ratio()
+# calculate_similarity moved to dives_utils.py
 
 
 def search_dives_with_fuzzy(

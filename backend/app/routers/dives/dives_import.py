@@ -34,6 +34,7 @@ from .dives_shared import router, get_db, get_current_user, User, Dive, DiveSite
 from .dives_db_utils import get_or_create_deco_tag
 from .dives_errors import raise_validation_error, raise_internal_error
 from .dives_logging import log_import_operation, log_error
+from .dives_utils import has_deco_profile, find_dive_site_by_import_id
 from app.schemas import DiveCreate
 
 
@@ -254,15 +255,7 @@ def parse_cns_value(cns_str):
         return None
 
 
-def has_deco_profile(profile_data: dict) -> bool:
-    """Check if dive profile contains any samples with in_deco=True."""
-    if not profile_data or 'samples' not in profile_data:
-        return False
-    
-    for sample in profile_data['samples']:
-        if sample.get('in_deco') is True:
-            return True
-    return False
+# has_deco_profile moved to dives_utils.py
 
 
 def save_dive_profile_data(dive, profile_data, db):
@@ -339,22 +332,7 @@ def parse_divecomputer(divecomputer_elem) -> Dict[str, Any]:
     return divecomputer
 
 
-def find_dive_site_by_import_id(import_id: str, db: Session) -> Optional[DiveSite]:
-    """Find dive site by import ID"""
-    if not import_id:
-        return None
-    
-    # First try to find by exact import_id match
-    dive_site = db.query(DiveSite).filter(DiveSite.import_id == import_id).first()
-    if dive_site:
-        return dive_site
-    
-    # Then try to find by alias
-    alias = db.query(DiveSiteAlias).filter(DiveSiteAlias.alias == import_id).first()
-    if alias:
-        return alias.dive_site
-    
-    return None
+# find_dive_site_by_import_id moved to dives_utils.py
 
 
 def parse_duration(duration_str: str) -> Optional[int]:
@@ -657,3 +635,70 @@ async def confirm_import_dives(
     except Exception as e:
         log_error("confirm_import_dives", e, current_user.id)
         raise_internal_error("Failed to confirm import")
+
+
+def parse_dive_element(dive_elem, dive_sites, db):
+    """Parse individual dive element from XML"""
+    try:
+        # Extract basic dive information
+        dive_number = dive_elem.get('number')
+        rating = dive_elem.get('rating')
+        visibility = dive_elem.get('visibility')
+        sac = dive_elem.get('sac')
+        otu = dive_elem.get('otu')
+        cns = dive_elem.get('cns')
+        tags = dive_elem.get('tags')
+        divesiteid = dive_elem.get('divesiteid')
+        dive_date = dive_elem.get('date')
+        dive_time = dive_elem.get('time')
+        duration = dive_elem.get('duration')
+
+        # Parse buddy information
+        buddy_elem = dive_elem.find('buddy')
+        buddy = buddy_elem.text if buddy_elem is not None else None
+
+        # Parse suit information
+        suit_elem = dive_elem.find('suit')
+        suit = suit_elem.text if suit_elem is not None else None
+
+        # Parse cylinders
+        cylinders = []
+        for cylinder_elem in dive_elem.findall('cylinder'):
+            cylinder_data = parse_cylinder(cylinder_elem)
+            cylinders.append(cylinder_data)
+
+        # Parse weight systems
+        weights = []
+        for weights_elem in dive_elem.findall('weightsystem'):
+            weights_data = parse_weightsystem(weights_elem)
+            weights.append(weights_data)
+
+        # Parse dive computer
+        computer_data = None
+        computer_elem = dive_elem.find('divecomputer')
+        if computer_elem is not None:
+            computer_data = parse_divecomputer(computer_elem)
+
+        # Parse dive profile samples - look for samples in divecomputer element (Subsurface format)
+        profile_data = None
+        divecomputer_elem = dive_elem.find('divecomputer')
+        if divecomputer_elem is not None:
+            profile_data = parse_dive_profile_samples(divecomputer_elem)
+
+        # Convert to Divemap format
+        divemap_dive = convert_to_divemap_format(
+            dive_number, rating, visibility, sac, otu, cns, tags,
+            divesiteid, dive_date, dive_time, duration,
+            buddy, suit, cylinders, weights, computer_data,
+            dive_sites, db
+        )
+
+        # Add profile data to the dive
+        if profile_data:
+            divemap_dive['profile_data'] = profile_data
+
+        return divemap_dive
+
+    except Exception as e:
+        print(f"Error parsing dive element: {e}")
+        return None

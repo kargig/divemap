@@ -67,28 +67,111 @@ def has_deco_profile(profile_data: dict) -> bool:
 
 
 def calculate_similarity(str1: str, str2: str) -> float:
-    """Calculate similarity between two strings using SequenceMatcher"""
-    return SequenceMatcher(None, str1.lower(), str2.lower()).ratio()
+    """Calculate string similarity using multiple algorithms"""
+    str1_lower = str1.lower().strip()
+    str2_lower = str2.lower().strip()
+
+    if str1_lower == str2_lower:
+        return 1.0
+
+    # Method 1: Sequence matcher (good for typos and minor differences)
+    sequence_similarity = SequenceMatcher(None, str1_lower, str2_lower).ratio()
+
+    # Method 2: Word-based similarity
+    import re
+    common_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'dive', 'site', 'reef', 'rock', 'point', 'bay', 'beach'}
+    str1_words = set(re.findall(r'\b\w+\b', str1_lower)) - common_words
+    str2_words = set(re.findall(r'\b\w+\b', str2_lower)) - common_words
+
+    if not str1_words and not str2_words:
+        word_similarity = 0.0
+    else:
+        intersection = str1_words.intersection(str2_words)
+        union = str1_words.union(str2_words)
+        word_similarity = len(intersection) / len(union) if union else 0.0
+
+    # Method 3: Substring matching
+    substring_similarity = 0.0
+    if len(str1_lower) > 3 and len(str2_lower) > 3:
+        if str1_lower in str2_lower or str2_lower in str1_lower:
+            substring_similarity = 0.9
+
+    # Return the highest similarity score
+    return max(sequence_similarity, word_similarity, substring_similarity)
 
 
-def find_dive_site_by_import_id(import_id: str, db: Session):
-    """Find dive site by import ID"""
+def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
+    """Find dive site by import ID with improved similarity matching"""
     from .dives_shared import DiveSite, DiveSiteAlias
     
-    if not import_id:
+    try:
+        # First, try to get all dive sites to search through aliases
+        sites = db.query(DiveSite).all()
+
+        # Check if any site has this import ID as an alias
+        for site in sites:
+            if hasattr(site, 'aliases') and site.aliases:
+                for alias in site.aliases:
+                    if alias.alias == import_site_id:
+                        return {"id": site.id, "match_type": "exact_alias"}
+
+        # If no exact alias match, check site names with exact match
+        for site in sites:
+            if site.name == import_site_id:
+                return {"id": site.id, "match_type": "exact_name"}
+
+        # If we have a dive site name, try matching by name first
+        if dive_site_name:
+            # Check exact name match
+            for site in sites:
+                if site.name == dive_site_name:
+                    return {"id": site.id, "match_type": "exact_name"}
+
+            # Try similarity matching with the dive site name
+            best_match = None
+            best_similarity = 0.0
+            similarity_threshold = 0.8  # 80% similarity threshold
+
+            for site in sites:
+                similarity = calculate_similarity(dive_site_name, site.name)
+                if similarity >= similarity_threshold and similarity > best_similarity:
+                    best_match = site
+                    best_similarity = similarity
+
+            if best_match:
+                print(f"Found similar dive site: '{dive_site_name}' matches '{best_match.name}' with {best_similarity:.2f} similarity")
+                return {
+                    "id": best_match.id,
+                    "match_type": "similarity",
+                    "similarity": best_similarity,
+                    "proposed_sites": [{"id": best_match.id, "name": best_match.name, "similarity": best_similarity, "original_name": dive_site_name}]
+                }
+
+        # If no match found with dive site name, try similarity matching with import ID
+        best_match = None
+        best_similarity = 0.0
+        similarity_threshold = 0.8  # 80% similarity threshold
+
+        for site in sites:
+            similarity = calculate_similarity(import_site_id, site.name)
+            if similarity >= similarity_threshold and similarity > best_similarity:
+                best_match = site
+                best_similarity = similarity
+
+        if best_match:
+            print(f"Found similar dive site: '{import_site_id}' matches '{best_match.name}' with {best_similarity:.2f} similarity")
+            return {
+                "id": best_match.id,
+                "match_type": "similarity",
+                "similarity": best_similarity,
+                "proposed_sites": [{"id": best_match.id, "name": best_match.name, "similarity": best_similarity, "original_name": import_site_id}]
+            }
+
         return None
-    
-    # First try to find by exact import_id match
-    dive_site = db.query(DiveSite).filter(DiveSite.import_id == import_id).first()
-    if dive_site:
-        return dive_site
-    
-    # Then try to find by alias
-    alias = db.query(DiveSiteAlias).filter(DiveSiteAlias.alias == import_id).first()
-    if alias:
-        return alias.dive_site
-    
-    return None
+
+    except Exception as e:
+        print(f"Error finding dive site: {e}")
+        return None
 
 
 @router.get("/storage/health")

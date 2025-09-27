@@ -21,12 +21,11 @@ from .dives_db_utils import get_dive_site_by_id, get_dive_by_id, get_dive_with_r
 from .dives_validation import validate_dive_date, validate_dive_time, validate_depth, validate_duration, validate_rating, validate_visibility, validate_temperature
 from .dives_errors import raise_dive_not_found, raise_dive_site_not_found, raise_validation_error
 from .dives_logging import log_dive_operation, log_error
+from .dives_utils import generate_dive_name
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse
 
 
-def generate_dive_name(dive_site_name: str, dive_date: date) -> str:
-    """Generate automatic dive name from dive site and date"""
-    return f"{dive_site_name} - {dive_date.strftime('%Y/%m/%d')}"
+# generate_dive_name moved to dives_utils.py
 
 
 @router.post("/", response_model=DiveResponse)
