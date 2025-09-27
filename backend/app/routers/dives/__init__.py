@@ -16,7 +16,7 @@ This module contains the refactored dives router split into focused modules:
 - dives_logging: Logging utilities
 """
 
-from .dives_shared import router
+from .dives_shared import router, r2_storage
 from . import dives_crud
 from . import dives_admin
 from . import dives_media
@@ -27,4 +27,5 @@ from . import dives_utils
 
 __all__ = [
     "router",
+    "r2_storage",
 ]

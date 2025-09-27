@@ -249,13 +249,13 @@ Phase: REMOVE_ORIGINAL | Status: Complete"
 
 ### Phase 6: Update Tests and Dependencies
 
-- [ ] **Code change**: Update test imports to reference new module locations
-- [ ] **Code change**: Update any other files that import from dives.py
-- [ ] **Code change**: Update frontend imports if any
-- [ ] **Code change**: Update background task imports if any
-- [ ] **Code change**: Update migration script imports if any
-- [ ] **Code change**: Verify all imports resolve correctly
-- [ ] **Automated test**: Run all tests to ensure no regressions
+- [x] **Code change**: Update test imports to reference new module locations
+- [x] **Code change**: Update any other files that import from dives.py
+- [x] **Code change**: Update frontend imports if any
+- [x] **Code change**: Update background task imports if any
+- [x] **Code change**: Update migration script imports if any
+- [x] **Code change**: Verify all imports resolve correctly
+- [x] **Automated test**: Run all tests to ensure no regressions
 
 **COMMIT CHECKPOINT**: After Phase 6 completion, run:
 ```bash
@@ -729,3 +729,36 @@ PYTHONPATH="/home/kargig/src/divemap/backend:/home/kargig/src/divemap/backend/di
 - Both functions now use sophisticated algorithms for better dive site matching
 - Maintained full functionality for XML import and search features
 - All 24 routes working correctly with advanced matching capabilities
+
+**Phase 6 Test and Dependency Fixes:**
+- Fixed missing `r2_storage` export in `__init__.py` for test compatibility
+- Fixed Pydantic validation error in `convert_to_divemap_format` (date format)
+- Updated all test imports to use new modular structure
+- Verified no remaining imports from old dives.py structure
+- All imports resolve correctly with new modular organization
+
+**CRITICAL ISSUE DISCOVERED:**
+- **Function Signature Changes**: During refactoring, I inadvertently changed function signatures
+- **convert_to_divemap_format**: Changed from 18+ parameters to 2 parameters
+- **parse_dive_element**: Calls convert_to_divemap_format with wrong signature
+- **Tests Failing**: Profile data import tests fail due to signature mismatch
+- **Root Cause**: Violated refactoring principle - should only move functions, not change them
+- **Status**: Phase 6 NOT COMPLETE - requires function signature restoration
+
+**FUNCTION SIGNATURE RESTORATION TRACKING:**
+- [x] **convert_to_divemap_format**: ✅ RESTORED - 18+ params signature restored
+- [x] **parse_dive_element**: ✅ RESTORED - Correct signature with 3 params
+- [x] **parse_cylinder**: ✅ RESTORED - Correct signature
+- [x] **parse_weightsystem**: ✅ RESTORED - Correct signature
+- [x] **parse_divecomputer**: ✅ RESTORED - Correct signature
+- [x] **parse_dive_profile_samples**: ✅ RESTORED - Correct signature
+- [x] **parse_duration**: ✅ RESTORED - Correct signature
+- [x] **parse_rating**: ✅ RESTORED - Correct signature
+- [x] **parse_suit_type**: ✅ RESTORED - Correct signature
+- [x] **parse_depth_value**: ✅ RESTORED - Correct signature
+- [x] **get_difficulty_value**: ✅ RESTORED - Correct signature
+- [x] **import_subsurface_xml**: ✅ RESTORED - Correct route and signature
+- [x] **confirm_import_dives**: ✅ RESTORED - Correct route and signature
+- [x] **All import functions**: ✅ RESTORED - Complete dives_import.py recreated
+- [x] **Profile parsing**: ✅ FIXED - Restored original parse_dive_profile_samples function
+- [x] **Tests passing**: ✅ VERIFIED - Profile import test now passes successfully

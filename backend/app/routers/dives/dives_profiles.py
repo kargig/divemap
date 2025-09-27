@@ -1,20 +1,23 @@
 """
-Dive profile management for dives.
+Dives Profiles.Py operations for dives.
 
-This module contains operations for dive profiles:
-- get_dive_profile
-- upload_dive_profile
-- delete_dive_profile
-- delete_user_profiles
+This module contains functions moved from the original dives.py file.
 """
 
-from fastapi import Depends, HTTPException, status, UploadFile, File
+from fastapi import Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+from datetime import date, time, datetime
+import json
+import os
+import tempfile
+import uuid
 
-from .dives_shared import router, get_db, get_current_user, User, Dive, r2_storage
-from .dives_db_utils import get_dive_by_id
-from .dives_errors import raise_dive_not_found, raise_validation_error, raise_internal_error
+from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
+from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
+from app.models import DiveSite, DiveSiteAlias
+from app.services.dive_profile_parser import DiveProfileParser
+from .dives_validation import raise_validation_error
 from .dives_logging import log_dive_operation, log_error
 
 
@@ -22,40 +25,65 @@ from .dives_logging import log_dive_operation, log_error
 def get_dive_profile(
     dive_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """Get dive profile data"""
-    try:
-        # Check if dive exists and user owns it
-        dive = get_dive_by_id(db, dive_id)
-        if not dive:
-            raise_dive_not_found(dive_id)
-        
-        if dive.user_id != current_user.id:
+    """Get dive profile data. Unauthenticated users can view public dives. Private dives are restricted to owner or admins."""
+    # If authenticated, ensure account is enabled (mirror behavior of get_dive)
+    if current_user and not current_user.enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled"
+        )
+    
+    dive = db.query(Dive).filter(Dive.id == dive_id).first()
+    if not dive:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found")
+    
+    # Access control: allow public dives for everyone; private dives only for owner or admins
+    if dive.is_private:
+        if not current_user or (dive.user_id != current_user.id and not current_user.is_admin):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to view profile for this dive"
+                detail="This dive is private"
             )
+    
+    # Check if dive has profile data
+    if not dive.profile_xml_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No profile uploaded")
+    
+    try:
+        # Download profile from R2 or local storage
+        profile_content = r2_storage.download_profile(dive.user_id, dive.profile_xml_path)
+        if not profile_content:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile file not found")
         
-        # Check if dive has profile data
-        if not dive.profile_data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No profile data found for this dive"
-            )
+        # Check file extension to determine parsing method
+        if dive.profile_xml_path.endswith('.json'):
+            # Imported profile (JSON format)
+            profile_data = json.loads(profile_content.decode('utf-8'))
+        else:
+            # Manually uploaded profile (XML format) - save temporarily and parse
+            from app.services.dive_profile_parser import DiveProfileParser
+            import tempfile
+            
+            with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as temp_file:
+                temp_file.write(profile_content)
+                temp_path = temp_file.name
+            
+            try:
+                parser = DiveProfileParser()
+                profile_data = parser.parse_xml_file(temp_path)
+            finally:
+                # Clean up temporary file
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
         
-        # Return profile data
-        return {
-            "dive_id": dive_id,
-            "profile_data": dive.profile_data,
-            "profile_url": dive.profile_url
-        }
-        
+        return profile_data
     except HTTPException:
+        # Re-raise HTTP exceptions (like 404 errors) as-is
         raise
     except Exception as e:
-        log_error("get_dive_profile", e, current_user.id, dive_id=dive_id)
-        raise_internal_error("Failed to get dive profile")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error parsing profile: {str(e)}")
 
 
 @router.post("/{dive_id}/profile")
@@ -63,169 +91,138 @@ async def upload_dive_profile(
     dive_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """Upload dive profile data"""
+    """Upload dive profile XML file"""
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    
+    # Check if dive exists and user owns it
+    dive = db.query(Dive).filter(Dive.id == dive_id).first()
+    if not dive:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found")
+    
+    if dive.user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    
+    # Validate file type
+    if not file.filename.lower().endswith('.xml'):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only XML files are allowed")
+    
     try:
-        # Check if dive exists and user owns it
-        dive = get_dive_by_id(db, dive_id)
-        if not dive:
-            raise_dive_not_found(dive_id)
-        
-        if dive.user_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to upload profile for this dive"
-            )
-        
-        # Validate file type
-        allowed_types = ["application/json", "text/plain", "application/xml"]
-        if file.content_type not in allowed_types:
-            raise_validation_error("Invalid file type. Allowed types: JSON, TXT, XML")
-        
-        # Validate file size (5MB max)
-        file_content = await file.read()
-        if len(file_content) > 5 * 1024 * 1024:  # 5MB
-            raise_validation_error("File size too large. Maximum size is 5MB")
+        # Read file content
+        content = await file.read()
         
         # Generate unique filename
-        import uuid
-        import os
-        file_extension = os.path.splitext(file.filename)[1] if file.filename else ".json"
-        unique_filename = f"profile_{dive_id}_{uuid.uuid4()}{file_extension}"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"dive_{dive_id}_profile_{timestamp}.xml"
         
-        # Upload to R2 storage
+        # Parse profile data first to validate
+        from app.services.dive_profile_parser import DiveProfileParser
+        import tempfile
+        import xml.etree.ElementTree as ET
+        
+        with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
+        
         try:
-            profile_url = r2_storage.upload_file(file_content, unique_filename)
-        except Exception as e:
-            log_error("r2_upload_profile", e, current_user.id, dive_id=dive_id)
-            raise_internal_error("Failed to upload profile file")
-        
-        # Update dive with profile data
-        dive.profile_data = file_content.decode('utf-8')
-        dive.profile_url = profile_url
-        
-        db.commit()
-        db.refresh(dive)
-        
-        log_dive_operation("upload_profile", dive_id, current_user.id)
-        
-        return {
-            "message": "Dive profile uploaded successfully",
-            "profile_url": profile_url,
-            "dive_id": dive_id
-        }
+            parser = DiveProfileParser()
+            profile_data = parser.parse_xml_file(temp_path)
+            
+            if not profile_data or not profile_data.get('samples'):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid dive profile data")
+            
+            # Upload to R2 or local storage
+            stored_path = r2_storage.upload_profile(dive.user_id, filename, content)
+            
+            # Update dive record with profile metadata
+            dive.profile_xml_path = stored_path
+            dive.profile_sample_count = len(profile_data.get('samples', []))
+            dive.profile_max_depth = profile_data.get('calculated_max_depth', 0)
+            dive.profile_duration_minutes = profile_data.get('calculated_duration_minutes', 0)
+            
+            db.commit()
+            
+            return {
+                "message": "Dive profile uploaded successfully",
+                "profile_data": profile_data
+            }
+            
+        except (ET.ParseError, FileNotFoundError, ValueError) as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid dive profile data: {str(e)}")
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
         
     except HTTPException:
+        # Re-raise HTTP exceptions (like 400 errors) as-is
         raise
     except Exception as e:
-        log_error("upload_dive_profile", e, current_user.id, dive_id=dive_id)
-        raise_internal_error("Failed to upload dive profile")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error uploading profile: {str(e)}")
 
 
 @router.delete("/{dive_id}/profile")
 def delete_dive_profile(
     dive_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """Delete dive profile data"""
+    """Delete dive profile"""
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    
+    # Check if dive exists and user owns it
+    dive = db.query(Dive).filter(Dive.id == dive_id).first()
+    if not dive:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found")
+    
+    if dive.user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    
+    if not dive.profile_xml_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No profile found")
+    
     try:
-        # Check if dive exists and user owns it
-        dive = get_dive_by_id(db, dive_id)
-        if not dive:
-            raise_dive_not_found(dive_id)
+        # Delete profile from R2 or local storage
+        r2_storage.delete_profile(dive.user_id, dive.profile_xml_path)
         
-        if dive.user_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to delete profile for this dive"
-            )
-        
-        # Check if dive has profile data
-        if not dive.profile_data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No profile data found for this dive"
-            )
-        
-        # Delete from R2 storage if URL exists
-        if dive.profile_url:
-            try:
-                # Extract filename from URL
-                import os
-                filename = os.path.basename(dive.profile_url)
-                r2_storage.delete_file(filename)
-            except Exception as e:
-                log_error("r2_delete_profile", e, current_user.id, dive_id=dive_id)
-                # Continue with database deletion even if R2 deletion fails
-        
-        # Clear profile data from dive
-        dive.profile_data = None
-        dive.profile_url = None
+        # Clear profile metadata from dive record
+        dive.profile_xml_path = None
+        dive.profile_sample_count = None
+        dive.profile_max_depth = None
+        dive.profile_duration_minutes = None
         
         db.commit()
         
-        log_dive_operation("delete_profile", dive_id, current_user.id)
-        
         return {"message": "Dive profile deleted successfully"}
         
-    except HTTPException:
-        raise
     except Exception as e:
-        log_error("delete_dive_profile", e, current_user.id, dive_id=dive_id)
-        raise_internal_error("Failed to delete dive profile")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error deleting profile: {str(e)}")
 
 
 @router.delete("/profiles/user/{user_id}")
 def delete_user_profiles(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """Delete all profiles for a user (admin only)"""
+    """Delete all dive profiles for a specific user (admin only)"""
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    
     try:
-        # Check if user is admin or deleting their own profiles
-        if current_user.id != user_id and not current_user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to delete profiles for this user"
-            )
+        # Delete all profiles for the user
+        success = r2_storage.delete_user_profiles(user_id)
         
-        # Get all dives with profiles for the user
-        dives_with_profiles = db.query(Dive).filter(
-            Dive.user_id == user_id,
-            Dive.profile_data.isnot(None)
-        ).all()
+        if success:
+            return {"message": f"All profiles for user {user_id} deleted successfully"}
+        else:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete user profiles")
         
-        deleted_count = 0
-        for dive in dives_with_profiles:
-            # Delete from R2 storage if URL exists
-            if dive.profile_url:
-                try:
-                    import os
-                    filename = os.path.basename(dive.profile_url)
-                    r2_storage.delete_file(filename)
-                except Exception as e:
-                    log_error("r2_delete_user_profile", e, current_user.id, dive_id=dive.id)
-                    # Continue with database deletion even if R2 deletion fails
-            
-            # Clear profile data from dive
-            dive.profile_data = None
-            dive.profile_url = None
-            deleted_count += 1
-        
-        db.commit()
-        
-        log_dive_operation("delete_user_profiles", user_id, current_user.id, deleted_count=deleted_count)
-        
-        return {
-            "message": f"Deleted {deleted_count} profiles for user {user_id}",
-            "deleted_count": deleted_count
-        }
-        
-    except HTTPException:
-        raise
     except Exception as e:
-        log_error("delete_user_profiles", e, current_user.id, target_user_id=user_id)
-        raise_internal_error("Failed to delete user profiles")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error deleting user profiles: {str(e)}")

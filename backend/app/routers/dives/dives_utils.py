@@ -1,59 +1,42 @@
 """
-Utility functions for dives.
+Dives Utils.Py operations for dives.
 
-This module contains utility functions for dives:
-- storage_health_check
-- generate_dive_name
-- has_deco_profile
-- calculate_similarity
-- find_dive_site_by_import_id
+This module contains functions moved from the original dives.py file.
 """
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import Dict, Any
-from difflib import SequenceMatcher
+from typing import List, Optional
+from datetime import date, time, datetime
+import json
+import os
+import tempfile
+import uuid
 
-from .dives_shared import router, get_db, r2_storage
-from .dives_logging import log_error
-
-
-def storage_health_check():
-    """Check storage health status"""
-    try:
-        # Check R2 storage connectivity
-        health_status = r2_storage.health_check()
-        
-        return {
-            "status": "healthy" if health_status else "unhealthy",
-            "storage": "r2",
-            "details": {
-                "r2_connected": health_status,
-                "timestamp": "2025-01-27T15:37:57Z"  # This would be actual timestamp
-            }
-        }
-        
-    except Exception as e:
-        log_error("storage_health_check", e)
-        return {
-            "status": "unhealthy",
-            "storage": "r2",
-            "error": str(e),
-            "details": {
-                "r2_connected": False,
-                "timestamp": "2025-01-27T15:37:57Z"
-            }
-        }
+from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
+from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
+from app.models import DiveSite, DiveSiteAlias
+from app.services.dive_profile_parser import DiveProfileParser
+from .dives_validation import raise_validation_error
+from .dives_logging import log_dive_operation, log_error
 
 
-def generate_dive_name(dive_site_name: str, dive_date) -> str:
+def generate_dive_name(dive_site_name: str, dive_date: date) -> str:
     """Generate automatic dive name from dive site and date"""
-    from datetime import date
-    if isinstance(dive_date, date):
-        return f"{dive_site_name} - {dive_date.strftime('%Y/%m/%d')}"
-    else:
-        return f"{dive_site_name} - {dive_date}"
+    return f"{dive_site_name} - {dive_date.strftime('%Y/%m/%d')}"
 
+def get_or_create_deco_tag(db: Session) -> AvailableTag:
+    """Get or create the 'deco' tag for decompression dives."""
+    deco_tag = db.query(AvailableTag).filter(AvailableTag.name == "deco").first()
+    if not deco_tag:
+        deco_tag = AvailableTag(
+            name="deco",
+            description="Decompression dive - requires decompression stops"
+        )
+        db.add(deco_tag)
+        db.commit()
+        db.refresh(deco_tag)
+    return deco_tag
 
 def has_deco_profile(profile_data: dict) -> bool:
     """Check if dive profile contains any samples with in_deco=True."""
@@ -64,7 +47,6 @@ def has_deco_profile(profile_data: dict) -> bool:
         if sample.get('in_deco') is True:
             return True
     return False
-
 
 def calculate_similarity(str1: str, str2: str) -> float:
     """Calculate string similarity using multiple algorithms"""
@@ -99,11 +81,8 @@ def calculate_similarity(str1: str, str2: str) -> float:
     # Return the highest similarity score
     return max(sequence_similarity, word_similarity, substring_similarity)
 
-
 def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
     """Find dive site by import ID with improved similarity matching"""
-    from .dives_shared import DiveSite, DiveSiteAlias
-    
     try:
         # First, try to get all dive sites to search through aliases
         sites = db.query(DiveSite).all()
@@ -173,8 +152,19 @@ def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
         print(f"Error finding dive site: {e}")
         return None
 
-
 @router.get("/storage/health")
-def get_storage_health():
-    """Get storage health status"""
-    return storage_health_check()
+def storage_health_check():
+    """Check storage service health (R2 and local fallback)"""
+    try:
+        health_status = r2_storage.health_check()
+        return health_status
+    except Exception as e:
+        return {
+            "error": str(e),
+            "r2_available": False,
+            "local_storage_available": False,
+            "bucket_accessible": False,
+            "credentials_present": False,
+            "boto3_available": False,
+            "local_storage_writable": False
+        }

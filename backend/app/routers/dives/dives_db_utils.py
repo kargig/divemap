@@ -11,20 +11,6 @@ from app.models import Dive, DiveSite, AvailableTag
 from .dives_shared import logger
 
 
-def get_or_create_deco_tag(db: Session) -> AvailableTag:
-    """Get or create the 'deco' tag for decompression dives."""
-    deco_tag = db.query(AvailableTag).filter(AvailableTag.name == "deco").first()
-    if not deco_tag:
-        deco_tag = AvailableTag(
-            name="deco",
-            description="Decompression dive - requires decompression stops"
-        )
-        db.add(deco_tag)
-        db.commit()
-        db.refresh(deco_tag)
-    return deco_tag
-
-
 def get_dive_site_by_id(db: Session, dive_site_id: int) -> Optional[DiveSite]:
     """Get dive site by ID with error handling."""
     return db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
