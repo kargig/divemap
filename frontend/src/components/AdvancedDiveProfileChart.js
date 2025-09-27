@@ -319,24 +319,24 @@ const AdvancedDiveProfileChart = ({
               <span className='font-medium'>{label?.toFixed(1)} min</span>
             </div>
             <div className='flex justify-between'>
-              <span className='text-blue-600'>Depth:</span>
+              <span style={{ color: '#0072B2' }}>Depth:</span>
               <span className='font-medium'>{data.depth?.toFixed(1)}m</span>
             </div>
             <div className='flex justify-between'>
-              <span className='text-red-600'>Avg Depth:</span>
+              <span style={{ color: '#E69F00' }}>Avg Depth:</span>
               <span className='font-medium'>{data.averageDepth?.toFixed(1)}m</span>
             </div>
             {data.temperature && showTemperature && (
               <div className='flex justify-between'>
-                <span className='text-green-600'>Temperature:</span>
+                <span style={{ color: '#009E73' }}>Temperature:</span>
                 <span className='font-medium'>{data.temperature?.toFixed(1)}°C</span>
               </div>
             )}
             <div className='flex justify-between'>
-              <span className='text-amber-600'>NDL:</span>
+              <span style={{ color: '#D55E00' }}>NDL:</span>
               <span className='font-medium'>
                 {data.in_deco ? (
-                  <span className='text-red-600'>In deco</span>
+                  <span style={{ color: '#D55E00' }}>In deco</span>
                 ) : data.ndl === 0 ? (
                   'NDL 0 mins/deco'
                 ) : data.ndl ? (
@@ -348,19 +348,19 @@ const AdvancedDiveProfileChart = ({
             </div>
             {data.cns && showCNS && (
               <div className='flex justify-between'>
-                <span className='text-purple-600'>CNS:</span>
+                <span style={{ color: '#CC79A7' }}>CNS:</span>
                 <span className='font-medium'>{data.cns?.toFixed(1)}%</span>
               </div>
             )}
             {data.stopdepth > 0 && showCeiling && (
               <div className='flex justify-between'>
-                <span className='text-red-600'>Ceiling:</span>
+                <span style={{ color: '#56B4E9' }}>Ceiling:</span>
                 <span className='font-medium'>{data.stopdepth?.toFixed(1)}m</span>
               </div>
             )}
             {data.stoptime > 0 && data.in_deco && showStoptime && (
               <div className='flex justify-between'>
-                <span className='text-orange-600'>Stop Time:</span>
+                <span style={{ color: '#F0E442' }}>Stop Time:</span>
                 <span className='font-medium'>{formatStoptime(data.stoptime)}</span>
               </div>
             )}
@@ -747,20 +747,29 @@ const AdvancedDiveProfileChart = ({
         <div className='bg-gray-50 rounded-lg border border-gray-200 p-3 mb-2'>
           <div className='flex items-center justify-center space-x-6 text-sm'>
             <div className='flex items-center space-x-2'>
-              <div className='w-4 h-0.5 bg-blue-500'></div>
+              <div className='w-4 h-0.5' style={{ backgroundColor: '#0072B2' }}></div>
               <span className='text-gray-700'>Depth</span>
             </div>
             <div className='flex items-center space-x-2'>
-              <div className='w-4 h-0.5 bg-red-500 border-dashed border-t-2'></div>
+              <div
+                className='w-4 h-0.5 border-dashed border-t-2'
+                style={{ borderColor: '#E69F00' }}
+              ></div>
               <span className='text-gray-700'>Average Depth</span>
             </div>
             <div className='flex items-center space-x-2'>
-              <div className='w-4 h-0.5 bg-green-500 border-dashed border-t-2'></div>
+              <div
+                className='w-4 h-0.5 border-dashed border-t-2'
+                style={{ borderColor: '#009E73' }}
+              ></div>
               <span className='text-gray-700'>Temperature</span>
             </div>
             {hasDeco && hasStopdepth && (
               <div className='flex items-center space-x-2'>
-                <div className='w-4 h-0.5 bg-red-500 border-dashed border-t-2'></div>
+                <div
+                  className='w-4 h-0.5 border-dashed border-t-2'
+                  style={{ borderColor: '#56B4E9' }}
+                ></div>
                 <span className='text-gray-700'>Decompression Ceiling</span>
               </div>
             )}
@@ -804,7 +813,7 @@ const AdvancedDiveProfileChart = ({
               }}
               onMouseMove={handleMouseMove}
             >
-              <CartesianGrid strokeDasharray='3 3' stroke='#f0f0f0' />
+              <CartesianGrid strokeDasharray='3 3' stroke='#e5e7eb' />
 
               {/* X Axis - Time */}
               <XAxis
@@ -844,12 +853,12 @@ const AdvancedDiveProfileChart = ({
                   orientation='right'
                   domain={[metrics.minTemp - 2, metrics.maxTemp + 2]}
                   tickFormatter={value => `${value.toFixed(0)}°C`}
-                  tick={{ fontSize: 12, fill: '#10b981' }}
+                  tick={{ fontSize: 12, fill: '#009E73' }}
                   label={{
                     value: 'Temperature (°C)',
                     angle: 90,
                     position: 'insideRight',
-                    style: { textAnchor: 'middle', fontSize: 12, fill: '#10b981' },
+                    style: { textAnchor: 'middle', fontSize: 12, fill: '#009E73' },
                   }}
                 />
               )}
@@ -868,9 +877,9 @@ const AdvancedDiveProfileChart = ({
               <Area
                 type='monotone'
                 dataKey='stopdepth'
-                fill='#ef4444'
+                fill='#56B4E9'
                 fillOpacity={hasDeco && hasStopdepth ? 0.2 : 0}
-                stroke='#dc2626'
+                stroke='#E69F00'
                 strokeWidth={hasDeco && hasStopdepth ? 1 : 0}
                 strokeDasharray='3 3'
                 name='Decompression Ceiling'
@@ -881,7 +890,7 @@ const AdvancedDiveProfileChart = ({
               <Line
                 type='monotone'
                 dataKey='depth'
-                stroke='#2563eb'
+                stroke='#0072B2'
                 strokeWidth={3}
                 dot={false}
                 name='Depth'
@@ -891,7 +900,7 @@ const AdvancedDiveProfileChart = ({
               <Line
                 type='monotone'
                 dataKey='averageDepth'
-                stroke='#dc2626'
+                stroke='#E69F00'
                 strokeDasharray='5 5'
                 strokeWidth={2}
                 dot={false}
@@ -904,7 +913,7 @@ const AdvancedDiveProfileChart = ({
                   yAxisId='temperature'
                   type='stepAfter'
                   dataKey='temperature'
-                  stroke='#10b981'
+                  stroke='#009E73'
                   strokeWidth={2}
                   strokeDasharray='5 5'
                   dot={false}
@@ -917,7 +926,7 @@ const AdvancedDiveProfileChart = ({
                 <ReferenceLine
                   key={`gas-change-${event.time_minutes}-${event.cylinder || 'unknown'}`}
                   x={event.time_minutes}
-                  stroke='#f59e0b'
+                  stroke='#F0E442'
                   strokeWidth={2}
                   strokeDasharray='8 4'
                   label={{
@@ -926,7 +935,7 @@ const AdvancedDiveProfileChart = ({
                     style: {
                       textAnchor: 'middle',
                       fontSize: 10,
-                      fill: '#f59e0b',
+                      fill: '#F0E442',
                       fontWeight: 'bold',
                     },
                   }}

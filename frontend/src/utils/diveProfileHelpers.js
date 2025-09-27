@@ -5,6 +5,8 @@
  * from the backend API and preparing it for visualization with Recharts.
  */
 
+import { CHART_COLORS } from './colorPalette';
+
 /**
  * Process raw dive profile data for chart visualization
  * @param {Object} profileData - Raw profile data from API
@@ -298,14 +300,5 @@ export const getChartConfig = (screenSize = 'desktop') => {
  * @returns {Object} Color scheme
  */
 export const getChartColors = () => {
-  return {
-    depth: '#2563eb', // Blue for depth line
-    averageDepth: '#dc2626', // Red for average depth line
-    temperature: '#059669', // Green for temperature
-    ndl: '#f59e0b', // Amber for NDL zones
-    cns: '#7c3aed', // Purple for CNS
-    events: '#ef4444', // Red for events
-    grid: '#e5e7eb', // Light gray for grid
-    text: '#374151', // Dark gray for text
-  };
+  return CHART_COLORS;
 };
