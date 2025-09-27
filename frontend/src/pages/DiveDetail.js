@@ -20,6 +20,7 @@ import { useNavigate, useParams, useSearchParams, Link as RouterLink } from 'rea
 
 import api, { getDive, deleteDive, deleteDiveMedia } from '../api';
 import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
+import DiveProfileModal from '../components/DiveProfileModal';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -38,6 +39,7 @@ const DiveDetail = () => {
     return tabParam === 'profile' ? 'profile' : 'details';
   });
   const [hasDeco, setHasDeco] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Handle tab change and update URL
   const handleTabChange = tab => {
@@ -49,6 +51,15 @@ const DiveDetail = () => {
       newSearchParams.delete('tab');
     }
     setSearchParams(newSearchParams);
+  };
+
+  // Handle profile modal
+  const handleOpenProfileModal = () => {
+    setIsProfileModalOpen(true);
+  };
+
+  const handleCloseProfileModal = () => {
+    setIsProfileModalOpen(false);
   };
 
   // Fetch dive data
@@ -97,19 +108,6 @@ const DiveDetail = () => {
   useEffect(() => {
     handleRateLimitError(error, 'dive details', () => window.location.reload());
   }, [error]);
-
-  // Set dynamic page title
-  const formatDateForTitle = dateString => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date
-      .toLocaleDateString('en-GB', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      })
-      .replace(/\//g, '/');
-  };
 
   const pageTitle = dive
     ? `Divemap - Dive - ${dive.name || dive.dive_site?.name || 'Unnamed Dive Site'}`
@@ -580,6 +578,7 @@ const DiveDetail = () => {
                     setHasDeco(profileHasDeco);
                   }
                 }}
+                onMaximize={handleOpenProfileModal}
               />
             </div>
           )}
@@ -685,6 +684,23 @@ const DiveDetail = () => {
           </div>
         </div>
       )}
+
+      {/* Dive Profile Modal */}
+      <DiveProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={handleCloseProfileModal}
+        profileData={profileData}
+        isLoading={profileLoading}
+        error={profileError?.response?.data?.detail || profileError?.message}
+        showTemperature={true}
+        screenSize='desktop'
+        onDecoStatusChange={profileHasDeco => {
+          // If profile data is available, use it; otherwise keep tag-based detection
+          if (profileHasDeco !== undefined) {
+            setHasDeco(profileHasDeco);
+          }
+        }}
+      />
     </div>
   );
 };
