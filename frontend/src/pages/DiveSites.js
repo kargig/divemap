@@ -50,7 +50,7 @@ const DiveSites = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [quickFilter, setQuickFilter] = useState('');
+  const [quickFilters, setQuickFilters] = useState([]);
 
   // Thumbnails feature removed
   const [compactLayout, setCompactLayout] = useState(() => {
@@ -486,74 +486,62 @@ const DiveSites = () => {
   };
 
   const handleQuickFilter = filterType => {
-    setQuickFilter(filterType);
+    // Toggle the filter in the quickFilters array
+    setQuickFilters(prev => {
+      if (prev.includes(filterType)) {
+        // Remove filter if already selected
+        return prev.filter(f => f !== filterType);
+      } else {
+        // Add filter if not selected
+        return [...prev, filterType];
+      }
+    });
 
-    // Apply the quick filter
-    switch (filterType) {
-      case 'beginner':
-        setFilters(prev => ({
-          ...prev,
-          difficulty_level: 'beginner',
-          search_query: '',
-        }));
-        break;
-      case 'intermediate':
-        setFilters(prev => ({
-          ...prev,
-          difficulty_level: 'intermediate',
-          search_query: '',
-        }));
-        break;
-      case 'advanced':
-        setFilters(prev => ({
-          ...prev,
-          difficulty_level: 'advanced',
-          search_query: '',
-        }));
-        break;
-      case 'wrecks':
-        setFilters(prev => ({
-          ...prev,
-          tag_ids: [8], // Wreck tag ID
-          search_query: '',
-          difficulty_level: '',
-        }));
-        break;
-      case 'reefs':
-        setFilters(prev => ({
-          ...prev,
-          tag_ids: [14], // Reef tag ID
-          search_query: '',
-          difficulty_level: '',
-        }));
-        break;
-      case 'boat_dive':
-        setFilters(prev => ({
-          ...prev,
-          tag_ids: [4], // Boat Dive tag ID
-          search_query: '',
-          difficulty_level: '',
-        }));
-        break;
-      case 'shore_dive':
-        setFilters(prev => ({
-          ...prev,
-          tag_ids: [13], // Shore Dive tag ID
-          search_query: '',
-          difficulty_level: '',
-        }));
-        break;
-      case 'clear':
-        setQuickFilter('');
-        setFilters(prev => ({
-          ...prev,
-          difficulty_level: '',
-          search_query: '',
-          tag_ids: [],
-        }));
-        break;
-      default:
-        break;
+    // Apply the quick filter changes
+    if (filterType === 'clear') {
+      setQuickFilters([]);
+      setFilters(prev => ({
+        ...prev,
+        difficulty_level: '',
+        search_query: '',
+        tag_ids: [],
+      }));
+    } else {
+      // Handle additive tag filters
+      const tagIdMap = {
+        wrecks: 8,
+        reefs: 14,
+        boat_dive: 4,
+        shore_dive: 13,
+      };
+
+      // Handle difficulty filters (these are mutually exclusive)
+      const difficultyFilters = ['beginner', 'intermediate', 'advanced'];
+
+      setFilters(prev => {
+        const newFilters = { ...prev };
+
+        if (difficultyFilters.includes(filterType)) {
+          // For difficulty, replace any existing difficulty
+          newFilters.difficulty_level = filterType;
+          newFilters.search_query = '';
+        } else if (tagIdMap[filterType]) {
+          // For tag filters, add/remove from existing tags
+          const currentTagIds = prev.tag_ids || [];
+          const tagId = tagIdMap[filterType];
+
+          if (currentTagIds.includes(tagId)) {
+            // Remove tag if already selected
+            newFilters.tag_ids = currentTagIds.filter(id => id !== tagId);
+          } else {
+            // Add tag if not selected
+            newFilters.tag_ids = [...currentTagIds, tagId];
+          }
+          newFilters.search_query = '';
+        }
+
+        return newFilters;
+      });
     }
 
     // Reset to first page
@@ -683,7 +671,7 @@ const DiveSites = () => {
             filters={{ ...filters, availableTags, user }}
             onFilterChange={handleFilterChange}
             onQuickFilter={handleQuickFilter}
-            quickFilter={quickFilter}
+            quickFilters={quickFilters}
             variant='inline'
             showQuickFilters={true}
             showAdvancedToggle={true}
