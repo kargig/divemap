@@ -1,6 +1,6 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { Thermometer, Clock, Activity, AlertTriangle, Download, Maximize } from 'lucide-react';
+import { Thermometer, Clock, Activity, AlertTriangle, Download, Maximize, X } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
@@ -23,6 +23,7 @@ const AdvancedDiveProfileChart = ({
   screenSize = 'desktop',
   onDecoStatusChange,
   onMaximize,
+  onClose, // Add onClose prop for mobile landscape close button
 }) => {
   const [, setHoveredPoint] = useState(null);
   const [showTemperature, setShowTemperature] = useState(initialShowTemperature);
@@ -540,7 +541,24 @@ const AdvancedDiveProfileChart = ({
     );
   }
 
-  const chartHeight = screenSize === 'mobile' ? 300 : 400;
+  // Determine chart height based on screen size and viewport
+  const getChartHeight = () => {
+    if (screenSize === 'mobile') {
+      // For mobile landscape in modal, use much smaller height
+      const isMobileLandscape = window.innerWidth > window.innerHeight && window.innerWidth <= 1024;
+      if (isMobileLandscape) {
+        return 200; // Much smaller for mobile landscape modal
+      }
+      return 300; // Regular mobile height
+    }
+    return 400; // Desktop height
+  };
+
+  const chartHeight = getChartHeight();
+
+  // Check if we're in mobile landscape mode
+  const isMobileLandscape =
+    screenSize === 'mobile' && window.innerWidth > window.innerHeight && window.innerWidth <= 1024;
 
   return (
     <>
@@ -573,51 +591,77 @@ const AdvancedDiveProfileChart = ({
         </style>
       )}
       <div
-        className={`space-y-4 ${highContrastMode ? 'high-contrast' : ''}`}
+        className={`${isMobileLandscape ? 'space-y-0.5' : 'space-y-4'} ${highContrastMode ? 'high-contrast' : ''}`}
         role='region'
         aria-label='Dive profile chart with interactive controls'
       >
         {/* Header with metrics and controls */}
-        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
-          <div className='flex flex-wrap items-center gap-6'>
+        <div className={`flex flex-col ${isMobileLandscape ? 'gap-0.5' : 'gap-4'}`}>
+          {/* Mobile Landscape Close Button Row */}
+          {isMobileLandscape && onClose && (
+            <div className='flex justify-end'>
+              <button
+                onClick={onClose}
+                className='text-gray-500 hover:text-gray-700 hover:font-bold transition-all p-0.5'
+                aria-label='Close dive profile modal'
+              >
+                <X className='h-3 w-3' />
+              </button>
+            </div>
+          )}
+
+          {/* Metrics Row */}
+          <div className={`flex flex-wrap items-center ${isMobileLandscape ? 'gap-2' : 'gap-6'}`}>
             <div className='flex items-center gap-2'>
-              <Clock className='h-5 w-5 text-gray-500' />
-              <span className='text-sm font-medium text-gray-700'>
+              <Clock className={`${isMobileLandscape ? 'h-3 w-3' : 'h-5 w-5'} text-gray-500`} />
+              <span
+                className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}
+              >
                 {metrics.duration.toFixed(0)}m
               </span>
             </div>
             <div className='flex items-center gap-2'>
-              <Activity className='h-5 w-5 text-blue-500' />
-              <span className='text-sm font-medium text-gray-700'>
+              <Activity className={`${isMobileLandscape ? 'h-3 w-3' : 'h-5 w-5'} text-blue-500`} />
+              <span
+                className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}
+              >
                 Max: {metrics.maxDepth.toFixed(1)}m
               </span>
             </div>
             <div className='flex items-center gap-2'>
-              <Activity className='h-5 w-5 text-red-500' />
-              <span className='text-sm font-medium text-gray-700'>
+              <Activity className={`${isMobileLandscape ? 'h-3 w-3' : 'h-5 w-5'} text-red-500`} />
+              <span
+                className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}
+              >
                 Avg: {metrics.averageDepth.toFixed(1)}m
               </span>
             </div>
             {metrics.minTemp !== null && metrics.maxTemp !== null && (
               <div className='flex items-center gap-2'>
-                <Thermometer className='h-5 w-5 text-green-500' />
-                <span className='text-sm font-medium text-gray-700'>
+                <Thermometer
+                  className={`${isMobileLandscape ? 'h-3 w-3' : 'h-5 w-5'} text-green-500`}
+                />
+                <span
+                  className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}
+                >
                   {metrics.minTemp.toFixed(0)}°C - {metrics.maxTemp.toFixed(0)}°C
                 </span>
               </div>
             )}
           </div>
 
-          {/* Data Toggles */}
-          <div className='flex items-center space-x-4'>
+          {/* Data Toggles Row */}
+          <div className={`flex items-center ${isMobileLandscape ? 'space-x-2' : 'space-x-4'}`}>
             <label className='flex items-center'>
               <input
                 type='checkbox'
                 checked={showTemperature}
                 onChange={e => setShowTemperature(e.target.checked)}
-                className='mr-2'
+                className={`${isMobileLandscape ? 'mr-1' : 'mr-2'}`}
               />
-              <span className='text-sm text-gray-600'>Temperature</span>
+              <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                Temperature
+              </span>
             </label>
             {chartData.some(sample => sample.cns !== null && sample.cns !== undefined) && (
               <label className='flex items-center'>
@@ -625,9 +669,11 @@ const AdvancedDiveProfileChart = ({
                   type='checkbox'
                   checked={showCNS}
                   onChange={e => setShowCNS(e.target.checked)}
-                  className='mr-2'
+                  className={`${isMobileLandscape ? 'mr-1' : 'mr-2'}`}
                 />
-                <span className='text-sm text-gray-600'>CNS</span>
+                <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                  CNS
+                </span>
               </label>
             )}
             {hasDeco && hasStopdepth && (
@@ -636,9 +682,11 @@ const AdvancedDiveProfileChart = ({
                   type='checkbox'
                   checked={showCeiling}
                   onChange={e => setShowCeiling(e.target.checked)}
-                  className='mr-2'
+                  className={`${isMobileLandscape ? 'mr-1' : 'mr-2'}`}
                 />
-                <span className='text-sm text-gray-600'>Ceiling</span>
+                <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                  Ceiling
+                </span>
               </label>
             )}
             {hasDeco &&
@@ -651,79 +699,83 @@ const AdvancedDiveProfileChart = ({
                     type='checkbox'
                     checked={showStoptime}
                     onChange={e => setShowStoptime(e.target.checked)}
-                    className='mr-2'
+                    className={`${isMobileLandscape ? 'mr-1' : 'mr-2'}`}
                   />
-                  <span className='text-sm text-gray-600'>Stop Time</span>
+                  <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                    Stop Time
+                  </span>
                 </label>
               )}
           </div>
 
-          <div className='flex items-center gap-2'>
-            {profileData?.samples && profileData.samples.length > 1000 && (
+          {!isMobileLandscape && (
+            <div className='flex items-center gap-2'>
+              {profileData?.samples && profileData.samples.length > 1000 && (
+                <button
+                  onClick={() => setShowAllSamples(!showAllSamples)}
+                  className={`px-3 py-1 text-xs rounded border ${
+                    showAllSamples
+                      ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
+                      : 'text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-300'
+                  }`}
+                  title={showAllSamples ? 'Switch to sampled view' : 'Switch to all samples view'}
+                  aria-label={
+                    showAllSamples ? 'Switch to sampled view' : 'Switch to all samples view'
+                  }
+                >
+                  {showAllSamples ? 'Sampled View' : 'All Samples'}
+                </button>
+              )}
               <button
-                onClick={() => setShowAllSamples(!showAllSamples)}
-                className={`px-3 py-1 text-xs rounded border ${
-                  showAllSamples
-                    ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
-                    : 'text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-300'
+                onClick={() => setHighContrastMode(!highContrastMode)}
+                className={`px-4 py-2 text-sm font-medium rounded-md border-2 transition-all duration-200 ${
+                  highContrastMode
+                    ? 'bg-gray-900 text-white border-gray-900 shadow-lg'
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 border-gray-400 hover:border-gray-500 shadow-sm hover:shadow-md'
                 }`}
-                title={showAllSamples ? 'Switch to sampled view' : 'Switch to all samples view'}
-                aria-label={
-                  showAllSamples ? 'Switch to sampled view' : 'Switch to all samples view'
-                }
+                title='Toggle High Contrast Mode'
+                aria-label={`${highContrastMode ? 'Disable' : 'Enable'} high contrast mode`}
               >
-                {showAllSamples ? 'Sampled View' : 'All Samples'}
+                {highContrastMode ? 'High Contrast On' : 'High Contrast Off'}
               </button>
-            )}
-            <button
-              onClick={() => setHighContrastMode(!highContrastMode)}
-              className={`px-4 py-2 text-sm font-medium rounded-md border-2 transition-all duration-200 ${
-                highContrastMode
-                  ? 'bg-gray-900 text-white border-gray-900 shadow-lg'
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 border-gray-400 hover:border-gray-500 shadow-sm hover:shadow-md'
-              }`}
-              title='Toggle High Contrast Mode'
-              aria-label={`${highContrastMode ? 'Disable' : 'Enable'} high contrast mode`}
-            >
-              {highContrastMode ? 'High Contrast On' : 'High Contrast Off'}
-            </button>
-            {onMaximize && (
-              <button
-                onClick={onMaximize}
-                className='px-3 py-1 text-xs rounded border text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-300'
-                title='Maximize chart view'
-                aria-label='Open chart in full-screen modal'
-              >
-                <Maximize className='h-4 w-4 inline mr-1' />
-                Maximize
-              </button>
-            )}
-            <div className='relative group'>
-              <button
-                className='p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded'
-                title='Download Chart'
-                aria-label='Download chart options'
-              >
-                <Download className='h-4 w-4' />
-              </button>
-              <div className='absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10'>
+              {onMaximize && (
                 <button
-                  onClick={handleExportPNG}
-                  className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg'
-                  aria-label='Export chart as PNG image'
+                  onClick={onMaximize}
+                  className='px-3 py-1 text-xs rounded border text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-300'
+                  title='Maximize chart view'
+                  aria-label='Open chart in full-screen modal'
                 >
-                  Export PNG
+                  <Maximize className='h-4 w-4 inline mr-1' />
+                  Maximize
                 </button>
+              )}
+              <div className='relative group'>
                 <button
-                  onClick={handleExportPDF}
-                  className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg'
-                  aria-label='Export chart as PDF document'
+                  className='p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded'
+                  title='Download Chart'
+                  aria-label='Download chart options'
                 >
-                  Export PDF
+                  <Download className='h-4 w-4' />
                 </button>
+                <div className='absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10'>
+                  <button
+                    onClick={handleExportPNG}
+                    className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg'
+                    aria-label='Export chart as PNG image'
+                  >
+                    Export PNG
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg'
+                    aria-label='Export chart as PDF document'
+                  >
+                    Export PDF
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Mobile landscape suggestion - only show on mobile devices in portrait mode */}
@@ -744,33 +796,40 @@ const AdvancedDiveProfileChart = ({
         </div>
 
         {/* Chart Legend */}
-        <div className='bg-gray-50 rounded-lg border border-gray-200 p-3 mb-2'>
-          <div className='flex items-center justify-center space-x-6 text-sm'>
-            <div className='flex items-center space-x-2'>
-              <div className='w-4 h-0.5' style={{ backgroundColor: '#0072B2' }}></div>
+        <div
+          className={`bg-gray-50 rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1 mb-1' : 'p-3 mb-2'}`}
+        >
+          <div
+            className={`flex items-center justify-center ${isMobileLandscape ? 'space-x-3' : 'space-x-6'} ${isMobileLandscape ? 'text-xs' : 'text-sm'}`}
+          >
+            <div className='flex items-center space-x-1'>
+              <div
+                className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'}`}
+                style={{ backgroundColor: '#0072B2' }}
+              ></div>
               <span className='text-gray-700'>Depth</span>
             </div>
-            <div className='flex items-center space-x-2'>
+            <div className='flex items-center space-x-1'>
               <div
-                className='w-4 h-0.5 border-dashed border-t-2'
+                className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'} border-dashed border-t-2`}
                 style={{ borderColor: '#E69F00' }}
               ></div>
-              <span className='text-gray-700'>Average Depth</span>
+              <span className='text-gray-700'>Avg Depth</span>
             </div>
-            <div className='flex items-center space-x-2'>
+            <div className='flex items-center space-x-1'>
               <div
-                className='w-4 h-0.5 border-dashed border-t-2'
+                className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'} border-dashed border-t-2`}
                 style={{ borderColor: '#009E73' }}
               ></div>
-              <span className='text-gray-700'>Temperature</span>
+              <span className='text-gray-700'>Temp</span>
             </div>
             {hasDeco && hasStopdepth && (
-              <div className='flex items-center space-x-2'>
+              <div className='flex items-center space-x-1'>
                 <div
-                  className='w-4 h-0.5 border-dashed border-t-2'
+                  className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'} border-dashed border-t-2`}
                   style={{ borderColor: '#56B4E9' }}
                 ></div>
-                <span className='text-gray-700'>Decompression Ceiling</span>
+                <span className='text-gray-700'>Ceiling</span>
               </div>
             )}
           </div>
@@ -779,7 +838,7 @@ const AdvancedDiveProfileChart = ({
         {/* Chart */}
         <div
           ref={chartRef}
-          className='bg-white rounded-lg border border-gray-200 p-4 relative'
+          className={`bg-white rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1' : 'p-4'} relative`}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -1003,6 +1062,7 @@ AdvancedDiveProfileChart.propTypes = {
   screenSize: PropTypes.string,
   onDecoStatusChange: PropTypes.func,
   onMaximize: PropTypes.func,
+  onClose: PropTypes.func,
 };
 
 export default AdvancedDiveProfileChart;
