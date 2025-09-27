@@ -1,6 +1,7 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { Thermometer, Clock, Activity, AlertTriangle, Download, CheckCircle } from 'lucide-react';
+import { Thermometer, Clock, Activity, AlertTriangle, Download, Maximize } from 'lucide-react';
+import PropTypes from 'prop-types';
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
   ComposedChart,
@@ -11,9 +12,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
-  Area,
-  AreaChart,
-  Legend,
 } from 'recharts';
 
 const AdvancedDiveProfileChart = ({
@@ -23,8 +21,9 @@ const AdvancedDiveProfileChart = ({
   showTemperature: initialShowTemperature = true,
   screenSize = 'desktop',
   onDecoStatusChange,
+  onMaximize,
 }) => {
-  const [hoveredPoint, setHoveredPoint] = useState(null);
+  const [, setHoveredPoint] = useState(null);
   const [showTemperature, setShowTemperature] = useState(initialShowTemperature);
   const chartRef = useRef(null);
   const [highContrastMode, setHighContrastMode] = useState(false);
@@ -170,7 +169,7 @@ const AdvancedDiveProfileChart = ({
     }
 
     // First pass: collect all temperature readings from loaded samples
-    const temperatureReadings = samplesToProcess
+    samplesToProcess
       .map((sample, index) => ({
         time: sample.time_minutes || 0,
         temperature: sample.temperature,
@@ -324,8 +323,8 @@ const AdvancedDiveProfileChart = ({
       link.download = `dive-profile-${new Date().toISOString().split('T')[0]}.png`;
       link.href = canvas.toDataURL();
       link.click();
-    } catch (error) {
-      console.error('Error exporting PNG:', error);
+    } catch {
+      // Error exporting PNG
     }
   }, []);
 
@@ -355,8 +354,8 @@ const AdvancedDiveProfileChart = ({
       }
 
       pdf.save(`dive-profile-${new Date().toISOString().split('T')[0]}.pdf`);
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
+    } catch {
+      // Error exporting PDF
     }
   }, []);
 
@@ -575,16 +574,27 @@ const AdvancedDiveProfileChart = ({
             )}
             <button
               onClick={() => setHighContrastMode(!highContrastMode)}
-              className={`px-3 py-1 text-xs rounded border ${
+              className={`px-4 py-2 text-sm font-medium rounded-md border-2 transition-all duration-200 ${
                 highContrastMode
-                  ? 'bg-black text-white border-black'
-                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 border-gray-300'
+                  ? 'bg-gray-900 text-white border-gray-900 shadow-lg'
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 border-gray-400 hover:border-gray-500 shadow-sm hover:shadow-md'
               }`}
               title='Toggle High Contrast Mode'
               aria-label={`${highContrastMode ? 'Disable' : 'Enable'} high contrast mode`}
             >
               {highContrastMode ? 'High Contrast On' : 'High Contrast Off'}
             </button>
+            {onMaximize && (
+              <button
+                onClick={onMaximize}
+                className='px-3 py-1 text-xs rounded border text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-300'
+                title='Maximize chart view'
+                aria-label='Open chart in full-screen modal'
+              >
+                <Maximize className='h-4 w-4 inline mr-1' />
+                Maximize
+              </button>
+            )}
             <div className='relative group'>
               <button
                 className='p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded'
@@ -756,9 +766,9 @@ const AdvancedDiveProfileChart = ({
               )}
 
               {/* Gas change event markers */}
-              {gasChangeEvents.map((event, index) => (
+              {gasChangeEvents.map(event => (
                 <ReferenceLine
-                  key={`gas-change-${index}`}
+                  key={`gas-change-${event.time_minutes}-${event.cylinder || 'unknown'}`}
                   x={event.time_minutes}
                   stroke='#f59e0b'
                   strokeWidth={2}
@@ -807,6 +817,36 @@ const AdvancedDiveProfileChart = ({
       </div>
     </>
   );
+};
+
+AdvancedDiveProfileChart.propTypes = {
+  profileData: PropTypes.shape({
+    samples: PropTypes.arrayOf(
+      PropTypes.shape({
+        time_minutes: PropTypes.number,
+        depth: PropTypes.number,
+        temperature: PropTypes.number,
+        ndl_minutes: PropTypes.number,
+        cns_percent: PropTypes.number,
+        in_deco: PropTypes.bool,
+      })
+    ),
+    events: PropTypes.arrayOf(
+      PropTypes.shape({
+        name: PropTypes.string,
+        type: PropTypes.string,
+        time_minutes: PropTypes.number,
+        cylinder: PropTypes.string,
+        o2: PropTypes.number,
+      })
+    ),
+  }),
+  isLoading: PropTypes.bool,
+  error: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  showTemperature: PropTypes.bool,
+  screenSize: PropTypes.string,
+  onDecoStatusChange: PropTypes.func,
+  onMaximize: PropTypes.func,
 };
 
 export default AdvancedDiveProfileChart;
