@@ -684,11 +684,24 @@ class TestDivingCenterAuthorization:
     async def test_can_manage_diving_center_non_owner(self, db_session, test_user, test_diving_center):
         """Test that non-owners cannot manage diving centers."""
         from app.auth import can_manage_diving_center
-        from app.models import OwnershipStatus
+        from app.models import OwnershipStatus, User
         from fastapi import HTTPException
         
-        # Set a different user as the owner
-        test_diving_center.owner_id = 999  # Different user ID
+        # Create a different user to be the owner
+        other_user = User(
+            username="otheruser",
+            email="other@example.com",
+            password_hash="$2b$12$bkh2s0S1uAXrAMa5CewBwubJhyiZJTs1jEwy7I4R2Sn9q9cXW2BxO",  # "TestPass123!"
+            is_admin=False,
+            is_moderator=False,
+            enabled=True
+        )
+        db_session.add(other_user)
+        db_session.commit()
+        db_session.refresh(other_user)
+        
+        # Set the other user as the owner
+        test_diving_center.owner_id = other_user.id
         test_diving_center.ownership_status = OwnershipStatus.approved
         db_session.commit()
         db_session.refresh(test_diving_center)
@@ -769,11 +782,24 @@ class TestDivingCenterAuthorization:
     async def test_create_can_manage_diving_center_dep_factory_unauthorized(self, db_session, test_user, test_diving_center):
         """Test that the factory function correctly handles unauthorized users."""
         from app.auth import create_can_manage_diving_center_dep
-        from app.models import OwnershipStatus
+        from app.models import OwnershipStatus, User
         from fastapi import HTTPException
         
-        # Set a different user as the owner
-        test_diving_center.owner_id = 999  # Different user ID
+        # Create a different user to be the owner
+        other_user = User(
+            username="otheruser2",
+            email="other2@example.com",
+            password_hash="$2b$12$bkh2s0S1uAXrAMa5CewBwubJhyiZJTs1jEwy7I4R2Sn9q9cXW2BxO",  # "TestPass123!"
+            is_admin=False,
+            is_moderator=False,
+            enabled=True
+        )
+        db_session.add(other_user)
+        db_session.commit()
+        db_session.refresh(other_user)
+        
+        # Set the other user as the owner
+        test_diving_center.owner_id = other_user.id
         test_diving_center.ownership_status = OwnershipStatus.approved
         db_session.commit()
         db_session.refresh(test_diving_center)

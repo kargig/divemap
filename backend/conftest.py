@@ -14,7 +14,15 @@ from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, S
 from app.auth import create_access_token
 
 # Test database URL - use environment variable if available, otherwise default to SQLite
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+# For GitHub Actions, ensure we use the test database
+if os.getenv("GITHUB_ACTIONS") == "true":
+    # In GitHub Actions, use the test database URL
+    SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:password@localhost:3306/divemap_test")
+    print(f"🔧 GitHub Actions detected - Using database URL: {SQLALCHEMY_DATABASE_URL}")
+else:
+    # For local development, use environment variable or default to SQLite
+    SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+    print(f"🔧 Local development - Using database URL: {SQLALCHEMY_DATABASE_URL}")
 
 # Create test engine with appropriate configuration for SQLite or MySQL
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):

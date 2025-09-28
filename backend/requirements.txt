@@ -6,6 +6,7 @@ python-multipart==0.0.20
 # JWT library - migrated from python-jose to PyJWT for security
 PyJWT[crypto]==2.10.1
 passlib[bcrypt]==1.7.4
+bcrypt==4.3.0
 python-dotenv==1.0.0
 redis==5.0.1
 celery==5.3.4
