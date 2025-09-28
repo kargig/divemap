@@ -24,7 +24,7 @@ import os
 import tempfile
 import uuid
 
-from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
+from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
 from app.models import DiveSite, DiveSiteAlias
 from app.services.dive_profile_parser import DiveProfileParser
@@ -163,19 +163,3 @@ def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
         print(f"Error finding dive site: {e}")
         return None
 
-@router.get("/storage/health")
-def storage_health_check():
-    """Check storage service health (R2 and local fallback)"""
-    try:
-        health_status = r2_storage.health_check()
-        return health_status
-    except Exception as e:
-        return {
-            "error": str(e),
-            "r2_available": False,
-            "local_storage_available": False,
-            "bucket_accessible": False,
-            "credentials_present": False,
-            "boto3_available": False,
-            "local_storage_writable": False
-        }

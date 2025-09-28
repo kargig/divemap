@@ -32,7 +32,7 @@ from app.models import DiveSite, DiveSiteAlias, get_difficulty_value
 from app.services.dive_profile_parser import DiveProfileParser
 from .dives_validation import raise_validation_error
 from .dives_logging import log_dive_operation, log_error
-from .dives_utils import has_deco_profile, generate_dive_name, get_or_create_deco_tag
+from .dives_utils import has_deco_profile, generate_dive_name, get_or_create_deco_tag, find_dive_site_by_import_id
 
 
 def parse_dive_information_text(dive_information):
