@@ -24,6 +24,7 @@ import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getTagColor } from '../utils/tagHelpers';
+import { renderTextWithLinks } from '../utils/textHelpers';
 
 // Helper function to safely extract error message
 const getErrorMessage = error => {
@@ -308,7 +309,9 @@ const DiveSiteDetail = () => {
               <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
                 Description
               </h2>
-              <p className='text-gray-700 text-sm sm:text-base'>{diveSite.description}</p>
+              <p className='text-gray-700 text-sm sm:text-base'>
+                {renderTextWithLinks(diveSite.description)}
+              </p>
             </div>
           )}
 

@@ -33,6 +33,7 @@ import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficul
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
 import { getTagColor } from '../utils/tagHelpers';
+import { renderTextWithLinks } from '../utils/textHelpers';
 
 const DiveSites = () => {
   const { user, isAdmin } = useAuth();
@@ -861,22 +862,7 @@ const DiveSites = () => {
                     <p
                       className={`text-gray-700 ${compactLayout ? 'text-xs' : 'text-sm'} mb-2 line-clamp-2`}
                     >
-                      {site.description.split(/(https?:\/\/[^\s]+)/).map((part, index) => {
-                        if (part.match(/^https?:\/\//)) {
-                          return (
-                            <a
-                              key={index}
-                              href={part}
-                              target='_blank'
-                              rel='noopener noreferrer'
-                              className='text-blue-600 hover:text-blue-800 underline break-all'
-                            >
-                              {part}
-                            </a>
-                          );
-                        }
-                        return part;
-                      })}
+                      {renderTextWithLinks(site.description)}
                     </p>
                   )}
 
