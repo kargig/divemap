@@ -64,22 +64,29 @@ def client(db_session):
         pass  # Ignore if reset fails
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
-        # Set headers to simulate localhost request (exempts from rate limiting)
-        test_client.headers.update({
-            "X-Forwarded-For": "127.0.0.1",
-            "X-Real-IP": "127.0.0.1",
-            "Host": "localhost"
-        })
-        yield test_client
-    app.dependency_overrides.clear()
-
-    # Reset rate limiter cache after each test as well
+    
+    # Create TestClient with specific configuration to handle anyio issues
+    test_client = TestClient(app, raise_server_exceptions=False)
+    
+    # Set headers to simulate localhost request (exempts from rate limiting)
+    test_client.headers.update({
+        "X-Forwarded-For": "127.0.0.1",
+        "X-Real-IP": "127.0.0.1",
+        "Host": "localhost"
+    })
+    
     try:
-        from app.limiter import limiter
-        limiter.reset()
-    except Exception:
-        pass  # Ignore if reset fails
+        yield test_client
+    finally:
+        # Ensure proper cleanup
+        app.dependency_overrides.clear()
+        
+        # Reset rate limiter cache after each test as well
+        try:
+            from app.limiter import limiter
+            limiter.reset()
+        except Exception:
+            pass  # Ignore if reset fails
 
 @pytest.fixture
 def test_user(db_session):

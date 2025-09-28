@@ -23,7 +23,7 @@ google-auth==2.40.3
 google-auth-oauthlib==1.2.2
 # Updated dependencies for security
 starlette==0.47.2
-anyio>=3.6.2,<4
+anyio==3.6.2
 pyasn1==0.6.1
 # Additional security packages
 cryptography==45.0.5
