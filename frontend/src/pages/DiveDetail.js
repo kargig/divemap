@@ -26,6 +26,7 @@ import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
+import { renderTextWithLinks } from '../utils/textHelpers';
 
 const DiveDetail = () => {
   const { id } = useParams();
@@ -596,7 +597,9 @@ const DiveDetail = () => {
                   <span className='font-medium'>{dive.dive_site.name}</span>
                 </div>
                 {dive.dive_site.description && (
-                  <p className='text-sm text-gray-600'>{dive.dive_site.description}</p>
+                  <p className='text-sm text-gray-600'>
+                    {renderTextWithLinks(dive.dive_site.description)}
+                  </p>
                 )}
                 <RouterLink
                   to={`/dive-sites/${dive.dive_site.id}`}
@@ -618,7 +621,9 @@ const DiveDetail = () => {
                   <span className='font-medium'>{dive.diving_center.name}</span>
                 </div>
                 {dive.diving_center.description && (
-                  <p className='text-sm text-gray-600'>{dive.diving_center.description}</p>
+                  <p className='text-sm text-gray-600'>
+                    {renderTextWithLinks(dive.diving_center.description)}
+                  </p>
                 )}
                 <RouterLink
                   to={`/diving-centers/${dive.diving_center.id}`}
