@@ -113,7 +113,7 @@ jobs:
       run: |
         cd backend
         source divemap_venv/bin/activate
-        python -m pytest tests/ -v --cov=app --cov-report=term-missing --cov-report=html --cov-report=xml
+        python -m pytest tests/ -v --cov=app --cov-report=term-missing --cov-report=html --cov-report=xml -x --maxfail=1 --tb=short
 
     - name: Upload coverage reports
       if: ${{ (github.event.inputs.run_coverage != 'false' || github.event_name != 'workflow_dispatch') && always() }}

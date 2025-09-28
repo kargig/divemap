@@ -35,6 +35,9 @@ def event_loop():
 @pytest.fixture(scope="function")
 def db_session():
     """Create a fresh database session for each test."""
+    # Drop all tables first to ensure clean state
+    Base.metadata.drop_all(bind=engine)
+    
     # Create tables
     Base.metadata.create_all(bind=engine)
 

@@ -83,10 +83,10 @@ class TestAuth:
     
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     
-        # Test with invalid token (should return 500 since we're not mocking the functions)
+        # Test with invalid token (should return 400 since it's a client error)
         response = client.post("/api/v1/auth/google-login", json={"token": "invalid_token"})
-    
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @patch('app.routers.auth.verify_google_token')
     @patch('app.routers.auth.get_or_create_google_user')
@@ -282,7 +282,7 @@ class TestAuth:
         response = client.post("/api/v1/auth/google-login", json={
             "token": ""  # Empty token
         })
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         
         # Test with missing token
         response = client.post("/api/v1/auth/google-login", json={})
