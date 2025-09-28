@@ -51,10 +51,10 @@ class TestDiveImportWithProfiles:
 </divelog>"""
 
     @pytest.fixture
-    def sample_dive_data_with_profile(self):
+    def sample_dive_data_with_profile(self, test_dive_site):
         """Sample dive data with profile information."""
         return {
-            "dive_site_id": 1,
+            "dive_site_id": test_dive_site.id,
             "name": "Test Dive with Profile",
             "is_private": False,
             "dive_information": "Test dive information",

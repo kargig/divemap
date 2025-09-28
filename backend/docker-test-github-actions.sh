@@ -37,6 +37,11 @@ if [ ! -f "requirements.txt" ]; then
     exit 1
 fi
 
+if [ ! -f "test.db" ]; then
+    sudo rm -f test.db
+fi
+
+
 # Stop any existing test containers and networks
 print_status "Cleaning up any existing test containers..."
 docker stop divemap-test-mysql divemap-test-backend 2>/dev/null || true
@@ -63,7 +68,7 @@ docker run -d \
 
 # Wait for MySQL to be ready
 print_status "Waiting for MySQL to be ready..."
-timeout=10
+timeout=20
 counter=0
 while ! docker exec divemap-test-mysql mysqladmin ping -h localhost; do
     if [ $counter -ge $timeout ]; then
@@ -129,7 +134,6 @@ print_status "Running tests in Docker container (GitHub Actions environment)..."
 docker run --rm \
     --name divemap-test-runner \
     --network divemap-test-network \
-    -v "$(pwd)/htmlcov:/app/htmlcov" \
     -v "$(pwd)/.pytest_cache:/app/.pytest_cache" \
     divemap-test-backend \
     bash -c "
@@ -160,13 +164,13 @@ docker run --rm \
         
         # Run tests with exact GitHub Actions command
         echo 'Running tests...'
-        python -m pytest tests/ -v --cov=app --cov-report=term-missing --cov-report=html --cov-report=xml -x --maxfail=1 --tb=short
+        python -m pytest tests/ -v --cov=app --cov-report=term-missing -x --maxfail=1 --tb=short
     "
 
 # Check exit code
 if [ $? -eq 0 ]; then
     print_success "All tests passed! 🎉"
-    print_status "Coverage reports generated in htmlcov/ directory"
+    print_status "Coverage information displayed in terminal output"
 else
     print_error "Tests failed! Check the output above for details."
 fi

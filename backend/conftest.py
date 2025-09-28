@@ -45,31 +45,32 @@ def event_loop():
     yield loop
     loop.close()
 
-@pytest.fixture(scope="function")
-def db_session():
-    """Create a fresh database session for each test."""
-    # Drop all tables first to ensure clean state
+@pytest.fixture(scope="session")
+def db_engine():
+    """Create database engine and tables once per test session."""
+    # Create tables once at session start
+    Base.metadata.create_all(bind=engine)
+    yield engine
+    # Clean up tables at session end
     try:
         Base.metadata.drop_all(bind=engine)
     except Exception as e:
-        # Ignore errors when dropping tables (they might not exist)
-        print(f"Warning: Could not drop tables: {e}")
-    
-    # Create tables
-    Base.metadata.create_all(bind=engine)
+        print(f"Warning: Could not drop tables at session end: {e}")
 
-    # Create session
-    session = TestingSessionLocal()
+@pytest.fixture(scope="function")
+def db_session(db_engine):
+    """Create a fresh database session for each test."""
+    # Use transactions instead of dropping/recreating tables
+    connection = db_engine.connect()
+    transaction = connection.begin()
+    
+    session = TestingSessionLocal(bind=connection)
     try:
         yield session
     finally:
         session.close()
-        # Drop tables after test
-        try:
-            Base.metadata.drop_all(bind=engine)
-        except Exception as e:
-            # Ignore errors when dropping tables
-            print(f"Warning: Could not drop tables after test: {e}")
+        transaction.rollback()  # Rollback instead of dropping tables
+        connection.close()
 
 @pytest.fixture
 def client(db_session):
