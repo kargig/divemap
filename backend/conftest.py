@@ -1,6 +1,7 @@
 import pytest
 from datetime import date
 import asyncio
+import os
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -12,15 +13,19 @@ from app.database import get_db, Base
 from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment, DivingOrganization, UserCertification, RefreshToken, AuthAuditLog, Dive
 from app.auth import create_access_token
 
-# Test database URL
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+# Test database URL - use environment variable if available, otherwise default to SQLite
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
 
-# Create test engine
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+# Create test engine with appropriate configuration for SQLite or MySQL
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+else:
+    # MySQL configuration
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 # Create test session
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -36,7 +41,11 @@ def event_loop():
 def db_session():
     """Create a fresh database session for each test."""
     # Drop all tables first to ensure clean state
-    Base.metadata.drop_all(bind=engine)
+    try:
+        Base.metadata.drop_all(bind=engine)
+    except Exception as e:
+        # Ignore errors when dropping tables (they might not exist)
+        print(f"Warning: Could not drop tables: {e}")
     
     # Create tables
     Base.metadata.create_all(bind=engine)
@@ -48,7 +57,11 @@ def db_session():
     finally:
         session.close()
         # Drop tables after test
-        Base.metadata.drop_all(bind=engine)
+        try:
+            Base.metadata.drop_all(bind=engine)
+        except Exception as e:
+            # Ignore errors when dropping tables
+            print(f"Warning: Could not drop tables after test: {e}")
 
 @pytest.fixture
 def client(db_session):

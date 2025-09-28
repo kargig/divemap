@@ -46,8 +46,19 @@ print(f"🔧 Root logger level: {logging.getLogger().getEffectiveLevel()}")
 print(f"🔧 Uvicorn logger level: {logging.getLogger('uvicorn').getEffectiveLevel()}")
 print(f"🔧 Suspicious proxy chain length threshold: {suspicious_proxy_chain_length}")
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create database tables (skip during testing)
+# Check if we're running tests by looking for pytest in sys.argv or test environment
+import sys
+is_testing = (
+    "pytest" in sys.modules or 
+    "pytest" in sys.argv[0] or 
+    any("pytest" in arg for arg in sys.argv) or
+    os.getenv("PYTEST_CURRENT_TEST") or
+    os.getenv("TESTING") == "true"
+)
+
+if not is_testing:
+    Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Divemap API",
