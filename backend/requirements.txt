@@ -6,6 +6,7 @@ python-multipart==0.0.20
 # JWT library - migrated from python-jose to PyJWT for security
 PyJWT[crypto]==2.10.1
 passlib[bcrypt]==1.7.4
+bcrypt==4.3.0
 python-dotenv==1.0.0
 redis==5.0.1
 celery==5.3.4
@@ -23,7 +24,7 @@ google-auth==2.40.3
 google-auth-oauthlib==1.2.2
 # Updated dependencies for security
 starlette==0.47.2
-anyio>=3.6.2,<4
+anyio==3.6.2
 pyasn1==0.6.1
 # Additional security packages
 cryptography==45.0.5

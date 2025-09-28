@@ -1,6 +1,7 @@
 import pytest
 from datetime import date
 import asyncio
+import os
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -12,15 +13,27 @@ from app.database import get_db, Base
 from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment, DivingOrganization, UserCertification, RefreshToken, AuthAuditLog, Dive
 from app.auth import create_access_token
 
-# Test database URL
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+# Test database URL - use environment variable if available, otherwise default to SQLite
+# For GitHub Actions, ensure we use the test database
+if os.getenv("GITHUB_ACTIONS") == "true":
+    # In GitHub Actions, use the test database URL
+    SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:password@localhost:3306/divemap_test")
+    print(f"🔧 GitHub Actions detected - Using database URL: {SQLALCHEMY_DATABASE_URL}")
+else:
+    # For local development, use environment variable or default to SQLite
+    SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+    print(f"🔧 Local development - Using database URL: {SQLALCHEMY_DATABASE_URL}")
 
-# Create test engine
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+# Create test engine with appropriate configuration for SQLite or MySQL
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+else:
+    # MySQL configuration
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 # Create test session
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -32,20 +45,32 @@ def event_loop():
     yield loop
     loop.close()
 
-@pytest.fixture(scope="function")
-def db_session():
-    """Create a fresh database session for each test."""
-    # Create tables
+@pytest.fixture(scope="session")
+def db_engine():
+    """Create database engine and tables once per test session."""
+    # Create tables once at session start
     Base.metadata.create_all(bind=engine)
+    yield engine
+    # Clean up tables at session end
+    try:
+        Base.metadata.drop_all(bind=engine)
+    except Exception as e:
+        print(f"Warning: Could not drop tables at session end: {e}")
 
-    # Create session
-    session = TestingSessionLocal()
+@pytest.fixture(scope="function")
+def db_session(db_engine):
+    """Create a fresh database session for each test."""
+    # Use transactions instead of dropping/recreating tables
+    connection = db_engine.connect()
+    transaction = connection.begin()
+    
+    session = TestingSessionLocal(bind=connection)
     try:
         yield session
     finally:
         session.close()
-        # Drop tables after test
-        Base.metadata.drop_all(bind=engine)
+        transaction.rollback()  # Rollback instead of dropping tables
+        connection.close()
 
 @pytest.fixture
 def client(db_session):
@@ -64,22 +89,29 @@ def client(db_session):
         pass  # Ignore if reset fails
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
-        # Set headers to simulate localhost request (exempts from rate limiting)
-        test_client.headers.update({
-            "X-Forwarded-For": "127.0.0.1",
-            "X-Real-IP": "127.0.0.1",
-            "Host": "localhost"
-        })
-        yield test_client
-    app.dependency_overrides.clear()
-
-    # Reset rate limiter cache after each test as well
+    
+    # Create TestClient with specific configuration to handle anyio issues
+    test_client = TestClient(app, raise_server_exceptions=False)
+    
+    # Set headers to simulate localhost request (exempts from rate limiting)
+    test_client.headers.update({
+        "X-Forwarded-For": "127.0.0.1",
+        "X-Real-IP": "127.0.0.1",
+        "Host": "localhost"
+    })
+    
     try:
-        from app.limiter import limiter
-        limiter.reset()
-    except Exception:
-        pass  # Ignore if reset fails
+        yield test_client
+    finally:
+        # Ensure proper cleanup
+        app.dependency_overrides.clear()
+        
+        # Reset rate limiter cache after each test as well
+        try:
+            from app.limiter import limiter
+            limiter.reset()
+        except Exception:
+            pass  # Ignore if reset fails
 
 @pytest.fixture
 def test_user(db_session):

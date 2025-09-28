@@ -227,11 +227,37 @@ class TestSystemOverview:
         db_session.add(dive_site)
         db_session.flush()  # Flush to get the ID
         
-        # Create ratings
-        for score in [7, 8, 9, 10]:
+        # Create ratings for different users and dive sites
+        # Create additional test users
+        test_users = []
+        for i in range(4):
+            user = User(
+                username=f"testuser{i+1}",
+                email=f"test{i+1}@example.com",
+                password_hash="hashed_password",
+                enabled=True
+            )
+            db_session.add(user)
+            test_users.append(user)
+        
+        # Create additional dive sites
+        dive_sites = [dive_site]  # Include the existing one
+        for i in range(3):
+            site = DiveSite(
+                name=f"Test Site {i+2}",
+                created_at=datetime.utcnow() - timedelta(days=5)
+            )
+            db_session.add(site)
+            dive_sites.append(site)
+        
+        db_session.flush()  # Flush to get IDs
+        
+        # Create ratings - one per user per dive site
+        scores = [7, 8, 9, 10]
+        for i, score in enumerate(scores):
             rating = SiteRating(
-                user_id=test_user.id,
-                dive_site_id=dive_site.id,
+                user_id=test_users[i].id,
+                dive_site_id=dive_sites[i].id,
                 score=score,
                 created_at=datetime.utcnow() - timedelta(days=score)
             )

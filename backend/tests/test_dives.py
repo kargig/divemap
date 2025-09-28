@@ -1488,7 +1488,7 @@ def test_dive_with_site(db_session, test_user):
         longitude=30.0,
         country="Test Country",
         region="Test Region",
-        difficulty_level="intermediate"
+        difficulty_level=2  # 2=intermediate
     )
     db_session.add(dive_site)
     db_session.commit()
@@ -1529,7 +1529,7 @@ def test_dive_with_tags(db_session, test_user):
         longitude=30.0,
         country="Test Country",
         region="Test Region",
-        difficulty_level="advanced"
+        difficulty_level=3  # 3=advanced
     )
     db_session.add(dive_site)
     db_session.commit()
@@ -1584,7 +1584,7 @@ def multiple_test_dives(db_session, test_user):
         longitude=30.0,
         country="Test Country",
         region="Test Region",
-        difficulty_level="intermediate"
+        difficulty_level=2  # 2=intermediate
     )
     db_session.add(dive_site)
     db_session.commit()
@@ -1630,7 +1630,7 @@ def large_dive_dataset(db_session, test_user):
         longitude=30.0,
         country="Test Country",
         region="Test Region",
-        difficulty_level="intermediate"
+        difficulty_level=2  # 2=intermediate
     )
     db_session.add(dive_site)
     db_session.commit()
