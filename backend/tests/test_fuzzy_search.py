@@ -601,7 +601,7 @@ def test_dive_site_with_tags(db_session):
         longitude=30.0,
         country="Bahamas",
         region="Caribbean",
-        difficulty_level="intermediate"
+        difficulty_level=2  # 2=intermediate
     )
     db_session.add(site)
     db_session.commit()
@@ -667,7 +667,7 @@ def multiple_test_dive_sites(db_session):
             longitude=30.0 + (i * 0.1),
             country="Test Country",
             region="Test Region",
-            difficulty_level="intermediate"
+            difficulty_level=2  # 2=intermediate
         )
         db_session.add(site)
         sites.append(site)
