@@ -569,7 +569,7 @@ const DiveSiteDetail = () => {
                       <YouTubePreview
                         url={item.url}
                         description={item.description}
-                        className="w-full"
+                        className='w-full'
                         openInNewTab={true}
                       />
                     ) : (

@@ -7,7 +7,7 @@
  * @param {string} url - YouTube URL
  * @returns {string|null} - Video ID or null if not a valid YouTube URL
  */
-export const extractYouTubeVideoId = (url) => {
+export const extractYouTubeVideoId = url => {
   if (!url || typeof url !== 'string') {
     return null;
   }
@@ -38,7 +38,7 @@ export const extractYouTubeVideoId = (url) => {
  * @param {string} videoId - YouTube video ID
  * @returns {string} - YouTube embed URL
  */
-export const getYouTubeEmbedUrl = (videoId) => {
+export const getYouTubeEmbedUrl = videoId => {
   if (!videoId) {
     return null;
   }
@@ -63,7 +63,7 @@ export const getYouTubeThumbnailUrl = (videoId, quality = 'maxres') => {
  * @param {string} url - URL to check
  * @returns {boolean} - True if valid YouTube URL
  */
-export const isYouTubeUrl = (url) => {
+export const isYouTubeUrl = url => {
   return extractYouTubeVideoId(url) !== null;
 };
 
@@ -72,7 +72,7 @@ export const isYouTubeUrl = (url) => {
  * @param {string} videoId - YouTube video ID
  * @returns {string} - YouTube watch URL
  */
-export const getYouTubeWatchUrl = (videoId) => {
+export const getYouTubeWatchUrl = videoId => {
   if (!videoId) {
     return null;
   }
