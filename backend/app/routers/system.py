@@ -17,6 +17,7 @@ from app.auth import get_current_admin_user
 from app.schemas import SystemOverviewResponse, SystemHealthResponse, PlatformStatsResponse
 from app.utils import get_client_ip, format_ip_for_logging
 from app.monitoring import get_turnstile_stats
+from app.services.r2_storage_service import r2_storage
 
 router = APIRouter()
 
@@ -493,3 +494,20 @@ async def get_turnstile_statistics(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve Turnstile statistics"
         )
+
+@router.get("/storage/health")
+def storage_health_check():
+    """Check storage service health (R2 and local fallback)"""
+    try:
+        health_status = r2_storage.health_check()
+        return health_status
+    except Exception as e:
+        return {
+            "error": str(e),
+            "r2_available": False,
+            "local_storage_available": False,
+            "bucket_accessible": False,
+            "credentials_present": False,
+            "boto3_available": False,
+            "local_storage_writable": False
+        }

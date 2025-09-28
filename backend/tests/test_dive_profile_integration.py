@@ -262,7 +262,7 @@ class TestDiveProfileIntegration:
 
     def test_storage_health_check_workflow(self, client):
         """Test storage health check workflow."""
-        with patch('app.routers.dives.dives_utils.r2_storage') as mock_r2:
+        with patch('app.routers.system.r2_storage') as mock_r2:
             mock_r2.health_check.return_value = {
                 "r2_available": True,
                 "boto3_available": True,
@@ -273,7 +273,7 @@ class TestDiveProfileIntegration:
                 "local_storage_writable": True
             }
             
-            response = client.get("/api/v1/dives/storage/health")
+            response = client.get("/api/v1/admin/system/storage/health")
             
             assert response.status_code == status.HTTP_200_OK
             health_data = response.json()
