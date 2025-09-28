@@ -1,7 +1,18 @@
 """
-Dives Utils.Py operations for dives.
+Utility functions for dives.
 
-This module contains functions moved from the original dives.py file.
+This module contains utility functions for dive operations:
+- find_dive_site_by_import_id: Find dive site by import ID
+- get_dive_site_by_name: Get dive site by name
+- get_dive_site_by_alias: Get dive site by alias
+- create_dive_site_from_import: Create dive site from import data
+- get_dive_site_by_coordinates: Find dive site by coordinates
+
+The utility functions include:
+- Dive site lookup and creation
+- Import data processing
+- Coordinate-based matching
+- Alias and name resolution
 """
 
 from fastapi import Depends, HTTPException, status, Query, UploadFile, File

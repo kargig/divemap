@@ -1,7 +1,18 @@
 """
-Dives Import.Py operations for dives.
+Import operations for dives.
 
-This module contains functions moved from the original dives.py file.
+This module contains functionality for importing dive data:
+- import_subsurface_xml: Import dives from Subsurface XML format
+- confirm_import: Confirm and finalize imported dives
+- parse_dive_profile_samples: Parse dive profile data from XML
+- convert_to_divemap_format: Convert Subsurface data to Divemap format
+
+The import functionality includes:
+- XML parsing and validation
+- Dive profile data extraction
+- Data format conversion
+- Dive site matching and creation
+- Comprehensive error handling
 """
 
 from fastapi import Depends, HTTPException, status, Query, UploadFile, File

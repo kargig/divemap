@@ -1,7 +1,15 @@
 """
-Dives Search.Py operations for dives.
+Search operations for dives.
 
-This module contains functions moved from the original dives.py file.
+This module contains search functionality for dives:
+- search_dives_with_fuzzy: Advanced fuzzy search with typo tolerance
+- search_dives: Basic search with filtering capabilities
+
+The search functionality includes:
+- Fuzzy matching with typo tolerance
+- Phrase-aware scoring
+- Match type classification
+- Unified search across multiple fields
 """
 
 from fastapi import Depends, HTTPException, status, Query, UploadFile, File

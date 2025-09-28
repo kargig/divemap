@@ -1,7 +1,15 @@
 """
-Dives Admin.Py operations for dives.
+Admin operations for dives.
 
-This module contains functions moved from the original dives.py file.
+This module contains administrative functions for dive management:
+- get_all_dives_count_admin: Get total count of all dives (admin only)
+- get_all_dives_admin: Get all dives with admin privileges
+- update_dive_admin: Update any dive with admin privileges
+- delete_dive_admin: Delete any dive with admin privileges
+- get_dive_admin: Get dive details with admin privileges
+
+All functions in this module require admin authentication and provide
+full access to all dives regardless of ownership.
 """
 
 from fastapi import Depends, HTTPException, status, Query, UploadFile, File

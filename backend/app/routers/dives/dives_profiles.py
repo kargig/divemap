@@ -1,7 +1,17 @@
 """
-Dives Profiles.Py operations for dives.
+Dive profile operations.
 
-This module contains functions moved from the original dives.py file.
+This module contains functionality for dive profile management:
+- get_dive_profile: Retrieve dive profile data
+- upload_dive_profile: Upload dive profile files
+- delete_dive_profile: Remove dive profile data
+- delete_user_profiles: Bulk delete user profiles
+
+The profile functionality includes:
+- Dive profile file upload and storage
+- Profile data parsing and validation
+- User-specific profile management
+- Bulk operations for profile cleanup
 """
 
 from fastapi import Depends, HTTPException, status, Query, UploadFile, File
