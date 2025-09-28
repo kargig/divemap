@@ -7,6 +7,7 @@ import { getParsedTrip, getDiveSite, getDivingCenter } from '../api';
 import MaskedEmail from '../components/MaskedEmail';
 import TripHeader from '../components/TripHeader';
 import usePageTitle from '../hooks/usePageTitle';
+import { renderTextWithLinks } from '../utils/textHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
 const TripDetail = () => {
   const { id } = useParams();
@@ -161,7 +162,9 @@ const TripDetail = () => {
                       {dive.dive_site_id && diveSite && (
                         <div className='text-sm text-gray-600'>
                           <p className='mb-2'>
-                            {diveSite.description || 'No description available'}
+                            {diveSite.description
+                              ? renderTextWithLinks(diveSite.description)
+                              : 'No description available'}
                           </p>
                           {dive.dive_description && (
                             <p className='mb-2 text-gray-700'>

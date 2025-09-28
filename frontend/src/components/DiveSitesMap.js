@@ -8,6 +8,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { Link } from 'react-router-dom';
 
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { renderTextWithLinks } from '../utils/textHelpers';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -322,7 +323,9 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
                 <div className='p-2'>
                   <h3 className='font-semibold text-gray-900 mb-1'>{site.name}</h3>
                   {site.description && (
-                    <p className='text-sm text-gray-600 mb-2 line-clamp-2'>{site.description}</p>
+                    <p className='text-sm text-gray-600 mb-2 line-clamp-2'>
+                      {renderTextWithLinks(site.description)}
+                    </p>
                   )}
                   <div className='flex items-center justify-between mb-2'>
                     <span
