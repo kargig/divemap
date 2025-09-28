@@ -18,6 +18,7 @@ import api from '../api';
 import MaskedEmail from '../components/MaskedEmail';
 import MiniMap from '../components/MiniMap';
 import RateLimitError from '../components/RateLimitError';
+import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
@@ -565,24 +566,12 @@ const DiveSiteDetail = () => {
                 {media.map(item => (
                   <div key={item.id} className='border rounded-lg overflow-hidden'>
                     {isVideoUrl(item.url) ? (
-                      <div className='relative'>
-                        <a
-                          href={item.url}
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className='block relative group'
-                        >
-                          <div className='aspect-video bg-gray-200 flex items-center justify-center'>
-                            <Video className='h-12 w-12 text-white bg-black bg-opacity-50 rounded-full p-2' />
-                          </div>
-                          <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200'></div>
-                        </a>
-                        {item.description && (
-                          <div className='p-3'>
-                            <p className='text-sm text-gray-600'>{item.description}</p>
-                          </div>
-                        )}
-                      </div>
+                      <YouTubePreview
+                        url={item.url}
+                        description={item.description}
+                        className="w-full"
+                        openInNewTab={true}
+                      />
                     ) : (
                       <div>
                         <a

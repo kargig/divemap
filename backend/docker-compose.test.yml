@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # MySQL test database (exactly like GitHub Actions)
+  mysql-test:
+    image: mysql:8.0
+    container_name: divemap-test-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: divemap_test
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - test-network
+
+  # Backend test container
+  backend-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: divemap-test-backend
+    environment:
+      GITHUB_ACTIONS: true
+      DATABASE_URL: mysql+pymysql://root:password@mysql-test:3306/divemap_test
+      SECRET_KEY: test-secret-key-for-ci
+      ENVIRONMENT: ci
+      PYTHONPATH: /app/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH
+    volumes:
+      - ./htmlcov:/app/htmlcov
+      - ./.pytest_cache:/app/.pytest_cache
+    depends_on:
+      mysql-test:
+        condition: service_healthy
+    networks:
+      - test-network
+    command: |
+      bash -c "
+        # Create virtual environment (like GitHub Actions)
+        python -m venv divemap_venv
+        source divemap_venv/bin/activate
+        
+        # Install dependencies in virtual environment
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        
+        # Set PYTHONPATH
+        export PYTHONPATH=\"/app/divemap_venv/lib/python3.11/site-packages:\$PYTHONPATH\"
+        
+        # Wait for database to be ready
+        echo 'Waiting for database connection...'
+        until mysql -h mysql-test -u root -ppassword -e 'SELECT 1;' >/dev/null 2>&1; do
+          echo 'Waiting for MySQL...'
+          sleep 2
+        done
+        
+        # Create test database
+        mysql -h mysql-test -u root -ppassword -e 'CREATE DATABASE IF NOT EXISTS divemap_test;'
+        
+        # Run migrations
+        echo 'Running database migrations...'
+        alembic upgrade head
+        
+        # Run tests with exact GitHub Actions command
+        echo 'Running tests...'
+        python -m pytest tests/ -v --cov=app --cov-report=term-missing --cov-report=html --cov-report=xml -x --maxfail=1 --tb=short
+      "
+
+networks:
+  test-network:
+    driver: bridge
