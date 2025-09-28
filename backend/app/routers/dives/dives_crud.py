@@ -508,24 +508,8 @@ def get_dives(
         elif sort_by == 'duration':
             sort_field = Dive.duration
         elif sort_by == 'difficulty_level':
-            # Custom sorting for difficulty levels (beginner < intermediate < advanced < expert)
-            from sqlalchemy import case
-            if sort_order == 'desc':
-                sort_field = case(
-                    (Dive.difficulty_level == 'expert', 4),
-                    (Dive.difficulty_level == 'advanced', 3),
-                    (Dive.difficulty_level == 'intermediate', 2),
-                    (Dive.difficulty_level == 'beginner', 1),
-                    else_=0
-                )
-            else:
-                sort_field = case(
-                    (Dive.difficulty_level == 'beginner', 1),
-                    (Dive.difficulty_level == 'intermediate', 2),
-                    (Dive.difficulty_level == 'advanced', 3),
-                    (Dive.difficulty_level == 'expert', 4),
-                    else_=0
-                )
+            # Sort by difficulty level (1=beginner, 2=intermediate, 3=advanced, 4=expert)
+            sort_field = Dive.difficulty_level
         elif sort_by == 'visibility_rating':
             sort_field = Dive.visibility_rating
         elif sort_by == 'user_rating':
