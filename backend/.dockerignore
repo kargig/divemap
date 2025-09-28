@@ -23,3 +23,9 @@ coverage.xml
 htmlcov/
 divemap_venv/
 media/
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

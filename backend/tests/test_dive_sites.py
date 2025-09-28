@@ -1452,10 +1452,20 @@ class TestDiveSitesAuthorization:
 
     def test_add_diving_center_to_dive_site_unauthorized_user(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
         """Test that non-owner users cannot add diving centers to dive sites."""
-        from app.models import OwnershipStatus
+        from app.models import OwnershipStatus, User
         
-        # Set a different user as the owner (not the authenticated user)
-        test_diving_center.owner_id = 999  # Different user ID
+        # Create a second user to be the owner
+        other_user = User(
+            email="other3@example.com",
+            username="otheruser3",
+            password_hash="hashed_password"
+        )
+        db_session.add(other_user)
+        db_session.commit()
+        db_session.refresh(other_user)
+        
+        # Set the other user as the owner (not the authenticated user)
+        test_diving_center.owner_id = other_user.id
         test_diving_center.ownership_status = OwnershipStatus.approved
         db_session.commit()
         db_session.refresh(test_diving_center)

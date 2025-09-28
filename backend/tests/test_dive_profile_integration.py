@@ -207,7 +207,7 @@ class TestDiveProfileIntegration:
             "temperature_range": {"min": 17, "max": 20}
         }
         
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_profiles.r2_storage') as mock_r2:
             mock_r2.download_profile.return_value = json.dumps(sample_profile_data).encode('utf-8')
             
             # Step 1: Retrieve profile data
@@ -262,7 +262,7 @@ class TestDiveProfileIntegration:
 
     def test_storage_health_check_workflow(self, client):
         """Test storage health check workflow."""
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_utils.r2_storage') as mock_r2:
             mock_r2.health_check.return_value = {
                 "r2_available": True,
                 "boto3_available": True,
@@ -284,7 +284,7 @@ class TestDiveProfileIntegration:
 
     def test_user_profile_deletion_workflow(self, client, admin_headers):
         """Test user profile deletion workflow."""
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_profiles.r2_storage') as mock_r2:
             mock_r2.delete_user_profiles.return_value = True
             
             response = client.delete("/api/v1/dives/profiles/user/1", 
@@ -299,7 +299,7 @@ class TestDiveProfileIntegration:
         # Test 1: Profile retrieval when file doesn't exist
         test_dive.profile_xml_path = "user_1/2025/09/nonexistent.json"
         
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_profiles.r2_storage') as mock_r2:
             mock_r2.download_profile.return_value = None
             
             response = client.get(f"/api/v1/dives/{test_dive.id}/profile", 

@@ -121,7 +121,7 @@ class DiveSite(Base):
     ratings = relationship("SiteRating", back_populates="dive_site", cascade="all, delete-orphan")
     comments = relationship("SiteComment", back_populates="dive_site", cascade="all, delete-orphan")
     center_relationships = relationship("CenterDiveSite", back_populates="dive_site", cascade="all, delete-orphan")
-    parsed_dives = relationship("ParsedDive", back_populates="dive_site")
+    parsed_dives = relationship("ParsedDive", back_populates="dive_site", cascade="all, delete-orphan")
     tags = relationship("DiveSiteTag", back_populates="dive_site", cascade="all, delete-orphan")
     dives = relationship("Dive", back_populates="dive_site", cascade="all, delete-orphan")
     aliases = relationship("DiveSiteAlias", back_populates="dive_site", cascade="all, delete-orphan")
@@ -306,7 +306,7 @@ class ParsedDive(Base):
 
     # Relationships
     trip = relationship("ParsedDiveTrip", back_populates="dives")
-    dive_site = relationship("DiveSite")
+    dive_site = relationship("DiveSite", back_populates="parsed_dives")
 
 class Newsletter(Base):
     __tablename__ = "newsletters"

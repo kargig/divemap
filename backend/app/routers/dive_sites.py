@@ -7,7 +7,7 @@ import difflib
 import json
 
 from app.database import get_db
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, get_difficulty_label, OwnershipStatus
+from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, get_difficulty_label, OwnershipStatus
 from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse,
     SiteRatingCreate, SiteRatingResponse,
@@ -1451,18 +1451,29 @@ async def delete_dive_site(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
-
+    # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
         )
-
-    db.delete(dive_site)
-    db.commit()
-
-    return {"message": "Dive site deleted successfully"}
+    
+    try:
+        # Delete the dive site (cascade will handle related records)
+        db.delete(dive_site)
+        db.commit()
+        return {"message": "Dive site deleted successfully"}
+    except HTTPException as e:
+        # Re-raise HTTP exceptions (like 404 Not Found) as-is
+        db.rollback()
+        raise e
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting dive site: {str(e)}"
+        )
 
 @router.post("/{dive_site_id}/rate", response_model=SiteRatingResponse)
 @skip_rate_limit_for_admin("15/minute")

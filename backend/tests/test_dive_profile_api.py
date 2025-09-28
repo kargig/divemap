@@ -62,7 +62,7 @@ class TestDiveProfileAPI:
         test_dive.profile_max_depth = 20
         test_dive.profile_duration_minutes = 5
         
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_profiles.r2_storage') as mock_r2:
             mock_r2.download_profile.return_value = json.dumps(sample_profile_data).encode('utf-8')
             
             response = client.get(f"/api/v1/dives/{test_dive.id}/profile", headers=auth_headers)
@@ -91,7 +91,7 @@ class TestDiveProfileAPI:
         test_dive.is_private = False
         test_dive.profile_xml_path = "user_1/2025/09/test_profile.json"
         db_session.commit()
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_profiles.r2_storage') as mock_r2:
             mock_r2.download_profile.return_value = json.dumps(sample_profile_data).encode('utf-8')
             response = client.get(f"/api/v1/dives/{test_dive.id}/profile")
             assert response.status_code == status.HTTP_200_OK
@@ -104,7 +104,7 @@ class TestDiveProfileAPI:
         test_dive.profile_xml_path = "user_1/2025/09/nonexistent.json"
         db_session.commit()
         
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_utils.r2_storage') as mock_r2:
             mock_r2.download_profile.return_value = None
             
             response = client.get(f"/api/v1/dives/{test_dive.id}/profile", headers=auth_headers)
@@ -144,7 +144,7 @@ class TestDiveProfileAPI:
         test_dive.is_private = True
         test_dive.profile_xml_path = "user_1/2025/09/test_profile.json"
         db_session.commit()
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_profiles.r2_storage') as mock_r2:
             mock_r2.download_profile.return_value = json.dumps(sample_profile_data).encode('utf-8')
             response = client.get(f"/api/v1/dives/{test_dive.id}/profile", headers=admin_headers)
             assert response.status_code == status.HTTP_200_OK
@@ -180,7 +180,7 @@ class TestDiveProfileAPI:
         test_dive.is_private = True
         test_dive.profile_xml_path = "user_1/2025/09/test_profile.json"
 
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_utils.r2_storage') as mock_r2:
             mock_r2.download_profile.return_value = json.dumps(sample_profile_data).encode('utf-8')
             response = client.get(f"/api/v1/dives/{test_dive.id}/profile")
             assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -194,7 +194,7 @@ class TestDiveProfileAPI:
 
     def test_upload_dive_profile_success(self, client, auth_headers, test_dive, sample_xml_content):
         """Test successful dive profile upload."""
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_profiles.r2_storage') as mock_r2:
             mock_r2.upload_profile.return_value = "user_1/2025/09/test_profile.xml"
             
             with patch('app.services.dive_profile_parser.DiveProfileParser') as mock_parser:
@@ -278,7 +278,7 @@ class TestDiveProfileAPI:
         """Test successful dive profile deletion."""
         test_dive.profile_xml_path = "user_1/2025/09/test_profile.json"
         
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_utils.r2_storage') as mock_r2:
             mock_r2.delete_profile.return_value = True
             
             response = client.delete(f"/api/v1/dives/{test_dive.id}/profile", 
@@ -318,7 +318,7 @@ class TestDiveProfileAPI:
 
     def test_delete_user_profiles_admin_success(self, client, admin_headers):
         """Test successful deletion of all user profiles by admin."""
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_utils.r2_storage') as mock_r2:
             mock_r2.delete_user_profiles.return_value = True
             
             response = client.delete("/api/v1/dives/profiles/user/1", 
@@ -342,7 +342,7 @@ class TestDiveProfileAPI:
 
     def test_storage_health_check_success(self, client):
         """Test storage health check endpoint."""
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_utils.r2_storage') as mock_r2:
             mock_r2.health_check.return_value = {
                 "r2_available": True,
                 "bucket_accessible": True,
@@ -361,7 +361,7 @@ class TestDiveProfileAPI:
 
     def test_storage_health_check_error(self, client):
         """Test storage health check endpoint with error."""
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_utils.r2_storage') as mock_r2:
             mock_r2.health_check.side_effect = Exception("Storage error")
             
             response = client.get("/api/v1/dives/storage/health")
@@ -374,7 +374,7 @@ class TestDiveProfileAPI:
 
     def test_parse_dive_profile_samples_success(self, client, auth_headers, test_dive):
         """Test dive profile samples parsing during import."""
-        from app.routers.dives import parse_dive_profile_samples
+        from app.routers.dives.dives_import import parse_dive_profile_samples
         
         sample_xml = """<samples>
             <sample time='0:10 min' depth='2.7 m' temperature='34 C' />
@@ -393,7 +393,7 @@ class TestDiveProfileAPI:
 
     def test_parse_dive_profile_samples_empty(self, client, auth_headers, test_dive):
         """Test dive profile samples parsing with empty samples."""
-        from app.routers.dives import parse_dive_profile_samples
+        from app.routers.dives.dives_import import parse_dive_profile_samples
         
         sample_xml = """<samples></samples>"""
         
@@ -403,7 +403,7 @@ class TestDiveProfileAPI:
 
     def test_parse_dive_profile_samples_invalid_xml(self, client, auth_headers, test_dive):
         """Test dive profile samples parsing with invalid XML."""
-        from app.routers.dives import parse_dive_profile_samples
+        from app.routers.dives.dives_import import parse_dive_profile_samples
         
         sample_xml = """<samples>
             <sample time='invalid' depth='invalid' />
@@ -418,9 +418,9 @@ class TestDiveProfileAPI:
 
     def test_save_dive_profile_data_success(self, client, auth_headers, test_dive, sample_profile_data, db_session):
         """Test saving dive profile data to storage."""
-        from app.routers.dives import save_dive_profile_data
+        from app.routers.dives.dives_import import save_dive_profile_data
         
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_import.r2_storage') as mock_r2:
             mock_r2.upload_profile.return_value = "user_1/2025/09/test_profile.json"
             
             save_dive_profile_data(test_dive, sample_profile_data, db_session)
@@ -432,9 +432,9 @@ class TestDiveProfileAPI:
 
     def test_save_dive_profile_data_error(self, client, auth_headers, test_dive, sample_profile_data):
         """Test saving dive profile data with error."""
-        from app.routers.dives import save_dive_profile_data
+        from app.routers.dives.dives_import import save_dive_profile_data
         
-        with patch('app.routers.dives.r2_storage') as mock_r2:
+        with patch('app.routers.dives.dives_import.r2_storage') as mock_r2:
             mock_r2.upload_profile.side_effect = Exception("Storage error")
             
             with pytest.raises(Exception):

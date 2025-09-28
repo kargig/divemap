@@ -8,7 +8,8 @@ import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.routers import auth, dive_sites, users, diving_centers, tags, diving_organizations, user_certifications, dives, newsletters, system, privacy
+from app.routers import auth, dive_sites, users, diving_centers, tags, diving_organizations, user_certifications, newsletters, system, privacy
+from app.routers.dives import router as dives_router
 from app.database import engine, get_db
 from app.models import Base, Dive, DiveSite, SiteRating, CenterRating, DivingCenter
 from app.limiter import limiter
@@ -45,8 +46,19 @@ print(f"🔧 Root logger level: {logging.getLogger().getEffectiveLevel()}")
 print(f"🔧 Uvicorn logger level: {logging.getLogger('uvicorn').getEffectiveLevel()}")
 print(f"🔧 Suspicious proxy chain length threshold: {suspicious_proxy_chain_length}")
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create database tables (skip during testing)
+# Check if we're running tests by looking for pytest in sys.argv or test environment
+import sys
+is_testing = (
+    "pytest" in sys.modules or 
+    "pytest" in sys.argv[0] or 
+    any("pytest" in arg for arg in sys.argv) or
+    os.getenv("PYTEST_CURRENT_TEST") or
+    os.getenv("TESTING") == "true"
+)
+
+if not is_testing:
+    Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Divemap API",
@@ -206,7 +218,7 @@ app.include_router(diving_centers.router, prefix="/api/v1/diving-centers", tags=
 app.include_router(tags.router, prefix="/api/v1/tags", tags=["Tags"])
 app.include_router(diving_organizations.router, prefix="/api/v1/diving-organizations", tags=["Diving Organizations"])
 app.include_router(user_certifications.router, prefix="/api/v1/user-certifications", tags=["User Certifications"])
-app.include_router(dives.router, prefix="/api/v1/dives", tags=["Dives"])
+app.include_router(dives_router, prefix="/api/v1/dives", tags=["Dives"])
 app.include_router(newsletters.router, prefix="/api/v1/newsletters", tags=["Newsletters"])
 app.include_router(system.router, prefix="/api/v1/admin/system", tags=["System"])
 app.include_router(privacy.router, prefix="/api/v1/privacy", tags=["Privacy"])
