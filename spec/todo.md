@@ -18,6 +18,20 @@
 
 ### UI/UX Enhancements
 
+- [ ] **Implement dive route drawing and selection system**
+  - Interactive dive route drawing interface with mouse/touch support
+  - Route saving and association with specific dive logs (dive ID)
+  - Route storage and retrieval from database with proper relationships
+  - Dive site route browsing interface showing available routes
+  - Route selection interface for users to choose from available routes
+  - Route metadata (depth, time, difficulty, etc.) linked to dive ID
+  - Route sharing and community features
+  - Mobile compatibility for touch-based route drawing
+  - Route validation and quality checks
+  - Route search and filtering by dive site
+  - Dive details page integration showing route information
+  - Route preview and summary on dive site pages
+
 - [x] **Improve dive profile visualization colorblind accessibility**
   - Replace current colors with Okabe-Ito colorblind-safe palette
   - Update depth line from blue (#2563eb) to Okabe-Ito blue (#0072B2)
