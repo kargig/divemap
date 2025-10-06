@@ -428,6 +428,15 @@ const AdminDivingCenters = () => {
           <table className='min-w-full divide-y divide-gray-200'>
             <thead className='bg-gray-50'>
               <tr>
+                <th
+                  className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100'
+                  onClick={() => handleSort('id')}
+                >
+                  <div className='flex items-center'>
+                    ID
+                    {getSortIcon('id')}
+                  </div>
+                </th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                   <input
                     type='checkbox'
@@ -486,6 +495,7 @@ const AdminDivingCenters = () => {
             <tbody className='bg-white divide-y divide-gray-200'>
               {sortedDivingCenters?.map(center => (
                 <tr key={center.id} className='hover:bg-gray-50'>
+                  <td className='px-4 py-4 whitespace-nowrap text-sm text-gray-900'>{center.id}</td>
                   <td className='px-6 py-4 whitespace-nowrap'>
                     <input
                       type='checkbox'

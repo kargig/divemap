@@ -214,12 +214,24 @@ def get_all_dives_count_admin(
         query = query.filter(Dive.user_rating <= max_rating)
 
     if start_date:
-        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
-        query = query.filter(Dive.dive_date >= start_date_obj)
+        try:
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+            query = query.filter(Dive.dive_date >= start_date_obj)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid start_date format. Use YYYY-MM-DD"
+            )
 
     if end_date:
-        end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
-        query = query.filter(Dive.dive_date <= end_date_obj)
+        try:
+            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+            query = query.filter(Dive.dive_date <= end_date_obj)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid end_date format. Use YYYY-MM-DD"
+            )
 
     if tag_ids:
         # Parse comma-separated tag IDs
