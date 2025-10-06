@@ -23,6 +23,7 @@ import json
 import os
 import tempfile
 import uuid
+from difflib import SequenceMatcher
 
 from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse

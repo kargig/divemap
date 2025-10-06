@@ -175,6 +175,85 @@ class TestDivingCenters:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_get_diving_center_with_empty_description_no_500(self, client, db_session):
+        """Legacy data may contain empty-string descriptions. Ensure GET does not 500."""
+        from app.models import DivingCenter
+
+        center = DivingCenter(
+            name="Empty Desc Center",
+            description="",  # legacy empty string
+            latitude=10.0,
+            longitude=20.0
+        )
+        db_session.add(center)
+        db_session.commit()
+        db_session.refresh(center)
+
+        response = client.get(f"/api/v1/diving-centers/{center.id}")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["name"] == "Empty Desc Center"
+        # Empty string should be allowed in response (no validation error)
+        assert data["description"] == ""
+
+    def test_list_diving_centers_with_empty_description_no_500(self, client, db_session):
+        """List endpoint should also handle empty-string descriptions without 500."""
+        from app.models import DivingCenter
+
+        center = DivingCenter(
+            name="Empty Desc Center List",
+            description="",  # legacy empty string
+            latitude=11.0,
+            longitude=21.0
+        )
+        db_session.add(center)
+        db_session.commit()
+
+        response = client.get("/api/v1/diving-centers/?page=1&page_size=25")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        # Ensure at least one item has empty description and does not break serialization
+        assert any(item["name"] == "Empty Desc Center List" and item["description"] == "" for item in data)
+
+    def test_get_diving_center_with_null_coordinates_no_500(self, client, db_session):
+        """Legacy data may contain NULL latitude/longitude. Ensure GET does not 500 and returns nulls."""
+        from app.models import DivingCenter
+
+        center = DivingCenter(
+            name="Null Coords Center",
+            description="legacy with no coords",
+            latitude=None,
+            longitude=None
+        )
+        db_session.add(center)
+        db_session.commit()
+        db_session.refresh(center)
+
+        response = client.get(f"/api/v1/diving-centers/{center.id}")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["name"] == "Null Coords Center"
+        assert data["latitude"] is None
+        assert data["longitude"] is None
+
+    def test_list_diving_centers_with_null_coordinates_no_500(self, client, db_session):
+        """List endpoint should handle centers with NULL coordinates without 500 errors."""
+        from app.models import DivingCenter
+
+        center = DivingCenter(
+            name="Null Coords Center List",
+            description="legacy with no coords",
+            latitude=None,
+            longitude=None
+        )
+        db_session.add(center)
+        db_session.commit()
+
+        response = client.get("/api/v1/diving-centers/?page=1&page_size=25")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert any(item["name"] == "Null Coords Center List" and item["latitude"] is None and item["longitude"] is None for item in data)
+
     def test_delete_diving_center_admin_success(self, client, admin_headers, test_diving_center):
         """Test deleting diving center as admin."""
         response = client.delete(f"/api/v1/diving-centers/{test_diving_center.id}",
