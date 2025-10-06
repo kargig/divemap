@@ -213,7 +213,8 @@ class DiveSiteSearchParams(BaseModel):
 # Diving Center Schemas
 class DivingCenterBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
-    description: Optional[str] = None
+    description: str = Field(..., min_length=1)
+    address: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     website: Optional[str] = None
@@ -229,6 +230,7 @@ class DivingCenterCreate(DivingCenterBase):
 class DivingCenterUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
+    address: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     website: Optional[str] = None
