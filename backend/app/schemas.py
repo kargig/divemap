@@ -213,7 +213,8 @@ class DiveSiteSearchParams(BaseModel):
 # Diving Center Schemas
 class DivingCenterBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
-    description: str = Field(..., min_length=1)
+    # Make description optional at the base level so responses don't fail when empty
+    description: Optional[str] = None
     address: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
@@ -225,7 +226,8 @@ class DivingCenterBase(BaseModel):
     city: Optional[str] = Field(None, max_length=100)
 
 class DivingCenterCreate(DivingCenterBase):
-    pass
+    # Enforce description requirement on create to maintain data quality
+    description: str = Field(..., min_length=1)
 
 class DivingCenterUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
