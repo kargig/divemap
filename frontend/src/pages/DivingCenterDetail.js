@@ -49,15 +49,18 @@ const DivingCenterDetail = () => {
     data: center,
     isLoading,
     error,
-  } = useQuery(['diving-center', id], () => api.get(`/api/v1/diving-centers/${id}`), {
-    select: response => response.data,
-    enabled: !!id,
-    retry: 3,
-    retryDelay: 1000,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes,
-    keepPreviousData: true, // Keep previous data while refetching
-  });
+  } = useQuery(
+    ['diving-center', id],
+    () => api.get(`/api/v1/diving-centers/${id}`).then(response => response.data),
+    {
+      enabled: !!id,
+      retry: 3,
+      retryDelay: 1000,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes,
+      keepPreviousData: true, // Keep previous data while refetching
+    }
+  );
 
   // Show toast notifications for rate limiting errors
   useEffect(() => {
