@@ -108,12 +108,15 @@ const EditDivingCenter = () => {
     }
   );
 
-  // Update mutation
-  const updateMutation = useMutation(data => api.put(`/api/v1/diving-centers/${id}`, data), {
-    onError: error => {
-      toast.error(error.response?.data?.detail || 'Failed to update diving center');
-    },
-  });
+  // Update mutation - return response data (not Axios response)
+  const updateMutation = useMutation(
+    data => api.put(`/api/v1/diving-centers/${id}`, data).then(res => res.data),
+    {
+      onError: error => {
+        toast.error(error.response?.data?.detail || 'Failed to update diving center');
+      },
+    }
+  );
 
   // Add gear rental mutation
   const addGearMutation = useMutation(
@@ -201,7 +204,9 @@ const EditDivingCenter = () => {
 
     updateMutation.mutate(submitData, {
       onSuccess: async updatedDivingCenter => {
+        // Ensure detail view refreshes with fresh data
         queryClient.setQueryData(['diving-center', id], updatedDivingCenter);
+        await queryClient.invalidateQueries(['diving-center', id]);
         await queryClient.invalidateQueries(['diving-centers']);
         await queryClient.invalidateQueries(['admin-diving-centers']);
         await new Promise(resolve => setTimeout(resolve, 100));
