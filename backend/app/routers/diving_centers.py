@@ -1012,6 +1012,7 @@ async def update_diving_center(
         id=diving_center.id,
         name=diving_center.name,
         description=diving_center.description,
+        address=diving_center.address,
         email=diving_center.email,
         phone=diving_center.phone,
         website=diving_center.website,

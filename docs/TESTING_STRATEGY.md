@@ -4,6 +4,39 @@
 
 This document outlines the comprehensive testing strategy to prevent regressions and ensure code quality.
 
+## 0. Testing Policy: Where tests MUST run
+
+- Tests MUST NEVER be executed inside the `divemap_backend` Docker container.
+  - Rationale: The container points to the live dev database (`db` service). Test teardown drops all tables, wiping dev data.
+- Approved methods:
+  - Quick (Host): run pytest from the host in a Python virtual environment.
+  - Thorough (Containers): run `backend/docker-test-github-actions.sh` to execute tests in isolated containers with a separate MySQL instance.
+
+### Quick (Host) – Backend
+```bash
+cd backend
+source divemap_venv/bin/activate
+export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+# Required for OAuth tests
+export GOOGLE_CLIENT_ID="dummy-client-id-for-testing"
+python -m pytest tests/ -v
+```
+
+### Thorough (Containers) – Backend
+```bash
+cd backend
+./docker-test-github-actions.sh
+```
+- Guarantees isolation: separate MySQL container, no shared volumes with `divemap_db`.
+
+### DO NOT (forbidden)
+```bash
+# Inside app container – forbidden
+docker exec -it divemap_backend bash
+pytest
+python -m pytest
+```
+
 ## 1. Latest Features Added
 
 ### ✅ Added: Admin Dashboard System Monitoring Testing
