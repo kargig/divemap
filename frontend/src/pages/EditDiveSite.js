@@ -8,7 +8,7 @@ import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
-import { getDifficultyValue } from '../utils/difficultyHelpers';
+import { getDifficultyValue, getDifficultyLabel } from '../utils/difficultyHelpers';
 
 // Helper function to safely extract error message
 const getErrorMessage = error => {
@@ -87,8 +87,11 @@ const EditDiveSite = () => {
         country: data.country || '',
         region: data.region || '',
         access_instructions: data.access_instructions || '',
-
-        difficulty_level: data.difficulty_level || '',
+        // Normalize difficulty to the string label expected by the select options
+        difficulty_level:
+          data.difficulty_level !== undefined && data.difficulty_level !== null
+            ? getDifficultyLabel(data.difficulty_level)
+            : '',
         marine_life: data.marine_life || '',
         safety_information: data.safety_information || '',
         max_depth: data.max_depth?.toString() || '',
