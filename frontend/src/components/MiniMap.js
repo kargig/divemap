@@ -1,10 +1,12 @@
 import L, { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Maximize2, X } from 'lucide-react';
+import { Maximize2, X, Layers } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+
+import MapLayersPanel from '../components/MapLayersPanel';
 
 // Fix default marker icons (so they appear without bundler asset config)
 delete L.Icon.Default.prototype._getIconUrl;
@@ -23,8 +25,24 @@ const Recenter = ({ lat, lng, zoom }) => {
   return null;
 };
 
-const MiniMap = ({ latitude, longitude, name, onMaximize, isMaximized = false, onClose }) => {
+const MiniMap = ({
+  latitude,
+  longitude,
+  name,
+  onMaximize,
+  isMaximized = false,
+  onClose,
+  showMaximizeButton = true,
+}) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showLayers, setShowLayers] = useState(false);
+  const [selectedLayer, setSelectedLayer] = useState({
+    id: 'street',
+    name: 'Street Map',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  });
 
   const handleMaximize = () => {
     if (onMaximize) {
@@ -63,8 +81,8 @@ const MiniMap = ({ latitude, longitude, name, onMaximize, isMaximized = false, o
                 style={{ zIndex: 1 }}
               >
                 <TileLayer
-                  attribution=''
-                  url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                  attribution={selectedLayer?.attribution || ''}
+                  url={selectedLayer?.url}
                 />
                 <Recenter lat={latitude} lng={longitude} zoom={12} />
                 <Marker position={[latitude, longitude]} />
@@ -83,14 +101,24 @@ const MiniMap = ({ latitude, longitude, name, onMaximize, isMaximized = false, o
         isExpanded ? 'h-64 md:h-96' : 'h-32 md:h-48'
       } transition-all duration-300`}
     >
-      <div className='absolute top-2 right-2 z-10'>
+      <div className='absolute top-2 right-2 z-10 flex gap-2'>
         <button
-          onClick={handleMaximize}
+          onClick={() => setShowLayers(!showLayers)}
           className='bg-white p-2 rounded-md shadow-md hover:bg-gray-50 transition-colors'
-          title='Maximize map'
+          title='Map layers'
+          aria-label='Map layers'
         >
-          <Maximize2 className='w-4 h-4' />
+          <Layers className='w-4 h-4' />
         </button>
+        {showMaximizeButton && (
+          <button
+            onClick={handleMaximize}
+            className='bg-white p-2 rounded-md shadow-md hover:bg-gray-50 transition-colors'
+            title='Maximize map'
+          >
+            <Maximize2 className='w-4 h-4' />
+          </button>
+        )}
       </div>
       <div className='w-full h-full rounded-lg'>
         <MapContainer
@@ -99,11 +127,20 @@ const MiniMap = ({ latitude, longitude, name, onMaximize, isMaximized = false, o
           className='w-full h-full rounded-lg'
           style={{ zIndex: 1 }}
         >
-          <TileLayer attribution='' url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' />
+          <TileLayer attribution={selectedLayer?.attribution || ''} url={selectedLayer?.url} />
           <Recenter lat={latitude} lng={longitude} zoom={isExpanded ? 12 : 10} />
           <Marker position={[latitude, longitude]} />
         </MapContainer>
       </div>
+      <MapLayersPanel
+        isOpen={showLayers}
+        onClose={() => setShowLayers(false)}
+        selectedLayer={selectedLayer}
+        onLayerChange={layer => {
+          setSelectedLayer(layer);
+          setShowLayers(false);
+        }}
+      />
     </div>
   );
 };
@@ -115,6 +152,7 @@ MiniMap.propTypes = {
   onMaximize: PropTypes.func,
   isMaximized: PropTypes.bool,
   onClose: PropTypes.func.isRequired,
+  showMaximizeButton: PropTypes.bool,
 };
 
 export default MiniMap;
