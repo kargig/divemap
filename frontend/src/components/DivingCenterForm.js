@@ -1,5 +1,5 @@
 import { ArrowLeft } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 // Reusable form for creating/editing Diving Centers
@@ -22,6 +22,23 @@ const DivingCenterForm = ({ mode = 'create', initialValues, onSubmit, onCancel }
     city: initialValues?.city || '',
     address: initialValues?.address || '',
   });
+
+  // Keep internal state in sync when parent provides new initialValues
+  useEffect(() => {
+    setFormData({
+      name: initialValues?.name || '',
+      description: initialValues?.description || '',
+      email: initialValues?.email || '',
+      phone: initialValues?.phone || '',
+      website: initialValues?.website || '',
+      latitude: initialValues?.latitude?.toString?.() || initialValues?.latitude || '',
+      longitude: initialValues?.longitude?.toString?.() || initialValues?.longitude || '',
+      country: initialValues?.country || '',
+      region: initialValues?.region || '',
+      city: initialValues?.city || '',
+      address: initialValues?.address || '',
+    });
+  }, [initialValues]);
 
   const handleInputChange = e => {
     const { name, value } = e.target;
