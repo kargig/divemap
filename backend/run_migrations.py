@@ -11,8 +11,8 @@ import time
 import sqlalchemy as sa
 from pathlib import Path
 
-def wait_for_database(max_retries=30, delay=2):
-    """Wait for database to be available"""
+def wait_for_database(max_retries=60, delay=1):
+    """Wait for database to be available (optimized for faster startup)"""
     print("Waiting for database to be available...")
 
     # Add the backend directory to Python path
@@ -31,7 +31,11 @@ def wait_for_database(max_retries=30, delay=2):
         except Exception as e:
             print(f"⏳ Database not ready (attempt {attempt + 1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
-                time.sleep(delay)
+                # Progressive delay: shorter delays for faster startup
+                if attempt < 10:
+                    time.sleep(0.5)  # First 3 attempts: 0.5 seconds
+                else:
+                    time.sleep(delay)  # Remaining attempts: 1 second
 
     print("❌ Database is not available after maximum retries")
     return False
