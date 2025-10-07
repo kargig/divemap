@@ -55,6 +55,22 @@ const CreateDivingCenter = () => {
     address: '',
   });
 
+  const resetCreateForm = () => {
+    setCreateFormData({
+      name: '',
+      description: '',
+      email: '',
+      phone: '',
+      website: '',
+      latitude: '',
+      longitude: '',
+      country: '',
+      region: '',
+      city: '',
+      address: '',
+    });
+  };
+
   // Persist create form state to survive unexpected remounts
   useEffect(() => {
     try {
@@ -98,6 +114,12 @@ const CreateDivingCenter = () => {
     },
     {
       onSuccess: () => {
+        // Clear persisted draft and reset local state for future creations
+        try {
+          sessionStorage.removeItem('create-diving-center-form');
+        } catch {}
+        resetCreateForm();
+
         // Invalidate both admin and regular diving centers queries
         queryClient.invalidateQueries(['admin-diving-centers']);
         queryClient.invalidateQueries(['diving-centers']);
