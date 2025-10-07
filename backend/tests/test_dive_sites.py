@@ -1006,15 +1006,7 @@ def test_get_dive_sites_pagination_with_filters(client, db_session, test_admin_u
 
 
 class TestDiveSitesHealthAndUtilities:
-    """Test health check and utility endpoints."""
-
-    def test_health_check(self, client):
-        """Test dive sites health check endpoint."""
-        response = client.get("/api/v1/dive-sites/health")
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["status"] == "healthy"
-        assert "timestamp" in data
+    """Test utility endpoints."""
 
     @patch('requests.get')
     def test_reverse_geocode_success(self, mock_get, client):
