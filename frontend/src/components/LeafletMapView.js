@@ -14,6 +14,19 @@ const linkifyText = text => {
   );
 };
 
+// Helper: trim text to maxLen and append a [more] link if exceeded
+const trimWithMore = (text, maxLen, moreUrl) => {
+  if (!text || typeof text !== 'string') return '';
+  const needsTrim = text.length > maxLen;
+  const sliced = needsTrim ? text.slice(0, maxLen) : text;
+  const linked = linkifyText(sliced);
+  if (!needsTrim) return linked;
+  const moreLink = moreUrl
+    ? ` <a href="${moreUrl}" class="underline" title="View more">[more]</a>`
+    : '';
+  return `${linked}...${moreLink}`;
+};
+
 // Add custom cluster styles
 const clusterStyles = `
   .marker-cluster-small {
@@ -250,11 +263,11 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
               </a>
             </h3>
             <p class="text-sm text-gray-600">
-              ${marker.entityType === 'dive_site' ? linkifyText(marker.data.description) : ''}
-              ${marker.entityType === 'diving_center' ? linkifyText(marker.data.description) : ''}
+              ${marker.entityType === 'dive_site' ? trimWithMore(marker.data.description || '', 150, `/dive-sites/${marker.data.id}`) : ''}
+              ${marker.entityType === 'diving_center' ? trimWithMore(marker.data.description || '', 150, `/diving-centers/${marker.data.id}`) : ''}
               ${marker.entityType === 'dive' ? `Dive at ${marker.data.dive_site?.name || 'Unknown Site'}` : ''}
               ${marker.entityType === 'dive_trip' ? `Trip on ${new Date(marker.data.trip_date).toLocaleDateString()} - ${marker.data.diving_center_name || 'Unknown Center'}` : ''}
-              ${marker.entityType === 'dive_trip' && marker.data.trip_description ? `<br/><span class="text-xs text-gray-500">${linkifyText(marker.data.trip_description.substring(0, 100))}${marker.data.trip_description.length > 100 ? '...' : ''}</span>` : ''}
+              ${marker.entityType === 'dive_trip' && marker.data.trip_description ? `<br/><span class="text-xs text-gray-500">${trimWithMore(marker.data.trip_description, 100, `/dive-trips/${marker.data.id}`)}</span>` : ''}
             </p>
             ${
               marker.entityType === 'diving_center'
