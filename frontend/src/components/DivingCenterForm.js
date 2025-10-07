@@ -8,8 +8,19 @@ import toast from 'react-hot-toast';
 // - initialValues: object with fields
 // - onSubmit: (values) => void
 // - onCancel: () => void
-const DivingCenterForm = ({ mode = 'create', initialValues, onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState({
+// - externalFormData: optional object for controlled mode
+// - onExternalChange: optional setter for controlled mode
+const DivingCenterForm = ({
+  mode = 'create',
+  initialValues,
+  onSubmit,
+  onCancel,
+  externalFormData,
+  onExternalChange,
+}) => {
+  const isControlled = !!externalFormData && typeof onExternalChange === 'function';
+
+  const [internalFormData, setInternalFormData] = useState({
     name: initialValues?.name || '',
     description: initialValues?.description || '',
     email: initialValues?.email || '',
@@ -25,7 +36,8 @@ const DivingCenterForm = ({ mode = 'create', initialValues, onSubmit, onCancel }
 
   // Keep internal state in sync when parent provides new initialValues
   useEffect(() => {
-    setFormData({
+    if (isControlled) return; // external state controls values
+    setInternalFormData({
       name: initialValues?.name || '',
       description: initialValues?.description || '',
       email: initialValues?.email || '',
@@ -38,7 +50,17 @@ const DivingCenterForm = ({ mode = 'create', initialValues, onSubmit, onCancel }
       city: initialValues?.city || '',
       address: initialValues?.address || '',
     });
-  }, [initialValues]);
+  }, [initialValues, isControlled]);
+
+  const formData = isControlled ? externalFormData : internalFormData;
+  const setFormData = updater => {
+    if (isControlled) {
+      const next = typeof updater === 'function' ? updater(externalFormData) : updater;
+      onExternalChange(next);
+    } else {
+      setInternalFormData(updater);
+    }
+  };
 
   const handleInputChange = e => {
     const { name, value } = e.target;
