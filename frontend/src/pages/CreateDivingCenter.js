@@ -1,5 +1,5 @@
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient, useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
@@ -39,6 +39,41 @@ const CreateDivingCenter = () => {
     diving_organization_id: '',
     is_primary: false,
   });
+
+  // Important: keep a stable reference so the child form doesn't reset on parent re-renders
+  const [createFormData, setCreateFormData] = useState({
+    name: '',
+    description: '',
+    email: '',
+    phone: '',
+    website: '',
+    latitude: '',
+    longitude: '',
+    country: '',
+    region: '',
+    city: '',
+    address: '',
+  });
+
+  // Persist create form state to survive unexpected remounts
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('create-diving-center-form');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === 'object') {
+          setCreateFormData(prev => ({ ...prev, ...parsed }));
+        }
+      }
+    } catch {}
+    // run once on mount
+  }, []);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('create-diving-center-form', JSON.stringify(createFormData));
+    } catch {}
+  }, [createFormData]);
 
   // Fetch diving organizations
   const { data: organizations = [] } = useQuery(['diving-organizations'], () =>
@@ -161,6 +196,8 @@ const CreateDivingCenter = () => {
         <DivingCenterForm
           mode='create'
           initialValues={{}}
+          externalFormData={createFormData}
+          onExternalChange={setCreateFormData}
           onCancel={handleCancel}
           onSubmit={values => {
             createDivingCenterMutation.mutate(values);
