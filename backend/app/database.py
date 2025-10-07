@@ -10,7 +10,7 @@ def get_database_url():
     """Get database URL for Alembic migrations"""
     return DATABASE_URL
 
-# Create SQLAlchemy engine with SQLite-specific configuration
+# Create SQLAlchemy engine with optimized configuration for faster startup
 if DATABASE_URL.startswith("sqlite"):
     # SQLite configuration
     engine = create_engine(
@@ -19,11 +19,14 @@ if DATABASE_URL.startswith("sqlite"):
         echo=False  # Set to True for SQL query logging
     )
 else:
-    # MySQL configuration
+    # MySQL configuration optimized for faster startup and better performance
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,
         pool_recycle=300,
+        pool_size=5,  # Smaller initial pool size for faster startup
+        max_overflow=10,  # Allow overflow for peak usage
+        pool_timeout=30,  # Faster timeout for connection acquisition
         echo=False  # Set to True for SQL query logging
     )
 

@@ -5,15 +5,18 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import os
 import logging
+import time
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.routers import auth, dive_sites, users, diving_centers, tags, diving_organizations, user_certifications, newsletters, system, privacy
-from app.routers.dives import router as dives_router
+# Lazy imports for faster startup - only import when needed
 from app.database import engine, get_db
 from app.models import Base, Dive, DiveSite, SiteRating, CenterRating, DivingCenter
 from app.limiter import limiter
 from app.utils import get_client_ip, format_ip_for_logging, is_private_ip
+
+# Startup timing for performance monitoring
+startup_start_time = time.time()
 
 # Configure logging based on environment variable
 log_level = os.getenv("LOG_LEVEL", "WARNING").upper()
@@ -57,8 +60,23 @@ is_testing = (
     os.getenv("TESTING") == "true"
 )
 
+# Only create tables if not testing and if tables don't exist (optimization)
 if not is_testing:
-    Base.metadata.create_all(bind=engine)
+    try:
+        # Check if tables already exist to avoid unnecessary creation
+        with engine.connect() as conn:
+            # Quick check if any tables exist
+            result = conn.execute(func.count().select().select_from(Base.metadata.tables.get('dives', None)))
+            tables_exist = True
+    except:
+        tables_exist = False
+    
+    if not tables_exist:
+        print("🔧 Creating database tables...")
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables created")
+    else:
+        print("✅ Database tables already exist, skipping creation")
 
 app = FastAPI(
     title="Divemap API",
@@ -210,18 +228,34 @@ async def enhanced_security_logging(request, call_next):
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# Include routers
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
-app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
-app.include_router(dive_sites.router, prefix="/api/v1/dive-sites", tags=["Dive Sites"])
-app.include_router(diving_centers.router, prefix="/api/v1/diving-centers", tags=["Diving Centers"])
-app.include_router(tags.router, prefix="/api/v1/tags", tags=["Tags"])
-app.include_router(diving_organizations.router, prefix="/api/v1/diving-organizations", tags=["Diving Organizations"])
-app.include_router(user_certifications.router, prefix="/api/v1/user-certifications", tags=["User Certifications"])
-app.include_router(dives_router, prefix="/api/v1/dives", tags=["Dives"])
-app.include_router(newsletters.router, prefix="/api/v1/newsletters", tags=["Newsletters"])
-app.include_router(system.router, prefix="/api/v1/admin/system", tags=["System"])
-app.include_router(privacy.router, prefix="/api/v1/privacy", tags=["Privacy"])
+# Lazy router loading for faster startup
+def load_routers():
+    """Load routers lazily to improve startup time"""
+    print("🔧 Loading API routers...")
+    router_start = time.time()
+    
+    # Import routers only when needed
+    from app.routers import auth, dive_sites, users, diving_centers, tags, diving_organizations, user_certifications, newsletters, system, privacy
+    from app.routers.dives import router as dives_router
+    
+    # Include routers
+    app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+    app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
+    app.include_router(dive_sites.router, prefix="/api/v1/dive-sites", tags=["Dive Sites"])
+    app.include_router(diving_centers.router, prefix="/api/v1/diving-centers", tags=["Diving Centers"])
+    app.include_router(tags.router, prefix="/api/v1/tags", tags=["Tags"])
+    app.include_router(diving_organizations.router, prefix="/api/v1/diving-organizations", tags=["Diving Organizations"])
+    app.include_router(user_certifications.router, prefix="/api/v1/user-certifications", tags=["User Certifications"])
+    app.include_router(dives_router, prefix="/api/v1/dives", tags=["Dives"])
+    app.include_router(newsletters.router, prefix="/api/v1/newsletters", tags=["Newsletters"])
+    app.include_router(system.router, prefix="/api/v1/admin/system", tags=["System"])
+    app.include_router(privacy.router, prefix="/api/v1/privacy", tags=["Privacy"])
+    
+    router_time = time.time() - router_start
+    print(f"✅ Routers loaded in {router_time:.2f}s")
+
+# Load routers
+load_routers()
 
 @app.get("/")
 async def root():
@@ -262,3 +296,17 @@ async def get_statistics(db: Session = Depends(get_db)):
             "reviews": 0,
             "diving_centers": 0
         }
+
+# Add startup performance monitoring
+startup_end_time = time.time()
+total_startup_time = startup_end_time - startup_start_time
+print(f"🚀 Application startup completed in {total_startup_time:.2f}s")
+
+# Add startup event handler for additional monitoring
+@app.on_event("startup")
+async def startup_event():
+    """Log startup completion with timing"""
+    print(f"🎯 FastAPI application fully started in {total_startup_time:.2f}s")
+    print(f"🔧 Environment: {os.getenv('ENVIRONMENT', 'production')}")
+    print(f"🔧 Log level: {log_level}")
+    print(f"🔧 Database URL configured: {'Yes' if os.getenv('DATABASE_URL') else 'No'}")

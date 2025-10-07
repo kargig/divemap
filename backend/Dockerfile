@@ -4,28 +4,35 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies including netcat-openbsd for IPv6 support
-RUN apt-get update && apt-get install -y \
+# Optimized for faster installation
+RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     netcat-openbsd \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Copy requirements first for better caching
 COPY requirements.txt .
 
 # Install Python dependencies using only pre-compiled wheels
-RUN pip install --no-cache-dir --only-binary=all -r requirements.txt
+# Optimized pip installation for faster startup
+RUN pip install --no-cache-dir --only-binary=all --disable-pip-version-check -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create uploads directory and make scripts executable in one layer
+RUN mkdir -p uploads && \
+    chmod +x /app/run_migrations.py && \
+    chmod +x /app/run_migrations_docker.sh && \
+    chmod +x /app/test_netcat_ipv6.sh && \
+    chmod +x /app/startup.sh
 
-# Make migration scripts executable
-RUN chmod +x /app/run_migrations.py
-RUN chmod +x /app/run_migrations_docker.sh
-RUN chmod +x /app/test_netcat_ipv6.sh
-RUN chmod +x /app/startup.sh
+# Set environment variables for faster startup
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Expose port
 EXPOSE 8000
