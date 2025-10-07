@@ -56,6 +56,14 @@ const Admin = () => {
       color: 'bg-green-50 border-green-200 hover:bg-green-100',
     },
     {
+      id: 'diving-organizations',
+      title: 'Diving Organizations',
+      description: 'Create, edit, and delete diving organizations (PADI, SSI, etc.).',
+      icon: <Award className='h-8 w-8 text-gray-700' />,
+      href: '/admin/diving-organizations',
+      color: 'bg-gray-50 border-gray-200 hover:bg-gray-100',
+    },
+    {
       id: 'tags',
       title: 'Tag Management',
       description: 'Create, edit, and delete tags used to categorize dive sites.',
