@@ -305,8 +305,12 @@ print(f"🚀 Application startup completed in {total_startup_time:.2f}s")
 # Add startup event handler for additional monitoring
 @app.on_event("startup")
 async def startup_event():
-    """Log startup completion with timing"""
+    """Log startup completion with timing and warm database connections"""
     print(f"🎯 FastAPI application fully started in {total_startup_time:.2f}s")
     print(f"🔧 Environment: {os.getenv('ENVIRONMENT', 'production')}")
     print(f"🔧 Log level: {log_level}")
     print(f"🔧 Database URL configured: {'Yes' if os.getenv('DATABASE_URL') else 'No'}")
+    
+    # Warm database connections for better performance
+    from app.database import warm_database_connections
+    warm_database_connections()
