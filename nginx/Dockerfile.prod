@@ -12,6 +12,13 @@ COPY prod.conf /etc/nginx/nginx.conf
 # Copy static loading page used during auto-start warmup
 COPY loading.html /usr/share/nginx/html/loading.html
 
+# Copy frontend build (content-hashed assets with precompression)
+# This will be populated during CI/CD build process
+COPY frontend-build/ /usr/share/nginx/html/
+
+# Ensure proper ownership of frontend assets
+RUN chown -R nginx:nginx /usr/share/nginx/html/
+
 # Set proper permissions (nginx user already exists in base image)
 RUN chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx && \
