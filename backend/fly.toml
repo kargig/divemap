@@ -17,9 +17,9 @@ primary_region = 'fra'
 [processes]
   app = '/app/startup.sh'
 
-[[mounts]]
-  source = 'divemap_uploads'
-  destination = '/app/uploads'
+#[[mounts]]
+#  source = 'divemap_uploads'
+#  destination = '/app/uploads'
 
 [http_service]
   internal_port = 8000

@@ -1,6 +1,8 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import os
@@ -234,28 +236,191 @@ def load_routers():
     print("🔧 Loading API routers...")
     router_start = time.time()
     
-    # Import routers only when needed
-    from app.routers import auth, dive_sites, users, diving_centers, tags, diving_organizations, user_certifications, newsletters, system, privacy
-    from app.routers.dives import router as dives_router
+    # Import only the most essential routers for startup
+    from app.routers import auth, users
     
-    # Include routers
+    # Include only the most critical routers (others moved to lazy loading)
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
     app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
-    app.include_router(dive_sites.router, prefix="/api/v1/dive-sites", tags=["Dive Sites"])
-    app.include_router(diving_centers.router, prefix="/api/v1/diving-centers", tags=["Diving Centers"])
-    app.include_router(tags.router, prefix="/api/v1/tags", tags=["Tags"])
-    app.include_router(diving_organizations.router, prefix="/api/v1/diving-organizations", tags=["Diving Organizations"])
-    app.include_router(user_certifications.router, prefix="/api/v1/user-certifications", tags=["User Certifications"])
-    app.include_router(dives_router, prefix="/api/v1/dives", tags=["Dives"])
-    app.include_router(newsletters.router, prefix="/api/v1/newsletters", tags=["Newsletters"])
-    app.include_router(system.router, prefix="/api/v1/admin/system", tags=["System"])
-    app.include_router(privacy.router, prefix="/api/v1/privacy", tags=["Privacy"])
+    
+    # Moved to lazy loading:
+    # - dive_sites (already implemented)
+    # - newsletters (heavy AI/ML dependencies)
+    # - system (admin-only, not needed for regular users)
+    # - privacy (less frequently accessed)
+    # - diving_organizations (reference data, not critical)
+    # - user_certifications (user-specific, not needed for homepage)
+    # - diving_centers (can be lazy loaded, not critical for homepage)
+    # - tags (can be lazy loaded, not critical for homepage)
+    # - dives (can be lazy loaded, not critical for homepage)
     
     router_time = time.time() - router_start
-    print(f"✅ Routers loaded in {router_time:.2f}s")
+    print(f"✅ Essential routers loaded in {router_time:.2f}s")
+
+def load_dive_sites_router():
+    """Load dive-sites router lazily when first accessed"""
+    if not hasattr(app, '_dive_sites_router_loaded'):
+        print("🔧 Loading dive-sites router lazily...")
+        router_start = time.time()
+        
+        from app.routers import dive_sites
+        app.include_router(dive_sites.router, prefix="/api/v1/dive-sites", tags=["Dive Sites"])
+        
+        app._dive_sites_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Dive-sites router loaded lazily in {router_time:.2f}s")
+
+def load_newsletters_router():
+    """Load newsletters router lazily when first accessed"""
+    if not hasattr(app, '_newsletters_router_loaded'):
+        print("🔧 Loading newsletters router lazily...")
+        router_start = time.time()
+        
+        from app.routers import newsletters
+        app.include_router(newsletters.router, prefix="/api/v1/newsletters", tags=["Newsletters"])
+        
+        app._newsletters_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Newsletters router loaded lazily in {router_time:.2f}s")
+
+def load_system_router():
+    """Load system router lazily when first accessed"""
+    if not hasattr(app, '_system_router_loaded'):
+        print("🔧 Loading system router lazily...")
+        router_start = time.time()
+        
+        from app.routers import system
+        app.include_router(system.router, prefix="/api/v1/admin/system", tags=["System"])
+        
+        app._system_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ System router loaded lazily in {router_time:.2f}s")
+
+def load_privacy_router():
+    """Load privacy router lazily when first accessed"""
+    if not hasattr(app, '_privacy_router_loaded'):
+        print("🔧 Loading privacy router lazily...")
+        router_start = time.time()
+        
+        from app.routers import privacy
+        app.include_router(privacy.router, prefix="/api/v1/privacy", tags=["Privacy"])
+        
+        app._privacy_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Privacy router loaded lazily in {router_time:.2f}s")
+
+def load_diving_organizations_router():
+    """Load diving organizations router lazily when first accessed"""
+    if not hasattr(app, '_diving_organizations_router_loaded'):
+        print("🔧 Loading diving organizations router lazily...")
+        router_start = time.time()
+        
+        from app.routers import diving_organizations
+        app.include_router(diving_organizations.router, prefix="/api/v1/diving-organizations", tags=["Diving Organizations"])
+        
+        app._diving_organizations_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Diving organizations router loaded lazily in {router_time:.2f}s")
+
+def load_user_certifications_router():
+    """Load user certifications router lazily when first accessed"""
+    if not hasattr(app, '_user_certifications_router_loaded'):
+        print("🔧 Loading user certifications router lazily...")
+        router_start = time.time()
+        
+        from app.routers import user_certifications
+        app.include_router(user_certifications.router, prefix="/api/v1/user-certifications", tags=["User Certifications"])
+        
+        app._user_certifications_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ User certifications router loaded lazily in {router_time:.2f}s")
+
+def load_diving_centers_router():
+    """Load diving centers router lazily when first accessed"""
+    if not hasattr(app, '_diving_centers_router_loaded'):
+        print("🔧 Loading diving centers router lazily...")
+        router_start = time.time()
+        
+        from app.routers import diving_centers
+        app.include_router(diving_centers.router, prefix="/api/v1/diving-centers", tags=["Diving Centers"])
+        
+        app._diving_centers_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Diving centers router loaded lazily in {router_time:.2f}s")
+
+def load_tags_router():
+    """Load tags router lazily when first accessed"""
+    if not hasattr(app, '_tags_router_loaded'):
+        print("🔧 Loading tags router lazily...")
+        router_start = time.time()
+        
+        from app.routers import tags
+        app.include_router(tags.router, prefix="/api/v1/tags", tags=["Tags"])
+        
+        app._tags_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Tags router loaded lazily in {router_time:.2f}s")
+
+def load_dives_router():
+    """Load dives router lazily when first accessed"""
+    if not hasattr(app, '_dives_router_loaded'):
+        print("🔧 Loading dives router lazily...")
+        router_start = time.time()
+        
+        from app.routers.dives import router as dives_router
+        app.include_router(dives_router, prefix="/api/v1/dives", tags=["Dives"])
+        
+        app._dives_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Dives router loaded lazily in {router_time:.2f}s")
 
 # Load routers
 load_routers()
+
+# Middleware for lazy loading routers
+@app.middleware("http")
+async def lazy_router_loading(request: Request, call_next):
+    """Load routers lazily when first accessed"""
+    path = request.url.path
+    
+    # Load dive-sites router
+    if path.startswith("/api/v1/dive-sites") and not hasattr(app, '_dive_sites_router_loaded'):
+        load_dive_sites_router()
+    
+    # Load newsletters router
+    elif path.startswith("/api/v1/newsletters") and not hasattr(app, '_newsletters_router_loaded'):
+        load_newsletters_router()
+    
+    # Load system router
+    elif path.startswith("/api/v1/admin/system") and not hasattr(app, '_system_router_loaded'):
+        load_system_router()
+    
+    # Load privacy router
+    elif path.startswith("/api/v1/privacy") and not hasattr(app, '_privacy_router_loaded'):
+        load_privacy_router()
+    
+    # Load diving organizations router
+    elif path.startswith("/api/v1/diving-organizations") and not hasattr(app, '_diving_organizations_router_loaded'):
+        load_diving_organizations_router()
+    
+    # Load user certifications router
+    elif path.startswith("/api/v1/user-certifications") and not hasattr(app, '_user_certifications_router_loaded'):
+        load_user_certifications_router()
+    
+    # Load diving centers router
+    elif path.startswith("/api/v1/diving-centers") and not hasattr(app, '_diving_centers_router_loaded'):
+        load_diving_centers_router()
+    
+    # Load tags router
+    elif path.startswith("/api/v1/tags") and not hasattr(app, '_tags_router_loaded'):
+        load_tags_router()
+    
+    # Load dives router
+    elif path.startswith("/api/v1/dives") and not hasattr(app, '_dives_router_loaded'):
+        load_dives_router()
+    
+    response = await call_next(request)
+    return response
 
 @app.get("/")
 async def root():

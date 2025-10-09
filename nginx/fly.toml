@@ -11,9 +11,13 @@ primary_region = 'fra'
 
 [env]
   NGINX_ENV = 'production'
+  DB_HOST = 'divemap-db.flycast'
+  DB_PORT = '3306'
+  BACKEND_HOST = 'divemap-backend.flycast'
+  BACKEND_PORT = '80'
 
 [processes]
-  app = 'nginx -g "daemon off;"'
+  app = '/usr/local/bin/startup-wrapper.sh'
 
 # HTTP service configuration (Fly.io handles HTTPS termination)
 [http_service]

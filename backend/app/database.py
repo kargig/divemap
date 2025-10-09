@@ -4,8 +4,11 @@ from sqlalchemy.orm import sessionmaker
 import os
 import time
 
-# Database URL from environment variable
+# Database URL from environment variable with timeout parameters
 DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://divemap_user:divemap_password@localhost:3306/divemap")
+# Add timeout parameters to the URL if not already present
+if "?" not in DATABASE_URL:
+    DATABASE_URL += "?connect_timeout=2&read_timeout=10&write_timeout=10"
 
 def get_database_url():
     """Get database URL for Alembic migrations"""
@@ -27,8 +30,17 @@ else:
         pool_recycle=3600,   # Recycle connections every hour
         pool_size=10,        # Increased pool size for better performance
         max_overflow=20,     # Increased overflow for peak usage
-        pool_timeout=30,     # Connection acquisition timeout
+        pool_timeout=2,      # Reduce pool timeout to 2s for faster cold start detection
         pool_reset_on_return='commit',  # Reset connections on return
+        connect_args={
+            "connect_timeout": 2,  # Reduce connection timeout to 2s for faster cold start detection
+            "read_timeout": 10,    # Set read timeout for queries
+            "write_timeout": 10,   # Set write timeout for queries
+            "autocommit": True,    # Enable autocommit for faster connections
+            "charset": "utf8mb4",  # Set charset for better compatibility
+            "use_unicode": True,   # Use unicode for better compatibility
+            "init_command": "SET SESSION wait_timeout=28800",  # Set session timeout
+        },
         echo=False  # Set to True for SQL query logging
     )
 
