@@ -4,13 +4,26 @@ FROM nginx:alpine
 # Install required packages
 RUN apk add --no-cache \
     curl \
+    netcat-openbsd \
     && rm -rf /var/cache/apk/*
 
 # Copy production configuration
 COPY prod.conf /etc/nginx/nginx.conf
 
+# Copy startup script
+COPY startup.sh /usr/local/bin/startup.sh
+RUN chmod +x /usr/local/bin/startup.sh && \
+    chown nginx:nginx /usr/local/bin/startup.sh
+
 # Copy static loading page used during auto-start warmup
 COPY loading.html /usr/share/nginx/html/loading.html
+
+# Copy frontend build (content-hashed assets with precompression)
+# This will be populated during CI/CD build process
+COPY frontend-build/ /usr/share/nginx/html/
+
+# Ensure proper ownership of frontend assets
+RUN chown -R nginx:nginx /usr/share/nginx/html/
 
 # Set proper permissions (nginx user already exists in base image)
 RUN chown -R nginx:nginx /var/cache/nginx && \
@@ -33,8 +46,18 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Expose port (only HTTP needed)
 EXPOSE 80
 
-# Switch to non-root user
-USER nginx
+# Create a wrapper script that runs pre-warming as root, then starts nginx as nginx user
+RUN echo '#!/bin/sh' > /usr/local/bin/startup-wrapper.sh && \
+    echo 'echo "🚀 Starting Nginx with pre-warming..."' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'echo "📡 Pre-warming database at ${DB_HOST:-divemap-db.flycast}:${DB_PORT:-3306}..."' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'echo "📡 Pre-warming backend at ${BACKEND_HOST:-divemap-backend.flycast}:${BACKEND_PORT:-80}..."' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'timeout 1s nc -6 -w 1 "${DB_HOST:-divemap-db.flycast}" "${DB_PORT:-3306}" < /dev/null > /dev/null 2>&1 &' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'echo "✅ Database ping sent (non-blocking)"' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'timeout 1s curl -s -f "http://${BACKEND_HOST:-divemap-backend.flycast}:${BACKEND_PORT:-80}/" > /dev/null 2>&1 &' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'echo "✅ Backend ping sent (non-blocking)"' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'echo "🎯 Pre-warming complete! Starting Nginx..."' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'exec nginx -g "daemon off;"' >> /usr/local/bin/startup-wrapper.sh && \
+    chmod +x /usr/local/bin/startup-wrapper.sh
 
-# Start nginx directly (no startup script needed)
-CMD ["nginx", "-g", "daemon off;"]
+# Start nginx with pre-warming
+CMD ["/usr/local/bin/startup-wrapper.sh"]

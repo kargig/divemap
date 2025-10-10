@@ -37,9 +37,10 @@ check_db() {
     fi
 }
 
-# Try to connect to database with retries (optimized for faster startup)
+# Try to connect to database with retries (optimized with fixed intervals for cold starts)
 attempt=1
-max_attempts=10
+max_attempts=25
+fixed_delay=0.2
 
 while [ $attempt -le $max_attempts ]; do
     echo "Attempt $attempt/$max_attempts: Checking database connectivity..."
@@ -55,14 +56,10 @@ while [ $attempt -le $max_attempts ]; do
             exit 1
         fi
         
-        # Optimized sleep: shorter delays for faster startup
-        if [ $attempt -le 5 ]; then
-            sleep_time=1  # First 5 attempts: 1 second
-        else
-            sleep_time=2  # Remaining attempts: 2 seconds
-        fi
-        echo "⏳ Waiting $sleep_time seconds before next attempt..."
-        sleep $sleep_time
+        # Fixed interval: 0.2s between attempts (optimized for cold starts)
+        # This provides the fastest possible detection for predictable database startup
+        echo "⏳ Waiting ${fixed_delay}s before next attempt..."
+        sleep $fixed_delay
         
         attempt=$((attempt + 1))
     fi

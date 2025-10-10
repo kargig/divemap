@@ -324,5 +324,28 @@ class R2StorageService:
         return status
 
 
-# Global instance
-r2_storage = R2StorageService()
+# Lazy-loaded global instance
+_r2_storage_instance = None
+
+def get_r2_storage():
+    """Get R2 storage service instance with lazy loading."""
+    global _r2_storage_instance
+    if _r2_storage_instance is None:
+        logger.info("🔧 Loading R2 storage service lazily...")
+        _r2_storage_instance = R2StorageService()
+    return _r2_storage_instance
+
+# Backward compatibility - keep the old name for existing imports
+# This will be lazy-loaded when first accessed
+class LazyR2Storage:
+    """Lazy-loaded wrapper for R2 storage service."""
+    
+    def __getattr__(self, name):
+        """Delegate all attribute access to the actual R2 storage service."""
+        return getattr(get_r2_storage(), name)
+    
+    def __dir__(self):
+        """Delegate dir() to the actual R2 storage service."""
+        return dir(get_r2_storage())
+
+r2_storage = LazyR2Storage()

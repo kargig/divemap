@@ -166,3 +166,4 @@ merge_*.txt
 database_backups/
 wg-*.conf
 .playwright-mcp/
+nginx/frontend-build/
