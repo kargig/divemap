@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_, desc, asc
 from slowapi.util import get_remote_address
 import difflib
@@ -15,7 +15,7 @@ from app.schemas import (
     SiteMediaCreate, SiteMediaResponse,
     DiveSiteSearchParams, CenterDiveSiteCreate, DiveResponse,
     DiveSiteAliasCreate, DiveSiteAliasUpdate, DiveSiteAliasResponse,
-    DiveRouteCreate, DiveRouteResponse
+    DiveRouteCreate, DiveRouteResponse, DiveRouteWithCreator
 )
 import requests
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, get_current_user
@@ -1994,7 +1994,7 @@ async def delete_dive_site_alias(
 
 
 # Dive Routes endpoints for dive sites
-@router.get("/{dive_site_id}/routes", response_model=List[DiveRouteResponse])
+@router.get("/{dive_site_id}/routes", response_model=List[DiveRouteWithCreator])
 async def get_dive_site_routes(
     dive_site_id: int,
     current_user: User = Depends(get_current_user_optional),
@@ -2016,7 +2016,22 @@ async def get_dive_site_routes(
         )
     ).order_by(desc(DiveRoute.created_at)).all()
     
-    return routes
+    # Convert routes to dictionaries and add creator information
+    routes_with_creator = []
+    for route in routes:
+        route_dict = route.__dict__.copy()
+        
+        # Manually fetch creator information
+        creator = db.query(User).filter(User.id == route.created_by).first()
+        route_dict['creator'] = {
+            'id': creator.id,
+            'username': creator.username,
+            'name': creator.name
+        } if creator else None
+        
+        routes_with_creator.append(route_dict)
+    
+    return routes_with_creator
 
 
 @router.post("/{dive_site_id}/routes", response_model=DiveRouteResponse)

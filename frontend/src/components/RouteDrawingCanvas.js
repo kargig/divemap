@@ -7,8 +7,8 @@ import PropTypes from 'prop-types';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 
-import { CHART_COLORS } from '../utils/colorPalette';
 import { useAuth } from '../contexts/AuthContext';
+import { CHART_COLORS, getRouteTypeColor } from '../utils/colorPalette';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -122,9 +122,7 @@ const DrawingControls = ({
             className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base touch-manipulation'
             disabled={isDrawing || isSaving}
           >
-            <option value='line'>Line Route</option>
-            <option value='polygon'>Area Route</option>
-            <option value='waypoints'>Waypoints</option>
+            <option value='scuba'>Scuba Route</option>
           </select>
         </div>
       </div>
@@ -174,11 +172,11 @@ const DrawingControls = ({
 };
 
 // Map initialization component
-const MapInitializer = ({ 
+const MapInitializer = ({
   diveSite,
-  onSave, 
-  onClear, 
-  isDrawing, 
+  onSave,
+  onClear,
+  isDrawing,
   hasDrawnFeatures,
   routeName,
   setRouteName,
@@ -188,7 +186,8 @@ const MapInitializer = ({
   setRouteType,
   isSaving,
   error,
-  clearError
+  clearError,
+  existingRouteData,
 }) => {
   const map = useMap();
   const drawControlRef = useRef();
@@ -208,54 +207,64 @@ const MapInitializer = ({
     );
 
     // Drawing control options with mobile optimization
+    // Configure drawing tools - allow all tools for any route type
+    // Route type now represents activity (scuba) rather than drawing tool
+    const getDrawingConfig = routeType => {
+      const routeColor = getRouteTypeColor(routeType);
+
+      return {
+        position: 'topleft',
+        draw: {
+          polyline: {
+            shapeOptions: {
+              color: routeColor,
+              weight: isMobile ? 6 : 4,
+              opacity: 0.8,
+            },
+            allowIntersection: false,
+            showLength: true,
+            metric: true,
+            touchIcon: new L.DivIcon({
+              className: 'leaflet-draw-touch-icon',
+              iconSize: [20, 20],
+              iconAnchor: [10, 10],
+            }),
+          },
+          polygon: {
+            shapeOptions: {
+              color: routeColor,
+              weight: isMobile ? 5 : 3,
+              opacity: 0.6,
+              fillOpacity: 0.2,
+            },
+            allowIntersection: false,
+            showArea: true,
+            showLength: true,
+            metric: true,
+            touchIcon: new L.DivIcon({
+              className: 'leaflet-draw-touch-icon',
+              iconSize: [20, 20],
+              iconAnchor: [10, 10],
+            }),
+          },
+          marker: {
+            icon: new L.Icon.Default(),
+            zIndexOffset: 1000,
+            touchIcon: new L.DivIcon({
+              className: 'leaflet-draw-touch-icon',
+              iconSize: [20, 20],
+              iconAnchor: [10, 10],
+            }),
+          },
+          circle: false,
+          rectangle: false,
+          circlemarker: false,
+        },
+      };
+    };
+
     const drawControl = new L.Control.Draw({
-      position: 'topleft',
-      draw: {
-        polyline: {
-          shapeOptions: {
-            color: CHART_COLORS.depth,
-            weight: isMobile ? 6 : 4, // Thicker lines on mobile
-            opacity: 0.8,
-          },
-          allowIntersection: false,
-          showLength: true,
-          metric: true,
-          touchIcon: new L.DivIcon({
-            className: 'leaflet-draw-touch-icon',
-            iconSize: [20, 20],
-            iconAnchor: [10, 10],
-          }),
-        },
-        polygon: {
-          shapeOptions: {
-            color: CHART_COLORS.temperature,
-            weight: isMobile ? 5 : 3, // Thicker lines on mobile
-            opacity: 0.6,
-            fillOpacity: 0.2,
-          },
-          allowIntersection: false,
-          showArea: true,
-          showLength: true,
-          metric: true,
-          touchIcon: new L.DivIcon({
-            className: 'leaflet-draw-touch-icon',
-            iconSize: [20, 20],
-            iconAnchor: [10, 10],
-          }),
-        },
-        marker: {
-          icon: new L.Icon.Default(),
-          zIndexOffset: 1000,
-          touchIcon: new L.DivIcon({
-            className: 'leaflet-draw-touch-icon',
-            iconSize: [20, 20],
-            iconAnchor: [10, 10],
-          }),
-        },
-        circle: false,
-        rectangle: false,
-        circlemarker: false,
-      },
+      ...getDrawingConfig(routeType),
       edit: {
         featureGroup: drawnItemsRef.current,
         remove: true,
@@ -310,13 +319,51 @@ const MapInitializer = ({
 
       drawnItemsRef.current.addLayer(layer);
 
-      // Update route type based on what was drawn
-      if (layerType === 'polyline' && routeType !== 'line') {
-        setRouteType('line');
-      } else if (layerType === 'polygon' && routeType !== 'polygon') {
-        setRouteType('polygon');
-      } else if (layerType === 'marker' && routeType !== 'waypoints') {
-        setRouteType('waypoints');
+      // Apply the selected route type color to the drawn layer
+      const routeColor = getRouteTypeColor(routeType);
+      if (layerType === 'polyline') {
+        if (layer.setStyle) {
+          layer.setStyle({
+            color: routeColor,
+            weight: 4,
+            opacity: 0.8,
+          });
+        } else {
+          // Fallback for layers that don't support setStyle
+          layer.options.color = routeColor;
+          layer.options.weight = 4;
+          layer.options.opacity = 0.8;
+        }
+      } else if (layerType === 'polygon') {
+        if (layer.setStyle) {
+          layer.setStyle({
+            color: routeColor,
+            weight: 3,
+            opacity: 0.6,
+            fillOpacity: 0.2,
+          });
+        } else {
+          // Fallback for layers that don't support setStyle
+          layer.options.color = routeColor;
+          layer.options.weight = 3;
+          layer.options.opacity = 0.6;
+          layer.options.fillOpacity = 0.2;
+        }
+      } else if (layerType === 'marker') {
+        if (layer.setStyle) {
+          layer.setStyle({
+            color: routeColor,
+            weight: 2,
+            opacity: 0.8,
+            fillOpacity: 0.6,
+          });
+        } else {
+          // Fallback for layers that don't support setStyle
+          layer.options.color = routeColor;
+          layer.options.weight = 2;
+          layer.options.opacity = 0.8;
+          layer.options.fillOpacity = 0.6;
+        }
       }
     };
 
@@ -363,16 +410,83 @@ const MapInitializer = ({
     };
   }, [routeType, setRouteType]);
 
+  // Load existing route data when editing
+  useEffect(() => {
+    if (!existingRouteData || !drawnItemsRef.current) return;
+
+    // Clear existing layers
+    drawnItemsRef.current.clearLayers();
+
+    // Load existing route data
+    const geoJsonLayer = L.geoJSON(existingRouteData, {
+      style: feature => {
+        const geometry = feature.geometry;
+        const routeColor = getRouteTypeColor(routeType);
+
+        if (geometry.type === 'LineString') {
+          return {
+            color: routeColor,
+            weight: 4,
+            opacity: 0.8,
+          };
+        } else if (geometry.type === 'Polygon') {
+          return {
+            color: routeColor,
+            weight: 3,
+            opacity: 0.6,
+            fillOpacity: 0.2,
+          };
+        } else if (geometry.type === 'Point') {
+          return {
+            color: routeColor,
+            weight: 2,
+            opacity: 0.8,
+            fillOpacity: 0.6,
+          };
+        }
+
+        return {
+          color: routeColor,
+          weight: 3,
+          opacity: 0.8,
+        };
+      },
+      pointToLayer: (feature, latlng) => {
+        const routeColor = getRouteTypeColor(routeType);
+        return L.circleMarker(latlng, {
+          radius: 6,
+          fillColor: routeColor,
+          color: routeColor,
+          weight: 2,
+          opacity: 0.8,
+          fillOpacity: 0.6,
+        });
+      },
+    });
+
+    // Add existing route to drawn items
+    drawnItemsRef.current.addLayer(geoJsonLayer);
+
+    // Center map on dive site instead of fitting to route bounds
+    // This ensures the dive site marker is always visible and centered
+    if (diveSite?.latitude && diveSite?.longitude) {
+      const diveSiteLat = parseFloat(diveSite.latitude);
+      const diveSiteLng = parseFloat(diveSite.longitude);
+      map.setView([diveSiteLat, diveSiteLng], 16);
+    }
+  }, [existingRouteData, map, routeType]);
+
   // Get drawn features as GeoJSON
   const getDrawnFeatures = useCallback(() => {
     if (!drawnItemsRef.current) return null;
 
     const geoJson = drawnItemsRef.current.toGeoJSON();
-    
+
     // Check if geoJson is valid and has features
     if (!geoJson || typeof geoJson !== 'object') return null;
-    if (!geoJson.features || !Array.isArray(geoJson.features) || geoJson.features.length === 0) return null;
-    
+    if (!geoJson.features || !Array.isArray(geoJson.features) || geoJson.features.length === 0)
+      return null;
+
     return geoJson;
   }, []);
 
@@ -418,11 +532,20 @@ const DrawingMap = ({
   isSaving,
   error,
   clearError,
+  existingRouteData,
 }) => {
+  // Ensure we have valid coordinates
+  const centerLat = diveSite?.latitude ? parseFloat(diveSite.latitude) : 0;
+  const centerLng = diveSite?.longitude ? parseFloat(diveSite.longitude) : 0;
+
+  // Fallback to a default location if coordinates are invalid
+  const mapCenter =
+    centerLat !== 0 && centerLng !== 0 ? [centerLat, centerLng] : [25.344639, 34.778111];
+
   return (
     <div className='w-full h-full' style={{ height: '100%', minHeight: '400px' }}>
       <MapContainer
-        center={[diveSite?.latitude || 0, diveSite?.longitude || 0]}
+        center={mapCenter}
         zoom={16}
         className='w-full h-full'
         style={{ height: '100%', minHeight: '400px' }}
@@ -433,8 +556,8 @@ const DrawingMap = ({
         />
 
         {/* Dive site marker */}
-        {diveSite && (
-          <Marker position={[diveSite.latitude, diveSite.longitude]} zIndexOffset={1000}>
+        {diveSite && centerLat !== 0 && centerLng !== 0 && (
+          <Marker position={[centerLat, centerLng]} zIndexOffset={1000}>
             <Popup>
               <div className='text-center'>
                 <h3 className='font-semibold text-gray-800'>{diveSite.name}</h3>
@@ -460,6 +583,7 @@ const DrawingMap = ({
           isSaving={isSaving}
           error={error}
           clearError={clearError}
+          existingRouteData={existingRouteData}
         />
       </MapContainer>
     </div>
@@ -467,10 +591,10 @@ const DrawingMap = ({
 };
 
 // Main RouteDrawingCanvas component
-const RouteDrawingCanvas = ({ 
-  diveSite, 
-  onSave, 
-  onCancel, 
+const RouteDrawingCanvas = ({
+  diveSite,
+  onSave,
+  onCancel,
   isVisible = false,
   routeName = '',
   setRouteName,
@@ -478,25 +602,22 @@ const RouteDrawingCanvas = ({
   setRouteDescription,
   routeType = 'line',
   setRouteType,
-  showForm = true
+  showForm = true,
+  existingRouteData = null,
+  onRouteDataChange,
 }) => {
   const { user } = useAuth();
-  
-  // Authentication check - don't render if user is not logged in
-  if (!user) {
-    return null;
-  }
 
   // Use passed setters if provided, otherwise use local state
   const [localRouteName, setLocalRouteName] = useState(routeName);
   const [localRouteDescription, setLocalRouteDescription] = useState(routeDescription);
   const [localRouteType, setLocalRouteType] = useState(routeType);
-  
+
   // Use external setters if provided, otherwise use local setters
   const currentRouteName = setRouteName ? routeName : localRouteName;
   const currentRouteDescription = setRouteDescription ? routeDescription : localRouteDescription;
   const currentRouteType = setRouteType ? routeType : localRouteType;
-  
+
   const handleRouteNameChange = setRouteName || setLocalRouteName;
   const handleRouteDescriptionChange = setRouteDescription || setLocalRouteDescription;
   const handleRouteTypeChange = setRouteType || setLocalRouteType;
@@ -570,18 +691,29 @@ const RouteDrawingCanvas = ({
       if (saveRef.current) {
         const geoJson = saveRef.current();
         // geoJson is null when no features are drawn, so hasDrawnFeatures should be false
-        setHasDrawnFeatures(geoJson !== null && geoJson.features && geoJson.features.length > 0);
+        const hasFeatures = geoJson !== null && geoJson.features && geoJson.features.length > 0;
+        setHasDrawnFeatures(hasFeatures);
+
+        // Notify parent component of route data changes
+        if (onRouteDataChange) {
+          onRouteDataChange(hasFeatures ? geoJson : null);
+        }
       }
     };
 
     const interval = setInterval(checkFeatures, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [onRouteDataChange]);
+
+  // Authentication check - don't render if user is not logged in
+  if (!user) {
+    return null;
+  }
 
   if (!isVisible) return null;
 
   return (
-    <div className='w-full h-full relative'>
+    <div className='w-full h-full relative' style={{ height: 'calc(100vh - 180px)' }}>
       {/* Drawing Map - Full Screen */}
       <DrawingMap
         diveSite={diveSite}
@@ -599,6 +731,7 @@ const RouteDrawingCanvas = ({
         isSaving={isSaving}
         error={error}
         clearError={clearError}
+        existingRouteData={existingRouteData}
       />
 
       {/* Compact Drawing Controls - Top Right */}
@@ -619,10 +752,7 @@ const RouteDrawingCanvas = ({
             <div className='flex items-center'>
               <AlertCircle className='w-4 h-4 text-red-500 mr-2 flex-shrink-0' />
               <p className='text-sm text-red-700'>{error}</p>
-              <button
-                onClick={clearError}
-                className='ml-auto text-red-500 hover:text-red-700'
-              >
+              <button onClick={clearError} className='ml-auto text-red-500 hover:text-red-700'>
                 <X size={14} />
               </button>
             </div>
@@ -639,40 +769,42 @@ const RouteDrawingCanvas = ({
           </ul>
         </div>
 
-        {/* Action Buttons */}
-        <div className='space-y-2'>
-          <button
-            onClick={handleClear}
-            disabled={!hasDrawnFeatures || isDrawing || isSaving}
-            className='w-full flex items-center justify-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm touch-manipulation min-h-[36px]'
-          >
-            <RotateCcw className='w-4 h-4 mr-2' />
-            Clear
-          </button>
-          
-          <div className='flex space-x-2'>
+        {/* Action Buttons - Only show if showForm is true */}
+        {showForm && (
+          <div className='space-y-2'>
             <button
-              onClick={onCancel}
-              className='flex-1 px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm touch-manipulation min-h-[36px]'
+              onClick={handleClear}
+              disabled={!hasDrawnFeatures || isDrawing || isSaving}
+              className='w-full flex items-center justify-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm touch-manipulation min-h-[36px]'
             >
-              Cancel
+              <RotateCcw className='w-4 h-4 mr-2' />
+              Clear
             </button>
-            <button
-              onClick={handleSave}
-              disabled={!hasDrawnFeatures || isSaving}
-              className='flex-1 flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm touch-manipulation min-h-[36px]'
-            >
-              {isSaving ? (
-                <Loader2 className='w-4 h-4 animate-spin' />
-              ) : (
-                <>
-                  <Save className='w-4 h-4 mr-1' />
-                  Save
-                </>
-              )}
-            </button>
+
+            <div className='flex space-x-2'>
+              <button
+                onClick={onCancel}
+                className='flex-1 px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm touch-manipulation min-h-[36px]'
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!hasDrawnFeatures || isSaving}
+                className='flex-1 flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm touch-manipulation min-h-[36px]'
+              >
+                {isSaving ? (
+                  <Loader2 className='w-4 h-4 animate-spin' />
+                ) : (
+                  <>
+                    <Save className='w-4 h-4 mr-1' />
+                    Save
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -695,6 +827,8 @@ RouteDrawingCanvas.propTypes = {
   routeType: PropTypes.string,
   setRouteType: PropTypes.func,
   showForm: PropTypes.bool,
+  existingRouteData: PropTypes.object,
+  onRouteDataChange: PropTypes.func,
 };
 
 export default RouteDrawingCanvas;

@@ -872,6 +872,9 @@ class RouteType(str, enum.Enum):
     line = "line"
     polygon = "polygon"
     waypoints = "waypoints"
+    walk = "walk"
+    swim = "swim"
+    scuba = "scuba"
 
 
 class DiveRouteBase(BaseModel):
@@ -1006,6 +1009,11 @@ class DiveRouteWithDetails(DiveRouteResponse):
     """Extended response with related data"""
     dive_site: Optional[dict] = None  # Basic dive site info
     creator: Optional[dict] = None    # Basic creator info
+
+
+class DiveRouteWithCreator(DiveRouteResponse):
+    """Response with creator information"""
+    creator: Optional[dict] = None    # Creator information
 
 
 class DiveRouteListResponse(BaseModel):

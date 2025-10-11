@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
 
 import api from '../api';
+import DiveSiteRoutes from '../components/DiveSiteRoutes';
 import MaskedEmail from '../components/MaskedEmail';
 import MiniMap from '../components/MiniMap';
 import RateLimitError from '../components/RateLimitError';
@@ -72,7 +73,6 @@ const DiveSiteDetail = () => {
     {
       onSuccess: () => {
         toast.success('Route created successfully!');
-        setShowRouteDrawing(false);
         queryClient.invalidateQueries(['dive-site', id]);
         queryClient.invalidateQueries(['dive-site-routes', id]);
       },
@@ -373,9 +373,7 @@ const DiveSiteDetail = () => {
                       <button
                         onClick={handleDrawRouteClick}
                         className={`flex items-center justify-center px-3 py-1 text-white text-sm rounded-md transition-colors w-full sm:w-auto ${
-                          user 
-                            ? 'bg-green-600 hover:bg-green-700' 
-                            : 'bg-gray-500 hover:bg-gray-600'
+                          user ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-500 hover:bg-gray-600'
                         }`}
                       >
                         <Pencil className='w-4 h-4 mr-1' />
@@ -402,6 +400,9 @@ const DiveSiteDetail = () => {
               )}
             </div>
           ) : null}
+
+          {/* Available Routes */}
+          <DiveSiteRoutes diveSiteId={id} diveSiteName={diveSite.name} />
 
           {/* Nearby Dive Sites */}
           {nearbyDiveSites && nearbyDiveSites.length > 0 && (
@@ -892,7 +893,6 @@ const DiveSiteDetail = () => {
           )}
         </div>
       </div>
-
     </div>
   );
 };

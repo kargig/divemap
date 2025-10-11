@@ -223,7 +223,7 @@ export const getRouteDataSize = routeData => {
   }
 
   const jsonString = JSON.stringify(routeData);
-  const size = new Blob([jsonString]).size;
+  const size = new TextEncoder().encode(jsonString).length;
 
   return {
     size,

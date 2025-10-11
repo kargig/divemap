@@ -43,6 +43,7 @@ import Login from './pages/Login';
 import Privacy from './pages/Privacy';
 import Profile from './pages/Profile';
 import Register from './pages/Register';
+import RouteDetail from './pages/RouteDetail';
 import TripDetail from './pages/TripDetail';
 import UserProfile from './pages/UserProfile';
 
@@ -128,7 +129,16 @@ function App() {
                 <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />
                 <Route path='/dive-sites/:id/map' element={<DiveSiteMap />} />
                 <Route
-                  path='/dive-sites/:id/dive-route'
+                  path='/dive-sites/:diveSiteId/dive-route'
+                  element={
+                    <ProtectedRoute>
+                      <DiveRouteDrawing />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path='/dive-sites/:diveSiteId/route/:routeId' element={<RouteDetail />} />
+                <Route
+                  path='/dive-sites/:diveSiteId/route/:routeId/edit'
                   element={
                     <ProtectedRoute>
                       <DiveRouteDrawing />

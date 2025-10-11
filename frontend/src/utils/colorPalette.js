@@ -232,16 +232,51 @@ export const getColorsByCategory = category => {
   }
 };
 
+/**
+ * Route type color mapping
+ * Maps route types to appropriate colors from the colorblind-safe palette
+ */
+export const ROUTE_TYPE_COLORS = {
+  /** Walk routes - Green (safe, land-based) */
+  walk: '#009E73', // Okabe-Ito Bluish Green
+
+  /** Swim routes - Blue (water, surface) */
+  swim: '#0072B2', // Okabe-Ito Blue
+
+  /** Scuba routes - Orange (underwater, caution) */
+  scuba: '#E69F00', // Okabe-Ito Orange
+
+  /** Default line routes - Purple */
+  line: '#CC79A7', // Okabe-Ito Reddish Purple
+
+  /** Area routes - Vermillion */
+  polygon: '#D55E00', // Okabe-Ito Vermillion
+
+  /** Waypoints - Yellow */
+  waypoints: '#F0E442', // Okabe-Ito Yellow
+};
+
+/**
+ * Get color for a specific route type
+ * @param {string} routeType - The route type (walk, swim, scuba, line, polygon, waypoints)
+ * @returns {string} Hex color code for the route type
+ */
+export const getRouteTypeColor = routeType => {
+  return ROUTE_TYPE_COLORS[routeType] || ROUTE_TYPE_COLORS.line;
+};
+
 export default {
   CHART_COLORS,
   UI_COLORS,
   COLOR_NAMES,
   COLOR_ACCESSIBILITY,
   PROHIBITED_COMBINATIONS,
+  ROUTE_TYPE_COLORS,
   getColorName,
   getColorAccessibility,
   isProhibitedCombination,
   isValidColor,
   getAllColors,
   getColorsByCategory,
+  getRouteTypeColor,
 };

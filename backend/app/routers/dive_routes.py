@@ -7,7 +7,7 @@ validation, and soft delete support.
 
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, desc, asc, func
 from slowapi.util import get_remote_address
 
@@ -242,7 +242,9 @@ async def list_routes(
 ):
     """List dive routes with filtering and pagination"""
     # Build query
-    query = db.query(DiveRoute).filter(DiveRoute.deleted_at.is_(None))
+    query = db.query(DiveRoute).options(
+        joinedload(DiveRoute.creator)
+    ).filter(DiveRoute.deleted_at.is_(None))
     
     # Apply filters
     if dive_site_id:
@@ -310,7 +312,9 @@ async def get_routes_by_dive_site(
             detail="Dive site not found"
         )
     
-    routes = db.query(DiveRoute).filter(
+    routes = db.query(DiveRoute).options(
+        joinedload(DiveRoute.creator)
+    ).filter(
         and_(
             DiveRoute.dive_site_id == dive_site_id,
             DiveRoute.deleted_at.is_(None)

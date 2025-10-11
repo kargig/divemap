@@ -291,8 +291,87 @@ Implement a dive route drawing and selection system that allows users to draw th
 
 ## Review
 
-- [ ] Bug that needs fixing
-- [ ] Code that needs cleanup
+- [x] **CRITICAL BUG**: Multi-segment routes lose drawn segments when switching route types (walk → swim → scuba)
+- [x] **ARCHITECTURAL ISSUE**: Drawing controls are recreated when routeType changes, destroying existing segments
+- [x] **ROOT CAUSE**: useEffect dependencies include routeType, causing complete system recreation
+- [x] **SOLUTION**: Complete architectural rewrite to separate drawing infrastructure from segment management
+
+### Comprehensive Fix Plan
+
+#### **Root Cause Analysis**
+The problem is **architectural**: we're treating route type changes as requiring complete recreation of the drawing system, when we should treat it as just a color/style change for NEW segments only.
+
+#### **Core Issues**
+1. **Drawing Controls Recreation**: `useEffect` recreates entire system when `routeType` changes
+2. **FeatureGroup Destruction**: Existing drawn items are lost when controls are recreated  
+3. **State Synchronization**: No proper sync between React state and Leaflet layers
+4. **Color Application**: Colors are baked into drawing controls instead of applied dynamically
+
+#### **Architectural Solution**
+
+**Phase 1: Restructure State Management**
+- Remove internal `routeType` state from `MultiSegmentRouteCanvas`
+- Add `segments` state to track all drawn segments with their types and colors
+- Create `onDrawCreated` callback with proper dependencies using `useCallback`
+
+**Phase 2: Fix MapInitializer Architecture**  
+- Change `useEffect` dependencies to `[diveSite, onDrawCreated]` (NOT `routeType`)
+- Create persistent FeatureGroup that never gets recreated
+- Add segment restoration logic to restore existing segments on initialization
+- Remove `routeType` from drawing control configuration
+
+**Phase 3: Implement Segment Management**
+- Add segment list UI with type indicators, color swatches, and delete buttons
+- Add segment count display and clear all functionality
+- Ensure proper cleanup and state synchronization between React and Leaflet
+
+**Phase 4: Testing and Validation**
+- Test complete workflow: walk → swim → scuba segments
+- Verify segments persist when switching route types
+- Verify color application matches legend
+- Verify segment management works properly
+
+#### **Key Technical Changes**
+
+1. **State Management**:
+   ```javascript
+   // MultiSegmentRouteCanvas
+   const [segments, setSegments] = useState([]); // Track all segments
+   const onDrawCreated = useCallback((e) => {
+     // Apply current routeType color to new segment
+     // Add to persistent FeatureGroup
+     // Update segments state
+   }, [routeType, diveSite, setSegments]);
+   ```
+
+2. **MapInitializer Architecture**:
+   ```javascript
+   // MapInitializer
+   useEffect(() => {
+     // Initialize drawing controls ONCE
+     // Create persistent FeatureGroup
+     // Restore existing segments
+     // Set up event handlers
+   }, [diveSite, onDrawCreated]); // NOT routeType
+   ```
+
+3. **Segment Management**:
+   ```javascript
+   // Segment restoration
+   segments.forEach(segment => {
+     const layer = L.geoJSON(segment.geometry);
+     layer.setStyle({ color: segment.properties.color });
+     drawnItemsRef.current.addLayer(layer);
+   });
+   ```
+
+#### **Expected User Workflow**
+1. Select "Multi" mode → Select "Walk Route" → Draw walk segment (orange)
+2. Select "Swim Route" → Walk segment remains visible → Draw swim segment (blue)  
+3. Select "Scuba Route" → Both segments remain visible → Draw scuba segment (green)
+4. See all segments with different colors → Manage segments → Save complete route
+
+This is a **complete architectural rewrite** that addresses the root cause rather than symptoms. The solution separates drawing infrastructure (stable) from segment management (dynamic), ensuring segments persist across route type changes.
 
 ## Notes
 

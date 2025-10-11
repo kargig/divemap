@@ -52,6 +52,9 @@ class RouteType(enum.Enum):
     line = "line"
     polygon = "polygon"
     waypoints = "waypoints"
+    walk = "walk"
+    swim = "swim"
+    scuba = "scuba"
 
 class DivingOrganization(Base):
     __tablename__ = "diving_organizations"
