@@ -891,7 +891,6 @@ const DiveSiteDetail = () => {
               </div>
             </div>
           )}
-
         </div>
       </div>
     </div>

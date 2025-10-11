@@ -238,6 +238,17 @@ const DiveRouteDrawing = () => {
     console.log('routeData type:', typeof routeData);
     console.log('routeData keys:', routeData ? Object.keys(routeData) : 'null');
 
+    // Validation checks
+    if (!routeName.trim()) {
+      toast.error('Please enter a route name');
+      return;
+    }
+
+    if (routeName.trim().length < 3) {
+      toast.error('Route name must be at least 3 characters long');
+      return;
+    }
+
     // For multi-segment mode, use the stored multiSegmentData if no routeData is provided
     // For single mode, use the stored singleRouteData if no routeData is provided
     const dataToSave =
@@ -252,9 +263,25 @@ const DiveRouteDrawing = () => {
       return;
     }
 
-    if (!routeName.trim()) {
-      toast.error('Please enter a route name');
-      return;
+    // Validate route data structure
+    if (routeMode === 'multi') {
+      if (!dataToSave.type || dataToSave.type !== 'FeatureCollection') {
+        toast.error('Invalid multi-segment route data');
+        return;
+      }
+      if (!dataToSave.features || dataToSave.features.length === 0) {
+        toast.error('Please draw at least one route segment');
+        return;
+      }
+    } else {
+      if (!dataToSave.type || dataToSave.type !== 'Feature') {
+        toast.error('Invalid single route data');
+        return;
+      }
+      if (!dataToSave.geometry || !dataToSave.geometry.coordinates) {
+        toast.error('Please draw a complete route');
+        return;
+      }
     }
 
     // Determine route type based on mode and data
@@ -365,95 +392,121 @@ const DiveRouteDrawing = () => {
         </div>
       </div>
 
-      {/* Ultra-Compact Form - Fixed Position */}
+      {/* Enhanced Form - Fixed Position */}
       <div className='bg-white border-b fixed top-28 left-0 right-0 z-40 pointer-events-none'>
-        <div className='px-4 py-1'>
-          <div className='flex gap-2 max-w-4xl mx-auto'>
-            <div className='pointer-events-auto flex-1'>
-              <input
-                type='text'
-                value={routeName}
-                onChange={e => setRouteName(e.target.value)}
-                placeholder='Route Name *'
-                className='w-full px-2 py-1 border border-gray-300 rounded text-xs'
-                required
-              />
-            </div>
+        <div className='px-4 py-2'>
+          <div className='max-w-6xl mx-auto'>
+            {/* First Row - Basic Info */}
+            <div className='flex gap-3 mb-2'>
+              <div className='pointer-events-auto flex-1'>
+                <label className='block text-xs font-medium text-gray-700 mb-1'>Route Name *</label>
+                <input
+                  type='text'
+                  value={routeName}
+                  onChange={e => setRouteName(e.target.value)}
+                  placeholder='Enter route name...'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  required
+                />
+              </div>
 
-            <div className='pointer-events-auto w-24'>
-              <select
-                value={routeMode}
-                onChange={e => setRouteMode(e.target.value)}
-                className='w-full px-2 py-1 border border-gray-300 rounded text-xs'
-              >
-                <option value='single'>Single</option>
-                <option value='multi'>Multi</option>
-              </select>
-            </div>
+              <div className='pointer-events-auto w-32'>
+                <label className='block text-xs font-medium text-gray-700 mb-1'>Mode</label>
+                <select
+                  value={routeMode}
+                  onChange={e => setRouteMode(e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                >
+                  <option value='single'>Single Segment</option>
+                  <option value='multi'>Multi Segment</option>
+                </select>
+              </div>
 
-            <div className='pointer-events-auto w-32'>
-              <select
-                value={routeType}
-                onChange={e => setRouteType(e.target.value)}
-                className='w-full px-2 py-1 border border-gray-300 rounded text-xs'
-                disabled={false}
-              >
-                {routeMode === 'single' ? (
-                  <option value='scuba'>Scuba Route</option>
-                ) : (
-                  <>
-                    <option value='walk'>Walk Route</option>
-                    <option value='swim'>Swim Route</option>
+              <div className='pointer-events-auto w-40'>
+                <label className='block text-xs font-medium text-gray-700 mb-1'>Route Type</label>
+                <select
+                  value={routeType}
+                  onChange={e => setRouteType(e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  disabled={false}
+                >
+                  {routeMode === 'single' ? (
                     <option value='scuba'>Scuba Route</option>
-                  </>
-                )}
-              </select>
+                  ) : (
+                    <>
+                      <option value='walk'>Walk Route</option>
+                      <option value='swim'>Swim Route</option>
+                      <option value='scuba'>Scuba Route</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div className='pointer-events-auto flex items-end'>
+                <button
+                  onClick={handleCancel}
+                  className='px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm border border-gray-300 rounded-md hover:bg-gray-50'
+                >
+                  Cancel
+                </button>
+              </div>
+              <div className='pointer-events-auto flex items-end'>
+                <button
+                  onClick={() => handleSave(routeMode === 'single' ? singleRouteData : multiSegmentData)}
+                  disabled={isSaving || !routeName.trim()}
+                  className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm flex items-center'
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className='w-4 h-4 mr-2' />
+                      Save Route
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
-            <div className='pointer-events-auto flex-1'>
-              <input
-                type='text'
-                value={routeDescription}
-                onChange={e => setRouteDescription(e.target.value)}
-                placeholder='Description'
-                className='w-full px-2 py-1 border border-gray-300 rounded text-xs'
-              />
-            </div>
+            {/* Second Row - Description */}
+            <div className='flex gap-3'>
+              <div className='pointer-events-auto flex-1'>
+                <label className='block text-xs font-medium text-gray-700 mb-1'>Description</label>
+                <input
+                  type='text'
+                  value={routeDescription}
+                  onChange={e => setRouteDescription(e.target.value)}
+                  placeholder='Optional description of the route...'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                />
+              </div>
 
-            {/* Save and Cancel buttons - always visible */}
-            <div className='pointer-events-auto'>
-              <button
-                onClick={handleCancel}
-                className='px-3 py-1 text-gray-600 hover:text-gray-800 transition-colors text-xs border border-gray-300 rounded'
-              >
-                Cancel
-              </button>
-            </div>
-            <div className='pointer-events-auto'>
-              <button
-                onClick={() => handleSave()}
-                disabled={isSaving}
-                className='px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs flex items-center'
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className='w-3 h-3 mr-1 animate-spin' />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className='w-3 h-3 mr-1' />
-                    Save Route
-                  </>
-                )}
-              </button>
+              {/* Route Status Indicator */}
+              <div className='pointer-events-auto w-48 flex items-end'>
+                <div className='w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs text-gray-600'>
+                  {routeMode === 'multi' ? (
+                    multiSegmentData ? (
+                      <span className='text-green-600'>✓ Multi-segment route ready</span>
+                    ) : (
+                      <span className='text-orange-600'>⚠ Draw segments to continue</span>
+                    )
+                  ) : singleRouteData ? (
+                    <span className='text-green-600'>✓ Single route ready</span>
+                  ) : (
+                    <span className='text-orange-600'>⚠ Draw route to continue</span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Full-Screen Drawing Canvas - With Top Padding */}
-      <div className='flex-1 pt-32' style={{ height: 'calc(100vh - 180px)' }}>
+      <div className='flex-1 pt-40' style={{ height: 'calc(100vh - 200px)' }}>
         {routeMode === 'multi' ? (
           <MultiSegmentRouteCanvas
             diveSite={diveSite}

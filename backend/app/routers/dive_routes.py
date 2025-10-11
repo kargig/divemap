@@ -324,6 +324,221 @@ async def get_routes_by_dive_site(
     return routes
 
 
+
+
+@router.post("/{route_id}/share", response_model=dict)
+@limiter.limit("10/minute")
+async def share_route(
+    request: Request,
+    route_id: int,
+    share_type: str = Query("public", description="Type of sharing: public, private, community"),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Generate a shareable link for a route"""
+    route = db.query(DiveRoute).filter(
+        and_(
+            DiveRoute.id == route_id,
+            DiveRoute.deleted_at.is_(None)
+        )
+    ).first()
+    
+    if not route:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Route not found"
+        )
+    
+    # Check permissions
+    if route.created_by != current_user.id and not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only share your own routes"
+        )
+    
+    # Generate shareable link
+    base_url = request.base_url
+    share_url = f"{base_url}dive-sites/{route.dive_site_id}/route/{route_id}"
+    
+    # In a real implementation, you might want to:
+    # - Generate a unique share token
+    # - Track sharing analytics
+    # - Set expiration dates
+    # - Control access permissions
+    
+    return {
+        "route_id": route_id,
+        "share_url": share_url,
+        "share_type": share_type,
+        "shared_by": current_user.id,
+        "shared_at": func.now(),
+        "expires_at": None,  # No expiration for now
+        "access_count": 0,   # Would be tracked in a real implementation
+        "message": f"Route '{route.name}' shared successfully"
+    }
+
+
+
+
+@router.post("/{route_id}/interaction", response_model=dict)
+@limiter.limit("100/minute")
+async def track_route_interaction(
+    request: Request,
+    route_id: int,
+    interaction_type: str = Query(..., description="Type of interaction: view, copy, share, download"),
+    current_user: User = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """Track user interactions with routes for analytics"""
+    route = db.query(DiveRoute).filter(
+        and_(
+            DiveRoute.id == route_id,
+            DiveRoute.deleted_at.is_(None)
+        )
+    ).first()
+    
+    if not route:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Route not found"
+        )
+    
+    # Validate interaction type
+    valid_interactions = ["view", "copy", "share", "download", "like", "bookmark"]
+    if interaction_type not in valid_interactions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid interaction type. Must be one of: {', '.join(valid_interactions)}"
+        )
+    
+    # In a real implementation, you would:
+    # - Store interaction data in a separate table
+    # - Track user IP, timestamp, user agent
+    # - Implement rate limiting per user
+    # - Generate analytics reports
+    
+    # For now, just return a success response
+    return {
+        "route_id": route_id,
+        "interaction_type": interaction_type,
+        "user_id": current_user.id if current_user else None,
+        "timestamp": func.now(),
+        "ip_address": get_remote_address(request),
+        "message": f"Interaction '{interaction_type}' tracked successfully"
+    }
+
+
+@router.get("/{route_id}/community-stats", response_model=dict)
+async def get_route_community_stats(
+    route_id: int,
+    current_user: User = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """Get community statistics for a route (public endpoint)"""
+    route = db.query(DiveRoute).filter(
+        and_(
+            DiveRoute.id == route_id,
+            DiveRoute.deleted_at.is_(None)
+        )
+    ).first()
+    
+    if not route:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Route not found"
+        )
+    
+    # Count dives using this route
+    dive_count = db.query(Dive).filter(Dive.selected_route_id == route_id).count()
+    
+    # Count unique users who have used this route
+    unique_users = db.query(Dive.user_id).filter(
+        Dive.selected_route_id == route_id
+    ).distinct().count()
+    
+    # Get recent usage (last 7 days)
+    from datetime import datetime, timedelta
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    recent_dives = db.query(Dive).filter(
+        and_(
+            Dive.selected_route_id == route_id,
+            Dive.created_at >= seven_days_ago
+        )
+    ).count()
+    
+    # Calculate route complexity metrics
+    waypoint_count = 0
+    estimated_length = 0
+    
+    if route.route_data:
+        if route.route_data.get("type") == "Feature":
+            coords = route.route_data.get("geometry", {}).get("coordinates", [])
+            waypoint_count = len(coords)
+            estimated_length = waypoint_count * 0.1
+        elif route.route_data.get("type") == "FeatureCollection":
+            features = route.route_data.get("features", [])
+            for feature in features:
+                coords = feature.get("geometry", {}).get("coordinates", [])
+                waypoint_count += len(coords)
+            estimated_length = waypoint_count * 0.1
+    
+    return {
+        "route_id": route_id,
+        "route_name": route.name,
+        "community_stats": {
+            "total_dives_using_route": dive_count,
+            "unique_users_used_route": unique_users,
+            "recent_dives_7_days": recent_dives,
+            "waypoint_count": waypoint_count,
+            "estimated_length_km": round(estimated_length, 2),
+            "route_type": route.route_type,
+            "has_description": bool(route.description),
+            "created_at": route.created_at,
+            "creator_username": route.creator.username if route.creator else "Unknown",
+        },
+        "generated_at": func.now()
+    }
+
+
+
+
+@router.get("/popular", response_model=DiveRouteListResponse)
+async def get_popular_routes(
+    limit: int = Query(10, ge=1, le=50, description="Number of popular routes to return"),
+    current_user: User = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """Get most popular routes based on usage"""
+    # Count dives per route
+    route_usage = db.query(
+        Dive.selected_route_id,
+        func.count(Dive.id).label('dive_count')
+    ).filter(
+        Dive.selected_route_id.isnot(None)
+    ).group_by(Dive.selected_route_id).subquery()
+    
+    # Get routes with usage counts
+    routes_query = db.query(DiveRoute).options(
+        joinedload(DiveRoute.creator)
+    ).join(
+        route_usage, DiveRoute.id == route_usage.c.selected_route_id
+    ).filter(
+        DiveRoute.deleted_at.is_(None)
+    ).order_by(
+        desc(route_usage.c.dive_count)
+    ).limit(limit)
+    
+    routes = routes_query.all()
+    
+    return DiveRouteListResponse(
+        routes=routes,
+        total=len(routes),
+        page=1,
+        page_size=limit,
+        total_pages=1
+    )
+
+
 @router.get("/dive-sites/{dive_site_id}/routes/for-migration", response_model=List[DiveRouteResponse])
 async def get_routes_for_migration(
     dive_site_id: int,

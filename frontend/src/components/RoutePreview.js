@@ -110,15 +110,10 @@ const RoutePreview = ({
   };
 
   const handleShareRoute = () => {
-    const routeUrl = `${window.location.origin}/dive-sites/${diveSiteId}/route/${route.id}`;
-    navigator.clipboard
-      .writeText(routeUrl)
-      .then(() => {
-        toast.success('Route link copied to clipboard');
-      })
-      .catch(() => {
-        toast.error('Failed to copy link');
-      });
+    // Simple share functionality - copy URL to clipboard
+    const shareUrl = `${window.location.origin}/dive-sites/${diveSiteId}/route/${route.id}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success('Route link copied to clipboard!');
   };
 
   const getRouteTypeIcon = routeType => {

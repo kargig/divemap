@@ -300,72 +300,81 @@ const MapInitializer = ({
       // Drawing started
     };
 
-    const onDrawCreated = e => {
-      const { layerType, layer } = e;
+  const onDrawCreated = e => {
+    console.log('=== DEBUG: onDrawCreated called ===');
+    console.log('Event:', e);
+    console.log('Layer type:', e.layerType);
+    console.log('Layer:', e.layer);
+    
+    const { layerType, layer } = e;
 
-      // Apply snapping to coordinates
-      if (layerType === 'polyline' && layer.getLatLngs) {
-        const latlngs = layer.getLatLngs();
-        const snappedLatlngs = latlngs.map(latlng => snapToDiveSite(latlng));
-        layer.setLatLngs(snappedLatlngs);
-      } else if (layerType === 'polygon' && layer.getLatLngs) {
-        const latlngs = layer.getLatLngs()[0]; // Polygon has nested array
-        const snappedLatlngs = latlngs.map(latlng => snapToDiveSite(latlng));
-        layer.setLatLngs([snappedLatlngs]);
-      } else if (layerType === 'marker') {
-        const snappedLatlng = snapToDiveSite(layer.getLatLng());
-        layer.setLatLng(snappedLatlng);
+    // Apply snapping to coordinates
+    if (layerType === 'polyline' && layer.getLatLngs) {
+      const latlngs = layer.getLatLngs();
+      const snappedLatlngs = latlngs.map(latlng => snapToDiveSite(latlng));
+      layer.setLatLngs(snappedLatlngs);
+    } else if (layerType === 'polygon' && layer.getLatLngs) {
+      const latlngs = layer.getLatLngs()[0]; // Polygon has nested array
+      const snappedLatlngs = latlngs.map(latlng => snapToDiveSite(latlng));
+      layer.setLatLngs([snappedLatlngs]);
+    } else if (layerType === 'marker') {
+      const snappedLatlng = snapToDiveSite(layer.getLatLng());
+      layer.setLatLng(snappedLatlng);
+    }
+
+    console.log('Adding layer to drawnItemsRef.current');
+    drawnItemsRef.current.addLayer(layer);
+    console.log('Layer added. drawnItemsRef.current now has layers:', drawnItemsRef.current.getLayers().length);
+
+    // Apply the selected route type color to the drawn layer
+    const routeColor = getRouteTypeColor(routeType);
+    if (layerType === 'polyline') {
+      if (layer.setStyle) {
+        layer.setStyle({
+          color: routeColor,
+          weight: 4,
+          opacity: 0.8,
+        });
+      } else {
+        // Fallback for layers that don't support setStyle
+        layer.options.color = routeColor;
+        layer.options.weight = 4;
+        layer.options.opacity = 0.8;
       }
-
-      drawnItemsRef.current.addLayer(layer);
-
-      // Apply the selected route type color to the drawn layer
-      const routeColor = getRouteTypeColor(routeType);
-      if (layerType === 'polyline') {
-        if (layer.setStyle) {
-          layer.setStyle({
-            color: routeColor,
-            weight: 4,
-            opacity: 0.8,
-          });
-        } else {
-          // Fallback for layers that don't support setStyle
-          layer.options.color = routeColor;
-          layer.options.weight = 4;
-          layer.options.opacity = 0.8;
-        }
-      } else if (layerType === 'polygon') {
-        if (layer.setStyle) {
-          layer.setStyle({
-            color: routeColor,
-            weight: 3,
-            opacity: 0.6,
-            fillOpacity: 0.2,
-          });
-        } else {
-          // Fallback for layers that don't support setStyle
-          layer.options.color = routeColor;
-          layer.options.weight = 3;
-          layer.options.opacity = 0.6;
-          layer.options.fillOpacity = 0.2;
-        }
-      } else if (layerType === 'marker') {
-        if (layer.setStyle) {
-          layer.setStyle({
-            color: routeColor,
-            weight: 2,
-            opacity: 0.8,
-            fillOpacity: 0.6,
-          });
-        } else {
-          // Fallback for layers that don't support setStyle
-          layer.options.color = routeColor;
-          layer.options.weight = 2;
-          layer.options.opacity = 0.8;
-          layer.options.fillOpacity = 0.6;
-        }
+    } else if (layerType === 'polygon') {
+      if (layer.setStyle) {
+        layer.setStyle({
+          color: routeColor,
+          weight: 3,
+          opacity: 0.6,
+          fillOpacity: 0.2,
+        });
+      } else {
+        // Fallback for layers that don't support setStyle
+        layer.options.color = routeColor;
+        layer.options.weight = 3;
+        layer.options.opacity = 0.6;
+        layer.options.fillOpacity = 0.2;
       }
-    };
+    } else if (layerType === 'marker') {
+      if (layer.setStyle) {
+        layer.setStyle({
+          color: routeColor,
+          weight: 2,
+          opacity: 0.8,
+          fillOpacity: 0.6,
+        });
+      } else {
+        // Fallback for layers that don't support setStyle
+        layer.options.color = routeColor;
+        layer.options.weight = 2;
+        layer.options.opacity = 0.8;
+        layer.options.fillOpacity = 0.6;
+      }
+    }
+
+    console.log('=== DEBUG: onDrawCreated completed ===');
+  };
 
     const onDrawEdited = e => {
       // Feature was edited - apply snapping to edited coordinates
@@ -388,10 +397,16 @@ const MapInitializer = ({
           layer.setLatLng(snappedLatlng);
         }
       });
+
+      // ✅ FIX: Layer editing is handled by Leaflet automatically
+      // The getDrawnFeatures function will handle getting the updated GeoJSON data
     };
 
     const onDrawDeleted = e => {
       // Feature was deleted
+
+      // ✅ FIX: Layer deletion is handled by Leaflet automatically
+      // The getDrawnFeatures function will handle getting the updated GeoJSON data
     };
 
     // Add event listeners
@@ -476,19 +491,101 @@ const MapInitializer = ({
     }
   }, [existingRouteData, map, routeType]);
 
-  // Get drawn features as GeoJSON
+  // Get drawn features as GeoJSON - Custom implementation to handle Leaflet.draw layers
   const getDrawnFeatures = useCallback(() => {
-    if (!drawnItemsRef.current) return null;
-
-    const geoJson = drawnItemsRef.current.toGeoJSON();
-
-    // Check if geoJson is valid and has features
-    if (!geoJson || typeof geoJson !== 'object') return null;
-    if (!geoJson.features || !Array.isArray(geoJson.features) || geoJson.features.length === 0)
+    console.log('=== DEBUG: getDrawnFeatures called ===');
+    console.log('drawnItemsRef.current:', drawnItemsRef.current);
+    
+    if (!drawnItemsRef.current) {
+      console.log('drawnItemsRef.current is null, returning null');
       return null;
+    }
 
+    const layers = drawnItemsRef.current.getLayers();
+    console.log('Number of layers:', layers.length);
+    
+    if (layers.length === 0) {
+      console.log('No layers found, returning null');
+      return null;
+    }
+
+    // Manually convert layers to GeoJSON features
+    const features = [];
+    
+    layers.forEach((layer, index) => {
+      console.log(`Processing layer ${index}:`, layer);
+      
+      let geometry = null;
+      
+      // Determine layer type and extract coordinates
+      if (layer instanceof L.Polyline && !Array.isArray(layer.getLatLngs()[0])) {
+        // Single-segment polyline (LineString)
+        const latlngs = layer.getLatLngs();
+        const coordinates = latlngs.map(latlng => [latlng.lng, latlng.lat]);
+        geometry = {
+          type: 'LineString',
+          coordinates: coordinates
+        };
+        console.log(`Created LineString geometry:`, geometry);
+      } else if (layer instanceof L.Polygon) {
+        // Polygon
+        const latlngs = layer.getLatLngs()[0]; // Polygon has nested array
+        const coordinates = latlngs.map(latlng => [latlng.lng, latlng.lat]);
+        // Close the polygon by adding the first point at the end
+        coordinates.push(coordinates[0]);
+        geometry = {
+          type: 'Polygon',
+          coordinates: [coordinates]
+        };
+        console.log(`Created Polygon geometry:`, geometry);
+      } else if (layer instanceof L.Marker) {
+        // Point
+        const latlng = layer.getLatLng();
+        geometry = {
+          type: 'Point',
+          coordinates: [latlng.lng, latlng.lat]
+        };
+        console.log(`Created Point geometry:`, geometry);
+      } else if (layer instanceof L.Polyline) {
+        // Multi-segment polyline (MultiLineString)
+        const latlngs = layer.getLatLngs();
+        const coordinates = latlngs.map(segment => 
+          segment.map(latlng => [latlng.lng, latlng.lat])
+        );
+        geometry = {
+          type: 'MultiLineString',
+          coordinates: coordinates
+        };
+        console.log(`Created MultiLineString geometry:`, geometry);
+      }
+      
+      if (geometry) {
+        const feature = {
+          type: 'Feature',
+          geometry: geometry,
+          properties: {
+            routeType: routeType,
+            layerType: layer.constructor.name
+          }
+        };
+        features.push(feature);
+        console.log(`Added feature:`, feature);
+      }
+    });
+
+    if (features.length === 0) {
+      console.log('No valid features created, returning null');
+      return null;
+    }
+
+    const geoJson = {
+      type: 'FeatureCollection',
+      features: features
+    };
+    
+    console.log('Final GeoJSON:', geoJson);
     return geoJson;
-  }, []);
+  }, [routeType]);
 
   // Clear all drawn features
   const clearDrawnFeatures = useCallback(() => {
@@ -685,23 +782,38 @@ const RouteDrawingCanvas = ({
     setError(null);
   }, []);
 
-  // Update hasDrawnFeatures when features are drawn
+  // ✅ FIX: Watch for changes in saveRef and update state accordingly
   useEffect(() => {
-    const checkFeatures = () => {
+    const checkRouteData = () => {
+      console.log('=== DEBUG: checkRouteData called ===');
+      console.log('saveRef.current:', saveRef.current);
+      
       if (saveRef.current) {
         const geoJson = saveRef.current();
-        // geoJson is null when no features are drawn, so hasDrawnFeatures should be false
+        console.log('geoJson from saveRef.current():', geoJson);
+        console.log('geoJson type:', typeof geoJson);
+        console.log('geoJson features:', geoJson?.features);
+        
         const hasFeatures = geoJson !== null && geoJson.features && geoJson.features.length > 0;
+        console.log('hasFeatures:', hasFeatures);
+        
         setHasDrawnFeatures(hasFeatures);
-
+        
         // Notify parent component of route data changes
         if (onRouteDataChange) {
+          console.log('Calling onRouteDataChange with:', hasFeatures ? geoJson : null);
           onRouteDataChange(hasFeatures ? geoJson : null);
         }
+      } else {
+        console.log('saveRef.current is null/undefined');
       }
     };
 
-    const interval = window.setInterval(checkFeatures, 1000);
+    // Check immediately
+    checkRouteData();
+
+    // Set up a small interval to check for changes (much shorter than before)
+    const interval = window.setInterval(checkRouteData, 100); // Check every 100ms
     return () => window.clearInterval(interval);
   }, [onRouteDataChange]);
 
