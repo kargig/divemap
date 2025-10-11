@@ -402,7 +402,7 @@ const DiveSiteDetail = () => {
           ) : null}
 
           {/* Available Routes */}
-          <DiveSiteRoutes diveSiteId={id} diveSiteName={diveSite.name} />
+          <DiveSiteRoutes diveSiteId={id} />
 
           {/* Nearby Dive Sites */}
           {nearbyDiveSites && nearbyDiveSites.length > 0 && (
@@ -891,6 +891,7 @@ const DiveSiteDetail = () => {
               </div>
             </div>
           )}
+
         </div>
       </div>
     </div>
