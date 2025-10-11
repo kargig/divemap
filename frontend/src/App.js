@@ -25,6 +25,7 @@ import CreateDive from './pages/CreateDive';
 import CreateDiveSite from './pages/CreateDiveSite';
 import CreateDivingCenter from './pages/CreateDivingCenter';
 import DiveDetail from './pages/DiveDetail';
+import DiveRouteDrawing from './pages/DiveRouteDrawing';
 import Dives from './pages/Dives';
 import DiveSiteDetail from './pages/DiveSiteDetail';
 import DiveSiteMap from './pages/DiveSiteMap';
@@ -126,6 +127,14 @@ function App() {
                 <Route path='/dive-sites' element={<DiveSites />} />
                 <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />
                 <Route path='/dive-sites/:id/map' element={<DiveSiteMap />} />
+                <Route
+                  path='/dive-sites/:id/dive-route'
+                  element={
+                    <ProtectedRoute>
+                      <DiveRouteDrawing />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path='/dive-sites/create'
                   element={

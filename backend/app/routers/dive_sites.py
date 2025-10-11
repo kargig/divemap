@@ -7,14 +7,15 @@ import difflib
 import json
 
 from app.database import get_db
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, get_difficulty_label, OwnershipStatus
+from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, get_difficulty_label, OwnershipStatus
 from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse,
     SiteRatingCreate, SiteRatingResponse,
     SiteCommentCreate, SiteCommentUpdate, SiteCommentResponse,
     SiteMediaCreate, SiteMediaResponse,
     DiveSiteSearchParams, CenterDiveSiteCreate, DiveResponse,
-    DiveSiteAliasCreate, DiveSiteAliasUpdate, DiveSiteAliasResponse
+    DiveSiteAliasCreate, DiveSiteAliasUpdate, DiveSiteAliasResponse,
+    DiveRouteCreate, DiveRouteResponse
 )
 import requests
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, get_current_user
@@ -1990,3 +1991,71 @@ async def delete_dive_site_alias(
     db.commit()
 
     return {"message": "Alias deleted successfully"}
+
+
+# Dive Routes endpoints for dive sites
+@router.get("/{dive_site_id}/routes", response_model=List[DiveRouteResponse])
+async def get_dive_site_routes(
+    dive_site_id: int,
+    current_user: User = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """Get all routes for a specific dive site"""
+    # Verify dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+    
+    routes = db.query(DiveRoute).filter(
+        and_(
+            DiveRoute.dive_site_id == dive_site_id,
+            DiveRoute.deleted_at.is_(None)
+        )
+    ).order_by(desc(DiveRoute.created_at)).all()
+    
+    return routes
+
+
+@router.post("/{dive_site_id}/routes", response_model=DiveRouteResponse)
+@limiter.limit("10/minute")
+async def create_dive_site_route(
+    request: Request,
+    dive_site_id: int,
+    route_data: DiveRouteCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new route for a specific dive site"""
+    # Verify dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+    
+    # Ensure route_data.dive_site_id matches the URL parameter
+    if route_data.dive_site_id != dive_site_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Route dive_site_id must match URL parameter"
+        )
+    
+    # Create route
+    db_route = DiveRoute(
+        dive_site_id=dive_site_id,
+        created_by=current_user.id,
+        name=route_data.name,
+        description=route_data.description,
+        route_data=route_data.route_data,
+        route_type=route_data.route_type
+    )
+    
+    db.add(db_route)
+    db.commit()
+    db.refresh(db_route)
+    
+    return db_route

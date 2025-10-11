@@ -8,7 +8,7 @@ import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.routers import auth, dive_sites, users, diving_centers, tags, diving_organizations, user_certifications, newsletters, system, privacy
+from app.routers import auth, dive_sites, users, diving_centers, tags, diving_organizations, user_certifications, newsletters, system, privacy, dive_routes
 from app.routers.dives import router as dives_router
 from app.database import engine, get_db
 from app.models import Base, Dive, DiveSite, SiteRating, CenterRating, DivingCenter
@@ -219,6 +219,7 @@ app.include_router(tags.router, prefix="/api/v1/tags", tags=["Tags"])
 app.include_router(diving_organizations.router, prefix="/api/v1/diving-organizations", tags=["Diving Organizations"])
 app.include_router(user_certifications.router, prefix="/api/v1/user-certifications", tags=["User Certifications"])
 app.include_router(dives_router, prefix="/api/v1/dives", tags=["Dives"])
+app.include_router(dive_routes.router, prefix="/api/v1/dive-routes", tags=["Dive Routes"])
 app.include_router(newsletters.router, prefix="/api/v1/newsletters", tags=["Newsletters"])
 app.include_router(system.router, prefix="/api/v1/admin/system", tags=["System"])
 app.include_router(privacy.router, prefix="/api/v1/privacy", tags=["Privacy"])
