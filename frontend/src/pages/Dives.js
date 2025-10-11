@@ -26,9 +26,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api, { deleteDive } from '../api';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import DivesMap from '../components/DivesMap';
+import ErrorPage from '../components/ErrorPage';
 import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import ImportDivesModal from '../components/ImportDivesModal';
+import LoadingSkeleton from '../components/LoadingSkeleton';
 import MatchTypeBadge from '../components/MatchTypeBadge';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
@@ -805,28 +807,7 @@ const Dives = () => {
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
-  if (error) {
-    return (
-      <div className='py-6'>
-        {error.isRateLimited ? (
-          <RateLimitError
-            retryAfter={error.retryAfter}
-            onRetry={() => {
-              // Refetch the query when user clicks retry
-              window.location.reload();
-            }}
-          />
-        ) : (
-          <div className='text-center py-12'>
-            <p className='text-red-600'>Error loading dives: {error.message}</p>
-            <p className='text-sm text-gray-500 mt-2'>
-              {error.response?.data?.detail || error.message || 'An unexpected error occurred'}
-            </p>
-          </div>
-        )}
-      </div>
-    );
-  }
+  // Error handling is now done within the content area to preserve hero section
 
   return (
     <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
@@ -1010,7 +991,9 @@ const Dives = () => {
       />
 
       {/* Results Section */}
-      {isLoading ? (
+      {error ? (
+        <ErrorPage error={error} onRetry={() => window.location.reload()} />
+      ) : isLoading ? (
         <div className='flex justify-center items-center h-64'>
           <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div>
         </div>

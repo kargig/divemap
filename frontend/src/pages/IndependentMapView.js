@@ -16,6 +16,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGeolocated } from 'react-geolocated';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
+import ErrorPage from '../components/ErrorPage';
 import LeafletMapView from '../components/LeafletMapView';
 import MapLayersPanel from '../components/MapLayersPanel';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
@@ -480,53 +481,15 @@ const IndependentMapView = () => {
   }, []);
 
   if (error) {
-    const isRateLimited = error?.isRateLimited;
-    const retryAfter = error?.retryAfter;
-
     return (
       <div className='h-screen flex items-center justify-center bg-gray-50 overflow-hidden'>
-        <div className='text-center max-w-md mx-auto p-6'>
-          {isRateLimited ? (
-            <>
-              <div className='text-orange-500 text-6xl mb-4'>⚠️</div>
-              <div className='text-orange-600 text-xl mb-2 font-semibold'>Rate Limit Exceeded</div>
-              <div className='text-gray-600 mb-4'>
-                Too many requests to the server. Please wait a moment before trying again.
-                {retryAfter && (
-                  <div className='text-sm mt-2'>Retry after: {retryAfter} seconds</div>
-                )}
-                {retryCount > 0 && (
-                  <div className='text-sm mt-2 text-orange-600'>Retry attempt: {retryCount}/3</div>
-                )}
-              </div>
-              <div className='space-y-2'>
-                <button
-                  onClick={() => refetch()}
-                  className='bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors'
-                >
-                  Try Again
-                </button>
-                <div className='text-sm text-gray-500'>
-                  The map will automatically retry in a few moments
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className='text-red-500 text-6xl mb-4'>❌</div>
-              <div className='text-red-600 text-xl mb-2 font-semibold'>Error Loading Map Data</div>
-              <div className='text-gray-600 mb-4'>
-                {error?.message || 'An unexpected error occurred while loading the map.'}
-              </div>
-              <button
-                onClick={() => refetch()}
-                className='bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors'
-              >
-                Retry
-              </button>
-            </>
-          )}
-        </div>
+        <ErrorPage
+          error={error}
+          onRetry={() => refetch()}
+          showBack={false}
+          showHome={true}
+          className='max-w-md mx-auto p-6'
+        />
       </div>
     );
   }

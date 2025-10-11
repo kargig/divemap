@@ -11,7 +11,7 @@ import time
 import sqlalchemy as sa
 from pathlib import Path
 
-def wait_for_database(max_retries=25, fixed_delay=0.2):
+def wait_for_database(max_retries=50, fixed_delay=0.2):
     """Wait for database to be available with fixed intervals (optimized for cold starts)"""
     print("Waiting for database to be available...")
 
