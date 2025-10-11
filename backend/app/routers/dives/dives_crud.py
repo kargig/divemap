@@ -60,6 +60,23 @@ def create_dive(
                 detail="Diving center not found"
             )
 
+    # Validate selected route if provided
+    selected_route = None
+    if dive.selected_route_id:
+        from app.models import DiveRoute
+        selected_route = db.query(DiveRoute).filter(DiveRoute.id == dive.selected_route_id).first()
+        if not selected_route:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Selected route not found"
+            )
+        # Ensure the route belongs to the same dive site if dive site is specified
+        if dive.dive_site_id and selected_route.dive_site_id != dive.dive_site_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Selected route must belong to the same dive site"
+            )
+
     # Parse date and time
     try:
         dive_date = datetime.strptime(dive.dive_date, "%Y-%m-%d").date()
@@ -93,6 +110,7 @@ def create_dive(
         user_id=current_user.id,
         dive_site_id=dive.dive_site_id,
         diving_center_id=dive.diving_center_id,
+        selected_route_id=dive.selected_route_id,
         name=dive_name,
         is_private=dive.is_private,
         dive_information=dive.dive_information,
@@ -144,12 +162,30 @@ def create_dive(
                 "longitude": float(diving_center.longitude) if diving_center.longitude else None
             }
 
+    # Get selected route information if available
+    selected_route_info = None
+    if db_dive.selected_route_id:
+        from app.models import DiveRoute
+        selected_route = db.query(DiveRoute).options(joinedload(DiveRoute.creator)).filter(DiveRoute.id == db_dive.selected_route_id).first()
+        if selected_route:
+            selected_route_info = {
+                "id": selected_route.id,
+                "name": selected_route.name,
+                "description": selected_route.description,
+                "route_type": selected_route.route_type,
+                "route_data": selected_route.route_data,
+                "created_by": selected_route.created_by,
+                "creator_username": selected_route.creator.username,
+                "created_at": selected_route.created_at
+            }
+
     # Convert to dict to avoid SQLAlchemy relationship serialization issues
     dive_dict = {
         "id": db_dive.id,
         "user_id": db_dive.user_id,
         "dive_site_id": db_dive.dive_site_id,
         "diving_center_id": db_dive.diving_center_id,
+        "selected_route_id": db_dive.selected_route_id,
         "name": db_dive.name,
         "is_private": db_dive.is_private,
         "dive_information": db_dive.dive_information,
@@ -168,6 +204,7 @@ def create_dive(
         "updated_at": db_dive.updated_at,
         "dive_site": dive_site_info,
         "diving_center": diving_center_info,
+        "selected_route": selected_route_info,
         "media": [],
         "tags": [],
         "user_username": current_user.username
@@ -781,12 +818,30 @@ def get_dive(
     # Parse dive information to extract individual fields
     parsed_info = parse_dive_information_text(dive.dive_information)
 
+    # Get selected route information if available
+    selected_route_info = None
+    if dive.selected_route_id:
+        from app.models import DiveRoute
+        selected_route = db.query(DiveRoute).options(joinedload(DiveRoute.creator)).filter(DiveRoute.id == dive.selected_route_id).first()
+        if selected_route:
+            selected_route_info = {
+                "id": selected_route.id,
+                "name": selected_route.name,
+                "description": selected_route.description,
+                "route_type": selected_route.route_type,
+                "route_data": selected_route.route_data,
+                "created_by": selected_route.created_by,
+                "creator_username": selected_route.creator.username,
+                "created_at": selected_route.created_at
+            }
+
     # Convert SQLAlchemy object to dictionary to avoid serialization issues
     dive_dict = {
         "id": dive.id,
         "user_id": dive.user_id,
         "dive_site_id": dive.dive_site_id,
         "diving_center_id": dive.diving_center_id,
+        "selected_route_id": dive.selected_route_id,
         "name": dive.name,
         "is_private": dive.is_private,
         "dive_information": dive.dive_information,
@@ -809,6 +864,7 @@ def get_dive(
         "updated_at": dive.updated_at,
         "dive_site": dive_site_info,
         "diving_center": diving_center_info,
+        "selected_route": selected_route_info,
         "media": [],
         "tags": tags_dict,
         "user_username": dive.user.username,
@@ -995,6 +1051,23 @@ def update_dive(
                 detail="Diving center not found"
             )
 
+    # Validate selected route if provided
+    if dive_update.selected_route_id:
+        from app.models import DiveRoute
+        selected_route = db.query(DiveRoute).filter(DiveRoute.id == dive_update.selected_route_id).first()
+        if not selected_route:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Selected route not found"
+            )
+        # Ensure the route belongs to the same dive site if dive site is specified
+        dive_site_id = dive_update.dive_site_id if dive_update.dive_site_id is not None else dive.dive_site_id
+        if dive_site_id and selected_route.dive_site_id != dive_site_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Selected route must belong to the same dive site"
+            )
+
     # Parse date and time if provided
     if dive_update.dive_date:
         try:
@@ -1111,12 +1184,30 @@ def update_dive(
         for tag in dive_tags
     ]
 
+    # Get selected route information if available
+    selected_route_info = None
+    if dive.selected_route_id:
+        from app.models import DiveRoute
+        selected_route = db.query(DiveRoute).options(joinedload(DiveRoute.creator)).filter(DiveRoute.id == dive.selected_route_id).first()
+        if selected_route:
+            selected_route_info = {
+                "id": selected_route.id,
+                "name": selected_route.name,
+                "description": selected_route.description,
+                "route_type": selected_route.route_type,
+                "route_data": selected_route.route_data,
+                "created_by": selected_route.created_by,
+                "creator_username": selected_route.creator.username,
+                "created_at": selected_route.created_at
+            }
+
     # Convert SQLAlchemy object to dictionary to avoid serialization issues
     dive_dict = {
         "id": dive.id,
         "user_id": dive.user_id,
         "dive_site_id": dive.dive_site_id,
         "diving_center_id": dive.diving_center_id,
+        "selected_route_id": dive.selected_route_id,
         "name": dive.name,
         "is_private": dive.is_private,
         "dive_information": dive.dive_information,
@@ -1135,6 +1226,7 @@ def update_dive(
         "updated_at": dive.updated_at,
         "dive_site": dive_site_info,
         "diving_center": diving_center_info,
+        "selected_route": selected_route_info,
         "media": [],
         "tags": tags_dict,
         "user_username": current_user.username

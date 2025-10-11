@@ -701,8 +701,8 @@ const RouteDrawingCanvas = ({
       }
     };
 
-    const interval = setInterval(checkFeatures, 1000);
-    return () => clearInterval(interval);
+    const interval = window.setInterval(checkFeatures, 1000);
+    return () => window.clearInterval(interval);
   }, [onRouteDataChange]);
 
   // Authentication check - don't render if user is not logged in
