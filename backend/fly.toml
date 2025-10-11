@@ -35,10 +35,10 @@ primary_region = 'fra'
     hard_limit = 150
 
   [[http_service.checks]]
-    grace_period = "20s"
-    interval = "30s"
+    grace_period = "4s"
+    interval = "4s"
     method = "GET"
-    timeout = "5s"
+    timeout = "2s"
     path = "/health"
 
 [[vm]]
