@@ -18,8 +18,9 @@ cd frontend
 npm run build:with-compression
 cd ..
 
-# Create nginx frontend-build directory
-echo "📁 Preparing Nginx static assets directory..."
+# Clean up previous build and create nginx frontend-build directory
+echo "🧹 Cleaning up previous build..."
+rm -rf nginx/frontend-build
 mkdir -p nginx/frontend-build
 
 # Copy frontend build to nginx directory

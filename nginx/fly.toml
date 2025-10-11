@@ -35,10 +35,11 @@ primary_region = 'fra'
     soft_limit = 20
 
   [[http_service.checks]]
-    grace_period = "10s"
-    interval = "30s"
+    grace_period = "4s"
+    interval = "5s"
     method = "GET"
-    timeout = "10s"
+    timeout = "3s"
+    protocol = "http"
     path = "/nginx-health"
 
 # VM configuration
