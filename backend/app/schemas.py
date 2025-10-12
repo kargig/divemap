@@ -873,23 +873,59 @@ class PlatformStatsResponse(BaseModel):
 
 # Dive Route Schemas
 class RouteType(str, enum.Enum):
-    line = "line"
-    polygon = "polygon"
-    waypoints = "waypoints"
+    scuba = "scuba"
     walk = "walk"
     swim = "swim"
-    scuba = "scuba"
+
+class DrawingType(str, enum.Enum):
+    line = "line"
+    polygon = "polygon"
+    waypoint = "waypoint"
+    mixed = "mixed"
 
 
 class DiveRouteBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
-    route_data: dict = Field(..., description="2D GeoJSON format route data")
-    route_type: RouteType = RouteType.line
+    route_data: dict = Field(..., description="Multi-segment GeoJSON FeatureCollection")
+    route_type: RouteType
+    drawing_type: Optional[DrawingType] = None  # Make it optional - will be auto-detected
+
+    @staticmethod
+    def detect_drawing_type(route_data: dict) -> DrawingType:
+        """Auto-detect drawing type from GeoJSON geometry"""
+        if not route_data or not route_data.get('features'):
+            return DrawingType.line  # Default fallback
+        
+        geometry_types = []
+        for feature in route_data['features']:
+            if feature.get('geometry', {}).get('type'):
+                geometry_types.append(feature['geometry']['type'])
+        
+        if not geometry_types:
+            return DrawingType.line  # Default fallback
+        
+        # If all features are the same type, use that type
+        unique_types = list(set(geometry_types))
+        if len(unique_types) == 1:
+            geometry_type = unique_types[0]
+        else:
+            # If mixed types, return "mixed"
+            return DrawingType.mixed
+        
+        # Map geometry types to drawing types
+        if geometry_type in ['LineString', 'MultiLineString']:
+            return DrawingType.line
+        elif geometry_type in ['Polygon', 'MultiPolygon']:
+            return DrawingType.polygon
+        elif geometry_type in ['Point', 'MultiPoint']:
+            return DrawingType.waypoint
+        else:
+            return DrawingType.line  # Default fallback
 
     @validator('route_data')
     def validate_route_data(cls, v):
-        """Validate that route_data is valid 2D GeoJSON"""
+        """Validate that route_data is valid multi-segment GeoJSON FeatureCollection"""
         if not isinstance(v, dict):
             raise ValueError('route_data must be a dictionary')
         
@@ -897,62 +933,42 @@ class DiveRouteBase(BaseModel):
         if 'type' not in v:
             raise ValueError('route_data must have a "type" field')
         
-        if v['type'] not in ['Feature', 'FeatureCollection']:
-            raise ValueError('route_data type must be "Feature" or "FeatureCollection"')
+        if v['type'] != 'FeatureCollection':
+            raise ValueError('route_data type must be "FeatureCollection" for multi-segment routes')
         
-        if v['type'] == 'Feature':
-            # Feature must have geometry field
-            if 'geometry' not in v:
-                raise ValueError('Feature must have a "geometry" field')
+        if 'features' not in v:
+            raise ValueError('FeatureCollection must have a "features" field')
+        
+        features = v['features']
+        if not isinstance(features, list):
+            raise ValueError('features must be a list')
+        
+        if len(features) == 0:
+            raise ValueError('FeatureCollection must have at least one feature')
+        
+        # Validate each feature
+        for i, feature in enumerate(features):
+            if not isinstance(feature, dict):
+                raise ValueError(f'Feature {i} must be a dictionary')
             
-            geometry = v['geometry']
+            if 'type' not in feature or feature['type'] != 'Feature':
+                raise ValueError(f'Feature {i} must have type "Feature"')
+            
+            if 'geometry' not in feature:
+                raise ValueError(f'Feature {i} must have a "geometry" field')
+            
+            geometry = feature['geometry']
             if not isinstance(geometry, dict):
-                raise ValueError('geometry must be a dictionary')
+                raise ValueError(f'Feature {i} geometry must be a dictionary')
             
             if 'type' not in geometry:
-                raise ValueError('geometry must have a "type" field')
+                raise ValueError(f'Feature {i} geometry must have a "type" field')
             
             if geometry['type'] not in ['LineString', 'Polygon', 'Point', 'MultiLineString', 'MultiPolygon']:
-                raise ValueError('geometry type must be LineString, Polygon, Point, MultiLineString, or MultiPolygon')
+                raise ValueError(f'Feature {i} geometry type must be LineString, Polygon, Point, MultiLineString, or MultiPolygon')
             
             if 'coordinates' not in geometry:
-                raise ValueError('geometry must have a "coordinates" field')
-                
-        elif v['type'] == 'FeatureCollection':
-            # FeatureCollection must have features field
-            if 'features' not in v:
-                raise ValueError('FeatureCollection must have a "features" field')
-            
-            features = v['features']
-            if not isinstance(features, list):
-                raise ValueError('features must be a list')
-            
-            if len(features) == 0:
-                raise ValueError('FeatureCollection must have at least one feature')
-            
-            # Validate each feature
-            for i, feature in enumerate(features):
-                if not isinstance(feature, dict):
-                    raise ValueError(f'Feature {i} must be a dictionary')
-                
-                if 'type' not in feature or feature['type'] != 'Feature':
-                    raise ValueError(f'Feature {i} must have type "Feature"')
-                
-                if 'geometry' not in feature:
-                    raise ValueError(f'Feature {i} must have a "geometry" field')
-                
-                geometry = feature['geometry']
-                if not isinstance(geometry, dict):
-                    raise ValueError(f'Feature {i} geometry must be a dictionary')
-                
-                if 'type' not in geometry:
-                    raise ValueError(f'Feature {i} geometry must have a "type" field')
-                
-                if geometry['type'] not in ['LineString', 'Polygon', 'Point', 'MultiLineString', 'MultiPolygon']:
-                    raise ValueError(f'Feature {i} geometry type must be LineString, Polygon, Point, MultiLineString, or MultiPolygon')
-                
-                if 'coordinates' not in geometry:
-                    raise ValueError(f'Feature {i} geometry must have a "coordinates" field')
+                raise ValueError(f'Feature {i} geometry must have a "coordinates" field')
         
         # Validate coordinates are 2D (no depth data)
         def validate_coordinates_2d(coordinates):
@@ -986,10 +1002,11 @@ class DiveRouteUpdate(BaseModel):
     description: Optional[str] = None
     route_data: Optional[dict] = None
     route_type: Optional[RouteType] = None
+    drawing_type: Optional[DrawingType] = None
 
     @validator('route_data')
     def validate_route_data(cls, v):
-        """Validate that route_data is valid 2D GeoJSON if provided"""
+        """Validate that route_data is valid multi-segment GeoJSON FeatureCollection if provided"""
         if v is not None:
             # Reuse the same validation logic as DiveRouteBase
             return DiveRouteBase.validate_route_data(v)

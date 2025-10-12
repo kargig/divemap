@@ -1,12 +1,11 @@
 import { ArrowLeft, Save, RotateCcw, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import api from '../api';
-import MultiSegmentRouteCanvas from '../components/MultiSegmentRouteCanvas';
-import RouteDrawingCanvas from '../components/RouteDrawingCanvas';
+import RouteCanvas from '../components/RouteCanvas';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 
@@ -23,20 +22,64 @@ const DiveRouteDrawing = () => {
 
   const [routeName, setRouteName] = useState('');
   const [routeDescription, setRouteDescription] = useState('');
-  const [routeType, setRouteType] = useState('scuba'); // Default to scuba for single mode
-  const [routeMode, setRouteMode] = useState('single'); // 'single' or 'multi'
-  const [multiSegmentData, setMultiSegmentData] = useState(null);
-  const [singleRouteData, setSingleRouteData] = useState(null);
+  const [routeType, setRouteType] = useState('scuba'); // Default to scuba
+  const [routeData, setRouteData] = useState(null);
+
   const [isSaving, setIsSaving] = useState(false);
 
-  // Update route type when mode changes
-  useEffect(() => {
-    if (routeMode === 'single') {
-      setRouteType('scuba');
-    } else if (routeMode === 'multi') {
-      setRouteType('walk'); // Default to walk for multi-segment
+  // Function to auto-detect drawing type from GeoJSON geometry
+  const detectDrawingType = geoJsonData => {
+    if (!geoJsonData || !geoJsonData.features || geoJsonData.features.length === 0) {
+      return 'line'; // Default fallback
     }
-  }, [routeMode]);
+
+    const geometryTypes = geoJsonData.features
+      .map(feature => feature.geometry?.type)
+      .filter(Boolean);
+
+    // If all features are the same type, use that type
+    const uniqueTypes = [...new Set(geometryTypes)];
+    if (uniqueTypes.length === 1) {
+      switch (uniqueTypes[0]) {
+        case 'LineString':
+        case 'MultiLineString':
+          return 'line';
+        case 'Polygon':
+        case 'MultiPolygon':
+          return 'polygon';
+        case 'Point':
+        case 'MultiPoint':
+          return 'waypoint';
+        default:
+          return 'line';
+      }
+    }
+
+    // If mixed types, determine the primary type
+    const typeCounts = geometryTypes.reduce((acc, type) => {
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Return the most common type, defaulting to line
+    const mostCommonType = Object.keys(typeCounts).reduce((a, b) =>
+      typeCounts[a] > typeCounts[b] ? a : b
+    );
+
+    switch (mostCommonType) {
+      case 'LineString':
+      case 'MultiLineString':
+        return 'line';
+      case 'Polygon':
+      case 'MultiPolygon':
+        return 'polygon';
+      case 'Point':
+      case 'MultiPoint':
+        return 'waypoint';
+      default:
+        return 'line';
+    }
+  };
 
   // Fetch dive site data
   const {
@@ -60,7 +103,7 @@ const DiveRouteDrawing = () => {
     }
   );
 
-  // Detect if existing route is multi-segment and set appropriate mode
+  // Detect existing route and set appropriate data
   useEffect(() => {
     if (existingRoute?.route_data) {
       const routeData = existingRoute.route_data;
@@ -68,28 +111,10 @@ const DiveRouteDrawing = () => {
       // Populate form fields
       setRouteName(existingRoute.name || '');
       setRouteDescription(existingRoute.description || '');
+      setRouteType(existingRoute.route_type || 'scuba');
 
-      // Check if this is a multi-segment route
-      const isMultiSegment =
-        routeData.type === 'FeatureCollection' &&
-        routeData.features &&
-        routeData.features.length > 0 &&
-        routeData.features.some(
-          feature =>
-            feature.properties &&
-            feature.properties.segmentType &&
-            ['walk', 'swim', 'scuba'].includes(feature.properties.segmentType)
-        );
-
-      if (isMultiSegment) {
-        console.log('Detected multi-segment route, switching to multi mode');
-        setRouteMode('multi');
-        // Set the multi-segment data for editing
-        setMultiSegmentData(routeData);
-      } else {
-        console.log('Detected single-segment route, staying in single mode');
-        setRouteMode('single');
-      }
+      // Set the route data for editing
+      setRouteData(routeData);
     }
   }, [existingRoute]);
 
@@ -106,6 +131,7 @@ const DiveRouteDrawing = () => {
         description: routeData.description,
         route_data: routeData.route_data,
         route_type: routeData.route_type,
+        // drawing_type will be auto-detected by backend
       });
 
       console.log('=== DEBUG: API Response ===');
@@ -232,11 +258,12 @@ const DiveRouteDrawing = () => {
     return null;
   }
 
-  const handleSave = routeData => {
+  const handleSave = drawnRouteData => {
     console.log('=== DEBUG: handleSave called ===');
-    console.log('routeData received:', routeData);
-    console.log('routeData type:', typeof routeData);
-    console.log('routeData keys:', routeData ? Object.keys(routeData) : 'null');
+    console.log('drawnRouteData received:', drawnRouteData);
+    console.log('routeData state:', routeData);
+    console.log('routeName:', routeName);
+    console.log('routeType:', routeType);
 
     // Validation checks
     if (!routeName.trim()) {
@@ -249,46 +276,23 @@ const DiveRouteDrawing = () => {
       return;
     }
 
-    // For multi-segment mode, use the stored multiSegmentData if no routeData is provided
-    // For single mode, use the stored singleRouteData if no routeData is provided
-    const dataToSave =
-      routeMode === 'multi' && !routeData
-        ? multiSegmentData
-        : routeMode === 'single' && !routeData
-          ? singleRouteData
-          : routeData;
+    // Use the provided routeData or the stored routeData
+    const dataToSave = drawnRouteData || routeData;
+    console.log('dataToSave:', dataToSave);
 
     if (!dataToSave) {
       toast.error('Please draw a route before saving');
       return;
     }
 
-    // Validate route data structure
-    if (routeMode === 'multi') {
-      if (!dataToSave.type || dataToSave.type !== 'FeatureCollection') {
-        toast.error('Invalid multi-segment route data');
-        return;
-      }
-      if (!dataToSave.features || dataToSave.features.length === 0) {
-        toast.error('Please draw at least one route segment');
-        return;
-      }
-    } else {
-      if (!dataToSave.type || dataToSave.type !== 'Feature') {
-        toast.error('Invalid single route data');
-        return;
-      }
-      if (!dataToSave.geometry || !dataToSave.geometry.coordinates) {
-        toast.error('Please draw a complete route');
-        return;
-      }
+    // Validate route data structure (all routes are now multi-segment)
+    if (!dataToSave.type || dataToSave.type !== 'FeatureCollection') {
+      toast.error('Invalid route data');
+      return;
     }
-
-    // Determine route type based on mode and data
-    let finalRouteType = routeType;
-    if (routeMode === 'multi' && dataToSave.type === 'FeatureCollection') {
-      // For multi-segment routes, use 'line' as the base type
-      finalRouteType = 'line';
+    if (!dataToSave.features || dataToSave.features.length === 0) {
+      toast.error('Please draw at least one route segment');
+      return;
     }
 
     const payload = {
@@ -296,15 +300,15 @@ const DiveRouteDrawing = () => {
       name: routeName,
       description: routeDescription,
       route_data: dataToSave,
-      route_type: finalRouteType,
+      route_type: routeType,
+      // drawing_type will be auto-detected by backend from geometry
     };
 
     console.log('=== DEBUG: Payload being sent ===');
     console.log('Full payload:', payload);
-    console.log('route_data specifically:', payload.route_data);
-    console.log('route_data type:', typeof payload.route_data);
-    console.log('route_data has type field:', payload.route_data && 'type' in payload.route_data);
-    console.log('route_data.type value:', payload.route_data?.type);
+    console.log('detectDrawingType result:', detectDrawingType(dataToSave));
+    console.log('route_data.features:', dataToSave.features);
+    console.log('route_data.features[0]:', dataToSave.features[0]);
 
     if (isEditing) {
       updateRouteMutation.mutate(payload);
@@ -392,12 +396,12 @@ const DiveRouteDrawing = () => {
         </div>
       </div>
 
-      {/* Enhanced Form - Fixed Position */}
+      {/* Compact Form - Fixed Position */}
       <div className='bg-white border-b fixed top-28 left-0 right-0 z-40 pointer-events-none'>
-        <div className='px-4 py-2'>
+        <div className='px-4 py-1'>
           <div className='max-w-6xl mx-auto'>
-            {/* First Row - Basic Info */}
-            <div className='flex gap-3 mb-2'>
+            {/* Single Row - All Fields */}
+            <div className='flex gap-3 items-end'>
               <div className='pointer-events-auto flex-1'>
                 <label className='block text-xs font-medium text-gray-700 mb-1'>Route Name *</label>
                 <input
@@ -405,100 +409,74 @@ const DiveRouteDrawing = () => {
                   value={routeName}
                   onChange={e => setRouteName(e.target.value)}
                   placeholder='Enter route name...'
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  className='w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
                   required
                 />
               </div>
 
               <div className='pointer-events-auto w-32'>
-                <label className='block text-xs font-medium text-gray-700 mb-1'>Mode</label>
-                <select
-                  value={routeMode}
-                  onChange={e => setRouteMode(e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                >
-                  <option value='single'>Single Segment</option>
-                  <option value='multi'>Multi Segment</option>
-                </select>
-              </div>
-
-              <div className='pointer-events-auto w-40'>
-                <label className='block text-xs font-medium text-gray-700 mb-1'>Route Type</label>
+                <label className='block text-xs font-medium text-gray-700 mb-1'>Type</label>
                 <select
                   value={routeType}
                   onChange={e => setRouteType(e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                  disabled={false}
+                  className='w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
                 >
-                  {routeMode === 'single' ? (
-                    <option value='scuba'>Scuba Route</option>
-                  ) : (
-                    <>
-                      <option value='walk'>Walk Route</option>
-                      <option value='swim'>Swim Route</option>
-                      <option value='scuba'>Scuba Route</option>
-                    </>
-                  )}
+                  <option value='scuba'>Scuba</option>
+                  <option value='walk'>Walk</option>
+                  <option value='swim'>Swim</option>
                 </select>
               </div>
 
-              <div className='pointer-events-auto flex items-end'>
-                <button
-                  onClick={handleCancel}
-                  className='px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm border border-gray-300 rounded-md hover:bg-gray-50'
-                >
-                  Cancel
-                </button>
-              </div>
-              <div className='pointer-events-auto flex items-end'>
-                <button
-                  onClick={() => handleSave(routeMode === 'single' ? singleRouteData : multiSegmentData)}
-                  disabled={isSaving || !routeName.trim()}
-                  className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm flex items-center'
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className='w-4 h-4 mr-2' />
-                      Save Route
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Second Row - Description */}
-            <div className='flex gap-3'>
               <div className='pointer-events-auto flex-1'>
                 <label className='block text-xs font-medium text-gray-700 mb-1'>Description</label>
                 <input
                   type='text'
                   value={routeDescription}
                   onChange={e => setRouteDescription(e.target.value)}
-                  placeholder='Optional description of the route...'
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Optional description...'
+                  className='w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
                 />
               </div>
 
               {/* Route Status Indicator */}
-              <div className='pointer-events-auto w-48 flex items-end'>
-                <div className='w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs text-gray-600'>
-                  {routeMode === 'multi' ? (
-                    multiSegmentData ? (
-                      <span className='text-green-600'>✓ Multi-segment route ready</span>
-                    ) : (
-                      <span className='text-orange-600'>⚠ Draw segments to continue</span>
-                    )
-                  ) : singleRouteData ? (
-                    <span className='text-green-600'>✓ Single route ready</span>
+              <div className='pointer-events-auto w-32'>
+                <div className='px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs text-gray-600'>
+                  {routeData ? (
+                    <span className='text-green-600'>✓ Ready</span>
                   ) : (
-                    <span className='text-orange-600'>⚠ Draw route to continue</span>
+                    <span className='text-orange-600'>⚠ Draw first</span>
                   )}
                 </div>
+              </div>
+
+              <div className='pointer-events-auto flex gap-2'>
+                <button
+                  onClick={handleCancel}
+                  className='px-3 py-1 text-gray-600 hover:text-gray-800 transition-colors text-sm border border-gray-300 rounded hover:bg-gray-50'
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleSave(routeData)}
+                  disabled={isSaving || !routeName.trim() || !routeData}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    isSaving || !routeName.trim() || !routeData
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className='w-3 h-3 mr-1 animate-spin inline' />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className='w-3 h-3 mr-1 inline' />
+                      Save
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -506,39 +484,21 @@ const DiveRouteDrawing = () => {
       </div>
 
       {/* Full-Screen Drawing Canvas - With Top Padding */}
-      <div className='flex-1 pt-40' style={{ height: 'calc(100vh - 200px)' }}>
-        {routeMode === 'multi' ? (
-          <MultiSegmentRouteCanvas
-            diveSite={diveSite}
-            onSave={handleSave}
-            onCancel={handleCancel}
-            isVisible={true}
-            routeName={routeName}
-            setRouteName={setRouteName}
-            routeDescription={routeDescription}
-            setRouteDescription={setRouteDescription}
-            routeType={routeType}
-            showForm={false} // Hide the internal form as we have a compact one
-            onSegmentsChange={setMultiSegmentData} // Callback to update segments data
-            existingRouteData={existingRoute?.route_data} // Pass existing route data for editing
-          />
-        ) : (
-          <RouteDrawingCanvas
-            diveSite={diveSite}
-            onSave={handleSave}
-            onCancel={handleCancel}
-            isVisible={true}
-            routeName={routeName}
-            setRouteName={setRouteName}
-            routeDescription={routeDescription}
-            setRouteDescription={setRouteDescription}
-            routeType={routeType}
-            setRouteType={setRouteType}
-            existingRouteData={existingRoute?.route_data}
-            showForm={false} // Hide internal form as we have external buttons
-            onRouteDataChange={setSingleRouteData} // Callback to update route data
-          />
-        )}
+      <div className='flex-1 pt-32' style={{ height: 'calc(100vh - 160px)' }}>
+        <RouteCanvas
+          diveSite={diveSite}
+          onSave={handleSave}
+          onCancel={handleCancel}
+          isVisible={true}
+          routeName={routeName}
+          setRouteName={setRouteName}
+          routeDescription={routeDescription}
+          setRouteDescription={setRouteDescription}
+          routeType={routeType}
+          showForm={false} // Hide the internal form as we have a compact one
+          onSegmentsChange={setRouteData} // Callback to update route data
+          existingRouteData={existingRoute?.route_data} // Pass existing route data for editing
+        />
       </div>
     </div>
   );

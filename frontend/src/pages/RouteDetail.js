@@ -26,6 +26,7 @@ import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { CHART_COLORS, getRouteTypeColor } from '../utils/colorPalette';
 import { formatDate } from '../utils/dateHelpers';
+import { getRouteTypeLabel } from '../utils/routeUtils';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -244,6 +245,7 @@ const RouteDetail = () => {
         description: route.description,
         route_data: route.route_data,
         route_type: route.route_type,
+        drawing_type: route.drawing_type,
       };
 
       return api.post('/api/v1/dive-routes/', copyData);
@@ -287,49 +289,16 @@ const RouteDetail = () => {
 
   const getRouteTypeIcon = routeType => {
     switch (routeType) {
-      case 'line':
-        return <Route className='w-5 h-5' />;
-      case 'polygon':
-        return <MapPin className='w-5 h-5' />;
-      case 'waypoints':
-        return <MapPin className='w-5 h-5' />;
-      default:
-        return <Route className='w-5 h-5' />;
-    }
-  };
-
-  const getRouteTypeLabel = (routeType, routeData) => {
-    // Check if this is a multi-segment route
-    const isMultiSegment =
-      routeData?.type === 'FeatureCollection' &&
-      routeData?.features &&
-      routeData?.features.length > 0 &&
-      routeData?.features.some(
-        feature =>
-          feature.properties &&
-          feature.properties.segmentType &&
-          ['walk', 'swim', 'scuba'].includes(feature.properties.segmentType)
-      );
-
-    if (isMultiSegment) {
-      return 'Multi-Segment Route';
-    }
-
-    switch (routeType) {
-      case 'line':
-        return 'Line Route';
-      case 'polygon':
-        return 'Area Route';
-      case 'waypoints':
-        return 'Waypoints';
       case 'walk':
-        return 'Walk Route';
+        return <MapPin className='w-5 h-5' />;
       case 'swim':
-        return 'Swim Route';
+        return <MapPin className='w-5 h-5' />;
       case 'scuba':
-        return 'Scuba Route';
+        return <MapPin className='w-5 h-5' />;
+      case 'line':
+        return <Route className='w-5 h-5' />;
       default:
-        return 'Route';
+        return <Route className='w-5 h-5' />;
     }
   };
 
@@ -400,7 +369,7 @@ const RouteDetail = () => {
                     {route.name}
                   </h1>
                   <span className='px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full'>
-                    {getRouteTypeLabel(route.route_type, route.route_data)}
+                    {getRouteTypeLabel(route.route_type, route.drawing_type, route.route_data)}
                   </span>
                 </div>
                 <p className='text-sm text-gray-600'>
@@ -529,7 +498,9 @@ const RouteDetail = () => {
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm'>
             <div>
               <span className='font-medium text-gray-700'>Route Type:</span>
-              <span className='ml-2'>{getRouteTypeLabel(route.route_type, route.route_data)}</span>
+              <span className='ml-2'>
+                {getRouteTypeLabel(route.route_type, route.drawing_type, route.route_data)}
+              </span>
             </div>
             <div>
               <span className='font-medium text-gray-700'>Created:</span>
@@ -601,10 +572,6 @@ const getRouteTypeIcon = routeType => {
       return <Route className='w-5 h-5 text-orange-600' />;
     case 'line':
       return <Route className='w-5 h-5 text-purple-600' />;
-    case 'polygon':
-      return <Route className='w-5 h-5 text-red-600' />;
-    case 'waypoints':
-      return <Route className='w-5 h-5 text-yellow-600' />;
     default:
       return <Route className='w-5 h-5 text-gray-600' />;
   }

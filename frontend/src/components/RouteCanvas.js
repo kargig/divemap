@@ -2,20 +2,20 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import 'leaflet-draw';
-import { X, Save, RotateCcw, MapPin, AlertCircle, Loader2, Plus, Trash2 } from 'lucide-react';
+import { X, Save, RotateCcw, AlertCircle, Loader2, Trash2 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 
 import { useAuth } from '../contexts/AuthContext';
-import { CHART_COLORS, getRouteTypeColor } from '../utils/colorPalette';
+import { getRouteTypeColor } from '../utils/colorPalette';
 
 // Fix for default markers in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl: require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
 // Map initialization component
@@ -198,9 +198,14 @@ const MapInitializer = ({
   useEffect(() => {
     if (!map) return;
 
-    // Create drawn items layer
-    drawnItemsRef.current = new L.FeatureGroup();
-    map.addLayer(drawnItemsRef.current);
+    try {
+      // Create drawn items layer
+      drawnItemsRef.current = new L.FeatureGroup();
+      map.addLayer(drawnItemsRef.current);
+    } catch (error) {
+      console.warn('Error creating feature group:', error);
+      return;
+    }
 
     // Mobile detection
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -267,8 +272,13 @@ const MapInitializer = ({
       },
     });
 
-    map.addControl(drawControl);
-    drawControlRef.current = drawControl;
+    try {
+      map.addControl(drawControl);
+      drawControlRef.current = drawControl;
+    } catch (error) {
+      console.warn('Error adding draw control:', error);
+      return;
+    }
 
     // Drawing event handlers
     const onDrawStart = () => {
@@ -282,12 +292,20 @@ const MapInitializer = ({
     map.on(L.Draw.Event.DELETED, onDrawDeleted);
 
     return () => {
-      map.off(L.Draw.Event.DRAWSTART, onDrawStart);
-      map.off(L.Draw.Event.CREATED, onDrawCreated);
-      map.off(L.Draw.Event.EDITED, onDrawEdited);
-      map.off(L.Draw.Event.DELETED, onDrawDeleted);
-      map.removeControl(drawControl);
-      map.removeLayer(drawnItemsRef.current);
+      try {
+        map.off(L.Draw.Event.DRAWSTART, onDrawStart);
+        map.off(L.Draw.Event.CREATED, onDrawCreated);
+        map.off(L.Draw.Event.EDITED, onDrawEdited);
+        map.off(L.Draw.Event.DELETED, onDrawDeleted);
+        if (drawControlRef.current) {
+          map.removeControl(drawControlRef.current);
+        }
+        if (drawnItemsRef.current) {
+          map.removeLayer(drawnItemsRef.current);
+        }
+      } catch (error) {
+        console.warn('Error cleaning up map controls:', error);
+      }
     };
   }, [map, diveSite, onDrawCreated, onDrawEdited, onDrawDeleted]); // Only depend on diveSite, not routeType
 
@@ -295,22 +313,26 @@ const MapInitializer = ({
   useEffect(() => {
     if (!map || !drawnItemsRef.current) return;
 
-    // Clear existing layers
-    drawnItemsRef.current.clearLayers();
+    try {
+      // Clear existing layers
+      drawnItemsRef.current.clearLayers();
 
-    // Add all segments from the segments state
-    segments.forEach(segment => {
-      const layer = L.geoJSON(segment.geometry);
-      const color = segment.properties?.color || getRouteTypeColor(segment.type);
+      // Add all segments from the segments state
+      segments.forEach(segment => {
+        const layer = L.geoJSON(segment.geometry);
+        const color = segment.properties?.color || getRouteTypeColor(segment.type);
 
-      layer.setStyle({
-        color: color,
-        weight: segment.geometry.type === 'Polygon' ? 3 : 4,
-        opacity: segment.geometry.type === 'Polygon' ? 0.6 : 0.8,
-        fillOpacity: segment.geometry.type === 'Polygon' ? 0.2 : 1,
+        layer.setStyle({
+          color: color,
+          weight: segment.geometry.type === 'Polygon' ? 3 : 4,
+          opacity: segment.geometry.type === 'Polygon' ? 0.6 : 0.8,
+          fillOpacity: segment.geometry.type === 'Polygon' ? 0.2 : 1,
+        });
+        drawnItemsRef.current.addLayer(layer);
       });
-      drawnItemsRef.current.addLayer(layer);
-    });
+    } catch (error) {
+      console.warn('Error rendering segments:', error);
+    }
   }, [map, segments.length]); // Only re-render when the number of segments changes
 
   // Center map on dive site
@@ -325,7 +347,19 @@ const MapInitializer = ({
       return;
     }
 
-    map.setView([diveSiteLat, diveSiteLng], 16);
+    // Add a small delay to ensure map is fully initialized
+    const timer = setTimeout(() => {
+      try {
+        // Check if map container is properly initialized
+        if (map.getContainer() && map.getContainer().offsetParent !== null) {
+          map.setView([diveSiteLat, diveSiteLng], 16);
+        }
+      } catch (error) {
+        console.warn('Error setting map view:', error);
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [map, diveSite]);
 
   // This component doesn't render anything - it just initializes the map
@@ -384,8 +418,8 @@ const DrawingMap = ({
   );
 };
 
-// Main MultiSegmentRouteCanvas component
-const MultiSegmentRouteCanvas = ({
+// Main RouteCanvas component
+const RouteCanvas = ({
   diveSite,
   onSave,
   onCancel,
@@ -394,7 +428,7 @@ const MultiSegmentRouteCanvas = ({
   setRouteName,
   routeDescription = '',
   setRouteDescription,
-  routeType = 'walk',
+  routeType = 'scuba',
   showForm = true,
   onSegmentsChange,
   existingRouteData = null,
@@ -714,7 +748,7 @@ const MultiSegmentRouteCanvas = ({
   );
 };
 
-MultiSegmentRouteCanvas.propTypes = {
+RouteCanvas.propTypes = {
   diveSite: PropTypes.object.isRequired,
   onSave: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
@@ -729,4 +763,4 @@ MultiSegmentRouteCanvas.propTypes = {
   existingRouteData: PropTypes.object,
 };
 
-export default MultiSegmentRouteCanvas;
+export default RouteCanvas;

@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 
 import api from '../api';
-import { getRouteTypeColor } from '../utils/colorPalette';
 import { formatDate } from '../utils/dateHelpers';
+import { getRouteTypeLabel, getSmartRouteColor } from '../utils/routeUtils';
 
 const RouteSelection = ({ diveSiteId, selectedRouteId, onRouteSelect, disabled = false }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -93,9 +93,16 @@ const RouteSelection = ({ diveSiteId, selectedRouteId, onRouteSelect, disabled =
             <div className='flex items-center'>
               <div
                 className='w-3 h-3 rounded-full mr-2'
-                style={{ backgroundColor: getRouteTypeColor(selectedRoute.route_type) }}
+                style={{ backgroundColor: getSmartRouteColor(selectedRoute) }}
               />
               <span className='text-gray-900'>{selectedRoute.name}</span>
+              <span className='ml-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full'>
+                {getRouteTypeLabel(
+                  selectedRoute.route_type,
+                  selectedRoute.drawing_type,
+                  selectedRoute.route_data
+                )}
+              </span>
             </div>
           ) : (
             <span className='text-gray-500'>Select a route...</span>
@@ -127,13 +134,17 @@ const RouteSelection = ({ diveSiteId, selectedRouteId, onRouteSelect, disabled =
                   <div className='flex items-start'>
                     <div
                       className='w-3 h-3 rounded-full mr-3 mt-1 flex-shrink-0'
-                      style={{ backgroundColor: getRouteTypeColor(route.route_type) }}
+                      style={{ backgroundColor: getSmartRouteColor(route) }}
                     />
                     <div className='flex-1 min-w-0'>
                       <div className='flex items-center'>
                         <span className='font-medium text-gray-900 truncate'>{route.name}</span>
                         <span className='ml-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full'>
-                          {route.route_type}
+                          {getRouteTypeLabel(
+                            route.route_type,
+                            route.drawing_type,
+                            route.route_data
+                          )}
                         </span>
                       </div>
                       {route.description && (
@@ -162,14 +173,18 @@ const RouteSelection = ({ diveSiteId, selectedRouteId, onRouteSelect, disabled =
           <div className='flex items-start'>
             <div
               className='w-4 h-4 rounded-full mr-3 mt-1 flex-shrink-0'
-              style={{ backgroundColor: getRouteTypeColor(selectedRoute.route_type) }}
+              style={{ backgroundColor: getSmartRouteColor(selectedRoute) }}
             />
             <div className='flex-1'>
               <div className='flex items-center'>
                 <Route className='w-4 h-4 text-gray-500 mr-2' />
                 <span className='font-medium text-gray-900'>{selectedRoute.name}</span>
                 <span className='ml-2 px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded-full'>
-                  {selectedRoute.route_type}
+                  {getRouteTypeLabel(
+                    selectedRoute.route_type,
+                    selectedRoute.drawing_type,
+                    selectedRoute.route_data
+                  )}
                 </span>
               </div>
               {selectedRoute.description && (

@@ -257,12 +257,39 @@ export const ROUTE_TYPE_COLORS = {
 };
 
 /**
+ * Drawing type color mapping
+ * Maps drawing types to appropriate colors from the colorblind-safe palette
+ */
+export const DRAWING_TYPE_COLORS = {
+  /** Line drawing - Blue (primary drawing type) */
+  line: '#0072B2', // Okabe-Ito Blue
+
+  /** Polygon drawing - Orange (area-based) */
+  polygon: '#E69F00', // Okabe-Ito Orange
+
+  /** Waypoint drawing - Yellow (point markers) */
+  waypoint: '#F0E442', // Okabe-Ito Yellow
+
+  /** Mixed drawing - Purple (multiple geometry types) */
+  mixed: '#CC79A7', // Okabe-Ito Reddish Purple
+};
+
+/**
  * Get color for a specific route type
  * @param {string} routeType - The route type (walk, swim, scuba, line, polygon, waypoints)
  * @returns {string} Hex color code for the route type
  */
 export const getRouteTypeColor = routeType => {
   return ROUTE_TYPE_COLORS[routeType] || ROUTE_TYPE_COLORS.line;
+};
+
+/**
+ * Get color for a specific drawing type
+ * @param {string} drawingType - The drawing type (line, polygon, waypoint, mixed)
+ * @returns {string} Hex color code for the drawing type
+ */
+export const getDrawingTypeColor = drawingType => {
+  return DRAWING_TYPE_COLORS[drawingType] || DRAWING_TYPE_COLORS.line;
 };
 
 export default {
@@ -272,6 +299,7 @@ export default {
   COLOR_ACCESSIBILITY,
   PROHIBITED_COMBINATIONS,
   ROUTE_TYPE_COLORS,
+  DRAWING_TYPE_COLORS,
   getColorName,
   getColorAccessibility,
   isProhibitedCombination,
@@ -279,4 +307,5 @@ export default {
   getAllColors,
   getColorsByCategory,
   getRouteTypeColor,
+  getDrawingTypeColor,
 };

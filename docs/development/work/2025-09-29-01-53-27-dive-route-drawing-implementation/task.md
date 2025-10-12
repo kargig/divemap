@@ -11,7 +11,7 @@ Implement a dive route drawing and selection system that allows users to draw th
 
 ### Key Features
 
-- **Interactive Route Drawing**: Users can draw dive routes directly on dive site maps using mouse and touch interactions in a full-screen interface
+- **Multi-Segment Route Drawing**: Users can draw dive routes with multiple segments (walk, swim, scuba) directly on dive site maps using mouse and touch interactions in a full-screen interface
 - **2D Route Data**: Routes are stored as 2D GeoJSON only (no depth data) - drawing happens on 2D maps
 - **Dive Site Association**: Routes are linked to dive sites, making them reusable across multiple dives at the same location
 - **Route Selection**: Users can select from available routes when creating or editing dives
@@ -21,11 +21,18 @@ Implement a dive route drawing and selection system that allows users to draw th
 - **Mobile Optimization**: Touch-optimized drawing interface that works smoothly on mobile devices
 - **Seamless Integration**: Routes are displayed in dive detail pages and can be selected during dive creation
 
+### Route Types
+
+- **Walk Route**: Orange colored segments for surface walking paths
+- **Swim Route**: Blue colored segments for surface swimming paths  
+- **Scuba Route**: Green colored segments for underwater diving paths
+- **Line Route**: Yellow colored segments for general line paths
+
 ## Success Criteria
 
 ### Functional Requirements
 
-- [x] Users can draw dive routes on dive site maps using mouse and touch in full-screen interface
+- [x] Users can draw dive routes with multiple segments on dive site maps using mouse and touch in full-screen interface
 - [x] Routes are stored as 2D GeoJSON only (no depth data) - drawing happens on 2D maps
 - [x] Routes are properly associated with dive sites (not individual dives) for reusability
 - [x] Route data is stored and retrieved correctly from the database using simplified schema
@@ -93,17 +100,18 @@ Implement a dive route drawing and selection system that allows users to draw th
 - **Service**: `backend/app/services/route_deletion_service.py` - Updated with two-tier deletion
 - **Task**: `docs/development/work/2025-09-29-01-53-27-dive-route-drawing-implementation/task.md` - Updated plan
 
-### Phase 3: Route Drawing Interface (Week 3) ✅ COMPLETED
+### Phase 3: Multi-Segment Route Drawing Interface (Week 3) ✅ COMPLETED
 
 - [x] Install and configure Leaflet.draw plugin in frontend
-- [x] Create full-screen RouteDrawingCanvas component with touch/mouse support
+- [x] Create full-screen MultiSegmentRouteCanvas component with touch/mouse support
 - [x] Add "Draw Route" button to dive site detail pages that opens full-screen drawing interface
 - [x] Implement real-time route preview during drawing with waypoint markers
 - [x] Add route validation on frontend (geometry, metadata, required fields)
+- [x] Support multiple route types (walk, swim, scuba, line) with different colors
 
 #### Phase 3 Files Created/Modified
 
-- **Component**: `frontend/src/components/RouteDrawingCanvas.js` - Full-screen drawing interface with Leaflet.draw
+- **Component**: `frontend/src/components/MultiSegmentRouteCanvas.js` - Full-screen multi-segment drawing interface with Leaflet.draw
 - **Page**: `frontend/src/pages/DiveSiteDetail.js` - Added Draw Route button and integration
 - **Package**: `frontend/package.json` - Added leaflet-draw dependency
 - **Task**: `docs/development/work/2025-09-29-01-53-27-dive-route-drawing-implementation/task.md` - Updated plan
@@ -118,7 +126,7 @@ Implement a dive route drawing and selection system that allows users to draw th
 
 #### Phase 4 Files Created/Modified
 
-- **Component**: `frontend/src/components/RouteDrawingCanvas.js` - Enhanced with mobile optimization, error handling, route snapping
+- **Component**: `frontend/src/components/MultiSegmentRouteCanvas.js` - Enhanced with mobile optimization, error handling, route snapping
 - **Utility**: `frontend/src/utils/routeCompression.js` - Route data compression utilities for performance
 - **Task**: `docs/development/work/2025-09-29-01-53-27-dive-route-drawing-implementation/task.md` - Updated plan
 
@@ -458,14 +466,51 @@ This feature completes Phase 7: Dive Integration.
 
 ### Key Components Implemented
 
-- **RouteDrawingCanvas**: Full-screen drawing interface with Leaflet.draw
-- **MultiSegmentRouteCanvas**: Advanced multi-segment route drawing
+- **MultiSegmentRouteCanvas**: Full-screen multi-segment drawing interface with Leaflet.draw
 - **DiveSiteRoutes**: Simplified route listing and management
 - **RoutePreview**: Streamlined route display component with essential actions only
 - **DiveSiteMap**: Enhanced with route layer display, toggle controls, and route legends
 - **RouteSelection**: Component for selecting routes in dive creation/edit forms
 - **Backend API**: Complete CRUD operations with soft delete support and community features
 - **Database Schema**: DiveRoute model with 2D GeoJSON storage
+
+## Architectural Changes Required
+
+### Single Segment Route Removal
+
+**CRITICAL**: Completely remove single segment dive route functionality and rename multi-segment routes to just "dive routes".
+
+#### Changes Required
+
+1. **Backend Changes**:
+   - Remove `RouteType` enum values for single segment routes
+   - Update database schema to remove single segment route support
+   - Update API endpoints to only handle multi-segment routes
+   - Remove single segment route validation logic
+
+2. **Frontend Changes**:
+   - Remove `RouteDrawingCanvas.js` component entirely
+   - Rename `MultiSegmentRouteCanvas.js` to `RouteCanvas.js`
+   - Update all references from "multi-segment" to just "route"
+   - Remove single segment route UI elements and logic
+   - Update route creation forms to only support multi-segment
+
+3. **Database Changes**:
+   - Update migration to remove single segment route support
+   - Update existing route data to use multi-segment format
+   - Remove single segment route constraints
+
+4. **UI/UX Changes**:
+   - Update all user-facing text to remove "multi-segment" terminology
+   - Simplify route creation interface to only show segment types
+   - Update route display components to handle only multi-segment format
+
+#### Rationale
+
+- Multi-segment routes already work correctly and can handle single segments
+- Single segment routes have repeatedly failed to work as expected
+- Simplifying to one route type reduces complexity and maintenance burden
+- Users can create single-segment routes by only drawing one segment type
 
 ## Related Documentation
 

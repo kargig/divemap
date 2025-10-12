@@ -1,3 +1,4 @@
+import L from 'leaflet';
 import {
   ArrowLeft,
   Edit,
@@ -16,10 +17,9 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useParams, useSearchParams, Link as RouterLink } from 'react-router-dom';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
-import L from 'leaflet';
 
 import api, { getDive, deleteDive, deleteDiveMedia } from '../api';
 import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
@@ -27,7 +27,7 @@ import DiveProfileModal from '../components/DiveProfileModal';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { getRouteTypeColor } from '../utils/colorPalette';
+import { getRouteTypeColor, getDrawingTypeColor } from '../utils/colorPalette';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { renderTextWithLinks } from '../utils/textHelpers';
@@ -35,7 +35,7 @@ import { renderTextWithLinks } from '../utils/textHelpers';
 // Custom zoom control component for dive detail page
 const ZoomControl = ({ currentZoom }) => {
   return (
-    <div className="absolute top-2 left-12 bg-white rounded px-2 py-1 text-xs font-medium z-10 shadow-sm border border-gray-200">
+    <div className='absolute top-2 left-12 bg-white rounded px-2 py-1 text-xs font-medium z-10 shadow-sm border border-gray-200'>
       Zoom: {currentZoom.toFixed(1)}
     </div>
   );
@@ -51,7 +51,7 @@ const ZoomTracker = ({ onZoomChange }) => {
     };
 
     map.on('zoomend', handleZoomEnd);
-    
+
     // Set initial zoom
     onZoomChange(map.getZoom());
 
@@ -87,17 +87,17 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
           className: 'dive-site-marker',
           html: '<div style="background-color: #dc2626; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
           iconSize: [20, 20],
-          iconAnchor: [10, 10]
-        })
+          iconAnchor: [10, 10],
+        }),
       });
-      
+
       diveSiteMarker.bindPopup(`
         <div class="p-2">
           <h3 class="font-semibold text-gray-800 mb-1">${diveSite.name}</h3>
           <p class="text-sm text-gray-600">Dive Site</p>
         </div>
       `);
-      
+
       map.addLayer(diveSiteMarker);
       diveSiteMarkerRef.current = diveSiteMarker;
     }
@@ -188,9 +188,9 @@ const DiveDetail = () => {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [routeMapViewport, setRouteMapViewport] = useState({
     center: [38.1158243, 23.2146529], // Default to Psatha dive site coordinates
-    zoom: 16,
+    zoom: 15,
   });
-  const [currentZoom, setCurrentZoom] = useState(16);
+  const [currentZoom, setCurrentZoom] = useState(15);
 
   // Handle tab change and update URL
   const handleTabChange = tab => {
@@ -245,28 +245,41 @@ const DiveDetail = () => {
   useEffect(() => {
     if (dive?.dive_site) {
       // Always set center to dive site coordinates as fallback
-      let center = [dive.dive_site.latitude, dive.dive_site.longitude];
-      
+      let center = [parseFloat(dive.dive_site.latitude), parseFloat(dive.dive_site.longitude)];
+
+      // Validate dive site coordinates
+      if (isNaN(center[0]) || isNaN(center[1])) {
+        console.warn(
+          'Invalid dive site coordinates:',
+          dive.dive_site.latitude,
+          dive.dive_site.longitude
+        );
+        center = [37.8372191, 23.696668]; // Default to Psatha coordinates
+      }
+
       // If route data is available, calculate center from route coordinates
       if (dive?.selected_route?.route_data) {
-        if (dive.selected_route.route_data.type === 'Feature') {
-          const coords = dive.selected_route.route_data.geometry?.coordinates;
-          if (coords && coords.length > 0) {
-            // Calculate center from route coordinates
-            const lats = coords.map(coord => coord[1]);
-            const lngs = coords.map(coord => coord[0]);
-            const avgLat = lats.reduce((a, b) => a + b, 0) / lats.length;
-            const avgLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
-            center = [avgLat, avgLng];
-          }
-        } else if (dive.selected_route.route_data.type === 'FeatureCollection') {
+        if (dive.selected_route.route_data.type === 'FeatureCollection') {
           const features = dive.selected_route.route_data.features;
           if (features && features.length > 0) {
             // Calculate center from all features
             let allCoords = [];
             features.forEach(feature => {
               if (feature.geometry?.coordinates) {
-                allCoords = allCoords.concat(feature.geometry.coordinates);
+                const coords = feature.geometry.coordinates;
+                if (feature.geometry.type === 'Polygon') {
+                  // For Polygon: coordinates is [[[lng, lat], [lng, lat], ...]]
+                  // Flatten the outer ring (first array)
+                  if (coords[0] && Array.isArray(coords[0])) {
+                    allCoords = allCoords.concat(coords[0]);
+                  }
+                } else if (feature.geometry.type === 'LineString') {
+                  // For LineString: coordinates is [[lng, lat], [lng, lat], ...]
+                  allCoords = allCoords.concat(coords);
+                } else if (feature.geometry.type === 'Point') {
+                  // For Point: coordinates is [lng, lat]
+                  allCoords.push(coords);
+                }
               }
             });
             if (allCoords.length > 0) {
@@ -274,7 +287,11 @@ const DiveDetail = () => {
               const lngs = allCoords.map(coord => coord[0]);
               const avgLat = lats.reduce((a, b) => a + b, 0) / lats.length;
               const avgLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
-              center = [avgLat, avgLng];
+
+              // Validate coordinates are not NaN
+              if (!isNaN(avgLat) && !isNaN(avgLng)) {
+                center = [avgLat, avgLng];
+              }
             }
           }
         }
@@ -282,7 +299,7 @@ const DiveDetail = () => {
 
       setRouteMapViewport({
         center,
-        zoom: 16, // Default zoom level for route visualization
+        zoom: 15, // Default zoom level for route visualization
       });
     }
   }, [dive]);
@@ -576,14 +593,14 @@ const DiveDetail = () => {
                 </div>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div className='flex items-center gap-2'>
-                    <Calendar size={16} className='text-gray-500' />
+                    <Calendar size={15} className='text-gray-500' />
                     <span className='text-sm text-gray-600'>Date:</span>
                     <span className='font-medium'>{formatDate(dive.dive_date)}</span>
                   </div>
 
                   {dive.dive_time && (
                     <div className='flex items-center gap-2'>
-                      <Clock size={16} className='text-gray-500' />
+                      <Clock size={15} className='text-gray-500' />
                       <span className='text-sm text-gray-600'>Time:</span>
                       <span className='font-medium'>{formatTime(dive.dive_time)}</span>
                     </div>
@@ -591,7 +608,7 @@ const DiveDetail = () => {
 
                   {dive.duration && (
                     <div className='flex items-center gap-2'>
-                      <Clock size={16} className='text-gray-500' />
+                      <Clock size={15} className='text-gray-500' />
                       <span className='text-sm text-gray-600'>Duration:</span>
                       <span className='font-medium'>{dive.duration} minutes</span>
                     </div>
@@ -599,7 +616,7 @@ const DiveDetail = () => {
 
                   {dive.max_depth && (
                     <div className='flex items-center gap-2'>
-                      <Thermometer size={16} className='text-gray-500' />
+                      <Thermometer size={15} className='text-gray-500' />
                       <span className='text-sm text-gray-600'>Max Depth:</span>
                       <span className='font-medium'>{dive.max_depth}m</span>
                     </div>
@@ -607,7 +624,7 @@ const DiveDetail = () => {
 
                   {dive.average_depth && (
                     <div className='flex items-center gap-2'>
-                      <Thermometer size={16} className='text-gray-500' />
+                      <Thermometer size={15} className='text-gray-500' />
                       <span className='text-sm text-gray-600'>Avg Depth:</span>
                       <span className='font-medium'>{dive.average_depth}m</span>
                     </div>
@@ -615,7 +632,7 @@ const DiveDetail = () => {
 
                   {dive.visibility_rating && (
                     <div className='flex items-center gap-2'>
-                      <Eye size={16} className='text-gray-500' />
+                      <Eye size={15} className='text-gray-500' />
                       <span className='text-sm text-gray-600'>Visibility:</span>
                       <span className='font-medium'>{dive.visibility_rating}/10</span>
                     </div>
@@ -623,7 +640,7 @@ const DiveDetail = () => {
 
                   {dive.user_rating && (
                     <div className='flex items-center gap-2'>
-                      <Star size={16} className='text-yellow-500' />
+                      <Star size={15} className='text-yellow-500' />
                       <span className='text-sm text-gray-600'>Your Rating:</span>
                       <span className='font-medium'>{dive.user_rating}/10</span>
                     </div>
@@ -854,9 +871,7 @@ const DiveDetail = () => {
                           />
                           <ZoomTracker onZoomChange={setCurrentZoom} />
                         </MapContainer>
-                        <ZoomControl 
-                          currentZoom={currentZoom} 
-                        />
+                        <ZoomControl currentZoom={currentZoom} />
                       </>
                     ) : (
                       <div className='h-full bg-gray-200 flex items-center justify-center'>
@@ -875,45 +890,28 @@ const DiveDetail = () => {
                         <Route className='w-4 h-4 mr-2 text-gray-600' />
                         <span className='text-sm font-medium text-gray-800'>Route Types</span>
                       </div>
-                      <div className='space-y-2 text-xs'>
-                        {/* Single segment routes */}
-                        <div>
-                          <div className='text-xs font-medium text-gray-600 mb-1'>Single segment</div>
-                          <div className='flex items-center gap-2 ml-2'>
-                            <div
-                              className='w-3 h-3 rounded-full'
-                              style={{ backgroundColor: getRouteTypeColor('line') }}
-                            ></div>
-                            <span className='text-gray-700'>Line Route</span>
-                          </div>
+                      <div className='space-y-1 text-xs'>
+                        {/* Route types - all routes are now multi-segment */}
+                        <div className='flex items-center gap-2'>
+                          <div
+                            className='w-3 h-3 rounded-full'
+                            style={{ backgroundColor: getRouteTypeColor('scuba') }}
+                          ></div>
+                          <span className='text-gray-700'>Scuba Route</span>
                         </div>
-                        
-                        {/* Multi segment routes */}
-                        <div>
-                          <div className='text-xs font-medium text-gray-600 mb-1'>Multi segment</div>
-                          <div className='space-y-1 ml-2'>
-                            <div className='flex items-center gap-2'>
-                              <div
-                                className='w-3 h-3 rounded-full'
-                                style={{ backgroundColor: getRouteTypeColor('scuba') }}
-                              ></div>
-                              <span className='text-gray-700'>Scuba Route</span>
-                            </div>
-                            <div className='flex items-center gap-2'>
-                              <div
-                                className='w-3 h-3 rounded-full'
-                                style={{ backgroundColor: getRouteTypeColor('swim') }}
-                              ></div>
-                              <span className='text-gray-700'>Swim Route</span>
-                            </div>
-                            <div className='flex items-center gap-2'>
-                              <div
-                                className='w-3 h-3 rounded-full'
-                                style={{ backgroundColor: getRouteTypeColor('walk') }}
-                              ></div>
-                              <span className='text-gray-700'>Walk Route</span>
-                            </div>
-                          </div>
+                        <div className='flex items-center gap-2'>
+                          <div
+                            className='w-3 h-3 rounded-full'
+                            style={{ backgroundColor: getRouteTypeColor('swim') }}
+                          ></div>
+                          <span className='text-gray-700'>Swim Route</span>
+                        </div>
+                        <div className='flex items-center gap-2'>
+                          <div
+                            className='w-3 h-3 rounded-full'
+                            style={{ backgroundColor: getRouteTypeColor('walk') }}
+                          ></div>
+                          <span className='text-gray-700'>Walk Route</span>
                         </div>
                       </div>
                     </div>
@@ -944,7 +942,7 @@ const DiveDetail = () => {
               <h2 className='text-xl font-semibold mb-4'>Dive Site</h2>
               <div className='space-y-3'>
                 <div className='flex items-center gap-2'>
-                  <MapPin size={16} className='text-gray-500' />
+                  <MapPin size={15} className='text-gray-500' />
                   <span className='font-medium'>{dive.dive_site.name}</span>
                 </div>
                 {dive.dive_site.description && (
@@ -968,7 +966,7 @@ const DiveDetail = () => {
               <h2 className='text-xl font-semibold mb-4'>Diving Center</h2>
               <div className='space-y-3'>
                 <div className='flex items-center gap-2'>
-                  <MapPin size={16} className='text-gray-500' />
+                  <MapPin size={15} className='text-gray-500' />
                   <span className='font-medium'>{dive.diving_center.name}</span>
                 </div>
                 {dive.diving_center.description && (

@@ -10,6 +10,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import usePageTitle from '../hooks/usePageTitle';
 import { getRouteTypeColor } from '../utils/colorPalette';
+import { getSmartRouteColor } from '../utils/routeUtils';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -48,15 +49,8 @@ const RouteLayer = ({ routes, diveSiteId }) => {
 
       const routeLayer = L.geoJSON(route.route_data, {
         style: feature => {
-          // Determine color based on route type and segment type
-          let routeColor;
-          if (feature.properties?.color) {
-            routeColor = feature.properties.color;
-          } else if (feature.properties?.segmentType) {
-            routeColor = getRouteTypeColor(feature.properties.segmentType);
-          } else {
-            routeColor = getRouteTypeColor(route.route_type);
-          }
+          // Use smart route color detection for consistent coloring
+          const routeColor = getSmartRouteColor(route);
 
           return {
             color: routeColor,
@@ -66,14 +60,8 @@ const RouteLayer = ({ routes, diveSiteId }) => {
           };
         },
         pointToLayer: (feature, latlng) => {
-          let routeColor;
-          if (feature.properties?.color) {
-            routeColor = feature.properties.color;
-          } else if (feature.properties?.segmentType) {
-            routeColor = getRouteTypeColor(feature.properties.segmentType);
-          } else {
-            routeColor = getRouteTypeColor(route.route_type);
-          }
+          // Use smart route color detection for consistent coloring
+          const routeColor = getSmartRouteColor(route);
 
           return L.circleMarker(latlng, {
             radius: 5,

@@ -49,12 +49,15 @@ class TripStatus(enum.Enum):
     completed = "completed"
 
 class RouteType(enum.Enum):
-    line = "line"
-    polygon = "polygon"
-    waypoints = "waypoints"
+    scuba = "scuba"
     walk = "walk"
     swim = "swim"
-    scuba = "scuba"
+
+class DrawingType(enum.Enum):
+    line = "line"
+    polygon = "polygon"
+    waypoint = "waypoint"
+    mixed = "mixed"
 
 class DivingOrganization(Base):
     __tablename__ = "diving_organizations"
@@ -503,8 +506,9 @@ class DiveRoute(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text)
-    route_data = Column(sa.JSON, nullable=False)  # 2D GeoJSON format
-    route_type = Column(Enum(RouteType), default=RouteType.line, nullable=True)
+    route_data = Column(sa.JSON, nullable=False)  # Multi-segment GeoJSON FeatureCollection
+    route_type = Column(Enum(RouteType), nullable=False)
+    drawing_type = Column(Enum(DrawingType), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     # Soft delete fields

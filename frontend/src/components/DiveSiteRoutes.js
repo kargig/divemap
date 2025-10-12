@@ -35,7 +35,7 @@ const DiveSiteRoutes = ({ diveSiteId }) => {
       navigate('/login');
       return;
     }
-    navigate(`/dive-sites/${diveSiteId}/route/new`);
+    navigate(`/dive-sites/${diveSiteId}/dive-route`);
   };
 
   if (isLoading) {

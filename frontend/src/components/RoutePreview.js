@@ -20,6 +20,7 @@ import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { formatDate } from '../utils/dateHelpers';
+import { getSmartRouteColor, getRouteTypeLabel } from '../utils/routeUtils';
 
 const RoutePreview = ({
   route,
@@ -72,6 +73,7 @@ const RoutePreview = ({
         description: route.description,
         route_data: route.route_data,
         route_type: route.route_type,
+        drawing_type: route.drawing_type,
       };
 
       return api.post('/api/v1/dive-routes/', copyData);
@@ -129,54 +131,9 @@ const RoutePreview = ({
     }
   };
 
-  const getRouteTypeLabel = (routeType, routeData) => {
-    // Check if this is a multi-segment route
-    const isMultiSegment =
-      routeData?.type === 'FeatureCollection' &&
-      routeData?.features &&
-      routeData?.features.length > 0 &&
-      routeData?.features.some(
-        feature =>
-          feature.properties &&
-          feature.properties.segmentType &&
-          ['walk', 'swim', 'scuba'].includes(feature.properties.segmentType)
-      );
-
-    if (isMultiSegment) {
-      return 'Multi-Segment Route';
-    }
-
-    switch (routeType) {
-      case 'line':
-        return 'Line Route';
-      case 'polygon':
-        return 'Area Route';
-      case 'waypoints':
-        return 'Waypoints';
-      case 'walk':
-        return 'Walk Route';
-      case 'swim':
-        return 'Swim Route';
-      case 'scuba':
-        return 'Scuba Route';
-      default:
-        return 'Route';
-    }
-  };
-
   const getRouteColor = (routeType, routeData) => {
-    // For multi-segment routes, return a mixed color or use the first segment
-    if (routeData?.type === 'FeatureCollection' && routeData?.features?.length > 0) {
-      const firstSegment = routeData.features.find(
-        feature =>
-          feature.properties?.segmentType &&
-          ['walk', 'swim', 'scuba'].includes(feature.properties.segmentType)
-      );
-      if (firstSegment) {
-        return getRouteTypeColor(firstSegment.properties.segmentType);
-      }
-    }
-    return getRouteTypeColor(routeType);
+    // Use smart route color detection for consistent coloring
+    return getSmartRouteColor({ route_type: routeType, route_data: routeData });
   };
 
   const canEdit = user && (route.created_by === user.id || user.is_admin);
@@ -197,7 +154,7 @@ const RoutePreview = ({
             />
             <span className='font-medium text-gray-900 truncate text-sm'>{route.name}</span>
             <span className='px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full flex-shrink-0'>
-              {getRouteTypeLabel(route.route_type, route.route_data)}
+              {getRouteTypeLabel(route.route_type, route.drawing_type, route.route_data)}
             </span>
           </div>
           {showActions && user && (
@@ -244,7 +201,7 @@ const RoutePreview = ({
               {getRouteTypeIcon(route.route_type)}
               <h3 className='font-medium text-gray-900 truncate'>{route.name}</h3>
               <span className='px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full'>
-                {getRouteTypeLabel(route.route_type, route.route_data)}
+                {getRouteTypeLabel(route.route_type, route.drawing_type, route.route_data)}
               </span>
             </div>
 
