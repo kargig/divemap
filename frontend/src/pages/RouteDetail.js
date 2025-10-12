@@ -5,6 +5,7 @@ import {
   Trash2,
   Copy,
   Share2,
+  Download,
   MapPin,
   Calendar,
   User,
@@ -220,6 +221,8 @@ const RouteDetail = () => {
   const queryClient = useQueryClient();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormats, setExportFormats] = useState([]);
 
   usePageTitle('Route Details');
 
@@ -242,6 +245,23 @@ const RouteDetail = () => {
       enabled: !!diveSiteId,
     }
   );
+
+  // Fetch route analytics
+  const { data: analytics } = useQuery(
+    ['route-analytics', routeId],
+    () => api.get(`/api/v1/dive-routes/${routeId}/community-stats`),
+    {
+      select: response => response.data,
+      enabled: !!routeId,
+    }
+  );
+
+  // Fetch export formats
+  useEffect(() => {
+    api.get('/api/v1/dive-routes/export-formats')
+      .then(response => setExportFormats(response.data))
+      .catch(() => setExportFormats([]));
+  }, []);
 
   // Delete route mutation
   const deleteRouteMutation = useMutation(
@@ -271,22 +291,14 @@ const RouteDetail = () => {
     }
   );
 
-  // Copy route mutation
+  // Copy route mutation using new backend endpoint
   const copyRouteMutation = useMutation(
-    async () => {
-      const copyData = {
-        dive_site_id: parseInt(diveSiteId),
-        name: `${route.name} (Copy)`,
-        description: route.description,
-        route_data: route.route_data,
-        route_type: route.route_type,
-      };
-
-      return api.post('/api/v1/dive-routes/', copyData);
+    async (newName) => {
+      return api.post(`/api/v1/dive-routes/${routeId}/copy?new_name=${encodeURIComponent(newName)}`);
     },
     {
-      onSuccess: () => {
-        toast.success('Route copied successfully');
+      onSuccess: (data) => {
+        toast.success(`Route copied successfully! New route ID: ${data.new_route_id}`);
         queryClient.invalidateQueries(['dive-site-routes', diveSiteId]);
         queryClient.invalidateQueries(['dive-routes']);
       },
@@ -302,20 +314,58 @@ const RouteDetail = () => {
   };
 
   const handleCopyRoute = () => {
-    copyRouteMutation.mutate();
+    const newName = prompt('Enter name for copied route:', `${route.name} (Copy)`);
+    if (newName) {
+      copyRouteMutation.mutate(newName);
+    }
   };
 
-  const handleShareRoute = () => {
-    const routeUrl = window.location.href;
-    navigator.clipboard
-      .writeText(routeUrl)
-      .then(() => {
-        toast.success('Route link copied to clipboard');
-      })
-      .catch(() => {
-        toast.error('Failed to copy link');
-      });
+  const handleShareRoute = async () => {
+    try {
+      const response = await api.post(`/api/v1/dive-routes/${routeId}/share?share_method=link`);
+      const shareUrl = response.data.share_link;
+      
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('Route link copied to clipboard!');
+    } catch (error) {
+      // Fallback to simple URL copy
+      const shareUrl = `${window.location.origin}/dive-sites/${diveSiteId}/route/${routeId}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('Route link copied to clipboard!');
+    }
   };
+
+  const handleExportRoute = async (format) => {
+    try {
+      const response = await api.get(`/api/v1/dive-routes/${routeId}/export/${format}`, {
+        responseType: 'blob'
+      });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${route.name.replace(' ', '_')}.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`${format.toUpperCase()} file downloaded successfully!`);
+      setShowExportModal(false);
+    } catch (error) {
+      toast.error('Failed to export route');
+    }
+  };
+
+  // Track route view
+  useEffect(() => {
+    if (route) {
+      api.post(`/api/v1/dive-routes/${routeId}/view`).catch(() => {
+        // Silently fail if tracking fails
+      });
+    }
+  }, [route, routeId]);
 
   const handleDeleteRoute = () => {
     deleteRouteMutation.mutate();
@@ -432,6 +482,14 @@ const RouteDetail = () => {
                     Share
                   </button>
 
+                  <button
+                    onClick={() => setShowExportModal(true)}
+                    className='flex items-center px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors'
+                  >
+                    <Download className='w-4 h-4 mr-1' />
+                    Export
+                  </button>
+
                   {canEdit && (
                     <>
                       <button
@@ -480,6 +538,31 @@ const RouteDetail = () => {
           <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
             <h2 className='text-lg font-semibold text-gray-900 mb-3'>Description</h2>
             <p className='text-gray-700'>{route.description}</p>
+          </div>
+        )}
+
+        {/* Route Analytics */}
+        {analytics && (
+          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+            <h2 className='text-lg font-semibold text-gray-900 mb-3'>Community Statistics</h2>
+            <div className='grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm'>
+              <div className='text-center p-3 bg-gray-50 rounded-lg'>
+                <div className='text-2xl font-bold text-blue-600'>{analytics.community_stats?.total_dives_using_route || 0}</div>
+                <div className='text-gray-600'>Total Dives</div>
+              </div>
+              <div className='text-center p-3 bg-gray-50 rounded-lg'>
+                <div className='text-2xl font-bold text-green-600'>{analytics.community_stats?.unique_users_used_route || 0}</div>
+                <div className='text-gray-600'>Unique Users</div>
+              </div>
+              <div className='text-center p-3 bg-gray-50 rounded-lg'>
+                <div className='text-2xl font-bold text-orange-600'>{analytics.community_stats?.recent_dives_7_days || 0}</div>
+                <div className='text-gray-600'>Recent (7 days)</div>
+              </div>
+              <div className='text-center p-3 bg-gray-50 rounded-lg'>
+                <div className='text-2xl font-bold text-purple-600'>{analytics.community_stats?.waypoint_count || 0}</div>
+                <div className='text-gray-600'>Waypoints</div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -586,6 +669,38 @@ const RouteDetail = () => {
                 ) : (
                   'Hide Route'
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
+          <div className='bg-white rounded-lg p-6 max-w-md w-full mx-4'>
+            <h3 className='text-lg font-semibold mb-4'>Export Route</h3>
+            <p className='text-gray-600 mb-4'>Choose a format to download your route:</p>
+            
+            <div className='space-y-2'>
+              {exportFormats.map(format => (
+                <button
+                  key={format.format}
+                  onClick={() => handleExportRoute(format.format)}
+                  className='w-full text-left p-3 border rounded hover:bg-gray-50 transition-colors'
+                >
+                  <div className='font-medium text-gray-900'>{format.name}</div>
+                  <div className='text-sm text-gray-600'>{format.description}</div>
+                </button>
+              ))}
+            </div>
+
+            <div className='flex justify-end mt-6'>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className='px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors'
+              >
+                Cancel
               </button>
             </div>
           </div>

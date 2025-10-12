@@ -527,3 +527,25 @@ class DiveRoute(Base):
         """Restore a soft deleted route"""
         self.deleted_at = None
         self.deleted_by = None
+
+
+class RouteAnalytics(Base):
+    """Track user interactions with dive routes for analytics"""
+    __tablename__ = "route_analytics"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    route_id = Column(Integer, ForeignKey("dive_routes.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # Nullable for anonymous users
+    interaction_type = Column(String(50), nullable=False, index=True)  # view, copy, share, download, export
+    ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
+    user_agent = Column(Text, nullable=True)
+    referrer = Column(String(500), nullable=True)
+    session_id = Column(String(100), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    
+    # Additional metadata
+    extra_data = Column(sa.JSON, nullable=True)  # Store additional context like export format, etc.
+    
+    # Relationships
+    route = relationship("DiveRoute")
+    user = relationship("User")

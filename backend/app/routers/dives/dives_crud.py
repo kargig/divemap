@@ -658,6 +658,7 @@ def get_dives(
             "user_id": dive.user_id,
             "dive_site_id": dive.dive_site_id,
             "diving_center_id": dive.diving_center_id,
+            "selected_route_id": dive.selected_route_id,
             "name": dive.name,
             "is_private": dive.is_private,
             "dive_information": dive.dive_information,

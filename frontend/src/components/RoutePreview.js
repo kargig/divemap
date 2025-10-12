@@ -4,14 +4,12 @@ import {
   Calendar,
   User,
   Eye,
-  Copy,
-  Share2,
   Edit,
   Trash2,
   Clock,
   Layers,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
@@ -64,33 +62,12 @@ const RoutePreview = ({
     }
   );
 
-  // Copy route mutation
-  const copyRouteMutation = useMutation(
-    async () => {
-      const copyData = {
-        dive_site_id: parseInt(diveSiteId),
-        name: `${route.name} (Copy)`,
-        description: route.description,
-        route_data: route.route_data,
-        route_type: route.route_type,
-      };
-
-      return api.post('/api/v1/dive-routes/', copyData);
-    },
-    {
-      onSuccess: () => {
-        toast.success('Route copied successfully');
-        queryClient.invalidateQueries(['dive-site-routes', diveSiteId]);
-        queryClient.invalidateQueries(['dive-routes']);
-      },
-      onError: error => {
-        console.error('Error copying route:', error);
-        toast.error(error.response?.data?.detail || 'Failed to copy route');
-      },
-    }
-  );
-
   const handleViewRoute = () => {
+    // Track route view
+    api.post(`/api/v1/dive-routes/${route.id}/view`).catch(() => {
+      // Silently fail if tracking fails
+    });
+
     if (onRouteClick) {
       onRouteClick(route);
     } else {
@@ -104,17 +81,6 @@ const RoutePreview = ({
 
   const handleDeleteRoute = () => {
     deleteRouteMutation.mutate();
-  };
-
-  const handleCopyRoute = () => {
-    copyRouteMutation.mutate();
-  };
-
-  const handleShareRoute = () => {
-    // Simple share functionality - copy URL to clipboard
-    const shareUrl = `${window.location.origin}/dive-sites/${diveSiteId}/route/${route.id}`;
-    navigator.clipboard.writeText(shareUrl);
-    toast.success('Route link copied to clipboard!');
   };
 
   const getRouteTypeIcon = routeType => {
@@ -228,31 +194,12 @@ const RoutePreview = ({
 
           {showActions && (
             <div className='flex items-center gap-1 ml-4'>
-              <button
-                onClick={handleViewRoute}
-                className='p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
-                title='View Route'
-              >
-                <Eye className='w-4 h-4' />
-              </button>
-
-              {user && (
-                <>
                   <button
-                    onClick={handleCopyRoute}
-                    disabled={copyRouteMutation.isLoading}
-                    className='p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors disabled:opacity-50'
-                    title='Copy Route'
+                    onClick={handleViewRoute}
+                    className='p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+                    title='View Route'
                   >
-                    <Copy className='w-4 h-4' />
-                  </button>
-
-                  <button
-                    onClick={handleShareRoute}
-                    className='p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors'
-                    title='Share Route'
-                  >
-                    <Share2 className='w-4 h-4' />
+                    <Eye className='w-4 h-4' />
                   </button>
 
                   {canEdit && (
@@ -274,8 +221,6 @@ const RoutePreview = ({
                       </button>
                     </>
                   )}
-                </>
-              )}
             </div>
           )}
         </div>

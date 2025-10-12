@@ -17,6 +17,7 @@ import {
   Calendar,
   TrendingUp,
   Grid,
+  Route,
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
@@ -1051,6 +1052,12 @@ const Dives = () => {
                                   {dive.name || `Dive #${dive.id}`}
                                 </Link>
                               </h3>
+                              {dive.selected_route_id && (
+                                <div className='flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium' title='This dive has a route'>
+                                  <Route size={12} />
+                                  Route
+                                </div>
+                              )}
                               {matchTypes[dive.id] && (
                                 <div className='flex-shrink-0'>
                                   <MatchTypeBadge
@@ -1204,6 +1211,12 @@ const Dives = () => {
                             {dive.name || `Dive #${dive.id}`}
                           </Link>
                         </h3>
+                        {dive.selected_route_id && (
+                          <div className='flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium' title='This dive has a route'>
+                            <Route size={12} />
+                            Route
+                          </div>
+                        )}
                         {matchTypes[dive.id] && (
                           <div className='flex-shrink-0'>
                             <MatchTypeBadge
