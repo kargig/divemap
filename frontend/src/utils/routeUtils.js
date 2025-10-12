@@ -3,8 +3,8 @@ import { getRouteTypeColor, getDrawingTypeColor } from './colorPalette';
 /**
  * Smart route type detection function
  * Analyzes route data to determine the actual route type based on segment types
- * @param {string} routeType - The database route_type
- * @param {string} drawingType - The database drawing_type
+ * @param {string} routeType - The database route_type (fallback)
+ * @param {string} drawingType - Deprecated parameter (ignored)
  * @param {Object} routeData - The route's GeoJSON data
  * @returns {string} The detected route type ('mixed', single type, or fallback)
  */

@@ -64,13 +64,37 @@ const ZoomTracker = ({ onZoomChange }) => {
 };
 
 // Custom route layer component for dive detail page
+const MapViewUpdater = ({ viewport }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (viewport && viewport.center && viewport.zoom) {
+      map.setView(viewport.center, viewport.zoom);
+    }
+  }, [map, viewport?.center, viewport?.zoom]);
+
+  return null;
+};
+
 const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
   const map = useMap();
   const routeLayerRef = useRef(null);
   const diveSiteMarkerRef = useRef(null);
+  const hasRenderedRef = useRef(false);
+  const lastRouteIdRef = useRef(null);
 
   useEffect(() => {
-    if (!route?.route_data) return;
+    if (!route?.route_data) {
+      return;
+    }
+
+    // Check if this is the same route as before
+    const isSameRoute = lastRouteIdRef.current === route?.id;
+
+    // Prevent duplicate rendering for the same route
+    if (hasRenderedRef.current && routeLayerRef.current && isSameRoute) {
+      return;
+    }
 
     // Clear existing layers
     if (routeLayerRef.current) {
@@ -157,16 +181,24 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
 
     map.addLayer(routeLayer);
     routeLayerRef.current = routeLayer;
+    
+    // Mark as rendered and track route ID
+    hasRenderedRef.current = true;
+    lastRouteIdRef.current = route?.id;
 
     return () => {
-      if (routeLayerRef.current) {
+      // Only cleanup if we're not about to re-render with the same route
+      const isSameRoute = lastRouteIdRef.current === route?.id;
+      
+      if (routeLayerRef.current && !isSameRoute) {
         map.removeLayer(routeLayerRef.current);
       }
-      if (diveSiteMarkerRef.current) {
+      
+      if (diveSiteMarkerRef.current && !isSameRoute) {
         map.removeLayer(diveSiteMarkerRef.current);
       }
     };
-  }, [map, route, diveSiteId, diveSite]);
+  }, [map, route?.id, route?.route_data, diveSite?.id]);
 
   return null;
 };
@@ -191,6 +223,16 @@ const DiveDetail = () => {
     zoom: 15,
   });
   const [currentZoom, setCurrentZoom] = useState(15);
+
+  // Debug function to track map viewport changes
+  const handleMapViewportChange = (viewport) => {
+    console.log('=== MAP VIEWPORT CHANGE DEBUG ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('URL:', window.location.href);
+    console.log('New viewport:', viewport);
+    console.log('Previous routeMapViewport:', routeMapViewport);
+    console.log('=== END MAP VIEWPORT CHANGE DEBUG ===');
+  };
 
   // Handle tab change and update URL
   const handleTabChange = tab => {
@@ -243,17 +285,13 @@ const DiveDetail = () => {
 
   // Prepare route data for map visualization
   useEffect(() => {
-    if (dive?.dive_site) {
+    // Only run when dive data is fully loaded
+    if (dive?.id && dive?.dive_site) {
       // Always set center to dive site coordinates as fallback
       let center = [parseFloat(dive.dive_site.latitude), parseFloat(dive.dive_site.longitude)];
 
       // Validate dive site coordinates
       if (isNaN(center[0]) || isNaN(center[1])) {
-        console.warn(
-          'Invalid dive site coordinates:',
-          dive.dive_site.latitude,
-          dive.dive_site.longitude
-        );
         center = [37.8372191, 23.696668]; // Default to Psatha coordinates
       }
 
@@ -264,7 +302,7 @@ const DiveDetail = () => {
           if (features && features.length > 0) {
             // Calculate center from all features
             let allCoords = [];
-            features.forEach(feature => {
+            features.forEach((feature) => {
               if (feature.geometry?.coordinates) {
                 const coords = feature.geometry.coordinates;
                 if (feature.geometry.type === 'Polygon') {
@@ -290,19 +328,21 @@ const DiveDetail = () => {
 
               // Validate coordinates are not NaN
               if (!isNaN(avgLat) && !isNaN(avgLng)) {
-                center = [avgLat, avgLng];
+                center = [avgLat, avgLng]; // [lat, lng] format for Leaflet
               }
             }
           }
         }
       }
 
-      setRouteMapViewport({
+      const newViewport = {
         center,
         zoom: 15, // Default zoom level for route visualization
-      });
+      };
+
+      setRouteMapViewport(newViewport);
     }
-  }, [dive]);
+  }, [dive?.id, dive?.dive_site?.id, dive?.selected_route?.id]); // More specific dependencies
 
   // Fetch dive profile data
   const {
@@ -850,7 +890,35 @@ const DiveDetail = () => {
 
                 {/* Route Map */}
                 <div className='bg-gray-50 rounded-lg p-4'>
-                  <h4 className='text-sm font-medium text-gray-700 mb-3'>Route Map</h4>
+                  <div className='flex items-center justify-between mb-3'>
+                    <h4 className='text-sm font-medium text-gray-700'>Route Map</h4>
+                    {/* Route Legend - Horizontal */}
+                    {dive.selected_route.route_data && (
+                      <div className='flex items-center gap-4 text-xs'>
+                        <div className='flex items-center gap-1'>
+                          <div
+                            className='w-3 h-3 rounded-full'
+                            style={{ backgroundColor: getRouteTypeColor('scuba') }}
+                          ></div>
+                          <span className='text-gray-700'>Scuba Route</span>
+                        </div>
+                        <div className='flex items-center gap-1'>
+                          <div
+                            className='w-3 h-3 rounded-full'
+                            style={{ backgroundColor: getRouteTypeColor('swim') }}
+                          ></div>
+                          <span className='text-gray-700'>Swim Route</span>
+                        </div>
+                        <div className='flex items-center gap-1'>
+                          <div
+                            className='w-3 h-3 rounded-full'
+                            style={{ backgroundColor: getRouteTypeColor('walk') }}
+                          ></div>
+                          <span className='text-gray-700'>Walk Route</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <div className='h-64 rounded border overflow-hidden relative'>
                     {dive.selected_route.route_data ? (
                       <>
@@ -859,11 +927,15 @@ const DiveDetail = () => {
                           zoom={routeMapViewport.zoom}
                           style={{ height: '100%', width: '100%' }}
                           zoomControl={true}
+                          whenReady={() => {
+                            // Map is ready
+                          }}
                         >
                           <TileLayer
                             url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                           />
+                          <MapViewUpdater viewport={routeMapViewport} />
                           <DiveRouteLayer
                             route={dive.selected_route}
                             diveSiteId={dive.dive_site_id}
@@ -882,40 +954,6 @@ const DiveDetail = () => {
                       </div>
                     )}
                   </div>
-
-                  {/* Route Legend */}
-                  {dive.selected_route.route_data && (
-                    <div className='mt-3 bg-white rounded-lg border border-gray-200 p-3'>
-                      <div className='flex items-center mb-2'>
-                        <Route className='w-4 h-4 mr-2 text-gray-600' />
-                        <span className='text-sm font-medium text-gray-800'>Route Types</span>
-                      </div>
-                      <div className='space-y-1 text-xs'>
-                        {/* Route types - all routes are now multi-segment */}
-                        <div className='flex items-center gap-2'>
-                          <div
-                            className='w-3 h-3 rounded-full'
-                            style={{ backgroundColor: getRouteTypeColor('scuba') }}
-                          ></div>
-                          <span className='text-gray-700'>Scuba Route</span>
-                        </div>
-                        <div className='flex items-center gap-2'>
-                          <div
-                            className='w-3 h-3 rounded-full'
-                            style={{ backgroundColor: getRouteTypeColor('swim') }}
-                          ></div>
-                          <span className='text-gray-700'>Swim Route</span>
-                        </div>
-                        <div className='flex items-center gap-2'>
-                          <div
-                            className='w-3 h-3 rounded-full'
-                            style={{ backgroundColor: getRouteTypeColor('walk') }}
-                          ></div>
-                          <span className='text-gray-700'>Walk Route</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Route Actions */}

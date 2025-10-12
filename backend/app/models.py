@@ -53,12 +53,6 @@ class RouteType(enum.Enum):
     walk = "walk"
     swim = "swim"
 
-class DrawingType(enum.Enum):
-    line = "line"
-    polygon = "polygon"
-    waypoint = "waypoint"
-    mixed = "mixed"
-
 class DivingOrganization(Base):
     __tablename__ = "diving_organizations"
 
@@ -508,7 +502,6 @@ class DiveRoute(Base):
     description = Column(Text)
     route_data = Column(sa.JSON, nullable=False)  # Multi-segment GeoJSON FeatureCollection
     route_type = Column(Enum(RouteType), nullable=False)
-    drawing_type = Column(Enum(DrawingType), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     # Soft delete fields

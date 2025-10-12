@@ -15,7 +15,7 @@ from app.database import get_db
 from app.models import DiveRoute, DiveSite, User, Dive
 from app.schemas import (
     DiveRouteCreate, DiveRouteUpdate, DiveRouteResponse, DiveRouteWithDetails,
-    DiveRouteListResponse, RouteDeletionCheck, RouteDeletionRequest, DiveRouteBase
+    DiveRouteListResponse, RouteDeletionCheck, RouteDeletionRequest
 )
 from app.auth import get_current_active_user, get_current_user_optional
 from app.limiter import limiter
@@ -48,8 +48,7 @@ async def create_route(
         name=route_data.name,
         description=route_data.description,
         route_data=route_data.route_data,
-        route_type=route_data.route_type,
-        drawing_type=route_data.drawing_type or DiveRouteBase.detect_drawing_type(route_data.route_data)
+        route_type=route_data.route_type
     )
     
     db.add(db_route)
@@ -233,7 +232,6 @@ async def list_routes(
     dive_site_id: Optional[int] = Query(None, description="Filter by dive site ID"),
     created_by: Optional[int] = Query(None, description="Filter by creator ID"),
     route_type: Optional[str] = Query(None, description="Filter by route type"),
-    drawing_type: Optional[str] = Query(None, description="Filter by drawing type"),
     search: Optional[str] = Query(None, description="Search in route names and descriptions"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
@@ -257,9 +255,6 @@ async def list_routes(
     
     if route_type:
         query = query.filter(DiveRoute.route_type == route_type)
-    
-    if drawing_type:
-        query = query.filter(DiveRoute.drawing_type == drawing_type)
     
     if search:
         search_filter = or_(

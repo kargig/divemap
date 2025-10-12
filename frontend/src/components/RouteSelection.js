@@ -99,7 +99,7 @@ const RouteSelection = ({ diveSiteId, selectedRouteId, onRouteSelect, disabled =
               <span className='ml-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full'>
                 {getRouteTypeLabel(
                   selectedRoute.route_type,
-                  selectedRoute.drawing_type,
+                  null,
                   selectedRoute.route_data
                 )}
               </span>
@@ -142,7 +142,7 @@ const RouteSelection = ({ diveSiteId, selectedRouteId, onRouteSelect, disabled =
                         <span className='ml-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full'>
                           {getRouteTypeLabel(
                             route.route_type,
-                            route.drawing_type,
+                            null,
                             route.route_data
                           )}
                         </span>

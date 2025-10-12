@@ -877,51 +877,12 @@ class RouteType(str, enum.Enum):
     walk = "walk"
     swim = "swim"
 
-class DrawingType(str, enum.Enum):
-    line = "line"
-    polygon = "polygon"
-    waypoint = "waypoint"
-    mixed = "mixed"
-
 
 class DiveRouteBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     route_data: dict = Field(..., description="Multi-segment GeoJSON FeatureCollection")
     route_type: RouteType
-    drawing_type: Optional[DrawingType] = None  # Make it optional - will be auto-detected
-
-    @staticmethod
-    def detect_drawing_type(route_data: dict) -> DrawingType:
-        """Auto-detect drawing type from GeoJSON geometry"""
-        if not route_data or not route_data.get('features'):
-            return DrawingType.line  # Default fallback
-        
-        geometry_types = []
-        for feature in route_data['features']:
-            if feature.get('geometry', {}).get('type'):
-                geometry_types.append(feature['geometry']['type'])
-        
-        if not geometry_types:
-            return DrawingType.line  # Default fallback
-        
-        # If all features are the same type, use that type
-        unique_types = list(set(geometry_types))
-        if len(unique_types) == 1:
-            geometry_type = unique_types[0]
-        else:
-            # If mixed types, return "mixed"
-            return DrawingType.mixed
-        
-        # Map geometry types to drawing types
-        if geometry_type in ['LineString', 'MultiLineString']:
-            return DrawingType.line
-        elif geometry_type in ['Polygon', 'MultiPolygon']:
-            return DrawingType.polygon
-        elif geometry_type in ['Point', 'MultiPoint']:
-            return DrawingType.waypoint
-        else:
-            return DrawingType.line  # Default fallback
 
     @validator('route_data')
     def validate_route_data(cls, v):
@@ -1002,7 +963,6 @@ class DiveRouteUpdate(BaseModel):
     description: Optional[str] = None
     route_data: Optional[dict] = None
     route_type: Optional[RouteType] = None
-    drawing_type: Optional[DrawingType] = None
 
     @validator('route_data')
     def validate_route_data(cls, v):
