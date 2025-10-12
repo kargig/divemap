@@ -181,7 +181,7 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
 
     map.addLayer(routeLayer);
     routeLayerRef.current = routeLayer;
-    
+
     // Mark as rendered and track route ID
     hasRenderedRef.current = true;
     lastRouteIdRef.current = route?.id;
@@ -189,11 +189,11 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
     return () => {
       // Only cleanup if we're not about to re-render with the same route
       const isSameRoute = lastRouteIdRef.current === route?.id;
-      
+
       if (routeLayerRef.current && !isSameRoute) {
         map.removeLayer(routeLayerRef.current);
       }
-      
+
       if (diveSiteMarkerRef.current && !isSameRoute) {
         map.removeLayer(diveSiteMarkerRef.current);
       }
@@ -225,7 +225,7 @@ const DiveDetail = () => {
   const [currentZoom, setCurrentZoom] = useState(15);
 
   // Debug function to track map viewport changes
-  const handleMapViewportChange = (viewport) => {
+  const handleMapViewportChange = viewport => {
     console.log('=== MAP VIEWPORT CHANGE DEBUG ===');
     console.log('Timestamp:', new Date().toISOString());
     console.log('URL:', window.location.href);
@@ -302,7 +302,7 @@ const DiveDetail = () => {
           if (features && features.length > 0) {
             // Calculate center from all features
             let allCoords = [];
-            features.forEach((feature) => {
+            features.forEach(feature => {
               if (feature.geometry?.coordinates) {
                 const coords = feature.geometry.coordinates;
                 if (feature.geometry.type === 'Polygon') {

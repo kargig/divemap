@@ -97,11 +97,7 @@ const RouteSelection = ({ diveSiteId, selectedRouteId, onRouteSelect, disabled =
               />
               <span className='text-gray-900'>{selectedRoute.name}</span>
               <span className='ml-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full'>
-                {getRouteTypeLabel(
-                  selectedRoute.route_type,
-                  null,
-                  selectedRoute.route_data
-                )}
+                {getRouteTypeLabel(selectedRoute.route_type, null, selectedRoute.route_data)}
               </span>
             </div>
           ) : (
@@ -140,11 +136,7 @@ const RouteSelection = ({ diveSiteId, selectedRouteId, onRouteSelect, disabled =
                       <div className='flex items-center'>
                         <span className='font-medium text-gray-900 truncate'>{route.name}</span>
                         <span className='ml-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full'>
-                          {getRouteTypeLabel(
-                            route.route_type,
-                            null,
-                            route.route_data
-                          )}
+                          {getRouteTypeLabel(route.route_type, null, route.route_data)}
                         </span>
                       </div>
                       {route.description && (

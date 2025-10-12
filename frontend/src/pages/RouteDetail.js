@@ -36,6 +36,37 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+// Custom zoom control component for route detail page
+const ZoomControl = ({ currentZoom }) => {
+  return (
+    <div className='absolute top-2 left-12 bg-white rounded px-2 py-1 text-xs font-medium z-10 shadow-sm border border-gray-200'>
+      Zoom: {currentZoom.toFixed(1)}
+    </div>
+  );
+};
+
+// Custom zoom tracking component for route detail page
+const ZoomTracker = ({ onZoomChange }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    const handleZoomEnd = () => {
+      onZoomChange(map.getZoom());
+    };
+
+    map.on('zoomend', handleZoomEnd);
+
+    // Set initial zoom
+    onZoomChange(map.getZoom());
+
+    return () => {
+      map.off('zoomend', handleZoomEnd);
+    };
+  }, [map, onZoomChange]);
+
+  return null;
+};
+
 // Route layer component that uses useMap hook
 const RouteLayer = ({ route, diveSite }) => {
   const map = useMap();
@@ -146,8 +177,10 @@ const RouteLayer = ({ route, diveSite }) => {
 
 // Route display component
 const RouteDisplay = ({ route, diveSite }) => {
+  const [currentZoom, setCurrentZoom] = useState(15);
+
   return (
-    <div className='w-full h-96 rounded-lg overflow-hidden border border-gray-200'>
+    <div className='w-full h-96 rounded-lg overflow-hidden border border-gray-200 relative'>
       <MapContainer
         center={[diveSite?.latitude || 0, diveSite?.longitude || 0]}
         zoom={15}
@@ -173,7 +206,9 @@ const RouteDisplay = ({ route, diveSite }) => {
 
         {/* Route layer component */}
         <RouteLayer route={route} diveSite={diveSite} />
+        <ZoomTracker onZoomChange={setCurrentZoom} />
       </MapContainer>
+      <ZoomControl currentZoom={currentZoom} />
     </div>
   );
 };
