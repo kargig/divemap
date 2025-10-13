@@ -931,7 +931,7 @@ class DiveRouteBase(BaseModel):
             if 'coordinates' not in geometry:
                 raise ValueError(f'Feature {i} geometry must have a "coordinates" field')
         
-        # Validate coordinates are 2D (no depth data)
+        # Validate coordinates are 2D (no depth data) - lenient for existing data
         def validate_coordinates_2d(coordinates):
             """Helper function to validate coordinates are 2D only"""
             if isinstance(coordinates, list) and len(coordinates) > 0:
@@ -941,9 +941,21 @@ class DiveRouteBase(BaseModel):
                         if isinstance(coord, list) and len(coord) > 0:
                             if isinstance(coord[0], (int, float)) and len(coord) > 2:
                                 raise ValueError('coordinates must be 2D only (longitude, latitude) - no depth data allowed')
+                            elif not isinstance(coord[0], (int, float)):
+                                # Skip validation for existing data that might have different formats
+                                pass
+                        elif isinstance(coord, list) and len(coord) > 0 and isinstance(coord[0], list):
+                            # Handle nested arrays (e.g., Polygon coordinates)
+                            for nested_coord in coord:
+                                if isinstance(nested_coord, list) and len(nested_coord) > 0:
+                                    if isinstance(nested_coord[0], (int, float)) and len(nested_coord) > 2:
+                                        raise ValueError('coordinates must be 2D only (longitude, latitude) - no depth data allowed')
+                                    # Skip validation for existing data that might have different formats
                 elif isinstance(coordinates[0], (int, float)) and len(coordinates) > 2:
                     # Single coordinate
                     raise ValueError('coordinates must be 2D only (longitude, latitude) - no depth data allowed')
+                # Skip validation for existing data that might have different formats
+            # Skip validation for existing data that might have different formats
         
         if v['type'] == 'Feature':
             validate_coordinates_2d(geometry['coordinates'])

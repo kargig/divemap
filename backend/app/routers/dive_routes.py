@@ -21,7 +21,7 @@ from app.schemas import (
     DiveRouteListResponse, RouteDeletionCheck, RouteDeletionRequest
 )
 from app.auth import get_current_active_user, get_current_user_optional
-from app.limiter import limiter
+from app.limiter import limiter, skip_rate_limit_for_admin
 from app.services.route_deletion_service import RouteDeletionService
 from app.services.route_analytics_service import RouteAnalyticsService
 from app.services.route_export_service import RouteExportService
@@ -142,7 +142,7 @@ async def get_popular_routes(
 
 
 @router.get("/{route_id}/export/{format}", response_class=Response)
-@limiter.limit(RATE_LIMITS["export"])
+@skip_rate_limit_for_admin(RATE_LIMITS["export"])
 async def export_route(
     request: Request,
     route_id: int,
@@ -230,7 +230,7 @@ async def export_route(
 
 
 @router.post("/", response_model=DiveRouteResponse)
-@limiter.limit(RATE_LIMITS["create"])
+@skip_rate_limit_for_admin(RATE_LIMITS["create"])
 async def create_route(
     request: Request,
     route_data: DiveRouteCreate,
@@ -310,7 +310,7 @@ async def get_route(
 
 
 @router.put("/{route_id}", response_model=DiveRouteResponse)
-@limiter.limit(RATE_LIMITS["update"])
+@skip_rate_limit_for_admin(RATE_LIMITS["update"])
 async def update_route(
     request: Request,
     route_id: int,
@@ -360,7 +360,7 @@ async def update_route(
 
 
 @router.post("/{route_id}/hide")
-@limiter.limit(RATE_LIMITS["delete"])
+@skip_rate_limit_for_admin(RATE_LIMITS["delete"])
 async def hide_route(
     request: Request,
     route_id: int,
@@ -390,7 +390,7 @@ async def hide_route(
 
 
 @router.delete("/{route_id}")
-@limiter.limit(RATE_LIMITS["delete"])
+@skip_rate_limit_for_admin(RATE_LIMITS["delete"])
 async def delete_route(
     request: Request,
     route_id: int,
@@ -421,7 +421,7 @@ async def delete_route(
 
 
 @router.post("/{route_id}/restore", response_model=DiveRouteResponse)
-@limiter.limit(RATE_LIMITS["delete"])
+@skip_rate_limit_for_admin(RATE_LIMITS["delete"])
 async def restore_route(
     request: Request,
     route_id: int,
@@ -530,7 +530,7 @@ async def list_routes(
 
 
 @router.post("/{route_id}/share", response_model=dict)
-@limiter.limit(RATE_LIMITS["share"])
+@skip_rate_limit_for_admin(RATE_LIMITS["share"])
 async def share_route(
     request: Request,
     route_id: int,
@@ -601,7 +601,7 @@ async def share_route(
 
 
 @router.post("/{route_id}/interaction", response_model=dict)
-@limiter.limit(RATE_LIMITS["interaction"])
+@skip_rate_limit_for_admin(RATE_LIMITS["interaction"])
 async def track_route_interaction(
     request: Request,
     route_id: int,
@@ -739,7 +739,7 @@ async def get_route_community_stats(
 
 
 @router.post("/{route_id}/view", response_model=dict)
-@limiter.limit(RATE_LIMITS["view"])
+@skip_rate_limit_for_admin(RATE_LIMITS["view"])
 async def track_route_view(
     request: Request,
     route_id: int,
@@ -795,7 +795,7 @@ async def track_route_view(
 
 
 @router.post("/{route_id}/copy", response_model=dict)
-@limiter.limit(RATE_LIMITS["copy"])
+@skip_rate_limit_for_admin(RATE_LIMITS["copy"])
 async def copy_route(
     request: Request,
     route_id: int,

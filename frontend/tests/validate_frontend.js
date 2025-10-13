@@ -7,7 +7,7 @@
 
 const puppeteer = require('puppeteer');
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'http://localhost';
 const BACKEND_URL = 'http://localhost:8000';
 
 // Test scenarios
