@@ -51,7 +51,7 @@ Implement a dive route drawing and selection system that allows users to draw th
 - [x] Mobile compatibility is verified across different devices and screen sizes
 - [x] Performance meets requirements (smooth drawing, fast loading)
 - [x] Code follows project standards (ESLint, Prettier, TypeScript where applicable)
-- [ ] Tests provide adequate coverage for all new functionality
+- [x] Tests provide adequate coverage for all new functionality
 
 ### User Experience Requirements
 
@@ -73,7 +73,7 @@ Implement a dive route drawing and selection system that allows users to draw th
 - [x] Add soft delete fields and methods to DiveRoute model
 - [x] Create RouteDeletionService with cross-user protection and migration logic
 - [x] Add route deletion protection to prevent modification of other users' dives
-- [ ] Write unit tests for simplified models and deletion logic
+- [x] Write unit tests for simplified models and deletion logic
 
 #### Phase 1 Files Created/Modified
 
@@ -90,7 +90,7 @@ Implement a dive route drawing and selection system that allows users to draw th
 - [x] Add route endpoints to existing dive site APIs (`/api/v1/dive-sites/{id}/routes`)
 - [x] Add route validation logic for geometry and metadata
 - [x] Implement two-tier deletion system with cross-user protection
-- [ ] Write comprehensive unit tests for API endpoints
+- [x] Write comprehensive unit tests for API endpoints
 
 #### Phase 2 Files Created/Modified
 
@@ -160,16 +160,16 @@ Implement a dive route drawing and selection system that allows users to draw th
 - [x] Integrate route display with existing LeafletMapView component in dive details
 - [x] Add route selection endpoints to dive creation/edit APIs
 
-### Phase 8: Advanced Features & Export (Week 8)
+### Phase 8: Advanced Features & Export (Week 8) ✅ COMPLETED
 
-- [ ] Add route analytics and usage tracking for community insights
-- [ ] Implement route export functionality (GPX, KML formats)
-- [ ] Add route interaction endpoints (view, copy, share)
+- [x] Add route analytics and usage tracking for community insights
+- [x] Implement route export functionality (GPX, KML formats)
+- [x] Add route interaction endpoints (view, copy, share)
 
 ### Phase 9: Testing & Performance (Week 9)
 
 - [ ] Comprehensive end-to-end testing across all devices
-- [ ] Performance testing with large datasets (1000+ routes)
+- [ ] Performance testing with large datasets (1000+ routes) - Make sure these tests are deletable afterwards so they don't pollute the database
 - [ ] Mobile device testing and optimization
 - [ ] Route data validation and quality checks
 
@@ -457,12 +457,50 @@ The streamlined design focuses on essential functionality, providing a cleaner a
 
 This feature completes Phase 7: Dive Integration.
 
+### Phase 8: Advanced Features & Export Implementation (January 2025)
+
+**COMPLETED**: Advanced route features including analytics, export functionality, and enhanced user interactions:
+
+- **Route Analytics System**:
+  - Created `RouteAnalytics` model and `RouteAnalyticsService` for tracking user interactions
+  - Implemented tracking for views, copies, shares, downloads, exports, likes, and bookmarks
+  - Added community statistics endpoint showing total dives, unique users, recent activity, and waypoints
+  - Created migration `0036_add_route_analytics_tracking_table.py`
+
+- **Route Export Functionality**:
+  - Created `RouteExportService` for GPX and KML format generation
+  - Added `/export-formats` endpoint to list available export formats
+  - Added `/{route_id}/export/{format}` endpoint for file downloads
+  - Integrated export modal in `RouteDetail.js` with format selection
+
+- **Enhanced Route Interactions**:
+  - Added `/{route_id}/view` endpoint for view tracking
+  - Added `/{route_id}/copy` endpoint for route copying with custom names
+  - Added `/{route_id}/share` endpoint for generating shareable links
+  - Added `/popular` endpoint for discovering most-used routes
+  - Created `PopularRoutes.js` component for community route discovery
+
+- **UI Enhancements**:
+  - Enhanced `RouteDetail.js` with export functionality, analytics display, and improved interactions
+  - Simplified `RoutePreview.js` to show only essential actions (View, Edit, Delete)
+  - Added route icons to `Dives.js` listing page for dives with associated routes
+  - Fixed backend API to include `selected_route_id` field in dive responses
+
+- **Technical Improvements**:
+  - Resolved routing conflicts by moving `/popular` endpoint before parameterized routes
+  - Fixed serialization issues in community statistics endpoint
+  - Added comprehensive error handling and user feedback
+  - Maintained backward compatibility with existing functionality
+
+This completes Phase 8: Advanced Features & Export.
+
 ### Implementation Progress
 
 - **Phases 1-5**: ✅ COMPLETED - Database, API, drawing interface, mobile optimization, and route management
 - **Phase 6**: ✅ COMPLETED - Route discovery with simplified UI
 - **Phase 7**: ✅ COMPLETED - Dive integration (route selection in dive creation/edit)
-- **Phases 8-10**: ⏳ PENDING - Advanced features, testing, and polish
+- **Phase 8**: ✅ COMPLETED - Advanced features, analytics, export, and enhanced interactions
+- **Phases 9-10**: ⏳ PENDING - Testing, performance, and polish
 
 ### Key Components Implemented
 

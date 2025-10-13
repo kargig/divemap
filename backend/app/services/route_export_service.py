@@ -12,6 +12,11 @@ from xml.dom import minidom
 from app.models import DiveRoute, DiveSite
 
 
+# Constants for styling
+LINE_WIDTH = 3
+POLYGON_TRANSPARENCY = "80"  # Hex transparency value
+
+
 class RouteExportService:
     """Service for exporting dive routes to various formats"""
     
@@ -189,8 +194,8 @@ class RouteExportService:
                     
                     coordinates = geometry.get('coordinates', [])
                     if coordinates:
-                        coord = coordinates[0]
-                        coordinates_elem.text = f"{coord[0]},{coord[1]},{coord[2] if len(coord) > 2 else 0}"
+                        # For Point, coordinates is [lon, lat] or [lon, lat, alt]
+                        coordinates_elem.text = f"{coordinates[0]},{coordinates[1]},{coordinates[2] if len(coordinates) > 2 else 0}"
                 
                 elif geometry.get('type') == 'Polygon':
                     # Create Polygon
@@ -218,12 +223,12 @@ class RouteExportService:
     def _add_kml_styles(self, document: ET.Element) -> None:
         """Add KML styles for different route segment types"""
         
-        # Define colors for different segment types
+        # Define colors for different segment types (using colorblind-safe palette)
         colors = {
-            'walk': 'ff00ff00',    # Green
-            'swim': 'ff0000ff',    # Blue  
-            'scuba': 'ffff0000',   # Red
-            'line': 'ffffff00',    # Yellow
+            'walk': 'ffE69F00',    # Okabe-Ito Orange
+            'swim': 'ff0072B2',    # Okabe-Ito Blue  
+            'scuba': 'ff009E73',    # Okabe-Ito Bluish Green
+            'line': 'ffF0E442',    # Okabe-Ito Yellow
             'unknown': 'ff808080'  # Gray
         }
         
@@ -235,11 +240,11 @@ class RouteExportService:
             color_elem = ET.SubElement(line_style, "color")
             color_elem.text = color
             width_elem = ET.SubElement(line_style, "width")
-            width_elem.text = "3"
+            width_elem.text = str(LINE_WIDTH)
             
             poly_style = ET.SubElement(style, "PolyStyle")
             color_elem = ET.SubElement(poly_style, "color")
-            color_elem.text = color + "80"  # Add transparency
+            color_elem.text = color + POLYGON_TRANSPARENCY  # Add transparency
             fill_elem = ET.SubElement(poly_style, "fill")
             fill_elem.text = "1"
             outline_elem = ET.SubElement(poly_style, "outline")

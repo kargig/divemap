@@ -5,8 +5,10 @@ Handles CRUD operations for dive routes with proper authentication,
 validation, and soft delete support.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
+import re
+import html
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, desc, asc, func
@@ -24,7 +26,72 @@ from app.services.route_deletion_service import RouteDeletionService
 from app.services.route_analytics_service import RouteAnalyticsService
 from app.services.route_export_service import RouteExportService
 
+# Constants for rate limiting
+RATE_LIMITS = {
+    "export": "30/minute",
+    "create": "10/minute",
+    "update": "20/minute",
+    "delete": "5/minute",
+    "share": "30/minute",
+    "view": "200/minute",
+    "copy": "50/minute",
+    "interaction": "100/minute"
+}
+
+# Constants for validation
+MAX_ROUTE_NAME_LENGTH = 255
+MAX_ROUTE_DESCRIPTION_LENGTH = 1000
+VALID_INTERACTION_TYPES = ["view", "copy", "share", "download", "export", "like", "bookmark"]
+VALID_SHARE_METHODS = ["link", "email", "social"]
+VALID_EXPORT_FORMATS = ["gpx", "kml"]
+
 router = APIRouter()
+
+
+def sanitize_input(text: str, max_length: int = None) -> str:
+    """Sanitize user input to prevent XSS and other security issues"""
+    if not text:
+        return text
+    
+    # HTML escape to prevent XSS
+    sanitized = html.escape(text)
+    
+    # Remove potentially dangerous characters
+    sanitized = re.sub(r'[<>"\']', '', sanitized)
+    
+    # Limit length if specified
+    if max_length and len(sanitized) > max_length:
+        sanitized = sanitized[:max_length]
+    
+    return sanitized.strip()
+
+
+def create_standard_response(data: Any, message: str = None, status_code: int = 200) -> Dict[str, Any]:
+    """Create a standardized API response format"""
+    response = {
+        "success": True,
+        "data": data,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    if message:
+        response["message"] = message
+    
+    return response
+
+
+def create_error_response(message: str, status_code: int = 400, details: Dict[str, Any] = None) -> Dict[str, Any]:
+    """Create a standardized error response format"""
+    response = {
+        "success": False,
+        "error": message,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    if details:
+        response["details"] = details
+    
+    return response
 
 
 # Route Export Endpoints (must be before parameterized routes)
@@ -33,7 +100,8 @@ router = APIRouter()
 async def get_export_formats():
     """Get list of available export formats"""
     export_service = RouteExportService()
-    return export_service.get_export_formats()
+    formats = export_service.get_export_formats()
+    return formats
 
 
 @router.get("/popular", response_model=DiveRouteListResponse)
@@ -74,7 +142,7 @@ async def get_popular_routes(
 
 
 @router.get("/{route_id}/export/{format}", response_class=Response)
-@limiter.limit("30/minute")
+@limiter.limit(RATE_LIMITS["export"])
 async def export_route(
     request: Request,
     route_id: int,
@@ -101,11 +169,10 @@ async def export_route(
         )
     
     # Validate format
-    valid_formats = ["gpx", "kml"]
-    if format.lower() not in valid_formats:
+    if format.lower() not in VALID_EXPORT_FORMATS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid format. Must be one of: {', '.join(valid_formats)}"
+            detail=f"Invalid format. Must be one of: {', '.join(VALID_EXPORT_FORMATS)}"
         )
     
     # Track export interaction
@@ -124,9 +191,9 @@ async def export_route(
                 "method": request.method
             }
         )
-    except Exception:
-        # Don't fail export if analytics tracking fails
-        pass
+    except Exception as e:
+        # Log analytics failure but don't fail export
+        print(f"Analytics tracking failed for export: {e}")
     
     # Export route
     export_service = RouteExportService()
@@ -135,11 +202,11 @@ async def export_route(
         if format.lower() == "gpx":
             content = export_service.export_to_gpx(route, route.dive_site)
             media_type = "application/gpx+xml"
-            filename = f"{route.name.replace(' ', '_')}.gpx"
+            filename = f"{sanitize_input(route.name).replace(' ', '_')}.gpx"
         elif format.lower() == "kml":
             content = export_service.export_to_kml(route, route.dive_site)
             media_type = "application/vnd.google-earth.kml+xml"
-            filename = f"{route.name.replace(' ', '_')}.kml"
+            filename = f"{sanitize_input(route.name).replace(' ', '_')}.kml"
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -163,7 +230,7 @@ async def export_route(
 
 
 @router.post("/", response_model=DiveRouteResponse)
-@limiter.limit("10/minute")
+@limiter.limit(RATE_LIMITS["create"])
 async def create_route(
     request: Request,
     route_data: DiveRouteCreate,
@@ -171,6 +238,17 @@ async def create_route(
     db: Session = Depends(get_db)
 ):
     """Create a new dive route"""
+    # Sanitize input data
+    sanitized_name = sanitize_input(route_data.name, MAX_ROUTE_NAME_LENGTH)
+    sanitized_description = sanitize_input(route_data.description, MAX_ROUTE_DESCRIPTION_LENGTH)
+    
+    # Validate input lengths
+    if not sanitized_name or len(sanitized_name.strip()) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Route name is required and cannot be empty"
+        )
+    
     # Verify dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == route_data.dive_site_id).first()
     if not dive_site:
@@ -183,8 +261,8 @@ async def create_route(
     db_route = DiveRoute(
         dive_site_id=route_data.dive_site_id,
         created_by=current_user.id,
-        name=route_data.name,
-        description=route_data.description,
+        name=sanitized_name,
+        description=sanitized_description,
         route_data=route_data.route_data,
         route_type=route_data.route_type
     )
@@ -232,7 +310,7 @@ async def get_route(
 
 
 @router.put("/{route_id}", response_model=DiveRouteResponse)
-@limiter.limit("20/minute")
+@limiter.limit(RATE_LIMITS["update"])
 async def update_route(
     request: Request,
     route_id: int,
@@ -258,10 +336,22 @@ async def update_route(
             detail="Not authorized to update this route"
         )
     
-    # Update fields
+    # Update fields with sanitization
     update_data = route_data.dict(exclude_unset=True)
     for field, value in update_data.items():
-        setattr(route, field, value)
+        if field == "name" and value:
+            sanitized_value = sanitize_input(value, MAX_ROUTE_NAME_LENGTH)
+            if not sanitized_value or len(sanitized_value.strip()) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Route name cannot be empty"
+                )
+            setattr(route, field, sanitized_value)
+        elif field == "description" and value:
+            sanitized_value = sanitize_input(value, MAX_ROUTE_DESCRIPTION_LENGTH)
+            setattr(route, field, sanitized_value)
+        else:
+            setattr(route, field, value)
     
     db.commit()
     db.refresh(route)
@@ -270,7 +360,7 @@ async def update_route(
 
 
 @router.post("/{route_id}/hide")
-@limiter.limit("10/minute")
+@limiter.limit(RATE_LIMITS["delete"])
 async def hide_route(
     request: Request,
     route_id: int,
@@ -300,7 +390,7 @@ async def hide_route(
 
 
 @router.delete("/{route_id}")
-@limiter.limit("5/minute")
+@limiter.limit(RATE_LIMITS["delete"])
 async def delete_route(
     request: Request,
     route_id: int,
@@ -331,7 +421,7 @@ async def delete_route(
 
 
 @router.post("/{route_id}/restore", response_model=DiveRouteResponse)
-@limiter.limit("5/minute")
+@limiter.limit(RATE_LIMITS["delete"])
 async def restore_route(
     request: Request,
     route_id: int,
@@ -362,7 +452,8 @@ async def check_route_deletion(
 ):
     """Check if a route can be deleted (soft or hard) and get migration options"""
     deletion_service = RouteDeletionService(db)
-    return deletion_service.can_delete_route(route_id, current_user, soft_delete=soft_delete)
+    deletion_check = deletion_service.can_delete_route(route_id, current_user, soft_delete=soft_delete)
+    return deletion_check
 
 
 @router.get("/", response_model=DiveRouteListResponse)
@@ -379,6 +470,9 @@ async def list_routes(
     db: Session = Depends(get_db)
 ):
     """List dive routes with filtering and pagination"""
+    # Sanitize search input
+    sanitized_search = sanitize_input(search) if search else None
+    
     # Build query
     query = db.query(DiveRoute).options(
         joinedload(DiveRoute.creator)
@@ -394,10 +488,10 @@ async def list_routes(
     if route_type:
         query = query.filter(DiveRoute.route_type == route_type)
     
-    if search:
+    if sanitized_search:
         search_filter = or_(
-            DiveRoute.name.ilike(f"%{search}%"),
-            DiveRoute.description.ilike(f"%{search}%")
+            DiveRoute.name.ilike(f"%{sanitized_search}%"),
+            DiveRoute.description.ilike(f"%{sanitized_search}%")
         )
         query = query.filter(search_filter)
     
@@ -435,135 +529,8 @@ async def list_routes(
     )
 
 
-@router.get("/dive-sites/{dive_site_id}/routes", response_model=List[DiveRouteResponse])
-async def get_routes_by_dive_site(
-    dive_site_id: int,
-    current_user: User = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)
-):
-    """Get all routes for a specific dive site"""
-    # Verify dive site exists
-    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
-    if not dive_site:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dive site not found"
-        )
-    
-    routes = db.query(DiveRoute).options(
-        joinedload(DiveRoute.creator)
-    ).filter(
-        and_(
-            DiveRoute.dive_site_id == dive_site_id,
-            DiveRoute.deleted_at.is_(None)
-        )
-    ).order_by(desc(DiveRoute.created_at)).all()
-    
-    return routes
-
-
-# Route Export Endpoints
-
-@router.get("/export-formats", response_model=List[dict])
-async def get_export_formats():
-    """Get list of available export formats"""
-    export_service = RouteExportService()
-    return export_service.get_export_formats()
-
-
-@router.get("/{route_id}/export/{format}", response_class=Response)
-@limiter.limit("30/minute")
-async def export_route(
-    request: Request,
-    route_id: int,
-    format: str,
-    current_user: User = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)
-):
-    """Export route to specified format (GPX, KML)"""
-    
-    # Get route with dive site
-    route = db.query(DiveRoute).options(
-        joinedload(DiveRoute.dive_site)
-    ).filter(
-        and_(
-            DiveRoute.id == route_id,
-            DiveRoute.deleted_at.is_(None)
-        )
-    ).first()
-    
-    if not route:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Route not found"
-        )
-    
-    # Validate format
-    valid_formats = ["gpx", "kml"]
-    if format.lower() not in valid_formats:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid format. Must be one of: {', '.join(valid_formats)}"
-        )
-    
-    # Track export interaction
-    analytics_service = RouteAnalyticsService(db)
-    try:
-        analytics_service.track_interaction(
-            route_id=route_id,
-            interaction_type="export",
-            user_id=current_user.id if current_user else None,
-            ip_address=get_remote_address(request),
-            user_agent=request.headers.get("user-agent"),
-            referrer=request.headers.get("referer"),
-            extra_data={
-                "export_format": format.lower(),
-                "endpoint": str(request.url),
-                "method": request.method
-            }
-        )
-    except Exception:
-        # Don't fail export if analytics tracking fails
-        pass
-    
-    # Export route
-    export_service = RouteExportService()
-    
-    try:
-        if format.lower() == "gpx":
-            content = export_service.export_to_gpx(route, route.dive_site)
-            media_type = "application/gpx+xml"
-            filename = f"{route.name.replace(' ', '_')}.gpx"
-        elif format.lower() == "kml":
-            content = export_service.export_to_kml(route, route.dive_site)
-            media_type = "application/vnd.google-earth.kml+xml"
-            filename = f"{route.name.replace(' ', '_')}.kml"
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Unsupported export format"
-            )
-        
-        return Response(
-            content=content,
-            media_type=media_type,
-            headers={
-                "Content-Disposition": f"attachment; filename=\"{filename}\"",
-                "Content-Type": f"{media_type}; charset=utf-8"
-            }
-        )
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Export failed: {str(e)}"
-        )
-
-
-
-
 @router.post("/{route_id}/share", response_model=dict)
-@limiter.limit("10/minute")
+@limiter.limit(RATE_LIMITS["share"])
 async def share_route(
     request: Request,
     route_id: int,
@@ -592,32 +559,49 @@ async def share_route(
             detail="You can only share your own routes"
         )
     
-    # Generate shareable link
-    base_url = request.base_url
-    share_url = f"{base_url}dive-sites/{route.dive_site_id}/route/{route_id}"
+    # Generate shareable link using request host
+    host = request.headers.get("host", "localhost")
+    scheme = "https" if request.headers.get("x-forwarded-proto") == "https" else "http"
+    base_url = f"{scheme}://{host}"
+    share_url = f"{base_url}/dive-sites/{route.dive_site_id}/route/{route_id}"
     
-    # In a real implementation, you might want to:
-    # - Generate a unique share token
-    # - Track sharing analytics
-    # - Set expiration dates
-    # - Control access permissions
+    # Track share interaction
+    analytics_service = RouteAnalyticsService(db)
+    try:
+        analytics_service.track_interaction(
+            route_id=route_id,
+            interaction_type="share",
+            user_id=current_user.id,
+            ip_address=get_remote_address(request),
+            user_agent=request.headers.get("user-agent"),
+            referrer=request.headers.get("referer"),
+            extra_data={
+                "share_type": share_type,
+                "share_url": share_url,
+                "endpoint": str(request.url),
+                "method": request.method
+            }
+        )
+    except Exception as e:
+        print(f"Analytics tracking failed for share: {e}")
     
-    return {
+    share_data = {
         "route_id": route_id,
+        "route_name": sanitize_input(route.name),
         "share_url": share_url,
         "share_type": share_type,
         "shared_by": current_user.id,
-        "shared_at": func.now(),
+        "shared_at": datetime.utcnow().isoformat(),
         "expires_at": None,  # No expiration for now
         "access_count": 0,   # Would be tracked in a real implementation
-        "message": f"Route '{route.name}' shared successfully"
     }
-
-
+    
+    share_data["message"] = f"Route '{sanitize_input(route.name)}' shared successfully"
+    return share_data
 
 
 @router.post("/{route_id}/interaction", response_model=dict)
-@limiter.limit("100/minute")
+@limiter.limit(RATE_LIMITS["interaction"])
 async def track_route_interaction(
     request: Request,
     route_id: int,
@@ -640,11 +624,10 @@ async def track_route_interaction(
         )
     
     # Validate interaction type
-    valid_interactions = ["view", "copy", "share", "download", "export", "like", "bookmark"]
-    if interaction_type not in valid_interactions:
+    if interaction_type not in VALID_INTERACTION_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid interaction type. Must be one of: {', '.join(valid_interactions)}"
+            detail=f"Invalid interaction type. Must be one of: {', '.join(VALID_INTERACTION_TYPES)}"
         )
     
     # Use analytics service to track interaction
@@ -665,14 +648,15 @@ async def track_route_interaction(
             }
         )
         
-        return {
+        interaction_data = {
             "route_id": route_id,
             "interaction_type": interaction_type,
             "user_id": current_user.id if current_user else None,
             "analytics_id": analytics.id,
             "timestamp": analytics.created_at.isoformat(),
-            "message": f"Interaction '{interaction_type}' tracked successfully"
         }
+        interaction_data["message"] = f"Interaction '{interaction_type}' tracked successfully"
+        return interaction_data
         
     except ValueError as e:
         raise HTTPException(
@@ -735,9 +719,9 @@ async def get_route_community_stats(
                 waypoint_count += len(coords)
             estimated_length = waypoint_count * 0.1
     
-    return {
+    stats_data = {
         "route_id": route_id,
-        "route_name": route.name,
+        "route_name": sanitize_input(route.name),
         "community_stats": {
             "total_dives_using_route": dive_count,
             "unique_users_used_route": unique_users,
@@ -746,22 +730,16 @@ async def get_route_community_stats(
             "estimated_length_km": round(estimated_length, 2),
             "route_type": route.route_type,
             "has_description": bool(route.description),
-            "created_at": route.created_at,
-            "creator_username": route.creator.username if route.creator else "Unknown",
+            "created_at": route.created_at.isoformat(),
+            "creator_username": sanitize_input(route.creator.username) if route.creator else "Unknown",
         },
         "generated_at": datetime.utcnow().isoformat()
     }
+    return stats_data
 
-
-
-
-    return migration_routes
-
-
-# Enhanced Route Interaction Endpoints
 
 @router.post("/{route_id}/view", response_model=dict)
-@limiter.limit("200/minute")
+@limiter.limit(RATE_LIMITS["view"])
 async def track_route_view(
     request: Request,
     route_id: int,
@@ -799,14 +777,15 @@ async def track_route_view(
             }
         )
         
-        return {
+        view_data = {
             "route_id": route_id,
             "interaction_type": "view",
             "user_id": current_user.id if current_user else None,
             "analytics_id": analytics.id,
             "timestamp": analytics.created_at.isoformat(),
-            "message": "Route view tracked successfully"
         }
+        view_data["message"] = "Route view tracked successfully"
+        return view_data
         
     except Exception as e:
         raise HTTPException(
@@ -816,7 +795,7 @@ async def track_route_view(
 
 
 @router.post("/{route_id}/copy", response_model=dict)
-@limiter.limit("50/minute")
+@limiter.limit(RATE_LIMITS["copy"])
 async def copy_route(
     request: Request,
     route_id: int,
@@ -825,6 +804,15 @@ async def copy_route(
     db: Session = Depends(get_db)
 ):
     """Copy an existing route to create a new one"""
+    # Sanitize input
+    sanitized_name = sanitize_input(new_name, MAX_ROUTE_NAME_LENGTH)
+    
+    if not sanitized_name or len(sanitized_name.strip()) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Route name is required and cannot be empty"
+        )
+    
     # Get original route
     original_route = db.query(DiveRoute).filter(
         and_(
@@ -841,8 +829,8 @@ async def copy_route(
     
     # Create new route based on original
     new_route = DiveRoute(
-        name=new_name,
-        description=f"Copied from: {original_route.name}",
+        name=sanitized_name,
+        description=f"Copied from: {sanitize_input(original_route.name)}",
         route_data=original_route.route_data,
         route_type=original_route.route_type,
         dive_site_id=original_route.dive_site_id,
@@ -865,101 +853,19 @@ async def copy_route(
             referrer=request.headers.get("referer"),
             extra_data={
                 "copied_route_id": new_route.id,
-                "original_route_name": original_route.name,
-                "new_route_name": new_name,
+                "original_route_name": sanitize_input(original_route.name),
+                "new_route_name": sanitized_name,
                 "endpoint": str(request.url),
                 "method": request.method
             }
         )
-    except Exception:
-        # Don't fail copy if analytics tracking fails
-        pass
+    except Exception as e:
+        print(f"Analytics tracking failed for copy: {e}")
     
-    return {
+    copy_data = {
         "original_route_id": route_id,
         "new_route_id": new_route.id,
-        "new_route_name": new_name,
-        "message": "Route copied successfully"
+        "new_route_name": sanitized_name,
     }
-
-
-@router.post("/{route_id}/share", response_model=dict)
-@limiter.limit("30/minute")
-async def share_route(
-    request: Request,
-    route_id: int,
-    share_method: str = Query(..., description="Share method: link, email, social"),
-    share_data: dict = None,
-    current_user: User = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)
-):
-    """Share a route via various methods"""
-    route = db.query(DiveRoute).options(
-        joinedload(DiveRoute.dive_site),
-        joinedload(DiveRoute.creator)
-    ).filter(
-        and_(
-            DiveRoute.id == route_id,
-            DiveRoute.deleted_at.is_(None)
-        )
-    ).first()
-    
-    if not route:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Route not found"
-        )
-    
-    # Validate share method
-    valid_methods = ["link", "email", "social"]
-    if share_method not in valid_methods:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid share method. Must be one of: {', '.join(valid_methods)}"
-        )
-    
-    # Generate share data based on method
-    share_result = {
-        "route_id": route_id,
-        "route_name": route.name,
-        "share_method": share_method,
-        "share_url": f"http://localhost/dive-sites/{route.dive_site_id}/route/{route_id}",
-        "timestamp": datetime.utcnow().isoformat()
-    }
-    
-    if share_method == "link":
-        share_result["share_link"] = f"http://localhost/dive-sites/{route.dive_site_id}/route/{route_id}"
-        share_result["message"] = "Route link generated successfully"
-    
-    elif share_method == "email":
-        # In a real implementation, you would send an email here
-        share_result["email_sent"] = False
-        share_result["message"] = "Email sharing not implemented yet"
-    
-    elif share_method == "social":
-        # In a real implementation, you would integrate with social media APIs
-        share_result["social_posted"] = False
-        share_result["message"] = "Social sharing not implemented yet"
-    
-    # Track share interaction
-    analytics_service = RouteAnalyticsService(db)
-    try:
-        analytics_service.track_interaction(
-            route_id=route_id,
-            interaction_type="share",
-            user_id=current_user.id if current_user else None,
-            ip_address=get_remote_address(request),
-            user_agent=request.headers.get("user-agent"),
-            referrer=request.headers.get("referer"),
-            extra_data={
-                "share_method": share_method,
-                "share_data": share_data or {},
-                "endpoint": str(request.url),
-                "method": request.method
-            }
-        )
-    except Exception:
-        # Don't fail share if analytics tracking fails
-        pass
-    
-    return share_result
+    copy_data["message"] = "Route copied successfully"
+    return copy_data
