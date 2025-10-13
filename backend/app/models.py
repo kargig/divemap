@@ -48,6 +48,11 @@ class TripStatus(enum.Enum):
     cancelled = "cancelled"
     completed = "completed"
 
+class RouteType(enum.Enum):
+    scuba = "scuba"
+    walk = "walk"
+    swim = "swim"
+
 class DivingOrganization(Base):
     __tablename__ = "diving_organizations"
 
@@ -91,6 +96,7 @@ class User(Base):
     center_comments = relationship("CenterComment", back_populates="user", cascade="all, delete-orphan")
     certifications = relationship("UserCertification", back_populates="user", cascade="all, delete-orphan")
     dives = relationship("Dive", back_populates="user", cascade="all, delete-orphan")
+    created_routes = relationship("DiveRoute", back_populates="creator", primaryjoin="User.id == DiveRoute.created_by", cascade="all, delete-orphan")
     diving_centers = relationship("DivingCenter", back_populates="owner")
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     auth_audit_logs = relationship("AuthAuditLog", back_populates="user", cascade="all, delete-orphan")
@@ -124,6 +130,7 @@ class DiveSite(Base):
     parsed_dives = relationship("ParsedDive", back_populates="dive_site", cascade="all, delete-orphan")
     tags = relationship("DiveSiteTag", back_populates="dive_site", cascade="all, delete-orphan")
     dives = relationship("Dive", back_populates="dive_site", cascade="all, delete-orphan")
+    routes = relationship("DiveRoute", back_populates="dive_site", cascade="all, delete-orphan")
     aliases = relationship("DiveSiteAlias", back_populates="dive_site", cascade="all, delete-orphan")
 
 class DiveSiteAlias(Base):
@@ -413,6 +420,7 @@ class Dive(Base):
     profile_sample_count = Column(Integer, nullable=True)  # Number of sample points
     profile_max_depth = Column(DECIMAL(6, 3), nullable=True)  # Max depth from profile
     profile_duration_minutes = Column(Integer, nullable=True)  # Duration from profile
+    selected_route_id = Column(Integer, ForeignKey("dive_routes.id"), nullable=True, index=True)  # Selected dive route
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -420,6 +428,7 @@ class Dive(Base):
     user = relationship("User", back_populates="dives")
     dive_site = relationship("DiveSite", back_populates="dives")
     diving_center = relationship("DivingCenter", back_populates="dives")  # New relationship
+    selected_route = relationship("DiveRoute", foreign_keys=[selected_route_id])
     media = relationship("DiveMedia", back_populates="dive", cascade="all, delete-orphan")
     tags = relationship("DiveTag", back_populates="dive", cascade="all, delete-orphan")
 
@@ -482,3 +491,62 @@ class AuthAuditLog(Base):
     
     # Relationships
     user = relationship("User", back_populates="auth_audit_logs")
+
+
+class DiveRoute(Base):
+    __tablename__ = "dive_routes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), nullable=False, index=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    route_data = Column(sa.JSON, nullable=False)  # Multi-segment GeoJSON FeatureCollection
+    route_type = Column(Enum(RouteType), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    # Soft delete fields
+    deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Relationships
+    dive_site = relationship("DiveSite", back_populates="routes")
+    creator = relationship("User", back_populates="created_routes", foreign_keys=[created_by])
+    deleter = relationship("User", foreign_keys=[deleted_by])
+    
+    @property
+    def is_deleted(self) -> bool:
+        """Check if route is soft deleted"""
+        return self.deleted_at is not None
+    
+    def soft_delete(self, deleted_by_user_id: int) -> None:
+        """Soft delete the route"""
+        self.deleted_at = func.now()
+        self.deleted_by = deleted_by_user_id
+    
+    def restore(self) -> None:
+        """Restore a soft deleted route"""
+        self.deleted_at = None
+        self.deleted_by = None
+
+
+class RouteAnalytics(Base):
+    """Track user interactions with dive routes for analytics"""
+    __tablename__ = "route_analytics"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    route_id = Column(Integer, ForeignKey("dive_routes.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # Nullable for anonymous users
+    interaction_type = Column(String(50), nullable=False, index=True)  # view, copy, share, download, export
+    ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
+    user_agent = Column(Text, nullable=True)
+    referrer = Column(String(500), nullable=True)
+    session_id = Column(String(100), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    
+    # Additional metadata
+    extra_data = Column(sa.JSON, nullable=True)  # Store additional context like export format, etc.
+    
+    # Relationships
+    route = relationship("DiveRoute")
+    user = relationship("User")

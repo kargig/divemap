@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, EmailStr, validator
 from typing import Optional, List, Union
 from datetime import datetime, date, time
 import re
+import enum
 
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
@@ -517,6 +518,7 @@ class DivingCenterResponseWithOrganizations(DivingCenterResponse):
 class DiveBase(BaseModel):
     dive_site_id: Optional[int] = None
     diving_center_id: Optional[int] = None  # Link to diving center
+    selected_route_id: Optional[int] = None  # Selected dive route
     name: Optional[str] = Field(None, max_length=255)  # Custom name/alias
     is_private: bool = False  # Privacy control - default public
     dive_information: Optional[str] = None
@@ -537,6 +539,7 @@ class DiveCreate(DiveBase):
 class DiveUpdate(BaseModel):
     dive_site_id: Optional[int] = None
     diving_center_id: Optional[int] = None  # Link to diving center
+    selected_route_id: Optional[int] = None  # Selected dive route
     name: Optional[str] = Field(None, max_length=255)
     is_private: Optional[bool] = None
     dive_information: Optional[str] = None
@@ -557,6 +560,7 @@ class DiveResponse(DiveBase):
     user_id: int
     dive_site_id: Optional[int] = None
     diving_center_id: Optional[int] = None  # Link to diving center
+    selected_route_id: Optional[int] = None  # Selected dive route
     name: Optional[str] = None
     is_private: bool = False
     dive_information: Optional[str] = None
@@ -575,6 +579,7 @@ class DiveResponse(DiveBase):
     updated_at: datetime
     dive_site: Optional[dict] = None
     diving_center: Optional[dict] = None  # Diving center information
+    selected_route: Optional[dict] = None  # Selected route information
     media: List[dict] = []
     tags: List[dict] = []
     user_username: Optional[str] = None  # For public dives
@@ -872,3 +877,164 @@ class PlatformStatsResponse(BaseModel):
     media: dict
     trips: dict
     timestamp: str
+
+
+# Dive Route Schemas
+class RouteType(str, enum.Enum):
+    scuba = "scuba"
+    walk = "walk"
+    swim = "swim"
+
+
+class DiveRouteBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
+    route_data: dict = Field(..., description="Multi-segment GeoJSON FeatureCollection")
+    route_type: RouteType
+
+    @validator('route_data')
+    def validate_route_data(cls, v):
+        """Validate that route_data is valid multi-segment GeoJSON FeatureCollection"""
+        if not isinstance(v, dict):
+            raise ValueError('route_data must be a dictionary')
+        
+        # Check for required GeoJSON fields
+        if 'type' not in v:
+            raise ValueError('route_data must have a "type" field')
+        
+        if v['type'] != 'FeatureCollection':
+            raise ValueError('route_data type must be "FeatureCollection" for multi-segment routes')
+        
+        if 'features' not in v:
+            raise ValueError('FeatureCollection must have a "features" field')
+        
+        features = v['features']
+        if not isinstance(features, list):
+            raise ValueError('features must be a list')
+        
+        if len(features) == 0:
+            raise ValueError('FeatureCollection must have at least one feature')
+        
+        # Validate each feature
+        for i, feature in enumerate(features):
+            if not isinstance(feature, dict):
+                raise ValueError(f'Feature {i} must be a dictionary')
+            
+            if 'type' not in feature or feature['type'] != 'Feature':
+                raise ValueError(f'Feature {i} must have type "Feature"')
+            
+            if 'geometry' not in feature:
+                raise ValueError(f'Feature {i} must have a "geometry" field')
+            
+            geometry = feature['geometry']
+            if not isinstance(geometry, dict):
+                raise ValueError(f'Feature {i} geometry must be a dictionary')
+            
+            if 'type' not in geometry:
+                raise ValueError(f'Feature {i} geometry must have a "type" field')
+            
+            if geometry['type'] not in ['LineString', 'Polygon', 'Point', 'MultiLineString', 'MultiPolygon']:
+                raise ValueError(f'Feature {i} geometry type must be LineString, Polygon, Point, MultiLineString, or MultiPolygon')
+            
+            if 'coordinates' not in geometry:
+                raise ValueError(f'Feature {i} geometry must have a "coordinates" field')
+        
+        # Validate coordinates are 2D (no depth data) - lenient for existing data
+        def validate_coordinates_2d(coordinates):
+            """Helper function to validate coordinates are 2D only"""
+            if isinstance(coordinates, list) and len(coordinates) > 0:
+                if isinstance(coordinates[0], list):
+                    # Multi-dimensional coordinates
+                    for coord in coordinates:
+                        if isinstance(coord, list) and len(coord) > 0:
+                            if isinstance(coord[0], (int, float)) and len(coord) > 2:
+                                raise ValueError('coordinates must be 2D only (longitude, latitude) - no depth data allowed')
+                            elif not isinstance(coord[0], (int, float)):
+                                # Skip validation for existing data that might have different formats
+                                pass
+                        elif isinstance(coord, list) and len(coord) > 0 and isinstance(coord[0], list):
+                            # Handle nested arrays (e.g., Polygon coordinates)
+                            for nested_coord in coord:
+                                if isinstance(nested_coord, list) and len(nested_coord) > 0:
+                                    if isinstance(nested_coord[0], (int, float)) and len(nested_coord) > 2:
+                                        raise ValueError('coordinates must be 2D only (longitude, latitude) - no depth data allowed')
+                                    # Skip validation for existing data that might have different formats
+                elif isinstance(coordinates[0], (int, float)) and len(coordinates) > 2:
+                    # Single coordinate
+                    raise ValueError('coordinates must be 2D only (longitude, latitude) - no depth data allowed')
+                # Skip validation for existing data that might have different formats
+            # Skip validation for existing data that might have different formats
+        
+        if v['type'] == 'Feature':
+            validate_coordinates_2d(geometry['coordinates'])
+        elif v['type'] == 'FeatureCollection':
+            for feature in features:
+                validate_coordinates_2d(feature['geometry']['coordinates'])
+        
+        return v
+
+
+class DiveRouteCreate(DiveRouteBase):
+    dive_site_id: int = Field(..., description="ID of the dive site this route belongs to")
+
+
+class DiveRouteUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    route_data: Optional[dict] = None
+    route_type: Optional[RouteType] = None
+
+    @validator('route_data')
+    def validate_route_data(cls, v):
+        """Validate that route_data is valid multi-segment GeoJSON FeatureCollection if provided"""
+        if v is not None:
+            # Reuse the same validation logic as DiveRouteBase
+            return DiveRouteBase.validate_route_data(v)
+        return v
+
+
+class DiveRouteResponse(DiveRouteBase):
+    id: int
+    dive_site_id: int
+    created_by: int
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: Optional[datetime] = None
+    deleted_by: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+class DiveRouteWithDetails(DiveRouteResponse):
+    """Extended response with related data"""
+    dive_site: Optional[dict] = None  # Basic dive site info
+    creator: Optional[dict] = None    # Basic creator info
+
+
+class DiveRouteWithCreator(DiveRouteResponse):
+    """Response with creator information"""
+    creator: Optional[dict] = None    # Creator information
+
+
+class DiveRouteListResponse(BaseModel):
+    """Response for paginated route lists"""
+    routes: List[DiveRouteResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class RouteDeletionCheck(BaseModel):
+    """Response for route deletion permission check"""
+    can_delete: bool
+    reason: str
+    dives_using_route: int = 0
+    requires_migration: bool = False
+
+
+class RouteDeletionRequest(BaseModel):
+    """Request to delete a route"""
+    route_id: int
+    migrate_dives_to_route_id: Optional[int] = None  # If dives need to be migrated

@@ -12,6 +12,7 @@ import {
   addDiveMedia,
   getDivingCenters,
 } from '../api';
+import RouteSelection from '../components/RouteSelection';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyValue } from '../utils/difficultyHelpers';
 
@@ -23,6 +24,7 @@ const CreateDive = () => {
   const [formData, setFormData] = useState({
     dive_site_id: '',
     diving_center_id: '',
+    selected_route_id: '',
     name: '',
     is_private: false,
     dive_information: '',
@@ -119,6 +121,23 @@ const CreateDive = () => {
       [field]: value,
     }));
   };
+
+  const handleRouteSelect = routeId => {
+    setFormData(prev => ({
+      ...prev,
+      selected_route_id: routeId,
+    }));
+  };
+
+  // Clear route selection when dive site changes
+  useEffect(() => {
+    if (formData.dive_site_id) {
+      setFormData(prev => ({
+        ...prev,
+        selected_route_id: '',
+      }));
+    }
+  }, [formData.dive_site_id]);
 
   const handleTagToggle = tagId => {
     setFormData(prev => ({
@@ -457,6 +476,13 @@ const CreateDive = () => {
               </div>
             )}
           </div>
+
+          {/* Route Selection */}
+          <RouteSelection
+            diveSiteId={formData.dive_site_id}
+            selectedRouteId={formData.selected_route_id}
+            onRouteSelect={handleRouteSelect}
+          />
 
           <div>
             <label htmlFor='dive-name' className='block text-sm font-medium text-gray-700 mb-2'>

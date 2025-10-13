@@ -1,6 +1,6 @@
 import L, { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { ArrowLeft, Layers } from 'lucide-react';
+import { ArrowLeft, Route, Layers } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -10,6 +10,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import MapLayersPanel from '../components/MapLayersPanel';
 import usePageTitle from '../hooks/usePageTitle';
+import { getRouteTypeColor } from '../utils/colorPalette';
+import { getSmartRouteColor } from '../utils/routeUtils';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -25,6 +27,89 @@ const Recenter = ({ lat, lng, zoom }) => {
     if (!map) return;
     map.setView([lat, lng], zoom, { animate: false });
   }, [map, lat, lng, zoom]);
+  return null;
+};
+
+// Route layer component that displays all routes for the dive site
+const RouteLayer = ({ routes, diveSiteId }) => {
+  const map = useMap();
+  const routeLayersRef = useRef([]);
+
+  useEffect(() => {
+    if (!routes || routes.length === 0) return;
+
+    // Clear existing route layers
+    routeLayersRef.current.forEach(layer => {
+      map.removeLayer(layer);
+    });
+    routeLayersRef.current = [];
+
+    // Add each route as a layer
+    routes.forEach(route => {
+      if (!route.route_data) return;
+
+      const routeLayer = L.geoJSON(route.route_data, {
+        style: feature => {
+          // Use smart route color detection for consistent coloring
+          const routeColor = getSmartRouteColor(route);
+
+          return {
+            color: routeColor,
+            weight: 4,
+            opacity: 0.8,
+            fillOpacity: 0.3,
+          };
+        },
+        pointToLayer: (feature, latlng) => {
+          // Use smart route color detection for consistent coloring
+          const routeColor = getSmartRouteColor(route);
+
+          return L.circleMarker(latlng, {
+            radius: 5,
+            fillColor: routeColor,
+            color: routeColor,
+            weight: 2,
+            opacity: 0.8,
+            fillOpacity: 0.6,
+          });
+        },
+      });
+
+      // Add click handler to route
+      routeLayer.on('click', () => {
+        // Navigate to route detail page
+        window.open(`/dive-sites/${diveSiteId}/route/${route.id}`, '_blank');
+      });
+
+      // Add popup to route
+      routeLayer.bindPopup(`
+        <div class="p-2">
+          <h3 class="font-semibold text-gray-800 mb-1">${route.name}</h3>
+          <p class="text-sm text-gray-600 mb-2">${route.description || 'No description'}</p>
+          <div class="flex items-center gap-2 text-xs text-gray-500">
+            <span class="px-2 py-1 bg-gray-100 rounded">${route.route_type}</span>
+            <span>by ${route.creator?.username || 'Unknown'}</span>
+          </div>
+          <button 
+            onclick="window.open('/dive-sites/${diveSiteId}/route/${route.id}', '_blank')"
+            class="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+          >
+            View Details
+          </button>
+        </div>
+      `);
+
+      map.addLayer(routeLayer);
+      routeLayersRef.current.push(routeLayer);
+    });
+
+    return () => {
+      routeLayersRef.current.forEach(layer => {
+        map.removeLayer(layer);
+      });
+    };
+  }, [map, routes, diveSiteId]);
+
   return null;
 };
 
@@ -44,6 +129,7 @@ const DiveSiteMap = () => {
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   });
   const mapContainerRef = useRef();
+  const [showRoutes, setShowRoutes] = useState(true);
 
   const isFiniteNumber = value => typeof value === 'number' && Number.isFinite(value);
 
@@ -60,6 +146,15 @@ const DiveSiteMap = () => {
   const { data: nearbyDiveSites, isLoading: isLoadingNearby } = useQuery(
     ['dive-site-nearby', id],
     () => api.get(`/api/v1/dive-sites/${id}/nearby`).then(res => res.data),
+    {
+      enabled: !!id,
+    }
+  );
+
+  // Fetch routes for this dive site
+  const { data: routes, isLoading: isLoadingRoutes } = useQuery(
+    ['dive-site-routes', id],
+    () => api.get(`/api/v1/dive-sites/${id}/routes`).then(res => res.data),
     {
       enabled: !!id,
     }
@@ -135,7 +230,7 @@ const DiveSiteMap = () => {
     return list;
   }, [diveSite, nearbyDiveSites]);
 
-  if (isLoadingDiveSite || isLoadingNearby || !diveSite) {
+  if (isLoadingDiveSite || isLoadingNearby || isLoadingRoutes || !diveSite) {
     return (
       <div className='flex justify-center items-center h-64'>
         <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div>
@@ -181,6 +276,20 @@ const DiveSiteMap = () => {
             <Layers className='w-4 h-4' />
           </button>
           <span className='text-sm text-gray-600'>Zoom: {currentZoom.toFixed(1)}</span>
+          {routes && routes.length > 0 && (
+            <button
+              onClick={() => setShowRoutes(!showRoutes)}
+              className={`flex items-center px-3 py-1 rounded-md text-sm transition-colors ${
+                showRoutes
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+              title={showRoutes ? 'Hide Routes' : 'Show Routes'}
+            >
+              <Layers className='w-4 h-4 mr-1' />
+              Routes ({routes.length})
+            </button>
+          )}
           <button
             onClick={() => navigate(`/dive-sites/${id}`)}
             className='p-2 hover:bg-gray-100 rounded-md transition-colors'
@@ -250,6 +359,10 @@ const DiveSiteMap = () => {
               </Popup>
             </Marker>
           ))}
+          {/* Route Layer */}
+          {showRoutes && routes && routes.length > 0 && (
+            <RouteLayer routes={routes} diveSiteId={id} />
+          )}
         </MapContainer>
         <MapLayersPanel
           isOpen={showLayers}
@@ -263,6 +376,39 @@ const DiveSiteMap = () => {
         <div className='absolute top-4 left-16 z-50 bg-white/90 text-gray-800 text-xs px-2 py-1 rounded shadow border border-gray-200'>
           Zoom: {currentZoom.toFixed(1)}
         </div>
+
+        {/* Route Legend */}
+        {showRoutes && routes && routes.length > 0 && (
+          <div className='absolute bottom-4 left-4 z-50 bg-white/90 rounded-lg shadow border border-gray-200 p-3'>
+            <div className='flex items-center mb-2'>
+              <Route className='w-4 h-4 mr-2 text-gray-600' />
+              <span className='text-sm font-medium text-gray-800'>Route Types</span>
+            </div>
+            <div className='space-y-1 text-xs'>
+              <div className='flex items-center gap-2'>
+                <div
+                  className='w-3 h-3 rounded-full'
+                  style={{ backgroundColor: getRouteTypeColor('walk') }}
+                ></div>
+                <span className='text-gray-700'>Walk Route</span>
+              </div>
+              <div className='flex items-center gap-2'>
+                <div
+                  className='w-3 h-3 rounded-full'
+                  style={{ backgroundColor: getRouteTypeColor('swim') }}
+                ></div>
+                <span className='text-gray-700'>Swim Route</span>
+              </div>
+              <div className='flex items-center gap-2'>
+                <div
+                  className='w-3 h-3 rounded-full'
+                  style={{ backgroundColor: getRouteTypeColor('scuba') }}
+                ></div>
+                <span className='text-gray-700'>Scuba Route</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Popup replaced by native Leaflet popups when needed in future */}

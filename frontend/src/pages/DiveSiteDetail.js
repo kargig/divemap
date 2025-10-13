@@ -8,6 +8,7 @@ import {
   Link,
   ChevronDown,
   ChevronUp,
+  Pencil,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
@@ -15,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
 
 import api from '../api';
+import DiveSiteRoutes from '../components/DiveSiteRoutes';
 import MaskedEmail from '../components/MaskedEmail';
 import MiniMap from '../components/MiniMap';
 import RateLimitError from '../components/RateLimitError';
@@ -48,8 +50,38 @@ const DiveSiteDetail = () => {
   const [isMapMaximized, setIsMapMaximized] = useState(false);
   const [showNearbySites, setShowNearbySites] = useState(false);
 
+  // Handle route drawing button click with authentication check
+  const handleDrawRouteClick = () => {
+    if (!user) {
+      toast.error('Please log in to draw routes');
+      navigate('/login');
+      return;
+    }
+    navigate(`/dive-sites/${id}/dive-route`);
+  };
+
   // Check if user has edit privileges
   const canEdit = user && (user.is_admin || user.is_moderator);
+
+  // Route creation mutation
+  const createRouteMutation = useMutation(
+    routeData =>
+      api.post(`/api/v1/dive-sites/${id}/routes`, {
+        ...routeData,
+        dive_site_id: parseInt(id),
+      }),
+    {
+      onSuccess: () => {
+        toast.success('Route created successfully!');
+        queryClient.invalidateQueries(['dive-site', id]);
+        queryClient.invalidateQueries(['dive-site-routes', id]);
+      },
+      onError: error => {
+        console.error('Error creating route:', error);
+        toast.error(getErrorMessage(error));
+      },
+    }
+  );
 
   const toggleNearbySites = () => {
     setShowNearbySites(!showNearbySites);
@@ -337,13 +369,24 @@ const DiveSiteDetail = () => {
                         {diveSite.latitude}, {diveSite.longitude}
                       </span>
                     </div>
-                    <button
-                      onClick={() => navigate(`/dive-sites/${id}/map`)}
-                      className='flex items-center justify-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors w-full sm:w-auto'
-                    >
-                      <Link className='w-4 h-4 mr-1' />
-                      Full Map View
-                    </button>
+                    <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
+                      <button
+                        onClick={handleDrawRouteClick}
+                        className={`flex items-center justify-center px-3 py-1 text-white text-sm rounded-md transition-colors w-full sm:w-auto ${
+                          user ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-500 hover:bg-gray-600'
+                        }`}
+                      >
+                        <Pencil className='w-4 h-4 mr-1' />
+                        {user ? 'Draw Route' : 'Draw Route (Login Required)'}
+                      </button>
+                      <button
+                        onClick={() => navigate(`/dive-sites/${id}/map`)}
+                        className='flex items-center justify-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors w-full sm:w-auto'
+                      >
+                        <Link className='w-4 h-4 mr-1' />
+                        Full Map View
+                      </button>
+                    </div>
                   </div>
                   <MiniMap
                     latitude={diveSite.latitude}
@@ -358,6 +401,9 @@ const DiveSiteDetail = () => {
               )}
             </div>
           ) : null}
+
+          {/* Available Routes */}
+          <DiveSiteRoutes diveSiteId={id} />
 
           {/* Nearby Dive Sites */}
           {nearbyDiveSites && nearbyDiveSites.length > 0 && (

@@ -12,6 +12,7 @@ import {
   addDiveMedia,
   getDivingCenters,
 } from '../api';
+import RouteSelection from '../components/RouteSelection';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyValue } from '../utils/difficultyHelpers';
@@ -55,6 +56,7 @@ const EditDive = () => {
       setFormData({
         dive_site_id: data.dive_site_id ? data.dive_site_id.toString() : '',
         diving_center_id: data.diving_center_id ? data.diving_center_id.toString() : '',
+        selected_route_id: data.selected_route_id ? data.selected_route_id.toString() : '',
         name: data.name || '',
         is_private: data.is_private || false,
         dive_information: data.dive_information || '',
@@ -132,6 +134,28 @@ const EditDive = () => {
     }
   }, [dive, divingCenters]);
 
+  // TODO: Clear route selection when dive site changes (but not during initial load)
+  // This useEffect was causing issues with route pre-selection during form initialization
+  // Need to implement a better solution that doesn't interfere with initial form data loading
+  /*
+  useEffect(() => {
+    // Only clear route selection if:
+    // 1. Dive data has been loaded (dive exists)
+    // 2. There's a dive site ID
+    // 3. There's a selected route ID
+    // 4. The selected route doesn't belong to the current dive site
+    if (dive && formData.dive_site_id && formData.selected_route_id) {
+      const currentRoute = dive.selected_route;
+      if (currentRoute && currentRoute.dive_site_id !== parseInt(formData.dive_site_id)) {
+        setFormData(prev => ({
+          ...prev,
+          selected_route_id: '',
+        }));
+      }
+    }
+  }, [formData.dive_site_id, dive]);
+  */
+
   // Update dive mutation
   const updateDiveMutation = useMutation(({ diveId, diveData }) => updateDive(diveId, diveData), {
     onSuccess: () => {
@@ -177,6 +201,13 @@ const EditDive = () => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
+    }));
+  };
+
+  const handleRouteSelect = routeId => {
+    setFormData(prev => ({
+      ...prev,
+      selected_route_id: routeId,
     }));
   };
 
@@ -302,6 +333,10 @@ const EditDive = () => {
       diving_center_id:
         formData.diving_center_id && formData.diving_center_id !== ''
           ? parseInt(formData.diving_center_id)
+          : null,
+      selected_route_id:
+        formData.selected_route_id && formData.selected_route_id !== ''
+          ? parseInt(formData.selected_route_id)
           : null,
       name: formData.name !== undefined ? formData.name : null,
       is_private: formData.is_private || false,
@@ -526,6 +561,13 @@ const EditDive = () => {
               </div>
             )}
           </div>
+
+          {/* Route Selection */}
+          <RouteSelection
+            diveSiteId={formData.dive_site_id}
+            selectedRouteId={formData.selected_route_id}
+            onRouteSelect={handleRouteSelect}
+          />
 
           <div>
             <label className='block text-sm font-medium text-gray-700 mb-2'>
