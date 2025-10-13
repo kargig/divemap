@@ -253,6 +253,7 @@ def load_routers():
     # - diving_centers (can be lazy loaded, not critical for homepage)
     # - tags (can be lazy loaded, not critical for homepage)
     # - dives (can be lazy loaded, not critical for homepage)
+    # - dive_routes (can be lazy loaded, not critical for homepage)
     
     router_time = time.time() - router_start
     print(f"✅ Essential routers loaded in {router_time:.2f}s")
@@ -374,6 +375,19 @@ def load_dives_router():
         router_time = time.time() - router_start
         print(f"✅ Dives router loaded lazily in {router_time:.2f}s")
 
+def load_dive_routes_router():
+    """Load dive routes router lazily when first accessed"""
+    if not hasattr(app, '_dive_routes_router_loaded'):
+        print("🔧 Loading dive routes router lazily...")
+        router_start = time.time()
+        
+        from app.routers import dive_routes
+        app.include_router(dive_routes.router, prefix="/api/v1/dive-routes", tags=["Dive Routes"])
+        
+        app._dive_routes_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Dive routes router loaded lazily in {router_time:.2f}s")
+
 # Load routers
 load_routers()
 
@@ -418,6 +432,10 @@ async def lazy_router_loading(request: Request, call_next):
     # Load dives router
     elif path.startswith("/api/v1/dives") and not hasattr(app, '_dives_router_loaded'):
         load_dives_router()
+    
+    # Load dive routes router
+    elif path.startswith("/api/v1/dive-routes") and not hasattr(app, '_dive_routes_router_loaded'):
+        load_dive_routes_router()
     
     response = await call_next(request)
     return response

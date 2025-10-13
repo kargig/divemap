@@ -10,7 +10,7 @@ from unittest.mock import Mock
 
 from app.main import app
 from app.database import get_db, Base
-from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment, DivingOrganization, UserCertification, RefreshToken, AuthAuditLog, Dive
+from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment, DivingOrganization, UserCertification, RefreshToken, AuthAuditLog, Dive, DiveRoute, RouteAnalytics
 from app.auth import create_access_token
 
 # Test database URL - use environment variable if available, otherwise default to SQLite
@@ -162,6 +162,22 @@ def test_moderator_user(db_session):
     return moderator
 
 @pytest.fixture
+def test_user_other(db_session):
+    """Create another test user for permission testing."""
+    user = User(
+        username="otheruser",
+        email="other@example.com",
+        password_hash="$2b$12$Qf4ceC4ETacht.pNDme/H.nTnGtc7bNpWDZD2R39K.1Nh32oH7cfy",  # "password"
+        is_admin=False,
+        is_moderator=False,
+        enabled=True
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+@pytest.fixture
 def test_dive_site(db_session):
     """Create a test dive site."""
     dive_site = DiveSite(
@@ -245,6 +261,12 @@ def moderator_headers(moderator_token):
     """Return headers with moderator authentication."""
     return {"Authorization": f"Bearer {moderator_token}"}
 
+@pytest.fixture
+def auth_headers_other_user(test_user_other):
+    """Return headers with authentication for another user."""
+    other_user_token = create_access_token(data={"sub": test_user_other.username})
+    return {"Authorization": f"Bearer {other_user_token}"}
+
 
 @pytest.fixture
 def mock_request():
@@ -285,3 +307,103 @@ def test_user_certification(db_session, test_user, test_diving_organization):
     db_session.commit()
     db_session.refresh(certification)
     return certification
+
+
+# Dive Routes Test Fixtures
+
+@pytest.fixture
+def test_route(db_session, test_user, test_dive_site):
+    """Create a test dive route."""
+    route_data = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[23.5, 37.5], [23.6, 37.6]]
+                },
+                "properties": {"route_type": "scuba"}
+            }
+        ]
+    }
+    
+    route = DiveRoute(
+        dive_site_id=test_dive_site.id,
+        created_by=test_user.id,
+        name="Test Route",
+        description="A test route for testing",
+        route_data=route_data,
+        route_type="scuba"
+    )
+    db_session.add(route)
+    db_session.commit()
+    db_session.refresh(route)
+    return route
+
+
+@pytest.fixture
+def test_route_other_user(db_session, test_user_other, test_dive_site):
+    """Create a test dive route by another user."""
+    route_data = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[23.7, 37.7], [23.8, 37.8]]
+                },
+                "properties": {"route_type": "swim"}
+            }
+        ]
+    }
+    
+    route = DiveRoute(
+        dive_site_id=test_dive_site.id,
+        created_by=test_user_other.id,
+        name="Other User Route",
+        description="A route by another user",
+        route_data=route_data,
+        route_type="swim"
+    )
+    db_session.add(route)
+    db_session.commit()
+    db_session.refresh(route)
+    return route
+
+
+@pytest.fixture
+def test_route_analytics(db_session, test_user, test_route):
+    """Create test route analytics."""
+    analytics = RouteAnalytics(
+        route_id=test_route.id,
+        user_id=test_user.id,
+        interaction_type="view",
+        metadata={"ip_address": "127.0.0.1"}
+    )
+    db_session.add(analytics)
+    db_session.commit()
+    db_session.refresh(analytics)
+    return analytics
+
+
+@pytest.fixture
+def test_dive_with_route(db_session, test_user, test_dive_site, test_route):
+    """Create a test dive with an associated route."""
+    dive = Dive(
+        user_id=test_user.id,
+        dive_site_id=test_dive_site.id,
+        selected_route_id=test_route.id,
+        name="Test Dive with Route",
+        dive_date=date.today(),
+        max_depth=20.0,
+        duration=45,
+        difficulty_level=2,
+        visibility_rating=8,
+        user_rating=9
+    )
+    db_session.add(dive)
+    db_session.commit()
+    db_session.refresh(dive)
+    return dive

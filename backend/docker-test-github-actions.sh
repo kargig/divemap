@@ -164,7 +164,7 @@ docker run --rm \
         
         # Run tests with exact GitHub Actions command
         echo 'Running tests...'
-        python -m pytest tests/ -v --cov=app --cov-report=term-missing -x --maxfail=1 --tb=short
+        python -m pytest tests/ -v --cov=app --cov-report=term-missing -x --maxfail=5 --tb=short
     "
 
 # Check exit code
