@@ -195,6 +195,7 @@ class DivingCenter(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False, index=True)
     description = Column(Text)
+    address = Column(Text)
     email = Column(String(255))
     phone = Column(String(50))
     website = Column(String(255))

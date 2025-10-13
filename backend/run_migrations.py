@@ -11,14 +11,22 @@ import time
 import sqlalchemy as sa
 from pathlib import Path
 
-def wait_for_database(max_retries=30, delay=2):
-    """Wait for database to be available"""
+def wait_for_database(max_retries=50, fixed_delay=0.2):
+    """Wait for database to be available with fixed intervals (optimized for cold starts)"""
     print("Waiting for database to be available...")
 
     # Add the backend directory to Python path
     backend_dir = Path(__file__).parent
     sys.path.insert(0, str(backend_dir))
 
+    # Create internal database URL for faster connection (bypass flycast proxy)
+    database_url = os.getenv("DATABASE_URL", "mysql+pymysql://divemap_user:divemap_password@localhost:3306/divemap")
+    if ".flycast" in database_url:
+        internal_database_url = database_url.replace(".flycast", ".internal")
+        print(f"🔧 Using internal database URL for faster connection: {internal_database_url}")
+        # Temporarily override DATABASE_URL for internal connection
+        os.environ["DATABASE_URL"] = internal_database_url
+    
     from app.database import engine
 
     for attempt in range(max_retries):
@@ -31,7 +39,10 @@ def wait_for_database(max_retries=30, delay=2):
         except Exception as e:
             print(f"⏳ Database not ready (attempt {attempt + 1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
-                time.sleep(delay)
+                # Fixed interval: 0.2s between attempts (optimized for cold starts)
+                # This provides the fastest possible detection for predictable database startup
+                print(f"⏳ Waiting {fixed_delay}s before next attempt...")
+                time.sleep(fixed_delay)
 
     print("❌ Database is not available after maximum retries")
     return False
@@ -39,6 +50,13 @@ def wait_for_database(max_retries=30, delay=2):
 def run_migrations():
     """Run Alembic migrations"""
     print("Running database migrations...")
+
+    # Ensure we're using the internal database URL for migrations too
+    database_url = os.getenv("DATABASE_URL", "mysql+pymysql://divemap_user:divemap_password@localhost:3306/divemap")
+    if ".flycast" in database_url:
+        internal_database_url = database_url.replace(".flycast", ".internal")
+        print(f"🔧 Using internal database URL for migrations: {internal_database_url}")
+        os.environ["DATABASE_URL"] = internal_database_url
 
     try:
         # Run alembic upgrade head

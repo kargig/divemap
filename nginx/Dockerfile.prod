@@ -4,10 +4,22 @@ FROM nginx:alpine
 # Install required packages
 RUN apk add --no-cache \
     curl \
+    netcat-openbsd \
     && rm -rf /var/cache/apk/*
 
 # Copy production configuration
 COPY prod.conf /etc/nginx/nginx.conf
+
+# Copy static loading page used during auto-start warmup
+COPY loading.html /usr/share/nginx/html/loading.html
+
+
+# Copy frontend build (content-hashed assets with precompression)
+# This will be populated during CI/CD build process
+COPY frontend-build/ /usr/share/nginx/html/
+
+# Ensure proper ownership of frontend assets
+RUN chown -R nginx:nginx /usr/share/nginx/html/
 
 # Set proper permissions (nginx user already exists in base image)
 RUN chown -R nginx:nginx /var/cache/nginx && \
@@ -19,19 +31,41 @@ RUN chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/run/nginx.pid
 
 # Create health check script
-RUN echo '#!/bin/sh' > /usr/local/bin/healthcheck && \
-    echo 'curl -f http://localhost/health || exit 1' >> /usr/local/bin/healthcheck && \
-    chmod +x /usr/local/bin/healthcheck
+#RUN echo '#!/bin/sh' > /usr/local/bin/healthcheck && \
+#    echo 'curl -f http://localhost:8000/nginx-health || exit 1' >> /usr/local/bin/healthcheck && \
+#    chmod +x /usr/local/bin/healthcheck
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD /usr/local/bin/healthcheck
+#HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+#    CMD /usr/local/bin/healthcheck
 
 # Expose port (only HTTP needed)
 EXPOSE 80
 
-# Switch to non-root user
-USER nginx
+# Create a wrapper script that runs pre-warming as root, then starts nginx as nginx user
+RUN echo '#!/bin/sh' > /usr/local/bin/startup-wrapper.sh && \
+    echo 'echo "🚀 Starting Nginx with pre-warming..."' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'echo "📡 Pre-warming database at ${DB_HOST:-divemap-db.flycast}:${DB_PORT:-3306}..."' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'echo "📡 Pre-warming backend at ${BACKEND_HOST:-divemap-backend.flycast}:${BACKEND_PORT:-80}..."' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'timeout 5s nc -6 -w 3 "${DB_HOST:-divemap-db.flycast}" "${DB_PORT:-3306}" < /dev/null > /dev/null 2>&1 &' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'echo "✅ Database ping sent (non-blocking)"' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'timeout 1s curl -s -f "http://${BACKEND_HOST:-divemap-backend.flycast}:${BACKEND_PORT:-80}/" > /dev/null 2>&1 &' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'echo "✅ Backend ping sent (non-blocking)"' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'echo "🎯 Pre-warming complete! Starting Nginx..."' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'nginx -g "daemon off;" &' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'sleep 1' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'echo "🔍 Verifying nginx is ready..."' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'for i in 1 2 3 4 5; do' >> /usr/local/bin/startup-wrapper.sh && \
+    echo '  if curl -f http://localhost:8000/nginx-health > /dev/null 2>&1; then' >> /usr/local/bin/startup-wrapper.sh && \
+    echo '    echo "✅ Nginx is ready and responding to health checks"' >> /usr/local/bin/startup-wrapper.sh && \
+    echo '    break' >> /usr/local/bin/startup-wrapper.sh && \
+    echo '  else' >> /usr/local/bin/startup-wrapper.sh && \
+    echo '    echo "⏳ Waiting for nginx to be ready... ($i/5)"' >> /usr/local/bin/startup-wrapper.sh && \
+    echo '    sleep 0.2' >> /usr/local/bin/startup-wrapper.sh && \
+    echo '  fi' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'done' >> /usr/local/bin/startup-wrapper.sh && \
+    echo 'wait' >> /usr/local/bin/startup-wrapper.sh && \
+    chmod +x /usr/local/bin/startup-wrapper.sh
 
-# Start nginx directly (no startup script needed)
-CMD ["nginx", "-g", "daemon off;"]
+# Start nginx with pre-warming
+CMD ["/usr/local/bin/startup-wrapper.sh"]

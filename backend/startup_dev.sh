@@ -66,4 +66,12 @@ done
 
 echo "🚀 Starting application in development mode with auto-reload..."
 echo "🔄 Development mode - enabling auto-reload with enhanced directory watching"
-python run_migrations.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app --reload-dir /app/migrations 
+
+# Check if we should skip migrations (for faster development startup)
+if [ "$SKIP_MIGRATIONS" = "true" ]; then
+    echo "⚡ Skipping migrations for faster development startup"
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app --reload-dir /app/migrations
+else
+    echo "🔧 Running migrations before startup..."
+    python run_migrations.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app --reload-dir /app/migrations
+fi 

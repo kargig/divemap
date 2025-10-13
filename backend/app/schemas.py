@@ -214,22 +214,30 @@ class DiveSiteSearchParams(BaseModel):
 # Diving Center Schemas
 class DivingCenterBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
+    # Make description optional at the base level so responses don't fail when empty
     description: Optional[str] = None
+    address: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     website: Optional[str] = None
-    latitude: float = Field(..., ge=-90, le=90)
-    longitude: float = Field(..., ge=-180, le=180)
+    # Allow None in responses for legacy rows; enforce on create
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
     country: Optional[str] = Field(None, max_length=100)
     region: Optional[str] = Field(None, max_length=100)
     city: Optional[str] = Field(None, max_length=100)
 
 class DivingCenterCreate(DivingCenterBase):
-    pass
+    # Enforce description requirement on create to maintain data quality
+    description: str = Field(..., min_length=1)
+    # Enforce coordinates on create
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
 
 class DivingCenterUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
+    address: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     website: Optional[str] = None

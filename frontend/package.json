@@ -42,6 +42,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "build:prod": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
+    "build:with-compression": "npm run build && ./scripts/precompress-assets.sh",
     "test": "react-scripts test",
     "test:e2e": "node tests/run_frontend_tests.js",
     "test:frontend": "node tests/test_frontend.js",

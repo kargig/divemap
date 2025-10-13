@@ -20,13 +20,46 @@ primary_region = 'fra'
     handlers = []  # required for raw TCP services (like MySQL)
     force_https = false  # optional
 
+  [[services.tcp_checks]]
+    grace_period = "3s"
+    interval = "3s"
+    timeout = "2s"
+
 [[vm]]
-  memory = '1gb'
+  memory = '2gb'
   cpu_kind = 'shared'
-  cpus = 1
+  cpus = 2
 
 [processes]
   app = '--datadir /data/mysql --mysql-native-password=ON'
+
+# MySQL optimization environment variables for faster cold start
+[env]
+  # Skip non-essential initialization (helps startup time)
+  MYSQL_SKIP_NAME_RESOLVE = "ON"
+  MYSQL_SKIP_LOG_BIN = "ON"
+  MYSQL_SKIP_EXTERNAL_LOCKING = "ON"
+  MYSQL_INNODB_USE_NATIVE_AIO = "ON"
+  
+  # Memory optimization (reduces initialization overhead)
+  MYSQL_INNODB_ADAPTIVE_HASH_INDEX = "OFF"
+  MYSQL_INNODB_CHANGE_BUFFERING = "none"
+  MYSQL_INNODB_CHECKSUM_ALGORITHM = "crc32"
+  
+  # Log file optimization (minimal startup impact)
+  MYSQL_INNODB_LOG_FILE_SIZE = "256M"
+  MYSQL_INNODB_LOG_FILES_IN_GROUP = "2"
+  MYSQL_INNODB_LOG_BUFFER_SIZE = "16M"
+  MYSQL_INNODB_FLUSH_LOG_AT_TRX_COMMIT = "2"
+  MYSQL_INNODB_FLUSH_METHOD = "O_DIRECT"
+  
+  # I/O optimization (minimal startup impact)
+  MYSQL_INNODB_IO_CAPACITY = "2000"
+  MYSQL_INNODB_IO_CAPACITY_MAX = "4000"
+  MYSQL_INNODB_READ_IO_THREADS = "4"
+  MYSQL_INNODB_WRITE_IO_THREADS = "4"
+  MYSQL_INNODB_PURGE_THREADS = "1"
+  MYSQL_INNODB_PAGE_CLEANERS = "1"
 
 # Add the following sections for all versions
 [mounts]

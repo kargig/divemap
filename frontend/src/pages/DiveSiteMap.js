@@ -8,6 +8,7 @@ import { useQuery } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
+import MapLayersPanel from '../components/MapLayersPanel';
 import usePageTitle from '../hooks/usePageTitle';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { getSmartRouteColor } from '../utils/routeUtils';
@@ -119,6 +120,14 @@ const DiveSiteMap = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [currentZoom, setCurrentZoom] = useState(16);
+  const [showLayers, setShowLayers] = useState(false);
+  const [selectedLayer, setSelectedLayer] = useState({
+    id: 'street',
+    name: 'Street Map',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  });
   const mapContainerRef = useRef();
   const [showRoutes, setShowRoutes] = useState(true);
 
@@ -254,6 +263,18 @@ const DiveSiteMap = () => {
           </div>
         </div>
         <div className='flex items-center space-x-3'>
+          <button
+            onClick={() => setShowLayers(!showLayers)}
+            className={`p-2 rounded-lg border transition-colors ${
+              showLayers
+                ? 'bg-blue-100 text-blue-600 border-blue-200'
+                : 'hover:bg-gray-100 text-gray-600'
+            }`}
+            title='Map layers'
+            aria-label='Map layers'
+          >
+            <Layers className='w-4 h-4' />
+          </button>
           <span className='text-sm text-gray-600'>Zoom: {currentZoom.toFixed(1)}</span>
           {routes && routes.length > 0 && (
             <button
@@ -282,7 +303,15 @@ const DiveSiteMap = () => {
 
       {/* Map */}
       <div ref={mapContainerRef} className='h-full relative'>
-        <div className='absolute top-4 right-4 z-50'>
+        <div className='absolute top-4 right-4 z-50 flex gap-2'>
+          <button
+            onClick={() => setShowLayers(true)}
+            className='bg-white text-gray-700 hover:text-gray-900 rounded-full w-9 h-9 shadow-md flex items-center justify-center border border-gray-200'
+            aria-label='Map layers'
+            title='Map layers'
+          >
+            <Layers className='w-4 h-4' />
+          </button>
           <button
             onClick={() => navigate(`/dive-sites/${id}`)}
             className='bg-white text-gray-700 hover:text-gray-900 rounded-full w-9 h-9 shadow-md flex items-center justify-center border border-gray-200'
@@ -302,7 +331,7 @@ const DiveSiteMap = () => {
           className='w-full h-full'
           style={{ zIndex: 1 }}
         >
-          <TileLayer attribution='' url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' />
+          <TileLayer attribution={selectedLayer?.attribution || ''} url={selectedLayer?.url} />
           <MapZoomTracker />
           {isFiniteNumber(diveSite.latitude) && isFiniteNumber(diveSite.longitude) && (
             <Recenter lat={diveSite.latitude} lng={diveSite.longitude} zoom={16} />
@@ -335,6 +364,15 @@ const DiveSiteMap = () => {
             <RouteLayer routes={routes} diveSiteId={id} />
           )}
         </MapContainer>
+        <MapLayersPanel
+          isOpen={showLayers}
+          onClose={() => setShowLayers(false)}
+          selectedLayer={selectedLayer}
+          onLayerChange={layer => {
+            setSelectedLayer(layer);
+            setShowLayers(false);
+          }}
+        />
         <div className='absolute top-4 left-16 z-50 bg-white/90 text-gray-800 text-xs px-2 py-1 rounded shadow border border-gray-200'>
           Zoom: {currentZoom.toFixed(1)}
         </div>

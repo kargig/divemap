@@ -10,7 +10,7 @@ import {
   User,
   MapPin,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
@@ -45,6 +45,7 @@ const AdminDives = () => {
     dive_site_id: '',
   });
   const [selectedItems, setSelectedItems] = useState(new Set());
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     user_id: '',
@@ -265,6 +266,26 @@ const AdminDives = () => {
     });
   };
 
+  // Sorting helpers (ID only for now)
+  const handleSort = key => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = key => {
+    if (sortConfig.key !== key) {
+      return <span className='ml-1 text-gray-400'>▲</span>;
+    }
+    return sortConfig.direction === 'asc' ? (
+      <span className='ml-1 text-blue-600'>▲</span>
+    ) : (
+      <span className='ml-1 text-blue-600'>▼</span>
+    );
+  };
+
   const filteredDives =
     dives?.filter(dive => {
       // Apply search term filter
@@ -288,6 +309,34 @@ const AdminDives = () => {
 
       return true;
     }) || [];
+
+  const sortedDives = useMemo(() => {
+    if (!filteredDives) return [];
+    if (!sortConfig.key) return filteredDives;
+    const sorted = [...filteredDives].sort((a, b) => {
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+
+      if (aValue === null || aValue === undefined) aValue = '';
+      if (bValue === null || bValue === undefined) bValue = '';
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
+      aValue = String(aValue).toLowerCase();
+      bValue = String(bValue).toLowerCase();
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+    return sorted;
+  }, [filteredDives, sortConfig]);
 
   if (!user?.is_admin) {
     return (
@@ -453,6 +502,15 @@ const AdminDives = () => {
           <table className='min-w-full divide-y divide-gray-200'>
             <thead className='bg-gray-50'>
               <tr>
+                <th
+                  className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100'
+                  onClick={() => handleSort('id')}
+                >
+                  <div className='flex items-center'>
+                    ID
+                    {getSortIcon('id')}
+                  </div>
+                </th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                   <input
                     type='checkbox'
@@ -501,8 +559,9 @@ const AdminDives = () => {
                   </td>
                 </tr>
               ) : (
-                filteredDives.map(dive => (
+                sortedDives.map(dive => (
                   <tr key={dive.id} className='hover:bg-gray-50'>
+                    <td className='px-4 py-4 whitespace-nowrap text-sm text-gray-900'>{dive.id}</td>
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <input
                         type='checkbox'

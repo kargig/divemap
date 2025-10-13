@@ -393,6 +393,7 @@ const DiveSiteDetail = () => {
                     longitude={diveSite.longitude}
                     name={diveSite.name}
                     onMaximize={() => setIsMapMaximized(true)}
+                    showMaximizeButton={false}
                     isMaximized={isMapMaximized}
                     onClose={() => setIsMapMaximized(false)}
                   />

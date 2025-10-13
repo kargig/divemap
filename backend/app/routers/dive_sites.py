@@ -520,13 +520,6 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
     
     return final_results
 
-@router.get("/health")
-async def health_check():
-    """
-    Simple health check endpoint
-    """
-    return {"status": "healthy", "timestamp": "2025-07-27T12:56:00Z"}
-
 @router.get("/reverse-geocode")
 @skip_rate_limit_for_admin("75/minute")
 async def reverse_geocode(

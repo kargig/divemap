@@ -5,6 +5,28 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster';
 
+// Helper: convert URLs in plain text to clickable links (for HTML string popups)
+const linkifyText = text => {
+  if (!text || typeof text !== 'string') return text;
+  return text.replace(
+    /(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800 underline">$1</a>'
+  );
+};
+
+// Helper: trim text to maxLen and append a [more] link if exceeded
+const trimWithMore = (text, maxLen, moreUrl) => {
+  if (!text || typeof text !== 'string') return '';
+  const needsTrim = text.length > maxLen;
+  const sliced = needsTrim ? text.slice(0, maxLen) : text;
+  const linked = linkifyText(sliced);
+  if (!needsTrim) return linked;
+  const moreLink = moreUrl
+    ? ` <a href="${moreUrl}" class="underline" title="View more">[more]</a>`
+    : '';
+  return `${linked}...${moreLink}`;
+};
+
 // Add custom cluster styles
 const clusterStyles = `
   .marker-cluster-small {
@@ -241,15 +263,52 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
               </a>
             </h3>
             <p class="text-sm text-gray-600">
-              ${marker.entityType === 'dive_site' ? marker.data.description : ''}
-              ${marker.entityType === 'diving_center' ? marker.data.description : ''}
+              ${marker.entityType === 'dive_site' ? trimWithMore(marker.data.description || '', 150, `/dive-sites/${marker.data.id}`) : ''}
+              ${marker.entityType === 'diving_center' ? trimWithMore(marker.data.description || '', 150, `/diving-centers/${marker.data.id}`) : ''}
               ${marker.entityType === 'dive' ? `Dive at ${marker.data.dive_site?.name || 'Unknown Site'}` : ''}
               ${marker.entityType === 'dive_trip' ? `Trip on ${new Date(marker.data.trip_date).toLocaleDateString()} - ${marker.data.diving_center_name || 'Unknown Center'}` : ''}
-              ${marker.entityType === 'dive_trip' && marker.data.trip_description ? `<br/><span class="text-xs text-gray-500">${marker.data.trip_description.substring(0, 100)}${marker.data.trip_description.length > 100 ? '...' : ''}</span>` : ''}
+              ${marker.entityType === 'dive_trip' && marker.data.trip_description ? `<br/><span class="text-xs text-gray-500">${trimWithMore(marker.data.trip_description, 100, `/dive-trips/${marker.data.id}`)}</span>` : ''}
             </p>
-            <p class="text-xs text-gray-500 mt-1">
-              ${lat.toFixed(4)}, ${lng.toFixed(4)}
-            </p>
+            ${
+              marker.entityType === 'diving_center'
+                ? `
+                  <div class="flex items-center space-x-3 mt-1">
+                    ${marker.data.phone ? `<a href="tel:${marker.data.phone}" title="Call" class="text-gray-600 hover:text-gray-800">📞</a>` : ''}
+                    ${marker.data.email ? `<a href="mailto:${marker.data.email}" title="Email" class="text-gray-600 hover:text-gray-800">📧</a>` : ''}
+                    ${marker.data.website ? `<a href="${(marker.data.website || '').startsWith('http') ? marker.data.website : `https://${marker.data.website}`}" target="_blank" rel="noopener" title="Website" class="text-gray-600 hover:text-gray-800">🌐</a>` : ''}
+                  </div>
+                `
+                : marker.entityType === 'dive'
+                  ? `
+                  <div class="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                    ${marker.data.average_depth ? `<div class="flex items-center gap-1" title="Average depth"><span>↕️</span><span>${marker.data.average_depth}m avg</span></div>` : ''}
+                    ${marker.data.max_depth ? `<div class="flex items-center gap-1" title="Max depth"><span>📏</span><span>${marker.data.max_depth}m max</span></div>` : ''}
+                    ${marker.data.duration ? `<div class="flex items-center gap-1" title="Duration"><span>🕐</span><span>${marker.data.duration}min</span></div>` : ''}
+                    ${marker.data.user_rating ? `<div class="flex items-center gap-1" title="Rating"><span>⭐</span><span>${marker.data.user_rating}/10</span></div>` : ''}
+                  </div>
+                `
+                  : marker.entityType === 'dive_site'
+                    ? `
+                    <div class="space-y-2 mt-1">
+                      ${marker.data.difficulty_level ? `<div class="text-sm text-gray-700"><span class="mr-1">🏷️</span>Difficulty: <span class="font-medium">${marker.data.difficulty_level}</span></div>` : ''}
+                      ${marker.data.average_rating ? `<div class="text-sm text-gray-700"><span class="mr-1">⭐</span>Rating: <span class="font-medium">${Number(marker.data.average_rating).toFixed(1)}/10</span></div>` : ''}
+                      ${
+                        marker.data.tags && marker.data.tags.length > 0
+                          ? `
+                        <div class="flex flex-wrap gap-1 items-center text-xs text-gray-600">
+                          ${marker.data.tags.map(tag => `<span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full">${tag.name}</span>`).join('')}
+                        </div>
+                      `
+                          : ''
+                      }
+                    </div>
+                  `
+                    : `
+                    <p class="text-xs text-gray-500 mt-1">
+                      ${lat.toFixed(4)}, ${lng.toFixed(4)}
+                    </p>
+                  `
+            }
           </div>
         `;
 
