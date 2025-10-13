@@ -258,7 +258,8 @@ const RouteDetail = () => {
 
   // Fetch export formats
   useEffect(() => {
-    api.get('/api/v1/dive-routes/export-formats')
+    api
+      .get('/api/v1/dive-routes/export-formats')
       .then(response => setExportFormats(response.data))
       .catch(() => setExportFormats([]));
   }, []);
@@ -293,11 +294,13 @@ const RouteDetail = () => {
 
   // Copy route mutation using new backend endpoint
   const copyRouteMutation = useMutation(
-    async (newName) => {
-      return api.post(`/api/v1/dive-routes/${routeId}/copy?new_name=${encodeURIComponent(newName)}`);
+    async newName => {
+      return api.post(
+        `/api/v1/dive-routes/${routeId}/copy?new_name=${encodeURIComponent(newName)}`
+      );
     },
     {
-      onSuccess: (data) => {
+      onSuccess: data => {
         toast.success(`Route copied successfully! New route ID: ${data.new_route_id}`);
         queryClient.invalidateQueries(['dive-site-routes', diveSiteId]);
         queryClient.invalidateQueries(['dive-routes']);
@@ -314,7 +317,7 @@ const RouteDetail = () => {
   };
 
   const handleCopyRoute = () => {
-    const newName = prompt('Enter name for copied route:', `${route.name} (Copy)`);
+    const newName = window.prompt('Enter name for copied route:', `${route.name} (Copy)`);
     if (newName) {
       copyRouteMutation.mutate(newName);
     }
@@ -324,7 +327,7 @@ const RouteDetail = () => {
     try {
       const response = await api.post(`/api/v1/dive-routes/${routeId}/share?share_method=link`);
       const shareUrl = response.data.share_link;
-      
+
       await navigator.clipboard.writeText(shareUrl);
       toast.success('Route link copied to clipboard!');
     } catch (error) {
@@ -335,14 +338,14 @@ const RouteDetail = () => {
     }
   };
 
-  const handleExportRoute = async (format) => {
+  const handleExportRoute = async format => {
     try {
       const response = await api.get(`/api/v1/dive-routes/${routeId}/export/${format}`, {
-        responseType: 'blob'
+        responseType: 'blob',
       });
-      
+
       // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new window.Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `${route.name.replace(' ', '_')}.${format}`);
@@ -350,7 +353,7 @@ const RouteDetail = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      
+
       toast.success(`${format.toUpperCase()} file downloaded successfully!`);
       setShowExportModal(false);
     } catch (error) {
@@ -547,19 +550,27 @@ const RouteDetail = () => {
             <h2 className='text-lg font-semibold text-gray-900 mb-3'>Community Statistics</h2>
             <div className='grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm'>
               <div className='text-center p-3 bg-gray-50 rounded-lg'>
-                <div className='text-2xl font-bold text-blue-600'>{analytics.community_stats?.total_dives_using_route || 0}</div>
+                <div className='text-2xl font-bold text-blue-600'>
+                  {analytics.community_stats?.total_dives_using_route || 0}
+                </div>
                 <div className='text-gray-600'>Total Dives</div>
               </div>
               <div className='text-center p-3 bg-gray-50 rounded-lg'>
-                <div className='text-2xl font-bold text-green-600'>{analytics.community_stats?.unique_users_used_route || 0}</div>
+                <div className='text-2xl font-bold text-green-600'>
+                  {analytics.community_stats?.unique_users_used_route || 0}
+                </div>
                 <div className='text-gray-600'>Unique Users</div>
               </div>
               <div className='text-center p-3 bg-gray-50 rounded-lg'>
-                <div className='text-2xl font-bold text-orange-600'>{analytics.community_stats?.recent_dives_7_days || 0}</div>
+                <div className='text-2xl font-bold text-orange-600'>
+                  {analytics.community_stats?.recent_dives_7_days || 0}
+                </div>
                 <div className='text-gray-600'>Recent (7 days)</div>
               </div>
               <div className='text-center p-3 bg-gray-50 rounded-lg'>
-                <div className='text-2xl font-bold text-purple-600'>{analytics.community_stats?.waypoint_count || 0}</div>
+                <div className='text-2xl font-bold text-purple-600'>
+                  {analytics.community_stats?.waypoint_count || 0}
+                </div>
                 <div className='text-gray-600'>Waypoints</div>
               </div>
             </div>
@@ -681,7 +692,7 @@ const RouteDetail = () => {
           <div className='bg-white rounded-lg p-6 max-w-md w-full mx-4'>
             <h3 className='text-lg font-semibold mb-4'>Export Route</h3>
             <p className='text-gray-600 mb-4'>Choose a format to download your route:</p>
-            
+
             <div className='space-y-2'>
               {exportFormats.map(format => (
                 <button
