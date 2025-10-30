@@ -67,13 +67,13 @@ async def register(
             detail="Username or email already registered"
         )
 
-    # Create new user (disabled by default, needs admin approval)
+    # Create new user (enabled by default)
     hashed_password = get_password_hash(user_data.password)
     db_user = User(
         username=user_data.username,
         email=user_data.email,
         password_hash=hashed_password,
-        enabled=False,  # New users are disabled by default
+        enabled=True,
         is_admin=False,
         is_moderator=False
     )
@@ -110,7 +110,7 @@ async def register(
         "access_token": token_data["access_token"],
         "token_type": "bearer",
         "expires_in": token_data["expires_in"],
-        "message": "Registration successful. Your account is pending admin approval."
+        "message": "Registration successful. Your account is now active."
     }
 
 @router.post("/login", response_model=Token)
