@@ -1755,3 +1755,182 @@ async def revoke_diving_center_ownership(
         "status": "unclaimed",
         "reason": revocation.reason
     }
+
+
+@router.get("/nearby")
+@skip_rate_limit_for_admin("250/minute")
+async def get_nearby_diving_centers(
+    request: Request,
+    lat: float = Query(..., ge=-90, le=90),
+    lng: float = Query(..., ge=-180, le=180),
+    radius_km: float = Query(100, ge=1, le=500),
+    limit: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Return diving centers within radius_km sorted by distance (km)."""
+    # Determine dialect to choose spatial vs fallback path
+    bind = db.get_bind()
+    dialect = bind.dialect.name if bind is not None else None
+
+    results = []
+    if dialect == 'mysql':
+        from sqlalchemy import text
+        query = text(
+            """
+            SELECT id, name, country, region, city,
+                   ST_Distance_Sphere(location, ST_SRID(POINT(:lng, :lat), 4326)) AS distance_m
+            FROM diving_centers
+            WHERE location IS NOT NULL
+              AND ST_Distance_Sphere(location, ST_SRID(POINT(:lng, :lat), 4326)) <= :radius_m
+            ORDER BY distance_m ASC
+            LIMIT :limit
+            """
+        )
+        rows = db.execute(query, {
+            "lat": lat,
+            "lng": lng,
+            "radius_m": radius_km * 1000.0,
+            "limit": limit
+        }).fetchall()
+        for row in rows:
+            results.append({
+                "id": row.id,
+                "name": row.name,
+                "country": row.country,
+                "region": row.region,
+                "city": row.city,
+                "distance_km": round(float(row.distance_m) / 1000.0, 2)
+            })
+    else:
+        # Fallback: compute distance using Haversine on latitude/longitude
+        from sqlalchemy import text
+        query = text(
+            """
+            SELECT id, name, country, region, city,
+                   (6371 * acos(
+                        cos(radians(:lat)) * cos(radians(latitude)) *
+                        cos(radians(longitude) - radians(:lng)) +
+                        sin(radians(:lat)) * sin(radians(latitude))
+                   )) AS distance_km
+            FROM diving_centers
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+            HAVING distance_km <= :radius_km
+            ORDER BY distance_km ASC
+            LIMIT :limit
+            """
+        )
+        rows = db.execute(query, {
+            "lat": lat,
+            "lng": lng,
+            "radius_km": radius_km,
+            "limit": limit
+        }).fetchall()
+        for row in rows:
+            results.append({
+                "id": row.id,
+                "name": row.name,
+                "country": row.country,
+                "region": row.region,
+                "city": row.city,
+                "distance_km": round(float(row.distance_km), 2)
+            })
+
+    return results
+
+
+@router.get("/search")
+@skip_rate_limit_for_admin("250/minute")
+async def search_diving_centers_simple(
+    request: Request,
+    q: str = Query(..., min_length=1, max_length=200),
+    limit: int = Query(20, ge=1, le=50),
+    lat: Optional[float] = Query(None, ge=-90, le=90),
+    lng: Optional[float] = Query(None, ge=-180, le=180),
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Global name search across all diving centers, optionally ranked with distance as tiebreaker."""
+    q = q.strip()
+    if not q:
+        return []
+
+    bind = db.get_bind()
+    dialect = bind.dialect.name if bind is not None else None
+
+    from sqlalchemy import text
+    params = {"qprefix": f"{q}%", "qsubstr": f"%{q}%", "limit": limit}
+
+    if dialect == 'mysql' and lat is not None and lng is not None:
+        sql = text(
+            """
+            SELECT id, name, country, region, city,
+                   ST_Distance_Sphere(location, ST_SRID(POINT(:lng, :lat), 4326)) AS distance_m,
+                   CASE WHEN name LIKE :qprefix THEN 0 ELSE 1 END AS name_rank
+            FROM diving_centers
+            WHERE name LIKE :qprefix OR name LIKE :qsubstr
+            ORDER BY name_rank ASC, distance_m ASC
+            LIMIT :limit
+            """
+        )
+        rows = db.execute(sql, {**params, "lat": lat, "lng": lng}).fetchall()
+        return [
+            {
+                "id": r.id,
+                "name": r.name,
+                "country": r.country,
+                "region": r.region,
+                "city": r.city,
+                "distance_km": round(float(r.distance_m) / 1000.0, 2)
+            } for r in rows
+        ]
+
+    elif lat is not None and lng is not None:
+        sql = text(
+            """
+            SELECT id, name, country, region, city,
+                   (6371 * acos(
+                        cos(radians(:lat)) * cos(radians(latitude)) *
+                        cos(radians(longitude) - radians(:lng)) +
+                        sin(radians(:lat)) * sin(radians(latitude))
+                   )) AS distance_km,
+                   CASE WHEN name LIKE :qprefix THEN 0 ELSE 1 END AS name_rank
+            FROM diving_centers
+            WHERE name LIKE :qprefix OR name LIKE :qsubstr
+            ORDER BY name_rank ASC, distance_km ASC
+            LIMIT :limit
+            """
+        )
+        rows = db.execute(sql, {**params, "lat": lat, "lng": lng}).fetchall()
+        return [
+            {
+                "id": r.id,
+                "name": r.name,
+                "country": r.country,
+                "region": r.region,
+                "city": r.city,
+                "distance_km": round(float(r.distance_km), 2)
+            } for r in rows
+        ]
+    else:
+        # No coordinates provided: rank by prefix first, then substring
+        sql = text(
+            """
+            SELECT id, name, country, region, city,
+                   CASE WHEN name LIKE :qprefix THEN 0 ELSE 1 END AS name_rank
+            FROM diving_centers
+            WHERE name LIKE :qprefix OR name LIKE :qsubstr
+            ORDER BY name_rank ASC, name ASC
+            LIMIT :limit
+            """
+        )
+        rows = db.execute(sql, params).fetchall()
+        return [
+            {
+                "id": r.id,
+                "name": r.name,
+                "country": r.country,
+                "region": r.region,
+                "city": r.city
+            } for r in rows
+        ]
