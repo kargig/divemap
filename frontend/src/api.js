@@ -206,6 +206,30 @@ export const getDivingCenter = async divingCenterId => {
   return response.data;
 };
 
+// Nearby diving centers (pre-populate by coordinates)
+export const getNearbyDivingCenters = async ({ lat, lng, radius_km = 100, limit = 25 }) => {
+  const params = new URLSearchParams();
+  params.append('lat', lat);
+  params.append('lng', lng);
+  params.append('radius_km', radius_km);
+  params.append('limit', limit);
+  const response = await api.get(`/api/v1/diving-centers/nearby?${params.toString()}`);
+  return response.data;
+};
+
+// Search diving centers globally by name, optionally ranking with distance
+export const searchDivingCenters = async ({ q, limit = 20, lat, lng }) => {
+  const params = new URLSearchParams();
+  params.append('q', q);
+  params.append('limit', limit);
+  if (typeof lat === 'number' && typeof lng === 'number') {
+    params.append('lat', lat);
+    params.append('lng', lng);
+  }
+  const response = await api.get(`/api/v1/diving-centers/search?${params.toString()}`);
+  return response.data;
+};
+
 // Diving Center Ownership API functions
 export const claimDivingCenterOwnership = async (divingCenterId, claimData) => {
   const response = await api.post(`/api/v1/diving-centers/${divingCenterId}/claim`, claimData);

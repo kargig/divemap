@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import api from '../api';
+import api, { getNearbyDivingCenters, searchDivingCenters } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
@@ -61,6 +61,10 @@ const EditDiveSite = () => {
   const [newDiveCost, setNewDiveCost] = useState('');
   const [newDiveCurrency, setNewDiveCurrency] = useState(DEFAULT_CURRENCY);
   const [showDivingCenterForm, setShowDivingCenterForm] = useState(false);
+  const [divingCenterQuery, setDivingCenterQuery] = useState('');
+  const [divingCenterOptions, setDivingCenterOptions] = useState([]);
+  const [divingCenterLoading, setDivingCenterLoading] = useState(false);
+  const [divingCenterError, setDivingCenterError] = useState(null);
 
   // Aliases management state
   const [newAlias, setNewAlias] = useState({ alias: '', language: '' });
@@ -112,18 +116,75 @@ const EditDiveSite = () => {
     }
   );
 
-  // Fetch all diving centers
-  const { data: allDivingCenters = [], error: _allDivingCentersError } = useQuery(
-    ['all-diving-centers'],
-    () => api.get('/api/v1/diving-centers/').then(res => res.data || []),
-    {
-      enabled: canEdit,
-      onError: error => {
-        console.error('Failed to fetch diving centers:', error);
-        toast.error('Failed to load diving centers');
-      },
+  // Nearby pre-population on form open
+  const loadNearbyCenters = async () => {
+    if (!formData.latitude || !formData.longitude) return;
+    try {
+      setDivingCenterLoading(true);
+      setDivingCenterError(null);
+      const nearby = await getNearbyDivingCenters({
+        lat: parseFloat(formData.latitude),
+        lng: parseFloat(formData.longitude),
+        radius_km: 100,
+        limit: 50,
+      });
+      // Filter out already associated centers
+      const filtered = Array.isArray(associatedDivingCenters)
+        ? nearby.filter(c => !associatedDivingCenters.some(ac => ac.id === c.id))
+        : nearby;
+      setDivingCenterOptions(filtered);
+    } catch (e) {
+      console.error('Failed to load nearby diving centers', e);
+      setDivingCenterError('Failed to load nearby diving centers');
+    } finally {
+      setDivingCenterLoading(false);
     }
-  );
+  };
+
+  // Trigger nearby load when opening the form
+  const handleToggleDivingCenterForm = () => {
+    const next = !showDivingCenterForm;
+    setShowDivingCenterForm(next);
+    if (next) {
+      // Debounce slightly to allow state render
+      setTimeout(() => {
+        loadNearbyCenters();
+      }, 0);
+    }
+  };
+
+  // Debounced global search
+  let searchTimeoutId;
+  const handleSearchCenters = q => {
+    setDivingCenterQuery(q);
+    if (searchTimeoutId) clearTimeout(searchTimeoutId);
+    searchTimeoutId = setTimeout(async () => {
+      if (!q || q.trim().length === 0) {
+        // Reset to nearby when clearing query
+        loadNearbyCenters();
+        return;
+      }
+      try {
+        setDivingCenterLoading(true);
+        setDivingCenterError(null);
+        const results = await searchDivingCenters({
+          q,
+          limit: 20,
+          lat: formData.latitude ? parseFloat(formData.latitude) : undefined,
+          lng: formData.longitude ? parseFloat(formData.longitude) : undefined,
+        });
+        const filtered = Array.isArray(associatedDivingCenters)
+          ? results.filter(c => !associatedDivingCenters.some(ac => ac.id === c.id))
+          : results;
+        setDivingCenterOptions(filtered);
+      } catch (e) {
+        console.error('Search diving centers failed', e);
+        setDivingCenterError('Search failed');
+      } finally {
+        setDivingCenterLoading(false);
+      }
+    }, 300);
+  };
 
   // Fetch associated diving centers
   const { data: associatedDivingCenters = [], error: _associatedDivingCentersError } = useQuery(
@@ -1195,7 +1256,7 @@ const EditDiveSite = () => {
               <h3 className='text-lg font-semibold text-gray-900'>Diving Centers</h3>
               <button
                 type='button'
-                onClick={() => setShowDivingCenterForm(!showDivingCenterForm)}
+                onClick={handleToggleDivingCenterForm}
                 className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
               >
                 <Building className='w-4 h-4 mr-2' />
@@ -1210,34 +1271,71 @@ const EditDiveSite = () => {
                   <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                     <div>
                       <label
-                        htmlFor='diving_center_id'
+                        htmlFor='diving_center_search'
                         className='block text-sm font-medium text-gray-700 mb-1'
                       >
                         Diving Center *
                       </label>
-                      <select
-                        id='diving_center_id'
-                        value={newDivingCenterId}
-                        onChange={e => setNewDivingCenterId(e.target.value)}
-                        required
+                      <input
+                        id='diving_center_search'
+                        type='text'
+                        value={divingCenterQuery}
+                        onChange={e => handleSearchCenters(e.target.value)}
+                        placeholder='Type to search...'
                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                      >
-                        <option value=''>Select a diving center</option>
-                        {Array.isArray(allDivingCenters) &&
-                          allDivingCenters
-                            .filter(
-                              center =>
-                                !Array.isArray(associatedDivingCenters) ||
-                                !associatedDivingCenters.some(
-                                  associated => associated.id === center.id
-                                )
-                            )
-                            .map(center => (
-                              <option key={center.id} value={center.id}>
-                                {center.name}
-                              </option>
+                      />
+                      <div className='mt-2 max-h-56 overflow-auto border border-gray-200 rounded-md'>
+                        {divingCenterLoading && (
+                          <div className='p-2 text-sm text-gray-500'>Loading...</div>
+                        )}
+                        {divingCenterError && (
+                          <div className='p-2 text-sm text-red-600'>{divingCenterError}</div>
+                        )}
+                        {!divingCenterLoading && !divingCenterError && (
+                          <ul>
+                            {(divingCenterOptions || []).map(option => (
+                              <li key={option.id}>
+                                <button
+                                  type='button'
+                                  className={`w-full text-left px-3 py-2 hover:bg-gray-100 ${
+                                    String(newDivingCenterId) === String(option.id)
+                                      ? 'bg-gray-50'
+                                      : ''
+                                  }`}
+                                  onClick={() => {
+                                    setNewDivingCenterId(String(option.id));
+                                    setDivingCenterQuery(option.name);
+                                  }}
+                                >
+                                  <div className='flex items-center justify-between'>
+                                    <span className='text-sm text-gray-800'>{option.name}</span>
+                                    {typeof option.distance_km === 'number' && (
+                                      <span className='text-xs text-gray-500'>
+                                        {option.distance_km} km
+                                      </span>
+                                    )}
+                                  </div>
+                                  {(option.city || option.region || option.country) && (
+                                    <div className='text-xs text-gray-500'>
+                                      {[option.city, option.region, option.country]
+                                        .filter(Boolean)
+                                        .join(', ')}
+                                    </div>
+                                  )}
+                                </button>
+                              </li>
                             ))}
-                      </select>
+                            {Array.isArray(divingCenterOptions) &&
+                              divingCenterOptions.length === 0 && (
+                                <li className='px-3 py-2 text-sm text-gray-500'>
+                                  {formData.latitude && formData.longitude
+                                    ? 'No centers within 100 km. Start typing to search all centers.'
+                                    : 'Enter coordinates and start typing to search centers.'}
+                                </li>
+                              )}
+                          </ul>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <label
