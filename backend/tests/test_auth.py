@@ -8,7 +8,7 @@ class TestAuth:
     """Test authentication endpoints."""
 
     def test_register_success(self, client):
-        """Test successful user registration with enabled=False by default."""
+        """Test successful user registration with enabled=True by default."""
         # Mock Turnstile service to be disabled for this test
         with patch('app.routers.auth.turnstile_service') as mock_service:
             mock_service.is_enabled.return_value = False
@@ -24,7 +24,7 @@ class TestAuth:
         assert "access_token" in data
         assert data["token_type"] == "bearer"
         assert "message" in data
-        assert "pending admin approval" in data["message"]
+        assert "now active" in data["message"]
 
     def test_register_duplicate_username(self, client, test_user):
         """Test registration with duplicate username."""
@@ -355,8 +355,8 @@ class TestAuth:
             assert db_user.is_admin is False
             assert db_user.is_moderator is False
 
-    def test_regular_registration_creates_disabled_user(self, client, db_session):
-        """Test that regular registration creates a user with enabled=False."""
+    def test_regular_registration_creates_enabled_user(self, client, db_session):
+        """Test that regular registration creates a user with enabled=True."""
         # Mock Turnstile service to be disabled for this test
         with patch('app.routers.auth.turnstile_service') as mock_service:
             mock_service.is_enabled.return_value = False
@@ -369,10 +369,10 @@ class TestAuth:
 
         assert response.status_code == status.HTTP_201_CREATED
         
-        # Verify the user was created in the database with enabled=False
+        # Verify the user was created in the database with enabled=True
         user = db_session.query(User).filter(User.username == "newuser").first()
         assert user is not None
-        assert user.enabled is False  # Regular users should be disabled by default
+        assert user.enabled is True
         assert user.google_id is None  # Should not have Google ID
 
     def test_login_success(self, client, test_user):
