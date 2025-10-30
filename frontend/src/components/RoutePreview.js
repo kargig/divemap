@@ -1,14 +1,4 @@
-import {
-  MapPin,
-  Route,
-  Calendar,
-  User,
-  Eye,
-  Edit,
-  Trash2,
-  Clock,
-  Layers,
-} from 'lucide-react';
+import { MapPin, Route, Calendar, User, Eye, Edit, Trash2, Clock, Layers } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
@@ -194,33 +184,33 @@ const RoutePreview = ({
 
           {showActions && (
             <div className='flex items-center gap-1 ml-4'>
+              <button
+                onClick={handleViewRoute}
+                className='p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+                title='View Route'
+              >
+                <Eye className='w-4 h-4' />
+              </button>
+
+              {canEdit && (
+                <>
                   <button
-                    onClick={handleViewRoute}
-                    className='p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
-                    title='View Route'
+                    onClick={handleEditRoute}
+                    className='p-2 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors'
+                    title='Edit Route'
                   >
-                    <Eye className='w-4 h-4' />
+                    <Edit className='w-4 h-4' />
                   </button>
 
-                  {canEdit && (
-                    <>
-                      <button
-                        onClick={handleEditRoute}
-                        className='p-2 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors'
-                        title='Edit Route'
-                      >
-                        <Edit className='w-4 h-4' />
-                      </button>
-
-                      <button
-                        onClick={() => setShowDeleteConfirm(true)}
-                        className='p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors'
-                        title='Delete Route'
-                      >
-                        <Trash2 className='w-4 h-4' />
-                      </button>
-                    </>
-                  )}
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className='p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors'
+                    title='Delete Route'
+                  >
+                    <Trash2 className='w-4 h-4' />
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
