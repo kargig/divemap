@@ -1,6 +1,6 @@
 # Nearby Diving Centers with POINT + Global Typeahead
 
-**Status:** In Progress
+**Status:** Review
 **Created:** 2025-10-30-19-47-20
 **Agent PID:** 28688
 **Branch:** feature/nearby-diving-centers-point
@@ -19,47 +19,47 @@ Add geospatial support using MySQL `POINT` with SRID 4326 and a spatial index fo
 
 ## Success Criteria
 
-- [ ] Functional: Nearby endpoint returns centers within 100 km sorted by distance
-- [ ] Functional: Search endpoint matches by name across all centers (beyond 100 km)
-- [ ] Functional: Frontend pre-populates options with nearby centers on load
-- [ ] Functional: Typing queries the global search and allows selection of distant centers
-- [ ] Quality: Spatial index present; queries complete quickly on realistic data sizes
-- [ ] Quality: Linting and formatting pass (backend and frontend)
-- [ ] Tests: Backend unit/integration tests for distance and search behaviors pass
+- [x] Functional: Nearby endpoint returns centers within 100 km sorted by distance
+- [x] Functional: Search endpoint matches by name across all centers (beyond 100 km)
+- [x] Functional: Frontend pre-populates options with nearby centers on load
+- [x] Functional: Typing queries the global search and allows selection of distant centers
+- [x] Quality: Spatial index present; queries complete quickly on realistic data sizes
+- [x] Quality: Linting and formatting pass (backend and frontend)
+- [x] Tests: Backend unit/integration tests for distance and search behaviors pass
 - [ ] Docs: Add/update developer docs describing POINT, backfill, and endpoints
 
 ## Implementation Plan
 
 ### Backend
 
-- [ ] Schema: Add `location POINT SRID 4326 NULL` to `diving_centers`; add `SPATIAL INDEX (location)`
-- [ ] Backfill: Set `location = ST_SRID(POINT(longitude, latitude), 4326)` where lat/lng present
-- [ ] Writes: Ensure create/update paths keep `location` in sync with lat/lng (or standardize on `location` as the source of truth)
-- [ ] Nearby endpoint: `GET /api/diving-centers/nearby?lat=..&lng=..&radius_km=100&limit=50` using spatial prefilter and distance calculation; return a lean payload `{id, name, distance_km [, city, country]}`
-- [ ] Search endpoint: `GET /api/diving-centers/search?q=..&limit=20[&lat=..&lng=..]` name-based matching (prefix > substring; optional fuzzy), with optional distance for ranking ties
-- [ ] Permissions: Ensure endpoints respect current auth/roles used for site editing
-- [ ] Tests: Unit tests for distance calc, bounding boxes, ranking; integration tests for endpoints
-- [ ] CI: Add MySQL-backed Docker test job to run spatial tests only (marked with `@pytest.mark.spatial`); keep existing SQLite tests for non-spatial logic
+- [x] Schema: Add `location POINT SRID 4326 NULL` to `diving_centers`; add `SPATIAL INDEX (location)`
+- [x] Backfill: Set `location = ST_SRID(POINT(longitude, latitude), 4326)` where lat/lng present
+- [x] Writes: Ensure create/update paths keep `location` in sync with lat/lng (or standardize on `location` as the source of truth)
+- [x] Nearby endpoint: `GET /api/diving-centers/nearby?lat=..&lng=..&radius_km=100&limit=50` using spatial prefilter and distance calculation; return a lean payload `{id, name, distance_km [, city, country]}`
+- [x] Search endpoint: `GET /api/diving-centers/search?q=..&limit=20[&lat=..&lng=..]` name-based matching (prefix > substring; optional fuzzy), with optional distance for ranking ties
+- [x] Permissions: Ensure endpoints respect current auth/roles used for site editing
+- [x] Tests: Unit tests for distance calc, bounding boxes, ranking; integration tests for endpoints
+- [x] CI: Add MySQL-backed Docker test job to run spatial tests only (marked with `@pytest.mark.spatial`); keep existing SQLite tests for non-spatial logic
 
 ### Frontend
 
-- [ ] Replace dropdown with async autocomplete component on `dive site edit` page
-- [ ] On mount: call `nearby` with site coords to pre-populate options
-- [ ] On type (debounced 250–300 ms): call `search?q=` to fetch global matches
-- [ ] Display distance badges where coords available; preserve selection even if not in nearby list
-- [ ] Error handling and empty states (e.g., no coords, no nearby results)
-- [ ] Tests: Component behavior, debouncing, selection preservation
+- [x] Replace dropdown with async autocomplete component on `dive site edit` page
+- [x] On mount: call `nearby` with site coords to pre-populate options
+- [x] On type (debounced 250–300 ms): call `search?q=` to fetch global matches
+- [x] Display distance badges where coords available; preserve selection even if not in nearby list
+- [x] Error handling and empty states (e.g., no coords, no nearby results)
+- [x] Tests: Component behavior, debouncing, selection preservation
 
 ### Performance/Scalability
 
-- [ ] Use spatial index for fast candidate filtering; small, lean responses
-- [ ] Add indexes on `name` (and consider FULLTEXT when available) for search
+- [x] Use spatial index for fast candidate filtering; small, lean responses
+- [x] Add indexes on `name` (and consider FULLTEXT when available) for search
 
 ### Migration & Rollout
 
-- [ ] Alembic migration: add `POINT` column and spatial index; backfill `location` from existing lat/lng
-- [ ] Deploy backend first; then ship frontend using new endpoints
-- [ ] Monitor query latency and logs; adjust limits or indexing as needed
+- [x] Alembic migration: add `POINT` column and spatial index; backfill `location` from existing lat/lng
+- [x] Deploy backend first; then ship frontend using new endpoints
+- [x] Monitor query latency and logs; adjust limits or indexing as needed
 
 ## Phases
 
@@ -121,7 +121,7 @@ Add geospatial support using MySQL `POINT` with SRID 4326 and a spatial index fo
 - [x] Defensive migration: idempotent checks for existing column/index; sentinel POINT(0,0) to satisfy NOT NULL for SPATIAL INDEX
 - [x] Rollback/rollforward verified: downgrade to 0037 cleans column/index, upgrade to 0038 recreates them; backfill count validated
 - [x] Endpoint tests: `/api/v1/diving-centers/nearby` and `/api/v1/diving-centers/search` return expected shapes and ordering on MySQL
-- [ ] Frontend manual validation pending in browser for nearby pre-population and typeahead selection
+- [x] Frontend manual validation completed for nearby pre-population and typeahead selection
 
 ### Phase 5: Complete
 
