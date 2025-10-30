@@ -21,20 +21,59 @@ def upgrade() -> None:
     dialect = bind.dialect.name if bind is not None else None
 
     if dialect == 'mysql':
-        # 1) Add POINT column with SRID 4326
-        op.execute("ALTER TABLE diving_centers ADD COLUMN location POINT SRID 4326 NULL")
+        # Check if column already exists (defensive upgrade)
+        exists = bind.execute(
+            sa.text(
+                """
+                SELECT COUNT(*) AS cnt
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'diving_centers'
+                  AND COLUMN_NAME = 'location'
+                """
+            )
+        ).scalar()
+
+        if not exists:
+            # 1) Add POINT column with SRID 4326 as NULL initially
+            op.execute("ALTER TABLE diving_centers ADD COLUMN location POINT SRID 4326 NULL")
 
         # 2) Backfill from existing lat/lng where present
         op.execute(
             """
             UPDATE diving_centers
-            SET location = ST_GeomFromText(CONCAT('POINT(', longitude, ' ', latitude, ')'), 4326)
+            SET location = ST_SRID(POINT(longitude, latitude), 4326)
             WHERE latitude IS NOT NULL AND longitude IS NOT NULL
             """
         )
 
-        # 3) Create spatial index
-        op.execute("CREATE SPATIAL INDEX idx_diving_centers_location ON diving_centers (location)")
+        # 3) For remaining NULLs (no coords), set to a sentinel POINT(0,0) with SRID 4326
+        op.execute(
+            """
+            UPDATE diving_centers
+            SET location = ST_SRID(POINT(0, 0), 4326)
+            WHERE location IS NULL
+            """
+        )
+
+        # 4) Enforce NOT NULL (required for SPATIAL INDEX in MySQL)
+        #    (If already NOT NULL, this is a no-op)
+        op.execute("ALTER TABLE diving_centers MODIFY COLUMN location POINT SRID 4326 NOT NULL")
+
+        # 5) Create spatial index if it doesn't exist
+        idx_exists = bind.execute(
+            sa.text(
+                """
+                SELECT COUNT(*) AS cnt
+                FROM information_schema.STATISTICS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'diving_centers'
+                  AND INDEX_NAME = 'idx_diving_centers_location'
+                """
+            )
+        ).scalar()
+        if not idx_exists:
+            op.execute("CREATE SPATIAL INDEX idx_diving_centers_location ON diving_centers (location)")
     else:
         # SQLite or other dialects: no-op (spatial features not supported here)
         pass

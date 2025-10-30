@@ -1,5 +1,5 @@
 import { ArrowLeft, Save, Trash2, Upload, X, Tag, Building, Plus, Edit } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -65,6 +65,7 @@ const EditDiveSite = () => {
   const [divingCenterOptions, setDivingCenterOptions] = useState([]);
   const [divingCenterLoading, setDivingCenterLoading] = useState(false);
   const [divingCenterError, setDivingCenterError] = useState(null);
+  const [isDivingCenterDropdownOpen, setIsDivingCenterDropdownOpen] = useState(false);
 
   // Aliases management state
   const [newAlias, setNewAlias] = useState({ alias: '', language: '' });
@@ -133,6 +134,7 @@ const EditDiveSite = () => {
         ? nearby.filter(c => !associatedDivingCenters.some(ac => ac.id === c.id))
         : nearby;
       setDivingCenterOptions(filtered);
+      setIsDivingCenterDropdownOpen(true);
     } catch (e) {
       console.error('Failed to load nearby diving centers', e);
       setDivingCenterError('Failed to load nearby diving centers');
@@ -151,14 +153,18 @@ const EditDiveSite = () => {
         loadNearbyCenters();
       }, 0);
     }
+    if (!next) {
+      setIsDivingCenterDropdownOpen(false);
+    }
   };
 
-  // Debounced global search
-  let searchTimeoutId;
+  // Debounced global search (persist timer across renders)
+  const searchTimeoutIdRef = useRef(null);
   const handleSearchCenters = q => {
     setDivingCenterQuery(q);
-    if (searchTimeoutId) clearTimeout(searchTimeoutId);
-    searchTimeoutId = setTimeout(async () => {
+    setIsDivingCenterDropdownOpen(true);
+    if (searchTimeoutIdRef.current) clearTimeout(searchTimeoutIdRef.current);
+    searchTimeoutIdRef.current = setTimeout(async () => {
       if (!q || q.trim().length === 0) {
         // Reset to nearby when clearing query
         loadNearbyCenters();
@@ -185,6 +191,15 @@ const EditDiveSite = () => {
       }
     }, 300);
   };
+
+  // Cleanup pending debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutIdRef.current) {
+        clearTimeout(searchTimeoutIdRef.current);
+      }
+    };
+  }, []);
 
   // Fetch associated diving centers
   const { data: associatedDivingCenters = [], error: _associatedDivingCentersError } = useQuery(
@@ -1281,61 +1296,68 @@ const EditDiveSite = () => {
                         type='text'
                         value={divingCenterQuery}
                         onChange={e => handleSearchCenters(e.target.value)}
+                        onFocus={() => setIsDivingCenterDropdownOpen(true)}
+                        onKeyDown={e => {
+                          if (e.key === 'Escape') setIsDivingCenterDropdownOpen(false);
+                        }}
                         placeholder='Type to search...'
                         className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                       />
-                      <div className='mt-2 max-h-56 overflow-auto border border-gray-200 rounded-md'>
-                        {divingCenterLoading && (
-                          <div className='p-2 text-sm text-gray-500'>Loading...</div>
-                        )}
-                        {divingCenterError && (
-                          <div className='p-2 text-sm text-red-600'>{divingCenterError}</div>
-                        )}
-                        {!divingCenterLoading && !divingCenterError && (
-                          <ul>
-                            {(divingCenterOptions || []).map(option => (
-                              <li key={option.id}>
-                                <button
-                                  type='button'
-                                  className={`w-full text-left px-3 py-2 hover:bg-gray-100 ${
-                                    String(newDivingCenterId) === String(option.id)
-                                      ? 'bg-gray-50'
-                                      : ''
-                                  }`}
-                                  onClick={() => {
-                                    setNewDivingCenterId(String(option.id));
-                                    setDivingCenterQuery(option.name);
-                                  }}
-                                >
-                                  <div className='flex items-center justify-between'>
-                                    <span className='text-sm text-gray-800'>{option.name}</span>
-                                    {typeof option.distance_km === 'number' && (
-                                      <span className='text-xs text-gray-500'>
-                                        {option.distance_km} km
-                                      </span>
-                                    )}
-                                  </div>
-                                  {(option.city || option.region || option.country) && (
-                                    <div className='text-xs text-gray-500'>
-                                      {[option.city, option.region, option.country]
-                                        .filter(Boolean)
-                                        .join(', ')}
+                      {isDivingCenterDropdownOpen && (
+                        <div className='mt-2 max-h-56 overflow-auto border border-gray-200 rounded-md'>
+                          {divingCenterLoading && (
+                            <div className='p-2 text-sm text-gray-500'>Loading...</div>
+                          )}
+                          {divingCenterError && (
+                            <div className='p-2 text-sm text-red-600'>{divingCenterError}</div>
+                          )}
+                          {!divingCenterLoading && !divingCenterError && (
+                            <ul>
+                              {(divingCenterOptions || []).map(option => (
+                                <li key={option.id}>
+                                  <button
+                                    type='button'
+                                    className={`w-full text-left px-3 py-2 hover:bg-gray-100 ${
+                                      String(newDivingCenterId) === String(option.id)
+                                        ? 'bg-gray-50'
+                                        : ''
+                                    }`}
+                                    onClick={() => {
+                                      setNewDivingCenterId(String(option.id));
+                                      setDivingCenterQuery(option.name);
+                                      setIsDivingCenterDropdownOpen(false);
+                                    }}
+                                  >
+                                    <div className='flex items-center justify-between'>
+                                      <span className='text-sm text-gray-800'>{option.name}</span>
+                                      {typeof option.distance_km === 'number' && (
+                                        <span className='text-xs text-gray-500'>
+                                          {option.distance_km} km
+                                        </span>
+                                      )}
                                     </div>
-                                  )}
-                                </button>
-                              </li>
-                            ))}
-                            {Array.isArray(divingCenterOptions) &&
-                              divingCenterOptions.length === 0 && (
-                                <li className='px-3 py-2 text-sm text-gray-500'>
-                                  {formData.latitude && formData.longitude
-                                    ? 'No centers within 100 km. Start typing to search all centers.'
-                                    : 'Enter coordinates and start typing to search centers.'}
+                                    {(option.city || option.region || option.country) && (
+                                      <div className='text-xs text-gray-500'>
+                                        {[option.city, option.region, option.country]
+                                          .filter(Boolean)
+                                          .join(', ')}
+                                      </div>
+                                    )}
+                                  </button>
                                 </li>
-                              )}
-                          </ul>
-                        )}
-                      </div>
+                              ))}
+                              {Array.isArray(divingCenterOptions) &&
+                                divingCenterOptions.length === 0 && (
+                                  <li className='px-3 py-2 text-sm text-gray-500'>
+                                    {formData.latitude && formData.longitude
+                                      ? 'No centers within 100 km. Start typing to search all centers.'
+                                      : 'Enter coordinates and start typing to search centers.'}
+                                  </li>
+                                )}
+                            </ul>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label

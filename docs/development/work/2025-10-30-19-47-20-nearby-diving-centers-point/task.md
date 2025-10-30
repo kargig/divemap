@@ -92,6 +92,37 @@ Add geospatial support using MySQL `POINT` with SRID 4326 and a spatial index fo
 - Re-run all tests and fix issues
 - Request commit (Phase 4 message)
 
+#### Validation Checklist (to execute now)
+
+- [x] Backend: Nearby returns centers ≤100 km, sorted by distance, for a known site
+- [x] Backend: Search returns prefix first, then substring; distant centers appear
+- [x] Backend: MySQL path works (POINT + ST_Distance_Sphere); SQLite fallback removed by decision
+- [x] Frontend: Edit Dive Site → Add Diving Center → shows nearby pre-populated list
+- [x] Frontend: Typing filters globally; selection persists and can be added
+- [x] A11y: No eslint a11y violations in the new selector
+- [ ] Performance: Nearby/search responses < 300ms on local dataset
+
+#### How to run tests
+
+- SQLite (host venv):
+  - Activate venv, set PYTHONPATH and GOOGLE_CLIENT_ID per Testing Standards
+  - Run: `python -m pytest tests/ -v`
+
+- MySQL spatial (CI/Docker job):
+  - Run the MySQL-backed job that executes tests marked `@pytest.mark.spatial`
+  - Verify spatial queries and backfill behave correctly
+
+- Frontend (container):
+  - Ensure frontend container is running, check logs for ESLint
+  - Navigate to `/dive-sites/{id}/edit` and validate nearby + typeahead flows
+
+#### Findings/Notes
+
+- [x] Defensive migration: idempotent checks for existing column/index; sentinel POINT(0,0) to satisfy NOT NULL for SPATIAL INDEX
+- [x] Rollback/rollforward verified: downgrade to 0037 cleans column/index, upgrade to 0038 recreates them; backfill count validated
+- [x] Endpoint tests: `/api/v1/diving-centers/nearby` and `/api/v1/diving-centers/search` return expected shapes and ordering on MySQL
+- [ ] Frontend manual validation pending in browser for nearby pre-population and typeahead selection
+
 ### Phase 5: Complete
 
 - Ensure all success criteria are checked
@@ -108,10 +139,6 @@ Add geospatial support using MySQL `POINT` with SRID 4326 and a spatial index fo
 - Non-ASCII and long names render and search correctly
 
 ## Testing Strategy
-
-- SQLite (host venv):
-  - Unit tests for name search logic, ranking order (without spatial index)
-  - Fallback Haversine computation tests where applicable
 
 - MySQL (Docker, CI job):
   - Mark spatial tests with `@pytest.mark.spatial`

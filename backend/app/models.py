@@ -3,13 +3,15 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 import enum
 import sqlalchemy as sa
+from sqlalchemy import event, text
+WKTElement = None  # Avoid geoalchemy2 dependency in tests/CI
 
 # Difficulty levels are now stored as integers in the database:
 # 1 = beginner, 2 = intermediate, 3 = advanced, 4 = expert
 # This allows for efficient sorting and better performance
 DIFFICULTY_LEVELS = {
     1: "beginner",
-    2: "intermediate", 
+    2: "intermediate",
     3: "advanced",
     4: "expert"
 }
@@ -209,6 +211,8 @@ class DivingCenter(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True) # New field for owner
     ownership_status = Column(Enum(OwnershipStatus), default=OwnershipStatus.unclaimed, nullable=False) # New field for ownership status
+    # Geometry column exists in DB via migration 0038; declare minimally for ORM usage
+    location = Column(sa.Text, nullable=False)
 
     # Relationships
     ratings = relationship("CenterRating", back_populates="diving_center", cascade="all, delete-orphan")
@@ -219,6 +223,22 @@ class DivingCenter(Base):
     organization_relationships = relationship("DivingCenterOrganization", back_populates="diving_center", cascade="all, delete-orphan")
     owner = relationship("User", back_populates="diving_centers") # New relationship for owner
     dives = relationship("Dive", back_populates="diving_center", cascade="all, delete-orphan")  # New relationship for dives
+
+
+# ORM-level hooks to keep POINT(location) in sync with lat/lng (avoids DB triggers)
+@event.listens_for(DivingCenter, "before_insert")
+def _dc_set_location_before_insert(mapper, connection, target):
+    lat = target.latitude if target.latitude is not None else 0
+    lng = target.longitude if target.longitude is not None else 0
+    # Use MySQL spatial function directly in VALUES to satisfy NOT NULL
+    target.location = text(f"ST_SRID(POINT({float(lng)}, {float(lat)}), 4326)")
+
+
+@event.listens_for(DivingCenter, "before_update")
+def _dc_set_location_before_update(mapper, connection, target):
+    lat = target.latitude if target.latitude is not None else 0
+    lng = target.longitude if target.longitude is not None else 0
+    target.location = text(f"ST_SRID(POINT({float(lng)}, {float(lat)}), 4326)")
 
 class CenterRating(Base):
     __tablename__ = "center_ratings"
@@ -462,7 +482,7 @@ class DiveTag(Base):
 
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
-    
+
     id = Column(String(255), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     token_hash = Column(String(255), nullable=False)
@@ -472,14 +492,14 @@ class RefreshToken(Base):
     is_revoked = Column(Boolean, default=False)
     device_info = Column(Text)
     ip_address = Column(String(45))
-    
+
     # Relationships
     user = relationship("User", back_populates="refresh_tokens")
 
 
 class AuthAuditLog(Base):
     __tablename__ = "auth_audit_logs"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     action = Column(String(50), nullable=False)  # login, logout, token_refresh, etc.
@@ -488,7 +508,7 @@ class AuthAuditLog(Base):
     timestamp = Column(DateTime, server_default=func.now())
     success = Column(Boolean, default=True)
     details = Column(Text)
-    
+
     # Relationships
     user = relationship("User", back_populates="auth_audit_logs")
 
@@ -513,17 +533,17 @@ class DiveRoute(Base):
     dive_site = relationship("DiveSite", back_populates="routes")
     creator = relationship("User", back_populates="created_routes", foreign_keys=[created_by])
     deleter = relationship("User", foreign_keys=[deleted_by])
-    
+
     @property
     def is_deleted(self) -> bool:
         """Check if route is soft deleted"""
         return self.deleted_at is not None
-    
+
     def soft_delete(self, deleted_by_user_id: int) -> None:
         """Soft delete the route"""
         self.deleted_at = func.now()
         self.deleted_by = deleted_by_user_id
-    
+
     def restore(self) -> None:
         """Restore a soft deleted route"""
         self.deleted_at = None
@@ -533,7 +553,7 @@ class DiveRoute(Base):
 class RouteAnalytics(Base):
     """Track user interactions with dive routes for analytics"""
     __tablename__ = "route_analytics"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     route_id = Column(Integer, ForeignKey("dive_routes.id"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # Nullable for anonymous users
@@ -543,10 +563,10 @@ class RouteAnalytics(Base):
     referrer = Column(String(500), nullable=True)
     session_id = Column(String(100), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
-    
+
     # Additional metadata
     extra_data = Column(sa.JSON, nullable=True)  # Store additional context like export format, etc.
-    
+
     # Relationships
     route = relationship("DiveRoute")
     user = relationship("User")
