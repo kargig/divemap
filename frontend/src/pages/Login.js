@@ -113,12 +113,19 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const success = await authLogin(formData.username, formData.password, turnstileToken);
+      const { success, error } = await Promise.race([
+        authLogin(formData.username, formData.password, turnstileToken),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Login timed out. Please try again.')), 10000)
+        ),
+      ]);
       if (success) {
         navigate('/');
+      } else {
+        toast.error(error || 'Invalid username or password');
       }
     } catch (error) {
-      // Handle error
+      toast.error('Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
