@@ -47,9 +47,16 @@ api.interceptors.response.use(
     return response;
   },
   async error => {
-    const originalRequest = error.config;
+    const originalRequest = error.config || {};
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Do NOT try to refresh token for auth endpoints like login/register/google-login
+    const url = originalRequest.url || '';
+    const isAuthEndpoint =
+      url.includes('/auth/login') ||
+      url.includes('/auth/register') ||
+      url.includes('/auth/google-login');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         // If already refreshing, queue this request
         return new Promise((resolve, reject) => {
