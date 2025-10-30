@@ -1036,7 +1036,10 @@ const Dives = () => {
                                 </Link>
                               </h3>
                               {dive.selected_route_id && (
-                                <div className='flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium' title='This dive has a route'>
+                                <div
+                                  className='flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium'
+                                  title='This dive has a route'
+                                >
                                   <Route size={12} />
                                   Route
                                 </div>
@@ -1195,7 +1198,10 @@ const Dives = () => {
                           </Link>
                         </h3>
                         {dive.selected_route_id && (
-                          <div className='flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium' title='This dive has a route'>
+                          <div
+                            className='flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium'
+                            title='This dive has a route'
+                          >
                             <Route size={12} />
                             Route
                           </div>
