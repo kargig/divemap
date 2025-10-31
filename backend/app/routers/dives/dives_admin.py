@@ -13,7 +13,7 @@ full access to all dives regardless of ownership.
 """
 
 from fastapi import Depends, HTTPException, status, Query, UploadFile, File
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import date, time, datetime
 import json
@@ -23,122 +23,10 @@ import uuid
 
 from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
-from app.models import DiveSite, DiveSiteAlias, DivingCenter, get_difficulty_label
+from app.models import DiveSite, DiveSiteAlias, DivingCenter, DifficultyLevel, get_difficulty_id_by_code
 from app.services.dive_profile_parser import DiveProfileParser
 from .dives_validation import raise_validation_error
 from .dives_logging import log_dive_operation, log_error
-
-
-def get_all_dives_count_admin(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user),
-    user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
-    dive_site_id: Optional[int] = Query(None),
-    dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
-    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
-    suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
-    min_depth: Optional[float] = Query(None, ge=0, le=1000),
-    max_depth: Optional[float] = Query(None, ge=0, le=1000),
-    min_visibility: Optional[int] = Query(None, ge=1, le=10),
-    max_visibility: Optional[int] = Query(None, ge=1, le=10),
-    min_rating: Optional[int] = Query(None, ge=1, le=10),
-    max_rating: Optional[int] = Query(None, ge=1, le=10),
-    start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
-    end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
-    tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
-):
-    """Get total count of dives with admin privileges."""
-    # Build query - admin can see all dives
-    query = db.query(Dive).join(User, Dive.user_id == User.id)
-
-    # Filter by user if specified
-    if user_id:
-        query = query.filter(Dive.user_id == user_id)
-
-    # Apply filters
-    if dive_site_id:
-        query = query.filter(Dive.dive_site_id == dive_site_id)
-
-    if dive_site_name:
-        # Join with DiveSite table to filter by dive site name
-        query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
-        # Use ILIKE for case-insensitive partial matching
-        sanitized_name = dive_site_name.strip()
-        # Search in both dive site names and aliases
-        query = query.filter(
-            or_(
-                DiveSite.name.ilike(f"%{sanitized_name}%"),
-                DiveSite.id.in_(
-                    db.query(DiveSiteAlias.dive_site_id).filter(
-                        DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
-                    )
-                )
-            )
-        )
-
-    if difficulty_level:
-        query = query.filter(Dive.difficulty_level == difficulty_level)
-
-    if suit_type:
-        query = query.filter(Dive.suit_type == suit_type)
-
-    if min_depth is not None:
-        query = query.filter(Dive.max_depth >= min_depth)
-
-    if max_depth is not None:
-        query = query.filter(Dive.max_depth <= max_depth)
-
-    if min_visibility is not None:
-        query = query.filter(Dive.visibility_rating >= min_visibility)
-
-    if max_visibility is not None:
-        query = query.filter(Dive.visibility_rating <= max_visibility)
-
-    if min_rating is not None:
-        query = query.filter(Dive.user_rating >= min_rating)
-
-    if max_rating is not None:
-        query = query.filter(Dive.user_rating <= max_rating)
-
-    if start_date:
-        try:
-            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
-            query = query.filter(Dive.dive_date >= start_date_obj)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid start_date format. Use YYYY-MM-DD"
-            )
-
-    if end_date:
-        try:
-            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
-            query = query.filter(Dive.dive_date <= end_date_obj)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid end_date format. Use YYYY-MM-DD"
-            )
-
-    # Apply tag filtering
-    if tag_ids:
-        try:
-            tag_id_list = [int(tid.strip()) for tid in tag_ids.split(",") if tid.strip()]
-            if tag_id_list:
-                # Join with DiveTag and AvailableTag tables
-                query = query.join(DiveTag, Dive.id == DiveTag.dive_id)
-                query = query.join(AvailableTag, DiveTag.tag_id == AvailableTag.id)
-                query = query.filter(AvailableTag.id.in_(tag_id_list))
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid tag_ids format. Use comma-separated integers"
-            )
-
-    # Get total count
-    total_count = query.count()
-
-    return {"total": total_count}
 
 
 @router.get("/admin/dives/count")
@@ -148,7 +36,8 @@ def get_all_dives_count_admin(
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
-    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
+    difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
+    include_undefined: bool = Query(False, description="Include dives with unspecified difficulty"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
     min_depth: Optional[float] = Query(None, ge=0, le=1000),
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
@@ -162,7 +51,8 @@ def get_all_dives_count_admin(
 ):
     """Get total count of dives with admin privileges."""
     # Build query - admin can see all dives
-    query = db.query(Dive).join(User, Dive.user_id == User.id)
+    # Eager load difficulty relationship for efficient access
+    query = db.query(Dive).options(joinedload(Dive.difficulty)).join(User, Dive.user_id == User.id)
 
     # Filter by user if specified
     if user_id:
@@ -189,8 +79,14 @@ def get_all_dives_count_admin(
             )
         )
 
-    if difficulty_level:
-        query = query.filter(Dive.difficulty_level == difficulty_level)
+    if difficulty_code:
+        difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
+        if difficulty_id:
+            query = query.filter(Dive.difficulty_id == difficulty_id)
+        elif not include_undefined:
+            query = query.filter(False)
+    elif not include_undefined:
+        query = query.filter(Dive.difficulty_id.isnot(None))
 
     if suit_type:
         query = query.filter(Dive.suit_type == suit_type)
@@ -254,7 +150,8 @@ def get_all_dives_admin(
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
-    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
+    difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
+    include_undefined: bool = Query(False, description="Include dives with unspecified difficulty"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
     min_depth: Optional[float] = Query(None, ge=0, le=1000),
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
@@ -282,7 +179,8 @@ def get_all_dives_admin(
         )
 
     # Build query - admin can see all dives
-    query = db.query(Dive).join(User, Dive.user_id == User.id)
+    # Eager load difficulty relationship for efficient access
+    query = db.query(Dive).options(joinedload(Dive.difficulty)).join(User, Dive.user_id == User.id)
 
     # Filter by user if specified
     if user_id:
@@ -309,8 +207,14 @@ def get_all_dives_admin(
             )
         )
 
-    if difficulty_level:
-        query = query.filter(Dive.difficulty_level == difficulty_level)
+    if difficulty_code:
+        difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
+        if difficulty_id:
+            query = query.filter(Dive.difficulty_id == difficulty_id)
+        elif not include_undefined:
+            query = query.filter(False)
+    elif not include_undefined:
+        query = query.filter(Dive.difficulty_id.isnot(None))
 
     if suit_type:
         query = query.filter(Dive.suit_type == suit_type)
@@ -420,7 +324,8 @@ def get_all_dives_admin(
             "average_depth": float(dive.average_depth) if dive.average_depth else None,
             "gas_bottles_used": dive.gas_bottles_used,
             "suit_type": dive.suit_type.value if dive.suit_type else None,
-            "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
+            "difficulty_code": dive.difficulty.code if dive.difficulty else None,
+            "difficulty_label": dive.difficulty.label if dive.difficulty else None,
             "visibility_rating": dive.visibility_rating,
             "user_rating": dive.user_rating,
             "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
@@ -614,7 +519,8 @@ def update_dive_admin(
         "average_depth": float(dive.average_depth) if dive.average_depth else None,
         "gas_bottles_used": dive.gas_bottles_used,
         "suit_type": dive.suit_type.value if dive.suit_type else None,
-        "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
+        "difficulty_code": dive.difficulty.code if dive.difficulty else None,
+        "difficulty_label": dive.difficulty.label if dive.difficulty else None,
         "visibility_rating": dive.visibility_rating,
         "user_rating": dive.user_rating,
         "dive_date": dive.dive_date.strftime("%Y-%m-%d"),

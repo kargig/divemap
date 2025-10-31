@@ -20,7 +20,7 @@ import json
 
 from .dives_shared import router, get_db, get_current_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage, UNIFIED_TYPO_TOLERANCE
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse
-from app.models import DiveSite, DivingCenter, DiveSiteAlias, get_difficulty_label
+from app.models import DiveSite, DivingCenter, DiveSiteAlias, DifficultyLevel, get_difficulty_id_by_code
 from .dives_utils import generate_dive_name
 from .dives_import import parse_dive_information_text
 from .dives_search import search_dives_with_fuzzy
@@ -106,6 +106,11 @@ def create_dive(
             dive_name = f"Dive - {dive_date.strftime('%Y/%m/%d')}"
 
     # Create dive object
+    # Map difficulty_code to difficulty_id (nullable)
+    difficulty_id = None
+    if hasattr(dive, 'difficulty_code'):
+        difficulty_id = get_difficulty_id_by_code(db, dive.difficulty_code)
+
     db_dive = Dive(
         user_id=current_user.id,
         dive_site_id=dive.dive_site_id,
@@ -118,7 +123,7 @@ def create_dive(
         average_depth=dive.average_depth,
         gas_bottles_used=dive.gas_bottles_used,
         suit_type=dive.suit_type,
-        difficulty_level=dive.difficulty_level,
+        difficulty_id=difficulty_id,
         visibility_rating=dive.visibility_rating,
         user_rating=dive.user_rating,
         dive_date=dive_date,
@@ -178,6 +183,9 @@ def create_dive(
                 "created_at": selected_route.created_at
             }
 
+    # Ensure difficulty relationship is loaded for response serialization
+    db_dive = db.query(Dive).options(joinedload(Dive.difficulty)).filter(Dive.id == db_dive.id).first()
+
     # Convert to dict to avoid SQLAlchemy relationship serialization issues
     dive_dict = {
         "id": db_dive.id,
@@ -192,7 +200,8 @@ def create_dive(
         "average_depth": float(db_dive.average_depth) if db_dive.average_depth else None,
         "gas_bottles_used": db_dive.gas_bottles_used,
         "suit_type": db_dive.suit_type.value if db_dive.suit_type else None,
-        "difficulty_level": get_difficulty_label(dive.difficulty_level) if db_dive.difficulty_level else None,
+        "difficulty_code": db_dive.difficulty.code if db_dive.difficulty else None,
+        "difficulty_label": db_dive.difficulty.label if db_dive.difficulty else None,
         "visibility_rating": db_dive.visibility_rating,
         "user_rating": db_dive.user_rating,
         "dive_date": db_dive.dive_date.strftime("%Y-%m-%d"),
@@ -220,7 +229,8 @@ def get_dives_count(
     my_dives: Optional[bool] = Query(None, description="Filter to show only current user's dives"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
-    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
+    difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
+    include_undefined: bool = Query(False, description="Include dives with unspecified difficulty"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
     min_depth: Optional[float] = Query(None, ge=0, le=1000),
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
@@ -276,8 +286,14 @@ def get_dives_count(
             )
         )
 
-    if difficulty_level:
-        query = query.filter(Dive.difficulty_level == difficulty_level)
+    if difficulty_code:
+        difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
+        if difficulty_id:
+            query = query.filter(Dive.difficulty_id == difficulty_id)
+        elif not include_undefined:
+            query = query.filter(False)
+    elif not include_undefined:
+        query = query.filter(Dive.difficulty_id.isnot(None))
 
     if suit_type:
         query = query.filter(Dive.suit_type == suit_type)
@@ -349,7 +365,8 @@ def get_dives(
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
     search: Optional[str] = Query(None, description="Unified search across dive site name, description, notes"),
-    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
+    difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
+    include_undefined: bool = Query(False, description="Include dives with unspecified difficulty"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
     min_depth: Optional[float] = Query(None, ge=0, le=1000),
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
@@ -381,7 +398,8 @@ def get_dives(
         )
 
     # Build query - user can see their own dives and public dives from others
-    query = db.query(Dive).join(User, Dive.user_id == User.id)
+    # Eager load difficulty relationship for efficient access
+    query = db.query(Dive).options(joinedload(Dive.difficulty)).join(User, Dive.user_id == User.id)
 
     # Filter by user if specified, otherwise show own dives and public dives from others
     if user_id:
@@ -457,8 +475,14 @@ def get_dives(
             )
         )
 
-    if difficulty_level:
-        query = query.filter(Dive.difficulty_level == difficulty_level)
+    if difficulty_code:
+        difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
+        if difficulty_id:
+            query = query.filter(Dive.difficulty_id == difficulty_id)
+        elif not include_undefined:
+            query = query.filter(False)
+    elif not include_undefined:
+        query = query.filter(Dive.difficulty_id.isnot(None))
 
     if suit_type:
         query = query.filter(Dive.suit_type == suit_type)
@@ -544,8 +568,9 @@ def get_dives(
         elif sort_by == 'duration':
             sort_field = Dive.duration
         elif sort_by == 'difficulty_level':
-            # Sort by difficulty level (1=beginner, 2=intermediate, 3=advanced, 4=expert)
-            sort_field = Dive.difficulty_level
+            # Sort by difficulty order_index via LEFT JOIN
+            query = query.outerjoin(DifficultyLevel, Dive.difficulty_id == DifficultyLevel.id)
+            sort_field = DifficultyLevel.order_index
         elif sort_by == 'visibility_rating':
             sort_field = Dive.visibility_rating
         elif sort_by == 'user_rating':
@@ -664,7 +689,8 @@ def get_dives(
             "average_depth": float(dive.average_depth) if dive.average_depth else None,
             "gas_bottles_used": dive.gas_bottles_used,
             "suit_type": dive.suit_type.value if dive.suit_type else None,
-            "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
+            "difficulty_code": dive.difficulty.code if dive.difficulty else None,
+            "difficulty_label": dive.difficulty.label if dive.difficulty else None,
             "visibility_rating": dive.visibility_rating,
             "user_rating": dive.user_rating,
             "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
@@ -739,8 +765,8 @@ def get_dive(
             detail="Account is disabled"
         )
 
-    # Query dive with user information
-    dive = db.query(Dive).join(User, Dive.user_id == User.id).filter(Dive.id == dive_id).first()
+    # Query dive with user information and eager load difficulty
+    dive = db.query(Dive).options(joinedload(Dive.difficulty)).join(User, Dive.user_id == User.id).filter(Dive.id == dive_id).first()
 
     if not dive:
         raise HTTPException(
@@ -847,7 +873,8 @@ def get_dive(
         "average_depth": float(dive.average_depth) if dive.average_depth else None,
         "gas_bottles_used": dive.gas_bottles_used,
         "suit_type": dive.suit_type.value if dive.suit_type else None,
-        "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
+        "difficulty_code": dive.difficulty.code if dive.difficulty else None,
+        "difficulty_label": dive.difficulty.label if dive.difficulty else None,
         "visibility_rating": dive.visibility_rating,
         "user_rating": dive.user_rating,
         "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
@@ -893,8 +920,11 @@ def get_dive_details(
             detail="Account is disabled"
         )
 
-    # Query dive with user and dive site information
-    dive = db.query(Dive).join(User, Dive.user_id == User.id).join(
+    # Query dive with user and dive site information, eager load difficulty for dive and dive site
+    dive = db.query(Dive).options(
+        joinedload(Dive.difficulty),
+        joinedload(Dive.dive_site).joinedload(DiveSite.difficulty)
+    ).join(User, Dive.user_id == User.id).join(
         DiveSite, Dive.dive_site_id == DiveSite.id, isouter=True
     ).filter(Dive.id == dive_id).first()
 
@@ -936,7 +966,8 @@ def get_dive_details(
             "longitude": float(dive.dive_site.longitude) if dive.dive_site.longitude else None,
             "country": dive.dive_site.country,
             "region": dive.dive_site.region,
-            "difficulty_level": get_difficulty_label(dive.dive_site.difficulty_level) if dive.dive_site.difficulty_level else None,
+            "difficulty_code": dive.dive_site.difficulty.code if dive.dive_site and dive.dive_site.difficulty else None,
+            "difficulty_label": dive.dive_site.difficulty.label if dive.dive_site and dive.dive_site.difficulty else None,
             "max_depth": float(dive.dive_site.max_depth) if dive.dive_site.max_depth else None,
             "marine_life": dive.dive_site.marine_life,
             "safety_information": dive.dive_site.safety_information,
@@ -982,7 +1013,8 @@ def get_dive_details(
         "average_depth": float(dive.average_depth) if dive.average_depth else None,
         "gas_bottles_used": dive.gas_bottles_used,
         "suit_type": dive.suit_type.value if dive.suit_type else None,
-        "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
+        "difficulty_code": dive.difficulty.code if dive.difficulty else None,
+        "difficulty_label": dive.difficulty.label if dive.difficulty else None,
         "visibility_rating": dive.visibility_rating,
         "user_rating": dive.user_rating,
         "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
@@ -1101,8 +1133,15 @@ def update_dive(
             if dive_site:
                 dive.name = generate_dive_name(dive_site.name, dive.dive_date)
 
-    # Update other fields
-    for field, value in dive_update.dict(exclude_unset=True).items():
+    # Update other fields (exclude difficulty_code - handle separately)
+    update_data = dive_update.dict(exclude_unset=True)
+    
+    # Convert difficulty_code to difficulty_id if provided
+    if 'difficulty_code' in update_data:
+        difficulty_code = update_data.pop('difficulty_code')
+        dive.difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
+    
+    for field, value in update_data.items():
         if field not in ['dive_date', 'dive_time', 'name', 'tags']:
             setattr(dive, field, value)
 
@@ -1134,7 +1173,9 @@ def update_dive(
 
     dive.updated_at = datetime.utcnow()
     db.commit()
-    db.refresh(dive)
+    
+    # Eager load difficulty for response
+    dive = db.query(Dive).options(joinedload(Dive.difficulty)).filter(Dive.id == dive_id).first()
 
     # Get dive site information if available
     dive_site_info = None
@@ -1211,7 +1252,8 @@ def update_dive(
         "average_depth": float(dive.average_depth) if dive.average_depth else None,
         "gas_bottles_used": dive.gas_bottles_used,
         "suit_type": dive.suit_type.value if dive.suit_type else None,
-        "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
+        "difficulty_code": dive.difficulty.code if dive.difficulty else None,
+        "difficulty_label": dive.difficulty.label if dive.difficulty else None,
         "visibility_rating": dive.visibility_rating,
         "user_rating": dive.user_rating,
         "dive_date": dive.dive_date.strftime("%Y-%m-%d"),

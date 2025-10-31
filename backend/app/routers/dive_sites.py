@@ -7,7 +7,7 @@ import difflib
 import json
 
 from app.database import get_db
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, get_difficulty_label, OwnershipStatus
+from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus
 from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse,
     SiteRatingCreate, SiteRatingResponse,
@@ -222,23 +222,33 @@ def apply_search_filters(query, search, name, db):
     return query
 
 
-def apply_basic_filters(query, difficulty_level, country, region, my_dive_sites, current_user):
+def apply_basic_filters(query, difficulty_code, include_undefined, country, region, my_dive_sites, current_user, db):
     """
     Apply basic filtering criteria to a query.
     
     Args:
         query: SQLAlchemy query object to filter
-        difficulty_level: Difficulty level filter
+        difficulty_code: Difficulty code filter (e.g., 'OPEN_WATER')
+        include_undefined: Whether to include sites with NULL difficulty
         country: Country filter
         region: Region filter
         my_dive_sites: Whether to filter by user's dive sites
         current_user: Current authenticated user
+        db: Database session for lookups
         
     Returns:
         Filtered query object
     """
-    if difficulty_level:
-        query = query.filter(DiveSite.difficulty_level == difficulty_level)
+    if difficulty_code:
+        difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
+        if difficulty_id:
+            query = query.filter(DiveSite.difficulty_id == difficulty_id)
+        elif not include_undefined:
+            # If code doesn't exist and we don't want undefined, return empty set
+            query = query.filter(False)
+    elif not include_undefined:
+        # If no difficulty_code filter but we don't want undefined, exclude NULL
+        query = query.filter(DiveSite.difficulty_id.isnot(None))
     
     if country:
         sanitized_country = country.strip()[:100]
@@ -322,7 +332,9 @@ def apply_sorting(query, sort_by, sort_order, current_user):
         elif sort_by == 'region':
             sort_field = func.lower(DiveSite.region)
         elif sort_by == 'difficulty_level':
-            sort_field = DiveSite.difficulty_level
+            # Sort by difficulty order_index via LEFT JOIN (NULLs go last)
+            query = query.outerjoin(DifficultyLevel, DiveSite.difficulty_id == DifficultyLevel.id)
+            sort_field = DifficultyLevel.order_index
         elif sort_by == 'view_count':
             # Only admin users can sort by view_count
             if not current_user or not current_user.is_admin:
@@ -377,7 +389,7 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
         db: Database session
         similarity_threshold: Minimum similarity score (0.0 to 1.0)
         max_fuzzy_results: Maximum number of fuzzy results to return
-        **filters: Additional filters to apply (tag_ids, difficulty_level, etc.)
+        **filters: Additional filters to apply (tag_ids, difficulty_code, etc.)
     
     Returns:
         List of dive sites with exact results first, followed by fuzzy matches
@@ -402,8 +414,11 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
     filtered_query = db.query(DiveSite)
     
     # Apply the same filters that were used in the main query
-    if 'difficulty_level' in filters and filters['difficulty_level']:
-        filtered_query = filtered_query.filter(DiveSite.difficulty_level == filters['difficulty_level'])
+    if 'difficulty_code' in filters and filters['difficulty_code']:
+        from app.models import get_difficulty_id_by_code
+        difficulty_id = get_difficulty_id_by_code(db, filters['difficulty_code'])
+        if difficulty_id:
+            filtered_query = filtered_query.filter(DiveSite.difficulty_id == difficulty_id)
     
     if 'country' in filters and filters['country']:
         filtered_query = filtered_query.filter(DiveSite.country.ilike(f"%{filters['country']}%"))
@@ -717,7 +732,8 @@ async def get_dive_sites(
     request: Request,
     search: Optional[str] = Query(None, max_length=200, description="Unified search across name, country, region, and description"),
     name: Optional[str] = Query(None, max_length=100),
-    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
+    difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
+    include_undefined: bool = Query(False, description="Include dive sites with unspecified difficulty"),
     min_rating: Optional[float] = Query(None, ge=0, le=10, description="Minimum average rating (0-10)"),
     tag_ids: Optional[List[int]] = Query(None),
     country: Optional[str] = Query(None, max_length=100),
@@ -738,7 +754,8 @@ async def get_dive_sites(
             detail="page_size must be one of: 25, 50, 100, 1000"
         )
 
-    query = db.query(DiveSite)
+    # Eager load difficulty relationship for efficient access
+    query = db.query(DiveSite).options(joinedload(DiveSite.difficulty))
 
     # Store the search query for potential fuzzy search enhancement
     search_query_for_fuzzy = None
@@ -749,7 +766,7 @@ async def get_dive_sites(
     query = apply_search_filters(query, search, name, db)
 
     # Apply basic filters using utility function
-    query = apply_basic_filters(query, difficulty_level, country, region, my_dive_sites, current_user)
+    query = apply_basic_filters(query, difficulty_code, include_undefined, country, region, my_dive_sites, current_user, db)
 
     # Apply tag filtering using utility function
     query = apply_tag_filtering(query, tag_ids, db)
@@ -774,7 +791,7 @@ async def get_dive_sites(
         
         # Apply the same filters to the full query using utility functions
         all_dive_sites_query = apply_search_filters(all_dive_sites_query, search, name, db)
-        all_dive_sites_query = apply_basic_filters(all_dive_sites_query, difficulty_level, country, region, my_dive_sites, current_user)
+        all_dive_sites_query = apply_basic_filters(all_dive_sites_query, difficulty_code, include_undefined, country, region, my_dive_sites, current_user, db)
         all_dive_sites_query = apply_tag_filtering(all_dive_sites_query, tag_ids, db)
         all_dive_sites_query = apply_rating_filtering(all_dive_sites_query, min_rating, db)
         
@@ -831,7 +848,7 @@ async def get_dive_sites(
                 max_fuzzy_results=10,
                 # Pass the current filters to ensure fuzzy search respects them
                 tag_ids=tag_ids,
-                difficulty_level=difficulty_level,
+                difficulty_code=difficulty_code,
                 country=country,
                 region=region,
                 min_rating=min_rating,
@@ -915,7 +932,8 @@ async def get_dive_sites(
                 "latitude": float(site.latitude) if site.latitude else None,
                 "longitude": float(site.longitude) if site.longitude else None,
                 "access_instructions": site.access_instructions,
-                "difficulty_level": get_difficulty_label(site.difficulty_level) if site.difficulty_level else None,
+                "difficulty_code": site.difficulty.code if site.difficulty else None,
+                "difficulty_label": site.difficulty.label if site.difficulty else None,
                 "marine_life": site.marine_life,
                 "safety_information": site.safety_information,
                 "max_depth": float(site.max_depth) if site.max_depth else None,
@@ -980,7 +998,8 @@ async def get_dive_sites(
 async def get_dive_sites_count(
     request: Request,
     name: Optional[str] = Query(None, max_length=100),
-    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
+    difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
+    include_undefined: bool = Query(False, description="Include dive sites with unspecified difficulty"),
     min_rating: Optional[float] = Query(None, ge=0, le=10, description="Minimum average rating (0-10)"),
     tag_ids: Optional[List[int]] = Query(None),
     country: Optional[str] = Query(None, max_length=100),
@@ -994,7 +1013,7 @@ async def get_dive_sites_count(
 
     # Apply all filters using utility functions
     query = apply_search_filters(query, None, name, db)  # No search parameter in count function
-    query = apply_basic_filters(query, difficulty_level, country, region, my_dive_sites, current_user)
+    query = apply_basic_filters(query, difficulty_code, include_undefined, country, region, my_dive_sites, current_user, db)
     query = apply_tag_filtering(query, tag_ids, db)
     query = apply_rating_filtering(query, min_rating, db)
 
@@ -1014,7 +1033,12 @@ async def create_dive_site(
 
     dive_site_data = dive_site.dict()
     dive_site_data['created_by'] = current_user.id
-
+    
+    # Convert difficulty_code to difficulty_id
+    if 'difficulty_code' in dive_site_data:
+        difficulty_code = dive_site_data.pop('difficulty_code')
+        dive_site_data['difficulty_id'] = get_difficulty_id_by_code(db, difficulty_code)
+    
     db_dive_site = DiveSite(**dive_site_data)
     db.add(db_dive_site)
     db.commit()
@@ -1104,8 +1128,27 @@ async def get_dive_site(
             user_rating = user_rating_obj.score
 
     # Prepare response data
+    # Extract difficulty_code and difficulty_label from relationship
+    difficulty_code = dive_site.difficulty.code if dive_site.difficulty else None
+    difficulty_label = dive_site.difficulty.label if dive_site.difficulty else None
+    
     response_data = {
-        **dive_site.__dict__,
+        "id": dive_site.id,
+        "name": dive_site.name,
+        "description": dive_site.description,
+        "latitude": float(dive_site.latitude) if dive_site.latitude else None,
+        "longitude": float(dive_site.longitude) if dive_site.longitude else None,
+        "access_instructions": dive_site.access_instructions,
+        "difficulty_code": difficulty_code,
+        "difficulty_label": difficulty_label,
+        "marine_life": dive_site.marine_life,
+        "safety_information": dive_site.safety_information,
+        "max_depth": float(dive_site.max_depth) if dive_site.max_depth else None,
+        "country": dive_site.country,
+        "region": dive_site.region,
+        "created_at": dive_site.created_at.isoformat() if dive_site.created_at else None,
+        "updated_at": dive_site.updated_at.isoformat() if dive_site.updated_at else None,
+        "created_by": dive_site.created_by,
         "average_rating": float(avg_rating) if avg_rating else None,
         "total_ratings": total_ratings,
         "tags": tags_dict,
@@ -1384,6 +1427,11 @@ async def update_dive_site(
     # Update only provided fields
     update_data = dive_site_update.dict(exclude_unset=True)
 
+    # Convert difficulty_code to difficulty_id if provided
+    if 'difficulty_code' in update_data:
+        difficulty_code = update_data.pop('difficulty_code')
+        update_data['difficulty_id'] = get_difficulty_id_by_code(db, difficulty_code)
+
     # Ensure latitude and longitude are never set to null
     if 'latitude' in update_data and update_data['latitude'] is None:
         raise HTTPException(
@@ -1401,6 +1449,9 @@ async def update_dive_site(
 
     db.commit()
     db.refresh(dive_site)
+    
+    # Re-query with eager loading of difficulty relationship for response
+    dive_site = db.query(DiveSite).options(joinedload(DiveSite.difficulty)).filter(DiveSite.id == dive_site_id).first()
 
     # Calculate average rating
     avg_rating = db.query(func.avg(SiteRating.score)).filter(
@@ -1429,8 +1480,27 @@ async def update_dive_site(
         for tag in tags
     ]
 
+    # Difficulty information is already eager-loaded above
+    difficulty_code = dive_site.difficulty.code if dive_site.difficulty else None
+    difficulty_label = dive_site.difficulty.label if dive_site.difficulty else None
+    
     return {
-        **dive_site.__dict__,
+        "id": dive_site.id,
+        "name": dive_site.name,
+        "description": dive_site.description,
+        "latitude": float(dive_site.latitude) if dive_site.latitude else None,
+        "longitude": float(dive_site.longitude) if dive_site.longitude else None,
+        "access_instructions": dive_site.access_instructions,
+        "difficulty_code": difficulty_code,
+        "difficulty_label": difficulty_label,
+        "marine_life": dive_site.marine_life,
+        "safety_information": dive_site.safety_information,
+        "max_depth": float(dive_site.max_depth) if dive_site.max_depth else None,
+        "country": dive_site.country,
+        "region": dive_site.region,
+        "created_at": dive_site.created_at.isoformat() if dive_site.created_at else None,
+        "updated_at": dive_site.updated_at.isoformat() if dive_site.updated_at else None,
+        "created_by": dive_site.created_by,
         "average_rating": float(avg_rating) if avg_rating else None,
         "total_ratings": total_ratings,
         "tags": tags_dict
@@ -1648,18 +1718,21 @@ async def get_nearby_dive_sites(
 
     haversine_query = text("""
         SELECT
-            id, name, description, difficulty_level, latitude, longitude,
-            access_instructions, safety_information, marine_life,
-            created_at, updated_at,
+            ds.id, ds.name, ds.description, 
+            dl.code AS difficulty_code, dl.label AS difficulty_label,
+            ds.latitude, ds.longitude,
+            ds.access_instructions, ds.safety_information, ds.marine_life,
+            ds.created_at, ds.updated_at,
             (6371 * acos(
-                cos(radians(:lat)) * cos(radians(latitude)) *
-                cos(radians(longitude) - radians(:lng)) +
-                sin(radians(:lat)) * sin(radians(latitude))
+                cos(radians(:lat)) * cos(radians(ds.latitude)) *
+                cos(radians(ds.longitude) - radians(:lng)) +
+                sin(radians(:lat)) * sin(radians(ds.latitude))
             )) AS distance_km
-        FROM dive_sites
-        WHERE id != :site_id
-        AND latitude IS NOT NULL
-        AND longitude IS NOT NULL
+        FROM dive_sites ds
+        LEFT JOIN difficulty_levels dl ON ds.difficulty_id = dl.id
+        WHERE ds.id != :site_id
+        AND ds.latitude IS NOT NULL
+        AND ds.longitude IS NOT NULL
         HAVING distance_km <= 100
         ORDER BY distance_km ASC
         LIMIT :limit
@@ -1709,7 +1782,8 @@ async def get_nearby_dive_sites(
             "id": row.id,
             "name": row.name,
             "description": row.description,
-            "difficulty_level": row.difficulty_level if row.difficulty_level else None,
+            "difficulty_code": row.difficulty_code if hasattr(row, 'difficulty_code') else None,
+            "difficulty_label": row.difficulty_label if hasattr(row, 'difficulty_label') else None,
             "latitude": float(row.latitude) if row.latitude else None,
             "longitude": float(row.longitude) if row.longitude else None,
             "access_instructions": row.access_instructions,
@@ -1810,7 +1884,8 @@ async def get_dive_site_dives(
             "average_depth": dive.average_depth,
             "gas_bottles_used": dive.gas_bottles_used,
             "suit_type": dive.suit_type,
-            "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
+            "difficulty_code": dive.difficulty.code if dive.difficulty else None,
+            "difficulty_label": dive.difficulty.label if dive.difficulty else None,
             "visibility_rating": dive.visibility_rating,
             "user_rating": dive.user_rating,
             "dive_date": dive.dive_date.strftime("%Y-%m-%d"),

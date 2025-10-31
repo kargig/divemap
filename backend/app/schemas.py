@@ -1,8 +1,11 @@
 from pydantic import BaseModel, Field, EmailStr, validator
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Literal
 from datetime import datetime, date, time
 import re
 import enum
+
+# Valid difficulty codes
+DifficultyCode = Optional[Literal['OPEN_WATER', 'ADVANCED_OPEN_WATER', 'DEEP_NITROX', 'TECHNICAL_DIVING']]
 
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
@@ -88,7 +91,7 @@ class DiveSiteBase(BaseModel):
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
     access_instructions: Optional[str] = None
-    difficulty_level: Optional[int] = Field(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert")
+    difficulty_code: DifficultyCode = Field(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified")
     marine_life: Optional[str] = None
     safety_information: Optional[str] = None  # Safety information
     max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
@@ -104,7 +107,7 @@ class DiveSiteUpdate(BaseModel):
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
     access_instructions: Optional[str] = None
-    difficulty_level: Optional[int] = Field(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert")
+    difficulty_code: DifficultyCode = Field(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified")
     marine_life: Optional[str] = None
     safety_information: Optional[str] = None  # Safety information
     max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
@@ -199,7 +202,11 @@ class SiteMediaResponse(BaseModel):
 # Search Parameters
 class DiveSiteSearchParams(BaseModel):
     name: Optional[str] = None
-    difficulty_level: Optional[int] = Field(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert")
+    difficulty_code: DifficultyCode = Field(
+        None,
+        description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING; omit for no filter",
+    )
+    include_undefined: bool = False
     min_rating: Optional[float] = Field(None, ge=0, le=10, description="Minimum average rating (0-10)")
     tag_ids: Optional[List[int]] = None
     country: Optional[str] = None
@@ -524,7 +531,10 @@ class DiveBase(BaseModel):
     average_depth: Optional[float] = Field(None, ge=0, le=1000)  # Average depth in meters
     gas_bottles_used: Optional[str] = None
     suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie)$")
-    difficulty_level: Optional[int] = Field(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert")
+    difficulty_code: DifficultyCode = Field(
+        None,
+        description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified",
+    )
     visibility_rating: Optional[int] = Field(None, ge=1, le=10)
     user_rating: Optional[int] = Field(None, ge=1, le=10)
     dive_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")  # YYYY-MM-DD format
@@ -545,7 +555,10 @@ class DiveUpdate(BaseModel):
     average_depth: Optional[float] = Field(None, ge=0, le=1000)
     gas_bottles_used: Optional[str] = None
     suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie)$")
-    difficulty_level: Optional[int] = Field(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert")
+    difficulty_code: DifficultyCode = Field(
+        None,
+        description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified",
+    )
     visibility_rating: Optional[int] = Field(None, ge=1, le=10)
     user_rating: Optional[int] = Field(None, ge=1, le=10)
     dive_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
@@ -620,7 +633,11 @@ class DiveTagResponse(BaseModel):
 class DiveSearchParams(BaseModel):
     dive_site_id: Optional[int] = None
     search: Optional[str] = None  # Unified search across dive site name, description, notes
-    difficulty_level: Optional[int] = Field(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert")
+    difficulty_code: DifficultyCode = Field(
+        None,
+        description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING; omit for no filter",
+    )
+    include_undefined: bool = False
     suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie)$")
     min_depth: Optional[float] = Field(None, ge=0, le=1000)
     max_depth: Optional[float] = Field(None, ge=0, le=1000)
@@ -708,7 +725,8 @@ class ParsedDiveTripResponse(BaseModel):
     trip_date: date
     trip_time: Optional[time] = None
     trip_duration: Optional[int] = None  # Total duration in minutes
-    trip_difficulty_level: Optional[str] = None  # Human-readable difficulty level (beginner, intermediate, advanced, expert)
+    trip_difficulty_code: DifficultyCode = None
+    trip_difficulty_label: Optional[str] = None
     trip_price: Optional[float] = None
     trip_currency: str = "EUR"
     group_size_limit: Optional[int] = None
@@ -759,7 +777,7 @@ class ParsedDiveTripCreate(BaseModel):
     trip_date: date
     trip_time: Optional[time] = None
     trip_duration: Optional[int] = Field(None, ge=1, le=1440)  # Duration in minutes
-    trip_difficulty_level: Optional[int] = Field(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert")
+    trip_difficulty_code: DifficultyCode = Field(None, description="Difficulty code or null")
     trip_price: Optional[float] = Field(None, ge=0)
     trip_currency: str = Field("EUR", min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
     group_size_limit: Optional[int] = Field(None, ge=1)
@@ -774,7 +792,7 @@ class ParsedDiveTripUpdate(BaseModel):
     trip_date: Optional[date] = None
     trip_time: Optional[time] = None
     trip_duration: Optional[int] = Field(None, ge=1, le=1440)  # Duration in minutes
-    trip_difficulty_level: Optional[int] = Field(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert")
+    trip_difficulty_code: DifficultyCode = Field(None, description="Difficulty code or null")
     trip_price: Optional[float] = Field(None, ge=0)
     trip_currency: Optional[str] = Field(None, min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
     group_size_limit: Optional[int] = Field(None, ge=1)
