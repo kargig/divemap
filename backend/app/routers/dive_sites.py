@@ -1043,8 +1043,14 @@ async def create_dive_site(
     db.add(db_dive_site)
     db.commit()
     db.refresh(db_dive_site)
+    
+    # Re-query with eager loading for response
+    db_dive_site = db.query(DiveSite).options(
+        joinedload(DiveSite.difficulty)
+    ).filter(DiveSite.id == db_dive_site.id).first()
 
-    return {
+    # Serialize response with difficulty_code and difficulty_label
+    response_data = {
         **dive_site.dict(),
         "id": db_dive_site.id,
         "created_at": db_dive_site.created_at,
@@ -1053,6 +1059,16 @@ async def create_dive_site(
         "total_ratings": 0,
         "tags": []
     }
+    
+    # Add difficulty_code and difficulty_label from relationship
+    if db_dive_site.difficulty:
+        response_data["difficulty_code"] = db_dive_site.difficulty.code
+        response_data["difficulty_label"] = db_dive_site.difficulty.label
+    else:
+        response_data["difficulty_code"] = None
+        response_data["difficulty_label"] = None
+    
+    return response_data
 
 @router.get("/{dive_site_id}", response_model=DiveSiteResponse)
 @skip_rate_limit_for_admin("300/minute")

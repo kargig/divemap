@@ -4,7 +4,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
-from app.models import Dive, DiveSite, DiveMedia, DiveTag, AvailableTag
+from app.models import Dive, DiveSite, DiveMedia, DiveTag, AvailableTag, DifficultyLevel
 from app.utils import (
     calculate_unified_phrase_aware_score,
     classify_match_type,
@@ -64,6 +64,8 @@ class TestDives:
     def test_get_own_dives(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test getting user's own dives."""
         # Create a dive for the test user
+        # Get ADVANCED_OPEN_WATER difficulty (id=2)
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         dive = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
@@ -74,7 +76,7 @@ class TestDives:
             average_depth=Decimal("12.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty.id if difficulty else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15),
@@ -105,6 +107,7 @@ class TestDives:
         db_session.commit()
 
         # Create a public dive by the other user
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         other_dive = Dive(
             user_id=other_user.id,
             dive_site_id=test_dive_site.id,
@@ -112,7 +115,8 @@ class TestDives:
             is_private=False,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
+            difficulty_id=difficulty.id if difficulty else 2
         )
         db_session.add(other_dive)
         db_session.commit()
@@ -158,6 +162,8 @@ class TestDives:
 
     def test_get_dive_details(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test getting detailed dive information."""
+        # Get ADVANCED_OPEN_WATER difficulty
+        difficulty_advanced_open_water = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         # Create a dive
         dive = Dive(
             user_id=test_user.id,
@@ -169,7 +175,7 @@ class TestDives:
             average_depth=Decimal("12.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15),
@@ -243,6 +249,8 @@ class TestDives:
 
     def test_filter_dives_by_user(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test filtering dives by user ID."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         # Create a dive
         dive = Dive(
             user_id=test_user.id,
@@ -251,7 +259,8 @@ class TestDives:
             is_private=False,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
+            difficulty_id=difficulty.id if difficulty else 2
         )
         db_session.add(dive)
         db_session.commit()
@@ -265,6 +274,8 @@ class TestDives:
 
     def test_filter_dives_by_date_range(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test filtering dives by date range."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         # Create a dive
         dive = Dive(
             user_id=test_user.id,
@@ -273,7 +284,8 @@ class TestDives:
             is_private=False,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
+            difficulty_id=difficulty.id if difficulty else 2
         )
         db_session.add(dive)
         db_session.commit()
@@ -287,6 +299,8 @@ class TestDives:
 
     def test_filter_dives_by_depth(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test filtering dives by depth range."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         # Create a dive
         dive = Dive(
             user_id=test_user.id,
@@ -296,7 +310,8 @@ class TestDives:
             max_depth=Decimal("18.5"),
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
+            difficulty_id=difficulty.id if difficulty else 2
         )
         db_session.add(dive)
         db_session.commit()
@@ -361,6 +376,9 @@ class TestDives:
 
     def test_filter_dives_by_dive_site_name(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test filtering dives by dive site name."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        
         # Create another dive site with a different name
         from app.models import DiveSite
         other_dive_site = DiveSite(
@@ -369,7 +387,8 @@ class TestDives:
             latitude=Decimal("25.7617"),
             longitude=Decimal("-80.1918"),
             country="USA",
-            region="Florida"
+            region="Florida",
+            difficulty_id=difficulty.id if difficulty else 2
         )
         db_session.add(other_dive_site)
         db_session.commit()
@@ -382,7 +401,8 @@ class TestDives:
             is_private=False,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
+            difficulty_id=difficulty.id if difficulty else 2
         )
         db_session.add(dive1)
 
@@ -394,7 +414,8 @@ class TestDives:
             is_private=False,
             dive_date=date(2025, 1, 16),
             dive_time=datetime.strptime("11:30:00", "%H:%M:%S").time(),
-            duration=50
+            duration=50,
+            difficulty_id=difficulty.id if difficulty else 2
         )
         db_session.add(dive2)
         db_session.commit()
@@ -435,6 +456,7 @@ class TestDives:
         db_session.commit()
 
         # Create a public dive by the other user
+        difficulty_aow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         public_dive = Dive(
             user_id=other_user.id,
             dive_site_id=test_dive_site.id,
@@ -445,7 +467,7 @@ class TestDives:
             average_depth=Decimal("12.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty_aow.id if difficulty_aow else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15),
@@ -455,6 +477,7 @@ class TestDives:
         db_session.add(public_dive)
 
         # Create a private dive by the other user
+        difficulty_deep = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
         private_dive = Dive(
             user_id=other_user.id,
             dive_site_id=test_dive_site.id,
@@ -465,7 +488,7 @@ class TestDives:
             average_depth=Decimal("15.0"),
             gas_bottles_used="Air",
             suit_type="dry_suit",
-            difficulty_level=3,
+            difficulty_id=difficulty_deep.id if difficulty_deep else 3,
             visibility_rating=7,
             user_rating=8,
             dive_date=date(2025, 1, 16),
@@ -569,6 +592,8 @@ class TestDives:
 
     def test_get_dive_with_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test getting a dive that has diving center information."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         # Create a dive with diving center
         dive = Dive(
             user_id=test_user.id,
@@ -581,7 +606,7 @@ class TestDives:
             average_depth=Decimal("12.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty.id if difficulty else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15),
@@ -608,6 +633,8 @@ class TestDives:
 
     def test_get_dive_without_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test getting a dive that has no diving center association."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         # Create a dive without diving center
         dive = Dive(
             user_id=test_user.id,
@@ -620,7 +647,7 @@ class TestDives:
             average_depth=Decimal("12.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty.id if difficulty else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15),
@@ -639,6 +666,8 @@ class TestDives:
 
     def test_update_dive_add_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test updating a dive to add diving center association."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         # Create a dive without diving center
         dive = Dive(
             user_id=test_user.id,
@@ -651,7 +680,7 @@ class TestDives:
             average_depth=Decimal("12.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty.id if difficulty else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15),
@@ -677,6 +706,8 @@ class TestDives:
 
     def test_update_dive_change_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test updating a dive to change diving center association."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         # Create another diving center
         from app.models import DivingCenter
         other_diving_center = DivingCenter(
@@ -703,7 +734,7 @@ class TestDives:
             average_depth=Decimal("12.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty.id if difficulty else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15),
@@ -729,6 +760,8 @@ class TestDives:
 
     def test_update_dive_remove_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test updating a dive to remove diving center association."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         # Create a dive with diving center
         dive = Dive(
             user_id=test_user.id,
@@ -741,7 +774,7 @@ class TestDives:
             average_depth=Decimal("12.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty.id if difficulty else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15),
@@ -765,6 +798,8 @@ class TestDives:
 
     def test_update_dive_with_invalid_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test updating a dive with non-existent diving center."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         # Create a dive
         dive = Dive(
             user_id=test_user.id,
@@ -777,7 +812,7 @@ class TestDives:
             average_depth=Decimal("12.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty.id if difficulty else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15),
@@ -798,6 +833,9 @@ class TestDives:
 
     def test_list_dives_with_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test listing dives that include diving center information."""
+        # Get difficulty IDs
+        difficulty_aow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty_deep = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
         # Create dives with and without diving center
         dive_with_center = Dive(
             user_id=test_user.id,
@@ -810,7 +848,7 @@ class TestDives:
             average_depth=Decimal("12.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty_aow.id if difficulty_aow else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15),
@@ -830,7 +868,7 @@ class TestDives:
             average_depth=Decimal("15.0"),
             gas_bottles_used="Air",
             suit_type="dry_suit",
-            difficulty_level=3,
+            difficulty_id=difficulty_deep.id if difficulty_deep else 3,
             visibility_rating=7,
             user_rating=8,
             dive_date=date(2025, 1, 16),
@@ -860,6 +898,8 @@ class TestDives:
 
     def test_admin_get_dives_with_diving_center(self, client, admin_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test admin getting dives with diving center information."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         # Create a dive with diving center
         dive = Dive(
             user_id=test_user.id,
@@ -872,7 +912,7 @@ class TestDives:
             average_depth=Decimal("12.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty.id if difficulty else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15),
@@ -894,6 +934,8 @@ class TestDives:
 
     def test_admin_update_dive_diving_center(self, client, admin_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test admin updating dive diving center."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         # Create a dive
         dive = Dive(
             user_id=test_user.id,
@@ -906,7 +948,7 @@ class TestDives:
             average_depth=Decimal("12.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty.id if difficulty else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15),
@@ -943,6 +985,8 @@ class TestDives:
         db_session.add(other_user)
         db_session.commit()
 
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         # Create a public dive by the other user with diving center
         dive = Dive(
             user_id=other_user.id,
@@ -955,7 +999,7 @@ class TestDives:
             average_depth=Decimal("10.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty.id if difficulty else 2,
             visibility_rating=7,
             user_rating=8,
             dive_date=date(2025, 1, 15),
@@ -988,7 +1032,13 @@ class TestDives:
             "Echo Dive - 2025/01/05"
         ]
 
-        for i, name in enumerate(dive_names):
+        # Get difficulty levels once before the loop
+        difficulty_advanced_open_water = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty_deep_nitrox = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
+        difficulty_codes_list = ["DEEP_NITROX", "ADVANCED_OPEN_WATER", "DEEP_NITROX", "ADVANCED_OPEN_WATER", "ADVANCED_OPEN_WATER"]
+        
+        for i, (name, difficulty_code) in enumerate(zip(dive_names, difficulty_codes_list)):
+            difficulty = difficulty_deep_nitrox if difficulty_code == "DEEP_NITROX" else difficulty_advanced_open_water
             dive = Dive(
                 user_id=test_user.id,
                 dive_site_id=test_dive_site.id,
@@ -999,7 +1049,7 @@ class TestDives:
                 average_depth=Decimal("10.0"),
                 gas_bottles_used="Air",
                 suit_type="wet_suit",
-                difficulty_level=2,
+                difficulty_id=difficulty.id if difficulty else (3 if difficulty_code == "DEEP_NITROX" else 2),
                 visibility_rating=7,
                 user_rating=8,
                 dive_date=date(2025, 1, i+1),
@@ -1050,9 +1100,11 @@ class TestDives:
             "Intermediate Dive - 2025/01/04"
         ]
 
-        difficulty_levels = [3, 2, 3, 2] # 3 = expert, 2 = intermediate
+        # Map old difficulty integers to codes: 3=DEEP_NITROX, 2=ADVANCED_OPEN_WATER
+        difficulty_codes = ["DEEP_NITROX", "ADVANCED_OPEN_WATER", "DEEP_NITROX", "ADVANCED_OPEN_WATER"]
 
-        for i, (name, difficulty) in enumerate(zip(dive_names, difficulty_levels)):
+        for i, (name, difficulty_code) in enumerate(zip(dive_names, difficulty_codes)):
+            difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == difficulty_code).first()
             dive = Dive(
                 user_id=test_user.id,
                 dive_site_id=test_dive_site.id,
@@ -1063,7 +1115,7 @@ class TestDives:
                 average_depth=Decimal("10.0"),
                 gas_bottles_used="Air",
                 suit_type="wet_suit",
-                difficulty_level=difficulty,
+                difficulty_id=difficulty.id if difficulty else (3 if difficulty_code == "DEEP_NITROX" else 2),
                 visibility_rating=7,
                 user_rating=8,
                 dive_date=date(2025, 1, i+1),
@@ -1075,7 +1127,7 @@ class TestDives:
 
         # Test pagination with difficulty filter
         response = client.get(
-            "/api/v1/dives/?page=1&page_size=25&difficulty_level=2",
+            "/api/v1/dives/?page=1&page_size=25&difficulty_code=ADVANCED_OPEN_WATER",
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_200_OK
@@ -1083,9 +1135,11 @@ class TestDives:
         data = response.json()
         assert len(data) == 2  # Two intermediate dives
         
-        # Check that both dives have difficulty_level 2 (converted to string by API)
-        assert data[0]["difficulty_level"] == "intermediate"  # 2 = intermediate
-        assert data[1]["difficulty_level"] == "intermediate"  # 2 = intermediate
+        # Check that both dives have difficulty_code ADVANCED_OPEN_WATER
+        assert data[0]["difficulty_code"] == "ADVANCED_OPEN_WATER"
+        assert data[0]["difficulty_label"] == "Advanced Open Water"
+        assert data[1]["difficulty_code"] == "ADVANCED_OPEN_WATER"
+        assert data[1]["difficulty_label"] == "Advanced Open Water"
         
         # Check that we have the expected dive names (order may vary due to default sorting)
         dive_names = [dive["name"] for dive in data]
@@ -1198,7 +1252,7 @@ class TestDivesFuzzySearch:
 
     def test_dives_search_with_filters(self, client, auth_headers, test_dive_with_site):
         """Test search combined with other filters."""
-        response = client.get("/api/v1/dives/?search=test&difficulty_level=2", headers=auth_headers)
+        response = client.get("/api/v1/dives/?search=test&difficulty_code=ADVANCED_OPEN_WATER", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data) > 0
@@ -1468,7 +1522,7 @@ class TestDivesSearchPerformance:
         import time
         
         start_time = time.time()
-        response = client.get("/api/v1/dives/?search=test&difficulty_level=2&min_rating=5", headers=auth_headers)
+        response = client.get("/api/v1/dives/?search=test&difficulty_code=ADVANCED_OPEN_WATER&min_rating=5", headers=auth_headers)
         end_time = time.time()
         
         assert response.status_code == status.HTTP_200_OK
@@ -1479,6 +1533,8 @@ class TestDivesSearchPerformance:
 @pytest.fixture
 def test_dive_with_site(db_session, test_user):
     """Create a test dive with associated dive site."""
+    # Get ADVANCED_OPEN_WATER difficulty
+    difficulty_advanced_open_water = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
     # Create dive site
     dive_site = DiveSite(
         name="Test Dive Site",
@@ -1487,7 +1543,7 @@ def test_dive_with_site(db_session, test_user):
         longitude=30.0,
         country="Test Country",
         region="Test Region",
-        difficulty_level=2  # 2=intermediate
+        difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2  # 2=intermediate
     )
     db_session.add(dive_site)
     db_session.commit()
@@ -1504,7 +1560,7 @@ def test_dive_with_site(db_session, test_user):
         average_depth=Decimal("12.0"),
         gas_bottles_used="Air",
         suit_type="wet_suit",
-        difficulty_level=2,
+        difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2,
         visibility_rating=8,
         user_rating=9,
         dive_date=date(2025, 1, 15),
@@ -1520,6 +1576,8 @@ def test_dive_with_site(db_session, test_user):
 @pytest.fixture
 def test_dive_with_tags(db_session, test_user):
     """Create a test dive with tags."""
+    # Get DEEP_NITROX difficulty
+    difficulty_deep_nitrox = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
     # Create dive site
     dive_site = DiveSite(
         name="Wreck Dive Site",
@@ -1528,7 +1586,7 @@ def test_dive_with_tags(db_session, test_user):
         longitude=30.0,
         country="Test Country",
         region="Test Region",
-        difficulty_level=3  # 3=advanced
+        difficulty_id=difficulty_deep_nitrox.id if difficulty_deep_nitrox else 3  # 3=advanced
     )
     db_session.add(dive_site)
     db_session.commit()
@@ -1552,7 +1610,7 @@ def test_dive_with_tags(db_session, test_user):
         average_depth=Decimal("18.0"),
         gas_bottles_used="Air",
         suit_type="wet_suit",
-        difficulty_level=3,
+        difficulty_id=difficulty_deep_nitrox.id if difficulty_deep_nitrox else 3,
         visibility_rating=7,
         user_rating=8,
         dive_date=date(2025, 1, 15),
@@ -1575,6 +1633,8 @@ def test_dive_with_tags(db_session, test_user):
 @pytest.fixture
 def multiple_test_dives(db_session, test_user):
     """Create multiple test dives for testing."""
+    # Get ADVANCED_OPEN_WATER difficulty
+    difficulty_advanced_open_water = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
     # Create dive site
     dive_site = DiveSite(
         name="Test Dive Site",
@@ -1583,7 +1643,7 @@ def multiple_test_dives(db_session, test_user):
         longitude=30.0,
         country="Test Country",
         region="Test Region",
-        difficulty_level=2  # 2=intermediate
+        difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2  # 2=intermediate
     )
     db_session.add(dive_site)
     db_session.commit()
@@ -1602,7 +1662,7 @@ def multiple_test_dives(db_session, test_user):
             average_depth=Decimal("10.0") + Decimal(str(i)),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15 + i),
@@ -1621,6 +1681,9 @@ def multiple_test_dives(db_session, test_user):
 @pytest.fixture
 def large_dive_dataset(db_session, test_user):
     """Create a large dataset of dives for performance testing."""
+    # Get ADVANCED_OPEN_WATER difficulty once for all dives
+    difficulty_advanced_open_water = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+    
     # Create dive site
     dive_site = DiveSite(
         name="Performance Test Dive Site",
@@ -1629,7 +1692,7 @@ def large_dive_dataset(db_session, test_user):
         longitude=30.0,
         country="Test Country",
         region="Test Region",
-        difficulty_level=2  # 2=intermediate
+        difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2  # 2=intermediate
     )
     db_session.add(dive_site)
     db_session.commit()
@@ -1648,7 +1711,7 @@ def large_dive_dataset(db_session, test_user):
             average_depth=Decimal("10.0") + Decimal(str(i % 15)),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_level=2,
+            difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2,
             visibility_rating=8,
             user_rating=9,
             dive_date=date(2025, 1, 15 + (i % 16)),  # Days 15-30 (16 days)

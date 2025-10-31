@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.main import app
 from app.models import (
+    DifficultyLevel,
     User, Dive, DiveMedia, SiteRating, SiteComment, 
     CenterRating, CenterComment, UserCertification, DivingCenter,
     DiveSite, AvailableTag, DivingOrganization, DiveTag
@@ -60,7 +61,7 @@ class TestPrivacyDataExport:
             latitude=10.0,
             longitude=20.0,
             access_instructions="Shore access",
-            difficulty_level=2  # 2 = intermediate (integer, not string)
+            difficulty_id=2  # ADVANCED_OPEN_WATER
         )
         db_session.add(dive_site)
         db_session.commit()
@@ -121,7 +122,7 @@ class TestPrivacyDataExport:
             latitude=10.0,
             longitude=20.0,
             access_instructions="Shore access",
-            difficulty_level=2  # 2 = intermediate (integer, not string)
+            difficulty_id=2  # ADVANCED_OPEN_WATER
         )
         db_session.add(dive_site)
         db_session.commit()
@@ -241,7 +242,7 @@ class TestPrivacyDataExport:
             latitude=10.0,
             longitude=20.0,
             access_instructions="Shore access",
-            difficulty_level=2  # 2 = intermediate (integer, not string)
+            difficulty_id=2  # ADVANCED_OPEN_WATER
         )
         db_session.add(dive_site)
         db_session.commit()
@@ -383,7 +384,7 @@ class TestPrivacyDataExport:
             latitude=10.0,
             longitude=20.0,
             access_instructions="Shore access",
-            difficulty_level=2  # 2 = intermediate (integer, not string)
+            difficulty_id=2  # ADVANCED_OPEN_WATER
         )
         db_session.add(dive_site)
         db_session.commit()

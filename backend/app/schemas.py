@@ -143,6 +143,7 @@ class DiveSiteResponse(DiveSiteBase):
     user_rating: Optional[float] = None
     distance_km: Optional[float] = None
     aliases: List[DiveSiteAliasResponse] = []  # List of aliases for this dive site
+    difficulty_label: Optional[str] = None  # Human-readable difficulty label
 
     class Config:
         from_attributes = True

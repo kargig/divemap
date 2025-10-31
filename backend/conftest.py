@@ -10,7 +10,7 @@ from unittest.mock import Mock
 
 from app.main import app
 from app.database import get_db, Base
-from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment, DivingOrganization, UserCertification, RefreshToken, AuthAuditLog, Dive, DiveRoute, RouteAnalytics
+from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment, DivingOrganization, UserCertification, RefreshToken, AuthAuditLog, Dive, DiveRoute, RouteAnalytics, DifficultyLevel
 from app.auth import create_access_token
 
 # Test database URL - use environment variable if available, otherwise default to SQLite
@@ -180,13 +180,15 @@ def test_user_other(db_session):
 @pytest.fixture
 def test_dive_site(db_session):
     """Create a test dive site."""
+    # Get ADVANCED_OPEN_WATER difficulty (id=2, order_index=2)
+    difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
     dive_site = DiveSite(
         name="Test Dive Site",
         description="A test dive site for testing",
         latitude=10.0,
         longitude=20.0,
         access_instructions="Shore access",
-        difficulty_level=2  # 2 = intermediate (integer, not string)
+        difficulty_id=difficulty.id if difficulty else 2  # Default to id=2 if lookup fails
     )
     db_session.add(dive_site)
     db_session.commit()
@@ -213,6 +215,8 @@ def test_diving_center(db_session):
 @pytest.fixture
 def test_dive(db_session, test_user, test_dive_site):
     """Create a test dive."""
+    # Get ADVANCED_OPEN_WATER difficulty (id=2, order_index=2)
+    difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
     dive = Dive(
         user_id=test_user.id,
         dive_site_id=test_dive_site.id,
@@ -220,7 +224,7 @@ def test_dive(db_session, test_user, test_dive_site):
         dive_date=date(2024, 1, 15),
         max_depth=30.0,
         duration=45,
-        difficulty_level=2,
+        difficulty_id=difficulty.id if difficulty else 2,  # Default to id=2 if lookup fails
         user_rating=8,
         dive_information="Test dive notes",
         visibility_rating=4,
@@ -391,6 +395,8 @@ def test_route_analytics(db_session, test_user, test_route):
 @pytest.fixture
 def test_dive_with_route(db_session, test_user, test_dive_site, test_route):
     """Create a test dive with an associated route."""
+    # Get ADVANCED_OPEN_WATER difficulty (id=2, order_index=2)
+    difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
     dive = Dive(
         user_id=test_user.id,
         dive_site_id=test_dive_site.id,
@@ -399,7 +405,7 @@ def test_dive_with_route(db_session, test_user, test_dive_site, test_route):
         dive_date=date.today(),
         max_depth=20.0,
         duration=45,
-        difficulty_level=2,
+        difficulty_id=difficulty.id if difficulty else 2,  # Default to id=2 if lookup fails
         visibility_rating=8,
         user_rating=9
     )

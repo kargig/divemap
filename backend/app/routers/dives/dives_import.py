@@ -478,6 +478,14 @@ async def confirm_import_dives(
             dive_data_dict['dive_date'] = dive_date  # Use parsed date object
             dive_data_dict['dive_time'] = dive_time  # Use parsed time object
             
+            # Convert difficulty_code to difficulty_id if present
+            difficulty_code = dive_data_dict.pop('difficulty_code', None)
+            if difficulty_code:
+                from app.models import get_difficulty_id_by_code
+                difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
+                if difficulty_id:
+                    dive_data_dict['difficulty_id'] = difficulty_id
+            
             dive = Dive(
                 user_id=current_user.id,
                 **dive_data_dict
