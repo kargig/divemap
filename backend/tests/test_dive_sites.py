@@ -1258,7 +1258,6 @@ class TestDiveSitesAdvancedFeatures:
             "longitude": 30.0,
             "country": "Test Country",
             "region": "Test Region",
-            "address": "123 Test Street",
             "access_instructions": "Follow the path to the beach",
             "safety_information": "Check weather conditions before diving",
             "marine_life": "Coral reefs, tropical fish",

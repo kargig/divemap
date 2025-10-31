@@ -19,7 +19,6 @@ const CreateDiveSite = () => {
     description: '',
     latitude: '',
     longitude: '',
-    address: '',
     country: '',
     region: '',
     access_instructions: '',
@@ -257,20 +256,7 @@ const CreateDiveSite = () => {
               />
             </div>
 
-            <div>
-              <label htmlFor='address' className='block text-sm font-medium text-gray-700 mb-2'>
-                Address
-              </label>
-              <input
-                id='address'
-                type='text'
-                name='address'
-                value={formData.address}
-                onChange={handleInputChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='Enter address'
-              />
-            </div>
+          
           </div>
 
           {/* Location Suggestion Button */}

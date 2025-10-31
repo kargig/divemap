@@ -368,7 +368,6 @@ class TestDives:
             description="Another test dive site",
             latitude=Decimal("25.7617"),
             longitude=Decimal("-80.1918"),
-            address="123 Other Street, Miami, FL",
             country="USA",
             region="Florida"
         )

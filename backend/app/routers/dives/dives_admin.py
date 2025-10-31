@@ -384,7 +384,6 @@ def get_all_dives_admin(
                     "description": dive_site.description,
                     "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                     "longitude": float(dive_site.longitude) if dive_site.longitude else None,
-                    "address": dive_site.address,
                     "country": dive_site.country,
                     "region": dive_site.region
                 }
@@ -569,7 +568,6 @@ def update_dive_admin(
                 "description": dive_site.description,
                 "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                 "longitude": float(dive_site.longitude) if dive_site.longitude else None,
-                "address": dive_site.address,
                 "country": dive_site.country,
                 "region": dive_site.region
             }
