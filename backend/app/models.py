@@ -111,7 +111,6 @@ class DiveSite(Base):
     description = Column(Text)
     latitude = Column(DECIMAL(10, 8))
     longitude = Column(DECIMAL(11, 8))
-    address = Column(Text)  # Added address field
     access_instructions = Column(Text)
     difficulty_level = Column(Integer, default=2, nullable=False, index=True)  # 1=beginner, 2=intermediate, 3=advanced, 4=expert
     marine_life = Column(Text)  # Added marine life field

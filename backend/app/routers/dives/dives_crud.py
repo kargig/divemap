@@ -141,7 +141,6 @@ def create_dive(
                 "description": dive_site.description,
                 "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                 "longitude": float(dive_site.longitude) if dive_site.longitude else None,
-                "address": dive_site.address,
                 "country": dive_site.country,
                 "region": dive_site.region
             }
@@ -625,7 +624,6 @@ def get_dives(
                     "description": dive_site.description,
                     "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                     "longitude": float(dive_site.longitude) if dive_site.longitude else None,
-                    "address": dive_site.address,
                     "country": dive_site.country,
                     "region": dive_site.region
                 }
@@ -782,7 +780,6 @@ def get_dive(
                 "description": dive_site.description,
                 "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                 "longitude": float(dive_site.longitude) if dive_site.longitude else None,
-                "address": dive_site.address,
                 "country": dive_site.country,
                 "region": dive_site.region
             }
@@ -937,7 +934,6 @@ def get_dive_details(
             "description": dive.dive_site.description,
             "latitude": float(dive.dive_site.latitude) if dive.dive_site.latitude else None,
             "longitude": float(dive.dive_site.longitude) if dive.dive_site.longitude else None,
-            "address": dive.dive_site.address,
             "country": dive.dive_site.country,
             "region": dive.dive_site.region,
             "difficulty_level": get_difficulty_label(dive.dive_site.difficulty_level) if dive.dive_site.difficulty_level else None,
@@ -1151,7 +1147,6 @@ def update_dive(
                 "description": dive_site.description,
                 "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                 "longitude": float(dive_site.longitude) if dive_site.longitude else None,
-                "address": dive_site.address,
                 "country": dive_site.country,
                 "region": dive_site.region
             }

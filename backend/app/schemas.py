@@ -87,7 +87,6 @@ class DiveSiteBase(BaseModel):
     description: Optional[str] = None
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
-    address: Optional[str] = None
     access_instructions: Optional[str] = None
     difficulty_level: Optional[int] = Field(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert")
     marine_life: Optional[str] = None
@@ -104,7 +103,6 @@ class DiveSiteUpdate(BaseModel):
     description: Optional[str] = None
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
-    address: Optional[str] = None
     access_instructions: Optional[str] = None
     difficulty_level: Optional[int] = Field(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert")
     marine_life: Optional[str] = None
