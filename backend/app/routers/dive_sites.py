@@ -914,7 +914,6 @@ async def get_dive_sites(
                 "description": site.description,
                 "latitude": float(site.latitude) if site.latitude else None,
                 "longitude": float(site.longitude) if site.longitude else None,
-                "address": site.address,
                 "access_instructions": site.access_instructions,
                 "difficulty_level": get_difficulty_label(site.difficulty_level) if site.difficulty_level else None,
                 "marine_life": site.marine_life,
@@ -1650,7 +1649,7 @@ async def get_nearby_dive_sites(
     haversine_query = text("""
         SELECT
             id, name, description, difficulty_level, latitude, longitude,
-            address, access_instructions, safety_information, marine_life,
+            access_instructions, safety_information, marine_life,
             created_at, updated_at,
             (6371 * acos(
                 cos(radians(:lat)) * cos(radians(latitude)) *
@@ -1713,7 +1712,6 @@ async def get_nearby_dive_sites(
             "difficulty_level": row.difficulty_level if row.difficulty_level else None,
             "latitude": float(row.latitude) if row.latitude else None,
             "longitude": float(row.longitude) if row.longitude else None,
-            "address": row.address,
             "access_instructions": row.access_instructions,
             "safety_information": row.safety_information,
             "marine_life": row.marine_life,
@@ -1789,7 +1787,6 @@ async def get_dive_site_dives(
                     "description": dive_site.description,
                     "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                     "longitude": float(dive_site.longitude) if dive_site.longitude else None,
-                    "address": dive_site.address,
                     "country": dive_site.country,
                     "region": dive_site.region
                 }

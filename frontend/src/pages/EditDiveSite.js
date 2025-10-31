@@ -32,7 +32,6 @@ const EditDiveSite = () => {
     description: '',
     latitude: '',
     longitude: '',
-    address: '',
     country: '',
     region: '',
     access_instructions: '',
@@ -88,7 +87,7 @@ const EditDiveSite = () => {
         description: data.description || '',
         latitude: data.latitude?.toString() || '',
         longitude: data.longitude?.toString() || '',
-        address: data.address || '',
+        
         country: data.country || '',
         region: data.region || '',
         access_instructions: data.access_instructions || '',
@@ -840,19 +839,7 @@ const EditDiveSite = () => {
                 />
               </div>
 
-              <div>
-                <label htmlFor='address' className='block text-sm font-medium text-gray-700 mb-2'>
-                  Address
-                </label>
-                <input
-                  id='address'
-                  type='text'
-                  name='address'
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
+            
             </div>
 
             {/* Country and Region Information */}
