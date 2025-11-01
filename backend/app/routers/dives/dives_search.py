@@ -29,7 +29,7 @@ from .dives_validation import raise_validation_error
 from .dives_logging import log_dive_operation, log_error
 
 
-def search_dives_with_fuzzy(query: str, exact_results: List[Dive], db: Session, similarity_threshold: float = UNIFIED_TYPO_TOLERANCE['overall_threshold'], max_fuzzy_results: int = 10, sort_by: str = None, sort_order: str = 'asc'):
+def search_dives_with_fuzzy(query: str, exact_results: List[Dive], db: Session, similarity_threshold: float = UNIFIED_TYPO_TOLERANCE['overall_threshold'], max_fuzzy_results: int = 10, sort_by: str = None, sort_order: str = 'asc', exclude_unspecified_difficulty: bool = False):
     """
     Enhance search results with fuzzy matching when exact results are insufficient.
     
@@ -41,6 +41,7 @@ def search_dives_with_fuzzy(query: str, exact_results: List[Dive], db: Session, 
         max_fuzzy_results: Maximum number of fuzzy results to return
         sort_by: Sort field
         sort_order: Sort order (asc/desc)
+        exclude_unspecified_difficulty: Whether to exclude dives with unspecified difficulty
     
     Returns:
         List of dives with enhanced scoring and match type classification
@@ -82,7 +83,13 @@ def search_dives_with_fuzzy(query: str, exact_results: List[Dive], db: Session, 
         return exact_results_with_scores
     
     # Get all dives for fuzzy matching (with dive site info)
-    all_dives = db.query(Dive).join(DiveSite, Dive.dive_site_id == DiveSite.id).all()
+    all_dives_query = db.query(Dive).join(DiveSite, Dive.dive_site_id == DiveSite.id)
+    
+    # Respect exclude_unspecified_difficulty filter
+    if exclude_unspecified_difficulty:
+        all_dives_query = all_dives_query.filter(Dive.difficulty_id.isnot(None))
+    
+    all_dives = all_dives_query.all()
     
     # Create a set of exact result IDs to avoid duplicates
     exact_ids = {dive.id for dive in exact_results}

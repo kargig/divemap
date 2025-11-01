@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { getDifficultyOptions } from '../utils/difficultyHelpers';
 
 const AdminDives = () => {
   const { user } = useAuth();
@@ -35,7 +36,7 @@ const AdminDives = () => {
     average_depth: '',
     gas_bottles_used: '',
     suit_type: '',
-    difficulty_level: '',
+    difficulty_code: '',
     visibility_rating: '',
     user_rating: '',
     dive_date: '',
@@ -51,7 +52,7 @@ const AdminDives = () => {
     user_id: '',
     dive_site_id: '',
     dive_site_name: '',
-    difficulty_level: '',
+    difficulty_code: '',
     suit_type: '',
     min_depth: '',
     max_depth: '',
@@ -187,7 +188,7 @@ const AdminDives = () => {
       average_depth: dive.average_depth?.toString() || '',
       gas_bottles_used: dive.gas_bottles_used || '',
       suit_type: dive.suit_type || '',
-      difficulty_level: dive.difficulty_level || '',
+      difficulty_code: dive.difficulty_code || '',
       visibility_rating: dive.visibility_rating?.toString() || '',
       user_rating: dive.user_rating?.toString() || '',
       dive_date: dive.dive_date || '',
@@ -230,7 +231,7 @@ const AdminDives = () => {
       average_depth: '',
       gas_bottles_used: '',
       suit_type: '',
-      difficulty_level: '',
+      difficulty_code: '',
       visibility_rating: '',
       user_rating: '',
       dive_date: '',
@@ -253,7 +254,7 @@ const AdminDives = () => {
       user_id: '',
       dive_site_id: '',
       dive_site_name: '',
-      difficulty_level: '',
+      difficulty_code: '',
       suit_type: '',
       min_depth: '',
       max_depth: '',
@@ -303,6 +304,13 @@ const AdminDives = () => {
       if (filters.dive_site_name) {
         const diveSiteNameLower = filters.dive_site_name.toLowerCase();
         if (!dive.dive_site?.name?.toLowerCase().includes(diveSiteNameLower)) {
+          return false;
+        }
+      }
+
+      // Apply difficulty filter
+      if (filters.difficulty_code) {
+        if (dive.difficulty_code !== filters.difficulty_code) {
           return false;
         }
       }
@@ -449,15 +457,18 @@ const AdminDives = () => {
             </label>
             <select
               id='difficulty-filter'
-              value={filters.difficulty_level}
-              onChange={e => handleFilterChange('difficulty_level', e.target.value)}
+              value={filters.difficulty_code || ''}
+              onChange={e => handleFilterChange('difficulty_code', e.target.value)}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
             >
               <option value=''>All Difficulties</option>
-              <option value='beginner'>Beginner</option>
-              <option value='intermediate'>Intermediate</option>
-              <option value='advanced'>Advanced</option>
-              <option value='expert'>Expert</option>
+              {getDifficultyOptions()
+                .filter(option => option.value !== null)
+                .map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
             </select>
           </div>
           <div>
@@ -778,15 +789,21 @@ const AdminDives = () => {
                 </label>
                 <select
                   id='edit-difficulty'
-                  value={diveForm.difficulty_level}
-                  onChange={e => setDiveForm({ ...diveForm, difficulty_level: e.target.value })}
+                  value={diveForm.difficulty_code || ''}
+                  onChange={e =>
+                    setDiveForm({
+                      ...diveForm,
+                      difficulty_code: e.target.value || null,
+                    })
+                  }
                   className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                 >
                   <option value=''>Select difficulty</option>
-                  <option value='beginner'>Beginner</option>
-                  <option value='intermediate'>Intermediate</option>
-                  <option value='advanced'>Advanced</option>
-                  <option value='expert'>Expert</option>
+                  {getDifficultyOptions().map(option => (
+                    <option key={option.value} value={option.value || ''}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 

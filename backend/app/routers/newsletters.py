@@ -9,7 +9,7 @@ import os
 import requests
 import math
 from app.database import get_db
-from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, ParsedDive, get_difficulty_label
+from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, ParsedDive, DifficultyLevel, get_difficulty_id_by_code
 from app.auth import get_current_user, get_current_user_optional, is_admin_or_moderator
 from app.schemas import ParsedDiveTripResponse, NewsletterUploadResponse, NewsletterResponse, NewsletterUpdateRequest, NewsletterDeleteRequest, NewsletterDeleteResponse, ParsedDiveTripCreate, ParsedDiveTripUpdate, ParsedDiveResponse
 import logging
@@ -992,13 +992,22 @@ async def upload_newsletter(
                     logger.warning("No trip_date provided, skipping trip")
                     continue
 
+                # Validate and convert difficulty_code if provided
+                trip_difficulty_code = trip_data.get('trip_difficulty_code')
+                trip_difficulty_id = None
+                if trip_difficulty_code:
+                    trip_difficulty_id = get_difficulty_id_by_code(db, trip_difficulty_code)
+                    if trip_difficulty_id is None:
+                        logger.warning(f"Invalid difficulty_code: {trip_difficulty_code} for trip, skipping this trip")
+                        continue  # Skip this trip rather than fail entire import
+
                 trip = ParsedDiveTrip(
                     source_newsletter_id=newsletter.id,
                     diving_center_id=trip_data.get('diving_center_id'),
                     trip_date=trip_date,
                     trip_time=trip_data.get('trip_time'),
                     trip_duration=trip_data.get('trip_duration'),
-                    trip_difficulty_level=trip_data.get('trip_difficulty_level'),
+                    trip_difficulty_id=trip_difficulty_id,
                     trip_price=trip_data.get('trip_price'),
                     trip_currency=trip_data.get('trip_currency', 'EUR'),
                     group_size_limit=trip_data.get('group_size_limit'),
@@ -1085,7 +1094,8 @@ async def get_parsed_trips(
     max_price: Optional[float] = None,
     min_duration: Optional[int] = None,
     max_duration: Optional[int] = None,
-    difficulty_level: Optional[int] = Query(None, ge=1, le=4, description="1=beginner, 2=intermediate, 3=advanced, 4=expert"),
+    difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
+    exclude_unspecified_difficulty: bool = Query(False, description="Exclude trips with unspecified difficulty"),
     search_query: Optional[str] = None,
     location_query: Optional[str] = None,
     sort_by: Optional[str] = "trip_date",
@@ -1113,7 +1123,8 @@ async def get_parsed_trips(
     
     Distance sorting requires user_lat and user_lon coordinates.
     """
-    query = db.query(ParsedDiveTrip)
+    # Eager load difficulty relationship for efficient access
+    query = db.query(ParsedDiveTrip).options(joinedload(ParsedDiveTrip.difficulty))
 
     # Date filtering
     if start_date:
@@ -1154,12 +1165,14 @@ async def get_parsed_trips(
         query = query.filter(ParsedDiveTrip.trip_duration <= max_duration)
 
     # Difficulty level filtering
-    if difficulty_level:
-        try:
-            difficulty = get_difficulty_label(difficulty_level) # Assuming get_difficulty_label is a function that maps int to label
-            query = query.filter(ParsedDiveTrip.trip_difficulty_level == difficulty)
-        except:
-            pass  # Invalid difficulty, ignore filter
+    if difficulty_code:
+        difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
+        if difficulty_id:
+            query = query.filter(ParsedDiveTrip.trip_difficulty_id == difficulty_id)
+        elif exclude_unspecified_difficulty:
+            query = query.filter(False)
+    elif exclude_unspecified_difficulty:
+        query = query.filter(ParsedDiveTrip.trip_difficulty_id.isnot(None))
 
     # Full-text search across multiple fields
     if search_query and search_query.strip():
@@ -1219,11 +1232,12 @@ async def get_parsed_trips(
             else:
                 query = query.order_by(sort_field.asc())
     elif sort_by == "difficulty_level":
-        # Integer-based sorting for difficulty levels (1=beginner, 2=intermediate, 3=advanced, 4=expert)
+        # Sort by difficulty order_index via LEFT JOIN
+        query = query.outerjoin(DifficultyLevel, ParsedDiveTrip.trip_difficulty_id == DifficultyLevel.id)
         if sort_order.lower() == "desc":
-            query = query.order_by(ParsedDiveTrip.trip_difficulty_level.desc())
+            query = query.order_by(DifficultyLevel.order_index.desc())
         else:
-            query = query.order_by(ParsedDiveTrip.trip_difficulty_level.asc())
+            query = query.order_by(DifficultyLevel.order_index.asc())
     else:
         sort_field = getattr(ParsedDiveTrip, sort_by, ParsedDiveTrip.trip_date)
         if sort_order.lower() == "desc":
@@ -1320,7 +1334,8 @@ async def get_parsed_trips(
             trip_date=td['trip'].trip_date,
             trip_time=td['trip'].trip_time,
             trip_duration=td['trip'].trip_duration,
-            trip_difficulty_level=get_difficulty_label(td['trip'].trip_difficulty_level) if td['trip'].trip_difficulty_level else None,
+            trip_difficulty_code=td['trip'].difficulty.code if td['trip'].difficulty else None,
+            trip_difficulty_label=td['trip'].difficulty.label if td['trip'].difficulty else None,
             trip_price=float(td['trip'].trip_price) if td['trip'].trip_price else None,
             trip_currency=td['trip'].trip_currency,
             group_size_limit=td['trip'].group_size_limit,
@@ -1634,13 +1649,22 @@ async def reparse_newsletter(
                     logger.warning("No trip_date provided, skipping trip")
                     continue
 
+                # Validate and convert difficulty_code if provided
+                trip_difficulty_code = trip_data.get('trip_difficulty_code')
+                trip_difficulty_id = None
+                if trip_difficulty_code:
+                    trip_difficulty_id = get_difficulty_id_by_code(db, trip_difficulty_code)
+                    if trip_difficulty_id is None:
+                        logger.warning(f"Invalid difficulty_code: {trip_difficulty_code} for trip, skipping this trip")
+                        continue  # Skip this trip rather than fail entire import
+
                 trip = ParsedDiveTrip(
                     source_newsletter_id=newsletter.id,
                     diving_center_id=trip_data.get('diving_center_id'),
                     trip_date=trip_date,
                     trip_time=trip_data.get('trip_time'),
                     trip_duration=trip_data.get('trip_duration'),
-                    trip_difficulty_level=trip_data.get('trip_difficulty_level'),
+                    trip_difficulty_id=trip_difficulty_id,
                     trip_price=trip_data.get('trip_price'),
                     trip_currency=trip_data.get('trip_currency', 'EUR'),
                     group_size_limit=trip_data.get('group_size_limit'),
@@ -1701,13 +1725,23 @@ async def create_parsed_trip(
     if not current_user.is_admin and not current_user.is_moderator:
         raise HTTPException(status_code=403, detail="Only admins and moderators can create trips")
 
+    # Validate and convert difficulty_code if provided
+    trip_difficulty_id = None
+    if trip_data.trip_difficulty_code:
+        trip_difficulty_id = get_difficulty_id_by_code(db, trip_data.trip_difficulty_code)
+        if trip_difficulty_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid difficulty_code: {trip_data.trip_difficulty_code}. Must be one of: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"
+            )
+
     try:
         trip = ParsedDiveTrip(
             diving_center_id=trip_data.diving_center_id,
             trip_date=trip_data.trip_date,
             trip_time=trip_data.trip_time,
             trip_duration=trip_data.trip_duration,
-            trip_difficulty_level=trip_data.trip_difficulty_level,
+            trip_difficulty_id=trip_difficulty_id,
             trip_price=trip_data.trip_price,
             trip_currency=trip_data.trip_currency,
             group_size_limit=trip_data.group_size_limit,
@@ -1758,7 +1792,8 @@ async def create_parsed_trip(
             trip_date=trip.trip_date,
             trip_time=trip.trip_time,
             trip_duration=trip.trip_duration,
-            trip_difficulty_level=get_difficulty_label(trip.trip_difficulty_level) if trip.trip_difficulty_level else None,
+            trip_difficulty_code=trip.difficulty.code if trip.difficulty else None,
+            trip_difficulty_label=trip.difficulty.label if trip.difficulty else None,
             trip_price=float(trip.trip_price) if trip.trip_price else None,
             trip_currency=trip.trip_currency,
             group_size_limit=trip.group_size_limit,
@@ -1789,7 +1824,8 @@ async def get_parsed_trip(
     if not current_user.is_admin and not current_user.is_moderator:
         raise HTTPException(status_code=403, detail="Only admins and moderators can view trips")
 
-    trip = db.query(ParsedDiveTrip).filter(ParsedDiveTrip.id == trip_id).first()
+    # Eager load difficulty relationship
+    trip = db.query(ParsedDiveTrip).options(joinedload(ParsedDiveTrip.difficulty)).filter(ParsedDiveTrip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
 
@@ -1799,7 +1835,8 @@ async def get_parsed_trip(
         trip_date=trip.trip_date,
         trip_time=trip.trip_time,
         trip_duration=trip.trip_duration,
-        trip_difficulty_level=get_difficulty_label(trip.trip_difficulty_level) if trip.trip_difficulty_level else None,
+        trip_difficulty_code=trip.difficulty.code if trip.difficulty else None,
+        trip_difficulty_label=trip.difficulty.label if trip.difficulty else None,
         trip_price=float(trip.trip_price) if trip.trip_price else None,
         trip_currency=trip.trip_currency,
         group_size_limit=trip.group_size_limit,
@@ -1858,8 +1895,14 @@ async def update_parsed_trip(
             trip.trip_time = trip_data.trip_time
         if trip_data.trip_duration is not None:
             trip.trip_duration = trip_data.trip_duration
-        if trip_data.trip_difficulty_level is not None:
-            trip.trip_difficulty_level = trip_data.trip_difficulty_level
+        if trip_data.trip_difficulty_code is not None:
+            trip_difficulty_id = get_difficulty_id_by_code(db, trip_data.trip_difficulty_code)
+            if trip_difficulty_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid difficulty_code: {trip_data.trip_difficulty_code}. Must be one of: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"
+                )
+            trip.trip_difficulty_id = trip_difficulty_id
         if trip_data.trip_price is not None:
             trip.trip_price = trip_data.trip_price
         if trip_data.trip_currency is not None:
@@ -1917,7 +1960,8 @@ async def update_parsed_trip(
             trip_date=trip.trip_date,
             trip_time=trip.trip_time,
             trip_duration=trip.trip_duration,
-            trip_difficulty_level=get_difficulty_label(trip.trip_difficulty_level) if trip.trip_difficulty_level else None,
+            trip_difficulty_code=trip.difficulty.code if trip.difficulty else None,
+            trip_difficulty_label=trip.difficulty.label if trip.difficulty else None,
             trip_price=float(trip.trip_price) if trip.trip_price else None,
             trip_currency=trip.trip_currency,
             group_size_limit=trip.group_size_limit,

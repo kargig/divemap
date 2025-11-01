@@ -18,7 +18,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import {
+  getDifficultyLabel,
+  getDifficultyColorClasses,
+  getDifficultyOptions,
+  getDifficultyOrder,
+} from '../utils/difficultyHelpers';
 
 const AdminDiveSites = () => {
   const { user } = useAuth();
@@ -32,7 +37,7 @@ const AdminDiveSites = () => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [filters, setFilters] = useState({
     name: '',
-    difficulty_level: '',
+    difficulty_code: '',
     country: '',
     region: '',
     min_rating: '',
@@ -82,7 +87,7 @@ const AdminDiveSites = () => {
 
       // Add filters
       if (filters.name) params.append('name', filters.name);
-      if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
+      if (filters.difficulty_code) params.append('difficulty_code', filters.difficulty_code);
       if (filters.country) params.append('country', filters.country);
       if (filters.region) params.append('region', filters.region);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
@@ -165,7 +170,7 @@ const AdminDiveSites = () => {
   const clearFilters = () => {
     setFilters({
       name: '',
-      difficulty_level: '',
+      difficulty_code: '',
       country: '',
       region: '',
       min_rating: '',
@@ -278,6 +283,13 @@ const AdminDiveSites = () => {
     const sorted = [...diveSites].sort((a, b) => {
       if (!sortConfig.key) return 0;
 
+      // Special handling for difficulty_code sorting (use order_index)
+      if (sortConfig.key === 'difficulty_code') {
+        const aOrder = getDifficultyOrder(a.difficulty_code);
+        const bOrder = getDifficultyOrder(b.difficulty_code);
+        return sortConfig.direction === 'asc' ? aOrder - bOrder : bOrder - aOrder;
+      }
+
       let aValue = a[sortConfig.key];
       let bValue = b[sortConfig.key];
 
@@ -382,15 +394,18 @@ const AdminDiveSites = () => {
             </label>
             <select
               id='difficulty-filter'
-              value={filters.difficulty_level}
-              onChange={e => handleFilterChange('difficulty_level', e.target.value)}
+              value={filters.difficulty_code || ''}
+              onChange={e => handleFilterChange('difficulty_code', e.target.value)}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
             >
               <option value=''>All Difficulties</option>
-              <option value='beginner'>Beginner</option>
-              <option value='intermediate'>Intermediate</option>
-              <option value='advanced'>Advanced</option>
-              <option value='expert'>Expert</option>
+              {getDifficultyOptions()
+                .filter(option => option.value !== null)
+                .map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
             </select>
           </div>
           <div>
@@ -585,11 +600,11 @@ const AdminDiveSites = () => {
                 </th>
                 <th
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100'
-                  onClick={() => handleSort('difficulty_level')}
+                  onClick={() => handleSort('difficulty_code')}
                 >
                   <div className='flex items-center'>
                     Difficulty
-                    {getSortIcon('difficulty_level')}
+                    {getSortIcon('difficulty_code')}
                   </div>
                 </th>
                 <th
@@ -652,9 +667,9 @@ const AdminDiveSites = () => {
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap'>
                     <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(site.difficulty_level)}`}
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(site.difficulty_code)}`}
                     >
-                      {getDifficultyLabel(site.difficulty_level)}
+                      {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
                     </span>
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>

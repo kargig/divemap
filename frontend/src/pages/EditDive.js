@@ -15,7 +15,7 @@ import {
 import RouteSelection from '../components/RouteSelection';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { getDifficultyValue } from '../utils/difficultyHelpers';
+import { getDifficultyOptions } from '../utils/difficultyHelpers';
 
 const EditDive = () => {
   // Set page title
@@ -64,7 +64,7 @@ const EditDive = () => {
         average_depth: data.average_depth || '',
         gas_bottles_used: data.gas_bottles_used || '',
         suit_type: data.suit_type || '',
-        difficulty_level: data.difficulty_level || '',
+        difficulty_code: data.difficulty_code || '',
         visibility_rating: data.visibility_rating || '',
         user_rating: data.user_rating || '',
         dive_date: data.dive_date || new Date().toISOString().split('T')[0],
@@ -345,9 +345,9 @@ const EditDive = () => {
       average_depth: formData.average_depth ? parseFloat(formData.average_depth) : null,
       gas_bottles_used: formData.gas_bottles_used || null,
       suit_type: formData.suit_type && formData.suit_type !== '' ? formData.suit_type : null,
-      difficulty_level:
-        formData.difficulty_level && formData.difficulty_level !== ''
-          ? getDifficultyValue(formData.difficulty_level)
+      difficulty_code:
+        formData.difficulty_code && formData.difficulty_code !== ''
+          ? formData.difficulty_code
           : null,
       visibility_rating: formData.visibility_rating ? parseInt(formData.visibility_rating) : null,
       user_rating: formData.user_rating ? parseInt(formData.user_rating) : null,
@@ -672,15 +672,18 @@ const EditDive = () => {
           <div>
             <label className='block text-sm font-medium text-gray-700 mb-2'>Difficulty Level</label>
             <select
-              value={formData.difficulty_level || ''}
-              onChange={e => handleInputChange('difficulty_level', e.target.value)}
+              value={formData.difficulty_code || ''}
+              onChange={e => handleInputChange('difficulty_code', e.target.value)}
               className='w-full border border-gray-300 rounded-md px-3 py-2'
             >
-              <option value=''>Select difficulty</option>
-              <option value='beginner'>Beginner</option>
-              <option value='intermediate'>Intermediate</option>
-              <option value='advanced'>Advanced</option>
-              <option value='expert'>Expert</option>
+              {getDifficultyOptions().map(option => (
+                <option
+                  key={option.value === null ? 'null' : option.value}
+                  value={option.value === null ? '' : option.value}
+                >
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
 

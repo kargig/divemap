@@ -62,7 +62,7 @@ class TestDiveImportWithProfiles:
             "average_depth": 22.068,
             "gas_bottles_used": "24.0l 232 bar | O2: 22.0% | 210.0 bar→100.0 bar",
             "suit_type": "dry_suit",
-            "difficulty_level": 2,
+            "difficulty_code": "ADVANCED_OPEN_WATER",
             "visibility_rating": 6,
             "user_rating": 8,
             "dive_date": "2024-09-27",

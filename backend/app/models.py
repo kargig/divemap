@@ -6,26 +6,20 @@ import sqlalchemy as sa
 from sqlalchemy import event, text
 WKTElement = None  # Avoid geoalchemy2 dependency in tests/CI
 
-# Difficulty levels are now stored as integers in the database:
-# 1 = beginner, 2 = intermediate, 3 = advanced, 4 = expert
-# This allows for efficient sorting and better performance
-DIFFICULTY_LEVELS = {
-    1: "beginner",
-    2: "intermediate",
-    3: "advanced",
-    4: "expert"
-}
+# Helper functions for difficulty code conversion
+def get_difficulty_id_by_code(db, code: str):
+    """Get difficulty_levels.id by code. Returns None if code is None or not found."""
+    if code is None:
+        return None
+    difficulty = db.query(DifficultyLevel).filter(DifficultyLevel.code == code).first()
+    return difficulty.id if difficulty else None
 
-def get_difficulty_label(level: int) -> str:
-    """Convert integer difficulty level to human-readable label."""
-    return DIFFICULTY_LEVELS.get(level, "unknown")
-
-def get_difficulty_value(label: str) -> int:
-    """Convert human-readable difficulty label to integer value."""
-    for value, difficulty_label in DIFFICULTY_LEVELS.items():
-        if difficulty_label == label:
-            return value
-    return 2  # Default to intermediate if label not found
+def get_difficulty_code_by_id(db, difficulty_id: int):
+    """Get difficulty_levels.code by id. Returns None if id is None or not found."""
+    if difficulty_id is None:
+        return None
+    difficulty = db.query(DifficultyLevel).filter(DifficultyLevel.id == difficulty_id).first()
+    return difficulty.code if difficulty else None
 
 class MediaType(enum.Enum):
     photo = "photo"
@@ -54,6 +48,19 @@ class RouteType(enum.Enum):
     scuba = "scuba"
     walk = "walk"
     swim = "swim"
+
+class DifficultyLevel(Base):
+    __tablename__ = "difficulty_levels"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(50), unique=True, nullable=False, index=True)
+    label = Column(String(100), unique=True, nullable=False)
+    order_index = Column(Integer, nullable=False, index=True)
+
+    # Relationships
+    dive_sites = relationship("DiveSite", back_populates="difficulty")
+    dives = relationship("Dive", back_populates="difficulty")
+    parsed_dive_trips = relationship("ParsedDiveTrip", back_populates="difficulty")
 
 class DivingOrganization(Base):
     __tablename__ = "diving_organizations"
@@ -112,7 +119,7 @@ class DiveSite(Base):
     latitude = Column(DECIMAL(10, 8))
     longitude = Column(DECIMAL(11, 8))
     access_instructions = Column(Text)
-    difficulty_level = Column(Integer, default=2, nullable=False, index=True)  # 1=beginner, 2=intermediate, 3=advanced, 4=expert
+    difficulty_id = Column(Integer, ForeignKey("difficulty_levels.id"), nullable=True, index=True)
     marine_life = Column(Text)  # Added marine life field
     safety_information = Column(Text)  # Added safety information field
     max_depth = Column(DECIMAL(6, 3))  # Maximum depth in meters
@@ -124,6 +131,7 @@ class DiveSite(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
+    difficulty = relationship("DifficultyLevel", back_populates="dive_sites")
     media = relationship("SiteMedia", back_populates="dive_site", cascade="all, delete-orphan")
     ratings = relationship("SiteRating", back_populates="dive_site", cascade="all, delete-orphan")
     comments = relationship("SiteComment", back_populates="dive_site", cascade="all, delete-orphan")
@@ -301,7 +309,7 @@ class ParsedDiveTrip(Base):
     trip_date = Column(Date, nullable=False, index=True)
     trip_time = Column(Time)
     trip_duration = Column(Integer)  # Total duration in minutes
-    trip_difficulty_level = Column(Integer, nullable=True, index=True)  # 1=beginner, 2=intermediate, 3=advanced, 4=expert
+    trip_difficulty_id = Column(Integer, ForeignKey("difficulty_levels.id"), nullable=True, index=True)
     trip_price = Column(DECIMAL(10, 2), nullable=True)
     trip_currency = Column(String(3), default="EUR", nullable=False, index=True)
     group_size_limit = Column(Integer, nullable=True)
@@ -315,6 +323,7 @@ class ParsedDiveTrip(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
+    difficulty = relationship("DifficultyLevel", back_populates="parsed_dive_trips")
     diving_center = relationship("DivingCenter", back_populates="dive_trips")
     dives = relationship("ParsedDive", back_populates="trip", cascade="all, delete-orphan")
 
@@ -427,7 +436,7 @@ class Dive(Base):
     average_depth = Column(DECIMAL(6, 3))  # Average depth in meters
     gas_bottles_used = Column(Text)
     suit_type = Column(Enum(SuitType), nullable=True)
-    difficulty_level = Column(Integer, default=2, nullable=False)  # 1=beginner, 2=intermediate, 3=advanced, 4=expert
+    difficulty_id = Column(Integer, ForeignKey("difficulty_levels.id"), nullable=True, index=True)
     visibility_rating = Column(Integer)  # 1-10 rating
     user_rating = Column(Integer)  # 1-10 rating
     dive_date = Column(Date, nullable=False)
@@ -444,6 +453,7 @@ class Dive(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
+    difficulty = relationship("DifficultyLevel", back_populates="dives")
     user = relationship("User", back_populates="dives")
     dive_site = relationship("DiveSite", back_populates="dives")
     diving_center = relationship("DivingCenter", back_populates="dives")  # New relationship
