@@ -131,6 +131,51 @@ const DivingCenterForm = ({
       }
     });
 
+    // Normalize and validate phone number: remove spaces and convert '00' prefix to '+'
+    if (cleaned.phone !== undefined && cleaned.phone !== null && cleaned.phone !== '') {
+      // Convert to string and remove all whitespace
+      const originalPhone = String(cleaned.phone);
+      cleaned.phone = originalPhone.replace(/\s+/g, '');
+
+      // Skip validation if empty after trimming
+      if (cleaned.phone === '') {
+        delete cleaned.phone;
+      } else {
+        // Convert '00' prefix to '+' if present
+        if (cleaned.phone.startsWith('00')) {
+          cleaned.phone = `+${cleaned.phone.substring(2)}`;
+        }
+        // If it doesn't start with '+', add it (assuming international format)
+        else if (!cleaned.phone.startsWith('+')) {
+          cleaned.phone = `+${cleaned.phone}`;
+        }
+
+        // Check for non-digit characters (except the leading '+')
+        // Reject if any non-digit characters are found
+        const afterPlus = cleaned.phone.substring(1);
+        if (!/^\d+$/.test(afterPlus)) {
+          toast.error(
+            'Phone number contains invalid characters (letters or special characters). ' +
+              'Only digits are allowed after the country code. ' +
+              `Entered: ${originalPhone}`
+          );
+          return;
+        }
+
+        // Validate phone number format: ^\+[1-9]\d{1,14}$
+        // Must start with +, followed by digit 1-9, then 1-14 more digits
+        const phoneRegex = /^\+[1-9]\d{1,14}$/;
+        if (!phoneRegex.test(cleaned.phone)) {
+          toast.error(
+            'Phone number must be in international format: +[1-9][digits] (e.g., +3012345678). ' +
+              'Must start with + followed by a non-zero digit and 1-14 more digits. ' +
+              `Entered: ${originalPhone}`
+          );
+          return;
+        }
+      }
+    }
+
     onSubmit({
       ...cleaned,
       latitude: lat,
