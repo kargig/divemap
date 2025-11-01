@@ -22,7 +22,8 @@ from app.utils import (
     calculate_unified_phrase_aware_score,
     classify_match_type,
     get_unified_fuzzy_trigger_conditions,
-    UNIFIED_TYPO_TOLERANCE
+    UNIFIED_TYPO_TOLERANCE,
+    is_diving_center_reviews_enabled
 )
 from app.limiter import limiter, skip_rate_limit_for_admin
 
@@ -1180,6 +1181,13 @@ async def rate_diving_center(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    # Check if reviews are enabled
+    if not is_diving_center_reviews_enabled(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reviews are currently disabled"
+        )
+    
     # Check if diving center exists
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not diving_center:
@@ -1235,7 +1243,11 @@ async def get_diving_center_comments(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Diving center not found"
         )
-
+    
+    # If reviews are disabled, return empty list (don't error, just hide content)
+    if not is_diving_center_reviews_enabled(db):
+        return []
+    
     # Get comments with user information and their primary certification
     comments = db.query(
         CenterComment,
@@ -1283,6 +1295,13 @@ async def create_diving_center_comment(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    # Check if reviews are enabled
+    if not is_diving_center_reviews_enabled(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reviews are currently disabled"
+        )
+    
     # Check if diving center exists
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not diving_center:
@@ -1335,6 +1354,13 @@ async def update_diving_center_comment(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    # Check if reviews are enabled
+    if not is_diving_center_reviews_enabled(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reviews are currently disabled"
+        )
+    
     comment = db.query(CenterComment).filter(
         and_(CenterComment.id == comment_id, CenterComment.diving_center_id == diving_center_id)
     ).first()
@@ -1389,6 +1415,13 @@ async def delete_diving_center_comment(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    # Check if reviews are enabled
+    if not is_diving_center_reviews_enabled(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reviews are currently disabled"
+        )
+    
     # Check if diving center exists
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not diving_center:
