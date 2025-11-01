@@ -18,6 +18,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { useSetting, useUpdateSetting } from '../hooks/useSettings';
 
 const AdminDivingCenters = () => {
   const { user } = useAuth();
@@ -42,6 +43,44 @@ const AdminDivingCenters = () => {
   };
 
   const [pagination, setPagination] = useState(getInitialPagination);
+
+  // Settings hooks
+  const { data: reviewsDisabledSetting, isLoading: isLoadingSetting } = useSetting(
+    'disable_diving_center_reviews'
+  );
+  const updateSettingMutation = useUpdateSetting();
+
+  // Calculate if reviews are enabled (inverted logic: setting value true = disabled)
+  const reviewsEnabled = reviewsDisabledSetting?.value === false;
+  const isUpdatingSetting = updateSettingMutation.isLoading;
+
+  // Handle setting toggle
+  const handleToggleReviews = () => {
+    // Setting value: false = enabled, true = disabled
+    // reviewsEnabled = (setting === false)
+    // Current setting value: reviewsDisabledSetting?.value
+    // To toggle: if setting is false (enabled), set to true (disable)
+    //           if setting is true (disabled), set to false (enable)
+    const currentSettingValue = reviewsDisabledSetting?.value ?? false;
+    const newValue = !currentSettingValue;
+    updateSettingMutation.mutate(
+      { key: 'disable_diving_center_reviews', value: newValue },
+      {
+        onSuccess: () => {
+          toast.success(
+            newValue
+              ? 'Diving center reviews have been disabled'
+              : 'Diving center reviews have been enabled'
+          );
+        },
+        onError: error => {
+          toast.error(
+            `Failed to update setting: ${error.response?.data?.detail || 'Unknown error'}`
+          );
+        },
+      }
+    );
+  };
 
   // Search handlers
   const handleSearch = e => {
@@ -314,6 +353,45 @@ const AdminDivingCenters = () => {
           <Plus className='h-4 w-4 mr-2' />
           Add Diving Center
         </button>
+      </div>
+
+      {/* Settings Section */}
+      <div className='mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg'>
+        <div className='flex items-center justify-between'>
+          <div className='flex items-center space-x-3'>
+            <div className='flex items-center'>
+              <input
+                type='checkbox'
+                id='reviews-toggle'
+                checked={!reviewsEnabled}
+                onChange={handleToggleReviews}
+                disabled={isLoadingSetting || isUpdatingSetting}
+                className='w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+              />
+              <label
+                htmlFor='reviews-toggle'
+                className='ml-3 text-sm font-medium text-gray-900 cursor-pointer'
+              >
+                Disable Diving Center Reviews
+              </label>
+            </div>
+            {(isLoadingSetting || isUpdatingSetting) && (
+              <div className='flex items-center text-sm text-gray-500'>
+                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2'></div>
+                {isUpdatingSetting ? 'Updating...' : 'Loading...'}
+              </div>
+            )}
+          </div>
+          <div className='text-sm text-gray-600'>
+            {reviewsEnabled
+              ? 'Reviews and ratings are currently enabled'
+              : 'Reviews and ratings are currently disabled'}
+          </div>
+        </div>
+        <p className='mt-2 text-xs text-gray-500'>
+          When disabled, users will not be able to submit or view ratings and comments for diving
+          centers.
+        </p>
       </div>
 
       {/* Search */}

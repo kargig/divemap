@@ -47,6 +47,7 @@ const DivingCentersResponsiveFilterBar = ({
   onViewModeChange = () => {},
   compactLayout = false,
   onDisplayOptionChange = () => {},
+  reviewsEnabled = true, // Default to enabled
 }) => {
   const { isMobile, searchBarVisible, quickFiltersVisible } = useResponsiveScroll();
   const [isFilterOverlayOpen, setIsFilterOverlayOpen] = useState(false);
@@ -149,17 +150,19 @@ const DivingCentersResponsiveFilterBar = ({
           {/* Quick Filters */}
           {showQuickFilters && (
             <div className='flex items-center gap-2 overflow-x-auto'>
-              <button
-                onClick={() => onQuickFilter('min_rating')}
-                className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors ${
-                  quickFilter === 'min_rating'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                }`}
-              >
-                <Star className='h-4 w-4 inline mr-1' />
-                4+ Stars
-              </button>
+              {reviewsEnabled && (
+                <button
+                  onClick={() => onQuickFilter('min_rating')}
+                  className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors ${
+                    quickFilter === 'min_rating'
+                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                      : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                  }`}
+                >
+                  <Star className='h-4 w-4 inline mr-1' />
+                  4+ Stars
+                </button>
+              )}
               <button
                 onClick={() => onQuickFilter('country')}
                 className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors ${
@@ -331,21 +334,23 @@ const DivingCentersResponsiveFilterBar = ({
             <div className='p-4'>
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                 {/* Min Rating Filter */}
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Min Rating (≥)
-                  </label>
-                  <input
-                    type='number'
-                    min='0'
-                    max='10'
-                    step='0.1'
-                    placeholder='Show centers rated ≥ this value'
-                    value={filters.min_rating || ''}
-                    onChange={e => onFilterChange('min_rating', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
-                  />
-                </div>
+                {reviewsEnabled && (
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Min Rating (≥)
+                    </label>
+                    <input
+                      type='number'
+                      min='0'
+                      max='10'
+                      step='0.1'
+                      placeholder='Show centers rated ≥ this value'
+                      value={filters.min_rating || ''}
+                      onChange={e => onFilterChange('min_rating', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                    />
+                  </div>
+                )}
 
                 {/* Country Filter */}
                 <div>
@@ -431,17 +436,19 @@ const DivingCentersResponsiveFilterBar = ({
 
             {/* Quick Filter Buttons */}
             <div className='flex items-center gap-2 overflow-x-auto flex-1 ml-3'>
-              <button
-                onClick={() => onQuickFilter('min_rating')}
-                className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                  quickFilter === 'min_rating'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                }`}
-              >
-                <Star className='h-4 w-4 inline mr-1' />
-                4+ Stars
-              </button>
+              {reviewsEnabled && (
+                <button
+                  onClick={() => onQuickFilter('min_rating')}
+                  className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                    quickFilter === 'min_rating'
+                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                      : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                  }`}
+                >
+                  <Star className='h-4 w-4 inline mr-1' />
+                  4+ Stars
+                </button>
+              )}
               <button
                 onClick={() => onQuickFilter('country')}
                 className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
@@ -724,6 +731,7 @@ DivingCentersResponsiveFilterBar.propTypes = {
   onViewModeChange: PropTypes.func,
   compactLayout: PropTypes.bool,
   onDisplayOptionChange: PropTypes.func,
+  reviewsEnabled: PropTypes.bool,
 };
 
 export default DivingCentersResponsiveFilterBar;

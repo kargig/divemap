@@ -21,6 +21,7 @@ import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { useSetting } from '../hooks/useSettings';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 
 // Helper function to safely extract error message
@@ -93,6 +94,11 @@ const DivingCenterDetail = () => {
       keepPreviousData: true, // Keep previous data while refetching
     }
   );
+
+  // Fetch reviews disabled setting
+  const { data: reviewsDisabledSetting } = useSetting('disable_diving_center_reviews');
+  // Calculate if reviews are enabled (setting value false = enabled)
+  const reviewsEnabled = reviewsDisabledSetting?.value === false;
 
   // Set initial rating to user's previous rating if available
   useEffect(() => {
@@ -544,7 +550,7 @@ const DivingCenterDetail = () => {
           )}
 
           {/* Rating Section */}
-          {user && (
+          {user && reviewsEnabled && (
             <div className='border-t pt-4'>
               <h3 className='text-lg font-semibold text-gray-900 mb-2'>Rate this diving center</h3>
               <div className='flex items-center space-x-2'>
@@ -556,133 +562,135 @@ const DivingCenterDetail = () => {
         </div>
 
         {/* Comments Section */}
-        <div className='bg-white rounded-lg shadow-md p-6'>
-          <h2 className='text-2xl font-bold text-gray-900 mb-4'>Comments</h2>
+        {reviewsEnabled && (
+          <div className='bg-white rounded-lg shadow-md p-6'>
+            <h2 className='text-2xl font-bold text-gray-900 mb-4'>Comments</h2>
 
-          {/* Add Comment Form */}
-          {user && (
-            <form onSubmit={handleSubmitComment} className='mb-6'>
-              <div className='mb-4'>
-                <label
-                  htmlFor='new-comment'
-                  className='block text-sm font-medium text-gray-700 mb-2'
+            {/* Add Comment Form */}
+            {user && (
+              <form onSubmit={handleSubmitComment} className='mb-6'>
+                <div className='mb-4'>
+                  <label
+                    htmlFor='new-comment'
+                    className='block text-sm font-medium text-gray-700 mb-2'
+                  >
+                    Add a comment
+                  </label>
+                  <textarea
+                    id='new-comment'
+                    value={newComment}
+                    onChange={e => setNewComment(e.target.value)}
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    rows='3'
+                    placeholder='Share your experience with this diving center...'
+                    required
+                  />
+                </div>
+                <button
+                  type='submit'
+                  disabled={createCommentMutation.isLoading}
+                  className='bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50'
                 >
-                  Add a comment
-                </label>
-                <textarea
-                  id='new-comment'
-                  value={newComment}
-                  onChange={e => setNewComment(e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  rows='3'
-                  placeholder='Share your experience with this diving center...'
-                  required
-                />
-              </div>
-              <button
-                type='submit'
-                disabled={createCommentMutation.isLoading}
-                className='bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50'
-              >
-                {createCommentMutation.isLoading ? 'Posting...' : 'Post Comment'}
-              </button>
-            </form>
-          )}
+                  {createCommentMutation.isLoading ? 'Posting...' : 'Post Comment'}
+                </button>
+              </form>
+            )}
 
-          {/* Comments List */}
-          {commentsLoading ? (
-            <div className='flex justify-center py-4'>
-              <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
-            </div>
-          ) : comments?.length > 0 ? (
-            <div className='space-y-4'>
-              {comments.map(comment => (
-                <div key={comment.id} className='border-b border-gray-200 pb-4'>
-                  <div className='flex justify-between items-start mb-2'>
-                    <div>
-                      <div className='flex items-center space-x-2'>
-                        <Link
-                          to={`/user/${comment.username}`}
-                          className='font-semibold text-blue-600 hover:text-blue-800 hover:underline'
-                        >
-                          {comment.username}
-                        </Link>
-                        {(comment.user_diving_certification || comment.user_number_of_dives) && (
-                          <div className='flex items-center space-x-2 text-xs'>
-                            {comment.user_diving_certification && (
-                              <span className='bg-blue-100 text-blue-800 px-2 py-1 rounded'>
-                                {comment.user_diving_certification}
-                              </span>
-                            )}
-                            {comment.user_number_of_dives > 0 && (
-                              <span className='bg-green-100 text-green-800 px-2 py-1 rounded'>
-                                {comment.user_number_of_dives} dives
-                              </span>
-                            )}
-                          </div>
-                        )}
+            {/* Comments List */}
+            {commentsLoading ? (
+              <div className='flex justify-center py-4'>
+                <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
+              </div>
+            ) : comments?.length > 0 ? (
+              <div className='space-y-4'>
+                {comments.map(comment => (
+                  <div key={comment.id} className='border-b border-gray-200 pb-4'>
+                    <div className='flex justify-between items-start mb-2'>
+                      <div>
+                        <div className='flex items-center space-x-2'>
+                          <Link
+                            to={`/user/${comment.username}`}
+                            className='font-semibold text-blue-600 hover:text-blue-800 hover:underline'
+                          >
+                            {comment.username}
+                          </Link>
+                          {(comment.user_diving_certification || comment.user_number_of_dives) && (
+                            <div className='flex items-center space-x-2 text-xs'>
+                              {comment.user_diving_certification && (
+                                <span className='bg-blue-100 text-blue-800 px-2 py-1 rounded'>
+                                  {comment.user_diving_certification}
+                                </span>
+                              )}
+                              {comment.user_number_of_dives > 0 && (
+                                <span className='bg-green-100 text-green-800 px-2 py-1 rounded'>
+                                  {comment.user_number_of_dives} dives
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <span className='text-sm text-gray-500 ml-2'>
+                          {new Date(comment.created_at).toLocaleDateString()}
+                        </span>
                       </div>
-                      <span className='text-sm text-gray-500 ml-2'>
-                        {new Date(comment.created_at).toLocaleDateString()}
-                      </span>
+                      {user && (user.id === comment.user_id || user.is_admin) && (
+                        <div className='flex space-x-2'>
+                          <button
+                            onClick={() => handleEditComment(comment)}
+                            className='text-sm text-blue-600 hover:text-blue-800'
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className='text-sm text-red-600 hover:text-red-800'
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    {user && (user.id === comment.user_id || user.is_admin) && (
-                      <div className='flex space-x-2'>
-                        <button
-                          onClick={() => handleEditComment(comment)}
-                          className='text-sm text-blue-600 hover:text-blue-800'
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteComment(comment.id)}
-                          className='text-sm text-red-600 hover:text-red-800'
-                        >
-                          Delete
-                        </button>
+
+                    {editingComment === comment.id ? (
+                      <div className='mt-2'>
+                        <textarea
+                          value={editCommentText}
+                          onChange={e => setEditCommentText(e.target.value)}
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          rows='3'
+                        />
+                        <div className='mt-2 space-x-2'>
+                          <button
+                            onClick={handleUpdateComment}
+                            disabled={updateCommentMutation.isLoading}
+                            className='bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50'
+                          >
+                            {updateCommentMutation.isLoading ? 'Updating...' : 'Update'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingComment(null);
+                              setEditCommentText('');
+                            }}
+                            className='bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600'
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
+                    ) : (
+                      <p className='text-gray-700'>{comment.comment_text}</p>
                     )}
                   </div>
-
-                  {editingComment === comment.id ? (
-                    <div className='mt-2'>
-                      <textarea
-                        value={editCommentText}
-                        onChange={e => setEditCommentText(e.target.value)}
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        rows='3'
-                      />
-                      <div className='mt-2 space-x-2'>
-                        <button
-                          onClick={handleUpdateComment}
-                          disabled={updateCommentMutation.isLoading}
-                          className='bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50'
-                        >
-                          {updateCommentMutation.isLoading ? 'Updating...' : 'Update'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingComment(null);
-                            setEditCommentText('');
-                          }}
-                          className='bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600'
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className='text-gray-700'>{comment.comment_text}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className='text-gray-500 text-center py-4'>
-              No comments yet. Be the first to share your experience!
-            </p>
-          )}
-        </div>
+                ))}
+              </div>
+            ) : (
+              <p className='text-gray-500 text-center py-4'>
+                No comments yet. Be the first to share your experience!
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Ownership Claim Modal */}
