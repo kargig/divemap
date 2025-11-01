@@ -469,7 +469,7 @@ const DiveTrips = () => {
         {diveSiteId ? (
           <Link
             to={`/dive-sites/${diveSiteId}`}
-            state={{ from: location.pathname + location.search }}
+            state={{ from: window.location.pathname + window.location.search }}
             className='text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors truncate'
           >
             {diveSiteName}
@@ -1041,7 +1041,7 @@ const DiveTrips = () => {
                         >
                           <Link
                             to={`/dive-trips/${trip.id}`}
-                            state={{ from: location.pathname + location.search }}
+                            state={{ from: window.location.pathname + window.location.search }}
                             className='hover:text-blue-600 transition-colors'
                           >
                             {generateTripName(trip)}
@@ -1057,7 +1057,7 @@ const DiveTrips = () => {
                   </div>
                   <Link
                     to={`/dive-trips/${trip.id}`}
-                    state={{ from: location.pathname + location.search }}
+                    state={{ from: window.location.pathname + window.location.search }}
                     className='inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
                   >
                     <Eye className='w-4 h-4' />
@@ -1093,7 +1093,7 @@ const DiveTrips = () => {
                       {trip.diving_center_id && trip.diving_center_name ? (
                         <Link
                           to={`/diving-centers/${trip.diving_center_id}`}
-                          state={{ from: location.pathname + location.search }}
+                          state={{ from: window.location.pathname + window.location.search }}
                           className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
                         >
                           {trip.diving_center_name}
@@ -1322,7 +1322,7 @@ const DiveTrips = () => {
                   >
                     <Link
                       to={`/dive-trips/${trip.id}`}
-                      state={{ from: location.pathname + location.search }}
+                      state={{ from: window.location.pathname + window.location.search }}
                       className='hover:text-blue-600 transition-colors'
                     >
                       {generateTripName(trip)}

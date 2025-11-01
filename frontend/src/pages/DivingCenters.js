@@ -744,7 +744,7 @@ const DivingCenters = () => {
                             <h3 className='font-semibold text-gray-900 text-base flex-1 min-w-0'>
                               <Link
                                 to={`/diving-centers/${center.id}`}
-                                state={{ from: location.pathname + location.search }}
+                                state={{ from: window.location.pathname + window.location.search }}
                                 className='hover:text-blue-600 transition-colors block truncate'
                               >
                                 {center.name}
@@ -903,7 +903,7 @@ const DivingCenters = () => {
                             >
                               <Link
                                 to={`/diving-centers/${center.id}`}
-                                state={{ from: location.pathname + location.search }}
+                                state={{ from: window.location.pathname + window.location.search }}
                                 className='hover:text-blue-600 transition-colors hover:underline block'
                               >
                                 {center.name}

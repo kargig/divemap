@@ -81,7 +81,7 @@ const Dives = () => {
   const getInitialPagination = () => {
     return {
       page: parseInt(searchParams.get('page')) || 1,
-      per_page: parseInt(searchParams.get('per_page')) || 25,
+      per_page: parseInt(searchParams.get('per_page') || searchParams.get('page_size')) || 25,
     };
   };
 
@@ -159,6 +159,13 @@ const Dives = () => {
           }
 
           // Add filters with comprehensive safety checks
+          if (
+            newFilters.search &&
+            newFilters.search.toString &&
+            newFilters.search.toString().trim()
+          ) {
+            newSearchParams.set('search', newFilters.search.toString());
+          }
           if (
             newFilters.dive_site_id &&
             newFilters.dive_site_id.toString &&
@@ -273,6 +280,13 @@ const Dives = () => {
       }
 
       // Add filters with comprehensive safety checks
+      if (
+        newFilters.search &&
+        newFilters.search.toString &&
+        newFilters.search.toString().trim()
+      ) {
+        newSearchParams.set('search', newFilters.search.toString());
+      }
       if (
         newFilters.dive_site_id &&
         newFilters.dive_site_id.toString &&
@@ -390,10 +404,11 @@ const Dives = () => {
     return () => clearTimeout(timeoutId);
   }, [filters.search]);
 
-  // Immediate URL update for non-search filters
+  // Immediate URL update for filters
   useEffect(() => {
     immediateUpdateURL(filters, pagination, viewMode);
   }, [
+    filters.search,
     filters.dive_site_id,
     filters.difficulty_code,
     filters.exclude_unspecified_difficulty,
@@ -1051,7 +1066,7 @@ const Dives = () => {
                               >
                                 <Link
                                   to={`/dives/${dive.id}`}
-                                  state={{ from: location.pathname + location.search }}
+                                  state={{ from: window.location.pathname + window.location.search }}
                                   className='hover:text-blue-600 transition-colors block whitespace-normal break-words'
                                 >
                                   {dive.name || `Dive #${dive.id}`}

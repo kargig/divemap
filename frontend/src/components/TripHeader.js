@@ -29,7 +29,7 @@ const TripHeader = ({ trip }) => {
           if (from) {
             navigate(from);
           } else {
-            navigate(-1);
+            navigate('/dive-trips');
           }
         }}
         className='flex items-center space-x-2 text-blue-600 hover:text-blue-800 mb-6 transition-colors'

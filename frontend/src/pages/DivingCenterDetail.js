@@ -349,7 +349,7 @@ const DivingCenterDetail = () => {
                   if (from) {
                     navigate(from);
                   } else {
-                    navigate(-1);
+                    navigate('/diving-centers');
                   }
                 }}
                 className='text-gray-600 hover:text-gray-800 p-1'

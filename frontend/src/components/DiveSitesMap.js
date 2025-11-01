@@ -344,7 +344,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
                   </div>
                   <Link
                     to={`/dive-sites/${site.id}`}
-                    state={{ from: location.pathname + location.search }}
+                    state={{ from: window.location.pathname + window.location.search }}
                     className='block w-full text-center px-3 py-2 bg-blue-600 text-white !text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm'
                   >
                     View Details
