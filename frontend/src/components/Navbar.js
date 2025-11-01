@@ -31,6 +31,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsiveScroll } from '../hooks/useResponsive';
 
+import GlobalSearchBar from './GlobalSearchBar';
 import Logo from './Logo';
 
 const Navbar = () => {
@@ -184,6 +185,15 @@ const Navbar = () => {
           <Link to='/' className='flex items-center space-x-2' onClick={closeMobileMenu}>
             <Logo size='small' showText={true} textOnly={false} textClassName='text-white' />
           </Link>
+
+          {/* Desktop Search Bar */}
+          <div className='hidden md:flex flex-1 max-w-xl mx-6'>
+            <GlobalSearchBar
+              className='w-full'
+              inputClassName='bg-white/10 backdrop-blur-sm border-white/20 text-white placeholder-gray-300 focus:bg-white focus:text-gray-900'
+              placeholder='Search dives, sites, centers...'
+            />
+          </div>
 
           {/* Desktop Navigation */}
           <div className='hidden md:flex items-center space-x-6'>
@@ -463,6 +473,15 @@ const Navbar = () => {
                 }}
               >
                 <div className='px-2 pt-2 pb-3 space-y-1 mobile-menu-container'>
+                  {/* Mobile Search Bar */}
+                  <div className='px-2 mb-3'>
+                    <GlobalSearchBar
+                      className='w-full'
+                      inputClassName='bg-white text-gray-900'
+                      placeholder='Search dives, sites, centers...'
+                    />
+                  </div>
+
                   <Link
                     to='/'
                     className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'

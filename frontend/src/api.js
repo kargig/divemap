@@ -127,6 +127,21 @@ api.interceptors.response.use(
   }
 );
 
+// Global Search API
+export const searchGlobal = async (query, limit = 8) => {
+  try {
+    const response = await api.get('/api/v1/search', {
+      params: {
+        q: query,
+        limit: limit,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw extractErrorMessage(error);
+  }
+};
+
 export default api;
 
 // Utility function to extract error message from API responses
