@@ -783,7 +783,7 @@ const DiveSites = () => {
                         {/* Mobile: View button in upper right corner */}
                         <Link
                           to={`/dive-sites/${site.id}`}
-                          state={{ from: location.pathname + location.search }}
+                          state={{ from: window.location.pathname + window.location.search }}
                           className='sm:hidden absolute top-2 right-2 inline-flex items-center justify-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors min-h-[32px] touch-manipulation'
                         >
                           <Eye className='w-3 h-3' />
@@ -800,7 +800,7 @@ const DiveSites = () => {
                                 >
                                   <Link
                                     to={`/dive-sites/${site.id}`}
-                                    state={{ from: location.pathname + location.search }}
+                                    state={{ from: window.location.pathname + window.location.search }}
                                     className='hover:text-blue-600 transition-colors block truncate'
                                     title={site.name}
                                   >
@@ -840,7 +840,7 @@ const DiveSites = () => {
                         {/* Desktop: View button in original position */}
                         <Link
                           to={`/dive-sites/${site.id}`}
-                          state={{ from: location.pathname + location.search }}
+                          state={{ from: window.location.pathname + window.location.search }}
                           className='hidden sm:inline-flex self-center flex-shrink-0 items-center justify-center gap-1 px-2 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors'
                         >
                           <Eye className='w-3 h-3' />
@@ -939,7 +939,7 @@ const DiveSites = () => {
                           >
                             <Link
                               to={`/dive-sites/${site.id}`}
-                              state={{ from: location.pathname + location.search }}
+                              state={{ from: window.location.pathname + window.location.search }}
                               className='hover:text-blue-600 transition-colors block truncate'
                               title={site.name}
                             >
@@ -1049,7 +1049,7 @@ const DiveSites = () => {
 
                         <Link
                           to={`/dive-sites/${site.id}`}
-                          state={{ from: location.pathname + location.search }}
+                          state={{ from: window.location.pathname + window.location.search }}
                           className='w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
                         >
                           <Eye className='w-4 h-4' />

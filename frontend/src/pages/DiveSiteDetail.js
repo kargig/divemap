@@ -277,7 +277,7 @@ const DiveSiteDetail = () => {
                 if (from) {
                   navigate(from);
                 } else {
-                  navigate(-1);
+                  navigate('/dive-sites');
                 }
               }}
               className='text-gray-600 hover:text-gray-800 p-1'

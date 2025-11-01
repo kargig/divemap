@@ -148,7 +148,7 @@ const TripDetail = () => {
                           {dive.dive_site_id ? (
                             <Link
                               to={`/dive-sites/${dive.dive_site_id}`}
-                              state={{ from: location.pathname + location.search }}
+                              state={{ from: window.location.pathname + window.location.search }}
                               className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
                             >
                               {dive.dive_site_name || 'Unnamed Site'}

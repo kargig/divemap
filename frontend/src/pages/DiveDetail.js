@@ -531,7 +531,7 @@ const DiveDetail = () => {
               if (from) {
                 navigate(from);
               } else {
-                navigate(-1);
+                navigate('/dives');
               }
             }}
             className='text-gray-600 hover:text-gray-800 p-1'
@@ -1004,7 +1004,7 @@ const DiveDetail = () => {
                 )}
                 <RouterLink
                   to={`/dive-sites/${dive.dive_site.id}`}
-                  state={{ from: location.pathname + location.search }}
+                  state={{ from: window.location.pathname + window.location.search }}
                   className='text-blue-600 hover:text-blue-800 text-sm'
                 >
                   View dive site details →
@@ -1029,7 +1029,7 @@ const DiveDetail = () => {
                 )}
                 <RouterLink
                   to={`/diving-centers/${dive.diving_center.id}`}
-                  state={{ from: location.pathname + location.search }}
+                  state={{ from: window.location.pathname + window.location.search }}
                   className='text-blue-600 hover:text-blue-800 text-sm'
                 >
                   View diving center details →
