@@ -14,7 +14,7 @@ import {
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 
 import api, { claimDivingCenterOwnership } from '../api';
 import MaskedEmail from '../components/MaskedEmail';
@@ -36,6 +36,7 @@ const getErrorMessage = error => {
 const DivingCenterDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [rating, setRating] = useState(0);
@@ -343,7 +344,14 @@ const DivingCenterDetail = () => {
           <div className='flex justify-between items-start mb-4'>
             <div className='flex items-center gap-3 sm:gap-4'>
               <button
-                onClick={() => navigate('/diving-centers')}
+                onClick={() => {
+                  const from = location.state?.from;
+                  if (from) {
+                    navigate(from);
+                  } else {
+                    navigate(-1);
+                  }
+                }}
                 className='text-gray-600 hover:text-gray-800 p-1'
               >
                 <ArrowLeft size={20} className='sm:w-6 sm:h-6' />

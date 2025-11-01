@@ -13,7 +13,7 @@ import {
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, useParams, useLocation, Link as RouterLink } from 'react-router-dom';
 
 import api from '../api';
 import DiveSiteRoutes from '../components/DiveSiteRoutes';
@@ -41,6 +41,7 @@ const getErrorMessage = error => {
 const DiveSiteDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -271,7 +272,14 @@ const DiveSiteDetail = () => {
         <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4'>
           <div className='flex items-center gap-3 sm:gap-4'>
             <button
-              onClick={() => navigate('/dive-sites')}
+              onClick={() => {
+                const from = location.state?.from;
+                if (from) {
+                  navigate(from);
+                } else {
+                  navigate(-1);
+                }
+              }}
               className='text-gray-600 hover:text-gray-800 p-1'
             >
               <ArrowLeft size={20} className='sm:w-6 sm:h-6' />

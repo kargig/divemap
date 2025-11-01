@@ -16,7 +16,7 @@ import {
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
 import api from '../api';
 import DivingCentersDesktopSearchBar from '../components/DivingCentersDesktopSearchBar';
@@ -48,6 +48,7 @@ const getErrorMessage = error => {
 const DivingCenters = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
@@ -743,6 +744,7 @@ const DivingCenters = () => {
                             <h3 className='font-semibold text-gray-900 text-base flex-1 min-w-0'>
                               <Link
                                 to={`/diving-centers/${center.id}`}
+                                state={{ from: location.pathname + location.search }}
                                 className='hover:text-blue-600 transition-colors block truncate'
                               >
                                 {center.name}
@@ -853,6 +855,7 @@ const DivingCenters = () => {
                       <div className='flex flex-col gap-2 flex-shrink-0'>
                         <Link
                           to={`/diving-centers/${center.id}`}
+                          state={{ from: location.pathname + location.search }}
                           className='hidden sm:inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors'
                         >
                           <Eye className='w-3 h-3' />
@@ -900,6 +903,7 @@ const DivingCenters = () => {
                             >
                               <Link
                                 to={`/diving-centers/${center.id}`}
+                                state={{ from: location.pathname + location.search }}
                                 className='hover:text-blue-600 transition-colors hover:underline block'
                               >
                                 {center.name}
@@ -1083,6 +1087,7 @@ const DivingCenters = () => {
                       <div className='flex gap-2'>
                         <Link
                           to={`/diving-centers/${center.id}`}
+                          state={{ from: location.pathname + location.search }}
                           className='hidden sm:flex-1 sm:inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors hover:shadow-md'
                         >
                           <Eye className='w-4 h-4' />
