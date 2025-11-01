@@ -80,7 +80,8 @@ const DiveTrips = () => {
     trip_status: '',
     min_price: '',
     max_price: '',
-    difficulty_level: '',
+    difficulty_code: '',
+    exclude_unspecified_difficulty: false,
     search_query: '',
   });
   const [sortOptions, setSortOptions] = useState({
@@ -111,7 +112,8 @@ const DiveTrips = () => {
     if (filters.trip_status) count++;
     if (filters.min_price) count++;
     if (filters.max_price) count++;
-    if (filters.difficulty_level) count++;
+    if (filters.difficulty_code) count++;
+    if (filters.exclude_unspecified_difficulty) count++;
     return count;
   };
 
@@ -442,7 +444,8 @@ const DiveTrips = () => {
       trip_status: '',
       min_price: '',
       max_price: '',
-      difficulty_level: '',
+      difficulty_code: '',
+      exclude_unspecified_difficulty: false,
       search_query: '',
     });
   };
@@ -965,7 +968,7 @@ const DiveTrips = () => {
                   {filters.min_price && filters.max_price && <p>• Adjust your price range</p>}
                   {filters.diving_center_id && <p>• Try a different diving center</p>}
 
-                  {filters.difficulty_level && <p>• Try a different difficulty level</p>}
+                  {filters.difficulty_code && <p>• Try a different difficulty level</p>}
                 </div>
                 <button
                   onClick={clearFilters}
@@ -1061,9 +1064,9 @@ const DiveTrips = () => {
                 <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-4'>
                   <div className='flex items-center gap-2'>
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.difficulty_level)}`}
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)}`}
                     >
-                      {getDifficultyLabel(trip.difficulty_level)}
+                      {trip.trip_difficulty_label || getDifficultyLabel(trip.trip_difficulty_code)}
                     </span>
                   </div>
                   {trip.max_depth && (
@@ -1327,9 +1330,10 @@ const DiveTrips = () => {
                   <div className='space-y-2 mb-4'>
                     <div className='flex items-center gap-2'>
                       <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.difficulty_level)}`}
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)}`}
                       >
-                        {getDifficultyLabel(trip.difficulty_level)}
+                        {trip.trip_difficulty_label ||
+                          getDifficultyLabel(trip.trip_difficulty_code)}
                       </span>
                     </div>
                   </div>

@@ -8,7 +8,7 @@ import api, { getNearbyDivingCenters, searchDivingCenters } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
-import { getDifficultyValue, getDifficultyLabel } from '../utils/difficultyHelpers';
+import { getDifficultyOptions } from '../utils/difficultyHelpers';
 
 // Helper function to safely extract error message
 const getErrorMessage = error => {
@@ -35,7 +35,7 @@ const EditDiveSite = () => {
     country: '',
     region: '',
     access_instructions: '',
-    difficulty_level: '',
+    difficulty_code: '',
     marine_life: '',
     safety_information: '',
     max_depth: '',
@@ -87,15 +87,12 @@ const EditDiveSite = () => {
         description: data.description || '',
         latitude: data.latitude?.toString() || '',
         longitude: data.longitude?.toString() || '',
-        
+
         country: data.country || '',
         region: data.region || '',
         access_instructions: data.access_instructions || '',
-        // Normalize difficulty to the string label expected by the select options
-        difficulty_level:
-          data.difficulty_level !== undefined && data.difficulty_level !== null
-            ? getDifficultyLabel(data.difficulty_level)
-            : '',
+        // Use difficulty_code directly from API response
+        difficulty_code: data.difficulty_code || '',
         marine_life: data.marine_life || '',
         safety_information: data.safety_information || '',
         max_depth: data.max_depth?.toString() || '',
@@ -486,11 +483,11 @@ const EditDiveSite = () => {
       updateData.max_depth = null;
     }
 
-    // Convert difficulty_level to integer if provided, or set to null if empty
-    if (formData.difficulty_level && formData.difficulty_level.trim() !== '') {
-      updateData.difficulty_level = getDifficultyValue(formData.difficulty_level);
+    // Convert difficulty_code: empty string becomes null, otherwise keep the code
+    if (formData.difficulty_code && formData.difficulty_code.trim() !== '') {
+      updateData.difficulty_code = formData.difficulty_code;
     } else {
-      updateData.difficulty_level = null;
+      updateData.difficulty_code = null;
     }
 
     // Update the dive site first
@@ -651,16 +648,19 @@ const EditDiveSite = () => {
                 </label>
                 <select
                   id='difficulty-level'
-                  name='difficulty_level'
-                  value={formData.difficulty_level}
+                  name='difficulty_code'
+                  value={formData.difficulty_code || ''}
                   onChange={handleInputChange}
                   className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                 >
-                  <option value=''>Select difficulty</option>
-                  <option value='beginner'>Beginner</option>
-                  <option value='intermediate'>Intermediate</option>
-                  <option value='advanced'>Advanced</option>
-                  <option value='expert'>Expert</option>
+                  {getDifficultyOptions().map(option => (
+                    <option
+                      key={option.value === null ? 'null' : option.value}
+                      value={option.value === null ? '' : option.value}
+                    >
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -838,8 +838,6 @@ const EditDiveSite = () => {
                   className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                 />
               </div>
-
-            
             </div>
 
             {/* Country and Region Information */}

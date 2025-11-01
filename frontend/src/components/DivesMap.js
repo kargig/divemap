@@ -119,11 +119,11 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
               }
             </div>
             ${
-              marker.difficulty_level
+              marker.difficulty_code
                 ? `
               <div class="flex items-center">
-                <span class="px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(marker.difficulty_level)}">
-                  ${getDifficultyLabel(marker.difficulty_level)}
+                <span class="px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(marker.difficulty_code)}">
+                  ${marker.difficulty_label || getDifficultyLabel(marker.difficulty_code)}
                 </span>
               </div>
             `
@@ -226,10 +226,10 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
                   </div>
                   <div class="flex items-center space-x-2">
                     ${
-                      markerData.difficulty_level
+                      markerData.difficulty_code
                         ? `
                       <span class="px-1 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                        ${markerData.difficulty_level}
+                        ${markerData.difficulty_label || getDifficultyLabel(markerData.difficulty_code)}
                       </span>
                     `
                         : ''
@@ -433,12 +433,12 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
                       )}
                     </div>
 
-                    {dive.difficulty_level && (
+                    {dive.difficulty_code && (
                       <div className='flex items-center'>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_level)}`}
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
                         >
-                          {getDifficultyLabel(dive.difficulty_level)}
+                          {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
                         </span>
                       </div>
                     )}
@@ -517,7 +517,7 @@ DivesMap.propTypes = {
       max_depth: PropTypes.number,
       duration: PropTypes.number,
       user_rating: PropTypes.number,
-      difficulty_level: PropTypes.string,
+      difficulty_code: PropTypes.string,
       dive_information: PropTypes.string,
       dive_site: PropTypes.shape({
         id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,

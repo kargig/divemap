@@ -207,7 +207,7 @@ class DiveSiteSearchParams(BaseModel):
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING; omit for no filter",
     )
-    include_undefined: bool = False
+    exclude_unspecified_difficulty: bool = False
     min_rating: Optional[float] = Field(None, ge=0, le=10, description="Minimum average rating (0-10)")
     tag_ids: Optional[List[int]] = None
     country: Optional[str] = None
@@ -638,7 +638,7 @@ class DiveSearchParams(BaseModel):
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING; omit for no filter",
     )
-    include_undefined: bool = False
+    exclude_unspecified_difficulty: bool = False
     suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie)$")
     min_depth: Optional[float] = Field(None, ge=0, le=1000)
     max_depth: Optional[float] = Field(None, ge=0, le=1000)

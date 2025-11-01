@@ -222,14 +222,14 @@ def apply_search_filters(query, search, name, db):
     return query
 
 
-def apply_basic_filters(query, difficulty_code, include_undefined, country, region, my_dive_sites, current_user, db):
+def apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db):
     """
     Apply basic filtering criteria to a query.
     
     Args:
         query: SQLAlchemy query object to filter
         difficulty_code: Difficulty code filter (e.g., 'OPEN_WATER')
-        include_undefined: Whether to include sites with NULL difficulty
+        exclude_unspecified_difficulty: Whether to exclude sites with NULL difficulty (default: False)
         country: Country filter
         region: Region filter
         my_dive_sites: Whether to filter by user's dive sites
@@ -243,11 +243,11 @@ def apply_basic_filters(query, difficulty_code, include_undefined, country, regi
         difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
         if difficulty_id:
             query = query.filter(DiveSite.difficulty_id == difficulty_id)
-        elif not include_undefined:
-            # If code doesn't exist and we don't want undefined, return empty set
+        elif exclude_unspecified_difficulty:
+            # If code doesn't exist and we want to exclude undefined, return empty set
             query = query.filter(False)
-    elif not include_undefined:
-        # If no difficulty_code filter but we don't want undefined, exclude NULL
+    elif exclude_unspecified_difficulty:
+        # If no difficulty_code filter but we want to exclude unspecified, exclude NULL
         query = query.filter(DiveSite.difficulty_id.isnot(None))
     
     if country:
@@ -733,7 +733,7 @@ async def get_dive_sites(
     search: Optional[str] = Query(None, max_length=200, description="Unified search across name, country, region, and description"),
     name: Optional[str] = Query(None, max_length=100),
     difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
-    include_undefined: bool = Query(False, description="Include dive sites with unspecified difficulty"),
+    exclude_unspecified_difficulty: bool = Query(False, description="Exclude dive sites with unspecified difficulty"),
     min_rating: Optional[float] = Query(None, ge=0, le=10, description="Minimum average rating (0-10)"),
     tag_ids: Optional[List[int]] = Query(None),
     country: Optional[str] = Query(None, max_length=100),
@@ -766,7 +766,7 @@ async def get_dive_sites(
     query = apply_search_filters(query, search, name, db)
 
     # Apply basic filters using utility function
-    query = apply_basic_filters(query, difficulty_code, include_undefined, country, region, my_dive_sites, current_user, db)
+    query = apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db)
 
     # Apply tag filtering using utility function
     query = apply_tag_filtering(query, tag_ids, db)
@@ -791,7 +791,7 @@ async def get_dive_sites(
         
         # Apply the same filters to the full query using utility functions
         all_dive_sites_query = apply_search_filters(all_dive_sites_query, search, name, db)
-        all_dive_sites_query = apply_basic_filters(all_dive_sites_query, difficulty_code, include_undefined, country, region, my_dive_sites, current_user, db)
+        all_dive_sites_query = apply_basic_filters(all_dive_sites_query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db)
         all_dive_sites_query = apply_tag_filtering(all_dive_sites_query, tag_ids, db)
         all_dive_sites_query = apply_rating_filtering(all_dive_sites_query, min_rating, db)
         
@@ -999,7 +999,7 @@ async def get_dive_sites_count(
     request: Request,
     name: Optional[str] = Query(None, max_length=100),
     difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
-    include_undefined: bool = Query(False, description="Include dive sites with unspecified difficulty"),
+    exclude_unspecified_difficulty: bool = Query(False, description="Exclude dive sites with unspecified difficulty"),
     min_rating: Optional[float] = Query(None, ge=0, le=10, description="Minimum average rating (0-10)"),
     tag_ids: Optional[List[int]] = Query(None),
     country: Optional[str] = Query(None, max_length=100),
@@ -1013,7 +1013,7 @@ async def get_dive_sites_count(
 
     # Apply all filters using utility functions
     query = apply_search_filters(query, None, name, db)  # No search parameter in count function
-    query = apply_basic_filters(query, difficulty_code, include_undefined, country, region, my_dive_sites, current_user, db)
+    query = apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db)
     query = apply_tag_filtering(query, tag_ids, db)
     query = apply_rating_filtering(query, min_rating, db)
 

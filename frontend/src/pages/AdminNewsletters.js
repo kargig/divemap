@@ -994,7 +994,7 @@ const TripFormModal = ({
     trip_date: trip?.trip_date || '',
     trip_time: trip?.trip_time || '',
     trip_duration: trip?.trip_duration || '',
-    trip_difficulty_level: trip?.trip_difficulty_level || '',
+    trip_difficulty_code: trip?.trip_difficulty_code || '',
     trip_price: trip?.trip_price || '',
     trip_currency: trip?.trip_currency || 'EUR',
     group_size_limit: trip?.group_size_limit || '',

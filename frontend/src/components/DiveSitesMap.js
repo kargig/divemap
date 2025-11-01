@@ -100,8 +100,8 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
           <h3 class="font-semibold text-gray-900 mb-1">${marker.name}</h3>
           ${marker.description ? `<p class="text-sm text-gray-600 mb-2 line-clamp-2">${marker.description}</p>` : ''}
           <div class="flex items-center justify-between mb-2">
-            <span class="px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(marker.difficulty_level)}">
-              ${getDifficultyLabel(marker.difficulty_level)}
+            <span class="px-2 py-1 text-xs font-medium rounded-full             ${getDifficultyColorClasses(marker.difficulty_code)}">
+              ${marker.difficulty_label || getDifficultyLabel(marker.difficulty_code)}
             </span>
             ${
               marker.average_rating
@@ -153,10 +153,10 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
                   </div>
                   <div class="flex items-center space-x-2">
                     ${
-                      markerData.difficulty_level
+                      markerData.difficulty_code
                         ? `
-                      <span class="px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(markerData.difficulty_level)}">
-                        ${getDifficultyLabel(markerData.difficulty_level)}
+                      <span class="px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(markerData.difficulty_code)}">
+                        ${markerData.difficulty_label || getDifficultyLabel(markerData.difficulty_code)}
                       </span>
                     `
                         : ''
@@ -329,9 +329,9 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
                   )}
                   <div className='flex items-center justify-between mb-2'>
                     <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(site.difficulty_level)}`}
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(site.difficulty_code)}`}
                     >
-                      {getDifficultyLabel(site.difficulty_level)}
+                      {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
                     </span>
                     {site.average_rating && (
                       <div className='flex items-center'>
@@ -373,7 +373,7 @@ DiveSitesMap.propTypes = {
       name: PropTypes.string.isRequired,
       latitude: PropTypes.number.isRequired,
       longitude: PropTypes.number.isRequired,
-      difficulty_level: PropTypes.string.isRequired,
+      difficulty_code: PropTypes.string,
       description: PropTypes.string,
       average_rating: PropTypes.number,
     })

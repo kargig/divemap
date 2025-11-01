@@ -14,7 +14,7 @@ import {
 } from '../api';
 import RouteSelection from '../components/RouteSelection';
 import usePageTitle from '../hooks/usePageTitle';
-import { getDifficultyValue } from '../utils/difficultyHelpers';
+import { getDifficultyOptions } from '../utils/difficultyHelpers';
 
 const CreateDive = () => {
   // Set page title
@@ -32,7 +32,7 @@ const CreateDive = () => {
     average_depth: '',
     gas_bottles_used: '',
     suit_type: '',
-    difficulty_level: '',
+    difficulty_code: '',
     visibility_rating: '',
     user_rating: '',
     dive_date: new Date().toISOString().split('T')[0],
@@ -294,9 +294,9 @@ const CreateDive = () => {
         formData.user_rating && formData.user_rating !== '' ? parseInt(formData.user_rating) : null,
       duration: formData.duration && formData.duration !== '' ? parseInt(formData.duration) : null,
       suit_type: formData.suit_type && formData.suit_type !== '' ? formData.suit_type : null,
-      difficulty_level:
-        formData.difficulty_level && formData.difficulty_level !== ''
-          ? getDifficultyValue(formData.difficulty_level)
+      difficulty_code:
+        formData.difficulty_code && formData.difficulty_code !== ''
+          ? formData.difficulty_code
           : null,
       dive_information:
         formData.dive_information && formData.dive_information !== ''
@@ -607,15 +607,18 @@ const CreateDive = () => {
             </label>
             <select
               id='difficulty-level'
-              value={formData.difficulty_level}
-              onChange={e => handleInputChange('difficulty_level', e.target.value)}
+              value={formData.difficulty_code || ''}
+              onChange={e => handleInputChange('difficulty_code', e.target.value)}
               className='w-full border border-gray-300 rounded-md px-3 py-2'
             >
-              <option value=''>Select difficulty</option>
-              <option value='beginner'>Beginner</option>
-              <option value='intermediate'>Intermediate</option>
-              <option value='advanced'>Advanced</option>
-              <option value='expert'>Expert</option>
+              {getDifficultyOptions().map(option => (
+                <option
+                  key={option.value === null ? 'null' : option.value}
+                  value={option.value === null ? '' : option.value}
+                >
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
 

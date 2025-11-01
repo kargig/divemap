@@ -61,7 +61,7 @@ export const SEARCH_CONFIGS = {
       { name: 'country', weight: 0.8 },
       { name: 'region', weight: 0.8 },
       { name: 'description', weight: 0.6 },
-      { name: 'difficulty_level', weight: 0.5 },
+      { name: 'difficulty_label', weight: 0.5 },
       { name: 'requirements', weight: 0.5 },
       { name: 'aliases', weight: 0.9 },
     ],

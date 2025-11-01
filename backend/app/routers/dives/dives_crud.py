@@ -230,7 +230,7 @@ def get_dives_count(
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
     difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
-    include_undefined: bool = Query(False, description="Include dives with unspecified difficulty"),
+    exclude_unspecified_difficulty: bool = Query(False, description="Exclude dives with unspecified difficulty"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
     min_depth: Optional[float] = Query(None, ge=0, le=1000),
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
@@ -290,9 +290,9 @@ def get_dives_count(
         difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
         if difficulty_id:
             query = query.filter(Dive.difficulty_id == difficulty_id)
-        elif not include_undefined:
+        elif exclude_unspecified_difficulty:
             query = query.filter(False)
-    elif not include_undefined:
+    elif exclude_unspecified_difficulty:
         query = query.filter(Dive.difficulty_id.isnot(None))
 
     if suit_type:
@@ -366,7 +366,7 @@ def get_dives(
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
     search: Optional[str] = Query(None, description="Unified search across dive site name, description, notes"),
     difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
-    include_undefined: bool = Query(False, description="Include dives with unspecified difficulty"),
+    exclude_unspecified_difficulty: bool = Query(False, description="Exclude dives with unspecified difficulty"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
     min_depth: Optional[float] = Query(None, ge=0, le=1000),
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
@@ -479,9 +479,9 @@ def get_dives(
         difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
         if difficulty_id:
             query = query.filter(Dive.difficulty_id == difficulty_id)
-        elif not include_undefined:
+        elif exclude_unspecified_difficulty:
             query = query.filter(False)
-    elif not include_undefined:
+    elif exclude_unspecified_difficulty:
         query = query.filter(Dive.difficulty_id.isnot(None))
 
     if suit_type:
@@ -622,7 +622,8 @@ def get_dives(
                 dives, 
                 db, 
                 similarity_threshold=UNIFIED_TYPO_TOLERANCE['overall_threshold'], 
-                max_fuzzy_results=10
+                max_fuzzy_results=10,
+                exclude_unspecified_difficulty=exclude_unspecified_difficulty
             )
             
             # Update dives with enhanced results

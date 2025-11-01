@@ -1095,7 +1095,7 @@ async def get_parsed_trips(
     min_duration: Optional[int] = None,
     max_duration: Optional[int] = None,
     difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
-    include_undefined: bool = Query(False, description="Include trips with unspecified difficulty"),
+    exclude_unspecified_difficulty: bool = Query(False, description="Exclude trips with unspecified difficulty"),
     search_query: Optional[str] = None,
     location_query: Optional[str] = None,
     sort_by: Optional[str] = "trip_date",
@@ -1169,9 +1169,9 @@ async def get_parsed_trips(
         difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
         if difficulty_id:
             query = query.filter(ParsedDiveTrip.trip_difficulty_id == difficulty_id)
-        elif not include_undefined:
+        elif exclude_unspecified_difficulty:
             query = query.filter(False)
-    elif not include_undefined:
+    elif exclude_unspecified_difficulty:
         query = query.filter(ParsedDiveTrip.trip_difficulty_id.isnot(None))
 
     # Full-text search across multiple fields
