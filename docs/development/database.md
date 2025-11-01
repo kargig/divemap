@@ -44,6 +44,39 @@ This system was implemented in migration 0040 and provides:
 - **Nullable support**: All difficulty foreign keys are nullable, allowing unspecified difficulty for dive sites, dives, and trips
 - **Filtering**: API endpoints accept `exclude_unspecified_difficulty` parameter (default: `false`) to optionally exclude records with null difficulty
 
+### Spatial Features (Geospatial Queries)
+
+
+The database supports MySQL spatial data types for efficient geospatial queries, particularly for finding nearby diving centers relative to dive site coordinates.
+
+#### POINT Location in Diving Centers
+
+The `diving_centers` table includes a `location` field of type `POINT SRID 4326` that stores coordinates using the WGS84 coordinate system (SRID 4326). This enables efficient spatial queries using MySQL's spatial functions.
+
+**Migration**: `0038_add_point_location_to_diving_centers.py` (October 2025)
+
+**Key Features**:
+
+- **Spatial Index**: `idx_diving_centers_location` provides fast distance calculations
+- **Backfill Process**: Existing `latitude`/`longitude` values were converted to POINT format using `ST_SRID(POINT(longitude, latitude), 4326)`
+- **Sentinel Values**: Centers without coordinates use `POINT(0, 0)` to satisfy NOT NULL constraint required for spatial indexes
+- **Distance Calculations**: Uses `ST_Distance_Sphere()` for accurate spherical distance calculations (accounts for Earth's curvature)
+- **Synchronization**: The `location` field is automatically maintained in sync with `latitude` and `longitude` during create/update operations
+
+**Spatial Query Example**:
+
+```sql
+-- Find centers within 100km sorted by distance
+SELECT id, name,
+       ST_Distance_Sphere(location, ST_SRID(POINT(:lng, :lat), 4326)) AS distance_m
+FROM diving_centers
+WHERE ST_Distance_Sphere(location, ST_SRID(POINT(:lng, :lat), 4326)) <= 100000
+ORDER BY distance_m ASC
+LIMIT 50;
+```
+
+**Note**: Spatial features require MySQL with spatial support. SQLite and other databases do not support these features, and queries will fall back to alternative methods or return errors as appropriate.
+
 ### Core Tables
 
 #### Users Table
@@ -100,11 +133,21 @@ CREATE TABLE diving_centers (
     website VARCHAR(255),
     latitude DECIMAL(10, 8),
     longitude DECIMAL(11, 8),
+    location POINT SRID 4326 NOT NULL,
     view_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    SPATIAL INDEX idx_diving_centers_location (location)
 );
 ```
+
+**Spatial Location Field**: The `location` field uses MySQL's `POINT` type with SRID 4326 (WGS84 coordinate system) for efficient geospatial queries. This was added in migration 0038 to support nearby diving center searches with spatial indexing for performance.
+
+- **Migration**: `0038_add_point_location_to_diving_centers.py`
+- **Backfill**: Existing centers with `latitude` and `longitude` values were automatically converted using `ST_SRID(POINT(longitude, latitude), 4326)`
+- **Sentinel Values**: Centers without coordinates were set to `POINT(0, 0)` to satisfy the NOT NULL constraint required for spatial indexes
+- **Spatial Index**: `idx_diving_centers_location` enables fast distance calculations using `ST_Distance_Sphere()`
+- **Maintenance**: The `location` field is kept in sync with `latitude` and `longitude` fields during create/update operations
 
 #### Diving Organizations Table
 ```sql

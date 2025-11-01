@@ -610,6 +610,135 @@ Get total count of diving centers matching filters.
 }
 ```text
 
+#### GET /diving-centers/nearby
+
+Find diving centers within a specified radius of given coordinates, sorted by distance. Uses MySQL spatial functions (`POINT` and `ST_Distance_Sphere`) for efficient geospatial queries.
+
+**Query Parameters:**
+
+- `lat` (required): Latitude (-90 to 90)
+- `lng` (required): Longitude (-180 to 180)
+- `radius_km` (optional): Search radius in kilometers (default: 100, max: 500)
+- `limit` (optional): Maximum number of results (default: 25, max: 100)
+
+**Note**: This endpoint requires MySQL with spatial support. SQLite and other databases will return a 400 error.
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Cairns Dive Center",
+    "country": "Australia",
+    "region": "Queensland",
+    "city": "Cairns",
+    "distance_km": 12.5
+  },
+  {
+    "id": 2,
+    "name": "Port Douglas Dive",
+    "country": "Australia",
+    "region": "Queensland",
+    "city": "Port Douglas",
+    "distance_km": 45.3
+  }
+]
+```text
+
+**Example Request:**
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/diving-centers/nearby?lat=-16.9&lng=145.7&radius_km=100&limit=50"
+```text
+
+**Implementation Details**:
+
+- Uses `ST_Distance_Sphere()` for accurate spherical distance calculations (accounts for Earth's curvature)
+- Leverages spatial index `idx_diving_centers_location` for fast filtering
+- Returns lean payload with only essential fields for performance
+- Results are sorted by distance in ascending order
+
+#### GET /diving-centers/search
+
+Search diving centers by name globally with optional distance-aware ranking. Supports prefix matching (preferred) and substring matching for flexible search.
+
+**Query Parameters:**
+
+- `q` (required): Search query string (1-200 characters)
+- `limit` (optional): Maximum number of results (default: 20, max: 50)
+- `lat` (optional): Latitude for distance ranking (-90 to 90)
+- `lng` (optional): Longitude for distance ranking (-180 to 180)
+
+**Note**: When `lat` and `lng` are provided, results are ranked by:
+
+1. Name match priority (prefix matches first, then substring matches)
+2. Distance (when coordinates provided and using MySQL)
+
+Without coordinates, results are ranked by name match priority only.
+
+**Response (with coordinates):**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Cairns Dive Center",
+    "country": "Australia",
+    "region": "Queensland",
+    "city": "Cairns",
+    "distance_km": 12.5
+  },
+  {
+    "id": 3,
+    "name": "Cairns Underwater Adventures",
+    "country": "Australia",
+    "region": "Queensland",
+    "city": "Cairns",
+    "distance_km": 18.2
+  }
+]
+```text
+
+**Response (without coordinates):**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Cairns Dive Center",
+    "country": "Australia",
+    "region": "Queensland",
+    "city": "Cairns"
+  },
+  {
+    "id": 3,
+    "name": "Cairns Underwater Adventures",
+    "country": "Australia",
+    "region": "Queensland",
+    "city": "Cairns"
+  }
+]
+```text
+
+**Example Requests:**
+
+```bash
+# Search with distance ranking
+curl -X GET "http://localhost:8000/api/v1/diving-centers/search?q=Cairns&lat=-16.9&lng=145.7&limit=20"
+
+# Search without coordinates (prefix/substring matching only)
+curl -X GET "http://localhost:8000/api/v1/diving-centers/search?q=Dive&limit=20"
+```text
+
+**Implementation Details**:
+
+- Prefix matches (name starts with query) are ranked before substring matches
+- When coordinates provided: ranking uses name priority + distance
+- Without coordinates: ranking uses name priority + alphabetical order
+- Works with both MySQL (spatial) and SQLite (standard LIKE queries)
+- Distance calculations require MySQL with spatial support
+
 #### GET /diving-centers/
 
 Get all diving centers with comprehensive sorting and filtering.
