@@ -10,6 +10,8 @@ import {
   AlertCircle,
   X,
   ArrowLeft,
+  ExternalLink,
+  Navigation,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -396,45 +398,65 @@ const DivingCenterDetail = () => {
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
             {center?.email && (
               <div className='flex items-center text-gray-600'>
-                <Mail className='h-5 w-5 mr-3' />
-                <MaskedEmail email={center.email} className='hover:text-blue-600' />
+                <Mail className='h-5 w-5 mr-3 flex-shrink-0 text-gray-500' />
+                <div className='flex items-center gap-2 min-w-0'>
+                  <MaskedEmail
+                    email={center.email}
+                    className='text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium cursor-pointer'
+                  />
+                  <span className='text-xs text-gray-400'>Click to reveal</span>
+                </div>
               </div>
             )}
             {center?.phone && (
               <div className='flex items-center text-gray-600'>
-                <Phone className='h-5 w-5 mr-3' />
-                <a href={`tel:${center.phone}`} className='hover:text-blue-600'>
+                <Phone className='h-5 w-5 mr-3 flex-shrink-0 text-gray-500' />
+                <a
+                  href={`tel:${center.phone}`}
+                  className='text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium inline-flex items-center gap-1'
+                >
                   {center.phone}
+                  <Phone className='h-3 w-3' />
                 </a>
               </div>
             )}
             {center?.website && (
               <div className='flex items-center text-gray-600'>
-                <Globe className='h-5 w-5 mr-3' />
+                <Globe className='h-5 w-5 mr-3 flex-shrink-0 text-gray-500' />
                 <a
                   href={
                     center.website.startsWith('http') ? center.website : `https://${center.website}`
                   }
                   target='_blank'
                   rel='noopener noreferrer'
-                  className='hover:text-blue-600'
+                  className='text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium inline-flex items-center gap-1'
                 >
                   {center.website}
+                  <ExternalLink className='h-3 w-3' />
                 </a>
               </div>
             )}
             {center?.latitude && center?.longitude && (
               <div className='flex items-center text-gray-600'>
-                <MapPin className='h-5 w-5 mr-3' />
-                <span>
-                  {center.latitude !== undefined && !isNaN(Number(center.latitude))
-                    ? Number(center.latitude).toFixed(5)
-                    : 'N/A'}
-                  ,{' '}
-                  {center.longitude !== undefined && !isNaN(Number(center.longitude))
-                    ? Number(center.longitude).toFixed(5)
-                    : 'N/A'}
-                </span>
+                <MapPin className='h-5 w-5 mr-3 flex-shrink-0 text-gray-500' />
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${center.latitude},${center.longitude}`}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium inline-flex items-center gap-2'
+                  title='Get directions from your current location'
+                >
+                  <span>
+                    {center.latitude !== undefined && !isNaN(Number(center.latitude))
+                      ? Number(center.latitude).toFixed(5)
+                      : 'N/A'}
+                    ,{' '}
+                    {center.longitude !== undefined && !isNaN(Number(center.longitude))
+                      ? Number(center.longitude).toFixed(5)
+                      : 'N/A'}
+                  </span>
+                  <Navigation className='h-4 w-4' />
+                </a>
               </div>
             )}
           </div>
@@ -618,7 +640,7 @@ const DivingCenterDetail = () => {
                         <div className='flex items-center space-x-2'>
                           <Link
                             to={`/user/${comment.username}`}
-                            className='font-semibold text-blue-600 hover:text-blue-800 hover:underline'
+                            className='font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors'
                           >
                             {comment.username}
                           </Link>
