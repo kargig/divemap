@@ -31,6 +31,7 @@ import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive } from '../hooks/useResponsive';
+import { useSetting } from '../hooks/useSettings';
 import useSorting from '../hooks/useSorting';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
@@ -52,6 +53,10 @@ const DivingCenters = () => {
 
   // Set page title
   usePageTitle('Divemap - Diving Centers');
+
+  // Check if reviews are enabled
+  const { data: reviewsDisabledSetting } = useSetting('disable_diving_center_reviews');
+  const reviewsEnabled = reviewsDisabledSetting?.value === false;
 
   // View mode state
   const [viewMode, setViewMode] = useState(() => {
@@ -702,6 +707,7 @@ const DivingCenters = () => {
           onViewModeChange={handleViewModeChange}
           compactLayout={compactLayout}
           onDisplayOptionChange={handleDisplayOptionChange}
+          reviewsEnabled={reviewsEnabled}
         />
       </div>
 

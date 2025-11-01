@@ -10,7 +10,7 @@ from unittest.mock import Mock
 
 from app.main import app
 from app.database import get_db, Base
-from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment, DivingOrganization, UserCertification, RefreshToken, AuthAuditLog, Dive, DiveRoute, RouteAnalytics, DifficultyLevel
+from app.models import User, DiveSite, DivingCenter, SiteRating, CenterRating, SiteComment, CenterComment, DivingOrganization, UserCertification, RefreshToken, AuthAuditLog, Dive, DiveRoute, RouteAnalytics, DifficultyLevel, Setting
 from app.auth import create_access_token
 
 # Test database URL - use environment variable if available, otherwise default to SQLite

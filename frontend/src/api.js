@@ -439,3 +439,19 @@ export const getTurnstileStats = async (timeWindow = 24) => {
   const response = await api.get(`/api/v1/admin/system/turnstile-stats?time_window=${timeWindow}`);
   return response.data;
 };
+
+// Settings API functions
+export const getSetting = async key => {
+  const response = await api.get(`/api/v1/settings/${key}`);
+  return response.data;
+};
+
+export const updateSetting = async (key, value) => {
+  const response = await api.put(`/api/v1/settings/${key}`, { value });
+  return response.data;
+};
+
+export const getAllSettings = async () => {
+  const response = await api.get('/api/v1/settings');
+  return response.data;
+};

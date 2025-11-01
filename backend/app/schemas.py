@@ -1055,3 +1055,17 @@ class RouteDeletionRequest(BaseModel):
     """Request to delete a route"""
     route_id: int
     migrate_dives_to_route_id: Optional[int] = None  # If dives need to be migrated
+
+# Settings Schemas
+class SettingResponse(BaseModel):
+    """Response schema for a setting"""
+    key: str
+    value: Union[str, int, float, bool, dict, list]  # JSON value (parsed)
+    description: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class SettingUpdate(BaseModel):
+    """Schema for updating a setting value"""
+    value: Union[str, int, float, bool, dict, list]  # JSON-serializable value

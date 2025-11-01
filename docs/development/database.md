@@ -77,6 +77,60 @@ LIMIT 50;
 
 **Note**: Spatial features require MySQL with spatial support. SQLite and other databases do not support these features, and queries will fall back to alternative methods or return errors as appropriate.
 
+### Settings Table
+
+The `settings` table provides a flexible, database-backed configuration system for application settings. This design allows runtime configuration changes without code deployment.
+
+**Migration**: `0041_add_settings_table.py` (November 01, 2025)
+
+#### Table Schema
+
+```sql
+CREATE TABLE settings (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    `key` VARCHAR(255) UNIQUE NOT NULL,
+    value TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_settings_key (`key`)
+);
+```
+
+#### Key Features
+
+- **Generic Design**: Flexible key-value storage supporting various data types (stored as JSON strings)
+- **Unique Keys**: Each setting key must be unique
+- **Indexed Lookups**: Fast key-based queries via `idx_settings_key` index
+- **Audit Trail**: `created_at` and `updated_at` timestamps track setting lifecycle
+- **Descriptive**: Optional `description` field documents setting purpose
+
+#### Current Settings
+
+##### `disable_diving_center_reviews`
+
+Controls whether diving center reviews (ratings and comments) are enabled or disabled across the application.
+
+- **Type**: Boolean (stored as JSON string: `"true"` or `"false"`)
+- **Default Value**: `false` (reviews enabled by default)
+- **Description**: "Disable comments and ratings for diving centers"
+- **Effect When Enabled (`true`)**:
+  - Rating endpoints return `403 Forbidden`
+  - Comment endpoints return `403 Forbidden` or empty lists
+  - Frontend hides rating and comment UI
+  - Rating filters are ignored in listing endpoints
+  - Rating data is excluded from API responses
+- **Effect When Disabled (`false`)**:
+  - All review functionality works normally
+  - Rating and comment UI visible to users
+  - Rating filters work in listing endpoints
+
+**Admin Configuration**: This setting can be toggled via the admin interface at `/admin/diving-centers`.
+
+#### Usage Pattern
+
+Settings are accessed via the Settings API endpoints (see [API Documentation](./api.md#settings-api)) or directly through the database for administrative purposes. The value is stored as a JSON string to support future settings with complex data types (objects, arrays).
+
 ### Core Tables
 
 #### Users Table

@@ -1,5 +1,35 @@
 from fastapi import Request
 from typing import Optional
+from sqlalchemy.orm import Session
+import json
+
+
+def is_diving_center_reviews_enabled(db: Session) -> bool:
+    """
+    Check if diving center reviews (comments and ratings) are enabled.
+    Returns True if reviews are enabled (setting is false/disabled), False otherwise.
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        bool: True if reviews are enabled, False if disabled
+    """
+    from app.models import Setting
+    
+    setting = db.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+    if not setting:
+        # Default to enabled if setting doesn't exist
+        return True
+    
+    try:
+        # Parse JSON boolean value
+        value = json.loads(setting.value)
+        # Setting is "disable_diving_center_reviews", so if value is True, reviews are disabled
+        return not bool(value)
+    except (json.JSONDecodeError, ValueError):
+        # If value is not a valid boolean, default to enabled
+        return True
 
 
 def get_client_ip(request: Request) -> str:

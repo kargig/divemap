@@ -22,7 +22,8 @@ from app.utils import (
     calculate_unified_phrase_aware_score,
     classify_match_type,
     get_unified_fuzzy_trigger_conditions,
-    UNIFIED_TYPO_TOLERANCE
+    UNIFIED_TYPO_TOLERANCE,
+    is_diving_center_reviews_enabled
 )
 from app.limiter import limiter, skip_rate_limit_for_admin
 
@@ -621,6 +622,14 @@ async def get_diving_centers(
     current_user: User = Depends(get_current_user_optional)
 ):
     """Get diving centers with filtering and pagination."""
+    # Check if reviews are enabled
+    reviews_enabled = is_diving_center_reviews_enabled(db)
+    
+    # If reviews are disabled, ignore rating filters
+    if not reviews_enabled:
+        min_rating = None
+        max_rating = None
+    
     # Validate page_size
     if page_size not in [1, 5, 25, 50, 100, 1000]:
         raise HTTPException(
@@ -665,8 +674,8 @@ async def get_diving_centers(
             )
         )
 
-    # Apply rating filters at database level for accurate pagination
-    if min_rating is not None or max_rating is not None:
+    # Apply rating filters at database level for accurate pagination (only if reviews enabled)
+    if reviews_enabled and (min_rating is not None or max_rating is not None):
         # Create a subquery to filter by ratings
         ratings_filter_subquery = db.query(
             CenterRating.diving_center_id,
@@ -694,14 +703,17 @@ async def get_diving_centers(
     # Apply dynamic sorting based on parameters
     if sort_by:
         # All valid sort fields (including admin-only ones)
+        # Exclude comment_count if reviews are disabled
         valid_sort_fields = {
-            'name', 'view_count', 'comment_count', 'created_at', 'updated_at', 'country', 'region', 'city'
+            'name', 'view_count', 'created_at', 'updated_at', 'country', 'region', 'city'
         }
+        if reviews_enabled:
+            valid_sort_fields.add('comment_count')
         
         if sort_by not in valid_sort_fields:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}"
+                detail=f"Invalid sort_by field. Must be one of: {', '.join(sorted(valid_sort_fields))}"
             )
         
         # Validate sort_order parameter
@@ -764,21 +776,26 @@ async def get_diving_centers(
     # Get diving centers with pagination and ratings in a single query
     from sqlalchemy import func as sql_func
 
-    # Subquery to get average ratings and total ratings
-    ratings_subquery = db.query(
-        CenterRating.diving_center_id,
-        sql_func.avg(CenterRating.score).label('avg_rating'),
-        sql_func.count(CenterRating.id).label('total_ratings')
-    ).group_by(CenterRating.diving_center_id).subquery()
+    # Only calculate ratings if reviews are enabled
+    if reviews_enabled:
+        # Subquery to get average ratings and total ratings
+        ratings_subquery = db.query(
+            CenterRating.diving_center_id,
+            sql_func.avg(CenterRating.score).label('avg_rating'),
+            sql_func.count(CenterRating.id).label('total_ratings')
+        ).group_by(CenterRating.diving_center_id).subquery()
 
-    # Join diving centers with ratings
-    query_with_ratings = query.outerjoin(
-        ratings_subquery,
-        DivingCenter.id == ratings_subquery.c.diving_center_id
-    ).add_columns(
-        ratings_subquery.c.avg_rating,
-        ratings_subquery.c.total_ratings
-    )
+        # Join diving centers with ratings
+        query_with_ratings = query.outerjoin(
+            ratings_subquery,
+            DivingCenter.id == ratings_subquery.c.diving_center_id
+        ).add_columns(
+            ratings_subquery.c.avg_rating,
+            ratings_subquery.c.total_ratings
+        )
+    else:
+        # When reviews disabled, don't join ratings - just add None columns
+        query_with_ratings = query.add_columns(None, None)
 
     # Check if we need fuzzy search before applying pagination
     # Always trigger fuzzy search for multi-word queries or when exact results are insufficient
@@ -842,21 +859,25 @@ async def get_diving_centers(
                 DivingCenter.id.in_([center.id for center in diving_centers])
             )
             
-            # Re-apply the same logic for ratings
-            if min_rating is not None or max_rating is not None:
-                enhanced_query = enhanced_query.join(
+            # Re-apply the same logic for ratings (only if reviews enabled)
+            if reviews_enabled:
+                if min_rating is not None or max_rating is not None:
+                    enhanced_query = enhanced_query.join(
+                        ratings_subquery,
+                        DivingCenter.id == ratings_subquery.c.diving_center_id
+                    )
+                
+                # Get enhanced results with ratings
+                enhanced_with_ratings = enhanced_query.outerjoin(
                     ratings_subquery,
                     DivingCenter.id == ratings_subquery.c.diving_center_id
-                )
-            
-            # Get enhanced results with ratings
-            enhanced_with_ratings = enhanced_query.outerjoin(
-                ratings_subquery,
-                DivingCenter.id == ratings_subquery.c.diving_center_id
-            ).add_columns(
-                ratings_subquery.c.avg_rating,
-                ratings_subquery.c.total_ratings
-            ).all()
+                ).add_columns(
+                    ratings_subquery.c.avg_rating,
+                    ratings_subquery.c.total_ratings
+                ).all()
+            else:
+                # When reviews disabled, just add None for ratings
+                enhanced_with_ratings = enhanced_query.add_columns(None, None).all()
             
             # Create a mapping from ID to rating data to preserve the sorted order
             rating_data_by_id = {}
@@ -894,8 +915,8 @@ async def get_diving_centers(
             "city": center.city,
             "created_at": center.created_at.isoformat() if center.created_at else None,
             "updated_at": center.updated_at.isoformat() if center.updated_at else None,
-            "average_rating": float(avg_rating) if avg_rating else None,
-            "total_ratings": total_ratings or 0
+            "average_rating": float(avg_rating) if reviews_enabled and avg_rating else None,
+            "total_ratings": (total_ratings or 0) if reviews_enabled else 0
         }
 
         # Only include view_count for admin users
@@ -1045,24 +1066,31 @@ async def get_diving_center(
     diving_center.view_count += 1
     db.commit()
 
-    # Calculate average rating
-    avg_rating = db.query(func.avg(CenterRating.score)).filter(
-        CenterRating.diving_center_id == diving_center.id
-    ).scalar()
+    # Check if reviews are enabled
+    reviews_enabled = is_diving_center_reviews_enabled(db)
 
-    total_ratings = db.query(func.count(CenterRating.id)).filter(
-        CenterRating.diving_center_id == diving_center.id
-    ).scalar()
-
-    # Get user's previous rating if authenticated
+    # Calculate average rating (only if reviews enabled)
+    avg_rating = None
+    total_ratings = 0
     user_rating = None
-    if current_user:
-        user_rating_obj = db.query(CenterRating).filter(
-            CenterRating.diving_center_id == diving_center_id,
-            CenterRating.user_id == current_user.id
-        ).first()
-        if user_rating_obj:
-            user_rating = user_rating_obj.score
+    
+    if reviews_enabled:
+        avg_rating = db.query(func.avg(CenterRating.score)).filter(
+            CenterRating.diving_center_id == diving_center.id
+        ).scalar()
+
+        total_ratings = db.query(func.count(CenterRating.id)).filter(
+            CenterRating.diving_center_id == diving_center.id
+        ).scalar()
+
+        # Get user's previous rating if authenticated
+        if current_user:
+            user_rating_obj = db.query(CenterRating).filter(
+                CenterRating.diving_center_id == diving_center_id,
+                CenterRating.user_id == current_user.id
+            ).first()
+            if user_rating_obj:
+                user_rating = user_rating_obj.score
 
     # Prepare response data
     response_data = {
@@ -1126,14 +1154,21 @@ async def update_diving_center(
     db.commit()
     db.refresh(diving_center)
 
-    # Calculate average rating
-    avg_rating = db.query(func.avg(CenterRating.score)).filter(
-        CenterRating.diving_center_id == diving_center.id
-    ).scalar()
+    # Check if reviews are enabled
+    reviews_enabled = is_diving_center_reviews_enabled(db)
 
-    total_ratings = db.query(func.count(CenterRating.id)).filter(
-        CenterRating.diving_center_id == diving_center.id
-    ).scalar()
+    # Calculate average rating (only if reviews enabled)
+    avg_rating = None
+    total_ratings = 0
+    
+    if reviews_enabled:
+        avg_rating = db.query(func.avg(CenterRating.score)).filter(
+            CenterRating.diving_center_id == diving_center.id
+        ).scalar()
+
+        total_ratings = db.query(func.count(CenterRating.id)).filter(
+            CenterRating.diving_center_id == diving_center.id
+        ).scalar()
 
     # Return the updated diving center using the response model
     return DivingCenterResponse(
@@ -1180,6 +1215,13 @@ async def rate_diving_center(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    # Check if reviews are enabled
+    if not is_diving_center_reviews_enabled(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reviews are currently disabled"
+        )
+    
     # Check if diving center exists
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not diving_center:
@@ -1235,7 +1277,11 @@ async def get_diving_center_comments(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Diving center not found"
         )
-
+    
+    # If reviews are disabled, return empty list (don't error, just hide content)
+    if not is_diving_center_reviews_enabled(db):
+        return []
+    
     # Get comments with user information and their primary certification
     comments = db.query(
         CenterComment,
@@ -1283,6 +1329,13 @@ async def create_diving_center_comment(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    # Check if reviews are enabled
+    if not is_diving_center_reviews_enabled(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reviews are currently disabled"
+        )
+    
     # Check if diving center exists
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not diving_center:
@@ -1335,6 +1388,13 @@ async def update_diving_center_comment(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    # Check if reviews are enabled
+    if not is_diving_center_reviews_enabled(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reviews are currently disabled"
+        )
+    
     comment = db.query(CenterComment).filter(
         and_(CenterComment.id == comment_id, CenterComment.diving_center_id == diving_center_id)
     ).first()
@@ -1389,6 +1449,13 @@ async def delete_diving_center_comment(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    # Check if reviews are enabled
+    if not is_diving_center_reviews_enabled(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reviews are currently disabled"
+        )
+    
     # Check if diving center exists
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not diving_center:
