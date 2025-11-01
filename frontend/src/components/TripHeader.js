@@ -1,12 +1,13 @@
 import { Calendar, DollarSign, Users, ArrowLeft } from 'lucide-react';
 import PropTypes from 'prop-types';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { formatPrice, formatDate } from '../utils/tripHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
 
 const TripHeader = ({ trip }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <>
@@ -23,7 +24,14 @@ const TripHeader = ({ trip }) => {
 
       {/* Back Button */}
       <button
-        onClick={() => navigate('/dive-trips')}
+        onClick={() => {
+          const from = location.state?.from;
+          if (from) {
+            navigate(from);
+          } else {
+            navigate(-1);
+          }
+        }}
         className='flex items-center space-x-2 text-blue-600 hover:text-blue-800 mb-6 transition-colors'
       >
         <ArrowLeft className='w-4 h-4' />

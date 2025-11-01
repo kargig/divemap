@@ -1,7 +1,7 @@
 import { MapPin, Phone, Mail, Globe, Navigation, Eye, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 
 import { getParsedTrip, getDiveSite, getDivingCenter } from '../api';
 import MaskedEmail from '../components/MaskedEmail';
@@ -12,6 +12,7 @@ import { generateTripName } from '../utils/tripNameGenerator';
 const TripDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('overview');
   // Fetch trip data
   const {
@@ -147,6 +148,7 @@ const TripDetail = () => {
                           {dive.dive_site_id ? (
                             <Link
                               to={`/dive-sites/${dive.dive_site_id}`}
+                              state={{ from: location.pathname + location.search }}
                               className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
                             >
                               {dive.dive_site_name || 'Unnamed Site'}

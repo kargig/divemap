@@ -19,7 +19,13 @@ import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useNavigate, useParams, useSearchParams, Link as RouterLink } from 'react-router-dom';
+import {
+  useNavigate,
+  useParams,
+  useSearchParams,
+  useLocation,
+  Link as RouterLink,
+} from 'react-router-dom';
 
 import api, { getDive, deleteDive, deleteDiveMedia } from '../api';
 import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
@@ -206,6 +212,7 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
 const DiveDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -519,7 +526,14 @@ const DiveDetail = () => {
       <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4'>
         <div className='flex items-center gap-3 sm:gap-4'>
           <button
-            onClick={() => navigate('/dives')}
+            onClick={() => {
+              const from = location.state?.from;
+              if (from) {
+                navigate(from);
+              } else {
+                navigate(-1);
+              }
+            }}
             className='text-gray-600 hover:text-gray-800 p-1'
           >
             <ArrowLeft size={20} className='sm:w-6 sm:h-6' />
@@ -990,6 +1004,7 @@ const DiveDetail = () => {
                 )}
                 <RouterLink
                   to={`/dive-sites/${dive.dive_site.id}`}
+                  state={{ from: location.pathname + location.search }}
                   className='text-blue-600 hover:text-blue-800 text-sm'
                 >
                   View dive site details →
@@ -1014,6 +1029,7 @@ const DiveDetail = () => {
                 )}
                 <RouterLink
                   to={`/diving-centers/${dive.diving_center.id}`}
+                  state={{ from: location.pathname + location.search }}
                   className='text-blue-600 hover:text-blue-800 text-sm'
                 >
                   View diving center details →

@@ -5,7 +5,7 @@ import 'leaflet.markercluster';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 import MaskedEmail from './MaskedEmail';
 
@@ -198,6 +198,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
 };
 
 const DivingCentersMap = ({ divingCenters, onViewportChange }) => {
+  const location = useLocation();
   const [currentZoom, setCurrentZoom] = useState(10);
   const [maxZoom] = useState(18);
   const [useClustering, setUseClustering] = useState(true);
@@ -354,6 +355,7 @@ const DivingCentersMap = ({ divingCenters, onViewportChange }) => {
 
                   <Link
                     to={`/diving-centers/${center.id}`}
+                    state={{ from: location.pathname + location.search }}
                     className='block w-full text-center px-3 py-2 bg-blue-600 text-white !text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm'
                   >
                     View Details

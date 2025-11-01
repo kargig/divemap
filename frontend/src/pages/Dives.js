@@ -22,7 +22,7 @@ import {
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
 import api, { deleteDive } from '../api';
 import DesktopSearchBar from '../components/DesktopSearchBar';
@@ -47,6 +47,7 @@ import { getTagColor } from '../utils/tagHelpers';
 const Dives = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
@@ -1050,6 +1051,7 @@ const Dives = () => {
                               >
                                 <Link
                                   to={`/dives/${dive.id}`}
+                                  state={{ from: location.pathname + location.search }}
                                   className='hover:text-blue-600 transition-colors block whitespace-normal break-words'
                                 >
                                   {dive.name || `Dive #${dive.id}`}
@@ -1089,6 +1091,7 @@ const Dives = () => {
                     </div>
                     <Link
                       to={`/dives/${dive.id}`}
+                      state={{ from: location.pathname + location.search }}
                       className='hidden sm:inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
                     >
                       <Eye className='w-4 h-4' />
@@ -1212,6 +1215,7 @@ const Dives = () => {
                         >
                           <Link
                             to={`/dives/${dive.id}`}
+                            state={{ from: location.pathname + location.search }}
                             className='hover:text-blue-600 transition-colors block whitespace-normal break-words'
                           >
                             {dive.name || `Dive #${dive.id}`}
@@ -1313,6 +1317,7 @@ const Dives = () => {
 
                     <Link
                       to={`/dives/${dive.id}`}
+                      state={{ from: location.pathname + location.search }}
                       className='w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
                     >
                       <Eye className='w-4 h-4' />
