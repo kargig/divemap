@@ -26,7 +26,7 @@ Add geospatial support using MySQL `POINT` with SRID 4326 and a spatial index fo
 - [x] Quality: Spatial index present; queries complete quickly on realistic data sizes
 - [x] Quality: Linting and formatting pass (backend and frontend)
 - [x] Tests: Backend unit/integration tests for distance and search behaviors pass
-- [ ] Docs: Add/update developer docs describing POINT, backfill, and endpoints
+- [x] Docs: Add/update developer docs describing POINT, backfill, and endpoints
 
 ## Implementation Plan
 
