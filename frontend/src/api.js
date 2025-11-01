@@ -1,13 +1,35 @@
 import axios from 'axios';
 
-// Create axios instance with default config
+// Create axios instance with relative URLs
+// Using relative URLs (empty baseURL) ensures the browser automatically uses
+// the same protocol as the page (HTTPS in production, HTTP in development)
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
+  baseURL: '',
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Important: include cookies with all requests
 });
+
+// Override baseURL for localhost development only
+// In production, baseURL stays empty = relative URLs = automatic HTTPS
+if (typeof window !== 'undefined') {
+  const hostname = window.location.hostname;
+  const isLocalhost =
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname.startsWith('192.168.') ||
+    hostname.startsWith('10.');
+
+  if (isLocalhost) {
+    // Development: backend on different port
+    const envUrl = process.env.REACT_APP_API_URL;
+    api.defaults.baseURL =
+      envUrl && envUrl.trim() && envUrl.startsWith('http://localhost')
+        ? envUrl
+        : 'http://localhost:8000';
+  }
+}
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
@@ -130,7 +152,7 @@ api.interceptors.response.use(
 // Global Search API
 export const searchGlobal = async (query, limit = 8) => {
   try {
-    const response = await api.get('/api/v1/search', {
+    const response = await api.get('/api/v1/search/', {
       params: {
         q: query,
         limit: limit,
