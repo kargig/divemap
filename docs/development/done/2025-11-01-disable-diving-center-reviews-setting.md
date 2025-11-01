@@ -1,12 +1,11 @@
 # Add disable_diving_center_reviews setting
 
-**Status:** Review
+**Status:** Done
 **Created:** November 01, 2025
 **Started:** November 01, 2025
 **Agent PID:** 28688
 **Branch:** feature/disable-diving-center-reviews-setting
-**Phases Completed:** 1-7 (Backend and Frontend Implementation)
-**Phases Pending:** 8 (Frontend Testing), 9 (Documentation)
+**Phases Completed:** 1-9 (Backend, Frontend, Testing, Documentation)
 
 ## Original Todo
 
@@ -59,9 +58,9 @@ This design allows for future expansion with additional settings stored in the s
 
 ### Documentation
 
-- [ ] Database migration documented in `docs/development/database.md`
-- [ ] API endpoint documented in `docs/development/api.md`
-- [ ] Changelog entry added with current date (November 01, 2025)
+- [x] Database migration documented in `docs/development/database.md`
+- [x] API endpoint documented in `docs/development/api.md`
+- [x] Changelog entry added with current date (November 01, 2025)
 
 ## Implementation Plan
 
@@ -219,22 +218,22 @@ This design allows for future expansion with additional settings stored in the s
 
 ### Phase 9: Documentation
 
-- [ ] Update `docs/development/database.md`
-  - [ ] Add section: "Settings Table"
-  - [ ] Document table schema
-  - [ ] Document `disable_diving_center_reviews` setting
-  - [ ] Document migration number (0041)
-- [ ] Update `docs/development/api.md`
-  - [ ] Add section: "Settings API"
-  - [ ] Document `GET /api/v1/settings/{key}` endpoint
-  - [ ] Document `PUT /api/v1/settings/{key}` endpoint (admin-only)
-  - [ ] Document `GET /api/v1/settings` endpoint (admin-only)
-  - [ ] Add curl examples for all endpoints
-- [ ] Update `docs/maintenance/changelog.md`
-  - [ ] Add entry dated November 01, 2025
-  - [ ] Document new settings system
-  - [ ] Document `disable_diving_center_reviews` feature
-  - [ ] Note admin UI toggle location
+- [x] Update `docs/development/database.md`
+  - [x] Add section: "Settings Table"
+  - [x] Document table schema
+  - [x] Document `disable_diving_center_reviews` setting
+  - [x] Document migration number (0041)
+- [x] Update `docs/development/api.md`
+  - [x] Add section: "Settings API"
+  - [x] Document `GET /api/v1/settings/{key}` endpoint
+  - [x] Document `PUT /api/v1/settings/{key}` endpoint (admin-only)
+  - [x] Document `GET /api/v1/settings` endpoint (admin-only)
+  - [x] Add curl examples for all endpoints
+- [x] Update `docs/maintenance/changelog.md`
+  - [x] Add entry dated November 01, 2025
+  - [x] Document new settings system
+  - [x] Document `disable_diving_center_reviews` feature
+  - [x] Note admin UI toggle location
 
 ## Testing Plan
 
@@ -460,7 +459,7 @@ curl -X PUT "http://localhost/api/v1/settings/disable_diving_center_reviews" \
 - [x] Frontend detail page hides reviews when disabled (implemented in DivingCenterDetail.js)
 - [x] All existing tests still pass (862 tests passing)
 - [x] No breaking changes to existing functionality (verified)
-- [ ] Documentation updated correctly (Phase 9 pending)
+- [x] Documentation updated correctly (Phase 9 complete)
 
 ## Review
 
@@ -474,7 +473,7 @@ curl -X PUT "http://localhost/api/v1/settings/disable_diving_center_reviews" \
 - **Admin Override**: Consider whether admins should always see reviews or respect the setting (recommendation: respect setting for consistency) - Currently admins are also blocked, but this can be adjusted
 - **Future Settings**: Table structure supports additional settings like `disable_dive_site_reviews`, `maintenance_mode`, etc. - ✅ Architecture supports this
 - **Migration Safety**: Migration includes downgrade path for rollback if needed - ✅ Implemented
-- **Implementation Status**: Phases 1-8 complete. Backend and frontend fully functional and tested. Documentation (Phase 9) pending.
+- **Implementation Status**: Phases 1-9 complete. Backend, frontend, testing, and documentation all complete. Feature ready for production.
 - **Progress Summary**:
   - ✅ Phase 1: Database migration created and applied
   - ✅ Phase 2: Backend models, schemas, and settings router implemented
@@ -484,7 +483,7 @@ curl -X PUT "http://localhost/api/v1/settings/disable_diving_center_reviews" \
   - ✅ Phase 6: Admin UI toggle implemented in AdminDivingCenters page
   - ✅ Phase 7: Detail page conditionally hides reviews when disabled
   - ✅ Phase 8: Frontend testing with Playwright MCP completed - all tests passed
-  - ⏳ Phase 9: Documentation updates (pending)
+  - ✅ Phase 9: Documentation updates (complete - database.md, api.md, changelog.md updated)
 - **Files Created/Modified**:
   - ✅ `backend/migrations/versions/0041_add_settings_table.py` - Migration file
   - ✅ `backend/app/models.py` - Added Setting model

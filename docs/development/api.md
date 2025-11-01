@@ -2529,6 +2529,153 @@ Debug endpoint to display client IP detection information (admin only).
 }
 ```text
 
+### Settings API
+
+The Settings API provides endpoints for managing application configuration settings stored in the database. Settings use a generic key-value design allowing runtime configuration changes without code deployment.
+
+**Base Path**: `/api/v1/settings`
+
+#### Get Setting by Key (Public Read)
+
+Retrieves a single setting by its key. This endpoint is publicly accessible (no authentication required).
+
+**Endpoint**: `GET /api/v1/settings/{key}`
+
+**Parameters**:
+
+- `key` (path, required): The setting key (e.g., `disable_diving_center_reviews`)
+
+**Response**: `200 OK`
+
+```json
+{
+  "key": "disable_diving_center_reviews",
+  "value": false,
+  "description": "Disable comments and ratings for diving centers"
+}
+```
+
+**Example Request**:
+
+```bash
+curl -X GET "http://localhost/api/v1/settings/disable_diving_center_reviews" \
+  -H "Content-Type: application/json"
+```
+
+**Error Responses**:
+
+- `404 Not Found`: Setting with the specified key does not exist
+
+#### Get All Settings (Admin Only)
+
+Retrieves all settings in the system. Requires admin authentication.
+
+**Endpoint**: `GET /api/v1/settings`
+
+**Authentication**: Required (Admin only)
+
+**Response**: `200 OK`
+
+```json
+[
+  {
+    "key": "disable_diving_center_reviews",
+    "value": false,
+    "description": "Disable comments and ratings for diving centers"
+  }
+]
+```
+
+**Example Request**:
+
+```bash
+TOKEN="your_admin_jwt_token"
+
+curl -X GET "http://localhost/api/v1/settings" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+**Error Responses**:
+
+- `401 Unauthorized`: Missing or invalid authentication token
+- `403 Forbidden`: User is not an admin
+
+#### Update Setting (Admin Only)
+
+Updates the value of a setting. Requires admin authentication.
+
+**Endpoint**: `PUT /api/v1/settings/{key}`
+
+**Authentication**: Required (Admin only)
+
+**Parameters**:
+
+- `key` (path, required): The setting key to update
+
+**Request Body**:
+
+```json
+{
+  "value": true
+}
+```
+
+The `value` field accepts JSON-serializable types (string, number, boolean, object, array).
+
+**Response**: `200 OK`
+
+```json
+{
+  "key": "disable_diving_center_reviews",
+  "value": true,
+  "description": "Disable comments and ratings for diving centers"
+}
+```
+
+**Example Request**:
+
+```bash
+TOKEN="your_admin_jwt_token"
+
+curl -X PUT "http://localhost/api/v1/settings/disable_diving_center_reviews" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"value": true}'
+```
+
+**Error Responses**:
+
+- `400 Bad Request`: Invalid value format (not JSON-serializable)
+- `401 Unauthorized`: Missing or invalid authentication token
+- `403 Forbidden`: User is not an admin
+- `404 Not Found`: Setting with the specified key does not exist
+
+#### Complete Settings Management Example
+
+```bash
+# Get admin token
+TOKEN=$(curl -X POST "http://localhost/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "Admin123!"}' | jq -r '.access_token')
+
+# Get a specific setting (public, no auth required)
+curl -X GET "http://localhost/api/v1/settings/disable_diving_center_reviews"
+
+# Get all settings (admin only)
+curl -X GET "http://localhost/api/v1/settings" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Update a setting (admin only)
+curl -X PUT "http://localhost/api/v1/settings/disable_diving_center_reviews" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"value": true}'
+
+# Verify the update
+curl -X GET "http://localhost/api/v1/settings/disable_diving_center_reviews"
+```
+
 ## Conclusion
 
 This API documentation provides comprehensive information for integrating with
