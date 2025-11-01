@@ -2,6 +2,7 @@ import pytest
 import os
 import tempfile
 import json
+from datetime import datetime
 from unittest.mock import patch, MagicMock, mock_open
 from botocore.exceptions import ClientError, NoCredentialsError
 
@@ -90,8 +91,13 @@ class TestR2StorageService:
         path = r2_service._get_user_path(123, "test_file.json")
         assert path.startswith("user_123/dive_profiles/")
         assert "test_file.json" in path
-        assert "/2025/" in path  # Current year
-        assert "/09/" in path or "/10/" in path  # Current month
+        # Check for current year
+        current_year = datetime.now().year
+        assert f"/{current_year}/" in path
+        # Check for current month (formatted as two digits with leading zero)
+        current_month = datetime.now().month
+        month_str = f"/{current_month:02d}/"
+        assert month_str in path
 
     def test_upload_profile_r2_success(self, r2_service, sample_profile_data):
         """Test successful profile upload to R2."""
