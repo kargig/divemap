@@ -15,7 +15,7 @@ import {
   Activity,
   Route,
 } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -36,6 +36,7 @@ import usePageTitle from '../hooks/usePageTitle';
 import { getRouteTypeColor, getDrawingTypeColor } from '../utils/colorPalette';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
+import { calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 // Custom zoom control component for dive detail page
@@ -86,8 +87,27 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
   const map = useMap();
   const routeLayerRef = useRef(null);
   const diveSiteMarkerRef = useRef(null);
+  const bearingMarkersRef = useRef([]);
   const hasRenderedRef = useRef(false);
   const lastRouteIdRef = useRef(null);
+
+  // Function to update bearing markers visibility based on zoom
+  const updateBearingMarkersVisibility = useCallback(() => {
+    const currentZoom = map.getZoom();
+    const shouldShow = currentZoom >= 16 && currentZoom <= 18;
+
+    bearingMarkersRef.current.forEach(marker => {
+      if (shouldShow) {
+        if (!map.hasLayer(marker)) {
+          map.addLayer(marker);
+        }
+      } else {
+        if (map.hasLayer(marker)) {
+          map.removeLayer(marker);
+        }
+      }
+    });
+  }, [map]);
 
   useEffect(() => {
     if (!route?.route_data) {
@@ -99,16 +119,22 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
 
     // Prevent duplicate rendering for the same route
     if (hasRenderedRef.current && routeLayerRef.current && isSameRoute) {
+      // Still update bearing visibility on zoom even if route hasn't changed
+      updateBearingMarkersVisibility();
       return;
     }
 
-    // Clear existing layers
+    // Clear existing layers and bearing markers
     if (routeLayerRef.current) {
       map.removeLayer(routeLayerRef.current);
     }
     if (diveSiteMarkerRef.current) {
       map.removeLayer(diveSiteMarkerRef.current);
     }
+    bearingMarkersRef.current.forEach(marker => {
+      map.removeLayer(marker);
+    });
+    bearingMarkersRef.current = [];
 
     // Add dive site marker
     if (diveSite && diveSite.latitude && diveSite.longitude) {
@@ -188,11 +214,57 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
     map.addLayer(routeLayer);
     routeLayerRef.current = routeLayer;
 
+    // Calculate bearings and create markers (but don't add to map yet)
+    const bearings = calculateRouteBearings(route.route_data);
+    bearings.forEach(({ position, bearing }) => {
+      const bearingLabel = formatBearing(bearing, true);
+
+      // Create a custom icon with bearing text
+      const bearingIcon = L.divIcon({
+        className: 'bearing-label',
+        html: `
+          <div style="
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid #2563eb;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #1e40af;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            text-align: center;
+          ">
+            ${bearingLabel}
+          </div>
+        `,
+        iconSize: [60, 20],
+        iconAnchor: [30, 10],
+      });
+
+      const bearingMarker = L.marker(position, {
+        icon: bearingIcon,
+        interactive: false,
+        zIndexOffset: 500,
+      });
+
+      // Store marker but don't add to map yet
+      bearingMarkersRef.current.push(bearingMarker);
+    });
+
+    // Update visibility based on initial zoom
+    updateBearingMarkersVisibility();
+
     // Mark as rendered and track route ID
     hasRenderedRef.current = true;
     lastRouteIdRef.current = route?.id;
 
+    // Listen for zoom changes
+    map.on('zoomend', updateBearingMarkersVisibility);
+
     return () => {
+      map.off('zoomend', updateBearingMarkersVisibility);
+
       // Only cleanup if we're not about to re-render with the same route
       const isSameRoute = lastRouteIdRef.current === route?.id;
 
@@ -203,8 +275,15 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
       if (diveSiteMarkerRef.current && !isSameRoute) {
         map.removeLayer(diveSiteMarkerRef.current);
       }
+
+      if (!isSameRoute) {
+        bearingMarkersRef.current.forEach(marker => {
+          map.removeLayer(marker);
+        });
+        bearingMarkersRef.current = [];
+      }
     };
-  }, [map, route?.id, route?.route_data, diveSite?.id]);
+  }, [map, route?.id, route?.route_data, diveSite?.id, updateBearingMarkersVisibility]);
 
   return null;
 };
