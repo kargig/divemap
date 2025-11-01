@@ -1,7 +1,7 @@
 import L, { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { ArrowLeft, Route, Layers } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { useQuery } from 'react-query';
@@ -11,7 +11,7 @@ import api from '../api';
 import MapLayersPanel from '../components/MapLayersPanel';
 import usePageTitle from '../hooks/usePageTitle';
 import { getRouteTypeColor } from '../utils/colorPalette';
-import { getSmartRouteColor } from '../utils/routeUtils';
+import { getSmartRouteColor, calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -34,15 +34,38 @@ const Recenter = ({ lat, lng, zoom }) => {
 const RouteLayer = ({ routes, diveSiteId }) => {
   const map = useMap();
   const routeLayersRef = useRef([]);
+  const bearingMarkersRef = useRef([]);
+
+  // Function to update bearing markers visibility based on zoom
+  const updateBearingMarkersVisibility = useCallback(() => {
+    const currentZoom = map.getZoom();
+    const shouldShow = currentZoom >= 16 && currentZoom <= 18;
+
+    bearingMarkersRef.current.forEach(marker => {
+      if (shouldShow) {
+        if (!map.hasLayer(marker)) {
+          map.addLayer(marker);
+        }
+      } else {
+        if (map.hasLayer(marker)) {
+          map.removeLayer(marker);
+        }
+      }
+    });
+  }, [map]);
 
   useEffect(() => {
     if (!routes || routes.length === 0) return;
 
-    // Clear existing route layers
+    // Clear existing route layers and bearing markers
     routeLayersRef.current.forEach(layer => {
       map.removeLayer(layer);
     });
     routeLayersRef.current = [];
+    bearingMarkersRef.current.forEach(marker => {
+      map.removeLayer(marker);
+    });
+    bearingMarkersRef.current = [];
 
     // Add each route as a layer
     routes.forEach(route => {
@@ -101,14 +124,63 @@ const RouteLayer = ({ routes, diveSiteId }) => {
 
       map.addLayer(routeLayer);
       routeLayersRef.current.push(routeLayer);
+
+      // Calculate bearings and create markers (but don't add to map yet)
+      const bearings = calculateRouteBearings(route.route_data);
+      bearings.forEach(({ position, bearing }) => {
+        const bearingLabel = formatBearing(bearing, true);
+
+        // Create a custom icon with bearing text
+        const bearingIcon = L.divIcon({
+          className: 'bearing-label',
+          html: `
+            <div style="
+              background-color: rgba(255, 255, 255, 0.9);
+              border: 2px solid #2563eb;
+              border-radius: 4px;
+              padding: 2px 6px;
+              font-size: 11px;
+              font-weight: bold;
+              color: #1e40af;
+              white-space: nowrap;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              text-align: center;
+            ">
+              ${bearingLabel}
+            </div>
+          `,
+          iconSize: [60, 20],
+          iconAnchor: [30, 10],
+        });
+
+        const bearingMarker = L.marker(position, {
+          icon: bearingIcon,
+          interactive: false,
+          zIndexOffset: 500,
+        });
+
+        // Store marker but don't add to map yet
+        bearingMarkersRef.current.push(bearingMarker);
+      });
     });
 
+    // Update visibility based on initial zoom
+    updateBearingMarkersVisibility();
+
+    // Listen for zoom changes
+    map.on('zoomend', updateBearingMarkersVisibility);
+
     return () => {
+      map.off('zoomend', updateBearingMarkersVisibility);
       routeLayersRef.current.forEach(layer => {
         map.removeLayer(layer);
       });
+      bearingMarkersRef.current.forEach(marker => {
+        map.removeLayer(marker);
+      });
+      bearingMarkersRef.current = [];
     };
-  }, [map, routes, diveSiteId]);
+  }, [map, routes, diveSiteId, updateBearingMarkersVisibility]);
 
   return null;
 };
