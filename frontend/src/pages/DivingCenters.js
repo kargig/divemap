@@ -555,13 +555,84 @@ const DivingCenters = () => {
         </div>
       </HeroSection>
 
+      {/* Map Section - Show immediately when in map view */}
+      {viewMode === 'map' && (
+        <div className='mb-8'>
+          {isLoading ? (
+            <LoadingSkeleton type='map' />
+          ) : (
+            <div className='bg-white rounded-lg shadow-md p-4 mb-6'>
+              <h2 className='text-xl font-semibold text-gray-900 mb-4'>
+                Map view of filtered Diving Centers
+              </h2>
+              <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200'>
+                <DivingCentersMap
+                  divingCenters={(divingCenters || []).map(center => ({
+                    ...center,
+                    id: center.id.toString(),
+                  }))}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Floating Search and Filters Container - Positioned right below navbar */}
+      <div className='sticky-below-navbar bg-white shadow-lg border border-gray-200 rounded-lg mx-3 sm:mx-4 lg:mx-6 xl:mx-8 mb-6'>
+        {/* Desktop Search Bar - Only visible on desktop/tablet */}
+        {!isMobile && (
+          <DivingCentersDesktopSearchBar
+            searchValue={filters.search}
+            onSearchChange={handleSearchChange}
+            onSearchSelect={selectedItem => {
+              handleSearchChange({ target: { name: 'search', value: selectedItem.name } });
+            }}
+            data={divingCenters || []}
+            configType='divingCenters'
+            placeholder='Search diving centers by name, location, or services...'
+          />
+        )}
+
+        {/* Responsive Filter Bar - Handles both desktop and mobile */}
+        <DivingCentersResponsiveFilterBar
+          showFilters={showAdvancedFilters}
+          onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          onClearFilters={clearFilters}
+          activeFiltersCount={getActiveFiltersCount()}
+          filters={filters}
+          onFilterChange={(key, value) => {
+            handleSearchChange({ target: { name: key, value } });
+          }}
+          onQuickFilter={handleQuickFilter}
+          quickFilter={quickFilter}
+          variant='inline'
+          showQuickFilters={true}
+          showAdvancedToggle={true}
+          searchQuery={filters.search}
+          onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
+          onSearchSubmit={() => {}}
+          // Sorting and view props
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          sortOptions={getSortOptions('diving-centers')}
+          onSortChange={handleSortChange}
+          onReset={resetSorting}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          compactLayout={compactLayout}
+          onDisplayOptionChange={handleDisplayOptionChange}
+          reviewsEnabled={reviewsEnabled}
+        />
+      </div>
+
       {/* Pagination Controls - Mobile-first responsive design */}
       {isLoading ? (
         <LoadingSkeleton type='pagination' className='mb-4 sm:mb-6 lg:mb-8' />
       ) : (
         divingCenters &&
         divingCenters.length > 0 && (
-          <div className='mb-4 sm:mb-6 lg:mb-8'>
+          <div className='mb-4 sm:mb-6 lg:mb-8 mx-3 sm:mx-4 lg:mx-6 xl:mx-8'>
             <div className='bg-white rounded-lg shadow-md p-2 sm:p-4 lg:p-6'>
               <div className='flex flex-col lg:flex-row justify-between items-center gap-2 sm:gap-4'>
                 {/* Pagination Controls */}
@@ -640,77 +711,6 @@ const DivingCenters = () => {
           </div>
         )
       )}
-
-      {/* Map Section - Show immediately when in map view */}
-      {viewMode === 'map' && (
-        <div className='mb-8'>
-          {isLoading ? (
-            <LoadingSkeleton type='map' />
-          ) : (
-            <div className='bg-white rounded-lg shadow-md p-4 mb-6'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>
-                Map view of filtered Diving Centers
-              </h2>
-              <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200'>
-                <DivingCentersMap
-                  divingCenters={(divingCenters || []).map(center => ({
-                    ...center,
-                    id: center.id.toString(),
-                  }))}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Floating Search and Filters Container - Positioned right below navbar */}
-      <div className='sticky-below-navbar bg-white shadow-lg border border-gray-200 rounded-lg mx-3 sm:mx-4 lg:mx-6 xl:mx-8 mb-6'>
-        {/* Desktop Search Bar - Only visible on desktop/tablet */}
-        {!isMobile && (
-          <DivingCentersDesktopSearchBar
-            searchValue={filters.search}
-            onSearchChange={handleSearchChange}
-            onSearchSelect={selectedItem => {
-              handleSearchChange({ target: { name: 'search', value: selectedItem.name } });
-            }}
-            data={divingCenters || []}
-            configType='divingCenters'
-            placeholder='Search diving centers by name, location, or services...'
-          />
-        )}
-
-        {/* Responsive Filter Bar - Handles both desktop and mobile */}
-        <DivingCentersResponsiveFilterBar
-          showFilters={showAdvancedFilters}
-          onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
-          onClearFilters={clearFilters}
-          activeFiltersCount={getActiveFiltersCount()}
-          filters={filters}
-          onFilterChange={(key, value) => {
-            handleSearchChange({ target: { name: key, value } });
-          }}
-          onQuickFilter={handleQuickFilter}
-          quickFilter={quickFilter}
-          variant='inline'
-          showQuickFilters={true}
-          showAdvancedToggle={true}
-          searchQuery={filters.search}
-          onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
-          onSearchSubmit={() => {}}
-          // Sorting and view props
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          sortOptions={getSortOptions('diving-centers')}
-          onSortChange={handleSortChange}
-          onReset={resetSorting}
-          viewMode={viewMode}
-          onViewModeChange={handleViewModeChange}
-          compactLayout={compactLayout}
-          onDisplayOptionChange={handleDisplayOptionChange}
-          reviewsEnabled={reviewsEnabled}
-        />
-      </div>
 
       {/* Content Container */}
       <div className='px-3 sm:px-4 lg:px-6 xl:px-8'>
@@ -1136,6 +1136,74 @@ const DivingCenters = () => {
                 <p className='text-gray-500 text-lg'>
                   No diving centers found matching your criteria.
                 </p>
+              </div>
+            )}
+
+            {/* Bottom Pagination Controls */}
+            {divingCenters && divingCenters.length > 0 && (
+              <div className='mt-6 sm:mt-8'>
+                <div className='bg-white rounded-lg shadow-md p-4 sm:p-6'>
+                  <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
+                    <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
+                      {/* Pagination Info */}
+                      <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
+                        Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
+                        {Math.min(
+                          pagination.page * pagination.page_size,
+                          paginationInfo.totalCount
+                        )}{' '}
+                        of {paginationInfo.totalCount} diving centers
+                      </div>
+
+                      {/* Pagination Navigation */}
+                      <div className='flex items-center gap-1 sm:gap-2'>
+                        <button
+                          onClick={() => handlePageChange(pagination.page - 1)}
+                          disabled={!paginationInfo.hasPrevPage}
+                          className='px-2 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[36px] sm:min-h-0 touch-manipulation transition-colors'
+                        >
+                          <svg
+                            className='w-4 h-4'
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 24 24'
+                          >
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth={2}
+                              d='M15 19l-7-7 7-7'
+                            />
+                          </svg>
+                        </button>
+
+                        <span className='text-xs sm:text-sm text-gray-700 px-1 sm:px-2'>
+                          Page {pagination.page} of {paginationInfo.totalPages}
+                        </span>
+
+                        <button
+                          onClick={() => handlePageChange(pagination.page + 1)}
+                          disabled={!paginationInfo.hasNextPage}
+                          className='px-2 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[36px] sm:min-h-0 touch-manipulation transition-colors'
+                        >
+                          <svg
+                            className='w-4 h-4'
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 24 24'
+                          >
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth={2}
+                              d='M9 5l7 7-7 7'
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </>

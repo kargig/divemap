@@ -800,7 +800,9 @@ const DiveSites = () => {
                                 >
                                   <Link
                                     to={`/dive-sites/${site.id}`}
-                                    state={{ from: window.location.pathname + window.location.search }}
+                                    state={{
+                                      from: window.location.pathname + window.location.search,
+                                    }}
                                     className='hover:text-blue-600 transition-colors block truncate'
                                     title={site.name}
                                   >
@@ -1061,81 +1063,106 @@ const DiveSites = () => {
                 </div>
               )}
               {/* Close content-section */}
-              {/* No Results Message */}
-              {diveSites?.results?.length === 0 && (
-                <div className='text-center py-8 sm:py-12'>
-                  <Map className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-                  <p className='text-sm sm:text-base text-gray-600'>
-                    {filters.search_query.trim()
-                      ? `No dive sites found matching "${filters.search_query}". Try adjusting your search terms.`
-                      : 'No dive sites found matching your criteria.'}
-                  </p>
-                </div>
-              )}
-              {/* Fallback message when no dive sites are found */}
-              {diveSites?.results && diveSites.results.length === 0 && (
-                <div className='text-center py-12'>
-                  <p className='text-gray-600'>No dive sites found matching your criteria.</p>
-                  <p className='text-sm text-gray-500 mt-2'>
-                    Try adjusting your search or filters.
-                  </p>
-                </div>
-              )}
-
-              {/* Did you mean? - Show fuzzy search suggestions when no exact matches */}
-              {diveSites?.results && diveSites.results.length === 0 && filters.search_query && (
-                <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6'>
-                  <h3 className='text-lg font-medium text-blue-900 mb-2'>Did you mean?</h3>
-                  <p className='text-blue-700 mb-3'>
-                    No exact matches found for "{filters.search_query}". Here are some similar dive
-                    sites:
-                  </p>
-                  <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
-                    {/* This will be populated by backend fuzzy search results */}
-                    <div className='text-sm text-blue-600'>
-                      Try searching for similar terms or check the spelling.
-                    </div>
-                  </div>
-                </div>
-              )}
-              {/* No Results Message */}
-              {diveSites?.results?.length === 0 && (
-                <div className='text-center py-8 sm:py-12'>
-                  <Map className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-                  <p className='text-sm sm:text-base text-gray-600'>
-                    {filters.search_query.trim()
-                      ? `No dive sites found matching "${filters.search_query}". Try adjusting your search terms.`
-                      : 'No dive sites found matching your criteria.'}
-                  </p>
-                </div>
-              )}
-              {/* Fallback message when no dive sites are found */}
-              {diveSites?.results && diveSites.results.length === 0 && (
-                <div className='text-center py-12'>
-                  <p className='text-gray-600'>No dive sites found matching your criteria.</p>
-                  <p className='text-sm text-gray-500 mt-2'>
-                    Try adjusting your search or filters.
-                  </p>
-                </div>
-              )}
-
-              {/* Did you mean? - Show fuzzy search suggestions when no exact matches */}
-              {diveSites?.results && diveSites.results.length === 0 && filters.search_query && (
-                <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6'>
-                  <h3 className='text-lg font-medium text-blue-900 mb-2'>Did you mean?</h3>
-                  <p className='text-blue-700 mb-3'>
-                    No exact matches found for "{filters.search_query}". Here are some similar dive
-                    sites:
-                  </p>
-                  <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
-                    {/* This will be populated by backend fuzzy search results */}
-                    <div className='text-sm text-blue-600'>
-                      Try searching for similar terms or check the spelling.
-                    </div>
-                  </div>
-                </div>
-              )}
             </>
+          )}
+
+          {/* No Results Messages - Show when no dive sites found */}
+          {!isLoading &&
+            diveSites?.results &&
+            diveSites.results.length === 0 &&
+            viewMode !== 'map' && (
+              <>
+                {/* Primary No Results Message */}
+                <div className='text-center py-8 sm:py-12'>
+                  <Map className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+                  <p className='text-sm sm:text-base text-gray-600'>
+                    {filters.search_query.trim()
+                      ? `No dive sites found matching "${filters.search_query}". Try adjusting your search terms.`
+                      : 'No dive sites found matching your criteria. Try adjusting your search or filters.'}
+                  </p>
+                </div>
+
+                {/* Did you mean? - Show fuzzy search suggestions when no exact matches */}
+                {filters.search_query && (
+                  <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6'>
+                    <h3 className='text-lg font-medium text-blue-900 mb-2'>Did you mean?</h3>
+                    <p className='text-blue-700 mb-3'>
+                      No exact matches found for "{filters.search_query}". Here are some similar
+                      dive sites:
+                    </p>
+                    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
+                      {/* This will be populated by backend fuzzy search results */}
+                      <div className='text-sm text-blue-600'>
+                        Try searching for similar terms or check the spelling.
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+          {/* Bottom Pagination Controls */}
+          {!isLoading && diveSites?.results && diveSites.results.length > 0 && (
+            <div className='mt-6 sm:mt-8'>
+              <div className='bg-white rounded-lg shadow-md p-4 sm:p-6'>
+                <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
+                  <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
+                    {/* Page Size Selection */}
+                    <div className='flex items-center gap-2'>
+                      <label className='text-xs sm:text-sm font-medium text-gray-700'>Show:</label>
+                      <select
+                        value={effectivePageSize}
+                        onChange={e => handlePageSizeChange(parseInt(e.target.value))}
+                        className='px-2 sm:px-3 py-1 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+                      >
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                      <span className='text-xs sm:text-sm text-gray-600'>per page</span>
+                    </div>
+
+                    {/* Pagination Info */}
+                    {totalCount !== undefined && totalCount !== null && (
+                      <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
+                        Showing {Math.max(1, (pagination.page - 1) * effectivePageSize + 1)} to{' '}
+                        {Math.min(pagination.page * effectivePageSize, totalCount)} of {totalCount}{' '}
+                        dive sites
+                      </div>
+                    )}
+
+                    {/* Pagination Navigation */}
+                    {totalCount !== undefined &&
+                      totalCount !== null &&
+                      totalCount > 0 &&
+                      (hasPrevPage || hasNextPage) && (
+                        <div className='flex items-center gap-1 sm:gap-2'>
+                          <button
+                            onClick={() => handlePageChange(pagination.page - 1)}
+                            disabled={!hasPrevPage}
+                            className='px-2 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[36px] sm:min-h-0 touch-manipulation transition-colors'
+                          >
+                            <ChevronLeft className='h-4 w-4' />
+                          </button>
+
+                          <span className='text-xs sm:text-sm text-gray-700 px-1 sm:px-2'>
+                            Page {pagination.page} of{' '}
+                            {totalPages || Math.max(1, Math.ceil(totalCount / effectivePageSize))}
+                          </span>
+
+                          <button
+                            onClick={() => handlePageChange(pagination.page + 1)}
+                            disabled={!hasNextPage}
+                            className='px-2 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[36px] sm:min-h-0 touch-manipulation transition-colors'
+                          >
+                            <ChevronRight className='h-4 w-4' />
+                          </button>
+                        </div>
+                      )}
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
         {/* Close content-section */}
