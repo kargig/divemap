@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     DiveSite, DivingCenter, Dive, User, ParsedDiveTrip, 
-    DiveSiteAlias, DiveTag, AvailableTag, ParsedDive
+    DiveSiteAlias, DiveTag, AvailableTag, ParsedDive, DifficultyLevel
 )
 from app.schemas import (
     DiveSiteSearchParams, DivingCenterSearchParams, 
@@ -181,9 +181,9 @@ class TestDivesSorting:
         assert response.status_code == 200
         dives = response.json()
         
-        # Verify sorting order (beginner < intermediate < advanced < expert)
-        difficulty_order = {"beginner": 1, "intermediate": 2, "advanced": 3, "expert": 4}
-        difficulties = [difficulty_order.get(dive["difficulty_level"], 0) for dive in dives if dive["difficulty_level"]]
+        # Verify sorting order (OPEN_WATER < ADVANCED_OPEN_WATER < DEEP_NITROX < TECHNICAL_DIVING)
+        difficulty_order = {"OPEN_WATER": 1, "ADVANCED_OPEN_WATER": 2, "DEEP_NITROX": 3, "TECHNICAL_DIVING": 4}
+        difficulties = [difficulty_order.get(dive.get("difficulty_code"), 0) for dive in dives if dive.get("difficulty_code")]
         assert difficulties == sorted(difficulties)
     
     def test_sort_by_user_rating_desc(self, client, sample_dives):
@@ -275,11 +275,11 @@ class TestDiveTripsSorting:
         assert len(trips) > 0
         
         # Get difficulties and filter out None values
-        difficulties = [trip["trip_difficulty_level"] for trip in trips if trip["trip_difficulty_level"]]
+        difficulties = [trip.get("trip_difficulty_code") for trip in trips if trip.get("trip_difficulty_code")]
         
         # If we have difficulties, verify they're sorted
         if difficulties:
-            difficulty_order = {"beginner": 1, "intermediate": 2, "advanced": 3, "expert": 4}
+            difficulty_order = {"OPEN_WATER": 1, "ADVANCED_OPEN_WATER": 2, "DEEP_NITROX": 3, "TECHNICAL_DIVING": 4}
             difficulty_values = [difficulty_order.get(diff, 0) for diff in difficulties]
             assert difficulty_values == sorted(difficulty_values)
 
@@ -327,13 +327,17 @@ class TestSortingPerformance:
 @pytest.fixture
 def sample_dive_sites(db_session: Session):
     """Create sample dive sites for testing."""
+    # Get difficulty IDs
+    difficulty_aow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+    difficulty_deep = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
+    
     # Create test dive sites with different attributes
     dive_sites = [
         DiveSite(
             name="Alpha Reef",
             country="Greece",
             region="Crete",
-            difficulty_level=2,  # 2 = intermediate (integer, not string)
+            difficulty_id=difficulty_aow.id if difficulty_aow else 2,
             view_count=100,
             created_at=datetime.now() - timedelta(days=5),
             updated_at=datetime.now() - timedelta(days=1)
@@ -342,7 +346,7 @@ def sample_dive_sites(db_session: Session):
             name="Beta Bay",
             country="Greece", 
             region="Santorini",
-            difficulty_level=2,  # 2 = intermediate (integer, not string)
+            difficulty_id=difficulty_aow.id if difficulty_aow else 2,
             view_count=250,
             created_at=datetime.now() - timedelta(days=3),
             updated_at=datetime.now() - timedelta(days=2)
@@ -351,7 +355,7 @@ def sample_dive_sites(db_session: Session):
             name="Gamma Grotto",
             country="Greece",
             region="Rhodes", 
-            difficulty_level=3,  # 3 = advanced (integer, not string)
+            difficulty_id=difficulty_deep.id if difficulty_deep else 3,
             view_count=75,
             created_at=datetime.now() - timedelta(days=1),
             updated_at=datetime.now()
@@ -405,6 +409,11 @@ def sample_diving_centers(db_session: Session):
 @pytest.fixture
 def sample_dives(db_session: Session, sample_dive_sites, sample_users):
     """Create sample dives for testing."""
+    # Get difficulty IDs
+    difficulty_ow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "OPEN_WATER").first()
+    difficulty_aow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+    difficulty_deep = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
+    
     dives = [
         Dive(
             user_id=sample_users[0].id,
@@ -413,7 +422,7 @@ def sample_dives(db_session: Session, sample_dive_sites, sample_users):
             dive_date=date.today() - timedelta(days=5),
             max_depth=15.5,
             duration=45,
-            difficulty_level=1,  # 1 = beginner (integer, not string)
+            difficulty_id=difficulty_ow.id if difficulty_ow else 1,
             visibility_rating=8,
             user_rating=4,
             view_count=25
@@ -425,7 +434,7 @@ def sample_dives(db_session: Session, sample_dive_sites, sample_users):
             dive_date=date.today() - timedelta(days=3),
             max_depth=25.0,
             duration=60,
-            difficulty_level=2,  # 2 = intermediate (integer, not string)
+            difficulty_id=difficulty_aow.id if difficulty_aow else 2,
             visibility_rating=7,
             user_rating=5,
             view_count=40
@@ -437,7 +446,7 @@ def sample_dives(db_session: Session, sample_dive_sites, sample_users):
             dive_date=date.today() - timedelta(days=1),
             max_depth=35.5,
             duration=75,
-            difficulty_level=3,  # 3 = advanced (integer, not string)
+            difficulty_id=difficulty_deep.id if difficulty_deep else 3,
             visibility_rating=6,
             user_rating=3,
             view_count=15
@@ -457,27 +466,32 @@ def sample_dives(db_session: Session, sample_dive_sites, sample_users):
 @pytest.fixture
 def sample_dive_trips(db_session: Session, sample_diving_centers):
     """Create sample dive trips for testing."""
+    # Get difficulty IDs
+    difficulty_ow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "OPEN_WATER").first()
+    difficulty_aow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+    difficulty_deep = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
+    
     dive_trips = [
         ParsedDiveTrip(
             diving_center_id=sample_diving_centers[0].id,
             trip_date=date.today() + timedelta(days=5),
             trip_price=Decimal("150.00"),
             trip_duration=120,
-            trip_difficulty_level=1  # 1 = beginner (integer, not string)
+            trip_difficulty_id=difficulty_ow.id if difficulty_ow else 1
         ),
         ParsedDiveTrip(
             diving_center_id=sample_diving_centers[1].id,
             trip_date=date.today() + timedelta(days=3),
             trip_price=Decimal("200.00"),
             trip_duration=180,
-            trip_difficulty_level=2  # 2 = intermediate (integer, not string)
+            trip_difficulty_id=difficulty_aow.id if difficulty_aow else 2
         ),
         ParsedDiveTrip(
             diving_center_id=sample_diving_centers[2].id,
             trip_date=date.today() + timedelta(days=1),
             trip_price=Decimal("300.00"),
             trip_duration=240,
-            trip_difficulty_level=3  # 3 = advanced (integer, not string)
+            trip_difficulty_id=difficulty_deep.id if difficulty_deep else 3
         )
     ]
     

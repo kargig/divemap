@@ -66,7 +66,8 @@ const Dives = () => {
       min_depth: searchParams.get('min_depth') || '',
       duration_min: searchParams.get('duration_min') || '',
       duration_max: searchParams.get('duration_max') || '',
-      difficulty_level: searchParams.get('difficulty_level') || '',
+      difficulty_code: searchParams.get('difficulty_code') || '',
+      exclude_unspecified_difficulty: searchParams.get('exclude_unspecified_difficulty') === 'true',
       date_from: searchParams.get('date_from') || '',
       date_to: searchParams.get('date_to') || '',
       tag_ids: searchParams
@@ -172,11 +173,14 @@ const Dives = () => {
             newSearchParams.set('dive_site_name', newFilters.dive_site_name.toString());
           }
           if (
-            newFilters.difficulty_level &&
-            newFilters.difficulty_level.toString &&
-            newFilters.difficulty_level.toString().trim()
+            newFilters.difficulty_code &&
+            newFilters.difficulty_code.toString &&
+            newFilters.difficulty_code.toString().trim()
           ) {
-            newSearchParams.set('difficulty_level', newFilters.difficulty_level.toString());
+            newSearchParams.set('difficulty_code', newFilters.difficulty_code.toString());
+          }
+          if (newFilters.exclude_unspecified_difficulty) {
+            newSearchParams.set('exclude_unspecified_difficulty', 'true');
           }
           if (
             newFilters.min_depth &&
@@ -283,11 +287,14 @@ const Dives = () => {
         newSearchParams.set('dive_site_name', newFilters.dive_site_name.toString());
       }
       if (
-        newFilters.difficulty_level &&
-        newFilters.difficulty_level.toString &&
-        newFilters.difficulty_level.toString().trim()
+        newFilters.difficulty_code &&
+        newFilters.difficulty_code.toString &&
+        newFilters.difficulty_code.toString().trim()
       ) {
-        newSearchParams.set('difficulty_level', newFilters.difficulty_level.toString());
+        newSearchParams.set('difficulty_code', newFilters.difficulty_code.toString());
+      }
+      if (newFilters.exclude_unspecified_difficulty) {
+        newSearchParams.set('exclude_unspecified_difficulty', 'true');
       }
       if (
         newFilters.min_depth &&
@@ -387,7 +394,8 @@ const Dives = () => {
     immediateUpdateURL(filters, pagination, viewMode);
   }, [
     filters.dive_site_id,
-    filters.difficulty_level,
+    filters.difficulty_code,
+    filters.exclude_unspecified_difficulty,
     filters.min_depth,
     filters.min_rating,
     filters.start_date,
@@ -417,7 +425,8 @@ const Dives = () => {
       'dives-count',
       debouncedSearchTerms.search,
       filters.dive_site_id,
-      filters.difficulty_level,
+      filters.difficulty_code,
+      filters.exclude_unspecified_difficulty,
       filters.min_depth,
       filters.min_rating,
       filters.start_date,
@@ -430,7 +439,10 @@ const Dives = () => {
 
       if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
       if (debouncedSearchTerms.search) params.append('search', debouncedSearchTerms.search);
-      if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
+      if (filters.difficulty_code) params.append('difficulty_code', filters.difficulty_code);
+      if (filters.exclude_unspecified_difficulty) {
+        params.append('exclude_unspecified_difficulty', 'true');
+      }
       if (filters.min_depth) params.append('min_depth', filters.min_depth);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
       if (filters.start_date) params.append('start_date', filters.start_date);
@@ -467,7 +479,8 @@ const Dives = () => {
       'dives',
       debouncedSearchTerms.search,
       filters.dive_site_id,
-      filters.difficulty_level,
+      filters.difficulty_code,
+      filters.exclude_unspecified_difficulty,
       filters.min_depth,
       filters.min_rating,
       filters.start_date,
@@ -484,7 +497,10 @@ const Dives = () => {
 
       if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
       if (debouncedSearchTerms.search) params.append('search', debouncedSearchTerms.search);
-      if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
+      if (filters.difficulty_code) params.append('difficulty_code', filters.difficulty_code);
+      if (filters.exclude_unspecified_difficulty) {
+        params.append('exclude_unspecified_difficulty', 'true');
+      }
       if (filters.min_depth) params.append('min_depth', filters.min_depth);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
       if (filters.start_date) params.append('start_date', filters.start_date);
@@ -505,7 +521,7 @@ const Dives = () => {
         params.append('page', pagination.page.toString());
       }
       if (pagination.per_page && pagination.per_page.toString) {
-        params.append('per_page', pagination.per_page.toString());
+        params.append('page_size', pagination.per_page.toString());
       }
 
       return api.get(`/api/v1/dives/?${params.toString()}`).then(res => {
@@ -564,8 +580,11 @@ const Dives = () => {
     if (filters.dive_site_id && filters.dive_site_id.toString) {
       newSearchParams.set('dive_site_id', filters.dive_site_id.toString());
     }
-    if (filters.difficulty_level && filters.difficulty_level.toString) {
-      newSearchParams.set('difficulty_level', filters.difficulty_level.toString());
+    if (filters.difficulty_code && filters.difficulty_code.toString) {
+      newSearchParams.set('difficulty_code', filters.difficulty_code.toString());
+    }
+    if (filters.exclude_unspecified_difficulty) {
+      newSearchParams.set('exclude_unspecified_difficulty', 'true');
     }
     if (filters.min_depth && filters.min_depth.toString) {
       newSearchParams.set('min_depth', filters.min_depth.toString());
@@ -627,7 +646,8 @@ const Dives = () => {
     setFilters({
       dive_site_id: '',
       dive_site_name: '',
-      difficulty_level: '',
+      difficulty_code: '',
+      exclude_unspecified_difficulty: false,
       min_depth: '',
       min_rating: '',
       start_date: '',
@@ -1079,9 +1099,9 @@ const Dives = () => {
                   <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-4'>
                     <div className='flex items-center gap-2'>
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_level)}`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
                       >
-                        {getDifficultyLabel(dive.difficulty_level)}
+                        {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
                       </span>
                     </div>
                     <div className='flex items-center gap-2'>
@@ -1231,9 +1251,9 @@ const Dives = () => {
                     <div className='space-y-2 mb-4'>
                       <div className='flex items-center gap-2'>
                         <span
-                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_level)}`}
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
                         >
-                          {getDifficultyLabel(dive.difficulty_level)}
+                          {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
                         </span>
                       </div>
                       <div className='flex items-center gap-2'>

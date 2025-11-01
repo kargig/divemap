@@ -3,7 +3,130 @@
 This document tracks all recent changes, improvements, and bug fixes to the
 Divemap application.
 
-## [Latest Release] - September 27, 2025
+## [Latest Release] - November 01, 2025
+
+### 🗄️ Database Changes
+
+#### **Difficulty Taxonomy Migration - ✅ COMPLETE**
+
+- **Normalized Difficulty System**: Migrated from integer-based difficulty levels to a lookup table system with stable codes
+- **Extensible Architecture**: New difficulty levels can be added without schema changes by inserting rows into the `difficulty_levels` table
+- **Improved Data Integrity**: Foreign key constraints ensure valid difficulty values across all entities
+- **Nullable Support**: Dive sites, dives, and parsed dive trips can now have unspecified difficulty (NULL)
+
+**Migration Details:**
+
+- **New Table**: `difficulty_levels` lookup table with columns: `id`, `code`, `label`, `order_index`
+- **Difficulty Mapping**:
+  - Beginner → Open Water (`OPEN_WATER`)
+  - Intermediate → Advanced Open Water (`ADVANCED_OPEN_WATER`)
+  - Advanced → Deep/Nitrox (`DEEP_NITROX`)
+  - Expert → Technical Diving (`TECHNICAL_DIVING`)
+- **Migration File**: `0040_migrate_difficulty_to_lookup_table.py`
+- **Data Preservation**: All existing difficulty values automatically mapped to new system
+- **Schema Changes**: Replaced integer columns with nullable foreign key references
+
+**Technical Implementation:**
+
+- Created `difficulty_levels` table with 4 initial difficulty levels
+- Added nullable `difficulty_id` foreign key columns to `dive_sites`, `dives`, and `parsed_dive_trips` tables
+- Backfilled existing integer values to foreign key IDs
+- Removed old integer `difficulty_level` columns
+- Added indexes and foreign key constraints with `ON DELETE SET NULL`
+
+### 🔧 API Changes
+
+#### **Difficulty Code API Updates**
+
+- **New Query Parameters**: All difficulty-related endpoints now accept `difficulty_code` (string) instead of `difficulty_level` (integer)
+- **Exclude Unspecified**: Added `exclude_unspecified_difficulty` boolean parameter to filter endpoints to exclude records with unspecified difficulty
+  - **Default**: `exclude_unspecified_difficulty` defaults to `false` (unspecified records are included by default)
+  - **Rationale**: Ensures all dive sites, dives, and trips are visible by default, with users able to explicitly exclude unspecified difficulty when needed
+  - **Parameter Name**: Changed from `include_unspecified_difficulty` to `exclude_unspecified_difficulty` for clarity and consistency
+- **Response Format**: API responses now return both `difficulty_code` and `difficulty_label` fields
+- **Stable Codes**: API uses consistent code values (`OPEN_WATER`, `ADVANCED_OPEN_WATER`, `DEEP_NITROX`, `TECHNICAL_DIVING`) instead of integers
+
+**Updated Endpoints:**
+
+- `/api/v1/dive-sites/` - List, count, create, update, get single
+- `/api/v1/dives/` - List, count, create, update, get single, get details
+- `/api/v1/admin/dives/` - All admin endpoints
+- `/api/v1/newsletters/trips` - Parsed dive trip endpoints
+
+**Breaking Changes:**
+
+- `difficulty_level` parameter removed from all endpoints
+- `difficulty_code` must be one of: `OPEN_WATER`, `ADVANCED_OPEN_WATER`, `DEEP_NITROX`, `TECHNICAL_DIVING`, or `null`
+- Response format changed from integer-based `difficulty_level` to code-based `difficulty_code` and `difficulty_label`
+- Sorting by `difficulty_level` now uses `order_index` from the lookup table
+
+### 🎨 Frontend Changes
+
+#### **Difficulty Taxonomy UI Updates**
+
+- **Updated Forms**: All create/edit forms now use difficulty code dropdowns with "Unspecified" option
+- **Filter Components**: All filter components updated to use `difficulty_code` and `exclude_unspecified_difficulty` checkbox (defaults to unchecked, meaning unspecified items are included)
+- **Display Components**: All display components show human-readable `difficulty_label` or "Unspecified" for null values
+- **Helper Functions**: Refactored `difficultyHelpers.js` to use code-based system instead of integer mapping
+
+**Component Updates:**
+
+- Create/Edit Dive Site forms
+- Create/Edit Dive forms
+- Unified Map Filters
+- Dive Sites Filter Bar
+- Responsive Filter Bar
+- Sticky Filter Bar
+- Dive Sites List Page
+- Dives List Page
+- Dive Site Detail Page
+- Dive Detail Page
+- Admin Dive Sites Page
+- Admin Dives Page
+- Dive Trips Page
+- Map Components (DiveSitesMap, DivesMap, LeafletMapView)
+- Independent Map View
+
+**User Experience Improvements:**
+
+- More descriptive difficulty labels (e.g., "Advanced Open Water" instead of "Intermediate")
+- Ability to mark dive sites and dives as having unspecified difficulty
+- Consistent difficulty display across all pages
+- Filter option to include/exclude unspecified difficulty records
+
+### ⚙️ Backend Changes
+
+#### **Difficulty System Refactoring**
+
+- **New Model**: `DifficultyLevel` SQLAlchemy model with relationships to `DiveSite`, `Dive`, and `ParsedDiveTrip`
+- **Schema Updates**: All Pydantic schemas updated to use `difficulty_code` (string) and `difficulty_label` (string)
+- **Helper Functions**: Added `get_difficulty_id_by_code()` and `get_difficulty_code_by_id()` for code/ID conversion
+- **Deprecated Functions**: Removed `get_difficulty_label()` and `get_difficulty_value()` helper functions
+- **Sorting**: All difficulty sorting now uses `order_index` from lookup table via LEFT JOIN operations
+
+**Router Updates:**
+
+- `dive_sites.py`: All endpoints updated with new difficulty filtering and response format
+- `dives_crud.py`: All CRUD endpoints updated
+- `dives_admin.py`: All admin endpoints updated
+- `newsletters.py`: Parsed dive trip endpoints updated
+- `dives_import.py`: Import logic updated with legacy format conversion helper
+- `privacy.py`: Privacy export endpoints updated
+
+**Test Coverage:**
+
+- All 846 backend tests updated and passing
+- Updated test fixtures to use `difficulty_id` with `DifficultyLevel` lookup
+- Updated all API test calls to use `difficulty_code` parameter
+- Updated all assertions to check for `difficulty_code` and `difficulty_label`
+
+### 📚 Documentation Updates
+
+- **API Documentation**: Updated `docs/development/api.md` with new `difficulty_code` parameters and response formats
+- **Database Documentation**: Updated `docs/development/database.md` with new difficulty_levels lookup table system
+- **Changelog**: Added comprehensive entry documenting the migration and all related changes
+
+## [Previous Release] - September 27, 2025
 
 ### 🚀 Major Features
 

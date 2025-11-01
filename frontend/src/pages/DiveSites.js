@@ -83,7 +83,8 @@ const DiveSites = () => {
       search_query: searchParams.get('search') || '',
       country: searchParams.get('country') || '',
       region: searchParams.get('region') || '',
-      difficulty_level: searchParams.get('difficulty_level') || '',
+      difficulty_code: searchParams.get('difficulty_code') || '',
+      exclude_unspecified_difficulty: searchParams.get('exclude_unspecified_difficulty') === 'true',
       min_rating: searchParams.get('min_rating') || '',
       tag_ids: searchParams
         .getAll('tag_ids')
@@ -155,8 +156,11 @@ const DiveSites = () => {
         newSearchParams.set('region', newFilters.region.trim());
       }
 
-      if (newFilters.difficulty_level && newFilters.difficulty_level.trim()) {
-        newSearchParams.set('difficulty_level', newFilters.difficulty_level.trim());
+      if (newFilters.difficulty_code && newFilters.difficulty_code.trim()) {
+        newSearchParams.set('difficulty_code', newFilters.difficulty_code.trim());
+      }
+      if (newFilters.exclude_unspecified_difficulty) {
+        newSearchParams.set('exclude_unspecified_difficulty', 'true');
       }
 
       if (newFilters.min_rating && newFilters.min_rating.trim()) {
@@ -222,8 +226,11 @@ const DiveSites = () => {
         newSearchParams.set('region', newFilters.region.trim());
       }
 
-      if (newFilters.difficulty_level && newFilters.difficulty_level.trim()) {
-        newSearchParams.set('difficulty_level', newFilters.difficulty_level.trim());
+      if (newFilters.difficulty_code && newFilters.difficulty_code.trim()) {
+        newSearchParams.set('difficulty_code', newFilters.difficulty_code.trim());
+      }
+      if (newFilters.exclude_unspecified_difficulty) {
+        newSearchParams.set('exclude_unspecified_difficulty', 'true');
       }
 
       if (newFilters.min_rating && newFilters.min_rating.trim()) {
@@ -293,7 +300,8 @@ const DiveSites = () => {
   useEffect(() => {
     immediateUpdateURL(filters, pagination, viewMode);
   }, [
-    filters.difficulty_level,
+    filters.difficulty_code,
+    filters.exclude_unspecified_difficulty,
     filters.min_rating,
     filters.tag_ids,
     filters.my_dive_sites,
@@ -325,7 +333,8 @@ const DiveSites = () => {
       debouncedSearchTerms.search_query,
       debouncedSearchTerms.country,
       debouncedSearchTerms.region,
-      filters.difficulty_level,
+      filters.difficulty_code,
+      filters.exclude_unspecified_difficulty,
       filters.min_rating,
       filters.tag_ids,
       filters.my_dive_sites,
@@ -339,7 +348,10 @@ const DiveSites = () => {
 
       if (debouncedSearchTerms.search_query)
         params.append('search', debouncedSearchTerms.search_query);
-      if (filters.difficulty_level) params.append('difficulty_level', filters.difficulty_level);
+      if (filters.difficulty_code) params.append('difficulty_code', filters.difficulty_code);
+      if (filters.exclude_unspecified_difficulty) {
+        params.append('exclude_unspecified_difficulty', 'true');
+      }
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
       if (debouncedSearchTerms.country) params.append('country', debouncedSearchTerms.country);
       if (debouncedSearchTerms.region) params.append('region', debouncedSearchTerms.region);
@@ -429,7 +441,8 @@ const DiveSites = () => {
   const clearFilters = () => {
     const clearedFilters = {
       search_query: '',
-      difficulty_level: '',
+      difficulty_code: '',
+      exclude_unspecified_difficulty: false,
       min_rating: '',
       country: '',
       region: '',
@@ -505,7 +518,7 @@ const DiveSites = () => {
       setQuickFilters([]);
       setFilters(prev => ({
         ...prev,
-        difficulty_level: '',
+        difficulty_code: '',
         search_query: '',
         tag_ids: [],
       }));
@@ -526,7 +539,7 @@ const DiveSites = () => {
 
         if (difficultyFilters.includes(filterType)) {
           // For difficulty, replace any existing difficulty
-          newFilters.difficulty_level = filterType;
+          newFilters.difficulty_code = filterType;
           newFilters.search_query = '';
         } else if (tagIdMap[filterType]) {
           // For tag filters, add/remove from existing tags
@@ -556,7 +569,8 @@ const DiveSites = () => {
     if (filters.search_query) count++;
     if (filters.country) count++;
     if (filters.region) count++;
-    if (filters.difficulty_level) count++;
+    if (filters.difficulty_code) count++;
+    if (filters.exclude_unspecified_difficulty) count++;
     if (filters.min_rating) count++;
     if (filters.tag_ids && filters.tag_ids.length > 0) count++;
     return count;
@@ -833,9 +847,9 @@ const DiveSites = () => {
                       <div className='flex flex-wrap items-center gap-2 sm:gap-4 mb-2'>
                         <div className='flex items-center gap-1'>
                           <span
-                            className={`inline-flex items-center px-2 py-1 sm:py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(site.difficulty_level)}`}
+                            className={`inline-flex items-center px-2 py-1 sm:py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(site.difficulty_code)}`}
                           >
-                            {getDifficultyLabel(site.difficulty_level)}
+                            {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
                           </span>
                         </div>
                         {site.max_depth !== undefined && site.max_depth !== null && (
@@ -946,9 +960,9 @@ const DiveSites = () => {
 
                         <div className='mb-2'>
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(site.difficulty_level)}`}
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(site.difficulty_code)}`}
                           >
-                            {getDifficultyLabel(site.difficulty_level)}
+                            {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
                           </span>
                         </div>
 

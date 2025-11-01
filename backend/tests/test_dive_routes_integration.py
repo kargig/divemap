@@ -19,7 +19,7 @@ class TestDiveRoutesIntegration:
             "dive_date": "2025-01-01",
             "max_depth": 20.0,
             "duration": 45,
-            "difficulty_level": 2,
+            "difficulty_code": "ADVANCED_OPEN_WATER",
             "visibility_rating": 8,
             "user_rating": 9
         }

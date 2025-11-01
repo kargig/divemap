@@ -2,6 +2,7 @@ import { Filter, X, ChevronDown } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 
+import { getDifficultyOptions, getDifficultyLabel } from '../utils/difficultyHelpers';
 import { getTagColor } from '../utils/tagHelpers';
 
 const DiveSitesFilterBar = ({
@@ -63,11 +64,11 @@ const DiveSitesFilterBar = ({
       active.push({ key: 'search_query', label: 'Search', value: filters.search_query });
     if (filters.country) active.push({ key: 'country', label: 'Country', value: filters.country });
     if (filters.region) active.push({ key: 'region', label: 'Region', value: filters.region });
-    if (filters.difficulty_level)
+    if (filters.difficulty_code)
       active.push({
-        key: 'difficulty_level',
+        key: 'difficulty_code',
         label: 'Difficulty',
-        value: filters.difficulty_level,
+        value: getDifficultyLabel(filters.difficulty_code),
       });
     if (filters.min_rating)
       active.push({ key: 'min_rating', label: 'Min Rating', value: `≥${filters.min_rating}` });
@@ -222,16 +223,30 @@ const DiveSitesFilterBar = ({
                     Difficulty Level
                   </label>
                   <select
-                    value={filters.difficulty_level || ''}
-                    onChange={e => onFilterChange('difficulty_level', e.target.value)}
+                    value={filters.difficulty_code || ''}
+                    onChange={e => onFilterChange('difficulty_code', e.target.value)}
                     className='w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px] sm:min-h-0 touch-manipulation'
                   >
                     <option value=''>All Levels</option>
-                    <option value='beginner'>Beginner</option>
-                    <option value='intermediate'>Intermediate</option>
-                    <option value='advanced'>Advanced</option>
-                    <option value='expert'>Expert</option>
+                    {getDifficultyOptions()
+                      .filter(option => option.value !== null)
+                      .map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                   </select>
+                  <label className='flex items-center mt-2'>
+                    <input
+                      type='checkbox'
+                      checked={filters.exclude_unspecified_difficulty ?? false}
+                      onChange={e =>
+                        onFilterChange('exclude_unspecified_difficulty', e.target.checked)
+                      }
+                      className='mr-2'
+                    />
+                    <span className='text-xs text-gray-600'>Exclude Unspecified</span>
+                  </label>
                 </div>
 
                 {/* Min Rating Filter */}
@@ -341,16 +356,30 @@ const DiveSitesFilterBar = ({
                     Difficulty Level
                   </label>
                   <select
-                    value={filters.difficulty_level || ''}
-                    onChange={e => onFilterChange('difficulty_level', e.target.value)}
+                    value={filters.difficulty_code || ''}
+                    onChange={e => onFilterChange('difficulty_code', e.target.value)}
                     className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
                   >
                     <option value=''>All Levels</option>
-                    <option value='beginner'>Beginner</option>
-                    <option value='intermediate'>Intermediate</option>
-                    <option value='advanced'>Advanced</option>
-                    <option value='expert'>Expert</option>
+                    {getDifficultyOptions()
+                      .filter(option => option.value !== null)
+                      .map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                   </select>
+                  <label className='flex items-center mt-2'>
+                    <input
+                      type='checkbox'
+                      checked={filters.exclude_unspecified_difficulty ?? false}
+                      onChange={e =>
+                        onFilterChange('exclude_unspecified_difficulty', e.target.checked)
+                      }
+                      className='mr-2'
+                    />
+                    <span className='text-sm text-gray-600'>Exclude Unspecified</span>
+                  </label>
                 </div>
 
                 {/* Min Rating Filter */}

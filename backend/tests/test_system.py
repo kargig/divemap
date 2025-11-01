@@ -42,7 +42,7 @@ class TestSystemOverview:
             name="Test Dive",
             user_id=test_user.id,
             dive_date=datetime.utcnow().date(),
-            difficulty_level=2
+            difficulty_id=2  # ADVANCED_OPEN_WATER
         )
         db_session.add(dive)
         
@@ -439,7 +439,7 @@ class TestPlatformStats:
             name="Test Dive",
             user_id=test_user.id,
             dive_date=datetime.utcnow().date(),
-            difficulty_level=2
+            difficulty_id=2  # ADVANCED_OPEN_WATER
         )
         db_session.add(dive)
         db_session.flush()  # Flush to get the ID
@@ -570,7 +570,7 @@ class TestRecentActivity:
             name="Test Dive",
             user_id=test_user.id,
             dive_date=datetime.utcnow().date(),
-            difficulty_level=2,
+            difficulty_id=2,  # ADVANCED_OPEN_WATER
             created_at=now - timedelta(hours=6)
         )
         db_session.add(dive)

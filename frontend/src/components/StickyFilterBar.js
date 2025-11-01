@@ -2,6 +2,8 @@ import { Filter, Search, X, ChevronDown, MapPin, Calendar } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState } from 'react';
 
+import { getDifficultyOptions, getDifficultyLabel } from '../utils/difficultyHelpers';
+
 const StickyFilterBar = ({
   searchValue = '',
   onSearchChange = () => {},
@@ -45,12 +47,21 @@ const StickyFilterBar = ({
       active.push({ key: 'min_price', label: 'Min Price', value: `€${filters.min_price}` });
     if (filters.max_price)
       active.push({ key: 'max_price', label: 'Max Price', value: `€${filters.max_price}` });
-    if (filters.difficulty_level)
+    if (filters.difficulty_code) {
+      const difficultyLabel = getDifficultyLabel(filters.difficulty_code);
       active.push({
-        key: 'difficulty_level',
+        key: 'difficulty_code',
         label: 'Difficulty',
-        value: filters.difficulty_level,
+        value: difficultyLabel,
       });
+    }
+    if (filters.exclude_unspecified_difficulty) {
+      active.push({
+        key: 'exclude_unspecified_difficulty',
+        label: 'Exclude Unspecified',
+        value: 'Yes',
+      });
+    }
     return active;
   };
 
@@ -234,16 +245,28 @@ const StickyFilterBar = ({
             <div>
               <label className='block text-sm font-medium text-gray-700 mb-2'>Difficulty</label>
               <select
-                value={filters.difficulty_level || ''}
-                onChange={e => onFilterChange('difficulty_level', e.target.value)}
+                value={filters.difficulty_code || ''}
+                onChange={e => onFilterChange('difficulty_code', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
               >
                 <option value=''>All Levels</option>
-                <option value='1'>Beginner</option>
-                <option value='2'>Intermediate</option>
-                <option value='3'>Advanced</option>
-                <option value='4'>Expert</option>
+                {getDifficultyOptions()
+                  .filter(option => option.value !== null)
+                  .map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
               </select>
+              <label className='flex items-center mt-2'>
+                <input
+                  type='checkbox'
+                  checked={filters.exclude_unspecified_difficulty ?? false}
+                  onChange={e => onFilterChange('exclude_unspecified_difficulty', e.target.checked)}
+                  className='mr-2'
+                />
+                <span className='text-xs text-gray-600'>Exclude Unspecified</span>
+              </label>
             </div>
 
             {/* Diving Center Filter */}

@@ -28,18 +28,21 @@ The Divemap application uses MySQL as its primary database with SQLAlchemy ORM a
 
 ### Difficulty Level System
 
-The difficulty level system has been converted from ENUM strings to integers for better performance and consistency:
+The difficulty level system uses a normalized lookup table (`difficulty_levels`) with stable codes for extensibility and better data integrity:
 
-- **1** = beginner
-- **2** = intermediate (default)
-- **3** = advanced  
-- **4** = expert
+- **1** = Open Water (`OPEN_WATER`)
+- **2** = Advanced Open Water (`ADVANCED_OPEN_WATER`)
+- **3** = Deep/Nitrox (`DEEP_NITROX`)
+- **4** = Technical Diving (`TECHNICAL_DIVING`)
+- **NULL** = Unspecified (no difficulty level assigned)
 
-This conversion was implemented in migration 0024 and provides:
-- Better database performance for sorting and filtering
-- Consistent integer-based operations
-- Human-readable string conversion in API responses
-- Backward compatibility through helper functions
+This system was implemented in migration 0040 and provides:
+- **Extensibility**: New difficulty levels can be added without schema changes (just insert new rows)
+- **Data integrity**: Foreign key constraints ensure valid difficulty values
+- **Stable codes**: API uses consistent code values (`OPEN_WATER`, `ADVANCED_OPEN_WATER`, `DEEP_NITROX`, `TECHNICAL_DIVING`)
+- **Ordering**: `order_index` field enables proper sorting in queries
+- **Nullable support**: All difficulty foreign keys are nullable, allowing unspecified difficulty for dive sites, dives, and trips
+- **Filtering**: API endpoints accept `exclude_unspecified_difficulty` parameter (default: `false`) to optionally exclude records with null difficulty
 
 ### Core Tables
 
@@ -73,7 +76,7 @@ CREATE TABLE dive_sites (
     access_instructions TEXT,
     dive_plans TEXT,
     gas_tanks_necessary TEXT,
-    difficulty_level INTEGER DEFAULT 2, -- 1=beginner, 2=intermediate, 3=advanced, 4=expert
+    difficulty_id INTEGER NULL, -- Foreign key to difficulty_levels table (nullable for unspecified)
     marine_life TEXT,
     safety_information TEXT,
     max_depth DECIMAL(5, 2),
@@ -160,7 +163,7 @@ CREATE TABLE dives (
     average_depth DECIMAL(5, 2),
     gas_bottles_used TEXT,
     suit_type ENUM('wet_suit', 'dry_suit', 'shortie'),
-    difficulty_level INTEGER DEFAULT 2, -- 1=beginner, 2=intermediate, 3=advanced, 4=expert
+    difficulty_id INTEGER NULL, -- Foreign key to difficulty_levels table (nullable for unspecified)
     visibility_rating INT CHECK (visibility_rating >= 1 AND visibility_rating <= 10),
     user_rating INT CHECK (user_rating >= 1 AND user_rating <= 10),
     dive_date DATE NOT NULL,
@@ -211,7 +214,7 @@ CREATE TABLE parsed_dive_trips (
     trip_date DATE NOT NULL,
     trip_time TIME,
     trip_duration INT,
-    trip_difficulty_level INTEGER NULL, -- 1=beginner, 2=intermediate, 3=advanced, 4=expert (nullable since migration 0027)
+    trip_difficulty_id INTEGER NULL, -- Foreign key to difficulty_levels table (nullable for unspecified)
     trip_price DECIMAL(10, 2),
     trip_currency VARCHAR(3) DEFAULT 'EUR',
     group_size_limit INT,
@@ -228,7 +231,7 @@ CREATE TABLE parsed_dive_trips (
 );
 ```
 
-**Note**: The `trip_difficulty_level` field was made nullable in migration 0027 to handle cases where the newsletter parsing logic cannot determine the difficulty level. This allows for more flexible trip creation while maintaining data integrity.
+**Note**: The difficulty level system uses a normalized lookup table (`difficulty_levels`) implemented in migration 0040. The `trip_difficulty_id`, `difficulty_id` (dive_sites), and `difficulty_id` (dives) fields are all nullable foreign keys, allowing for unspecified difficulty levels while maintaining data integrity through foreign key constraints.
 
 #### Parsed Dives Table
 ```sql

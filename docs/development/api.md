@@ -344,8 +344,8 @@ Get total count of dive sites matching filters.
 **Query Parameters:**
 
 - `name`: Search term for dive site name
-- `difficulty_level`: Filter by difficulty (beginner, intermediate, advanced,
-  expert)
+- `difficulty_code`: Filter by difficulty code (OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING)
+- `exclude_unspecified_difficulty`: Exclude records with unspecified difficulty (boolean, default: false)
 - `country`: Filter by country
 - `region`: Filter by region
 - `min_rating`: Minimum rating filter
@@ -369,12 +369,12 @@ Get dive sites with comprehensive sorting and filtering.
 - `page`: Page number (1-based, default: 1)
 - `page_size`: Page size (25, 50, or 100, default: 25)
 - `name`: Search term for dive site name
-- `difficulty_level`: Filter by difficulty (1=beginner, 2=intermediate,
-  3=advanced, 4=expert)
+- `difficulty_code`: Filter by difficulty code (OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING)
+- `exclude_unspecified_difficulty`: Exclude dive sites with unspecified difficulty (boolean, default: false)
 - `country`: Filter by country
 - `region`: Filter by region
 - `sort_by`: Sort field (name, country, region, difficulty_level, view_count,
-  comment_count, created_at, updated_at)
+  comment_count, created_at, updated_at). Note: `difficulty_level` sorting uses order_index from the difficulty_levels lookup table.
 - `sort_order`: Sort order (asc, desc, default: asc)
 - `tag_ids`: Comma-separated tag IDs
 - `my_dive_sites`: Filter to show only dive sites created by the current user
@@ -404,7 +404,8 @@ Get dive sites with comprehensive sorting and filtering.
     "access_instructions": "Accessible by boat from Cairns",
     "dive_plans": "Multiple dive sites available",
     "gas_tanks_necessary": "Available for rent",
-    "difficulty_level": "intermediate",
+    "difficulty_code": "ADVANCED_OPEN_WATER",
+    "difficulty_label": "Advanced Open Water",
     "marine_life": "Coral, fish, turtles, sharks",
     "safety_information": "Follow dive safety guidelines",
     "max_depth": 30.0,
@@ -451,7 +452,8 @@ Create new dive site (admin/moderator only).
   "access_instructions": "How to access the site",
   "dive_plans": "Dive planning information",
   "gas_tanks_necessary": "Tank requirements",
-  "difficulty_level": "intermediate",
+    "difficulty_code": "ADVANCED_OPEN_WATER",
+    "difficulty_label": "Advanced Open Water",
   "marine_life": "Marine life description",
   "safety_information": "Safety guidelines",
   "max_depth": 25.0,
@@ -478,7 +480,8 @@ Get dive site by ID.
   "access_instructions": "Accessible by boat from Cairns",
   "dive_plans": "Multiple dive sites available",
   "gas_tanks_necessary": "Available for rent",
-  "difficulty_level": "intermediate",
+    "difficulty_code": "ADVANCED_OPEN_WATER",
+    "difficulty_label": "Advanced Open Water",
   "marine_life": "Coral, fish, turtles, sharks",
   "safety_information": "Follow dive safety guidelines",
   "max_depth": 30.0,
@@ -1172,7 +1175,8 @@ Remove tag from dive site (admin/moderator only).
   "access_instructions": "string (optional)",
   "dive_plans": "string (optional)",
   "gas_tanks_necessary": "string (optional)",
-  "difficulty_level": "enum (beginner, intermediate, advanced, expert)",
+  "difficulty_code": "string (nullable) - One of: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified",
+  "difficulty_label": "string (nullable) - Human-readable label corresponding to difficulty_code",
   "marine_life": "string (optional)",
   "safety_information": "string (optional)",
   "max_depth": "float (optional)",
@@ -1226,7 +1230,8 @@ Remove tag from dive site (admin/moderator only).
   "average_depth": "decimal (optional)",
   "gas_bottles_used": "string (optional)",
   "suit_type": "enum (wet_suit, dry_suit, shortie)",
-  "difficulty_level": "enum (beginner, intermediate, advanced, expert)",
+  "difficulty_code": "string (nullable) - One of: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified",
+  "difficulty_label": "string (nullable) - Human-readable label corresponding to difficulty_code",
   "visibility_rating": "integer (1-10, optional)",
   "user_rating": "integer (1-10, optional)",
   "dive_date": "date",
@@ -1287,7 +1292,8 @@ Remove tag from dive site (admin/moderator only).
   "trip_date": "date",
   "trip_time": "time (optional)",
   "trip_duration": "integer (optional)",
-  "trip_difficulty_level": "enum (beginner, intermediate, advanced, expert)",
+  "trip_difficulty_code": "string (nullable) - One of: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified",
+  "trip_difficulty_label": "string (nullable) - Human-readable label corresponding to trip_difficulty_code",
   "trip_price": "decimal (optional)",
   "trip_currency": "string (3 chars, default: EUR)",
   "group_size_limit": "integer (optional)",
@@ -1496,7 +1502,8 @@ curl -X POST "https://divemap-backend.fly.dev/api/v1/dive-sites/" \
        "description": "World-famous coral reef system",
        "latitude": -16.5,
        "longitude": 145.5,
-       "difficulty_level": "intermediate",
+       "difficulty_code": "ADVANCED_OPEN_WATER",
+    "difficulty_label": "Advanced Open Water",
        "country": "Australia",
        "region": "Queensland"
      }'
@@ -1518,9 +1525,17 @@ curl -X POST "https://divemap-backend.fly.dev/api/v1/dive-sites/1/rate" \
 ### Searching Dive Sites
 
 ```bash
-# Search dive sites with filters
+# Search dive sites with specific difficulty code (exclude_unspecified_difficulty is irrelevant here)
 curl
-"https://divemap-backend.fly.dev/api/v1/dive-sites/?search=coral&difficulty_level=intermediate&country=Australia"
+"https://divemap-backend.fly.dev/api/v1/dive-sites/?search=coral&difficulty_code=ADVANCED_OPEN_WATER&country=Australia"
+
+# Get all dive sites (includes unspecified difficulty by default - parameter not needed)
+curl
+"https://divemap-backend.fly.dev/api/v1/dive-sites/?search=coral&country=Australia"
+
+# Get all dive sites excluding those with unspecified difficulty (explicit exclusion)
+curl
+"https://divemap-backend.fly.dev/api/v1/dive-sites/?search=coral&exclude_unspecified_difficulty=true&country=Australia"
 ```text
 
 ### Managing Tags
@@ -1642,7 +1657,142 @@ organized or facilitated the dive. This relationship is optional and can be:
 The API response includes both the diving center ID and the full diving center
 object with details like name, description, contact information, and location.
 
-#### Dive Endpoints
+### Dive Endpoints
+
+#### GET /dives/count
+
+Get total count of dives matching filters.
+
+**Headers:** `Authorization: Bearer <token>` (optional for public dives)
+
+**Query Parameters:**
+
+- `user_id`: Filter by specific user ID
+- `my_dives`: Filter to show only current user's dives (boolean, requires authentication)
+- `dive_site_id`: Filter by dive site ID
+- `dive_site_name`: Filter by dive site name (partial match)
+- `difficulty_code`: Filter by difficulty code (OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING)
+- `exclude_unspecified_difficulty`: Exclude dives with unspecified difficulty (boolean, default: false)
+- `suit_type`: Filter by suit type (wet_suit, dry_suit, shortie)
+- `min_depth`: Minimum dive depth
+- `max_depth`: Maximum dive depth
+- `min_visibility`: Minimum visibility rating (1-10)
+- `max_visibility`: Maximum visibility rating (1-10)
+- `min_rating`: Minimum user rating (1-10)
+- `max_rating`: Maximum user rating (1-10)
+- `start_date`: Start date filter (YYYY-MM-DD)
+- `end_date`: End date filter (YYYY-MM-DD)
+- `tag_ids`: Comma-separated tag IDs
+
+**Response:**
+
+```json
+{
+  "total": 42
+}
+```text
+
+#### GET /dives/
+
+Get dives with comprehensive sorting and filtering.
+
+**Headers:** `Authorization: Bearer <token>` (optional for public dives)
+
+**Query Parameters:**
+
+- `page`: Page number (1-based, default: 1)
+- `page_size`: Page size (1, 5, 25, 50, 100, or 1000, default: 25)
+- `user_id`: Filter by specific user ID
+- `my_dives`: Filter to show only current user's dives (boolean, requires authentication)
+- `dive_site_id`: Filter by dive site ID
+- `dive_site_name`: Filter by dive site name (partial match)
+- `search`: Unified search across dive site name, description, notes
+- `difficulty_code`: Filter by difficulty code (OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING)
+- `exclude_unspecified_difficulty`: Exclude dives with unspecified difficulty (boolean, default: false)
+- `suit_type`: Filter by suit type (wet_suit, dry_suit, shortie)
+- `min_depth`: Minimum dive depth
+- `max_depth`: Maximum dive depth
+- `min_visibility`: Minimum visibility rating (1-10)
+- `max_visibility`: Maximum visibility rating (1-10)
+- `min_rating`: Minimum user rating (1-10)
+- `max_rating`: Maximum user rating (1-10)
+- `start_date`: Start date filter (YYYY-MM-DD)
+- `end_date`: End date filter (YYYY-MM-DD)
+- `tag_ids`: Comma-separated tag IDs
+- `sort_by`: Sort field (dive_date, max_depth, duration, difficulty_level, visibility_rating, user_rating, created_at, updated_at). Admin users can also sort by view_count. Note: `difficulty_level` sorting uses order_index from the difficulty_levels lookup table.
+- `sort_order`: Sort order (asc, desc, default: desc)
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "dive_site_id": 1,
+    "dive_date": "2024-01-15",
+    "max_depth": 25.5,
+    "difficulty_code": "ADVANCED_OPEN_WATER",
+    "difficulty_label": "Advanced Open Water",
+    "visibility_rating": 8,
+    "user_rating": 9
+  }
+]
+```text
+
+#### GET /dives/{dive_id}
+
+Get a specific dive by ID.
+
+**Headers:** `Authorization: Bearer <token>` (required for private dives)
+
+**Response:** See Dive Model below
+
+#### POST /dives/
+
+Create a new dive.
+
+**Headers:** `Authorization: Bearer <token>` (required)
+
+**Request Body:**
+
+```json
+{
+  "dive_date": "2024-01-15",
+  "dive_site_id": 1,
+  "diving_center_id": 1,
+  "max_depth": 25.5,
+  "difficulty_code": "ADVANCED_OPEN_WATER",
+  "visibility_rating": 8,
+  "user_rating": 9
+}
+```text
+
+**Note:** `difficulty_code` can be one of: `OPEN_WATER`, `ADVANCED_OPEN_WATER`, `DEEP_NITROX`, `TECHNICAL_DIVING`, or `null` for unspecified.
+
+#### PUT /dives/{dive_id}
+
+Update a dive.
+
+**Headers:** `Authorization: Bearer <token>` (required)
+
+**Request Body:** Same format as POST (all fields optional)
+
+#### DELETE /dives/{dive_id}
+
+Delete a dive.
+
+**Headers:** `Authorization: Bearer <token>` (required)
+
+**Response:**
+
+```json
+{
+  "message": "Dive deleted successfully"
+}
+```text
+
+#### Dive Endpoints (Examples)
 
 ```bash
 # Get total count of dives
@@ -1674,7 +1824,8 @@ curl -X POST "https://divemap-backend.fly.dev/api/v1/dives/" \
        "average_depth": 18.0,
        "dive_information": "Amazing dive with lots of marine life",
        "suit_type": "wet_suit",
-       "difficulty_level": "intermediate",
+       "difficulty_code": "ADVANCED_OPEN_WATER",
+    "difficulty_label": "Advanced Open Water",
        "visibility_rating": 8,
        "user_rating": 9,
        "duration": 60
@@ -1772,10 +1923,20 @@ curl -X DELETE "https://divemap-backend.fly.dev/api/v1/admin/dives/1" \
 #### Dive Search and Filtering
 
 ```bash
-# Search dives with filters (alphabetically sorted)
+# Search dives with specific difficulty code (exclude_unspecified_difficulty is irrelevant here)
 curl -H "Authorization: Bearer USER_TOKEN" \
     
-"https://divemap-backend.fly.dev/api/v1/dives/?dive_site_name=coral&min_depth=20&max_depth=30&difficulty_level=intermediate&page=1&page_size=25"
+"https://divemap-backend.fly.dev/api/v1/dives/?dive_site_name=coral&min_depth=20&max_depth=30&difficulty_code=ADVANCED_OPEN_WATER&page=1&page_size=25"
+
+# Get all dives (includes unspecified difficulty by default - parameter not needed)
+curl -H "Authorization: Bearer USER_TOKEN" \
+    
+"https://divemap-backend.fly.dev/api/v1/dives/?page=1&page_size=25"
+
+# Get all dives excluding those with unspecified difficulty (explicit exclusion)
+curl -H "Authorization: Bearer USER_TOKEN" \
+    
+"https://divemap-backend.fly.dev/api/v1/dives/?exclude_unspecified_difficulty=true&page=1&page_size=25"
 
 # Search with date range (alphabetically sorted)
 curl -H "Authorization: Bearer USER_TOKEN" \
@@ -1937,8 +2098,10 @@ users only).
 - `location`: Location-based search filtering by country, region, and address
 - `min_duration`: Minimum trip duration in minutes
 - `max_duration`: Maximum trip duration in minutes
+- `difficulty_code`: Filter by difficulty code (OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING)
+- `exclude_unspecified_difficulty`: Exclude trips with unspecified difficulty (boolean, default: false)
 - `sort_by`: Sort field (trip_date, trip_price, trip_duration,
-  trip_difficulty_level, popularity, distance, created_at)
+  difficulty_level, popularity, distance, created_at). Note: `difficulty_level` sorting uses order_index from the difficulty_levels lookup table.
 - `sort_order`: Sort order (asc, desc, default: desc)
 - `user_lat`: User latitude for distance calculations (required for distance
   sorting)
@@ -1965,7 +2128,8 @@ users only).
     "trip_date": "2024-02-15",
     "trip_time": "09:00:00",
     "trip_duration": 240,
-    "trip_difficulty_level": "intermediate",
+    "trip_difficulty_code": "ADVANCED_OPEN_WATER",
+    "trip_difficulty_label": "Advanced Open Water",
     "trip_price": 150.00,
     "trip_currency": "EUR",
     "group_size_limit": 8,
@@ -2018,7 +2182,8 @@ Create new parsed dive trip (admin/moderator only).
   "trip_date": "2024-02-15",
   "trip_time": "09:00:00",
   "trip_duration": 240,
-  "trip_difficulty_level": "intermediate",
+  "trip_difficulty_code": "ADVANCED_OPEN_WATER",
+  "trip_difficulty_label": "Advanced Open Water",
   "trip_price": 150.00,
   "trip_currency": "EUR",
   "group_size_limit": 8,

@@ -28,11 +28,56 @@ import xml.etree.ElementTree as ET
 
 from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
-from app.models import DiveSite, DiveSiteAlias, get_difficulty_value
+from app.models import DiveSite, DiveSiteAlias
 from app.services.dive_profile_parser import DiveProfileParser
 from .dives_validation import raise_validation_error
 from .dives_logging import log_dive_operation, log_error
 from .dives_utils import has_deco_profile, generate_dive_name, get_or_create_deco_tag, find_dive_site_by_import_id
+
+
+# Helper function to convert old difficulty labels to new codes
+def convert_difficulty_to_code(difficulty_input):
+    """
+    Convert old difficulty format (integer or string label) to new difficulty_code.
+    
+    Args:
+        difficulty_input: Can be:
+            - New format: difficulty_code string (e.g., 'OPEN_WATER')
+            - Old format: integer (1-4) or string label ('beginner', 'intermediate', etc.)
+    
+    Returns:
+        difficulty_code string or None
+    """
+    if difficulty_input is None:
+        return None
+    
+    # If already a valid code, return as-is
+    valid_codes = ['OPEN_WATER', 'ADVANCED_OPEN_WATER', 'DEEP_NITROX', 'TECHNICAL_DIVING']
+    if isinstance(difficulty_input, str) and difficulty_input.upper() in valid_codes:
+        return difficulty_input.upper()
+    
+    # Map old integer values to new codes
+    if isinstance(difficulty_input, int):
+        mapping = {
+            1: 'OPEN_WATER',
+            2: 'ADVANCED_OPEN_WATER',
+            3: 'DEEP_NITROX',
+            4: 'TECHNICAL_DIVING'
+        }
+        return mapping.get(difficulty_input)
+    
+    # Map old string labels to new codes
+    if isinstance(difficulty_input, str):
+        label_mapping = {
+            'beginner': 'OPEN_WATER',
+            'intermediate': 'ADVANCED_OPEN_WATER',
+            'advanced': 'DEEP_NITROX',
+            'expert': 'TECHNICAL_DIVING'
+        }
+        return label_mapping.get(difficulty_input.lower())
+    
+    # Default to intermediate (ADVANCED_OPEN_WATER) if unknown
+    return 'ADVANCED_OPEN_WATER'
 
 
 def parse_dive_information_text(dive_information):
@@ -405,7 +450,7 @@ async def confirm_import_dives(
                 average_depth=dive_data.get('average_depth'),
                 gas_bottles_used=dive_data.get('gas_bottles_used'),
                 suit_type=dive_data.get('suit_type'),
-                difficulty_level=get_difficulty_value(dive_data.get('difficulty_level', 'intermediate')),
+                difficulty_code=convert_difficulty_to_code(dive_data.get('difficulty_level', 'intermediate')),
                 visibility_rating=dive_data.get('visibility_rating'),
                 user_rating=dive_data.get('user_rating'),
                 dive_date=dive_data['dive_date'],
@@ -432,6 +477,14 @@ async def confirm_import_dives(
             dive_data_dict = dive_create.model_dump(exclude_unset=True)
             dive_data_dict['dive_date'] = dive_date  # Use parsed date object
             dive_data_dict['dive_time'] = dive_time  # Use parsed time object
+            
+            # Convert difficulty_code to difficulty_id if present
+            difficulty_code = dive_data_dict.pop('difficulty_code', None)
+            if difficulty_code:
+                from app.models import get_difficulty_id_by_code
+                difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
+                if difficulty_id:
+                    dive_data_dict['difficulty_id'] = difficulty_id
             
             dive = Dive(
                 user_id=current_user.id,
@@ -869,7 +922,7 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
         'average_depth': None,  # Will be set from computer data if available
         'gas_bottles_used': gas_bottles_used,
         'suit_type': parsed_suit_type,
-        'difficulty_level': get_difficulty_value('intermediate'),  # Default
+        'difficulty_code': 'ADVANCED_OPEN_WATER',  # Default to Advanced Open Water (was 'intermediate')
         'visibility_rating': parsed_visibility,
         'user_rating': parsed_rating,
         'dive_date': parsed_date.strftime('%Y-%m-%d') if parsed_date else None,

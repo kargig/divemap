@@ -301,9 +301,9 @@ const DiveSiteDetail = () => {
         </div>
         <div className='flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4'>
           <span
-            className={`px-3 py-1 text-sm font-medium rounded-full ${getDifficultyColorClasses(diveSite.difficulty_level)}`}
+            className={`px-3 py-1 text-sm font-medium rounded-full ${getDifficultyColorClasses(diveSite.difficulty_code)}`}
           >
-            {getDifficultyLabel(diveSite.difficulty_level)}
+            {diveSite.difficulty_label || getDifficultyLabel(diveSite.difficulty_code)}
           </span>
 
           {/* Aliases */}
@@ -518,13 +518,13 @@ const DiveSiteDetail = () => {
                         </div>
                       )}
 
-                      {dive.difficulty_level && (
+                      {dive.difficulty_code && (
                         <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
                           <span className='font-medium'>Level:</span>
                           <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(dive.difficulty_level)}`}
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(dive.difficulty_code)}`}
                           >
-                            {getDifficultyLabel(dive.difficulty_level)}
+                            {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
                           </span>
                         </div>
                       )}
@@ -856,7 +856,9 @@ const DiveSiteDetail = () => {
               <div>
                 <span className='font-medium text-gray-700'>Difficulty:</span>
                 <span className='ml-2 capitalize'>
-                  {getDifficultyLabel(diveSite.difficulty_level)}
+                  {diveSite.difficulty_label ||
+                    getDifficultyLabel(diveSite.difficulty_code) ||
+                    'Unspecified'}
                 </span>
               </div>
               {diveSite.average_rating && (

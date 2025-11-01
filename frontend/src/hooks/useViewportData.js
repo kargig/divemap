@@ -132,7 +132,7 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
             [
               'search',
               'name',
-              'difficulty_level',
+              'difficulty_code',
               'min_rating',
               'tag_ids',
               'country',
@@ -144,6 +144,8 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
             } else {
               diveSitesParams.append(key, value);
             }
+          } else if (key === 'exclude_unspecified_difficulty' && value) {
+            diveSitesParams.append('exclude_unspecified_difficulty', 'true');
           }
         });
 
@@ -201,7 +203,7 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
               'max_rating',
               'min_depth',
               'max_depth',
-              'difficulty_level',
+              'difficulty_code',
               'suit_type',
               'min_visibility',
               'max_visibility',
@@ -215,6 +217,8 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
             } else {
               divesParams.append(key, value);
             }
+          } else if (key === 'exclude_unspecified_difficulty' && value) {
+            divesParams.append('exclude_unspecified_difficulty', 'true');
           }
         });
 
@@ -240,7 +244,7 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
               'min_rating',
               'max_rating',
               'trip_status',
-              'difficulty_level',
+              'difficulty_code',
               'min_price',
               'max_price',
               'start_date',
@@ -253,6 +257,8 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
             } else {
               tripsParams.append(key, value);
             }
+          } else if (key === 'exclude_unspecified_difficulty' && value) {
+            tripsParams.append('exclude_unspecified_difficulty', 'true');
           }
         });
 

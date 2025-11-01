@@ -119,7 +119,8 @@ const IndependentMapView = () => {
   // Filter state
   const [filters, setFilters] = useState({
     search: '',
-    difficulty_level: '',
+    difficulty_code: '',
+    exclude_unspecified_difficulty: false,
     min_rating: '',
     max_rating: '',
     country: '',
@@ -161,7 +162,8 @@ const IndependentMapView = () => {
     const urlFilters = {};
     const filterKeys = [
       'search',
-      'difficulty_level',
+      'difficulty_code',
+      'exclude_unspecified_difficulty',
       'min_rating',
       'max_rating',
       'country',
@@ -387,7 +389,9 @@ const IndependentMapView = () => {
 
     // Add filters
     Object.entries(filters).forEach(([key, value]) => {
-      if (value && value !== '' && value !== null && value !== undefined) {
+      if (key === 'exclude_unspecified_difficulty' && value) {
+        params.set('exclude_unspecified_difficulty', 'true');
+      } else if (value && value !== '' && value !== null && value !== undefined) {
         if (Array.isArray(value)) {
           if (value.length > 0) {
             params.set(key, value.join(','));

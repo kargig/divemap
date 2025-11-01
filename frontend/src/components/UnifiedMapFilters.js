@@ -2,6 +2,8 @@ import { X, Search, Filter, MapPin, Calendar, Star, Waves } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 
+import { getDifficultyOptions } from '../utils/difficultyHelpers';
+
 const UnifiedMapFilters = ({
   filters,
   onFilterChange,
@@ -40,7 +42,8 @@ const UnifiedMapFilters = ({
 
     const resetFilters = {
       search: '',
-      difficulty_level: '',
+      difficulty_code: '',
+      exclude_unspecified_difficulty: false,
       min_rating: '',
       max_rating: '',
       country: '',
@@ -208,17 +211,30 @@ const UnifiedMapFilters = ({
             </label>
             <select
               id='difficulty-select'
-              value={localFilters.difficulty_level}
-              onChange={e => handleFilterChange('difficulty_level', e.target.value)}
+              value={localFilters.difficulty_code || ''}
+              onChange={e => handleFilterChange('difficulty_code', e.target.value)}
               className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
             >
               <option value=''>Any Difficulty</option>
-              <option value='1'>Beginner (1)</option>
-              <option value='2'>Easy (2)</option>
-              <option value='3'>Intermediate (3)</option>
-              <option value='4'>Advanced (4)</option>
-              <option value='5'>Expert (5)</option>
+              {getDifficultyOptions()
+                .filter(option => option.value !== null) // Exclude "Unspecified" from the dropdown
+                .map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
             </select>
+            <label className='flex items-center mt-2'>
+              <input
+                type='checkbox'
+                checked={localFilters.exclude_unspecified_difficulty ?? false}
+                onChange={e =>
+                  handleFilterChange('exclude_unspecified_difficulty', e.target.checked)
+                }
+                className='mr-2'
+              />
+              <span className='text-sm text-gray-600'>Exclude Unspecified</span>
+            </label>
           </div>
         )}
 

@@ -10,7 +10,7 @@ from app.auth import get_current_active_user
 from app.models import (
     User, Dive, DiveMedia, DiveTag, SiteRating, SiteComment, 
     CenterRating, CenterComment, UserCertification, DivingCenter,
-    DiveSite, AvailableTag, DivingOrganization, get_difficulty_label
+    DiveSite, AvailableTag, DivingOrganization
 )
 from app.schemas import UserResponse
 
@@ -78,7 +78,8 @@ async def export_user_data(
     }
     
     # Export user's dives with all related data
-    dives_query = db.query(Dive).filter(Dive.user_id == current_user.id).all()
+    from sqlalchemy.orm import joinedload
+    dives_query = db.query(Dive).options(joinedload(Dive.difficulty)).filter(Dive.user_id == current_user.id).all()
     dives = []
     for dive in dives_query:
         # Get dive site info if linked
@@ -134,7 +135,8 @@ async def export_user_data(
             "average_depth": float(dive.average_depth) if dive.average_depth else None,
             "gas_bottles_used": dive.gas_bottles_used,
             "suit_type": dive.suit_type.value if dive.suit_type else None,
-            "difficulty_level": get_difficulty_label(dive.difficulty_level) if dive.difficulty_level else None,
+            "difficulty_code": dive.difficulty.code if dive.difficulty else None,
+            "difficulty_label": dive.difficulty.label if dive.difficulty else None,
             "visibility_rating": dive.visibility_rating,
             "user_rating": dive.user_rating,
             "dive_date": dive.dive_date.isoformat(),

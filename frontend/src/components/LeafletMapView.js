@@ -290,7 +290,7 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                   : marker.entityType === 'dive_site'
                     ? `
                     <div class="space-y-2 mt-1">
-                      ${marker.data.difficulty_level ? `<div class="text-sm text-gray-700"><span class="mr-1">🏷️</span>Difficulty: <span class="font-medium">${marker.data.difficulty_level}</span></div>` : ''}
+                      ${marker.data.difficulty_code ? `<div class="text-sm text-gray-700"><span class="mr-1">🏷️</span>Difficulty: <span class="font-medium">${marker.data.difficulty_label || marker.data.difficulty_code}</span></div>` : ''}
                       ${marker.data.average_rating ? `<div class="text-sm text-gray-700"><span class="mr-1">⭐</span>Rating: <span class="font-medium">${Number(marker.data.average_rating).toFixed(1)}/10</span></div>` : ''}
                       ${
                         marker.data.tags && marker.data.tags.length > 0

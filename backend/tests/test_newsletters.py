@@ -1,7 +1,7 @@
 import pytest
 from fastapi import status
 from datetime import date, time, datetime
-from app.models import Newsletter, ParsedDiveTrip, ParsedDive, DivingCenter, DiveSite, TripStatus
+from app.models import Newsletter, ParsedDiveTrip, ParsedDive, DivingCenter, DiveSite, TripStatus, DifficultyLevel
 from decimal import Decimal
 
 
@@ -230,7 +230,7 @@ class TestNewsletters:
             "trip_date": "2024-01-15",
             "trip_time": "09:00:00",
             "trip_duration": 480,
-            "trip_difficulty_level": 2,  # 2 = intermediate (integer, not string)
+            "trip_difficulty_code": "ADVANCED_OPEN_WATER",
             "trip_price": 100.0,
             "trip_currency": "EUR",
             "group_size_limit": 8,
@@ -267,7 +267,7 @@ class TestNewsletters:
             "trip_date": "2024-01-15",
             "trip_time": "09:00:00",
             "trip_duration": 480,
-            "trip_difficulty_level": 2,  # 2 = intermediate (integer, not string)
+            "trip_difficulty_code": "ADVANCED_OPEN_WATER",
             "trip_price": 100.0,
             "trip_currency": "EUR",
             "group_size_limit": 8,
@@ -511,7 +511,7 @@ class TestNewsletters:
             description="A test dive site",
             latitude=Decimal("10.0"),
             longitude=Decimal("20.0"),
-            difficulty_level=2
+            difficulty_id=2  # ADVANCED_OPEN_WATER
         )
         db_session.add(dive_site)
         db_session.commit()
@@ -521,12 +521,13 @@ class TestNewsletters:
         db_session.commit()
 
         # Create a parsed dive trip with datetime fields
+        difficulty_aow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         trip = ParsedDiveTrip(
             diving_center_id=diving_center.id,
             trip_date=date(2024, 12, 15),
             trip_time=time(9, 0),  # 9:00 AM
             trip_duration=120,  # 2 hours
-            trip_difficulty_level=2,  # intermediate
+            trip_difficulty_id=difficulty_aow.id if difficulty_aow else 2,
             trip_price=Decimal("150.00"),
             trip_currency="EUR",
             trip_description="Test dive trip",
@@ -571,7 +572,8 @@ class TestNewsletters:
         assert trip_data["trip_date"] == "2024-12-15"  # Should be ISO date string
         assert trip_data["trip_time"] == "09:00:00"    # Should be ISO time string
         assert trip_data["trip_duration"] == 120
-        assert trip_data["trip_difficulty_level"] == "intermediate"  # Converted from integer
+        assert trip_data["trip_difficulty_code"] == "ADVANCED_OPEN_WATER"
+        assert trip_data["trip_difficulty_label"] == "Advanced Open Water"
         assert trip_data["trip_price"] == 150.0
         assert trip_data["trip_currency"] == "EUR"
         assert trip_data["trip_description"] == "Test dive trip"
@@ -601,6 +603,9 @@ class TestNewsletters:
 
     def test_get_parsed_trips_with_sorting(self, client, db_session):
         """Test getting parsed trips with sorting parameters."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        
         # Create test data
         diving_center = DivingCenter(
             name="Test Diving Center",
@@ -623,6 +628,7 @@ class TestNewsletters:
             trip_description="First trip",
             trip_status=TripStatus.scheduled,
             source_newsletter_id=newsletter.id,
+            trip_difficulty_id=difficulty.id if difficulty else 2,
             extracted_at=datetime(2024, 1, 1, 10, 0, 0),
             created_at=datetime(2024, 1, 1, 10, 0, 0),
             updated_at=datetime(2024, 1, 1, 10, 0, 0)
@@ -635,6 +641,7 @@ class TestNewsletters:
             trip_description="Second trip",
             trip_status=TripStatus.scheduled,
             source_newsletter_id=newsletter.id,
+            trip_difficulty_id=difficulty.id if difficulty else 2,
             extracted_at=datetime(2024, 1, 1, 11, 0, 0),
             created_at=datetime(2024, 1, 1, 11, 0, 0),
             updated_at=datetime(2024, 1, 1, 11, 0, 0)
@@ -647,6 +654,7 @@ class TestNewsletters:
             trip_description="Third trip",
             trip_status=TripStatus.scheduled,
             source_newsletter_id=newsletter.id,
+            trip_difficulty_id=difficulty.id if difficulty else 2,
             extracted_at=datetime(2024, 1, 1, 12, 0, 0),
             created_at=datetime(2024, 1, 1, 12, 0, 0),
             updated_at=datetime(2024, 1, 1, 12, 0, 0)
@@ -697,11 +705,14 @@ class TestNewsletters:
         db_session.commit()
 
         # Create trips with different characteristics
+        difficulty_ow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "OPEN_WATER").first()
+        difficulty_deep = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
+        
         trip1 = ParsedDiveTrip(
             diving_center_id=diving_center.id,
             trip_date=date(2024, 12, 15),
             trip_description="Beginner trip",
-            trip_difficulty_level=1,  # beginner
+            trip_difficulty_id=difficulty_ow.id if difficulty_ow else 1,
             trip_price=Decimal("100.00"),
             trip_duration=120,
             trip_status=TripStatus.scheduled,
@@ -716,7 +727,7 @@ class TestNewsletters:
             diving_center_id=diving_center.id,
             trip_date=date(2024, 12, 20),
             trip_description="Advanced trip",
-            trip_difficulty_level=3,  # advanced
+            trip_difficulty_id=difficulty_deep.id if difficulty_deep else 3,
             trip_price=Decimal("200.00"),
             trip_duration=180,
             trip_status=TripStatus.confirmed,
@@ -768,6 +779,9 @@ class TestNewsletters:
 
     def test_get_parsed_trips_with_search(self, client, db_session):
         """Test getting parsed trips with search functionality."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        
         # Create test data
         diving_center = DivingCenter(
             name="Test Diving Center",
@@ -790,6 +804,7 @@ class TestNewsletters:
             trip_description="Shark diving adventure",
             trip_status=TripStatus.scheduled,
             source_newsletter_id=newsletter.id,
+            trip_difficulty_id=difficulty.id if difficulty else 2,
             extracted_at=datetime(2024, 1, 1, 10, 0, 0),
             created_at=datetime(2024, 1, 1, 10, 0, 0),
             updated_at=datetime(2024, 1, 1, 10, 0, 0)
@@ -802,6 +817,7 @@ class TestNewsletters:
             trip_description="Coral reef exploration",
             trip_status=TripStatus.scheduled,
             source_newsletter_id=newsletter.id,
+            trip_difficulty_id=difficulty.id if difficulty else 2,
             extracted_at=datetime(2024, 1, 1, 11, 0, 0),
             created_at=datetime(2024, 1, 1, 11, 0, 0),
             updated_at=datetime(2024, 1, 1, 11, 0, 0)
@@ -860,6 +876,9 @@ class TestNewsletters:
 
     def test_get_parsed_trips_with_pagination(self, client, db_session):
         """Test getting parsed trips with pagination."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        
         # Create test data
         diving_center = DivingCenter(
             name="Test Diving Center",
@@ -893,6 +912,7 @@ class TestNewsletters:
                 trip_description=f"Trip {i+1}",
                 trip_status=TripStatus.scheduled,
                 source_newsletter_id=newsletter.id,
+                trip_difficulty_id=difficulty.id if difficulty else 2,
                 extracted_at=datetime(2024, 1, 1, 10, 0, 0),
                 created_at=datetime(2024, 1, 1, 10, 0, 0),
                 updated_at=datetime(2024, 1, 1, 10, 0, 0)
@@ -951,8 +971,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/trips?sort_order=invalid_order")
         assert response.status_code == status.HTTP_200_OK  # Should fall back to default
         
-        # Test invalid difficulty level - this might return 422 due to validation
-        response = client.get("/api/v1/newsletters/trips?difficulty_level=999")
+        # Test invalid difficulty code - this might return 422 due to validation
+        response = client.get("/api/v1/newsletters/trips?difficulty_code=INVALID_CODE")
         # The API might validate this parameter and return 422, which is acceptable
         assert response.status_code in [status.HTTP_200_OK, status.HTTP_422_UNPROCESSABLE_ENTITY]
         
@@ -963,6 +983,9 @@ class TestNewsletters:
 
     def test_get_parsed_trips_datetime_serialization_edge_cases(self, client, db_session):
         """Test datetime serialization with edge cases."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        
         # Create test data
         diving_center = DivingCenter(
             name="Test Diving Center",
@@ -986,6 +1009,7 @@ class TestNewsletters:
             trip_description="Test trip with null fields",
             trip_status=TripStatus.scheduled,
             source_newsletter_id=newsletter.id,
+            trip_difficulty_id=difficulty.id if difficulty else 2,
             extracted_at=datetime(2024, 1, 1, 10, 0, 0),
             created_at=datetime(2024, 1, 1, 10, 0, 0),
             updated_at=datetime(2024, 1, 1, 10, 0, 0)

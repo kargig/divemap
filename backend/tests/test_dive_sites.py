@@ -3,7 +3,7 @@ from fastapi import status
 from unittest.mock import patch, MagicMock
 import requests
 from app.models import SiteRating, SiteComment
-from app.models import DiveSite
+from app.models import DiveSite, DifficultyLevel
 
 class TestDiveSites:
     """Test dive sites endpoints."""
@@ -37,12 +37,13 @@ class TestDiveSites:
 
     def test_get_dive_sites_with_filter(self, client, test_dive_site):
         """Test getting dive sites with difficulty filter."""
-        response = client.get("/api/v1/dive-sites/?difficulty=intermediate")
+        response = client.get("/api/v1/dive-sites/?difficulty_code=ADVANCED_OPEN_WATER")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data) == 1
-        assert data[0]["difficulty_level"] == "intermediate"
+        assert data[0]["difficulty_code"] == "ADVANCED_OPEN_WATER"
+        assert data[0]["difficulty_label"] == "Advanced Open Water"
 
     def test_get_dive_site_detail_success(self, client, test_dive_site):
         """Test getting specific dive site details."""
@@ -863,6 +864,8 @@ class TestDiveSites:
 
 def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_token):
     """Test pagination functionality for dive sites endpoint"""
+    # Get a difficulty level for the dive sites
+    difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
     # Create multiple dive sites
     dive_sites = []
     for i in range(75):  # Create 75 dive sites
@@ -872,7 +875,8 @@ def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_to
             latitude=10.0 + (i * 0.01),
             longitude=20.0 + (i * 0.01),
             country="Test Country",
-            region="Test Region"
+            region="Test Region",
+            difficulty_id=difficulty.id if difficulty else 2
         )
         db_session.add(dive_site)
         dive_sites.append(dive_site)
@@ -964,6 +968,8 @@ def test_get_dive_sites_invalid_page_size(client, admin_token):
 
 def test_get_dive_sites_pagination_with_filters(client, db_session, test_admin_user, admin_token):
     """Test pagination with filters applied"""
+    # Get a difficulty level for the dive sites
+    difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
     # Create dive sites with different countries
     for i in range(50):
         dive_site = DiveSite(
@@ -972,7 +978,8 @@ def test_get_dive_sites_pagination_with_filters(client, db_session, test_admin_u
             latitude=10.0 + (i * 0.01),
             longitude=20.0 + (i * 0.01),
             country="Test Country A" if i < 30 else "Test Country B",
-            region="Test Region"
+            region="Test Region",
+            difficulty_id=difficulty.id if difficulty else 2
         )
         db_session.add(dive_site)
 
@@ -1089,7 +1096,7 @@ class TestDiveSitesCount:
 
     def test_get_dive_sites_count_with_difficulty_filter(self, client, db_session, test_dive_site):
         """Test dive sites count with difficulty filter."""
-        response = client.get("/api/v1/dive-sites/count?difficulty_level=2")
+        response = client.get("/api/v1/dive-sites/count?difficulty_code=ADVANCED_OPEN_WATER")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 0
@@ -1206,19 +1213,22 @@ class TestDiveSitesDives:
         from datetime import date
         
         # Create some dives for the dive site
+        # Get difficulty IDs (IDs 1-4 map directly: 1=OPEN_WATER, 2=ADVANCED_OPEN_WATER, 3=DEEP_NITROX, 4=TECHNICAL_DIVING)
+        difficulty_aow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty_deep = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
         dive1 = Dive(
             name="Test Dive 1",
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             dive_date=date(2024, 1, 15),
-            difficulty_level=2
+            difficulty_id=difficulty_aow.id if difficulty_aow else 2
         )
         dive2 = Dive(
             name="Test Dive 2",
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             dive_date=date(2024, 1, 20),
-            difficulty_level=3
+            difficulty_id=difficulty_deep.id if difficulty_deep else 3
         )
         
         db_session.add_all([dive1, dive2])
@@ -1261,7 +1271,7 @@ class TestDiveSitesAdvancedFeatures:
             "access_instructions": "Follow the path to the beach",
             "safety_information": "Check weather conditions before diving",
             "marine_life": "Coral reefs, tropical fish",
-            "difficulty_level": 3,
+            "difficulty_code": "DEEP_NITROX",
             "max_depth": 25.0,
             "average_depth": 15.0,
             "visibility_rating": 8,
@@ -1275,14 +1285,15 @@ class TestDiveSitesAdvancedFeatures:
         assert data["name"] == "Comprehensive Dive Site"
         assert data["country"] == "Test Country"
         assert data["region"] == "Test Region"
-        assert data["difficulty_level"] == 3
+        assert data["difficulty_code"] == "DEEP_NITROX"
+        assert data["difficulty_label"] == "Deep/Nitrox"
         assert data["max_depth"] == 25.0
 
     def test_update_dive_site_partial_data(self, client, admin_headers, test_dive_site):
         """Test updating dive site with partial data."""
         update_data = {
             "description": "Updated description",
-            "difficulty_level": 4
+            "difficulty_code": "TECHNICAL_DIVING"
         }
 
         response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}", 
@@ -1291,7 +1302,8 @@ class TestDiveSitesAdvancedFeatures:
         
         data = response.json()
         assert data["description"] == "Updated description"
-        assert data["difficulty_level"] == 4
+        assert data["difficulty_code"] == "TECHNICAL_DIVING"
+        assert data["difficulty_label"] == "Technical Diving"
         # Other fields should remain unchanged
         assert data["name"] == test_dive_site.name
 

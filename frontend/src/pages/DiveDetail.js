@@ -687,12 +687,12 @@ const DiveDetail = () => {
                   )}
                 </div>
 
-                {dive.difficulty_level && (
+                {dive.difficulty_code && (
                   <div className='mt-4'>
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColorClasses(dive.difficulty_level)}`}
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
                     >
-                      {getDifficultyLabel(dive.difficulty_level)}
+                      {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
                     </span>
                   </div>
                 )}
