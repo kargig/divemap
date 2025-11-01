@@ -1069,3 +1069,32 @@ class SettingResponse(BaseModel):
 class SettingUpdate(BaseModel):
     """Schema for updating a setting value"""
     value: Union[str, int, float, bool, dict, list]  # JSON-serializable value
+
+# Global Search Schemas
+class GlobalSearchResult(BaseModel):
+    """Individual search result item"""
+    entity_type: str = Field(..., description="Entity type: dive_site, diving_center, dive, dive_route, dive_trip")
+    id: int
+    name: str
+    route_path: str = Field(..., description="Frontend route path for navigation")
+    icon_name: str = Field(..., description="Icon name for frontend rendering")
+    metadata: Optional[dict] = Field(None, description="Additional metadata (location, date, etc.)")
+
+    class Config:
+        from_attributes = True
+
+class EntityTypeSearchResults(BaseModel):
+    """Results for a specific entity type"""
+    entity_type: str
+    icon_name: str
+    count: int
+    results: List[GlobalSearchResult]
+
+class GlobalSearchResponse(BaseModel):
+    """Response for global search endpoint"""
+    query: str
+    results: List[EntityTypeSearchResults]
+    total_count: int
+
+    class Config:
+        from_attributes = True

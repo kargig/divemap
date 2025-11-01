@@ -389,6 +389,19 @@ def load_dive_routes_router():
         router_time = time.time() - router_start
         print(f"✅ Dive routes router loaded lazily in {router_time:.2f}s")
 
+def load_search_router():
+    """Load search router lazily when first accessed"""
+    if not hasattr(app, '_search_router_loaded'):
+        print("🔧 Loading search router lazily...")
+        router_start = time.time()
+        
+        from app.routers import search
+        app.include_router(search.router, prefix="/api/v1/search", tags=["Search"])
+        
+        app._search_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Search router loaded lazily in {router_time:.2f}s")
+
 # Load routers
 load_routers()
 
@@ -437,6 +450,10 @@ async def lazy_router_loading(request: Request, call_next):
     # Load dive routes router
     elif path.startswith("/api/v1/dive-routes") and not hasattr(app, '_dive_routes_router_loaded'):
         load_dive_routes_router()
+    
+    # Load search router
+    elif path.startswith("/api/v1/search") and not hasattr(app, '_search_router_loaded'):
+        load_search_router()
     
     response = await call_next(request)
     return response

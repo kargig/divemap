@@ -11,6 +11,15 @@ usage examples.
 3. [Base URL](#base-url)
 4. [Error Handling](#error-handling)
 5. [Endpoints](#endpoints)
+   - [Authentication Endpoints](#authentication-endpoints)
+   - [User Management Endpoints](#user-management-endpoints)
+   - [Dive Sites Endpoints](#dive-sites-endpoints)
+   - [Diving Centers Endpoints](#diving-centers-endpoints)
+   - [Global Search Endpoints](#global-search-endpoints)
+   - [Gear Rental Management](#gear-rental-management)
+   - [Tag Management](#tag-management)
+   - [Diving Organizations Endpoints](#diving-organizations-endpoints)
+   - [User Certifications Endpoints](#user-certifications-endpoints)
 6. [Data Models](#data-models)
 7. [Rate Limiting](#rate-limiting)
 8. [Examples](#examples)
@@ -911,6 +920,134 @@ Add comment to diving center.
 }
 ```text
 
+### Global Search Endpoints
+
+#### GET /search
+
+Global search across all entity types: dive sites, diving centers, dives, dive routes, and dive trips.
+
+This endpoint performs unified searches across multiple entity types simultaneously and returns grouped results for frontend display.
+
+**Endpoint**: `GET /api/v1/search`
+
+**Authentication**: Optional (affects visibility of private dives)
+
+**Query Parameters**:
+
+- `q` (required): Search query string (minimum 3 characters, maximum 200 characters)
+- `limit` (optional): Maximum number of results per entity type (default: 8, minimum: 1, maximum: 20)
+
+**Response**: `200 OK`
+
+```json
+{
+  "query": "test",
+  "results": [
+    {
+      "entity_type": "diving_center",
+      "icon_name": "Building",
+      "count": 3,
+      "results": [
+        {
+          "entity_type": "diving_center",
+          "id": 116,
+          "name": "QA Center One Edited",
+          "route_path": "/diving-centers/116",
+          "icon_name": "Building",
+          "metadata": {
+            "country": "Greece",
+            "region": "Attica",
+            "city": "Athens"
+          }
+        }
+      ]
+    },
+    {
+      "entity_type": "dive_route",
+      "icon_name": "Route",
+      "count": 8,
+      "results": [
+        {
+          "entity_type": "dive_route",
+          "id": 45,
+          "name": "E2E Route",
+          "route_path": "/dive-sites/12/route/45",
+          "icon_name": "Route",
+          "metadata": {
+            "dive_site_id": 12,
+            "dive_site_name": "Test Dive Site",
+            "route_type": "circular"
+          }
+        }
+      ]
+    }
+  ],
+  "total_count": 11
+}
+```
+
+**Response Fields**:
+
+- `query` (string): The search query that was executed
+- `results` (array): Array of `EntityTypeSearchResults` objects, each containing:
+  - `entity_type` (string): Type of entity (one of: `dive_site`, `diving_center`, `dive`, `dive_route`, `dive_trip`)
+  - `icon_name` (string): Name of the icon component for frontend rendering (e.g., "Map", "Building", "Anchor", "Calendar", "Route")
+  - `count` (integer): Number of results in this group
+  - `results` (array): Array of `GlobalSearchResult` objects
+- `total_count` (integer): Total number of results across all entity types
+
+**GlobalSearchResult Fields**:
+
+- `entity_type` (string): Type of entity
+- `id` (integer): Unique identifier of the entity
+- `name` (string): Display name of the entity
+- `route_path` (string): Frontend route path for navigation (e.g., `/dive-sites/123`)
+- `icon_name` (string): Icon component name for rendering
+- `metadata` (object, optional): Additional metadata that varies by entity type:
+  - **Dive Sites**: `country`, `region`, `max_depth`
+  - **Diving Centers**: `country`, `region`, `city`
+  - **Dives**: `dive_date`, `max_depth`, `dive_site_name`
+  - **Dive Routes**: `dive_site_id`, `dive_site_name`, `route_type`
+  - **Dive Trips**: `trip_date`, `diving_center_name`, `trip_price`, `trip_currency`
+
+**Example Request**:
+
+```bash
+# Search for "coral" across all entity types
+curl -X GET "http://localhost/api/v1/search?q=coral&limit=8"
+
+# Search with authentication (to see private dives)
+TOKEN="your_jwt_token"
+curl -X GET "http://localhost/api/v1/search?q=test&limit=10" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Search Behavior**:
+
+- **Dive Sites**: Searches in name, country, region, description, and aliases
+- **Diving Centers**: Searches in name, description, country, region, and city
+- **Dives**: Searches in dive site name, dive site description, and dive information. Respects privacy settings (private dives only visible to owner or admins)
+- **Dive Routes**: Searches in route name and description
+- **Dive Trips**: Searches in trip description, special requirements, diving center name, and dive site names
+
+**Rate Limiting**:
+
+- Default: 150 requests per minute
+- Admin users: Exempt from rate limiting
+
+**Error Responses**:
+
+- `400 Bad Request`: Query is less than 3 characters or exceeds 200 characters
+- `422 Unvalidation Error`: Invalid query parameter format
+
+**Notes**:
+
+- The endpoint performs searches sequentially (not in parallel) due to SQLAlchemy session limitations, but each search is optimized with database indexes
+- Individual entity type searches may fail gracefully without affecting other entity types
+- Results are limited per entity type, not globally
+- Empty result groups are omitted from the response
+- Icon names correspond to `lucide-react` icon components for consistent frontend rendering
+
 ### Gear Rental Management
 
 #### GET /diving-centers/{diving_center_id}/gear-rental
@@ -1463,6 +1600,7 @@ requests and admin users.
 
 | Endpoint Category | Rate Limit | Description |
 |------------------|------------|-------------|
+| **Global Search** | 150/minute | GET requests for unified search across all entity types |
 | **Dive Sites** | 150/minute | GET requests for dive site listings |
 | **Dive Site Details** | 300/minute | GET requests for individual dive sites |
 | **Dive Site Creation** | 15/minute | POST requests to create dive sites |
