@@ -21,26 +21,6 @@ def get_difficulty_code_by_id(db, difficulty_id: int):
     difficulty = db.query(DifficultyLevel).filter(DifficultyLevel.id == difficulty_id).first()
     return difficulty.code if difficulty else None
 
-# Legacy helper functions kept for backward compatibility during migration
-# These will be removed after full migration
-DIFFICULTY_LEVELS = {
-    1: "beginner",
-    2: "intermediate",
-    3: "advanced",
-    4: "expert"
-}
-
-def get_difficulty_label(level: int) -> str:
-    """Convert integer difficulty level to human-readable label (DEPRECATED)."""
-    return DIFFICULTY_LEVELS.get(level, "unknown")
-
-def get_difficulty_value(label: str) -> int:
-    """Convert human-readable difficulty label to integer value (DEPRECATED)."""
-    for value, difficulty_label in DIFFICULTY_LEVELS.items():
-        if difficulty_label == label:
-            return value
-    return 2  # Default to intermediate if label not found
-
 class MediaType(enum.Enum):
     photo = "photo"
     video = "video"
