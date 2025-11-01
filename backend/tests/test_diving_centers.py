@@ -1,7 +1,8 @@
 import pytest
 from fastapi import status
-from app.models import CenterRating, CenterComment
+from app.models import CenterRating, CenterComment, Setting
 from datetime import datetime
+import json
 
 class TestDivingCenters:
     """Test diving centers endpoints."""
@@ -1620,3 +1621,278 @@ class TestDivingCenterAuthorization:
         test_diving_center.owner_id = test_user.id
         test_diving_center.ownership_status = OwnershipStatus.approved
         db_session.commit()
+
+    def test_rate_diving_center_blocked_when_reviews_disabled(self, client, auth_headers, test_diving_center, db_session):
+        """Test that rating is blocked when reviews are disabled."""
+        # Update existing setting to disable reviews
+        setting = db_session.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+        if setting:
+            setting.value = json.dumps(True)
+        else:
+            setting = Setting(
+                key="disable_diving_center_reviews",
+                value=json.dumps(True),
+                description="Disable comments and ratings for diving centers"
+            )
+            db_session.add(setting)
+        db_session.commit()
+
+        rating_data = {"score": 8}
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/rate",
+            json=rating_data,
+            headers=auth_headers
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Reviews are currently disabled" in response.json()["detail"]
+
+        # Clean up - reset setting to enabled
+        setting = db_session.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+        if setting:
+            setting.value = json.dumps(False)
+            db_session.commit()
+
+    def test_create_comment_blocked_when_reviews_disabled(self, client, auth_headers, test_diving_center, db_session):
+        """Test that comment creation is blocked when reviews are disabled."""
+        # Update existing setting to disable reviews
+        setting = db_session.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+        if setting:
+            setting.value = json.dumps(True)
+        else:
+            setting = Setting(
+                key="disable_diving_center_reviews",
+                value=json.dumps(True),
+                description="Disable comments and ratings for diving centers"
+            )
+            db_session.add(setting)
+        db_session.commit()
+
+        comment_data = {"comment_text": "Great diving center!"}
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/comments",
+            json=comment_data,
+            headers=auth_headers
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Reviews are currently disabled" in response.json()["detail"]
+
+        # Clean up - reset setting to enabled
+        setting = db_session.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+        if setting:
+            setting.value = json.dumps(False)
+            db_session.commit()
+
+    def test_update_comment_blocked_when_reviews_disabled(self, client, auth_headers, test_diving_center, test_user, db_session):
+        """Test that comment update is blocked when reviews are disabled."""
+        # Create a comment first
+        comment = CenterComment(
+            diving_center_id=test_diving_center.id,
+            user_id=test_user.id,
+            comment_text="Original comment"
+        )
+        db_session.add(comment)
+        db_session.commit()
+
+        # Update existing setting to disable reviews
+        setting = db_session.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+        if setting:
+            setting.value = json.dumps(True)
+        else:
+            setting = Setting(
+                key="disable_diving_center_reviews",
+                value=json.dumps(True),
+                description="Disable comments and ratings for diving centers"
+            )
+            db_session.add(setting)
+        db_session.commit()
+
+        comment_data = {"comment_text": "Updated comment"}
+        response = client.put(
+            f"/api/v1/diving-centers/{test_diving_center.id}/comments/{comment.id}",
+            json=comment_data,
+            headers=auth_headers
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Reviews are currently disabled" in response.json()["detail"]
+
+        # Clean up - reset setting to enabled and delete comment
+        setting = db_session.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+        if setting:
+            setting.value = json.dumps(False)
+        db_session.delete(comment)
+        db_session.commit()
+
+    def test_delete_comment_blocked_when_reviews_disabled(self, client, auth_headers, test_diving_center, test_user, db_session):
+        """Test that comment deletion is blocked when reviews are disabled."""
+        # Create a comment first
+        comment = CenterComment(
+            diving_center_id=test_diving_center.id,
+            user_id=test_user.id,
+            comment_text="Comment to delete"
+        )
+        db_session.add(comment)
+        db_session.commit()
+
+        # Update existing setting to disable reviews
+        setting = db_session.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+        if setting:
+            setting.value = json.dumps(True)
+        else:
+            setting = Setting(
+                key="disable_diving_center_reviews",
+                value=json.dumps(True),
+                description="Disable comments and ratings for diving centers"
+            )
+            db_session.add(setting)
+        db_session.commit()
+
+        response = client.delete(
+            f"/api/v1/diving-centers/{test_diving_center.id}/comments/{comment.id}",
+            headers=auth_headers
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Reviews are currently disabled" in response.json()["detail"]
+
+        # Clean up - reset setting to enabled and delete comment
+        setting = db_session.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+        if setting:
+            setting.value = json.dumps(False)
+        db_session.delete(comment)
+        db_session.commit()
+
+    def test_get_comments_returns_empty_when_reviews_disabled(self, client, test_diving_center, test_user, db_session):
+        """Test that comment list returns empty list when reviews are disabled."""
+        # Create a comment first
+        comment = CenterComment(
+            diving_center_id=test_diving_center.id,
+            user_id=test_user.id,
+            comment_text="Test comment"
+        )
+        db_session.add(comment)
+        db_session.commit()
+
+        # Update existing setting to disable reviews
+        setting = db_session.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+        if setting:
+            setting.value = json.dumps(True)
+        else:
+            setting = Setting(
+                key="disable_diving_center_reviews",
+                value=json.dumps(True),
+                description="Disable comments and ratings for diving centers"
+            )
+            db_session.add(setting)
+        db_session.commit()
+
+        response = client.get(f"/api/v1/diving-centers/{test_diving_center.id}/comments")
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 0  # Should return empty list, not error
+
+        # Clean up - reset setting to enabled and delete comment
+        setting = db_session.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+        if setting:
+            setting.value = json.dumps(False)
+        db_session.delete(comment)
+        db_session.commit()
+
+    def test_reviews_work_when_enabled(self, client, auth_headers, test_diving_center, db_session):
+        """Test that reviews work normally when setting is enabled (default)."""
+        # Ensure setting is enabled (False = not disabled)
+        setting = db_session.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+        if setting:
+            setting.value = json.dumps(False)
+        else:
+            setting = Setting(
+                key="disable_diving_center_reviews",
+                value=json.dumps(False),
+                description="Disable comments and ratings for diving centers"
+            )
+            db_session.add(setting)
+        db_session.commit()
+
+        # Test rating
+        rating_data = {"score": 8}
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/rate",
+            json=rating_data,
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        # Test comment creation
+        comment_data = {"comment_text": "Great diving center!"}
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/comments",
+            json=comment_data,
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        # No cleanup needed - setting already exists
+
+    def test_setting_toggle_takes_effect_immediately(self, client, auth_headers, admin_headers, test_diving_center, db_session):
+        """Test that toggling the setting takes effect immediately."""
+        # Start with reviews enabled
+        setting = db_session.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+        if setting:
+            setting.value = json.dumps(False)
+        else:
+            setting = Setting(
+                key="disable_diving_center_reviews",
+                value=json.dumps(False),
+                description="Disable comments and ratings for diving centers"
+            )
+            db_session.add(setting)
+        db_session.commit()
+
+        # Verify rating works
+        rating_data = {"score": 8}
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/rate",
+            json=rating_data,
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        # Disable reviews via API (as admin)
+        response = client.put(
+            "/api/v1/settings/disable_diving_center_reviews",
+            headers=admin_headers,
+            json={"value": True}
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify rating is now blocked (no DB refresh needed, setting check happens per request)
+        rating_data = {"score": 9}
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/rate",
+            json=rating_data,
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+        # Re-enable reviews
+        response = client.put(
+            "/api/v1/settings/disable_diving_center_reviews",
+            headers=admin_headers,
+            json={"value": False}
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify rating works again
+        rating_data = {"score": 10}
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/rate",
+            json=rating_data,
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        # No cleanup needed - setting already exists

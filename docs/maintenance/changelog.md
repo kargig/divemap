@@ -5,6 +5,82 @@ Divemap application.
 
 ## [Latest Release] - November 01, 2025
 
+### ⚙️ New Features
+
+#### **Settings System - ✅ COMPLETE**
+
+A new database-backed settings system provides runtime configuration management without code deployment.
+
+**Migration Details**:
+
+- **New Table**: `settings` table with flexible key-value storage
+- **Migration File**: `0041_add_settings_table.py`
+- **Table Schema**:
+  - `id`: Primary key (auto-increment)
+  - `key`: Unique setting identifier (VARCHAR 255, indexed)
+  - `value`: JSON-serialized setting value (TEXT)
+  - `description`: Optional setting description (TEXT)
+  - `created_at`, `updated_at`: Timestamp tracking
+
+**Features**:
+
+- **Generic Design**: Supports various data types (stored as JSON strings)
+- **Fast Lookups**: Indexed key column for efficient queries
+- **Audit Trail**: Automatic timestamp tracking for settings lifecycle
+- **Admin API**: RESTful endpoints for reading and updating settings
+- **Public Read Access**: Settings can be read without authentication for frontend integration
+
+**API Endpoints**:
+
+- `GET /api/v1/settings/{key}` - Public read access to individual settings
+- `GET /api/v1/settings` - Admin-only list of all settings
+- `PUT /api/v1/settings/{key}` - Admin-only update of setting values
+
+See [Settings API Documentation](../development/api.md#settings-api) for complete endpoint details and examples.
+
+#### **Diving Center Reviews Control - ✅ COMPLETE**
+
+Administrators can now globally disable or enable diving center reviews (ratings and comments) via a database setting.
+
+**Setting**: `disable_diving_center_reviews`
+
+- **Type**: Boolean
+- **Default**: `false` (reviews enabled)
+- **Admin UI**: Toggle available at `/admin/diving-centers`
+
+**Behavior When Disabled (`true`)**:
+
+- **Backend**: All rating and comment endpoints return `403 Forbidden`
+- **Frontend**: Rating and comment UI completely hidden from all users
+- **Listings**: Rating filters (`min_rating`, `max_rating`) are ignored
+- **API Responses**: Rating data (`average_rating`, `total_ratings`) excluded from responses
+- **Sort Options**: `comment_count` removed from valid sort fields
+
+**Behavior When Enabled (`false`)**:
+
+- All review functionality works normally
+- Rating and comment UI visible to users
+- Rating filters work in listing endpoints
+- Rating data included in API responses
+
+**Implementation Details**:
+
+- Backend endpoints check setting before processing rating/comment requests
+- Frontend components conditionally render based on setting value
+- React Query hooks (`useSetting`) provide cached, efficient setting access
+- Setting changes take effect immediately without server restart
+
+**Files Modified**:
+
+- `backend/app/routers/diving_centers.py` - Rating/comment endpoint enforcement
+- `backend/app/routers/settings.py` - Settings API endpoints
+- `backend/app/utils.py` - Helper function `is_diving_center_reviews_enabled()`
+- `frontend/src/pages/AdminDivingCenters.js` - Admin toggle UI
+- `frontend/src/pages/DivingCenterDetail.js` - Conditional review UI rendering
+- `frontend/src/pages/DivingCenters.js` - Rating filter visibility control
+- `frontend/src/components/DivingCentersResponsiveFilterBar.js` - Filter UI conditional rendering
+- `frontend/src/hooks/useSettings.js` - React Query hooks for settings
+
 ### 🗄️ Database Changes
 
 #### **Difficulty Taxonomy Migration - ✅ COMPLETE**
