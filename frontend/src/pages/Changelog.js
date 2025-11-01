@@ -25,7 +25,88 @@ const Changelog = () => {
           <div className='prose prose-lg max-w-none'>
             <h2 className='text-2xl font-semibold text-gray-900 mb-6 flex items-center'>
               <Calendar className='h-6 w-6 mr-3 text-blue-600' />
-              Latest Release - September 27, 2025
+              Latest Release - November 01, 2025
+            </h2>
+
+            <div className='grid md:grid-cols-2 gap-6 mb-8'>
+              <div className='bg-blue-50 p-6 rounded-lg border border-blue-200'>
+                <h3 className='text-lg font-semibold text-blue-900 mb-3 flex items-center'>
+                  🚀 Major Features
+                </h3>
+                <ul className='text-blue-800 space-y-2'>
+                  <li>• Comprehensive Dive Route Drawing and Selection System</li>
+                  <li>• Settings System for Runtime Configuration Management</li>
+                  <li>• Diving Center Reviews Control (Admin Toggle)</li>
+                  <li>• Difficulty Taxonomy Migration to Lookup Table System</li>
+                  <li>• MySQL Spatial Search for Nearby Diving Centers</li>
+                </ul>
+              </div>
+
+              <div className='bg-green-50 p-6 rounded-lg border border-green-200'>
+                <h3 className='text-lg font-semibold text-green-900 mb-3 flex items-center'>
+                  🔧 Improvements
+                </h3>
+                <ul className='text-green-800 space-y-2'>
+                  <li>• Multi-Segment Route Drawing with Mobile Touch Support</li>
+                  <li>• Route Export in GPX and KML Formats</li>
+                  <li>• Bottom Pagination Controls on All List Pages</li>
+                  <li>• Google Maps Directions from Coordinates</li>
+                  <li>• Enhanced Phone Number Validation (E.164 Format)</li>
+                  <li>• Improved Link Visibility with Visual Indicators</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className='grid md:grid-cols-2 gap-6 mb-8'>
+              <div className='bg-orange-50 p-6 rounded-lg border border-orange-200'>
+                <h3 className='text-lg font-semibold text-orange-900 mb-3 flex items-center'>
+                  🐛 Bug Fixes
+                </h3>
+                <ul className='text-orange-800 space-y-2'>
+                  <li>• Fixed Back Navigation When Opening Links in New Tabs</li>
+                  <li>• Fixed Duplicate Warning Messages on Dive Sites Page</li>
+                  <li>• Fixed Login Failure Feedback Messages</li>
+                  <li>• Fixed URL Parameter Loss During Navigation</li>
+                  <li>• Improved Search Keyword Persistence</li>
+                </ul>
+              </div>
+
+              <div className='bg-purple-50 p-6 rounded-lg border border-purple-200'>
+                <h3 className='text-lg font-semibold text-purple-900 mb-3 flex items-center'>
+                  🗄️ Database Changes
+                </h3>
+                <ul className='text-purple-800 space-y-2'>
+                  <li>• New Settings Table for Runtime Configuration</li>
+                  <li>• Difficulty Levels Lookup Table System</li>
+                  <li>• Removed Address Field from Dive Sites</li>
+                  <li>• MySQL POINT Geometry for Spatial Queries</li>
+                  <li>• Users Enabled by Default on Registration</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className='bg-gray-50 p-6 rounded-lg border border-gray-200 mb-8'>
+              <h3 className='text-lg font-semibold text-gray-900 mb-3 flex items-center'>
+                🎨 User Experience
+              </h3>
+              <ul className='text-gray-800 space-y-2'>
+                <li>• Navigation Now Remembers Filters, Search, and Pagination</li>
+                <li>• Consistent Pagination Layout Across All List Pages</li>
+                <li>• Clear Visual Indicators for Clickable Links</li>
+                <li>• Phone Numbers Automatically Formatted to International Standard</li>
+                <li>• One-Click Directions to Diving Centers via Google Maps</li>
+                <li>• Major Backend Refactoring: Dives Router Split into Focused Modules</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Previous Release */}
+        <div className='bg-white rounded-lg shadow-lg p-8 mb-8'>
+          <div className='prose prose-lg max-w-none'>
+            <h2 className='text-2xl font-semibold text-gray-900 mb-6 flex items-center'>
+              <Calendar className='h-6 w-6 mr-3 text-blue-600' />
+              Previous Release - September 27, 2025
             </h2>
 
             <div className='grid md:grid-cols-2 gap-6 mb-8'>
@@ -252,7 +333,7 @@ const Changelog = () => {
               </a>{' '}
               standard for clear, user-friendly documentation of all changes.
             </p>
-            <p className='text-sm text-gray-500'>Last updated: September 27, 2025</p>
+            <p className='text-sm text-gray-500'>Last updated: November 01, 2025</p>
           </div>
         </div>
       </div>
