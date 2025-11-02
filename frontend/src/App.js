@@ -24,6 +24,7 @@ import Changelog from './pages/Changelog';
 import CreateDive from './pages/CreateDive';
 import CreateDiveSite from './pages/CreateDiveSite';
 import CreateDivingCenter from './pages/CreateDivingCenter';
+import CreateTrip from './pages/CreateTrip';
 import DiveDetail from './pages/DiveDetail';
 import DiveRouteDrawing from './pages/DiveRouteDrawing';
 import Dives from './pages/Dives';
@@ -45,7 +46,6 @@ import Profile from './pages/Profile';
 import Register from './pages/Register';
 import RouteDetail from './pages/RouteDetail';
 import TripDetail from './pages/TripDetail';
-import CreateTrip from './pages/CreateTrip';
 import UserProfile from './pages/UserProfile';
 
 const queryClient = new QueryClient({
@@ -104,6 +104,27 @@ const ProtectedEditRoute = ({ children }) => {
 };
 
 ProtectedEditRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+// Protected route for trip creation (admin, moderator, or diving center owners)
+const ProtectedTripCreationRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className='flex justify-center items-center h-screen'>Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to='/login' replace />;
+  }
+
+  // Allow admin, moderator, or owners (ownership check will be done in component)
+  // The component will verify ownership status
+  return children;
+};
+
+ProtectedTripCreationRoute.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
@@ -323,9 +344,9 @@ function App() {
                 <Route
                   path='/dive-trips/create'
                   element={
-                    <ProtectedRoute>
+                    <ProtectedTripCreationRoute>
                       <CreateTrip />
-                    </ProtectedRoute>
+                    </ProtectedTripCreationRoute>
                   }
                 />
                 <Route path='/dive-trips/:id' element={<TripDetail />} />

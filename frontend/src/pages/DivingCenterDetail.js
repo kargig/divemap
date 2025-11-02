@@ -163,7 +163,7 @@ const DivingCenterDetail = () => {
     setTripsDateRange(prev => {
       const newStartDate = new Date(prev.startDate);
       const newEndDate = new Date(prev.endDate);
-      
+
       if (direction === 'next') {
         // Move forward 3 months
         newStartDate.setMonth(newStartDate.getMonth() + 3);
@@ -173,25 +173,23 @@ const DivingCenterDetail = () => {
         newStartDate.setMonth(newStartDate.getMonth() - 3);
         newEndDate.setMonth(newEndDate.getMonth() - 3);
       }
-      
+
       return { startDate: newStartDate, endDate: newEndDate };
     });
   };
 
   // Fetch dive trips for this diving center within the date range
-  const {
-    data: trips,
-    isLoading: tripsLoading,
-  } = useQuery(
+  const { data: trips, isLoading: tripsLoading } = useQuery(
     ['diving-center-trips', id, tripsDateRange.startDate, tripsDateRange.endDate],
-    () => getParsedTrips({
-      diving_center_id: parseInt(id),
-      start_date: formatDateForAPI(tripsDateRange.startDate),
-      end_date: formatDateForAPI(tripsDateRange.endDate),
-      limit: 100,
-      sort_by: 'trip_date',
-      sort_order: 'desc',
-    }),
+    () =>
+      getParsedTrips({
+        diving_center_id: parseInt(id),
+        start_date: formatDateForAPI(tripsDateRange.startDate),
+        end_date: formatDateForAPI(tripsDateRange.endDate),
+        limit: 100,
+        sort_by: 'trip_date',
+        sort_order: 'desc',
+      }),
     {
       enabled: !!id,
       retry: 2,
@@ -689,9 +687,7 @@ const DivingCenterDetail = () => {
                 >
                   <ChevronLeft className='h-5 w-5' />
                 </button>
-                <span className='text-sm text-gray-600 px-2'>
-                  {formatDateRange()}
-                </span>
+                <span className='text-sm text-gray-600 px-2'>{formatDateRange()}</span>
                 <button
                   onClick={() => navigateTripsRange('next')}
                   disabled={tripsDateRange.endDate >= new Date()}
@@ -738,7 +734,9 @@ const DivingCenterDetail = () => {
                         </div>
                       )}
                       {trip.trip_description && (
-                        <p className='text-sm text-gray-700 line-clamp-2'>{trip.trip_description}</p>
+                        <p className='text-sm text-gray-700 line-clamp-2'>
+                          {trip.trip_description}
+                        </p>
                       )}
                     </div>
                     <Link
@@ -767,9 +765,7 @@ const DivingCenterDetail = () => {
                 >
                   <ChevronLeft className='h-5 w-5' />
                 </button>
-                <span className='text-sm text-gray-600 px-2'>
-                  {formatDateRange()}
-                </span>
+                <span className='text-sm text-gray-600 px-2'>{formatDateRange()}</span>
                 <button
                   onClick={() => navigateTripsRange('next')}
                   disabled={tripsDateRange.endDate >= new Date()}
