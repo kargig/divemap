@@ -11,7 +11,7 @@ import math
 from app.database import get_db
 from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, ParsedDive, DifficultyLevel, get_difficulty_id_by_code
 from app.auth import get_current_user, get_current_user_optional, is_admin_or_moderator
-from app.schemas import ParsedDiveTripResponse, NewsletterUploadResponse, NewsletterResponse, NewsletterUpdateRequest, NewsletterDeleteRequest, NewsletterDeleteResponse, ParsedDiveTripCreate, ParsedDiveTripUpdate, ParsedDiveResponse
+from app.schemas import ParsedDiveTripResponse, NewsletterUploadResponse, NewsletterResponse, NewsletterUpdateRequest, NewsletterDeleteRequest, NewsletterDeleteResponse, ParsedDiveTripCreate, ParsedDiveTripUpdate, ParsedDiveResponse, NewsletterParseTextRequest
 import logging
 import openai
 import quopri
@@ -414,6 +414,55 @@ def extract_diving_center_from_headers(raw_email: str) -> Optional[str]:
         logger.error(f"Error extracting diving center from headers: {e}")
         return None
 
+def extract_diving_center_from_metadata(content: str) -> Optional[int]:
+    """
+    Extract diving center ID from newsletter metadata embedded in content.
+    Looks for format: <!-- DIVEMAP_METADATA: diving_center_id=123 -->
+    """
+    try:
+        import re
+        pattern = r'<!--\s*DIVEMAP_METADATA:\s*diving_center_id=(\d+)\s*-->'
+        match = re.search(pattern, content)
+        if match:
+            return int(match.group(1))
+    except Exception as e:
+        logger.warning(f"Error extracting diving center from metadata: {e}")
+    return None
+
+def remove_metadata_from_content(content: str) -> str:
+    """
+    Remove metadata markers from newsletter content before parsing.
+    This ensures the metadata doesn't interfere with parsing logic.
+    """
+    try:
+        import re
+        # Remove metadata markers
+        content = re.sub(r'<!--\s*DIVEMAP_METADATA:.*?-->\s*', '', content, flags=re.DOTALL)
+        # Remove any leading/trailing whitespace
+        return content.strip()
+    except Exception as e:
+        logger.warning(f"Error removing metadata from content: {e}")
+        return content
+
+def add_diving_center_metadata(content: str, diving_center_id: Optional[int]) -> str:
+    """
+    Add diving center metadata to newsletter content.
+    Prepends metadata in a format that can be extracted later but won't interfere with parsing.
+    """
+    if diving_center_id is None:
+        return content
+    
+    metadata = f"<!-- DIVEMAP_METADATA: diving_center_id={diving_center_id} -->\n"
+    # Check if metadata already exists
+    if extract_diving_center_from_metadata(content) is not None:
+        # Replace existing metadata
+        import re
+        content = re.sub(r'<!--\s*DIVEMAP_METADATA:.*?-->\s*', metadata, content, flags=re.DOTALL)
+        return content
+    else:
+        # Add new metadata at the beginning
+        return metadata + content
+
 def find_matching_diving_center(db: Session, center_name: str) -> Optional[int]:
     """Find matching diving center in database by name similarity"""
     if not center_name:
@@ -445,17 +494,24 @@ def find_matching_diving_center(db: Session, center_name: str) -> Optional[int]:
 
     return None
 
-def parse_newsletter_with_openai(content: str, db: Session) -> List[dict]:
+def parse_newsletter_with_openai(content: str, db: Session, diving_center_id_override: Optional[int] = None) -> List[dict]:
     """Parse newsletter content using OpenAI API"""
     try:
+        # Extract diving center from metadata if not provided as override
+        extracted_diving_center_id = extract_diving_center_from_metadata(content) if diving_center_id_override is None else None
+        diving_center_id_from_metadata = diving_center_id_override or extracted_diving_center_id
+        
+        # Remove metadata from content before parsing
+        content_without_metadata = remove_metadata_from_content(content)
+        
         # Check if content is already decoded text or needs email parsing
-        clean_content = content
+        clean_content = content_without_metadata
         
         # If content contains email headers, try to extract the text content
-        if content.startswith('Delivered-To:') or 'From:' in content or 'Subject:' in content:
+        if content_without_metadata.startswith('Delivered-To:') or 'From:' in content_without_metadata or 'Subject:' in content_without_metadata:
             try:
                 # Try to parse as email
-                email_message = message_from_bytes(content.encode('utf-8'))
+                email_message = message_from_bytes(content_without_metadata.encode('utf-8'))
                 subject = email_message.get('Subject', '')
                 
                 # Get the text content
@@ -480,7 +536,7 @@ def parse_newsletter_with_openai(content: str, db: Session) -> List[dict]:
             except Exception as e:
                 logger.warning(f"Failed to parse as email, treating as plain text: {e}")
                 subject = ""
-                clean_content = content
+                clean_content = content_without_metadata
         else:
             # Content is already plain text
             subject = ""
@@ -503,8 +559,9 @@ Parse the following newsletter content and extract dive trip information. Return
 ⚠️ IMPORTANT: Handle "Διπλή βουτιά" (double dive) scenarios correctly:
 ⚠️ - "διπλή βουτιά στην Μακρόνησο" = 2 dives at same location (Makronisos)
 ⚠️ - "διπλή βουτιά στον Ποθητό και στο Ποντικονήσι" = 2 dives at different locations
-⚠️ - "βουτιά στον Ποθητό και στο Ποντικονήσι" = 2 dives at different locations
-⚠️ - Always create 2 dives when multiple sites are mentioned or "διπλή βουτιά" is specified
+⚠️ - "βουτιά στον Ποθητό και στο Ποντικονήσι" = 2 dives at different locations (TWO distinct dive site names)
+⚠️ - DEFAULT TO 1 DIVE unless "διπλή βουτιά" is mentioned OR two DISTINCT dive site names are specified
+⚠️ - "στον Πατροκλο" after a dive site name means "near Patroklos" - it's a location descriptor, NOT a separate dive site
 
 Newsletter Subject: {subject}
 Diving Center: {diving_center_name if diving_center_name else 'Unknown'}
@@ -594,7 +651,19 @@ TRIP STRUCTURE RULES:
 - If the text mentions different dates/times for different trips, create separate trip objects
 - Each dive within a trip should have a dive_number (1 for first dive, 2 for second dive)
 - Each dive can have its own dive site, time, duration, and description
-- When multiple dive sites are mentioned without "διπλή βουτιά", still create 2 dives if 2 different locations are specified
+
+CRITICAL: SINGLE DIVE vs DOUBLE DIVE DETECTION:
+- DEFAULT TO 1 DIVE unless explicitly indicated otherwise
+- Only create 2 dives when:
+  * "Διπλή βουτιά" (double dive) is explicitly mentioned
+  * "βουτιά στον X και στον Y" (dive at X and at Y) - where X and Y are clearly TWO SEPARATE dive site names
+  * "Δεύτερη βουτιά" (second dive) is mentioned
+  * Two distinct dive sites with different times are mentioned (e.g., "9:00 at Site A, 12:00 at Site B")
+- DO NOT create 2 dives when:
+  * Location descriptors are mentioned (e.g., "στον Πατροκλο" means "near Patroklos" - NOT a separate dive site)
+  * A single dive site with descriptive text (e.g., "ναυάγιο Πατρις στον Πατροκλο" = Patris wreck near Patroklos = 1 dive site)
+  * Geographic references like "near", "in the area of", "στον" (meaning "at/near" when describing a location)
+  * Technical details or depth information are mentioned (these don't indicate multiple dives)
 
 CONCRETE EXAMPLES - FOLLOW THESE EXACTLY:
 1. "ΚΥΡ, 17 Αυγ στις 9:00" with "9:00 Άκρα Καταφυγή" and "12:00 ν. Κουδούνια, ύφαλος"
@@ -611,10 +680,10 @@ CONCRETE EXAMPLES - FOLLOW THESE EXACTLY:
 4. "Tην Δευτέρα με ραντεβού στις 1030 πάμε για βουτιά στον Ποθητό και στο Ποντικονήσι."
    → Create 1 trip with 2 dives: dive 1 at "Ποθητό", dive 2 at "Ποντικονήσι", trip_time = "10:30"
 
-4. "Tην Τρίτη με ραντεβού στις 1130 πάμε για βουτιά στον Ποθητό και στις 13:30 στο Ποντικονήσι."
+5. "Tην Τρίτη με ραντεβού στις 1130 πάμε για βουτιά στον Ποθητό και στις 13:30 στο Ποντικονήσι."
    → Create 1 trip with 2 dives: dive 1 at "Ποθητό" (dive_time = "11:30"), dive 2 at "Ποντικονήσι" (dive_time = "13:30")
 
-5. Newsletter with multiple dates (like newsletter 104):
+6. Newsletter with multiple dates (like newsletter 104):
    Content mentions "Σάββατο 23 Αυγούστου" and "Κυριακή 24 Αυγούστου"
    → Create 2 separate trips:
    → Trip 1: trip_date = "2025-08-23" (Saturday August 23rd) with 2 dives
@@ -625,11 +694,14 @@ CONCRETE EXAMPLES - FOLLOW THESE EXACTLY:
    - August 24th: Look for dive sites mentioned near "Κυριακή 24 Αυγούστου"
    - Each date section will have its own unique dive sites and times
 
-6. Wreck diving examples:
-   Content mentions "Ναυάγιο ORIA" and "Ναυάγιο ΚΥΡΑ ΛΕΝΗ" means wreck diving
-   → Extract dive_site_name as "Ναυάγιο ORIA" and "Ναυάγιο ΚΥΡΑ ΛΕΝΗ"
+7. Wreck diving examples:
+   - "Ναυάγιο ORIA" and "Ναυάγιο ΚΥΡΑ ΛΕΝΗ" mentioned in the same trip description
+     → Extract as 2 dives: dive 1 at "Ναυάγιο ORIA", dive 2 at "Ναυάγιο ΚΥΡΑ ΛΕΝΗ"
+   - "Τεχνική κατάδυση στο βαθύ ναυάγιο Πατρις στον Πατροκλο"
+     → Extract as 1 dive ONLY: dive_site_name = "ναυάγιο Πατρις"
+     → "στον Πατροκλο" means "near Patroklos" - it's a location descriptor, NOT a separate dive site
 
-7. Newsletter specific example:
+8. Newsletter specific example:
    Content structure:
    ```
    Σάββατο 23 Αυγούστου
@@ -782,11 +854,18 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
         logger.error(f"Error in OpenAI parsing: {e}")
         return parse_newsletter_content(clean_content, db)
 
-def parse_newsletter_content(content: str, db: Session) -> List[dict]:
+def parse_newsletter_content(content: str, db: Session, diving_center_id_override: Optional[int] = None) -> List[dict]:
     """Parse newsletter content using basic regex patterns"""
     try:
+        # Extract diving center from metadata if not provided as override
+        extracted_diving_center_id = extract_diving_center_from_metadata(content) if diving_center_id_override is None else None
+        diving_center_id_from_metadata = diving_center_id_override or extracted_diving_center_id
+        
+        # Remove metadata from content before parsing
+        content_without_metadata = remove_metadata_from_content(content)
+        
         # Extract subject and clean content from raw email
-        email_message = message_from_bytes(content.encode('utf-8'))
+        email_message = message_from_bytes(content_without_metadata.encode('utf-8'))
         subject = email_message.get('Subject', '')
 
         # Get the text content
@@ -961,12 +1040,20 @@ async def upload_newsletter(
         db.commit()
         db.refresh(newsletter)
 
+        # Extract diving center from metadata if present (for file uploads, metadata might be added later)
+        diving_center_id_from_metadata = extract_diving_center_from_metadata(content_str)
+        
         # Parse the newsletter content
         try:
             if use_openai.lower() == 'true':
-                parsed_trips = parse_newsletter_with_openai(content_str, db)
+                parsed_trips = parse_newsletter_with_openai(content_str, db, diving_center_id_from_metadata)
             else:
-                parsed_trips = parse_newsletter_content(content_str, db)
+                parsed_trips = parse_newsletter_content(content_str, db, diving_center_id_from_metadata)
+            
+            # Ensure diving_center_id is set from metadata if available
+            if diving_center_id_from_metadata is not None:
+                for trip_data in parsed_trips:
+                    trip_data['diving_center_id'] = diving_center_id_from_metadata
 
             created_trips = []
 
@@ -1053,6 +1140,141 @@ async def upload_newsletter(
     except Exception as e:
         logger.error(f"Error uploading newsletter: {e}")
         raise HTTPException(status_code=500, detail=f"Error uploading newsletter: {str(e)}")
+
+@router.post("/parse-text", response_model=NewsletterUploadResponse)
+async def parse_newsletter_text(
+    request: NewsletterParseTextRequest,
+    current_user: User = Depends(is_admin_or_moderator),
+    db: Session = Depends(get_db)
+):
+    """
+    Parse newsletter text content directly and extract dive trip information.
+    Similar to upload but accepts text content directly instead of a file.
+    """
+    try:
+        content_str = request.content
+        diving_center_id_override = request.diving_center_id
+        use_openai = request.use_openai
+
+        # Validate diving center if provided
+        diving_center_name = None
+        if diving_center_id_override is not None:
+            diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id_override).first()
+            if not diving_center:
+                raise HTTPException(status_code=400, detail=f"Diving center with ID {diving_center_id_override} not found")
+            diving_center_name = diving_center.name
+        
+        # Add diving center metadata to content before saving
+        content_with_metadata = add_diving_center_metadata(content_str, diving_center_id_override)
+
+        # Create newsletter record with metadata embedded
+        newsletter = Newsletter(
+            content=content_with_metadata
+        )
+        db.add(newsletter)
+        db.commit()
+        db.refresh(newsletter)
+
+        # Parse the newsletter content (metadata will be extracted automatically)
+        try:
+            if use_openai:
+                parsed_trips = parse_newsletter_with_openai(content_with_metadata, db, diving_center_id_override)
+            else:
+                parsed_trips = parse_newsletter_content(content_with_metadata, db, diving_center_id_override)
+
+            # Ensure diving_center_id is set if provided or found in metadata
+            final_diving_center_id = diving_center_id_override
+            if final_diving_center_id is not None:
+                for trip_data in parsed_trips:
+                    trip_data['diving_center_id'] = final_diving_center_id
+
+            created_trips = []
+
+            # Create ParsedDiveTrip records
+            for trip_data in parsed_trips:
+                # Handle date parsing with better error handling
+                trip_date = None
+                if trip_data.get('trip_date'):
+                    trip_date_str = trip_data['trip_date']
+                    if isinstance(trip_date_str, str):
+                        # Skip placeholder dates like "YYYY-MM-DD"
+                        if trip_date_str == "YYYY-MM-DD" or "YYYY" in trip_date_str:
+                            logger.warning(f"Skipping placeholder date: {trip_date_str}")
+                            continue
+                        try:
+                            trip_date = datetime.strptime(trip_date_str, '%Y-%m-%d').date()
+                        except ValueError as e:
+                            logger.error(f"Invalid date format '{trip_date_str}': {e}")
+                            continue
+                    else:
+                        trip_date = trip_date_str
+                else:
+                    logger.warning("No trip_date provided, skipping trip")
+                    continue
+
+                # Validate and convert difficulty_code if provided
+                trip_difficulty_code = trip_data.get('trip_difficulty_code')
+                trip_difficulty_id = None
+                if trip_difficulty_code:
+                    trip_difficulty_id = get_difficulty_id_by_code(db, trip_difficulty_code)
+                    if trip_difficulty_id is None:
+                        logger.warning(f"Invalid difficulty_code: {trip_difficulty_code} for trip, skipping this trip")
+                        continue  # Skip this trip rather than fail entire import
+
+                trip = ParsedDiveTrip(
+                    source_newsletter_id=newsletter.id,
+                    diving_center_id=trip_data.get('diving_center_id'),
+                    trip_date=trip_date,
+                    trip_time=trip_data.get('trip_time'),
+                    trip_duration=trip_data.get('trip_duration'),
+                    trip_difficulty_id=trip_difficulty_id,
+                    trip_price=trip_data.get('trip_price'),
+                    trip_currency=trip_data.get('trip_currency', 'EUR'),
+                    group_size_limit=trip_data.get('group_size_limit'),
+                    current_bookings=trip_data.get('current_bookings', 0),
+                    trip_description=trip_data.get('trip_description'),
+                    special_requirements=trip_data.get('special_requirements'),
+                    trip_status=trip_data.get('trip_status', 'scheduled')
+                )
+                db.add(trip)
+                db.flush()  # Get the trip ID
+
+                # Create ParsedDive records for each dive in the trip
+                if trip_data.get('dives'):
+                    for dive_data in trip_data['dives']:
+                        dive = ParsedDive(
+                            trip_id=trip.id,
+                            dive_site_id=dive_data.get('dive_site_id'),
+                            dive_number=dive_data.get('dive_number', 1),
+                            dive_time=dive_data.get('dive_time'),
+                            dive_duration=dive_data.get('dive_duration'),
+                            dive_description=dive_data.get('dive_description')
+                        )
+                        db.add(dive)
+
+                created_trips.append(trip)
+
+            db.commit()
+
+            return NewsletterUploadResponse(
+                newsletter_id=newsletter.id,
+                trips_created=len(created_trips),
+                message="Newsletter text parsed successfully"
+            )
+
+        except Exception as e:
+            logger.error(f"Error parsing newsletter text: {e}")
+            return NewsletterUploadResponse(
+                newsletter_id=newsletter.id,
+                trips_created=0,
+                message=f"Newsletter text parsed but parsing failed: {str(e)}"
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error parsing newsletter text: {e}")
+        raise HTTPException(status_code=500, detail=f"Error parsing newsletter text: {str(e)}")
 
 @router.get("/", response_model=List[NewsletterResponse])
 async def get_newsletters(
@@ -1618,12 +1840,20 @@ async def reparse_newsletter(
 
         db.commit()
 
-        # Parse the newsletter content again
+        # Parse the newsletter content again (metadata will be extracted automatically)
         try:
+            # Extract diving center from metadata if present
+            diving_center_id_from_metadata = extract_diving_center_from_metadata(newsletter.content)
+            
             if use_openai.lower() == 'true':
-                parsed_trips = parse_newsletter_with_openai(newsletter.content, db)
+                parsed_trips = parse_newsletter_with_openai(newsletter.content, db, diving_center_id_from_metadata)
             else:
-                parsed_trips = parse_newsletter_content(newsletter.content, db)
+                parsed_trips = parse_newsletter_content(newsletter.content, db, diving_center_id_from_metadata)
+            
+            # Ensure diving_center_id is set from metadata if available
+            if diving_center_id_from_metadata is not None:
+                for trip_data in parsed_trips:
+                    trip_data['diving_center_id'] = diving_center_id_from_metadata
 
             created_trips = []
 

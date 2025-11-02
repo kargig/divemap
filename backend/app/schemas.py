@@ -752,6 +752,12 @@ class NewsletterUploadResponse(BaseModel):
     trips_created: int
     message: str
 
+# Newsletter Text Parse Request Schema
+class NewsletterParseTextRequest(BaseModel):
+    content: str
+    diving_center_id: Optional[int] = None
+    use_openai: bool = True
+
 # Newsletter Management Schemas
 class NewsletterResponse(BaseModel):
     id: int
