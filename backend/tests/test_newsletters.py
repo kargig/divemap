@@ -495,13 +495,11 @@ class TestNewsletters:
 
     def test_get_parsed_trips_success(self, client, db_session):
         """Test getting parsed trips successfully with proper datetime serialization."""
-        # Create test data
+        # Create test data - don't set latitude/longitude to avoid SQLite PostGIS issues
         diving_center = DivingCenter(
             name="Test Diving Center",
             description="A test diving center",
-            email="test@divingcenter.com",
-            latitude=Decimal("15.0"),
-            longitude=Decimal("25.0")
+            email="test@divingcenter.com"
         )
         db_session.add(diving_center)
         db_session.commit()
@@ -601,7 +599,8 @@ class TestNewsletters:
         assert dive_data["created_at"] == "2024-01-01T10:00:00"  # ISO datetime string
         assert dive_data["updated_at"] == "2024-01-01T10:00:00"  # ISO datetime string
 
-    def test_get_parsed_trips_with_sorting(self, client, db_session):
+    @pytest.mark.spatial
+    def test_get_parsed_trips_with_sorting(self, client, auth_headers, db_session):
         """Test getting parsed trips with sorting parameters."""
         # Get difficulty ID
         difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
@@ -663,8 +662,8 @@ class TestNewsletters:
         
         db_session.commit()
 
-        # Test sorting by trip_date descending (default)
-        response = client.get("/api/v1/newsletters/trips?sort_by=trip_date&sort_order=desc")
+        # Test sorting by trip_date descending (default) - authenticated user
+        response = client.get("/api/v1/newsletters/trips?sort_by=trip_date&sort_order=desc", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         
         data = response.json()
@@ -676,7 +675,7 @@ class TestNewsletters:
         assert data[2]["trip_date"] == "2024-12-10"
 
         # Test sorting by trip_date ascending
-        response = client.get("/api/v1/newsletters/trips?sort_by=trip_date&sort_order=asc")
+        response = client.get("/api/v1/newsletters/trips?sort_by=trip_date&sort_order=asc", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         
         data = response.json()
@@ -689,13 +688,11 @@ class TestNewsletters:
 
     def test_get_parsed_trips_with_filters(self, client, db_session):
         """Test getting parsed trips with various filters."""
-        # Create test data
+        # Create test data - don't set latitude/longitude to avoid SQLite PostGIS issues
         diving_center = DivingCenter(
             name="Test Diving Center",
             description="A test diving center",
-            email="test@divingcenter.com",
-            latitude=Decimal("15.0"),
-            longitude=Decimal("25.0")
+            email="test@divingcenter.com"
         )
         db_session.add(diving_center)
         db_session.commit()
@@ -782,13 +779,11 @@ class TestNewsletters:
         # Get difficulty ID
         difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         
-        # Create test data
+        # Create test data - don't set latitude/longitude to avoid SQLite PostGIS issues
         diving_center = DivingCenter(
             name="Test Diving Center",
             description="A test diving center",
-            email="test@divingcenter.com",
-            latitude=Decimal("15.0"),
-            longitude=Decimal("25.0")
+            email="test@divingcenter.com"
         )
         db_session.add(diving_center)
         db_session.commit()
@@ -874,7 +869,8 @@ class TestNewsletters:
                 # Re-raise other exceptions
                 raise
 
-    def test_get_parsed_trips_with_pagination(self, client, db_session):
+    @pytest.mark.spatial
+    def test_get_parsed_trips_with_pagination(self, client, auth_headers, db_session):
         """Test getting parsed trips with pagination."""
         # Get difficulty ID
         difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
@@ -921,15 +917,15 @@ class TestNewsletters:
         
         db_session.commit()
 
-        # Test first page (default limit is 100, so all should fit)
-        response = client.get("/api/v1/newsletters/trips")
+        # Test first page (default limit is 100, so all should fit) - authenticated user
+        response = client.get("/api/v1/newsletters/trips", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         
         data = response.json()
         assert len(data) == 25
 
         # Test with custom limit
-        response = client.get("/api/v1/newsletters/trips?limit=10")
+        response = client.get("/api/v1/newsletters/trips?limit=10", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         
         data = response.json()
@@ -937,7 +933,7 @@ class TestNewsletters:
 
         # Test with skip - the skip parameter skips the first N results
         # So skip=10 should skip trips 1-10 and return trips 11-20
-        response = client.get("/api/v1/newsletters/trips?skip=10&limit=10")
+        response = client.get("/api/v1/newsletters/trips?skip=10&limit=10", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         
         data = response.json()
@@ -946,7 +942,7 @@ class TestNewsletters:
         # The first trip in the result should be Trip 11 (since we skipped 0-9)
         # But the actual trip number depends on how the database orders the results
         # Let's just verify we got the right number of results and they're different from the first page
-        first_page_response = client.get("/api/v1/newsletters/trips?limit=10")
+        first_page_response = client.get("/api/v1/newsletters/trips?limit=10", headers=auth_headers)
         first_page_data = first_page_response.json()
         
         # The skip=10 results should be different from the first 10 results
@@ -986,13 +982,11 @@ class TestNewsletters:
         # Get difficulty ID
         difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
         
-        # Create test data
+        # Create test data - don't set latitude/longitude to avoid SQLite PostGIS issues
         diving_center = DivingCenter(
             name="Test Diving Center",
             description="A test diving center",
-            email="test@divingcenter.com",
-            latitude=Decimal("15.0"),
-            longitude=Decimal("25.0")
+            email="test@divingcenter.com"
         )
         db_session.add(diving_center)
         db_session.commit()
@@ -1017,7 +1011,7 @@ class TestNewsletters:
         db_session.add(trip)
         db_session.commit()
 
-        # Test the endpoint
+        # Test the endpoint - unauthenticated should only get 2 oldest (but we only have 1)
         response = client.get("/api/v1/newsletters/trips")
         assert response.status_code == status.HTTP_200_OK
         
@@ -1039,13 +1033,11 @@ class TestNewsletters:
 
     def test_get_parsed_trips_with_match_types_header(self, client, db_session):
         """Test that match types header is included when fuzzy search is used."""
-        # Create test data
+        # Create test data - don't set latitude/longitude to avoid SQLite PostGIS issues
         diving_center = DivingCenter(
             name="Test Diving Center",
             description="A test diving center",
-            email="test@divingcenter.com",
-            latitude=Decimal("15.0"),
-            longitude=Decimal("25.0")
+            email="test@divingcenter.com"
         )
         db_session.add(diving_center)
         db_session.commit()
@@ -1089,3 +1081,149 @@ class TestNewsletters:
             assert isinstance(trip_data["extracted_at"], str)
             assert isinstance(trip_data["created_at"], str)
             assert isinstance(trip_data["updated_at"], str)
+
+    @pytest.mark.spatial
+    def test_get_parsed_trips_unauthenticated_restriction(self, client, db_session):
+        """Test that unauthenticated users can only access 2 oldest trips per diving center."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        
+        # Create two diving centers
+        center1 = DivingCenter(
+            name="Diving Center 1",
+            description="First test diving center",
+            email="center1@test.com",
+            latitude=Decimal("15.0"),
+            longitude=Decimal("25.0")
+        )
+        center2 = DivingCenter(
+            name="Diving Center 2",
+            description="Second test diving center",
+            email="center2@test.com",
+            latitude=Decimal("16.0"),
+            longitude=Decimal("26.0")
+        )
+        db_session.add(center1)
+        db_session.add(center2)
+        db_session.commit()
+
+        newsletter = Newsletter(content="Test newsletter content")
+        db_session.add(newsletter)
+        db_session.commit()
+
+        # Create 5 trips for center1 with different dates (oldest first)
+        for i in range(5):
+            trip = ParsedDiveTrip(
+                diving_center_id=center1.id,
+                trip_date=date(2024, 1, 10 + i),  # Dates: 2024-01-10, 2024-01-11, 2024-01-12, 2024-01-13, 2024-01-14
+                trip_description=f"Center 1 Trip {i+1}",
+                trip_status=TripStatus.scheduled,
+                source_newsletter_id=newsletter.id,
+                trip_difficulty_id=difficulty.id if difficulty else 2,
+                extracted_at=datetime(2024, 1, 1, 10, 0, 0),
+                created_at=datetime(2024, 1, 1, 10, 0, 0),
+                updated_at=datetime(2024, 1, 1, 10, 0, 0)
+            )
+            db_session.add(trip)
+
+        # Create 3 trips for center2 with different dates (oldest first)
+        for i in range(3):
+            trip = ParsedDiveTrip(
+                diving_center_id=center2.id,
+                trip_date=date(2024, 2, 10 + i),  # Dates: 2024-02-10, 2024-02-11, 2024-02-12
+                trip_description=f"Center 2 Trip {i+1}",
+                trip_status=TripStatus.scheduled,
+                source_newsletter_id=newsletter.id,
+                trip_difficulty_id=difficulty.id if difficulty else 2,
+                extracted_at=datetime(2024, 1, 1, 10, 0, 0),
+                created_at=datetime(2024, 1, 1, 10, 0, 0),
+                updated_at=datetime(2024, 1, 1, 10, 0, 0)
+            )
+            db_session.add(trip)
+        
+        db_session.commit()
+
+        # Test unauthenticated access - should only get 2 oldest per center
+        response = client.get("/api/v1/newsletters/trips")
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        # Should get 2 from center1 + 2 from center2 = 4 total
+        assert len(data) == 4
+        
+        # Verify only oldest trips are returned
+        trip_dates = [trip["trip_date"] for trip in data]
+        trip_descriptions = [trip["trip_description"] for trip in data]
+        
+        # Should contain only the 2 oldest from center1 (2024-01-10 and 2024-01-11)
+        assert "2024-01-10" in trip_dates
+        assert "2024-01-11" in trip_dates
+        assert "Center 1 Trip 1" in trip_descriptions
+        assert "Center 1 Trip 2" in trip_descriptions
+        
+        # Should contain only the 2 oldest from center2 (2024-02-10 and 2024-02-11)
+        assert "2024-02-10" in trip_dates
+        assert "2024-02-11" in trip_dates
+        assert "Center 2 Trip 1" in trip_descriptions
+        assert "Center 2 Trip 2" in trip_descriptions
+        
+        # Should NOT contain newer trips
+        assert "2024-01-12" not in trip_dates
+        assert "2024-01-13" not in trip_dates
+        assert "2024-01-14" not in trip_dates
+        assert "2024-02-12" not in trip_dates
+        assert "Center 1 Trip 3" not in trip_descriptions
+        assert "Center 1 Trip 4" not in trip_descriptions
+        assert "Center 1 Trip 5" not in trip_descriptions
+        assert "Center 2 Trip 3" not in trip_descriptions
+
+    @pytest.mark.spatial
+    def test_get_parsed_trips_authenticated_full_access(self, client, auth_headers, db_session):
+        """Test that authenticated users can access all trips."""
+        # Get difficulty ID
+        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        
+        # Create a diving center
+        diving_center = DivingCenter(
+            name="Test Diving Center",
+            description="A test diving center",
+            email="test@divingcenter.com",
+            latitude=Decimal("15.0"),
+            longitude=Decimal("25.0")
+        )
+        db_session.add(diving_center)
+        db_session.commit()
+
+        newsletter = Newsletter(content="Test newsletter content")
+        db_session.add(newsletter)
+        db_session.commit()
+
+        # Create 5 trips for the center with different dates
+        for i in range(5):
+            trip = ParsedDiveTrip(
+                diving_center_id=diving_center.id,
+                trip_date=date(2024, 1, 10 + i),  # Dates: 2024-01-10 through 2024-01-14
+                trip_description=f"Trip {i+1}",
+                trip_status=TripStatus.scheduled,
+                source_newsletter_id=newsletter.id,
+                trip_difficulty_id=difficulty.id if difficulty else 2,
+                extracted_at=datetime(2024, 1, 1, 10, 0, 0),
+                created_at=datetime(2024, 1, 1, 10, 0, 0),
+                updated_at=datetime(2024, 1, 1, 10, 0, 0)
+            )
+            db_session.add(trip)
+        
+        db_session.commit()
+
+        # Test authenticated access - should get all trips
+        response = client.get("/api/v1/newsletters/trips", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        
+        data = response.json()
+        # Should get all 5 trips
+        assert len(data) == 5
+        
+        # Verify all trips are returned
+        trip_dates = [trip["trip_date"] for trip in data]
+        for i in range(5):
+            assert f"2024-01-{10 + i}" in trip_dates
