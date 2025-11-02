@@ -1475,6 +1475,26 @@ async def get_parsed_trips(
 
     trips = query.all()
     
+    # Restrict unauthenticated users to only the 2 oldest trips per diving center
+    if not current_user:
+        # Group trips by diving_center_id and get only the 2 oldest (earliest trip_date) per center
+        from collections import defaultdict
+        trips_by_center = defaultdict(list)
+        
+        for trip in trips:
+            if trip.diving_center_id:  # Only include trips with a diving center
+                trips_by_center[trip.diving_center_id].append(trip)
+        
+        # For each center, sort by trip_date (ascending = oldest first) and take only 2
+        restricted_trips = []
+        for center_id, center_trips in trips_by_center.items():
+            # Sort by trip_date ascending (oldest first)
+            sorted_center_trips = sorted(center_trips, key=lambda t: t.trip_date or date.min)
+            # Take only the 2 oldest
+            restricted_trips.extend(sorted_center_trips[:2])
+        
+        trips = restricted_trips
+    
     # Apply fuzzy search if we have a search query and insufficient results
     match_types = {}
     if search_query and len(trips) < 5:
@@ -2045,14 +2065,13 @@ async def create_parsed_trip(
 @router.get("/trips/{trip_id}", response_model=ParsedDiveTripResponse)
 async def get_parsed_trip(
     trip_id: int,
-    current_user: User = Depends(is_admin_or_moderator),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Get a specific parsed dive trip by ID.
+    Requires authentication but allows all authenticated users to view trips.
     """
-    if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can view trips")
 
     # Eager load difficulty relationship
     trip = db.query(ParsedDiveTrip).options(joinedload(ParsedDiveTrip.difficulty)).filter(ParsedDiveTrip.id == trip_id).first()

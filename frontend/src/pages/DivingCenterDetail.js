@@ -15,6 +15,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  LogIn,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -191,7 +192,7 @@ const DivingCenterDetail = () => {
         sort_order: 'desc',
       }),
     {
-      enabled: !!id,
+      enabled: !!id, // Fetch for all users to show preview
       retry: 2,
       staleTime: 2 * 60 * 1000, // 2 minutes
     }
@@ -679,31 +680,37 @@ const DivingCenterDetail = () => {
                 <Calendar className='h-6 w-6 mr-2' />
                 Dive Trips
               </h2>
-              <div className='flex items-center space-x-2'>
-                <button
-                  onClick={() => navigateTripsRange('prev')}
-                  className='p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors'
-                  title='Previous 3 months'
-                >
-                  <ChevronLeft className='h-5 w-5' />
-                </button>
-                <span className='text-sm text-gray-600 px-2'>{formatDateRange()}</span>
-                <button
-                  onClick={() => navigateTripsRange('next')}
-                  disabled={tripsDateRange.endDate >= new Date()}
-                  className='p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-                  title='Next 3 months'
-                >
-                  <ChevronRight className='h-5 w-5' />
-                </button>
-              </div>
+              {user && (
+                <div className='flex items-center space-x-2'>
+                  <button
+                    onClick={() => navigateTripsRange('prev')}
+                    className='p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors'
+                    title='Previous 3 months'
+                  >
+                    <ChevronLeft className='h-5 w-5' />
+                  </button>
+                  <span className='text-sm text-gray-600 px-2'>{formatDateRange()}</span>
+                  <button
+                    onClick={() => navigateTripsRange('next')}
+                    disabled={tripsDateRange.endDate >= new Date()}
+                    className='p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                    title='Next 3 months'
+                  >
+                    <ChevronRight className='h-5 w-5' />
+                  </button>
+                </div>
+              )}
             </div>
             <div className='space-y-4'>
-              {trips.map(trip => (
+              {(!user ? trips.slice(0, 2) : trips).map(trip => (
                 <div
                   key={trip.id}
-                  className='border rounded-lg p-4 hover:bg-gray-50 transition-colors'
+                  className={`border rounded-lg p-4 transition-colors ${
+                    !user ? 'pointer-events-none relative overflow-hidden' : 'hover:bg-gray-50'
+                  }`}
+                  style={!user ? { filter: 'blur(1.5px)' } : {}}
                 >
+                  {!user && <div className='absolute inset-0 bg-white bg-opacity-30 z-10'></div>}
                   <div className='flex items-start justify-between'>
                     <div className='flex-1'>
                       <div className='flex items-center space-x-3 mb-2'>
@@ -739,16 +746,47 @@ const DivingCenterDetail = () => {
                         </p>
                       )}
                     </div>
-                    <Link
-                      to={`/dive-trips/${trip.id}`}
-                      className='ml-4 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors'
-                    >
-                      View
-                    </Link>
+                    {user && (
+                      <Link
+                        to={`/dive-trips/${trip.id}`}
+                        className='ml-4 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors'
+                      >
+                        View
+                      </Link>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
+            {!user && (
+              <div className='mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6'>
+                <div className='flex items-center'>
+                  <LogIn className='h-8 w-8 text-blue-600 mr-4' />
+                  <div className='flex-1'>
+                    <h3 className='text-lg font-semibold text-blue-900 mb-2'>Login Required</h3>
+                    <p className='text-blue-700 mb-4'>
+                      To view dive trips and discover upcoming diving adventures, please log in to
+                      your account.
+                    </p>
+                    <div className='flex space-x-3'>
+                      <Link
+                        to='/login'
+                        className='inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+                      >
+                        <LogIn className='h-4 w-4 mr-2' />
+                        Login
+                      </Link>
+                      <Link
+                        to='/register'
+                        className='inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
+                      >
+                        Register
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
