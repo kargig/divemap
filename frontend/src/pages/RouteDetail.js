@@ -247,11 +247,7 @@ const RouteLayer = ({ route, diveSite, showBearings = true }) => {
       hasSetInitialViewRef.current = true;
     }
 
-    // Listen for zoom changes
-    map.on('zoomend', updateBearingMarkersVisibility);
-
     return () => {
-      map.off('zoomend', updateBearingMarkersVisibility);
       if (routeLayerRef.current) {
         map.removeLayer(routeLayerRef.current);
       }
@@ -262,6 +258,17 @@ const RouteLayer = ({ route, diveSite, showBearings = true }) => {
       bearingsDataRef.current = [];
     };
   }, [map, route, diveSite]);
+
+  // Set up zoom event listener separately to ensure it always uses the latest callback
+  useEffect(() => {
+    if (!map) return;
+
+    map.on('zoomend', updateBearingMarkersVisibility);
+
+    return () => {
+      map.off('zoomend', updateBearingMarkersVisibility);
+    };
+  }, [map, updateBearingMarkersVisibility]);
 
   // Update bearing markers visibility when showBearings changes or zoom changes
   useEffect(() => {
