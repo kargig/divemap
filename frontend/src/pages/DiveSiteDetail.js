@@ -20,6 +20,7 @@ import DiveSiteRoutes from '../components/DiveSiteRoutes';
 import MaskedEmail from '../components/MaskedEmail';
 import MiniMap from '../components/MiniMap';
 import RateLimitError from '../components/RateLimitError';
+import ShareButton from '../components/ShareButton';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -296,6 +297,14 @@ const DiveSiteDetail = () => {
             </div>
           </div>
           <div className='flex gap-2 flex-wrap'>
+            {/* Share button - available to all users */}
+            {diveSite && (
+              <ShareButton
+                entityType='dive-site'
+                entityData={diveSite}
+                className='inline-flex items-center'
+              />
+            )}
             {canEdit && (
               <RouterLink
                 to={`/dive-sites/${id}/edit`}
