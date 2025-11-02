@@ -309,11 +309,20 @@ class ShareService:
         # Format prefix
         prefix = f"Check out this {entity_label} on Divemap: " if entity_label else ""
         
+        # Define newline variable once (can't use \n in f-string expressions)
+        newline = "\n"
+        
         # Format text for URLs
-        share_text = f"{prefix}{title}\n\n{description}\n\n{share_url}" if description else f"{prefix}{title}\n\n{share_url}"
+        if description:
+            share_text = f"{prefix}{title}{newline}{newline}{description}{newline}{newline}{share_url}"
+        else:
+            share_text = f"{prefix}{title}{newline}{newline}{share_url}"
         
         # Twitter: Include prefix in text
-        twitter_text = f"{prefix}{title}\n\n{description}" if description else f"{prefix}{title}"
+        if description:
+            twitter_text = f"{prefix}{title}{newline}{newline}{description}"
+        else:
+            twitter_text = f"{prefix}{title}"
         twitter_text = twitter_text[:240]  # Limit for Twitter
         
         # Facebook: Include prefix in quote
@@ -325,13 +334,22 @@ class ShareService:
         # Email: Include prefix in subject
         email_subject = f"{prefix}{title}" if prefix else f"Check out this on Divemap: {title}"
         
+        # Prepare Twitter text with newlines (can't use \n in f-string expression)
+        twitter_text_with_newline = f"{twitter_text}{newline}{newline}"
+        
+        # Prepare email body with newlines
+        if description:
+            email_body = f"{description}{newline}{newline}{share_url}"
+        else:
+            email_body = share_url
+        
         urls = {
-            "twitter": f"https://twitter.com/intent/tweet?{urlencode({'text': f'{twitter_text}\n\n', 'url': share_url, 'hashtags': 'diving,scubadiving,divemap'})}",
+            "twitter": f"https://twitter.com/intent/tweet?{urlencode({'text': twitter_text_with_newline, 'url': share_url, 'hashtags': 'diving,scubadiving,divemap'})}",
             "facebook": f"https://www.facebook.com/sharer/sharer.php?{urlencode({'u': share_url, 'quote': facebook_quote})}",
             "whatsapp": f"https://wa.me/?{urlencode({'text': share_text})}",
             "viber": f"viber://forward?{urlencode({'text': share_text})}",
             "reddit": f"https://reddit.com/submit?{urlencode({'url': share_url, 'title': reddit_title})}",
-            "email": f"mailto:?{urlencode({'subject': email_subject, 'body': description + '\n\n' + share_url if description else share_url})}"
+            "email": f"mailto:?{urlencode({'subject': email_subject, 'body': email_body})}"
         }
         
         return urls
