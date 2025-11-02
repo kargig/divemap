@@ -34,7 +34,7 @@ const MapInitializer = ({
   const map = useMap();
   const drawnItemsRef = useRef();
   const drawControlRef = useRef();
-  const callbacksRef = useRef({ onDrawCreated, onDrawEdited, onDrawDeleted });
+  const callbacksRef = useRef(null);
 
   // Route snapping function
   const snapToDiveSite = useCallback(
@@ -305,9 +305,21 @@ const MapInitializer = ({
     callbacksRef.current = { onDrawCreated, onDrawEdited, onDrawDeleted };
 
     // Wrapper functions that use the latest callbacks
-    const handleDrawCreated = e => callbacksRef.current.onDrawCreated(e);
-    const handleDrawEdited = e => callbacksRef.current.onDrawEdited(e);
-    const handleDrawDeleted = e => callbacksRef.current.onDrawDeleted(e);
+    const handleDrawCreated = e => {
+      if (callbacksRef.current?.onDrawCreated) {
+        callbacksRef.current.onDrawCreated(e);
+      }
+    };
+    const handleDrawEdited = e => {
+      if (callbacksRef.current?.onDrawEdited) {
+        callbacksRef.current.onDrawEdited(e);
+      }
+    };
+    const handleDrawDeleted = e => {
+      if (callbacksRef.current?.onDrawDeleted) {
+        callbacksRef.current.onDrawDeleted(e);
+      }
+    };
 
     // Add event listeners
     map.on(L.Draw.Event.DRAWSTART, onDrawStart);
