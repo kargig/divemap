@@ -402,6 +402,19 @@ def load_search_router():
         router_time = time.time() - router_start
         print(f"✅ Search router loaded lazily in {router_time:.2f}s")
 
+def load_share_router():
+    """Load share router lazily when first accessed"""
+    if not hasattr(app, '_share_router_loaded'):
+        print("🔧 Loading share router lazily...")
+        router_start = time.time()
+        
+        from app.routers import share
+        app.include_router(share.router, prefix="/api/v1/share", tags=["Share"])
+        
+        app._share_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Share router loaded lazily in {router_time:.2f}s")
+
 # Load routers
 load_routers()
 
@@ -454,6 +467,10 @@ async def lazy_router_loading(request: Request, call_next):
     # Load search router
     elif path.startswith("/api/v1/search") and not hasattr(app, '_search_router_loaded'):
         load_search_router()
+    
+    # Load share router
+    elif path.startswith("/api/v1/share") and not hasattr(app, '_share_router_loaded'):
+        load_share_router()
     
     response = await call_next(request)
     return response

@@ -31,6 +31,7 @@ import api, { getDive, deleteDive, deleteDiveMedia } from '../api';
 import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
 import DiveProfileModal from '../components/DiveProfileModal';
 import RateLimitError from '../components/RateLimitError';
+import ShareButton from '../components/ShareButton';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getRouteTypeColor, getDrawingTypeColor } from '../utils/colorPalette';
@@ -642,6 +643,14 @@ const DiveDetail = () => {
           </div>
         </div>
         <div className='flex gap-2 flex-wrap'>
+          {/* Share button - available to all users for public dives */}
+          {dive && !dive.is_private && (
+            <ShareButton entityType='dive' entityData={dive} className='inline-flex items-center' />
+          )}
+          {/* Share button for private dives - only for owner */}
+          {dive && dive.is_private && (user?.id === dive?.user_id || user?.is_admin) && (
+            <ShareButton entityType='dive' entityData={dive} className='inline-flex items-center' />
+          )}
           {(user?.id === dive?.user_id || user?.is_admin) && (
             <>
               <RouterLink

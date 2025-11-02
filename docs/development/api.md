@@ -20,6 +20,7 @@ usage examples.
    - [Tag Management](#tag-management)
    - [Diving Organizations Endpoints](#diving-organizations-endpoints)
    - [User Certifications Endpoints](#user-certifications-endpoints)
+   - [Share Endpoints](#share-endpoints)
 6. [Data Models](#data-models)
 7. [Rate Limiting](#rate-limiting)
 8. [Examples](#examples)
@@ -2812,6 +2813,232 @@ curl -X PUT "http://localhost/api/v1/settings/disable_diving_center_reviews" \
 
 # Verify the update
 curl -X GET "http://localhost/api/v1/settings/disable_diving_center_reviews"
+```
+
+### Share Endpoints
+
+The share system enables users to share dives, dive sites, and dive routes across
+multiple social media platforms and communication channels. Share endpoints provide
+shareable URLs, formatted content, and platform-specific share links.
+
+#### Share Features
+
+- **Multiple Entity Types**: Share dives, dive sites, and dive routes
+- **Platform Support**: Twitter/X, Facebook, WhatsApp, Viber, Reddit, Email
+- **Privacy Control**: Private dives only shareable by owner
+- **Analytics Tracking**: Route shares are tracked for analytics
+- **Preview Endpoints**: Get share preview data without generating share links
+
+#### POST /share/dives/{dive_id}
+
+Generate shareable content for a dive.
+
+**Headers:** `Authorization: Bearer <token>` (optional, required for private dives)
+
+**Response:**
+
+```json
+{
+  "share_url": "https://divemap.com/dives/123",
+  "title": "Amazing Dive at Blue Hole - 2025-11-01",
+  "description": "Incredible dive at Blue Hole! Max depth: 30m | Duration: 45min | Rating: 9/10",
+  "share_platforms": {
+    "twitter": "https://twitter.com/intent/tweet?text=...&url=...",
+    "facebook": "https://www.facebook.com/sharer/sharer.php?u=...",
+    "whatsapp": "https://wa.me/?text=...",
+    "viber": "viber://forward?text=...",
+    "reddit": "https://reddit.com/submit?url=...&title=...",
+    "email": "mailto:?subject=...&body=..."
+  },
+  "metadata": {
+    "entity_type": "dive",
+    "entity_id": 123,
+    "shared_at": "2025-11-02T12:00:00Z",
+    "shared_by": 456
+  }
+}
+```
+
+**Error Responses:**
+
+- `404 Not Found`: Dive not found
+- `403 Forbidden`: Cannot share private dive (only owner/admin can share)
+
+#### GET /share/dives/{dive_id}/preview
+
+Get preview data for sharing a dive without generating share links.
+
+**Headers:** `Authorization: Bearer <token>` (optional, required for private dives)
+
+**Response:**
+
+```json
+{
+  "title": "Amazing Dive at Blue Hole - 2025-11-01",
+  "description": "Incredible dive at Blue Hole! Max depth: 30m | Duration: 45min | Rating: 9/10",
+  "entity_data": {
+    "id": 123,
+    "name": "Amazing Dive at Blue Hole",
+    "dive_information": "Incredible dive...",
+    "dive_date": "2025-11-01",
+    "max_depth": 30.0,
+    "duration": 45,
+    "user_rating": 9,
+    "visibility_rating": 8,
+    "dive_site": {
+      "id": 10,
+      "name": "Blue Hole",
+      "country": "Egypt",
+      "region": "Dahab"
+    },
+    "is_private": false
+  }
+}
+```
+
+#### POST /share/dive-sites/{dive_site_id}
+
+Generate shareable content for a dive site.
+
+**Headers:** `Authorization: Bearer <token>` (optional)
+
+**Response:**
+
+```json
+{
+  "share_url": "https://divemap.com/dive-sites/10",
+  "title": "Blue Hole - Dahab, Egypt",
+  "description": "Discover Blue Hole! Max depth: 120m | Difficulty: Advanced | Rating: 9.5/10\n📍 Dahab, Egypt",
+  "share_platforms": {
+    "twitter": "https://twitter.com/intent/tweet?text=...&url=...",
+    "facebook": "https://www.facebook.com/sharer/sharer.php?u=...",
+    "whatsapp": "https://wa.me/?text=...",
+    "viber": "viber://forward?text=...",
+    "reddit": "https://reddit.com/submit?url=...&title=...",
+    "email": "mailto:?subject=...&body=..."
+  },
+  "metadata": {
+    "entity_type": "dive-site",
+    "entity_id": 10,
+    "shared_at": "2025-11-02T12:00:00Z",
+    "shared_by": 456
+  }
+}
+```
+
+#### GET /share/dive-sites/{dive_site_id}/preview
+
+Get preview data for sharing a dive site.
+
+**Headers:** `Authorization: Bearer <token>` (optional)
+
+**Response:**
+
+```json
+{
+  "title": "Blue Hole - Dahab, Egypt",
+  "description": "Discover Blue Hole! Max depth: 120m | Difficulty: Advanced | Rating: 9.5/10\n📍 Dahab, Egypt",
+  "entity_data": {
+    "id": 10,
+    "name": "Blue Hole",
+    "description": "One of the world's most famous dive sites...",
+    "country": "Egypt",
+    "region": "Dahab",
+    "max_depth": 120.0,
+    "difficulty_code": "TECHNICAL_DIVING",
+    "difficulty_label": "Technical Diving",
+    "average_rating": null
+  }
+}
+```
+
+#### POST /share/dive-routes/{route_id}
+
+Generate shareable content for a dive route. Also tracks share interaction for analytics.
+
+**Headers:** `Authorization: Bearer <token>` (optional)
+
+**Response:**
+
+```json
+{
+  "share_url": "https://divemap.com/dive-sites/10/route/5",
+  "title": "Shallow Reef Route - Blue Hole",
+  "description": "Check out this dive route! Route Type: Scuba Route\n📍 Dive Site: Blue Hole",
+  "share_platforms": {
+    "twitter": "https://twitter.com/intent/tweet?text=...&url=...",
+    "facebook": "https://www.facebook.com/sharer/sharer.php?u=...",
+    "whatsapp": "https://wa.me/?text=...",
+    "viber": "viber://forward?text=...",
+    "reddit": "https://reddit.com/submit?url=...&title=...",
+    "email": "mailto:?subject=...&body=..."
+  },
+  "metadata": {
+    "entity_type": "route",
+    "entity_id": 5,
+    "shared_at": "2025-11-02T12:00:00Z",
+    "shared_by": 456
+  }
+}
+```
+
+**Note:** If the user is authenticated, the share interaction is automatically tracked for analytics.
+
+#### GET /share/dive-routes/{route_id}/preview
+
+Get preview data for sharing a dive route.
+
+**Headers:** `Authorization: Bearer <token>` (optional)
+
+**Response:**
+
+```json
+{
+  "title": "Shallow Reef Route - Blue Hole",
+  "description": "Check out this dive route! Route Type: Scuba Route\n📍 Dive Site: Blue Hole",
+  "entity_data": {
+    "id": 5,
+    "name": "Shallow Reef Route",
+    "description": "A scenic route perfect for beginners...",
+    "route_type": "scuba",
+    "dive_site_id": 10,
+    "dive_site": {
+      "id": 10,
+      "name": "Blue Hole"
+    }
+  }
+}
+```
+
+#### Share Privacy Rules
+
+- **Public Dives**: Can be shared by anyone
+- **Private Dives**: Can only be shared by the dive owner or administrators
+- **Dive Sites**: Can be shared by anyone (public)
+- **Dive Routes**: Can be shared by anyone (public)
+
+#### Rate Limiting
+
+Share endpoints are rate-limited to **30 requests per minute** per IP address. Admin users bypass rate limiting.
+
+#### Example Usage
+
+```bash
+# Share a dive
+curl -X POST "https://divemap-backend.fly.dev/api/v1/share/dives/123" \
+  -H "Authorization: Bearer USER_TOKEN"
+
+# Get dive share preview
+curl -X GET "https://divemap-backend.fly.dev/api/v1/share/dives/123/preview" \
+  -H "Authorization: Bearer USER_TOKEN"
+
+# Share a dive site
+curl -X POST "https://divemap-backend.fly.dev/api/v1/share/dive-sites/10" \
+  -H "Authorization: Bearer USER_TOKEN"
+
+# Share a dive route
+curl -X POST "https://divemap-backend.fly.dev/api/v1/share/dive-routes/5" \
+  -H "Authorization: Bearer USER_TOKEN"
 ```
 
 ## Conclusion

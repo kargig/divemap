@@ -4,7 +4,6 @@ import {
   Edit,
   Trash2,
   Copy,
-  Share2,
   Download,
   MapPin,
   Calendar,
@@ -25,6 +24,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import api from '../api';
 import MapLayersPanel from '../components/MapLayersPanel';
+import ShareButton from '../components/ShareButton';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { CHART_COLORS, getRouteTypeColor } from '../utils/colorPalette';
@@ -487,19 +487,10 @@ const RouteDetail = () => {
     }
   };
 
+  // Share functionality is now handled by ShareButton component
+  // Keeping this function for backward compatibility if needed elsewhere
   const handleShareRoute = async () => {
-    try {
-      const response = await api.post(`/api/v1/dive-routes/${routeId}/share?share_method=link`);
-      const shareUrl = response.data.share_link;
-
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success('Route link copied to clipboard!');
-    } catch (error) {
-      // Fallback to simple URL copy
-      const shareUrl = `${window.location.origin}/dive-sites/${diveSiteId}/route/${routeId}`;
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success('Route link copied to clipboard!');
-    }
+    // This is now handled by ShareButton component
   };
 
   const handleExportRoute = async format => {
@@ -641,13 +632,17 @@ const RouteDetail = () => {
                     Copy
                   </button>
 
-                  <button
-                    onClick={handleShareRoute}
-                    className='flex items-center px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors'
-                  >
-                    <Share2 className='w-4 h-4 mr-1' />
-                    Share
-                  </button>
+                  {route && (
+                    <ShareButton
+                      entityType='route'
+                      entityData={{
+                        ...route,
+                        dive_site_id: diveSiteId,
+                        dive_site: diveSite,
+                      }}
+                      className='flex items-center'
+                    />
+                  )}
 
                   <button
                     onClick={() => setShowExportModal(true)}
