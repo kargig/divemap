@@ -12,13 +12,17 @@ import {
   ArrowLeft,
   ExternalLink,
   Navigation,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  LogIn,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 
-import api, { claimDivingCenterOwnership } from '../api';
+import api, { claimDivingCenterOwnership, getParsedTrips } from '../api';
 import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
@@ -47,6 +51,13 @@ const DivingCenterDetail = () => {
   const [editCommentText, setEditCommentText] = useState('');
   const [showOwnershipClaim, setShowOwnershipClaim] = useState(false);
   const [ownershipReason, setOwnershipReason] = useState('');
+  const [tripsDateRange, setTripsDateRange] = useState(() => {
+    // Start with current date, going back 3 months
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 3);
+    return { startDate, endDate };
+  });
 
   // Fetch diving center details
   const {
@@ -124,6 +135,66 @@ const DivingCenterDetail = () => {
       retry: 3,
       retryDelay: 1000,
       keepPreviousData: true, // Keep previous data while refetching
+    }
+  );
+
+  // Helper to format date
+  const formatDate = date => {
+    if (!date) return '';
+    const d = new Date(date);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  // Helper to format date for API (YYYY-MM-DD)
+  const formatDateForAPI = date => {
+    if (!date) return '';
+    const d = new Date(date);
+    return d.toISOString().split('T')[0];
+  };
+
+  // Helper to format date range for display
+  const formatDateRange = () => {
+    const start = formatDate(tripsDateRange.startDate);
+    const end = formatDate(tripsDateRange.endDate);
+    return `${start} - ${end}`;
+  };
+
+  // Navigate trips date ranges (3 months at a time)
+  const navigateTripsRange = direction => {
+    setTripsDateRange(prev => {
+      const newStartDate = new Date(prev.startDate);
+      const newEndDate = new Date(prev.endDate);
+
+      if (direction === 'next') {
+        // Move forward 3 months
+        newStartDate.setMonth(newStartDate.getMonth() + 3);
+        newEndDate.setMonth(newEndDate.getMonth() + 3);
+      } else {
+        // Move backward 3 months
+        newStartDate.setMonth(newStartDate.getMonth() - 3);
+        newEndDate.setMonth(newEndDate.getMonth() - 3);
+      }
+
+      return { startDate: newStartDate, endDate: newEndDate };
+    });
+  };
+
+  // Fetch dive trips for this diving center within the date range
+  const { data: trips, isLoading: tripsLoading } = useQuery(
+    ['diving-center-trips', id, tripsDateRange.startDate, tripsDateRange.endDate],
+    () =>
+      getParsedTrips({
+        diving_center_id: parseInt(id),
+        start_date: formatDateForAPI(tripsDateRange.startDate),
+        end_date: formatDateForAPI(tripsDateRange.endDate),
+        limit: 100,
+        sort_by: 'trip_date',
+        sort_order: 'desc',
+      }),
+    {
+      enabled: !!id, // Fetch for all users to show preview
+      retry: 2,
+      staleTime: 2 * 60 * 1000, // 2 minutes
     }
   );
 
@@ -590,6 +661,164 @@ const DivingCenterDetail = () => {
             </div>
           )}
         </div>
+
+        {/* Dive Trips Section */}
+        {tripsLoading ? (
+          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+            <div className='animate-pulse'>
+              <div className='h-6 bg-gray-200 rounded w-1/4 mb-4'></div>
+              <div className='space-y-3'>
+                <div className='h-20 bg-gray-200 rounded'></div>
+                <div className='h-20 bg-gray-200 rounded'></div>
+              </div>
+            </div>
+          </div>
+        ) : trips && trips.length > 0 ? (
+          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+            <div className='flex items-center justify-between mb-4'>
+              <h2 className='text-2xl font-bold text-gray-900 flex items-center'>
+                <Calendar className='h-6 w-6 mr-2' />
+                Dive Trips
+              </h2>
+              {user && (
+                <div className='flex items-center space-x-2'>
+                  <button
+                    onClick={() => navigateTripsRange('prev')}
+                    className='p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors'
+                    title='Previous 3 months'
+                  >
+                    <ChevronLeft className='h-5 w-5' />
+                  </button>
+                  <span className='text-sm text-gray-600 px-2'>{formatDateRange()}</span>
+                  <button
+                    onClick={() => navigateTripsRange('next')}
+                    disabled={tripsDateRange.endDate >= new Date()}
+                    className='p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                    title='Next 3 months'
+                  >
+                    <ChevronRight className='h-5 w-5' />
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className='space-y-4'>
+              {(!user ? trips.slice(0, 2) : trips).map(trip => (
+                <div
+                  key={trip.id}
+                  className={`border rounded-lg p-4 transition-colors ${
+                    !user ? 'pointer-events-none relative overflow-hidden' : 'hover:bg-gray-50'
+                  }`}
+                  style={!user ? { filter: 'blur(1.5px)' } : {}}
+                >
+                  {!user && <div className='absolute inset-0 bg-white bg-opacity-30 z-10'></div>}
+                  <div className='flex items-start justify-between'>
+                    <div className='flex-1'>
+                      <div className='flex items-center space-x-3 mb-2'>
+                        <h3 className='text-lg font-semibold text-gray-900'>
+                          {formatDate(trip.trip_date)}
+                        </h3>
+                        {trip.trip_time && (
+                          <span className='text-sm text-gray-600'>
+                            {new Date(`2000-01-01T${trip.trip_time}`).toLocaleTimeString('en-GB', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        )}
+                        {trip.trip_price && (
+                          <span className='text-sm font-medium text-blue-600'>
+                            {trip.trip_price} {trip.trip_currency}
+                          </span>
+                        )}
+                      </div>
+                      {trip.dives && trip.dives.length > 0 && (
+                        <div className='text-sm text-gray-600 mb-2'>
+                          {trip.dives.length} dive{trip.dives.length !== 1 ? 's' : ''}:{' '}
+                          {trip.dives
+                            .map(dive => dive.dive_site_name || `Dive ${dive.dive_number}`)
+                            .filter(Boolean)
+                            .join(', ')}
+                        </div>
+                      )}
+                      {trip.trip_description && (
+                        <p className='text-sm text-gray-700 line-clamp-2'>
+                          {trip.trip_description}
+                        </p>
+                      )}
+                    </div>
+                    {user && (
+                      <Link
+                        to={`/dive-trips/${trip.id}`}
+                        className='ml-4 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors'
+                      >
+                        View
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {!user && (
+              <div className='mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6'>
+                <div className='flex items-center'>
+                  <LogIn className='h-8 w-8 text-blue-600 mr-4' />
+                  <div className='flex-1'>
+                    <h3 className='text-lg font-semibold text-blue-900 mb-2'>Login Required</h3>
+                    <p className='text-blue-700 mb-4'>
+                      To view dive trips and discover upcoming diving adventures, please log in to
+                      your account.
+                    </p>
+                    <div className='flex space-x-3'>
+                      <Link
+                        to='/login'
+                        className='inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+                      >
+                        <LogIn className='h-4 w-4 mr-2' />
+                        Login
+                      </Link>
+                      <Link
+                        to='/register'
+                        className='inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
+                      >
+                        Register
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+            <div className='flex items-center justify-between mb-4'>
+              <h2 className='text-2xl font-bold text-gray-900 flex items-center'>
+                <Calendar className='h-6 w-6 mr-2' />
+                Dive Trips
+              </h2>
+              <div className='flex items-center space-x-2'>
+                <button
+                  onClick={() => navigateTripsRange('prev')}
+                  className='p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors'
+                  title='Previous 3 months'
+                >
+                  <ChevronLeft className='h-5 w-5' />
+                </button>
+                <span className='text-sm text-gray-600 px-2'>{formatDateRange()}</span>
+                <button
+                  onClick={() => navigateTripsRange('next')}
+                  disabled={tripsDateRange.endDate >= new Date()}
+                  className='p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                  title='Next 3 months'
+                >
+                  <ChevronRight className='h-5 w-5' />
+                </button>
+              </div>
+            </div>
+            <p className='text-gray-500 text-center py-4'>
+              No dive trips found for this date range
+            </p>
+          </div>
+        )}
 
         {/* Comments Section */}
         {reviewsEnabled && (

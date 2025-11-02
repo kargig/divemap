@@ -664,6 +664,11 @@ class DivingCenterOwnershipResponse(BaseModel):
     owner_id: Optional[int] = None
     ownership_status: str
     owner_username: Optional[str] = None
+    location: Optional[str] = None
+    claim_reason: Optional[str] = None
+    request_date: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -751,6 +756,12 @@ class NewsletterUploadResponse(BaseModel):
     newsletter_id: int
     trips_created: int
     message: str
+
+# Newsletter Text Parse Request Schema
+class NewsletterParseTextRequest(BaseModel):
+    content: str
+    diving_center_id: Optional[int] = None
+    use_openai: bool = True
 
 # Newsletter Management Schemas
 class NewsletterResponse(BaseModel):

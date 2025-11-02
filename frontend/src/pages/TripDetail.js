@@ -13,7 +13,7 @@ const TripDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('dive-sites');
   // Fetch trip data
   const {
     data: trip,
@@ -88,8 +88,8 @@ const TripDetail = () => {
         <div className='border-b border-gray-200'>
           <nav className='flex space-x-8 px-6'>
             {[
-              { id: 'overview', label: 'Overview', icon: Eye },
               { id: 'dive-sites', label: 'Dive Sites', icon: MapPin },
+              { id: 'overview', label: 'Additional Info', icon: Eye },
               { id: 'diving-center', label: 'Diving Center', icon: Navigation },
               { id: 'booking', label: 'Booking', icon: Heart },
             ].map(tab => {
