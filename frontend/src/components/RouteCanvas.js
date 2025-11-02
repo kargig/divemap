@@ -426,12 +426,11 @@ const DrawingMap = ({
   const [showLayers, setShowLayers] = useState(false);
   const [enableSnapping, setEnableSnapping] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState({
-    id: 'street',
-    name: 'Street Map',
-    description: 'OpenStreetMap street view',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    id: 'satellite',
+    name: 'Satellite',
+    description: 'Satellite imagery view',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: '&copy; <a href="https://www.esri.com/">Esri</a>',
   });
 
   return (
