@@ -14,6 +14,7 @@ import {
   EyeOff,
   Loader2,
   AlertCircle,
+  Layers,
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -23,6 +24,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import api from '../api';
+import MapLayersPanel from '../components/MapLayersPanel';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { CHART_COLORS, getRouteTypeColor } from '../utils/colorPalette';
@@ -69,16 +71,16 @@ const ZoomTracker = ({ onZoomChange }) => {
 };
 
 // Route layer component that uses useMap hook
-const RouteLayer = ({ route, diveSite }) => {
+const RouteLayer = ({ route, diveSite, showBearings = true }) => {
   const map = useMap();
   const routeLayerRef = useRef();
   const bearingMarkersRef = useRef([]);
   const bearingsDataRef = useRef([]);
 
-  // Function to update bearing markers visibility based on zoom
+  // Function to update bearing markers visibility based on zoom and toggle state
   const updateBearingMarkersVisibility = useCallback(() => {
     const currentZoom = map.getZoom();
-    const shouldShow = currentZoom >= 16 && currentZoom <= 18;
+    const shouldShow = showBearings && currentZoom >= 16 && currentZoom <= 18;
 
     bearingMarkersRef.current.forEach(marker => {
       if (shouldShow) {
@@ -91,9 +93,19 @@ const RouteLayer = ({ route, diveSite }) => {
         }
       }
     });
-  }, [map]);
+  }, [map, showBearings]);
+
+  // Track if we've set the initial view to prevent resetting zoom on updates
+  const hasSetInitialViewRef = useRef(false);
+  const lastRouteIdRef = useRef(null);
 
   useEffect(() => {
+    // Reset initial view flag when route changes
+    if (route?.id !== lastRouteIdRef.current) {
+      hasSetInitialViewRef.current = false;
+      lastRouteIdRef.current = route?.id;
+    }
+
     if (!route?.route_data) return;
 
     // Clear existing route layer and bearing markers
@@ -226,12 +238,13 @@ const RouteLayer = ({ route, diveSite }) => {
     // Update visibility based on initial zoom
     updateBearingMarkersVisibility();
 
-    // Center map on dive site instead of fitting to route bounds
+    // Center map on dive site only on initial load, not on subsequent updates
     // This ensures the dive site marker is always visible and centered
-    if (diveSite?.latitude && diveSite?.longitude) {
+    if (diveSite?.latitude && diveSite?.longitude && !hasSetInitialViewRef.current) {
       const diveSiteLat = parseFloat(diveSite.latitude);
       const diveSiteLng = parseFloat(diveSite.longitude);
       map.setView([diveSiteLat, diveSiteLng], 15);
+      hasSetInitialViewRef.current = true;
     }
 
     // Listen for zoom changes
@@ -248,14 +261,28 @@ const RouteLayer = ({ route, diveSite }) => {
       bearingMarkersRef.current = [];
       bearingsDataRef.current = [];
     };
-  }, [map, route, diveSite, updateBearingMarkersVisibility]);
+  }, [map, route, diveSite]);
+
+  // Update bearing markers visibility when showBearings changes or zoom changes
+  useEffect(() => {
+    updateBearingMarkersVisibility();
+  }, [updateBearingMarkersVisibility]);
 
   return null; // This component doesn't render anything
 };
 
 // Route display component
-const RouteDisplay = ({ route, diveSite }) => {
+const RouteDisplay = ({ route, diveSite, showBearings, onToggleBearings }) => {
   const [currentZoom, setCurrentZoom] = useState(15);
+  const [showLayers, setShowLayers] = useState(false);
+  const [selectedLayer, setSelectedLayer] = useState({
+    id: 'street',
+    name: 'Street Map',
+    description: 'OpenStreetMap street view',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  });
 
   return (
     <div className='w-full h-96 rounded-lg overflow-hidden border border-gray-200 relative'>
@@ -265,10 +292,7 @@ const RouteDisplay = ({ route, diveSite }) => {
         className='w-full h-full'
         style={{ height: '100%' }}
       >
-        <TileLayer
-          url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
+        <TileLayer attribution={selectedLayer?.attribution || ''} url={selectedLayer?.url} />
 
         {/* Dive site marker */}
         {diveSite && (
@@ -283,10 +307,66 @@ const RouteDisplay = ({ route, diveSite }) => {
         )}
 
         {/* Route layer component */}
-        <RouteLayer route={route} diveSite={diveSite} />
+        <RouteLayer route={route} diveSite={diveSite} showBearings={showBearings} />
         <ZoomTracker onZoomChange={setCurrentZoom} />
       </MapContainer>
       <ZoomControl currentZoom={currentZoom} />
+      {/* Map Control Buttons */}
+      <div className='absolute top-2 right-2 z-[1000] flex gap-2 pointer-events-none'>
+        {/* Map Layers Toggle Button */}
+        <button
+          onClick={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowLayers(!showLayers);
+          }}
+          onMouseDown={e => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          className='bg-white rounded px-3 py-1.5 text-xs font-medium shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors flex items-center gap-1.5 pointer-events-auto'
+          title='Map layers'
+        >
+          <Layers className='w-3.5 h-3.5' />
+          <span>Layers</span>
+        </button>
+        {/* Bearing Toggle Button */}
+        <button
+          onClick={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleBearings();
+          }}
+          onMouseDown={e => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          className='bg-white rounded px-3 py-1.5 text-xs font-medium shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors flex items-center gap-1.5 pointer-events-auto'
+          title={showBearings ? 'Hide bearing icons' : 'Show bearing icons'}
+        >
+          {showBearings ? (
+            <>
+              <Eye className='w-3.5 h-3.5' />
+              <span>Bearings</span>
+            </>
+          ) : (
+            <>
+              <EyeOff className='w-3.5 h-3.5' />
+              <span>Bearings</span>
+            </>
+          )}
+        </button>
+      </div>
+      {/* Map Layers Panel */}
+      <MapLayersPanel
+        isOpen={showLayers}
+        onClose={() => setShowLayers(false)}
+        selectedLayer={selectedLayer}
+        onLayerChange={layer => {
+          setSelectedLayer(layer);
+          setShowLayers(false);
+        }}
+      />
     </div>
   );
 };
@@ -300,6 +380,7 @@ const RouteDetail = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportFormats, setExportFormats] = useState([]);
+  const [showBearings, setShowBearings] = useState(true);
 
   usePageTitle('Route Details');
 
@@ -694,7 +775,12 @@ const RouteDetail = () => {
                 </div>
               )}
           </div>
-          <RouteDisplay route={route} diveSite={diveSite} />
+          <RouteDisplay
+            route={route}
+            diveSite={diveSite}
+            showBearings={showBearings}
+            onToggleBearings={() => setShowBearings(!showBearings)}
+          />
         </div>
 
         {/* Route Data Info */}
