@@ -621,6 +621,20 @@ const RouteDetail = () => {
             </div>
 
             <div className='flex gap-2 flex-wrap'>
+              {/* Share button - available for all users (authenticated and unauthenticated) */}
+              {route && (
+                <ShareButton
+                  entityType='route'
+                  entityData={{
+                    ...route,
+                    dive_site_id: diveSiteId,
+                    dive_site: diveSite,
+                  }}
+                  className='flex items-center'
+                />
+              )}
+
+              {/* Actions that require authentication */}
               {user && (
                 <>
                   <button
@@ -631,18 +645,6 @@ const RouteDetail = () => {
                     <Copy className='w-4 h-4 mr-1' />
                     Copy
                   </button>
-
-                  {route && (
-                    <ShareButton
-                      entityType='route'
-                      entityData={{
-                        ...route,
-                        dive_site_id: diveSiteId,
-                        dive_site: diveSite,
-                      }}
-                      className='flex items-center'
-                    />
-                  )}
 
                   <button
                     onClick={() => setShowExportModal(true)}
