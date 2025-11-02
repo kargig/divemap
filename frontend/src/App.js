@@ -45,6 +45,7 @@ import Profile from './pages/Profile';
 import Register from './pages/Register';
 import RouteDetail from './pages/RouteDetail';
 import TripDetail from './pages/TripDetail';
+import CreateTrip from './pages/CreateTrip';
 import UserProfile from './pages/UserProfile';
 
 const queryClient = new QueryClient({
@@ -319,6 +320,14 @@ function App() {
                   }
                 />
                 <Route path='/dive-trips' element={<DiveTrips />} />
+                <Route
+                  path='/dive-trips/create'
+                  element={
+                    <ProtectedRoute>
+                      <CreateTrip />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path='/dive-trips/:id' element={<TripDetail />} />
               </Routes>
             </main>
