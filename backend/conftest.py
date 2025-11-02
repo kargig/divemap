@@ -392,6 +392,19 @@ def test_route_analytics(db_session, test_user, test_route):
     return analytics
 
 
+def pytest_collection_modifyitems(config, items):
+    """Automatically skip spatial tests when using SQLite."""
+    import os
+    database_url = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+    is_sqlite = database_url.startswith("sqlite")
+    
+    if is_sqlite:
+        skip_spatial = pytest.mark.skip(reason="Requires MySQL/PostGIS - skipped on SQLite")
+        for item in items:
+            if "spatial" in item.keywords:
+                item.add_marker(skip_spatial)
+
+
 @pytest.fixture
 def test_dive_with_route(db_session, test_user, test_dive_site, test_route):
     """Create a test dive with an associated route."""

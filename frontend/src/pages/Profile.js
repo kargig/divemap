@@ -11,13 +11,14 @@ import {
   Trash2,
   X,
   Anchor,
+  Building2,
 } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
-import api from '../api';
+import api, { getDivingCenters } from '../api';
 import MaskedEmail from '../components/MaskedEmail';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -60,6 +61,28 @@ const Profile = () => {
     () => api.get('/api/v1/diving-organizations/').then(res => res.data),
     {
       enabled: !!user,
+    }
+  );
+
+  // Fetch user's owned diving centers (only approved owners)
+  const { data: ownedDivingCenters = [] } = useQuery(
+    ['user-owned-diving-centers', user?.id, user?.username],
+    async () => {
+      if (!user) return [];
+      // Fetch all diving centers and filter by approved owner
+      const centers = await getDivingCenters({ page_size: 1000 });
+      // Filter centers where the user is an approved owner
+      // Check both owner_id and owner_username for matching
+      return centers.filter(
+        center =>
+          center.ownership_status === 'approved' &&
+          ((center.owner_id && parseInt(center.owner_id) === parseInt(user.id)) ||
+            (center.owner_username && center.owner_username === user.username))
+      );
+    },
+    {
+      enabled: !!user,
+      refetchInterval: 30000,
     }
   );
 
@@ -393,6 +416,26 @@ const Profile = () => {
                     </div>
                   </div>
                 </div>
+
+                {ownedDivingCenters && ownedDivingCenters.length > 0 && (
+                  <div className='flex items-start'>
+                    <Building2 className='h-5 w-5 text-gray-400 mr-3 mt-1' />
+                    <div className='flex-1'>
+                      <span className='text-sm text-gray-500'>Owned Diving Centers</span>
+                      <div className='mt-1 space-y-1'>
+                        {ownedDivingCenters.map(center => (
+                          <Link
+                            key={center.id}
+                            to={`/diving-centers/${center.id}`}
+                            className='block text-blue-600 hover:text-blue-800 font-medium text-sm'
+                          >
+                            {center.name}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className='flex items-center'>
                   <Calendar className='h-5 w-5 text-gray-400 mr-3' />

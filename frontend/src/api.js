@@ -352,6 +352,15 @@ export const uploadNewsletter = async (file, useOpenai = true) => {
   return response.data;
 };
 
+export const parseNewsletterText = async (content, divingCenterId = null, useOpenai = true) => {
+  const response = await api.post('/api/v1/newsletters/parse-text', {
+    content,
+    diving_center_id: divingCenterId,
+    use_openai: useOpenai,
+  });
+  return response.data;
+};
+
 // Dive Trip API functions
 export const getParsedTrips = async (params = {}) => {
   // Only include parameters that have values

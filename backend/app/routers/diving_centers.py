@@ -901,6 +901,12 @@ async def get_diving_centers(
         avg_rating = center_data[1]  # avg_rating from subquery
         total_ratings = center_data[2]  # total_ratings from subquery
 
+        # Get owner username if exists
+        owner_username = None
+        if center.owner_id:
+            owner = db.query(User).filter(User.id == center.owner_id).first()
+            owner_username = owner.username if owner else None
+
         center_dict = {
             "id": center.id,
             "name": center.name,
@@ -916,7 +922,10 @@ async def get_diving_centers(
             "created_at": center.created_at.isoformat() if center.created_at else None,
             "updated_at": center.updated_at.isoformat() if center.updated_at else None,
             "average_rating": float(avg_rating) if reviews_enabled and avg_rating else None,
-            "total_ratings": (total_ratings or 0) if reviews_enabled else 0
+            "total_ratings": (total_ratings or 0) if reviews_enabled else 0,
+            "owner_id": center.owner_id,
+            "ownership_status": center.ownership_status.value if center.ownership_status else None,
+            "owner_username": owner_username
         }
 
         # Only include view_count for admin users
@@ -998,12 +1007,52 @@ async def get_ownership_requests(
             owner = db.query(User).filter(User.id == center.owner_id).first()
             owner_username = owner.username if owner else None
 
+        # Get the ownership request to fetch claim reason and request date
+        claim_reason = None
+        request_date = None
+        if center.owner_id:
+            # For claimed status, get the request with status 'claimed'
+            # For approved status, get the most recent request that led to approval
+            if center.ownership_status == OwnershipStatus.claimed:
+                ownership_request = db.query(OwnershipRequest).filter(
+                    OwnershipRequest.diving_center_id == center.id,
+                    OwnershipRequest.user_id == center.owner_id,
+                    OwnershipRequest.request_status == OwnershipStatus.claimed
+                ).order_by(OwnershipRequest.request_date.desc()).first()
+            else:
+                # For approved centers, get the most recent request
+                ownership_request = db.query(OwnershipRequest).filter(
+                    OwnershipRequest.diving_center_id == center.id,
+                    OwnershipRequest.user_id == center.owner_id
+                ).order_by(OwnershipRequest.request_date.desc()).first()
+            
+            if ownership_request:
+                claim_reason = ownership_request.reason
+                request_date = ownership_request.request_date
+
+        # Format location string - combine address/city/region/country if available
+        location_parts = []
+        if center.address:
+            location_parts.append(center.address)
+        if center.city:
+            location_parts.append(center.city)
+        if center.region:
+            location_parts.append(center.region)
+        if center.country:
+            location_parts.append(center.country)
+        location_str = ", ".join(location_parts) if location_parts else None
+
         result.append({
             "id": center.id,
             "name": center.name,
             "owner_id": center.owner_id,
-            "ownership_status": center.ownership_status,
-            "owner_username": owner_username
+            "ownership_status": center.ownership_status.value if center.ownership_status else None,
+            "owner_username": owner_username,
+            "location": location_str,
+            "claim_reason": claim_reason,
+            "request_date": request_date,
+            "created_at": center.created_at,
+            "updated_at": center.updated_at
         })
 
     return result

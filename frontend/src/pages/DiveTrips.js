@@ -367,9 +367,26 @@ const DiveTrips = () => {
     }
   );
 
+  // Fetch all trips (without filters) to get the list of centers/sites that have trips
+  const { data: allTripsData } = useQuery(
+    ['parsedTrips-all'],
+    () => {
+      // Fetch trips with minimal filtering to get all centers/sites that have trips
+      return getParsedTrips({
+        sort_by: 'trip_date',
+        sort_order: 'desc',
+        limit: 1000, // Get enough to cover all unique centers/sites
+      });
+    },
+    {
+      staleTime: 300000, // 5 minutes
+      enabled: !!user, // Only fetch if user is logged in
+    }
+  );
+
   // Ensure we always have arrays for the filter data
   // Handle different possible response structures from the API
-  const divingCenters = (() => {
+  const allDivingCenters = (() => {
     if (Array.isArray(divingCentersData)) return divingCentersData;
     if (divingCentersData && Array.isArray(divingCentersData.items)) return divingCentersData.items;
     if (divingCentersData && Array.isArray(divingCentersData.data)) return divingCentersData.data;
@@ -378,12 +395,48 @@ const DiveTrips = () => {
     return [];
   })();
 
-  const diveSites = (() => {
+  const allDiveSites = (() => {
     if (Array.isArray(diveSitesData)) return diveSitesData;
     if (diveSitesData && Array.isArray(diveSitesData.items)) return diveSitesData.items;
     if (diveSitesData && Array.isArray(diveSitesData.data)) return diveSitesData.data;
     if (diveSitesData && Array.isArray(diveSitesData.results)) return diveSitesData.results;
     return [];
+  })();
+
+  // Filter to only show diving centers that have trips
+  // Use allTripsData (unfiltered) to build the list, so filters don't affect dropdown options
+  const divingCenters = (() => {
+    const tripsToCheck = allTripsData || trips || [];
+    if (!Array.isArray(tripsToCheck) || tripsToCheck.length === 0) return [];
+    const centerIds = new Set();
+    tripsToCheck.forEach(trip => {
+      if (trip.diving_center_id) {
+        centerIds.add(trip.diving_center_id);
+      }
+    });
+    return allDivingCenters.filter(center => centerIds.has(center.id));
+  })();
+
+  // Filter to only show dive sites that have trips
+  // Use allTripsData (unfiltered) to build the list, so filters don't affect dropdown options
+  const diveSites = (() => {
+    const tripsToCheck = allTripsData || trips || [];
+    if (!Array.isArray(tripsToCheck) || tripsToCheck.length === 0) return [];
+    const siteIds = new Set();
+    tripsToCheck.forEach(trip => {
+      if (trip.dives && Array.isArray(trip.dives)) {
+        trip.dives.forEach(dive => {
+          if (dive.dive_site_id) {
+            siteIds.add(dive.dive_site_id);
+          }
+        });
+      }
+      // Also check legacy single dive_site_id
+      if (trip.dive_site_id) {
+        siteIds.add(trip.dive_site_id);
+      }
+    });
+    return allDiveSites.filter(site => siteIds.has(site.id));
   })();
 
   // Show toast notifications for rate limiting errors
@@ -441,7 +494,7 @@ const DiveTrips = () => {
       start_date: '',
       end_date: '',
       diving_center_id: '',
-
+      dive_site_id: '',
       trip_status: '',
       min_price: '',
       max_price: '',
@@ -804,11 +857,109 @@ const DiveTrips = () => {
           </div>
         </div>
 
+        {/* Advanced Filters Section */}
+        {showAdvancedFilters && (
+          <div className='mb-6 bg-white rounded-lg shadow-md border border-gray-200 p-4 sm:p-6'>
+            <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+              <Filter className='h-5 w-5 mr-2 text-blue-600' />
+              Filters
+            </h3>
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+              {/* Diving Center Filter */}
+              <div>
+                <label
+                  htmlFor='filter-diving-center'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  <Building className='h-4 w-4 inline mr-1' />
+                  Diving Center
+                </label>
+                <select
+                  id='filter-diving-center'
+                  value={filters.diving_center_id || ''}
+                  onChange={e => handleFilterChange('diving_center_id', e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
+                >
+                  <option value=''>All Diving Centers</option>
+                  {divingCenters.map(center => (
+                    <option key={center.id} value={center.id}>
+                      {center.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Start Date Filter */}
+              <div>
+                <label
+                  htmlFor='filter-start-date'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  <CalendarIcon className='h-4 w-4 inline mr-1' />
+                  Start Date
+                </label>
+                <input
+                  id='filter-start-date'
+                  type='date'
+                  value={filters.start_date || ''}
+                  onChange={e => handleFilterChange('start_date', e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
+                />
+              </div>
+
+              {/* End Date Filter */}
+              <div>
+                <label
+                  htmlFor='filter-end-date'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  <CalendarIcon className='h-4 w-4 inline mr-1' />
+                  End Date
+                </label>
+                <input
+                  id='filter-end-date'
+                  type='date'
+                  value={filters.end_date || ''}
+                  onChange={e => handleFilterChange('end_date', e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
+                />
+              </div>
+
+              {/* Dive Site Filter */}
+              <div>
+                <label
+                  htmlFor='filter-dive-site'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  <MapPin className='h-4 w-4 inline mr-1' />
+                  Dive Site
+                </label>
+                <select
+                  id='filter-dive-site'
+                  value={filters.dive_site_id || ''}
+                  onChange={e => handleFilterChange('dive_site_id', e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
+                >
+                  <option value=''>All Dive Sites</option>
+                  {diveSites.map(site => (
+                    <option key={site.id} value={site.id}>
+                      {site.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Mobile Floating Action Button */}
         {isMobile && (
           <div className='fixed bottom-6 right-6 z-50'>
             <button
-              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              onClick={() => {
+                setShowMobileFilters(!showMobileFilters);
+                setShowAdvancedFilters(!showAdvancedFilters);
+              }}
               className='w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 flex items-center justify-center touch-manipulation'
               aria-label='Toggle Filters'
             >

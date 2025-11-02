@@ -81,6 +81,12 @@ const CurrentRequestCard = ({ request, onModalOpen }) => (
               {request.ownership_status === 'claimed' ? 'Pending Approval' : 'Approved'}
             </span>
           </p>
+          {request.request_date && (
+            <p className='text-gray-600'>
+              <span className='font-medium'>Request Date:</span>{' '}
+              {new Date(request.request_date).toLocaleString()}
+            </p>
+          )}
           {request.created_at && (
             <p className='text-gray-600'>
               <span className='font-medium'>Created:</span>{' '}
@@ -92,6 +98,12 @@ const CurrentRequestCard = ({ request, onModalOpen }) => (
               <span className='font-medium'>Last Updated:</span>{' '}
               {new Date(request.updated_at).toLocaleString()}
             </p>
+          )}
+          {request.claim_reason && (
+            <div className='mt-3 pt-3 border-t border-gray-200'>
+              <p className='text-gray-700 font-medium mb-1'>Claim Reason:</p>
+              <p className='text-gray-600 text-xs whitespace-pre-wrap'>{request.claim_reason}</p>
+            </div>
           )}
         </div>
       </div>
@@ -242,6 +254,14 @@ const ApprovalModal = ({
         <p className='text-sm text-gray-600'>
           Status: {request.ownership_status === 'claimed' ? 'Pending Approval' : 'Approved'}
         </p>
+        {request.claim_reason && (
+          <div className='mt-3 pt-3 border-t border-gray-200'>
+            <p className='text-sm font-medium text-gray-900 mb-2'>Claim Reason:</p>
+            <p className='text-sm text-gray-700 bg-gray-50 p-3 rounded-md whitespace-pre-wrap'>
+              {request.claim_reason}
+            </p>
+          </div>
+        )}
         {isRevoking && (
           <p className='text-sm text-red-600 mt-2'>
             ⚠️ This action will remove the current owner and set the diving center status to
