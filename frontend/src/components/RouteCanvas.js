@@ -2,13 +2,15 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import 'leaflet-draw';
-import { X, Save, RotateCcw, AlertCircle, Loader2, Trash2 } from 'lucide-react';
+import { X, Save, RotateCcw, AlertCircle, Loader2, Trash2, Layers, Magnet } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 
 import { useAuth } from '../contexts/AuthContext';
 import { getRouteTypeColor } from '../utils/colorPalette';
+
+import MapLayersPanel from './MapLayersPanel';
 
 // Fix for default markers in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -27,15 +29,18 @@ const MapInitializer = ({
   setSegments,
   routeType,
   existingRouteData,
+  enableSnapping,
 }) => {
   const map = useMap();
   const drawnItemsRef = useRef();
   const drawControlRef = useRef();
+  const callbacksRef = useRef({ onDrawCreated, onDrawEdited, onDrawDeleted });
 
   // Route snapping function
   const snapToDiveSite = useCallback(
     latlng => {
-      if (!diveSite) return latlng;
+      // Only snap if snapping is enabled
+      if (!enableSnapping || !diveSite) return latlng;
 
       const diveSiteLatLng = L.latLng(diveSite.latitude, diveSite.longitude);
       const distance = latlng.distanceTo(diveSiteLatLng);
@@ -46,7 +51,7 @@ const MapInitializer = ({
       }
       return latlng;
     },
-    [diveSite]
+    [diveSite, enableSnapping]
   );
 
   // Use ref to store current routeType to prevent callback recreation
@@ -58,18 +63,27 @@ const MapInitializer = ({
     e => {
       const { layerType, layer } = e;
 
-      // Apply snapping to coordinates
-      if (layerType === 'polyline' && layer.getLatLngs) {
-        const latlngs = layer.getLatLngs();
-        const snappedLatlngs = latlngs.map(latlng => snapToDiveSite(latlng));
-        layer.setLatLngs(snappedLatlngs);
-      } else if (layerType === 'polygon' && layer.getLatLngs) {
-        const latlngs = layer.getLatLngs()[0]; // Polygon has nested array
-        const snappedLatlngs = latlngs.map(latlng => snapToDiveSite(latlng));
-        layer.setLatLngs([snappedLatlngs]);
-      } else if (layerType === 'marker') {
-        const snappedLatlng = snapToDiveSite(layer.getLatLng());
-        layer.setLatLng(snappedLatlng);
+      // Apply snapping to coordinates if enabled - do this BEFORE adding to feature group
+      let finalGeometry = null;
+      if (enableSnapping) {
+        if (layerType === 'polyline' && layer.getLatLngs) {
+          const latlngs = layer.getLatLngs();
+          const snappedLatlngs = latlngs.map(latlng => snapToDiveSite(latlng));
+          layer.setLatLngs(snappedLatlngs);
+          // Store the snapped geometry
+          finalGeometry = layer.toGeoJSON().geometry;
+        } else if (layerType === 'polygon' && layer.getLatLngs) {
+          const latlngs = layer.getLatLngs()[0]; // Polygon has nested array
+          const snappedLatlngs = latlngs.map(latlng => snapToDiveSite(latlng));
+          layer.setLatLngs([snappedLatlngs]);
+          // Store the snapped geometry
+          finalGeometry = layer.toGeoJSON().geometry;
+        } else if (layerType === 'marker') {
+          const snappedLatlng = snapToDiveSite(layer.getLatLng());
+          layer.setLatLng(snappedLatlng);
+          // Store the snapped geometry
+          finalGeometry = layer.toGeoJSON().geometry;
+        }
       }
 
       // Apply the selected route type color to the drawn layer
@@ -117,11 +131,11 @@ const MapInitializer = ({
         }
       }
 
-      // Add to drawn items
+      // Add to drawn items AFTER all modifications are done
       drawnItemsRef.current.addLayer(layer);
 
-      // Add the segment to our segments array
-      const geoJson = layer.toGeoJSON();
+      // Add the segment to our segments array - use snapped geometry if available
+      const geoJson = finalGeometry ? { geometry: finalGeometry } : layer.toGeoJSON();
       const newSegment = {
         id: Date.now(), // Simple ID generation
         type: currentRouteType, // Use current value from ref
@@ -134,32 +148,34 @@ const MapInitializer = ({
 
       setSegments(prev => [...prev, newSegment]);
     },
-    [snapToDiveSite, setSegments] // Remove routeType from dependencies
+    [snapToDiveSite, enableSnapping, setSegments]
   );
 
   // Create onDrawEdited callback
   const onDrawEdited = useCallback(
     e => {
-      // Feature was edited - apply snapping to edited coordinates
+      // Apply snapping to edited coordinates if enabled
       const { layers } = e;
-      layers.eachLayer(layer => {
-        if (layer.getLatLngs) {
-          const latlngs = layer.getLatLngs();
-          if (Array.isArray(latlngs[0])) {
-            // Polygon
-            const snappedLatlngs = latlngs[0].map(latlng => snapToDiveSite(latlng));
-            layer.setLatLngs([snappedLatlngs]);
-          } else {
-            // Polyline
-            const snappedLatlngs = latlngs.map(latlng => snapToDiveSite(latlng));
-            layer.setLatLngs(snappedLatlngs);
+      if (enableSnapping) {
+        layers.eachLayer(layer => {
+          if (layer.getLatLngs) {
+            const latlngs = layer.getLatLngs();
+            if (Array.isArray(latlngs[0])) {
+              // Polygon
+              const snappedLatlngs = latlngs[0].map(latlng => snapToDiveSite(latlng));
+              layer.setLatLngs([snappedLatlngs]);
+            } else {
+              // Polyline
+              const snappedLatlngs = latlngs.map(latlng => snapToDiveSite(latlng));
+              layer.setLatLngs(snappedLatlngs);
+            }
+          } else if (layer.getLatLng) {
+            // Marker
+            const snappedLatlng = snapToDiveSite(layer.getLatLng());
+            layer.setLatLng(snappedLatlng);
           }
-        } else if (layer.getLatLng) {
-          // Marker
-          const snappedLatlng = snapToDiveSite(layer.getLatLng());
-          layer.setLatLng(snappedLatlng);
-        }
-      });
+        });
+      }
 
       // Update segments state after edit
       const updatedSegments = [];
@@ -179,7 +195,7 @@ const MapInitializer = ({
       });
       setSegments(updatedSegments);
     },
-    [snapToDiveSite, segments, setSegments]
+    [snapToDiveSite, enableSnapping, segments, setSegments]
   );
 
   // Create onDrawDeleted callback
@@ -285,18 +301,26 @@ const MapInitializer = ({
       // Drawing started
     };
 
+    // Update callbacks ref to always use latest callbacks
+    callbacksRef.current = { onDrawCreated, onDrawEdited, onDrawDeleted };
+
+    // Wrapper functions that use the latest callbacks
+    const handleDrawCreated = e => callbacksRef.current.onDrawCreated(e);
+    const handleDrawEdited = e => callbacksRef.current.onDrawEdited(e);
+    const handleDrawDeleted = e => callbacksRef.current.onDrawDeleted(e);
+
     // Add event listeners
     map.on(L.Draw.Event.DRAWSTART, onDrawStart);
-    map.on(L.Draw.Event.CREATED, onDrawCreated);
-    map.on(L.Draw.Event.EDITED, onDrawEdited);
-    map.on(L.Draw.Event.DELETED, onDrawDeleted);
+    map.on(L.Draw.Event.CREATED, handleDrawCreated);
+    map.on(L.Draw.Event.EDITED, handleDrawEdited);
+    map.on(L.Draw.Event.DELETED, handleDrawDeleted);
 
     return () => {
       try {
         map.off(L.Draw.Event.DRAWSTART, onDrawStart);
-        map.off(L.Draw.Event.CREATED, onDrawCreated);
-        map.off(L.Draw.Event.EDITED, onDrawEdited);
-        map.off(L.Draw.Event.DELETED, onDrawDeleted);
+        map.off(L.Draw.Event.CREATED, handleDrawCreated);
+        map.off(L.Draw.Event.EDITED, handleDrawEdited);
+        map.off(L.Draw.Event.DELETED, handleDrawDeleted);
         if (drawControlRef.current) {
           map.removeControl(drawControlRef.current);
         }
@@ -307,7 +331,8 @@ const MapInitializer = ({
         console.warn('Error cleaning up map controls:', error);
       }
     };
-  }, [map, diveSite, onDrawCreated, onDrawEdited, onDrawDeleted]); // Only depend on diveSite, not routeType
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, diveSite]); // Only depend on map and diveSite - callbacks are stable
 
   // Render segments from the segments state (only when segments actually change)
   useEffect(() => {
@@ -319,15 +344,24 @@ const MapInitializer = ({
 
       // Add all segments from the segments state
       segments.forEach(segment => {
-        const layer = L.geoJSON(segment.geometry);
+        let layer;
+        // Create appropriate layer type based on geometry
+        if (segment.geometry.type === 'Point') {
+          layer = L.marker([segment.geometry.coordinates[1], segment.geometry.coordinates[0]]);
+        } else {
+          layer = L.geoJSON(segment.geometry);
+        }
+
         const color = segment.properties?.color || getRouteTypeColor(segment.type);
 
-        layer.setStyle({
-          color: color,
-          weight: segment.geometry.type === 'Polygon' ? 3 : 4,
-          opacity: segment.geometry.type === 'Polygon' ? 0.6 : 0.8,
-          fillOpacity: segment.geometry.type === 'Polygon' ? 0.2 : 1,
-        });
+        if (layer.setStyle) {
+          layer.setStyle({
+            color: color,
+            weight: segment.geometry.type === 'Polygon' ? 3 : 4,
+            opacity: segment.geometry.type === 'Polygon' ? 0.6 : 0.8,
+            fillOpacity: segment.geometry.type === 'Polygon' ? 0.2 : 1,
+          });
+        }
         drawnItemsRef.current.addLayer(layer);
       });
     } catch (error) {
@@ -377,6 +411,16 @@ const DrawingMap = ({
   existingRouteData,
 }) => {
   const mapRef = useRef();
+  const [showLayers, setShowLayers] = useState(false);
+  const [enableSnapping, setEnableSnapping] = useState(false);
+  const [selectedLayer, setSelectedLayer] = useState({
+    id: 'street',
+    name: 'Street Map',
+    description: 'OpenStreetMap street view',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  });
 
   return (
     <div className='w-full h-full relative' style={{ height: '100%' }}>
@@ -387,10 +431,7 @@ const DrawingMap = ({
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-        />
+        <TileLayer attribution={selectedLayer?.attribution || ''} url={selectedLayer?.url} />
 
         {/* Dive site marker */}
         {diveSite && (
@@ -412,8 +453,60 @@ const DrawingMap = ({
           setSegments={setSegments}
           routeType={routeType}
           existingRouteData={existingRouteData}
+          enableSnapping={enableSnapping}
         />
       </MapContainer>
+      {/* Map Control Buttons */}
+      <div className='absolute top-2 right-2 z-[1000] flex gap-2 pointer-events-none'>
+        {/* Snapping Toggle Button */}
+        <button
+          onClick={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            setEnableSnapping(!enableSnapping);
+          }}
+          onMouseDown={e => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          className={`rounded px-3 py-1.5 text-xs font-medium shadow-sm border transition-colors flex items-center gap-1.5 pointer-events-auto ${
+            enableSnapping
+              ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+          }`}
+          title={enableSnapping ? 'Disable snapping to dive site' : 'Enable snapping to dive site'}
+        >
+          <Magnet className='w-3.5 h-3.5' />
+          <span>Snap</span>
+        </button>
+        {/* Map Layers Toggle Button */}
+        <button
+          onClick={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowLayers(!showLayers);
+          }}
+          onMouseDown={e => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          className='bg-white rounded px-3 py-1.5 text-xs font-medium shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors flex items-center gap-1.5 pointer-events-auto'
+          title='Map layers'
+        >
+          <Layers className='w-3.5 h-3.5' />
+          <span>Layers</span>
+        </button>
+      </div>
+      {/* Map Layers Panel */}
+      <MapLayersPanel
+        isOpen={showLayers}
+        onClose={() => setShowLayers(false)}
+        selectedLayer={selectedLayer}
+        onLayerChange={layer => {
+          setSelectedLayer(layer);
+          setShowLayers(false);
+        }}
+      />
     </div>
   );
 };
