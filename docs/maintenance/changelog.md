@@ -3,7 +3,7 @@
 This document tracks all recent changes, improvements, and bug fixes to the
 Divemap application.
 
-## [Latest Release] - November 01, 2025
+## [Latest Release] - November 03, 2025
 
 ### ⚙️ New Features
 
@@ -149,6 +149,156 @@ Administrators can now globally disable or enable diving center reviews (ratings
 - `frontend/src/pages/DivingCenters.js` - Rating filter visibility control
 - `frontend/src/components/DivingCentersResponsiveFilterBar.js` - Filter UI conditional rendering
 - `frontend/src/hooks/useSettings.js` - React Query hooks for settings
+
+#### **Share/Social Media Integration - ✅ COMPLETE**
+
+Comprehensive sharing functionality across multiple social media platforms for dives, dive sites, and dive routes. Users can now share their dive experiences, favorite locations, and routes across various social media platforms and communication channels.
+
+**Core Features:**
+
+- **Multi-Platform Sharing**: Support for Twitter/X, Facebook, WhatsApp, Viber, Reddit, and Email
+- **Privacy-Aware Sharing**: Private dives only shareable by owner/admin
+- **Consistent Branding**: All share posts include "on Divemap" branding for platform visibility
+- **Entity-Specific Messaging**: Tailored share content for dives, dive sites, and dive routes
+- **Official Brand Icons**: Social media icons from Simple Icons CDN for professional appearance
+- **Native Web Share API**: Mobile device support with native sharing capabilities
+- **Share Analytics**: Track route shares for analytics and engagement metrics
+
+**Technical Implementation:**
+
+- **Backend**: ShareService for generating shareable URLs and formatted content
+- **Frontend**: ShareButton and ShareModal components with platform-specific buttons
+- **API Endpoints**: Complete share router with endpoints for all entity types
+- **Share Preview**: Preview endpoints for all entity types to show what will be shared
+- **Rate Limiting**: 30 requests/minute with admin exemption
+
+**API Endpoints:**
+
+- `POST /api/v1/share/dives/{dive_id}` - Generate share content for dive
+- `GET /api/v1/share/dives/{dive_id}/preview` - Preview share content
+- `POST /api/v1/share/dive-sites/{dive_site_id}` - Generate share content for dive site
+- `GET /api/v1/share/dive-sites/{dive_site_id}/preview` - Preview share content
+- `POST /api/v1/share/dive-routes/{route_id}` - Generate share content for route
+- `GET /api/v1/share/dive-routes/{route_id}/preview` - Preview share content
+
+**Files Added/Modified:**
+
+- `backend/app/services/share_service.py` - Share service with platform URL generation
+- `backend/app/routers/share.py` - Share router with all endpoints
+- `frontend/src/components/ShareButton.js` - Reusable share button component
+- `frontend/src/components/ShareModal.js` - Share modal with platform grid
+- `frontend/src/utils/shareUtils.js` - Share utility functions
+- `frontend/src/components/SocialMediaIcons.js` - Social media icon components
+- `frontend/src/pages/DiveDetail.js` - Share integration
+- `frontend/src/pages/DiveSiteDetail.js` - Share integration
+- `frontend/src/pages/RouteDetail.js` - Share integration
+
+**Test Coverage:**
+
+- 25 comprehensive API tests covering all share functionality
+- Privacy and authorization testing
+- Platform URL generation validation
+- Rate limiting structure verification
+
+#### **Global Navbar Search - ✅ COMPLETE**
+
+Unified global search functionality that allows users to search across all entity types (dive sites, diving centers, dives, dive routes, dive trips) directly from the navbar.
+
+**Core Features:**
+
+- **Unified Search Endpoint**: Single endpoint `/api/v1/search` that queries all entity types simultaneously
+- **Real-Time Autocomplete**: Debounced search (300ms) with minimum 3 characters
+- **Icon Differentiation**: Visual icons for each entity type (Map, Building, Anchor, Calendar, Route)
+- **Keyboard Navigation**: Arrow keys, Enter, and Escape key support
+- **Responsive Design**: Mobile and desktop optimized search interface
+- **Grouped Results**: Results grouped by entity type with counts
+- **Quick Navigation**: Click or keyboard selection navigates to detail pages
+
+**Technical Implementation:**
+
+- **Backend**: Sequential queries for all entity types (SQLAlchemy sessions not thread-safe)
+- **Frontend**: GlobalSearchBar component with debounced search
+- **API Integration**: Uses existing search logic from each entity router
+- **Rate Limiting**: 150 requests/minute with admin exemption
+
+**API Endpoints:**
+
+- `GET /api/v1/search?q={query}&limit={limit}` - Global search across all entity types
+
+**Response Format:**
+
+- Returns grouped results by entity type with metadata
+- Each result includes entity type, icon name, route path, and optional metadata
+- Total count across all entity types
+
+**Files Added/Modified:**
+
+- `backend/app/routers/search.py` - Global search router
+- `frontend/src/components/GlobalSearchBar.js` - Search bar component
+- `frontend/src/api.js` - Search API function
+- `frontend/src/components/Navbar.js` - Search bar integration
+
+#### **Enhanced Newsletter Management and Trip Creation - ✅ COMPLETE**
+
+Comprehensive enhancements to newsletter management, trip creation, and access control with improved user experience and expanded functionality.
+
+**Core Features:**
+
+- **Tabbed Navigation**: Admin newsletters page with Create/List tabs for better organization
+- **Enhanced Newsletter List**: Displays diving center names and trip dates for better context
+- **Dive Trips on Diving Centers**: Dive trips section on diving center detail pages with 3-month date navigation
+- **Reusable Trip Form**: Extracted TripFormModal component for use in modals and standalone pages
+- **Dedicated Create Trip Page**: New `/dive-trips/create` page for trip creation
+- **Access Control**: Only admin/moderator/approved owners can create trips
+- **Ownership Management**: Display claim reason in admin interface and owned centers in profile
+- **Trip Filters**: Comprehensive filtering by diving center, dive site, and date range
+- **Blurred Preview**: Unauthenticated users see 1-2 blurred dive trips with login prompt
+
+**Technical Implementation:**
+
+- **Backend**: Enhanced newsletter endpoints with diving center metadata support
+- **Frontend**: Reusable components (TripFormModal, NewsletterUpload) for consistency
+- **Access Control**: Backend restrictions for unauthenticated users (2 oldest trips per center)
+- **Filtering**: Advanced filtering with dropdowns and calendar date pickers
+
+**Files Added/Modified:**
+
+- `backend/app/routers/newsletters.py` - Enhanced newsletter and trip endpoints
+- `frontend/src/components/TripFormModal.js` - Reusable trip form component
+- `frontend/src/pages/CreateTrip.js` - Dedicated create trip page
+- `frontend/src/pages/AdminNewsletters.js` - Tabbed interface and enhanced actions
+- `frontend/src/pages/DivingCenterDetail.js` - Dive trips with date navigation
+- `frontend/src/pages/TripDetail.js` - Reordered tabs and renamed Overview
+- `frontend/src/pages/DiveTrips.js` - Comprehensive filtering
+
+#### **Route Map Enhancements - ✅ COMPLETE**
+
+Significant improvements to route map visualization and editing capabilities with better navigation aids and user controls.
+
+**Core Features:**
+
+- **Compass Bearings**: Bearing degree labels (e.g., '20° N', '270° W') along route segments for navigation
+- **Map Layers**: Switch between Street, Satellite, Terrain, and Navigation views
+- **Satellite Default**: Default map layer changed to Satellite for better visual context
+- **Bearing Toggle**: Show/hide bearing icons with toggle button
+- **Snapping Toggle**: Optional snapping to dive site points within 50 meters when drawing routes
+- **Zoom-Based Visibility**: Bearings visible only at zoom levels 16-18 to prevent clutter
+- **Callback Fixes**: Fixed ReferenceError in RouteCanvas callback initialization
+
+**Technical Implementation:**
+
+- **Bearing Calculation**: Utilities in routeUtils.js for calculating bearings between waypoints
+- **Map Layers Panel**: Reusable MapLayersPanel component for layer selection
+- **Snapping Logic**: Optional snapping with visual state indicators
+- **Callback Refs**: Prevent Leaflet Draw control recreation issues
+
+**Files Modified:**
+
+- `frontend/src/utils/routeUtils.js` - Bearing calculation functions
+- `frontend/src/pages/RouteDetail.js` - Bearing labels and map layers
+- `frontend/src/pages/DiveSiteMap.js` - Bearing labels on dive site routes
+- `frontend/src/pages/DiveDetail.js` - Bearing labels on dive detail routes
+- `frontend/src/components/RouteCanvas.js` - Map layers, snapping, callback fixes
 
 ### 🗄️ Database Changes
 
@@ -501,6 +651,22 @@ Users are now enabled by default on registration.
 - New user accounts are automatically enabled upon registration
 - Eliminates need for manual admin approval for new users
 - Streamlines user onboarding process
+
+#### **HTTPS Protocol and Search Redirect Fixes - ✅ COMPLETE**
+
+Fixed critical issues with API protocol handling and search endpoint redirects.
+
+**Changes:**
+
+- **Relative URL Support**: Changed API baseURL to empty string for relative URLs, ensuring API calls automatically use the same protocol as the page
+- **HTTPS in Production**: Fixed issue where static builds were making HTTP requests in production instead of HTTPS
+- **Search Endpoint Fix**: Updated search endpoint URL to include trailing slash to match FastAPI route definition, eliminating 307 redirect
+- **Development Override**: Maintained baseURL override only for localhost development
+
+**Files Modified:**
+
+- `frontend/src/api.js` - Changed baseURL to relative URLs with localhost override
+- Removed redundant HTTPS safety interceptor
 
 ## [Previous Release] - September 27, 2025
 
