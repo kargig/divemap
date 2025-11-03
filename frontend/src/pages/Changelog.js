@@ -25,7 +25,7 @@ const Changelog = () => {
           <div className='prose prose-lg max-w-none'>
             <h2 className='text-2xl font-semibold text-gray-900 mb-6 flex items-center'>
               <Calendar className='h-6 w-6 mr-3 text-blue-600' />
-              Latest Release - November 01, 2025
+              Latest Release - November 03, 2025
             </h2>
 
             <div className='grid md:grid-cols-2 gap-6 mb-8'>
@@ -35,6 +35,9 @@ const Changelog = () => {
                 </h3>
                 <ul className='text-blue-800 space-y-2'>
                   <li>• Comprehensive Dive Route Drawing and Selection System</li>
+                  <li>• Share/Social Media Integration for Dives, Sites, and Routes</li>
+                  <li>• Global Navbar Search Across All Entity Types</li>
+                  <li>• Enhanced Newsletter Management and Trip Creation</li>
                   <li>• Settings System for Runtime Configuration Management</li>
                   <li>• Diving Center Reviews Control (Admin Toggle)</li>
                   <li>• Difficulty Taxonomy Migration to Lookup Table System</li>
@@ -47,6 +50,12 @@ const Changelog = () => {
                   🔧 Improvements
                 </h3>
                 <ul className='text-green-800 space-y-2'>
+                  <li>• Route Map Enhancements (Compass Bearings, Map Layers, Snapping)</li>
+                  <li>
+                    • Multi-Platform Social Sharing (Twitter, Facebook, WhatsApp, Viber, Reddit,
+                    Email)
+                  </li>
+                  <li>• Real-Time Global Search with Keyboard Navigation</li>
                   <li>• Multi-Segment Route Drawing with Mobile Touch Support</li>
                   <li>• Route Export in GPX and KML Formats</li>
                   <li>• Bottom Pagination Controls on All List Pages</li>
@@ -63,6 +72,9 @@ const Changelog = () => {
                   🐛 Bug Fixes
                 </h3>
                 <ul className='text-orange-800 space-y-2'>
+                  <li>• Fixed HTTPS Protocol Issues in Production</li>
+                  <li>• Fixed Search Endpoint Redirect Issues</li>
+                  <li>• Fixed Route Canvas Callback Initialization Errors</li>
                   <li>• Fixed Back Navigation When Opening Links in New Tabs</li>
                   <li>• Fixed Duplicate Warning Messages on Dive Sites Page</li>
                   <li>• Fixed Login Failure Feedback Messages</li>
@@ -90,6 +102,10 @@ const Changelog = () => {
                 🎨 User Experience
               </h3>
               <ul className='text-gray-800 space-y-2'>
+                <li>• Global Search Available from Any Page in Navbar</li>
+                <li>• Share Dive Experiences on Social Media Platforms</li>
+                <li>• Compass Bearings on Route Maps for Navigation</li>
+                <li>• Multiple Map Layers (Street, Satellite, Terrain, Navigation)</li>
                 <li>• Navigation Now Remembers Filters, Search, and Pagination</li>
                 <li>• Consistent Pagination Layout Across All List Pages</li>
                 <li>• Clear Visual Indicators for Clickable Links</li>
@@ -333,7 +349,7 @@ const Changelog = () => {
               </a>{' '}
               standard for clear, user-friendly documentation of all changes.
             </p>
-            <p className='text-sm text-gray-500'>Last updated: November 01, 2025</p>
+            <p className='text-sm text-gray-500'>Last updated: November 03, 2025</p>
           </div>
         </div>
       </div>
