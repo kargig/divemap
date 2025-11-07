@@ -29,7 +29,7 @@ import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { useResponsive } from '../hooks/useResponsive';
+import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
@@ -111,6 +111,7 @@ const DiveSites = () => {
 
   // Responsive detection using custom hook
   const { isMobile } = useResponsive();
+  const { searchBarVisible } = useResponsiveScroll();
   // Calculate effective page size for pagination display
   const effectivePageSize = pagination.page_size || 25;
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
@@ -586,6 +587,64 @@ const DiveSites = () => {
 
   return (
     <div className='min-h-screen bg-gray-50'>
+      {/* Filter Bar - Sticky and compact with mobile-first responsive design */}
+      {/* Hide on mobile when scrolling up (searchBarVisible is false) */}
+      {/* Moved outside max-w-6xl container to span full width like /dives */}
+      {/* Use negative margins to escape main element padding on mobile */}
+      {(!isMobile || searchBarVisible) && (
+        <div className='sticky-below-navbar bg-white shadow-sm border-b border-gray-200 rounded-t-lg py-3 sm:py-4 -mx-4 sm:mx-0'>
+          {isLoading ? (
+            <LoadingSkeleton type='filter' />
+          ) : (
+            <>
+              {/* Desktop Search Bar - Only visible on desktop/tablet */}
+              {!isMobile && (
+                <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8'>
+                  <DesktopSearchBar
+                    searchValue={filters.search_query}
+                    onSearchChange={value => handleFilterChange('search_query', value)}
+                    onSearchSelect={selectedItem => {
+                      handleFilterChange('search_query', selectedItem.name);
+                    }}
+                    data={diveSites?.results || []}
+                    configType='diveSites'
+                    placeholder='Search dive sites by name, country, region, or description...'
+                  />
+                </div>
+              )}
+
+              {/* Responsive Filter Bar */}
+              <ResponsiveFilterBar
+                showFilters={showAdvancedFilters}
+                onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                onClearFilters={clearFilters}
+                activeFiltersCount={getActiveFiltersCount()}
+                filters={{ ...filters, availableTags, user }}
+                onFilterChange={handleFilterChange}
+                onQuickFilter={handleQuickFilter}
+                quickFilters={quickFilters}
+                variant='sticky'
+                showQuickFilters={true}
+                showAdvancedToggle={true}
+                searchQuery={filters.search_query}
+                onSearchChange={value => handleFilterChange('search_query', value)}
+                onSearchSubmit={() => {}}
+                // Add sorting props
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                sortOptions={getSortOptions('dive-sites')}
+                onSortChange={handleSortChange}
+                onReset={resetSorting}
+                viewMode={viewMode}
+                onViewModeChange={handleViewModeChange}
+                compactLayout={compactLayout}
+                onDisplayOptionChange={handleDisplayOptionChange}
+              />
+            </>
+          )}
+        </div>
+      )}
+
       {/* Mobile-First Responsive Container */}
       <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
         {/* Hero Section */}
@@ -640,55 +699,6 @@ const DiveSites = () => {
             )}
           </div>
         )}
-        {/* Filter Bar - Sticky and compact with mobile-first responsive design */}
-        <div className='sticky-below-navbar bg-white shadow-sm border-b border-gray-200 rounded-t-lg py-3 sm:py-4'>
-          {isLoading ? (
-            <LoadingSkeleton type='filter' />
-          ) : (
-            <>
-              {/* Desktop Search Bar - Only visible on desktop/tablet */}
-              {!isMobile && (
-                <DesktopSearchBar
-                  searchValue={filters.search_query}
-                  onSearchChange={value => handleFilterChange('search_query', value)}
-                  onSearchSelect={selectedItem => {
-                    handleFilterChange('search_query', selectedItem.name);
-                  }}
-                  data={diveSites?.results || []}
-                  configType='diveSites'
-                  placeholder='Search dive sites by name, country, region, or description...'
-                />
-              )}
-
-              <ResponsiveFilterBar
-                showFilters={showAdvancedFilters}
-                onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                onClearFilters={clearFilters}
-                activeFiltersCount={getActiveFiltersCount()}
-                filters={{ ...filters, availableTags, user }}
-                onFilterChange={handleFilterChange}
-                onQuickFilter={handleQuickFilter}
-                quickFilters={quickFilters}
-                variant='inline'
-                showQuickFilters={true}
-                showAdvancedToggle={true}
-                searchQuery={filters.search_query}
-                onSearchChange={value => handleFilterChange('search_query', value)}
-                onSearchSubmit={() => {}}
-                // Add sorting props
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                sortOptions={getSortOptions('dive-sites')}
-                onSortChange={handleSortChange}
-                onReset={resetSorting}
-                viewMode={viewMode}
-                onViewModeChange={handleViewModeChange}
-                compactLayout={compactLayout}
-                onDisplayOptionChange={handleDisplayOptionChange}
-              />
-            </>
-          )}
-        </div>
         {/* Content Section */}
         <div className={`content-section ${mobileStyles.mobileMargin}`}>
           {/* Pagination Controls - Mobile-first responsive design */}
@@ -796,7 +806,7 @@ const DiveSites = () => {
                             <div className='min-w-0 flex-1'>
                               <div className='flex flex-col gap-0'>
                                 <h3
-                                  className={`font-semibold text-gray-900 truncate ${compactLayout ? 'text-sm' : 'text-base'} sm:mb-0 -mb-2 leading-tight sm:leading-normal`}
+                                  className={`font-semibold text-gray-900 truncate ${compactLayout ? 'text-sm' : 'text-lg'} sm:mb-0 -mb-2 leading-tight sm:leading-normal`}
                                 >
                                   <Link
                                     to={`/dive-sites/${site.id}`}
@@ -853,7 +863,7 @@ const DiveSites = () => {
                       <div className='flex flex-wrap items-center gap-2 sm:gap-4 mb-2'>
                         <div className='flex items-center gap-1'>
                           <span
-                            className={`inline-flex items-center px-2 py-1 sm:py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(site.difficulty_code)}`}
+                            className={`inline-flex items-center px-2 py-1 sm:py-0.5 rounded-full text-[11px] font-medium ${getDifficultyColorClasses(site.difficulty_code)}`}
                           >
                             {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
                           </span>
@@ -861,13 +871,13 @@ const DiveSites = () => {
                         {site.max_depth !== undefined && site.max_depth !== null && (
                           <div className='flex items-center gap-1'>
                             <TrendingUp className='w-3 h-3 text-gray-400' />
-                            <span className='text-xs text-gray-600'>{site.max_depth}m</span>
+                            <span className='text-[11px] text-gray-600'>{site.max_depth}m</span>
                           </div>
                         )}
                         {site.average_rating !== undefined && site.average_rating !== null && (
                           <div className='flex items-center gap-1'>
                             <Star className='w-3 h-3 text-yellow-400' />
-                            <span className='text-xs text-gray-600'>
+                            <span className='text-[11px] text-gray-600'>
                               {Number(site.average_rating).toFixed(1)}/10
                             </span>
                           </div>
@@ -876,9 +886,7 @@ const DiveSites = () => {
                       </div>
 
                       {site.description && (
-                        <p
-                          className={`text-gray-700 ${compactLayout ? 'text-xs' : 'text-sm'} mb-2 line-clamp-2`}
-                        >
+                        <p className='text-gray-700 text-xs mb-2 line-clamp-2'>
                           {renderTextWithLinks(site.description)}
                         </p>
                       )}
@@ -901,7 +909,7 @@ const DiveSites = () => {
                                     : [...currentTagIds, tagId];
                                   handleFilterChange('tag_ids', newTagIds);
                                 }}
-                                className={`inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tagName)}`}
+                                className={`inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium rounded cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tagName)}`}
                                 title={`Filter by ${tagName}`}
                               >
                                 {tagName}
@@ -909,7 +917,7 @@ const DiveSites = () => {
                             );
                           })}
                           {site.tags.length > 3 && (
-                            <span className='inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded'>
+                            <span className='inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium bg-gray-100 text-gray-600 rounded'>
                               +{site.tags.length - 3}
                             </span>
                           )}
@@ -937,7 +945,7 @@ const DiveSites = () => {
                       <div className='p-3'>
                         <div className='flex items-center gap-3 mb-2'>
                           <h3
-                            className={`font-semibold text-gray-900 truncate flex-1 ${compactLayout ? 'text-base' : 'text-lg'}`}
+                            className={`font-semibold text-gray-900 truncate flex-1 ${compactLayout ? 'text-sm' : 'text-lg'}`}
                           >
                             <Link
                               to={`/dive-sites/${site.id}`}
@@ -967,7 +975,7 @@ const DiveSites = () => {
 
                         <div className='mb-2'>
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(site.difficulty_code)}`}
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${getDifficultyColorClasses(site.difficulty_code)}`}
                           >
                             {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
                           </span>
@@ -992,9 +1000,7 @@ const DiveSites = () => {
                         </div>
 
                         {site.description && (
-                          <p
-                            className={`text-gray-700 ${compactLayout ? 'text-xs' : 'text-sm'} mb-2 line-clamp-2`}
-                          >
+                          <p className='text-gray-700 text-xs mb-2 line-clamp-2'>
                             {site.description.split(/(https?:\/\/[^\s]+)/).map((part, index) => {
                               if (part.match(/^https?:\/\//)) {
                                 return (

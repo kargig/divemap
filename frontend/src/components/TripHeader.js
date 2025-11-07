@@ -42,10 +42,10 @@ const TripHeader = ({ trip }) => {
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6'>
         <div className='flex flex-col lg:flex-row lg:items-start lg:justify-between'>
           <div className='flex-1'>
-            <h1 className='text-3xl font-bold text-gray-900 mb-2'>
+            <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2'>
               {generateTripName(trip) || 'Dive Trip'}
             </h1>
-            <p className='text-gray-600 text-lg mb-4'>
+            <p className='text-gray-600 text-sm sm:text-base lg:text-lg mb-4'>
               {trip.trip_description || 'Experience an amazing diving adventure'}
             </p>
 

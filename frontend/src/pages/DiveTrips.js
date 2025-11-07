@@ -27,12 +27,14 @@ import { useQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
 import { getParsedTrips, getDivingCenters, getDiveSites } from '../api';
+import DesktopSearchBar from '../components/DesktopSearchBar';
 import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import RateLimitError from '../components/RateLimitError';
 import StickyFilterBar from '../components/StickyFilterBar';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
@@ -100,7 +102,8 @@ const DiveTrips = () => {
   });
   const [showDateFilterMessage, setShowDateFilterMessage] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const { isMobile } = useResponsive();
+  const { searchBarVisible } = useResponsiveScroll();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Helper function to get active filters count
@@ -198,18 +201,6 @@ const DiveTrips = () => {
       });
     }
   }, [user, loading]);
-
-  // Mobile detection and responsive behavior
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Function to get user's current location
   const getUserLocation = () => {
@@ -518,22 +509,26 @@ const DiveTrips = () => {
     const rating = getDiveSiteRating(diveSiteId);
 
     return (
-      <div className='flex items-center gap-2'>
+      <div className='flex items-center gap-1.5 sm:gap-2'>
         {diveSiteId ? (
           <Link
             to={`/dive-sites/${diveSiteId}`}
             state={{ from: window.location.pathname + window.location.search }}
-            className='text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors truncate'
+            className='text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors truncate leading-tight'
           >
             {diveSiteName}
           </Link>
         ) : (
-          <span className='text-sm font-medium text-gray-700 truncate'>{diveSiteName}</span>
+          <span className='text-xs sm:text-sm font-medium text-gray-700 truncate leading-tight'>
+            {diveSiteName}
+          </span>
         )}
         {rating && (
-          <div className='flex items-center gap-1 bg-yellow-100 rounded-full px-2 py-1'>
-            <Star className='w-3 h-3 text-yellow-500 fill-current' />
-            <span className='text-xs font-medium text-yellow-800'>{rating}/10</span>
+          <div className='flex items-center gap-0.5 sm:gap-1 bg-yellow-100 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1'>
+            <Star className='w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-current' />
+            <span className='text-[10px] sm:text-[11px] font-medium text-yellow-800 leading-tight'>
+              {rating}/10
+            </span>
           </div>
         )}
       </div>
@@ -688,8 +683,48 @@ const DiveTrips = () => {
 
   return (
     <div className='min-h-screen bg-gray-50'>
+      {/* Sticky Filter Bar - Mobile-First Responsive Design */}
+      {/* Hide on mobile when scrolling up (searchBarVisible is false) */}
+      {/* Moved outside max-w-6xl container to span full width like /dives */}
+      {/* Mobile Search Bar - Only visible on mobile when scrolling down */}
+      {isMobile && searchBarVisible && (
+        <div className='sticky-below-navbar bg-white border-b border-gray-200 shadow-sm -mx-4 sm:mx-0'>
+          <div className='p-3'>
+            <div className='relative'>
+              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
+              <FuzzySearchInput
+                data={trips || []}
+                searchValue={filters.search_query}
+                onSearchChange={value => handleFilterChange('search_query', value)}
+                onSearchSelect={selectedItem => {
+                  // For dive trips, we need to handle the selected item appropriately
+                  // Since dive trips have multiple searchable fields, we'll use the search query
+                  handleFilterChange(
+                    'search_query',
+                    selectedItem.name || selectedItem.trip_description || ''
+                  );
+                }}
+                configType='diveTrips'
+                placeholder='Search trips, dive sites, diving centers, locations, or requirements...'
+                minQueryLength={2}
+                maxSuggestions={8}
+                debounceDelay={300}
+                showSuggestions={true}
+                highlightMatches={true}
+                showScore={false}
+                showClearButton={true}
+                className='w-full'
+                inputClassName='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                suggestionsClassName='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto'
+                highlightClass='bg-blue-100 font-medium'
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile-First Responsive Container */}
-      <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 pt-0 pb-4 sm:pt-4 sm:pb-6 lg:pt-6 lg:pb-8'>
         {/* Hero Section */}
         <HeroSection
           title='Dive Trips'
@@ -721,9 +756,26 @@ const DiveTrips = () => {
             )}
           </div>
         </HeroSection>
-      </div>
-      {/* Main Content */}
-      <div className='max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8'>
+
+        {/* Desktop Search Bar - Only visible on desktop/tablet */}
+        {!isMobile && (
+          <DesktopSearchBar
+            searchValue={filters.search_query}
+            onSearchChange={value => handleFilterChange('search_query', value)}
+            onSearchSelect={selectedItem => {
+              // For dive trips, we need to handle the selected item appropriately
+              // Since dive trips have multiple searchable fields, we'll use the search query
+              handleFilterChange(
+                'search_query',
+                selectedItem.name || selectedItem.trip_description || ''
+              );
+            }}
+            data={trips || []}
+            configType='diveTrips'
+            placeholder='Search trips, dive sites, diving centers, locations, or requirements...'
+          />
+        )}
+
         {/* Map Section - Redirect to Unified Map */}
         {viewMode === 'map' && (
           <div className='mb-6 bg-white rounded-lg shadow-md p-8 text-center'>
@@ -794,270 +846,6 @@ const DiveTrips = () => {
                 sites for filtering.
               </span>
             </div>
-          </div>
-        )}
-
-        {/* Sticky Filter Bar - Mobile-First Responsive Design */}
-        <div className='sticky-below-navbar bg-white shadow-sm border-b border-gray-200 rounded-t-lg px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4'>
-          <div className='flex flex-col sm:flex-row gap-3 sm:gap-4 items-end'>
-            {/* Smart Fuzzy Search Input - Enhanced search experience */}
-            <div className='flex-1 w-full'>
-              <label
-                htmlFor='search-query'
-                className='block text-sm font-medium text-gray-700 mb-2'
-              >
-                Search
-              </label>
-              <FuzzySearchInput
-                data={trips || []}
-                searchValue={filters.search_query}
-                onSearchChange={value => handleFilterChange('search_query', value)}
-                onSearchSelect={selectedItem => {
-                  // For dive trips, we need to handle the selected item appropriately
-                  // Since dive trips have multiple searchable fields, we'll use the search query
-                  handleFilterChange(
-                    'search_query',
-                    selectedItem.name || selectedItem.trip_description || ''
-                  );
-                }}
-                configType='diveTrips'
-                placeholder='Search trips, dive sites, diving centers, locations, or requirements...'
-                minQueryLength={2}
-                maxSuggestions={8}
-                debounceDelay={300}
-                showSuggestions={true}
-                highlightMatches={true}
-                showScore={false}
-                showClearButton={true}
-                className='w-full'
-                inputClassName='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base'
-                suggestionsClassName='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto'
-                highlightClass='bg-blue-100 font-medium'
-              />
-            </div>
-
-            {/* Quick Filters */}
-            <div className='flex gap-2'>
-              <button
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium min-h-[44px] sm:min-h-0 touch-manipulation'
-              >
-                {showAdvancedFilters ? 'Hide' : 'Show'} Filters
-              </button>
-
-              {getActiveFiltersCount() > 0 && (
-                <button
-                  onClick={clearFilters}
-                  className='px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium min-h-[44px] sm:min-h-0 touch-manipulation'
-                >
-                  Clear All
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Advanced Filters Section */}
-        {showAdvancedFilters && (
-          <div className='mb-6 bg-white rounded-lg shadow-md border border-gray-200 p-4 sm:p-6'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
-              <Filter className='h-5 w-5 mr-2 text-blue-600' />
-              Filters
-            </h3>
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-              {/* Diving Center Filter */}
-              <div>
-                <label
-                  htmlFor='filter-diving-center'
-                  className='block text-sm font-medium text-gray-700 mb-2'
-                >
-                  <Building className='h-4 w-4 inline mr-1' />
-                  Diving Center
-                </label>
-                <select
-                  id='filter-diving-center'
-                  value={filters.diving_center_id || ''}
-                  onChange={e => handleFilterChange('diving_center_id', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
-                >
-                  <option value=''>All Diving Centers</option>
-                  {divingCenters.map(center => (
-                    <option key={center.id} value={center.id}>
-                      {center.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Start Date Filter */}
-              <div>
-                <label
-                  htmlFor='filter-start-date'
-                  className='block text-sm font-medium text-gray-700 mb-2'
-                >
-                  <CalendarIcon className='h-4 w-4 inline mr-1' />
-                  Start Date
-                </label>
-                <input
-                  id='filter-start-date'
-                  type='date'
-                  value={filters.start_date || ''}
-                  onChange={e => handleFilterChange('start_date', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
-                />
-              </div>
-
-              {/* End Date Filter */}
-              <div>
-                <label
-                  htmlFor='filter-end-date'
-                  className='block text-sm font-medium text-gray-700 mb-2'
-                >
-                  <CalendarIcon className='h-4 w-4 inline mr-1' />
-                  End Date
-                </label>
-                <input
-                  id='filter-end-date'
-                  type='date'
-                  value={filters.end_date || ''}
-                  onChange={e => handleFilterChange('end_date', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
-                />
-              </div>
-
-              {/* Dive Site Filter */}
-              <div>
-                <label
-                  htmlFor='filter-dive-site'
-                  className='block text-sm font-medium text-gray-700 mb-2'
-                >
-                  <MapPin className='h-4 w-4 inline mr-1' />
-                  Dive Site
-                </label>
-                <select
-                  id='filter-dive-site'
-                  value={filters.dive_site_id || ''}
-                  onChange={e => handleFilterChange('dive_site_id', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
-                >
-                  <option value=''>All Dive Sites</option>
-                  {diveSites.map(site => (
-                    <option key={site.id} value={site.id}>
-                      {site.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Mobile Floating Action Button */}
-        {isMobile && (
-          <div className='fixed bottom-6 right-6 z-50'>
-            <button
-              onClick={() => {
-                setShowMobileFilters(!showMobileFilters);
-                setShowAdvancedFilters(!showAdvancedFilters);
-              }}
-              className='w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 flex items-center justify-center touch-manipulation'
-              aria-label='Toggle Filters'
-            >
-              <Filter className='h-6 w-6' />
-            </button>
-          </div>
-        )}
-
-        {/* View Controls - Simplified for Map View */}
-        {viewMode === 'map' ? (
-          <div className='mb-6'>
-            <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
-              <div className='flex items-center justify-between'>
-                <h3 className='text-lg font-medium text-gray-900'>View Mode</h3>
-                <div className='flex gap-2'>
-                  <button
-                    onClick={() => changeViewMode('list')}
-                    className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                      viewMode === 'list'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    <List className='h-4 w-4' />
-                    List
-                  </button>
-                  <button
-                    onClick={() => changeViewMode('grid')}
-                    className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                      viewMode === 'grid'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    <Grid className='h-4 w-4' />
-                    Grid
-                  </button>
-                  <button
-                    onClick={() => changeViewMode('map')}
-                    className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                      viewMode === 'map'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    <Map className='h-4 w-4' />
-                    Map
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Mobile View Mode Quick Access */}
-        {isMobile && (
-          <div className='mb-4 flex gap-2 justify-center'>
-            <button
-              onClick={() => changeViewMode('list')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              } touch-manipulation min-h-[44px]`}
-            >
-              <List className='h-5 w-5 inline mr-2' />
-              List
-            </button>
-            <button
-              onClick={() => changeViewMode('grid')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                viewMode === 'grid'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              } touch-manipulation min-h-[44px]`}
-            >
-              <Grid className='h-5 w-5 inline mr-2' />
-              Grid
-            </button>
-            <button
-              onClick={() => changeViewMode('map')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                viewMode === 'map'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              } touch-manipulation min-h-[44px]`}
-            >
-              <Map className='h-5 w-5 inline mr-2' />
-              Map
-            </button>
-          </div>
-        )}
-
-        {/* Mobile Gesture Hints */}
-        {isMobile && (
-          <div className='mb-4 text-center text-xs text-gray-500 bg-gray-50 p-2 rounded-lg'>
-            💡 <strong>Mobile Tips:</strong> Swipe left/right on trip cards, tap filters button for
-            quick access
           </div>
         )}
 
@@ -1188,7 +976,7 @@ const DiveTrips = () => {
                       {/* Thumbnail removed */}
                       <div>
                         <h3
-                          className={`font-semibold text-gray-900 ${compactLayout ? 'text-base' : 'text-lg'}`}
+                          className={`font-semibold text-gray-900 ${compactLayout ? 'text-sm' : 'text-lg'}`}
                         >
                           <Link
                             to={`/dive-trips/${trip.id}`}
@@ -1198,7 +986,7 @@ const DiveTrips = () => {
                             {generateTripName(trip)}
                           </Link>
                         </h3>
-                        <p className={`text-gray-600 ${compactLayout ? 'text-sm' : 'text-base'}`}>
+                        <p className='text-gray-600 text-xs'>
                           {trip.trip_date
                             ? new Date(trip.trip_date).toLocaleDateString('en-GB')
                             : 'N/A'}
@@ -1209,7 +997,7 @@ const DiveTrips = () => {
                   <Link
                     to={`/dive-trips/${trip.id}`}
                     state={{ from: window.location.pathname + window.location.search }}
-                    className='inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
+                    className='inline-flex items-center gap-2 px-4 py-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
                   >
                     <Eye className='w-4 h-4' />
                     View Trip
@@ -1217,23 +1005,26 @@ const DiveTrips = () => {
                 </div>
 
                 <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-4'>
-                  <div className='flex items-center gap-2'>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)}`}
-                    >
-                      {trip.trip_difficulty_label || getDifficultyLabel(trip.trip_difficulty_code)}
-                    </span>
-                  </div>
+                  {trip.trip_difficulty_code && (
+                    <div className='flex items-center gap-2'>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)}`}
+                      >
+                        {trip.trip_difficulty_label ||
+                          getDifficultyLabel(trip.trip_difficulty_code)}
+                      </span>
+                    </div>
+                  )}
                   {trip.max_depth && (
                     <div className='flex items-center gap-2'>
                       <TrendingUp className='w-4 h-4 text-gray-400' />
-                      <span className='text-sm text-gray-600'>{trip.max_depth}m max</span>
+                      <span className='text-[11px] text-gray-600'>{trip.max_depth}m max</span>
                     </div>
                   )}
                   {trip.trip_price && (
                     <div className='flex items-center gap-2'>
                       <DollarSign className='w-4 h-4 text-gray-400' />
-                      <span className='text-sm text-gray-600'>
+                      <span className='text-[11px] text-gray-600'>
                         {formatCurrency(trip.trip_price, trip.trip_currency)}
                       </span>
                     </div>
@@ -1261,14 +1052,16 @@ const DiveTrips = () => {
                 </p>
 
                 {/* Enhanced Trip Details Grid - Mobile Responsive */}
-                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-6'>
-                  <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
-                    <Calendar className='h-4 w-4 mr-3 text-blue-600 flex-shrink-0' />
+                <div className='trip-details-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-6'>
+                  <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
+                    <Calendar className='h-4 w-4 mr-2 sm:mr-3 text-blue-600 flex-shrink-0' />
                     <div className='min-w-0'>
-                      <div className='text-xs text-gray-500 uppercase tracking-wide'>Date</div>
+                      <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+                        Date
+                      </div>
                       <button
                         onClick={() => handleDateClick(trip.trip_date)}
-                        className='text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors font-medium text-sm truncate block w-full text-left'
+                        className='text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors font-medium text-sm truncate block w-full text-left leading-tight !min-h-0 !py-0'
                         title='Click to filter by this date'
                       >
                         {trip.trip_date
@@ -1278,34 +1071,40 @@ const DiveTrips = () => {
                     </div>
                   </div>
 
-                  <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
-                    <Clock className='h-4 w-4 mr-3 text-green-600 flex-shrink-0' />
+                  <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
+                    <Clock className='h-4 w-4 mr-2 sm:mr-3 text-green-600 flex-shrink-0' />
                     <div className='min-w-0'>
-                      <div className='text-xs text-gray-500 uppercase tracking-wide'>Time</div>
-                      <span className='font-medium text-sm'>
+                      <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+                        Time
+                      </div>
+                      <span className='font-medium text-sm leading-tight'>
                         {trip.trip_time ? formatTime(trip.trip_time) : 'N/A'}
                       </span>
                     </div>
                   </div>
 
                   {trip.trip_duration && (
-                    <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
-                      <Clock className='h-4 w-4 mr-3 text-purple-600 flex-shrink-0' />
+                    <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
+                      <Clock className='h-4 w-4 mr-2 sm:mr-3 text-purple-600 flex-shrink-0' />
                       <div className='min-w-0'>
-                        <div className='text-xs text-gray-500 uppercase tracking-wide'>
+                        <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                           Duration
                         </div>
-                        <span className='font-medium text-sm'>{trip.trip_duration} min</span>
+                        <span className='font-medium text-[11px] leading-tight'>
+                          {trip.trip_duration} min
+                        </span>
                       </div>
                     </div>
                   )}
 
                   {trip.trip_price && (
-                    <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
-                      <Euro className='h-4 w-4 mr-3 text-green-600 flex-shrink-0' />
+                    <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
+                      <Euro className='h-4 w-4 mr-2 sm:mr-3 text-green-600 flex-shrink-0' />
                       <div className='min-w-0'>
-                        <div className='text-xs text-gray-500 uppercase tracking-wide'>Price</div>
-                        <span className='font-medium text-base sm:text-lg'>
+                        <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+                          Price
+                        </div>
+                        <span className='font-medium text-base sm:text-lg leading-tight'>
                           {formatCurrency(trip.trip_price, trip.trip_currency)}
                         </span>
                       </div>
@@ -1313,13 +1112,13 @@ const DiveTrips = () => {
                   )}
 
                   {trip.group_size_limit && (
-                    <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
-                      <Users className='h-4 w-4 mr-3 text-orange-600 flex-shrink-0' />
+                    <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
+                      <Users className='h-4 w-4 mr-2 sm:mr-3 text-orange-600 flex-shrink-0' />
                       <div className='min-w-0'>
-                        <div className='text-xs text-gray-500 uppercase tracking-wide'>
+                        <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                           Group Size
                         </div>
-                        <span className='font-medium text-sm'>
+                        <span className='font-medium text-sm leading-tight'>
                           Max {trip.group_size_limit} people
                         </span>
                       </div>
@@ -1328,11 +1127,13 @@ const DiveTrips = () => {
 
                   {/* Additional trip details can be added here */}
                   {trip.trip_type && (
-                    <div className='flex items-center text-gray-600 p-3 bg-gray-50 rounded-lg'>
-                      <Tag className='h-4 w-4 mr-3 text-indigo-600 flex-shrink-0' />
+                    <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
+                      <Tag className='h-4 w-4 mr-2 sm:mr-3 text-indigo-600 flex-shrink-0' />
                       <div className='min-w-0'>
-                        <div className='text-xs text-gray-500 uppercase tracking-wide'>Type</div>
-                        <span className='font-medium text-sm'>{trip.trip_type}</span>
+                        <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+                          Type
+                        </div>
+                        <span className='font-medium text-sm leading-tight'>{trip.trip_type}</span>
                       </div>
                     </div>
                   )}
@@ -1341,35 +1142,37 @@ const DiveTrips = () => {
                 {/* Enhanced Dives Display - Mobile Responsive */}
                 {trip.dives && trip.dives.length > 0 && (
                   <div className='mb-6'>
-                    <h4 className='text-sm font-semibold text-gray-700 mb-3 flex items-center'>
-                      <MapPin className='h-4 w-4 mr-2 text-blue-600 flex-shrink-0' />
+                    <h4 className='text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3 flex items-center leading-tight'>
+                      <MapPin className='h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 text-blue-600 flex-shrink-0' />
                       Dive Sites ({trip.dives.length})
                     </h4>
-                    <div className='space-y-3'>
+                    <div className='space-y-2 sm:space-y-3'>
                       {trip.dives.map((dive, index) => (
                         <div
                           key={dive.id}
-                          className='flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 p-4 bg-blue-50 rounded-lg border border-blue-200'
+                          className='flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 p-2 sm:p-4 bg-blue-50 rounded-lg border border-blue-200'
                         >
-                          <div className='flex items-center space-x-3'>
-                            <div className='flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full flex-shrink-0'>
-                              <span className='text-sm font-bold text-blue-700'>{index + 1}</span>
+                          <div className='flex items-center space-x-2 sm:space-x-3'>
+                            <div className='flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex-shrink-0'>
+                              <span className='text-xs sm:text-sm font-bold text-blue-700'>
+                                {index + 1}
+                              </span>
                             </div>
                             <div className='flex-1 min-w-0'>
-                              <div className='flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-1'>
-                                <span className='text-sm font-medium text-gray-700'>
+                              <div className='flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-0.5 sm:mb-1'>
+                                <span className='text-xs sm:text-sm font-medium text-gray-700 leading-tight'>
                                   Dive {dive.dive_number || index + 1}:
                                 </span>
                                 {dive.dive_site_name ? (
                                   renderDiveSiteWithRating(dive.dive_site_id, dive.dive_site_name)
                                 ) : (
-                                  <span className='text-sm text-gray-500 italic'>
+                                  <span className='text-xs sm:text-sm text-gray-500 italic leading-tight'>
                                     No dive site specified
                                   </span>
                                 )}
                               </div>
 
-                              <div className='flex flex-wrap items-center gap-3 text-xs text-gray-500'>
+                              <div className='flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-gray-500 leading-tight'>
                                 {dive.dive_time && (
                                   <span className='flex items-center'>
                                     <Clock className='h-3 w-3 mr-1 flex-shrink-0' />
@@ -1393,7 +1196,7 @@ const DiveTrips = () => {
                           </div>
 
                           {dive.dive_description && (
-                            <div className='text-xs text-gray-600 p-2 bg-white rounded border sm:ml-8'>
+                            <div className='text-xs text-gray-600 p-1.5 sm:p-2 bg-white rounded border sm:ml-8 leading-tight'>
                               {dive.dive_description}
                             </div>
                           )}
@@ -1406,10 +1209,12 @@ const DiveTrips = () => {
                 {/* Fallback for old single dive site display */}
                 {(!trip.dives || trip.dives.length === 0) && trip.dive_site_name && (
                   <div className='mb-6'>
-                    <div className='flex items-center space-x-3 p-4 bg-green-50 rounded-lg border border-green-200'>
-                      <MapPin className='h-5 w-5 text-green-600' />
+                    <div className='flex items-center space-x-2 sm:space-x-3 p-2 sm:p-4 bg-green-50 rounded-lg border border-green-200'>
+                      <MapPin className='h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0' />
                       <div className='flex-1'>
-                        <div className='text-sm font-medium text-gray-700 mb-1'>Dive Site:</div>
+                        <div className='text-xs sm:text-sm font-medium text-gray-700 mb-0.5 sm:mb-1 leading-tight'>
+                          Dive Site:
+                        </div>
                         {renderDiveSiteWithRating(trip.dive_site_id, trip.dive_site_name)}
                       </div>
                     </div>
@@ -1469,7 +1274,7 @@ const DiveTrips = () => {
 
                 <div className='p-4'>
                   <h3
-                    className={`font-semibold text-gray-900 mb-2 ${compactLayout ? 'text-base' : 'text-lg'}`}
+                    className={`font-semibold text-gray-900 mb-2 ${compactLayout ? 'text-sm' : 'text-lg'}`}
                   >
                     <Link
                       to={`/dive-trips/${trip.id}`}
@@ -1480,32 +1285,34 @@ const DiveTrips = () => {
                     </Link>
                   </h3>
 
-                  <p className={`text-gray-600 mb-3 ${compactLayout ? 'text-sm' : 'text-base'}`}>
+                  <p className='text-gray-600 mb-3 text-xs'>
                     {trip.trip_date ? new Date(trip.trip_date).toLocaleDateString('en-GB') : 'N/A'}
                   </p>
 
-                  <div className='space-y-2 mb-4'>
-                    <div className='flex items-center gap-2'>
-                      <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)}`}
-                      >
-                        {trip.trip_difficulty_label ||
-                          getDifficultyLabel(trip.trip_difficulty_code)}
-                      </span>
+                  {trip.trip_difficulty_code && (
+                    <div className='space-y-2 mb-4'>
+                      <div className='flex items-center gap-2'>
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)}`}
+                        >
+                          {trip.trip_difficulty_label ||
+                            getDifficultyLabel(trip.trip_difficulty_code)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className='grid grid-cols-2 gap-3 mb-4'>
                     {trip.max_depth && (
                       <div className='flex items-center gap-2'>
                         <TrendingUp className='w-4 h-4 text-gray-400' />
-                        <span className='text-sm text-gray-600'>{trip.max_depth}m</span>
+                        <span className='text-[11px] text-gray-600'>{trip.max_depth}m</span>
                       </div>
                     )}
                     {trip.trip_price && (
                       <div className='flex items-center gap-2'>
                         <DollarSign className='w-4 h-4 text-gray-400' />
-                        <span className='text-sm text-gray-600'>
+                        <span className='text-[11px] text-gray-600'>
                           {formatCurrency(trip.trip_price, trip.trip_currency)}
                         </span>
                       </div>
@@ -1531,8 +1338,7 @@ const DiveTrips = () => {
             ))}
           </div>
         )}
-      </div>{' '}
-      {/* Close main content div */}
+      </div>
     </div>
   );
 };
