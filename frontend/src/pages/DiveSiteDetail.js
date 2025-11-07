@@ -286,7 +286,7 @@ const DiveSiteDetail = () => {
               <ArrowLeft size={20} className='sm:w-6 sm:h-6' />
             </button>
             <div className='min-w-0 flex-1'>
-              <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate'>
+              <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 break-words'>
                 {diveSite.name}
               </h1>
               {diveSite.country && diveSite.region && (
@@ -317,25 +317,41 @@ const DiveSiteDetail = () => {
           </div>
         </div>
         <div className='flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4'>
-          <span
-            className={`px-3 py-1 text-sm font-medium rounded-full ${getDifficultyColorClasses(diveSite.difficulty_code)}`}
-          >
-            {diveSite.difficulty_label || getDifficultyLabel(diveSite.difficulty_code)}
-          </span>
+          <div className='flex flex-wrap items-center gap-2 sm:gap-3'>
+            <span
+              className={`px-3 py-1 text-sm font-medium rounded-full ${getDifficultyColorClasses(diveSite.difficulty_code)}`}
+            >
+              {diveSite.difficulty_label || getDifficultyLabel(diveSite.difficulty_code)}
+            </span>
 
-          {/* Aliases */}
-          {diveSite.aliases && diveSite.aliases.length > 0 && (
-            <div className='flex flex-wrap gap-2'>
-              {diveSite.aliases.map(alias => (
-                <span
-                  key={alias.id}
-                  className='px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800'
-                >
-                  {alias.alias}
-                </span>
-              ))}
-            </div>
-          )}
+            {/* Tags - In header area with difficulty (both mobile and desktop) */}
+            {diveSite.tags && diveSite.tags.length > 0 && (
+              <div className='flex flex-wrap gap-2'>
+                {diveSite.tags.map(tag => (
+                  <span
+                    key={tag.id}
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${getTagColor(tag.name)}`}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Aliases */}
+            {diveSite.aliases && diveSite.aliases.length > 0 && (
+              <div className='flex flex-wrap gap-2'>
+                {diveSite.aliases.map(alias => (
+                  <span
+                    key={alias.id}
+                    className='px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800'
+                  >
+                    {alias.alias}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
 
           {diveSite.average_rating && (
             <div className='flex items-center'>
@@ -344,6 +360,34 @@ const DiveSiteDetail = () => {
               </span>
             </div>
           )}
+        </div>
+
+        {/* Site Information - Mobile View: In header area */}
+        <div className='lg:hidden mt-3 pt-3 border-t border-gray-200'>
+          <div className='space-y-2 text-sm'>
+            <div>
+              <span className='font-medium text-gray-700'>Difficulty:</span>
+              <span className='ml-2 capitalize'>
+                {diveSite.difficulty_label ||
+                  getDifficultyLabel(diveSite.difficulty_code) ||
+                  'Unspecified'}
+              </span>
+            </div>
+            {diveSite.max_depth && (
+              <div>
+                <span className='font-medium text-gray-700'>Maximum Depth:</span>
+                <span className='ml-2'>{diveSite.max_depth} meters</span>
+              </div>
+            )}
+            <div>
+              <span className='font-medium text-gray-700'>Total Reviews:</span>
+              <span className='ml-2'>{diveSite.total_ratings}</span>
+            </div>
+            <div>
+              <span className='font-medium text-gray-700'>Added:</span>
+              <span className='ml-2'>{new Date(diveSite.created_at).toLocaleDateString()}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -422,9 +466,9 @@ const DiveSiteDetail = () => {
           {/* Available Routes */}
           <DiveSiteRoutes diveSiteId={id} />
 
-          {/* Nearby Dive Sites */}
+          {/* Nearby Dive Sites - Mobile View Only */}
           {nearbyDiveSites && nearbyDiveSites.length > 0 && (
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+            <div className='lg:hidden bg-white p-4 sm:p-6 rounded-lg shadow-md'>
               <div className='flex items-center justify-between mb-3 sm:mb-4'>
                 <h2 className='text-lg sm:text-xl font-semibold text-gray-900'>
                   Nearby Dive Sites
@@ -447,7 +491,7 @@ const DiveSiteDetail = () => {
                 </button>
               </div>
               <div className={`${showNearbySites ? 'block' : 'hidden'} md:block`}>
-                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
                   {nearbyDiveSites.slice(0, 6).map(site => (
                     <button
                       key={site.id}
@@ -580,9 +624,9 @@ const DiveSiteDetail = () => {
             </div>
           )}
 
-          {/* Access Instructions */}
+          {/* Access Instructions - Mobile View Only */}
           {diveSite.access_instructions && (
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+            <div className='lg:hidden bg-white p-4 sm:p-6 rounded-lg shadow-md'>
               <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
                 Access Instructions
               </h2>
@@ -597,16 +641,6 @@ const DiveSiteDetail = () => {
                 Safety Information
               </h2>
               <p className='text-gray-700 text-sm sm:text-base'>{diveSite.safety_information}</p>
-            </div>
-          )}
-
-          {/* Max Depth */}
-          {diveSite.max_depth && (
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
-                Maximum Depth
-              </h2>
-              <p className='text-gray-700 text-sm sm:text-base'>{diveSite.max_depth} meters</p>
             </div>
           )}
 
@@ -866,8 +900,8 @@ const DiveSiteDetail = () => {
             </div>
           )}
 
-          {/* Site Info */}
-          <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+          {/* Site Info - Desktop View Only */}
+          <div className='hidden lg:block bg-white p-4 sm:p-6 rounded-lg shadow-md'>
             <h3 className='text-lg font-semibold text-gray-900 mb-4'>Site Information</h3>
             <div className='space-y-3 text-sm'>
               <div>
@@ -878,10 +912,10 @@ const DiveSiteDetail = () => {
                     'Unspecified'}
                 </span>
               </div>
-              {diveSite.average_rating && (
+              {diveSite.max_depth && (
                 <div>
-                  <span className='font-medium text-gray-700'>Average Rating:</span>
-                  <span className='ml-2'>{diveSite.average_rating.toFixed(1)}/10</span>
+                  <span className='font-medium text-gray-700'>Maximum Depth:</span>
+                  <span className='ml-2'>{diveSite.max_depth} meters</span>
                 </div>
               )}
               <div>
@@ -895,18 +929,31 @@ const DiveSiteDetail = () => {
             </div>
           </div>
 
-          {/* Tags */}
-          {diveSite.tags && diveSite.tags.length > 0 && (
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-4'>Tags</h3>
-              <div className='flex flex-wrap gap-2'>
-                {diveSite.tags.map(tag => (
-                  <span
-                    key={tag.id}
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${getTagColor(tag.name)}`}
+          {/* Access Instructions - Desktop View Only */}
+          {diveSite.access_instructions && (
+            <div className='hidden lg:block bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+              <h3 className='text-lg font-semibold text-gray-900 mb-4'>Access Instructions</h3>
+              <p className='text-gray-700 text-sm'>{diveSite.access_instructions}</p>
+            </div>
+          )}
+
+          {/* Nearby Dive Sites - Desktop View Only */}
+          {nearbyDiveSites && nearbyDiveSites.length > 0 && (
+            <div className='hidden lg:block bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+              <h3 className='text-lg font-semibold text-gray-900 mb-4'>Nearby Dive Sites</h3>
+              <div className='space-y-2'>
+                {nearbyDiveSites.slice(0, 6).map(site => (
+                  <button
+                    key={site.id}
+                    onClick={() => navigate(`/dive-sites/${site.id}`)}
+                    className='flex items-center p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left w-full'
                   >
-                    {tag.name}
-                  </span>
+                    <MapPin className='w-4 h-4 mr-2 flex-shrink-0 text-blue-600' />
+                    <div className='min-w-0 flex-1'>
+                      <div className='font-medium text-gray-900 text-sm truncate'>{site.name}</div>
+                      <div className='text-xs text-gray-500'>{site.distance_km} km away</div>
+                    </div>
+                  </button>
                 ))}
               </div>
             </div>

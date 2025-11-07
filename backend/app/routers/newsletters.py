@@ -1326,7 +1326,7 @@ async def get_parsed_trips(
     user_lon: Optional[float] = None,
     skip: int = 0,
     limit: int = 100,
-    current_user: User = Depends(get_current_user_optional),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
     """
@@ -1396,8 +1396,8 @@ async def get_parsed_trips(
     elif exclude_unspecified_difficulty:
         query = query.filter(ParsedDiveTrip.trip_difficulty_id.isnot(None))
 
-    # Full-text search across multiple fields
-    if search_query and search_query.strip():
+    # Full-text search across multiple fields (only for authenticated users)
+    if current_user and search_query and search_query.strip():
         search_term = f"%{search_query.strip()}%"
         query = query.filter(
             or_(
@@ -1411,8 +1411,8 @@ async def get_parsed_trips(
             )
         )
 
-    # Location-based search
-    if location_query and location_query.strip():
+    # Location-based search (only for authenticated users)
+    if current_user and location_query and location_query.strip():
         location_term = f"%{location_query.strip()}%"
         query = query.filter(
             or_(
@@ -1475,9 +1475,9 @@ async def get_parsed_trips(
 
     trips = query.all()
     
-    # Restrict unauthenticated users to only the 2 oldest trips per diving center
+    # Restrict unauthenticated users to only the 2 most recent trips per diving center
     if not current_user:
-        # Group trips by diving_center_id and get only the 2 oldest (earliest trip_date) per center
+        # Group trips by diving_center_id and get only the 2 most recent (latest trip_date) per center
         from collections import defaultdict
         trips_by_center = defaultdict(list)
         
@@ -1485,19 +1485,19 @@ async def get_parsed_trips(
             if trip.diving_center_id:  # Only include trips with a diving center
                 trips_by_center[trip.diving_center_id].append(trip)
         
-        # For each center, sort by trip_date (ascending = oldest first) and take only 2
+        # For each center, sort by trip_date (descending = newest first) and take only 2
         restricted_trips = []
         for center_id, center_trips in trips_by_center.items():
-            # Sort by trip_date ascending (oldest first)
-            sorted_center_trips = sorted(center_trips, key=lambda t: t.trip_date or date.min)
-            # Take only the 2 oldest
+            # Sort by trip_date descending (newest first) to match frontend sorting
+            sorted_center_trips = sorted(center_trips, key=lambda t: t.trip_date or date.min, reverse=True)
+            # Take only the 2 most recent
             restricted_trips.extend(sorted_center_trips[:2])
         
         trips = restricted_trips
     
-    # Apply fuzzy search if we have a search query and insufficient results
+    # Apply fuzzy search if we have a search query and insufficient results (only for authenticated users)
     match_types = {}
-    if search_query and len(trips) < 5:
+    if current_user and search_query and len(trips) < 5:
         # Get the search query for fuzzy search
         search_query_for_fuzzy = search_query.strip()[:200]
         
