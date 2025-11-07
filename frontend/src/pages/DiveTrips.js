@@ -683,48 +683,8 @@ const DiveTrips = () => {
 
   return (
     <div className='min-h-screen bg-gray-50'>
-      {/* Sticky Filter Bar - Mobile-First Responsive Design */}
-      {/* Hide on mobile when scrolling up (searchBarVisible is false) */}
-      {/* Moved outside max-w-6xl container to span full width like /dives */}
-      {/* Mobile Search Bar - Only visible on mobile when scrolling down */}
-      {isMobile && searchBarVisible && (
-        <div className='sticky-below-navbar bg-white border-b border-gray-200 shadow-sm -mx-4 sm:mx-0'>
-          <div className='p-3'>
-            <div className='relative'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-              <FuzzySearchInput
-                data={trips || []}
-                searchValue={filters.search_query}
-                onSearchChange={value => handleFilterChange('search_query', value)}
-                onSearchSelect={selectedItem => {
-                  // For dive trips, we need to handle the selected item appropriately
-                  // Since dive trips have multiple searchable fields, we'll use the search query
-                  handleFilterChange(
-                    'search_query',
-                    selectedItem.name || selectedItem.trip_description || ''
-                  );
-                }}
-                configType='diveTrips'
-                placeholder='Search trips, dive sites, diving centers, locations, or requirements...'
-                minQueryLength={2}
-                maxSuggestions={8}
-                debounceDelay={300}
-                showSuggestions={true}
-                highlightMatches={true}
-                showScore={false}
-                showClearButton={true}
-                className='w-full'
-                inputClassName='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
-                suggestionsClassName='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto'
-                highlightClass='bg-blue-100 font-medium'
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Mobile-First Responsive Container */}
-      <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 pt-0 pb-4 sm:pt-4 sm:pb-6 lg:pt-6 lg:pb-8'>
+      <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
         {/* Hero Section */}
         <HeroSection
           title='Dive Trips'
@@ -774,6 +734,43 @@ const DiveTrips = () => {
             configType='diveTrips'
             placeholder='Search trips, dive sites, diving centers, locations, or requirements...'
           />
+        )}
+
+        {/* Mobile Search Bar - Only visible on mobile when scrolling down */}
+        {isMobile && searchBarVisible && (
+          <div className='sticky-below-navbar bg-white border-b border-gray-200 shadow-sm -mx-4 sm:mx-0'>
+            <div className='p-3'>
+              <div className='relative'>
+                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
+                <FuzzySearchInput
+                  data={trips || []}
+                  searchValue={filters.search_query}
+                  onSearchChange={value => handleFilterChange('search_query', value)}
+                  onSearchSelect={selectedItem => {
+                    // For dive trips, we need to handle the selected item appropriately
+                    // Since dive trips have multiple searchable fields, we'll use the search query
+                    handleFilterChange(
+                      'search_query',
+                      selectedItem.name || selectedItem.trip_description || ''
+                    );
+                  }}
+                  configType='diveTrips'
+                  placeholder='Search trips, dive sites, diving centers, locations, or requirements...'
+                  minQueryLength={2}
+                  maxSuggestions={8}
+                  debounceDelay={300}
+                  showSuggestions={true}
+                  highlightMatches={true}
+                  showScore={false}
+                  showClearButton={true}
+                  className='w-full'
+                  inputClassName='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                  suggestionsClassName='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto'
+                  highlightClass='bg-blue-100 font-medium'
+                />
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Map Section - Redirect to Unified Map */}

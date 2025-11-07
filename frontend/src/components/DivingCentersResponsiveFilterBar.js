@@ -16,7 +16,7 @@ import {
   Grid,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import { useResponsiveScroll } from '../hooks/useResponsive';
 
@@ -52,6 +52,8 @@ const DivingCentersResponsiveFilterBar = ({
   const { isMobile, searchBarVisible, quickFiltersVisible } = useResponsiveScroll();
   const [isFilterOverlayOpen, setIsFilterOverlayOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('filters');
+  const searchBarRef = useRef(null);
+  const [searchBarHeight, setSearchBarHeight] = useState(64);
 
   // Sorting state management
   const [pendingSortBy, setPendingSortBy] = useState(sortBy);
@@ -62,6 +64,21 @@ const DivingCentersResponsiveFilterBar = ({
     setPendingSortBy(sortBy);
     setPendingSortOrder(sortOrder);
   }, [sortBy, sortOrder]);
+
+  // Track search bar height for positioning quick filters
+  useEffect(() => {
+    if (searchBarRef.current && searchBarVisible) {
+      const updateHeight = () => {
+        if (searchBarRef.current) {
+          setSearchBarHeight(searchBarRef.current.offsetHeight);
+        }
+      };
+      updateHeight();
+      // Update on resize
+      window.addEventListener('resize', updateHeight);
+      return () => window.removeEventListener('resize', updateHeight);
+    }
+  }, [searchBarVisible]);
 
   const handleFilterOverlayToggle = () => {
     setIsFilterOverlayOpen(!isFilterOverlayOpen);
@@ -389,6 +406,7 @@ const DivingCentersResponsiveFilterBar = ({
       {/* Mobile Search Bar - visible when scrolling down */}
       {searchBarVisible && (
         <div
+          ref={searchBarRef}
           data-testid='diving-centers-mobile-search-bar'
           className='fixed top-0 left-0 right-0 z-[100] bg-white border-b border-gray-200 shadow-sm transition-all duration-300 ease-in-out'
           style={{ transform: searchBarVisible ? 'translateY(0)' : 'translateY(-100%)' }}
@@ -415,7 +433,7 @@ const DivingCentersResponsiveFilterBar = ({
           data-testid='diving-centers-mobile-quick-filters'
           className='fixed left-0 right-0 z-[99] bg-white border-b border-gray-200 shadow-sm transition-all duration-300 ease-in-out'
           style={{
-            top: searchBarVisible ? '64px' : '0px',
+            top: searchBarVisible ? `${searchBarHeight}px` : '0px',
             transform: quickFiltersVisible ? 'translateY(0)' : 'translateY(-100%)',
           }}
         >

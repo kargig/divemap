@@ -520,63 +520,8 @@ const DivingCenters = () => {
 
   return (
     <div className='min-h-screen bg-gray-50'>
-      {/* Floating Search and Filters Container - Positioned right below navbar */}
-      {/* Hide on mobile when scrolling up (searchBarVisible is false) */}
-      {/* Moved outside max-w-6xl container to span full width like /dives */}
-      {/* Use negative margins to escape main element padding on mobile */}
-      {(!isMobile || searchBarVisible) && (
-        <div className='sticky-below-navbar bg-white shadow-lg border border-gray-200 rounded-lg py-3 sm:py-4 -mx-4 sm:mx-0 mb-6'>
-          {/* Desktop Search Bar - Only visible on desktop/tablet */}
-          {!isMobile && (
-            <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8'>
-              <DivingCentersDesktopSearchBar
-                searchValue={filters.search}
-                onSearchChange={handleSearchChange}
-                onSearchSelect={selectedItem => {
-                  handleSearchChange({ target: { name: 'search', value: selectedItem.name } });
-                }}
-                data={divingCenters || []}
-                configType='divingCenters'
-                placeholder='Search diving centers by name, location, or services...'
-              />
-            </div>
-          )}
-
-          {/* Responsive Filter Bar - Handles both desktop and mobile */}
-          <DivingCentersResponsiveFilterBar
-            showFilters={showAdvancedFilters}
-            onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            onClearFilters={clearFilters}
-            activeFiltersCount={getActiveFiltersCount()}
-            filters={filters}
-            onFilterChange={(key, value) => {
-              handleSearchChange({ target: { name: key, value } });
-            }}
-            onQuickFilter={handleQuickFilter}
-            quickFilter={quickFilter}
-            variant='inline'
-            showQuickFilters={true}
-            showAdvancedToggle={true}
-            searchQuery={filters.search}
-            onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
-            onSearchSubmit={() => {}}
-            // Sorting and view props
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            sortOptions={getSortOptions('diving-centers')}
-            onSortChange={handleSortChange}
-            onReset={resetSorting}
-            viewMode={viewMode}
-            onViewModeChange={handleViewModeChange}
-            compactLayout={compactLayout}
-            onDisplayOptionChange={handleDisplayOptionChange}
-            reviewsEnabled={reviewsEnabled}
-          />
-        </div>
-      )}
-
       {/* Mobile-First Responsive Container */}
-      <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8'>
+      <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
         {/* Hero Section */}
         <HeroSection
           title='Diving Centers'
@@ -612,6 +557,54 @@ const DivingCenters = () => {
             </button>
           </div>
         </HeroSection>
+
+        {/* Desktop Search Bar - Only visible on desktop/tablet */}
+        {!isMobile && (
+          <DivingCentersDesktopSearchBar
+            searchValue={filters.search}
+            onSearchChange={handleSearchChange}
+            onSearchSelect={selectedItem => {
+              handleSearchChange({ target: { name: 'search', value: selectedItem.name } });
+            }}
+            data={divingCenters || []}
+            configType='divingCenters'
+            placeholder='Search diving centers by name, location, or services...'
+          />
+        )}
+
+        {/* Responsive Filter Bar - Handles both desktop and mobile */}
+        {/* Hide on mobile when scrolling up (searchBarVisible is false) */}
+        {(!isMobile || searchBarVisible) && (
+          <DivingCentersResponsiveFilterBar
+            showFilters={showAdvancedFilters}
+            onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            onClearFilters={clearFilters}
+            activeFiltersCount={getActiveFiltersCount()}
+            filters={filters}
+            onFilterChange={(key, value) => {
+              handleSearchChange({ target: { name: key, value } });
+            }}
+            onQuickFilter={handleQuickFilter}
+            quickFilter={quickFilter}
+            variant='inline'
+            showQuickFilters={true}
+            showAdvancedToggle={true}
+            searchQuery={filters.search}
+            onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
+            onSearchSubmit={() => {}}
+            // Sorting and view props
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            sortOptions={getSortOptions('diving-centers')}
+            onSortChange={handleSortChange}
+            onReset={resetSorting}
+            viewMode={viewMode}
+            onViewModeChange={handleViewModeChange}
+            compactLayout={compactLayout}
+            onDisplayOptionChange={handleDisplayOptionChange}
+            reviewsEnabled={reviewsEnabled}
+          />
+        )}
 
         {/* Map Section - Show immediately when in map view */}
         {viewMode === 'map' && (

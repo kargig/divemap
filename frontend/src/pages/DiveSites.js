@@ -587,64 +587,6 @@ const DiveSites = () => {
 
   return (
     <div className='min-h-screen bg-gray-50'>
-      {/* Filter Bar - Sticky and compact with mobile-first responsive design */}
-      {/* Hide on mobile when scrolling up (searchBarVisible is false) */}
-      {/* Moved outside max-w-6xl container to span full width like /dives */}
-      {/* Use negative margins to escape main element padding on mobile */}
-      {(!isMobile || searchBarVisible) && (
-        <div className='sticky-below-navbar bg-white shadow-sm border-b border-gray-200 rounded-t-lg py-3 sm:py-4 -mx-4 sm:mx-0'>
-          {isLoading ? (
-            <LoadingSkeleton type='filter' />
-          ) : (
-            <>
-              {/* Desktop Search Bar - Only visible on desktop/tablet */}
-              {!isMobile && (
-                <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8'>
-                  <DesktopSearchBar
-                    searchValue={filters.search_query}
-                    onSearchChange={value => handleFilterChange('search_query', value)}
-                    onSearchSelect={selectedItem => {
-                      handleFilterChange('search_query', selectedItem.name);
-                    }}
-                    data={diveSites?.results || []}
-                    configType='diveSites'
-                    placeholder='Search dive sites by name, country, region, or description...'
-                  />
-                </div>
-              )}
-
-              {/* Responsive Filter Bar */}
-              <ResponsiveFilterBar
-                showFilters={showAdvancedFilters}
-                onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                onClearFilters={clearFilters}
-                activeFiltersCount={getActiveFiltersCount()}
-                filters={{ ...filters, availableTags, user }}
-                onFilterChange={handleFilterChange}
-                onQuickFilter={handleQuickFilter}
-                quickFilters={quickFilters}
-                variant='sticky'
-                showQuickFilters={true}
-                showAdvancedToggle={true}
-                searchQuery={filters.search_query}
-                onSearchChange={value => handleFilterChange('search_query', value)}
-                onSearchSubmit={() => {}}
-                // Add sorting props
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                sortOptions={getSortOptions('dive-sites')}
-                onSortChange={handleSortChange}
-                onReset={resetSorting}
-                viewMode={viewMode}
-                onViewModeChange={handleViewModeChange}
-                compactLayout={compactLayout}
-                onDisplayOptionChange={handleDisplayOptionChange}
-              />
-            </>
-          )}
-        </div>
-      )}
-
       {/* Mobile-First Responsive Container */}
       <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
         {/* Hero Section */}
@@ -682,6 +624,58 @@ const DiveSites = () => {
             </button>
           </div>
         </HeroSection>
+
+        {/* Desktop Search Bar - Only visible on desktop/tablet */}
+        {!isMobile && (
+          <DesktopSearchBar
+            searchValue={filters.search_query}
+            onSearchChange={value => handleFilterChange('search_query', value)}
+            onSearchSelect={selectedItem => {
+              handleFilterChange('search_query', selectedItem.name);
+            }}
+            data={diveSites?.results || []}
+            configType='diveSites'
+            placeholder='Search dive sites by name, country, region, or description...'
+          />
+        )}
+
+        {/* Responsive Filter Bar */}
+        {/* Hide on mobile when scrolling up (searchBarVisible is false) */}
+        {(!isMobile || searchBarVisible) && (
+          <>
+            {isLoading ? (
+              <LoadingSkeleton type='filter' />
+            ) : (
+              <ResponsiveFilterBar
+                showFilters={showAdvancedFilters}
+                onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                onClearFilters={clearFilters}
+                activeFiltersCount={getActiveFiltersCount()}
+                filters={{ ...filters, availableTags, user }}
+                onFilterChange={handleFilterChange}
+                onQuickFilter={handleQuickFilter}
+                quickFilters={quickFilters}
+                variant='sticky'
+                showQuickFilters={true}
+                showAdvancedToggle={true}
+                searchQuery={filters.search_query}
+                onSearchChange={value => handleFilterChange('search_query', value)}
+                onSearchSubmit={() => {}}
+                // Add sorting props
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                sortOptions={getSortOptions('dive-sites')}
+                onSortChange={handleSortChange}
+                onReset={resetSorting}
+                viewMode={viewMode}
+                onViewModeChange={handleViewModeChange}
+                compactLayout={compactLayout}
+                onDisplayOptionChange={handleDisplayOptionChange}
+              />
+            )}
+          </>
+        )}
+
         {/* Map Section - Show immediately when in map view */}
         {viewMode === 'map' && (
           <div className='mb-8'>
