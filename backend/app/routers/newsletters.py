@@ -1475,9 +1475,9 @@ async def get_parsed_trips(
 
     trips = query.all()
     
-    # Restrict unauthenticated users to only the 2 most recent trips per diving center
+    # Restrict unauthenticated users to only the 2 oldest trips per diving center
     if not current_user:
-        # Group trips by diving_center_id and get only the 2 most recent (latest trip_date) per center
+        # Group trips by diving_center_id and get only the 2 oldest (earliest trip_date) per center
         from collections import defaultdict
         trips_by_center = defaultdict(list)
         
@@ -1485,12 +1485,12 @@ async def get_parsed_trips(
             if trip.diving_center_id:  # Only include trips with a diving center
                 trips_by_center[trip.diving_center_id].append(trip)
         
-        # For each center, sort by trip_date (descending = newest first) and take only 2
+        # For each center, sort by trip_date (ascending = oldest first) and take only 2
         restricted_trips = []
         for center_id, center_trips in trips_by_center.items():
-            # Sort by trip_date descending (newest first) to match frontend sorting
-            sorted_center_trips = sorted(center_trips, key=lambda t: t.trip_date or date.min, reverse=True)
-            # Take only the 2 most recent
+            # Sort by trip_date ascending (oldest first)
+            sorted_center_trips = sorted(center_trips, key=lambda t: t.trip_date or date.min)
+            # Take only the 2 oldest
             restricted_trips.extend(sorted_center_trips[:2])
         
         trips = restricted_trips
