@@ -88,8 +88,23 @@ main.pt-16 {
 /* Sticky Positioning for Search and Filters */
 .sticky-below-navbar {
   position: sticky;
-  top: var(--sticky-offset-desktop);
-  z-index: 40;
+  top: 0;
+  z-index: 100;
+  background-color: white !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* On mobile, make sticky-below-navbar span full viewport width */
+@media (max-width: 640px) {
+  .sticky-below-navbar {
+    left: 0;
+    right: 0;
+    width: 100vw;
+    margin-left: -16px;
+    margin-right: -16px;
+  }
 }
 
 /* Ensure Leaflet map has proper z-index for touch interactions */
@@ -122,6 +137,54 @@ main.pt-16 {
 .leaflet-control-zoom-in,
 .leaflet-control-zoom-out {
   z-index: 50 !important;
+}
+
+/* Make zoom controls smaller on mobile */
+@media (max-width: 768px) {
+  .leaflet-control-zoom {
+    border: none !important;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .leaflet-control-zoom-in,
+  .leaflet-control-zoom-out {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    max-width: 22px !important;
+    max-height: 22px !important;
+    line-height: 22px !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .leaflet-control-zoom a {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    max-width: 22px !important;
+    max-height: 22px !important;
+    line-height: 22px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .leaflet-control-zoom-in a,
+  .leaflet-control-zoom-out a {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    max-width: 22px !important;
+    max-height: 22px !important;
+    line-height: 22px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
 }
 
 /* Ensure map tiles are interactive */
@@ -159,7 +222,7 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
 
 @media (max-width: 768px) {
   .sticky-below-navbar {
-    top: var(--sticky-offset-mobile);
+    top: 0;
   }
 }
 
@@ -245,7 +308,7 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
 
 .sort-option {
   padding: 12px 0;
-  min-height: 44px;
+  min-height: 34px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -710,8 +773,16 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
 @media (max-width: 768px) {
   button,
   a {
-    min-height: 44px;
-    min-width: 44px;
+    min-height: 34px;
+    min-width: 34px;
+  }
+
+  /* Exception for Leaflet zoom controls - they should be smaller */
+  .leaflet-control-zoom a,
+  .leaflet-control-zoom-in,
+  .leaflet-control-zoom-out {
+    min-height: 22px !important;
+    min-width: 22px !important;
   }
 
   input,
@@ -795,8 +866,21 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
   button,
   .btn,
   [role='button'] {
-    min-height: 44px;
+    min-height: 34px;
     padding: 12px 16px;
+  }
+
+  /* Exception: Trip detail grid buttons should be smaller */
+  .trip-details-grid .bg-gray-50 button {
+    min-height: auto !important;
+    padding: 0 !important;
+  }
+
+  /* Exception: Dive site area links should be smaller */
+  .bg-blue-50 a,
+  .bg-green-50 a {
+    min-height: auto !important;
+    padding: 0 !important;
   }
 
   /* Better spacing for mobile cards */
@@ -984,7 +1068,7 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
   .filter-overlay-mobile input,
   .filter-overlay-mobile select,
   .filter-overlay-mobile button {
-    min-height: 44px;
+    min-height: 34px;
     padding: 0.75rem 1rem;
   }
 
@@ -1331,7 +1415,7 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
   color: #1d4ed8;
   border-radius: 0.5rem;
   transition: all 0.2s ease;
-  min-height: 44px;
+  min-height: 34px;
 }
 
 .mobile-filter-button:hover {
@@ -1356,7 +1440,7 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
   font-size: 0.875rem;
   border-radius: 0.5rem;
   transition: all 0.2s ease;
-  min-height: 44px;
+  min-height: 34px;
   border: 1px solid transparent;
 }
 

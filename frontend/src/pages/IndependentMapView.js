@@ -60,6 +60,7 @@ const IndependentMapView = () => {
   // Geolocation requesting state
   const [isRequestingLocation, setIsRequestingLocation] = useState(false);
   const [hasRequestedGeolocation, setHasRequestedGeolocation] = useState(false);
+  const [showGeolocationNotification, setShowGeolocationNotification] = useState(true);
 
   // Derived geolocation status for UI
   const geolocationStatus = useMemo(() => {
@@ -86,6 +87,28 @@ const IndependentMapView = () => {
       setIsRequestingLocation(false);
     }
   }, [coords, positionError]);
+
+  // Auto-hide "location found" notification after 5 seconds
+  useEffect(() => {
+    if (geolocationStatus === 'granted') {
+      setShowGeolocationNotification(true);
+      const timer = setTimeout(() => {
+        setShowGeolocationNotification(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    } else if (geolocationStatus === 'denied' || geolocationStatus === 'error') {
+      // Show warning notifications immediately
+      setShowGeolocationNotification(true);
+    } else {
+      // Reset notification visibility for other states
+      setShowGeolocationNotification(true);
+    }
+  }, [geolocationStatus]);
+
+  // Handle dismissing notification
+  const handleDismissNotification = useCallback(() => {
+    setShowGeolocationNotification(false);
+  }, []);
 
   // UI state
   const [showFilters, setShowFilters] = useState(false);
@@ -662,49 +685,88 @@ const IndependentMapView = () => {
       </div>
 
       {/* Geolocation status message */}
-      {geolocationStatus !== 'idle' && (
-        <div className='bg-blue-50 border-b border-blue-200 px-4 py-2'>
+      {geolocationStatus !== 'idle' && showGeolocationNotification && (
+        <div
+          className={`${
+            isMobile
+              ? 'bg-blue-50 border-b border-blue-200 px-1.5 py-1'
+              : 'bg-blue-50 border-b border-blue-200 px-4 py-2'
+          }`}
+        >
           <div className='flex items-center justify-between'>
-            <div className='flex items-center space-x-2'>
+            <div
+              className={`flex items-center ${isMobile ? 'space-x-1.5' : 'space-x-2'} flex-1 min-w-0`}
+            >
               {geolocationStatus === 'requesting' && (
                 <>
-                  <Loader2 className='w-4 h-4 animate-spin text-blue-600' />
-                  <span className='text-sm text-blue-800'>Finding your location...</span>
+                  <Loader2
+                    className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} animate-spin text-blue-600 flex-shrink-0`}
+                  />
+                  <span
+                    className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-blue-800`}
+                  >
+                    Finding your location...
+                  </span>
                 </>
               )}
               {geolocationStatus === 'granted' && (
                 <>
-                  <MapPin className='w-4 h-4 text-green-600' />
-                  <span className='text-sm text-green-800'>
+                  <MapPin
+                    className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-green-600 flex-shrink-0`}
+                  />
+                  <span
+                    className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-green-800`}
+                  >
                     Location found! Map centered on your area.
                   </span>
                 </>
               )}
               {geolocationStatus === 'denied' && (
                 <>
-                  <MapPin className='w-4 h-4 text-red-600' />
-                  <span className='text-sm text-red-800'>
+                  <MapPin
+                    className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600 flex-shrink-0`}
+                  />
+                  <span
+                    className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-red-800`}
+                  >
                     Location access denied. Using default view.
                   </span>
                 </>
               )}
               {geolocationStatus === 'error' && (
                 <>
-                  <MapPin className='w-4 h-4 text-red-600' />
-                  <span className='text-sm text-red-800'>
+                  <MapPin
+                    className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600 flex-shrink-0`}
+                  />
+                  <span
+                    className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-red-800`}
+                  >
                     Location error occurred. Using default view.
                   </span>
                 </>
               )}
             </div>
-            {(geolocationStatus === 'denied' || geolocationStatus === 'error') && (
-              <button
-                onClick={handleGeolocationRequest}
-                className='text-sm text-blue-600 hover:text-blue-800 underline'
-              >
-                Try again
-              </button>
-            )}
+            <div
+              className={`flex items-center ${isMobile ? 'space-x-1' : 'space-x-2'} flex-shrink-0`}
+            >
+              {(geolocationStatus === 'denied' || geolocationStatus === 'error') && (
+                <>
+                  <button
+                    onClick={handleGeolocationRequest}
+                    className={`${isMobile ? 'text-[10px]' : 'text-sm'} text-blue-600 hover:text-blue-800 underline`}
+                  >
+                    Try again
+                  </button>
+                  <button
+                    onClick={handleDismissNotification}
+                    className={`${isMobile ? 'p-0' : 'p-0.5'} hover:bg-red-100 rounded transition-colors`}
+                    aria-label='Dismiss notification'
+                  >
+                    <X className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600`} />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -37,7 +37,7 @@ import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { useResponsive } from '../hooks/useResponsive';
+import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
@@ -123,6 +123,7 @@ const Dives = () => {
 
   // Responsive detection using custom hook
   const { isMobile } = useResponsive();
+  const { searchBarVisible } = useResponsiveScroll();
 
   // Mobile optimization styles
   const mobileStyles = {
@@ -915,43 +916,46 @@ const Dives = () => {
       )}
 
       {/* Responsive Filter Bar */}
-      <ResponsiveFilterBar
-        showFilters={showFilters}
-        onToggleFilters={toggleFilters}
-        onClearFilters={clearFilters}
-        activeFiltersCount={
-          Object.values(filters).filter(
-            value =>
-              value !== '' && value !== false && (Array.isArray(value) ? value.length > 0 : true)
-          ).length
-        }
-        filters={{
-          ...filters,
-          availableTags: availableTags || [],
-        }}
-        onFilterChange={handleFilterChange}
-        onQuickFilter={handleQuickFilter}
-        quickFilter={quickFilter}
-        variant='sticky'
-        showQuickFilters={true}
-        showAdvancedToggle={true}
-        searchQuery={filters.search}
-        onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
-        onSearchSubmit={() => {}}
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-        sortOptions={getSortOptions('dives', isAdmin)}
-        onSortChange={handleSortChange}
-        onReset={resetSorting}
-        viewMode={viewMode}
-        onViewModeChange={handleViewModeChange}
-        compactLayout={compactLayout}
-        onDisplayOptionChange={(option, value) => {
-          if (option === 'compactLayout') setCompactLayout(value);
-        }}
-        pageType='dives'
-        user={user}
-      />
+      {/* Hide on mobile when scrolling up (searchBarVisible is false) */}
+      {(!isMobile || searchBarVisible) && (
+        <ResponsiveFilterBar
+          showFilters={showFilters}
+          onToggleFilters={toggleFilters}
+          onClearFilters={clearFilters}
+          activeFiltersCount={
+            Object.values(filters).filter(
+              value =>
+                value !== '' && value !== false && (Array.isArray(value) ? value.length > 0 : true)
+            ).length
+          }
+          filters={{
+            ...filters,
+            availableTags: availableTags || [],
+          }}
+          onFilterChange={handleFilterChange}
+          onQuickFilter={handleQuickFilter}
+          quickFilter={quickFilter}
+          variant='sticky'
+          showQuickFilters={true}
+          showAdvancedToggle={true}
+          searchQuery={filters.search}
+          onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
+          onSearchSubmit={() => {}}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          sortOptions={getSortOptions('dives', isAdmin)}
+          onSortChange={handleSortChange}
+          onReset={resetSorting}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          compactLayout={compactLayout}
+          onDisplayOptionChange={(option, value) => {
+            if (option === 'compactLayout') setCompactLayout(value);
+          }}
+          pageType='dives'
+          user={user}
+        />
+      )}
 
       {/* Pagination Controls */}
       <div className='mb-6 sm:mb-8'>
@@ -1058,7 +1062,7 @@ const Dives = () => {
                           <div className='flex flex-wrap items-center gap-2 mb-1'>
                             <div className='flex items-center gap-2 flex-1 min-w-0'>
                               <h3
-                                className={`font-semibold text-gray-900 flex-1 min-w-0 ${compactLayout ? 'text-base' : 'text-lg'}`}
+                                className={`font-semibold text-gray-900 flex-1 min-w-0 ${compactLayout ? 'text-sm' : 'text-lg'}`}
                               >
                                 <Link
                                   to={`/dives/${dive.id}`}
@@ -1115,30 +1119,30 @@ const Dives = () => {
                   <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-4'>
                     <div className='flex items-center gap-2'>
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
                       >
                         {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
                       </span>
                     </div>
                     <div className='flex items-center gap-2'>
-                      <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+                      <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 text-blue-800'>
                         {dive.suit_type || 'dry suit'}
                       </span>
                     </div>
                     <div className='flex items-center gap-2'>
                       <TrendingUp className='w-4 h-4 text-gray-400' />
-                      <span className='text-sm text-gray-600'>{dive.max_depth}m max</span>
+                      <span className='text-[11px] text-gray-600'>{dive.max_depth}m max</span>
                     </div>
                     <div className='flex items-center gap-2'>
                       <Clock className='w-4 h-4 text-gray-400' />
-                      <span className='text-sm text-gray-600'>{dive.duration}min</span>
+                      <span className='text-[11px] text-gray-600'>{dive.duration}min</span>
                     </div>
                   </div>
 
                   <div className='flex items-center justify-between mb-4'>
                     <div className='flex items-center gap-2'>
                       <Star className='w-4 h-4 text-yellow-400' />
-                      <span className='text-sm text-gray-600'>{dive.user_rating}/10</span>
+                      <span className='text-[11px] text-gray-600'>{dive.user_rating}/10</span>
                     </div>
 
                     {/* Tags */}
@@ -1157,7 +1161,7 @@ const Dives = () => {
                                 : [...currentTagIds, tagId];
                               handleFilterChange('tag_ids', newTagIds);
                             }}
-                            className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tag.name)}`}
+                            className={`inline-flex items-center px-2 py-1 text-[11px] font-medium rounded-full cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tag.name)}`}
                             title={`Filter by ${tag.name}`}
                           >
                             {tag.name}
@@ -1268,13 +1272,13 @@ const Dives = () => {
                     <div className='space-y-2 mb-4'>
                       <div className='flex items-center gap-2'>
                         <span
-                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
                         >
                           {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
                         </span>
                       </div>
                       <div className='flex items-center gap-2'>
-                        <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+                        <span className='inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium bg-blue-100 text-blue-800'>
                           {dive.suit_type || 'dry suit'}
                         </span>
                       </div>
@@ -1283,18 +1287,18 @@ const Dives = () => {
                     <div className='grid grid-cols-2 gap-3 mb-4'>
                       <div className='flex items-center gap-2'>
                         <TrendingUp className='w-4 h-4 text-gray-400' />
-                        <span className='text-sm text-gray-600'>{dive.max_depth}m</span>
+                        <span className='text-[11px] text-gray-600'>{dive.max_depth}m</span>
                       </div>
                       <div className='flex items-center gap-2'>
                         <Clock className='w-4 h-4 text-gray-400' />
-                        <span className='text-sm text-gray-600'>{dive.duration}min</span>
+                        <span className='text-[11px] text-gray-600'>{dive.duration}min</span>
                       </div>
                     </div>
 
                     <div className='flex items-center justify-between mb-4'>
                       <div className='flex items-center gap-2'>
                         <Star className='w-4 h-4 text-yellow-400' />
-                        <span className='text-sm text-gray-600'>{dive.user_rating}/10</span>
+                        <span className='text-[11px] text-gray-600'>{dive.user_rating}/10</span>
                       </div>
 
                       {/* Tags */}
@@ -1313,14 +1317,14 @@ const Dives = () => {
                                   : [...currentTagIds, tagId];
                                 handleFilterChange('tag_ids', newTagIds);
                               }}
-                              className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tag.name)}`}
+                              className={`inline-flex items-center px-2 py-1 text-[11px] font-medium rounded-full cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tag.name)}`}
                               title={`Filter by ${tag.name}`}
                             >
                               {tag.name}
                             </button>
                           ))}
                           {dive.tags.length > 2 && (
-                            <span className='inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full'>
+                            <span className='inline-flex items-center px-2 py-1 text-[11px] font-medium bg-gray-100 text-gray-600 rounded-full'>
                               +{dive.tags.length - 2}
                             </span>
                           )}
