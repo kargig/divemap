@@ -52,7 +52,9 @@ const HeroSection = ({
           {/* Buttons section below hero */}
           {children && (
             <div className='bg-gray-50 py-6 px-4'>
-              <div className='flex flex-col gap-3 max-w-sm mx-auto'>{children}</div>
+              <div className='flex flex-col sm:flex-row flex-wrap gap-3 max-w-5xl mx-auto justify-center'>
+                {children}
+              </div>
             </div>
           )}
         </section>
@@ -112,8 +114,10 @@ const HeroSection = ({
 
             {/* Bottom Section - Buttons */}
             {children && (
-              <div className='absolute bottom-8 left-1/2 transform -translate-x-1/2'>
-                <div className='flex flex-col sm:flex-row gap-3 justify-center'>{children}</div>
+              <div className='absolute bottom-8 left-1/2 transform -translate-x-1/2 w-full max-w-5xl px-4'>
+                <div className='flex flex-col sm:flex-row flex-wrap gap-3 justify-center'>
+                  {children}
+                </div>
               </div>
             )}
           </div>

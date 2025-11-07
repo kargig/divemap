@@ -1,4 +1,4 @@
-import { MapPin, Phone, Mail, Globe, Navigation, Eye, Heart } from 'lucide-react';
+import { MapPin, Phone, Mail, Globe, Navigation, Eye, Heart, LogIn } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { getParsedTrip, getDiveSite, getDivingCenter } from '../api';
 import MaskedEmail from '../components/MaskedEmail';
 import TripHeader from '../components/TripHeader';
+import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { renderTextWithLinks } from '../utils/textHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
@@ -13,6 +14,7 @@ const TripDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dive-sites');
   // Fetch trip data
   const {
@@ -54,6 +56,57 @@ const TripDetail = () => {
       </div>
     );
   }
+  // Check if error is an authentication error (401 or 403)
+  const isAuthError =
+    tripError &&
+    (tripError?.response?.status === 401 ||
+      tripError?.response?.status === 403 ||
+      tripError?.response?.data?.detail?.toLowerCase().includes('not authenticated') ||
+      tripError?.response?.data?.detail?.toLowerCase().includes('authentication') ||
+      tripError?.message?.includes('401') ||
+      tripError?.message?.includes('403') ||
+      tripError?.message?.toLowerCase().includes('not authenticated'));
+
+  if (tripError && isAuthError) {
+    return (
+      <div className='max-w-6xl mx-auto px-4 py-12'>
+        <div className='bg-blue-50 border border-blue-200 rounded-lg p-8 shadow-lg'>
+          <div className='flex items-start'>
+            <LogIn className='h-8 w-8 text-blue-600 mr-4 flex-shrink-0 mt-1' />
+            <div className='flex-1'>
+              <h3 className='text-lg font-semibold text-blue-900 mb-2'>Login Required</h3>
+              <p className='text-blue-700 mb-4'>
+                To view dive trip details and access all information, please log in to your account.
+              </p>
+              <div className='flex space-x-3'>
+                <Link
+                  to='/login'
+                  state={{ from: location.pathname }}
+                  className='inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+                >
+                  <LogIn className='h-4 w-4 mr-2' />
+                  Login
+                </Link>
+                <Link
+                  to='/register'
+                  className='inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
+                >
+                  Register
+                </Link>
+                <button
+                  onClick={() => navigate('/dive-trips')}
+                  className='inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors'
+                >
+                  Back to Trips
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (tripError) {
     return (
       <div className='text-center py-8'>

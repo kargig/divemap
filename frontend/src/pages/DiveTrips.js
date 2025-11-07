@@ -302,16 +302,21 @@ const DiveTrips = () => {
   } = useQuery(
     ['parsedTrips', filters, sortOptions, userLocation],
     () => {
-      // Route search terms intelligently
-      const { search_query, location_query } = routeSearchTerms(filters.search_query);
+      // Route search terms intelligently (only for authenticated users)
+      const { search_query, location_query } = user
+        ? routeSearchTerms(filters.search_query)
+        : { search_query: '', location_query: '' };
 
       // Only include filters that have actual values
       const validFilters = {};
       Object.entries(filters).forEach(([key, value]) => {
         if (key === 'search_query') {
           // Handle search_query separately since we're routing it
-          if (search_query) validFilters.search_query = search_query;
-          if (location_query) validFilters.location_query = location_query;
+          // Only include search queries for authenticated users
+          if (user) {
+            if (search_query) validFilters.search_query = search_query;
+            if (location_query) validFilters.location_query = location_query;
+          }
         } else if (value && value.trim() !== '') {
           validFilters[key] = value;
         }
@@ -457,6 +462,10 @@ const DiveTrips = () => {
         return dateB - dateA; // Descending order (newest first)
       })
     : [];
+
+  // Backend already restricts unauthenticated users to 2 trips per diving center
+  // So we just use sortedTrips directly for display
+  const displayTrips = sortedTrips;
 
   // Group trips by date
   const groupedTrips = sortedTrips.reduce((groups, trip) => {
@@ -638,49 +647,6 @@ const DiveTrips = () => {
     );
   }
 
-  // If user is not authenticated, show only the login message
-  if (!user) {
-    return (
-      <div className='max-w-6xl mx-auto p-3 sm:p-6'>
-        <div className='mb-6 sm:mb-8'>
-          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>Dive Trips</h1>
-          <p className='text-gray-600 mt-2 text-sm sm:text-base'>
-            Discover upcoming dive trips from local diving centers
-          </p>
-        </div>
-
-        {/* Authentication Required Message */}
-        <div className='bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6'>
-          <div className='flex items-center'>
-            <LogIn className='h-8 w-8 text-blue-600 mr-4' />
-            <div className='flex-1'>
-              <h3 className='text-lg font-semibold text-blue-900 mb-2'>Login Required</h3>
-              <p className='text-blue-700 mb-4'>
-                To view dive trips and discover upcoming diving adventures, please log in to your
-                account.
-              </p>
-              <div className='flex space-x-3'>
-                <Link
-                  to='/login'
-                  className='inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
-                >
-                  <LogIn className='h-4 w-4 mr-2' />
-                  Login
-                </Link>
-                <Link
-                  to='/register'
-                  className='inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
-                >
-                  Register
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className='min-h-screen bg-gray-50'>
       {/* Mobile-First Responsive Container */}
@@ -717,8 +683,8 @@ const DiveTrips = () => {
           </div>
         </HeroSection>
 
-        {/* Desktop Search Bar - Only visible on desktop/tablet */}
-        {!isMobile && (
+        {/* Desktop Search Bar - Only visible on desktop/tablet and for authenticated users */}
+        {!isMobile && user && (
           <DesktopSearchBar
             searchValue={filters.search_query}
             onSearchChange={value => handleFilterChange('search_query', value)}
@@ -736,8 +702,8 @@ const DiveTrips = () => {
           />
         )}
 
-        {/* Mobile Search Bar - Only visible on mobile when scrolling down */}
-        {isMobile && searchBarVisible && (
+        {/* Mobile Search Bar - Only visible on mobile when scrolling down and for authenticated users */}
+        {isMobile && searchBarVisible && user && (
           <div className='sticky-below-navbar bg-white border-b border-gray-200 shadow-sm -mx-4 sm:mx-0'>
             <div className='p-3'>
               <div className='relative'>
@@ -889,7 +855,7 @@ const DiveTrips = () => {
           </div>
         )}
 
-        {sortedTrips && sortedTrips.length === 0 && (
+        {sortedTrips && sortedTrips.length === 0 && !isLoading && !error && (
           <div className='text-center py-12'>
             <Search className='h-12 w-12 text-gray-400 mx-auto mb-4' />
             <h3 className='text-lg font-medium text-gray-900 mb-2'>No dive trips found</h3>
@@ -956,25 +922,412 @@ const DiveTrips = () => {
         )}
 
         {/* Dive Trips List */}
-        {viewMode === 'list' && (
-          <div
-            className={`space-y-4 ${compactLayout ? 'view-mode-compact' : ''} ${isMobile ? 'px-2' : ''}`}
-          >
-            {sortedTrips?.map(trip => (
-              <div
-                key={trip.id}
-                className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow ${
-                  compactLayout ? 'p-4' : 'p-6'
-                }`}
-              >
-                <div className='flex items-start justify-between mb-4'>
-                  <div className='flex-1'>
-                    <div className='flex items-center gap-3 mb-2'>
-                      {/* Thumbnail removed */}
-                      <div>
-                        <h3
-                          className={`font-semibold text-gray-900 ${compactLayout ? 'text-sm' : 'text-lg'}`}
+        {viewMode === 'list' && !isLoading && !error && (
+          <>
+            <div
+              className={`space-y-4 ${compactLayout ? 'view-mode-compact' : ''} ${isMobile ? 'px-2' : ''}`}
+            >
+              {displayTrips?.map(trip => {
+                const isBlurred = !user;
+                return (
+                  <div
+                    key={trip.id}
+                    className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 p-6 transition-shadow ${
+                      compactLayout ? 'p-4' : 'p-6'
+                    } ${
+                      isBlurred ? 'pointer-events-none relative overflow-hidden' : 'hover:shadow-md'
+                    }`}
+                    style={
+                      isBlurred
+                        ? {
+                            filter: 'blur(2.4px)',
+                            userSelect: 'none',
+                            WebkitUserSelect: 'none',
+                            MozUserSelect: 'none',
+                            msUserSelect: 'none',
+                          }
+                        : {}
+                    }
+                  >
+                    {isBlurred && (
+                      <div className='absolute inset-0 bg-white bg-opacity-30 z-10'></div>
+                    )}
+                    <div className='flex items-start justify-between mb-4'>
+                      <div className='flex-1'>
+                        <div className='flex items-center gap-3 mb-2'>
+                          {/* Thumbnail removed */}
+                          <div>
+                            <h3
+                              className={`font-semibold text-gray-900 ${compactLayout ? 'text-sm' : 'text-lg'}`}
+                            >
+                              {user ? (
+                                <Link
+                                  to={`/dive-trips/${trip.id}`}
+                                  state={{
+                                    from: window.location.pathname + window.location.search,
+                                  }}
+                                  className='hover:text-blue-600 transition-colors'
+                                >
+                                  {generateTripName(trip)}
+                                </Link>
+                              ) : (
+                                <span>{generateTripName(trip)}</span>
+                              )}
+                            </h3>
+                            <p className='text-gray-600 text-xs'>
+                              {trip.trip_date
+                                ? new Date(trip.trip_date).toLocaleDateString('en-GB')
+                                : 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      {user && (
+                        <Link
+                          to={`/dive-trips/${trip.id}`}
+                          state={{ from: window.location.pathname + window.location.search }}
+                          className='inline-flex items-center gap-2 px-4 py-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
                         >
+                          <Eye className='w-4 h-4' />
+                          View Trip
+                        </Link>
+                      )}
+                    </div>
+
+                    <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-4'>
+                      {trip.trip_difficulty_code && (
+                        <div className='flex items-center gap-2'>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)}`}
+                          >
+                            {trip.trip_difficulty_label ||
+                              getDifficultyLabel(trip.trip_difficulty_code)}
+                          </span>
+                        </div>
+                      )}
+                      {trip.max_depth && (
+                        <div className='flex items-center gap-2'>
+                          <TrendingUp className='w-4 h-4 text-gray-400' />
+                          <span className='text-[11px] text-gray-600'>{trip.max_depth}m max</span>
+                        </div>
+                      )}
+                      {trip.trip_price && (
+                        <div className='flex items-center gap-2'>
+                          <DollarSign className='w-4 h-4 text-gray-400' />
+                          <span className='text-[11px] text-gray-600'>
+                            {formatCurrency(trip.trip_price, trip.trip_currency)}
+                          </span>
+                        </div>
+                      )}
+                      <div className='flex items-center gap-2'>
+                        <MapPin className='w-4 h-4 text-gray-400' />
+                        <span className='text-sm text-gray-600'>
+                          {trip.diving_center_id && trip.diving_center_name ? (
+                            <Link
+                              to={`/diving-centers/${trip.diving_center_id}`}
+                              state={{ from: window.location.pathname + window.location.search }}
+                              className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
+                            >
+                              {trip.diving_center_name}
+                            </Link>
+                          ) : (
+                            trip.diving_center_name || 'Unknown Location'
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className='text-gray-700 text-sm leading-relaxed mb-3 line-clamp-3'>
+                      {trip.trip_description || 'No description available.'}
+                    </p>
+
+                    {/* Enhanced Trip Details Grid - Mobile Responsive */}
+                    <div className='trip-details-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-6'>
+                      <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
+                        <Calendar className='h-4 w-4 mr-2 sm:mr-3 text-blue-600 flex-shrink-0' />
+                        <div className='min-w-0'>
+                          <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+                            Date
+                          </div>
+                          <button
+                            onClick={() => handleDateClick(trip.trip_date)}
+                            className='text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors font-medium text-sm truncate block w-full text-left leading-tight !min-h-0 !py-0'
+                            title='Click to filter by this date'
+                          >
+                            {trip.trip_date
+                              ? new Date(trip.trip_date).toLocaleDateString('en-GB')
+                              : 'N/A'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
+                        <Clock className='h-4 w-4 mr-2 sm:mr-3 text-green-600 flex-shrink-0' />
+                        <div className='min-w-0'>
+                          <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+                            Time
+                          </div>
+                          <span className='font-medium text-sm leading-tight'>
+                            {trip.trip_time ? formatTime(trip.trip_time) : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {trip.trip_duration && (
+                        <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
+                          <Clock className='h-4 w-4 mr-2 sm:mr-3 text-purple-600 flex-shrink-0' />
+                          <div className='min-w-0'>
+                            <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+                              Duration
+                            </div>
+                            <span className='font-medium text-[11px] leading-tight'>
+                              {trip.trip_duration} min
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {trip.trip_price && (
+                        <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
+                          <Euro className='h-4 w-4 mr-2 sm:mr-3 text-green-600 flex-shrink-0' />
+                          <div className='min-w-0'>
+                            <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+                              Price
+                            </div>
+                            <span className='font-medium text-base sm:text-lg leading-tight'>
+                              {formatCurrency(trip.trip_price, trip.trip_currency)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {trip.group_size_limit && (
+                        <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
+                          <Users className='h-4 w-4 mr-2 sm:mr-3 text-orange-600 flex-shrink-0' />
+                          <div className='min-w-0'>
+                            <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+                              Group Size
+                            </div>
+                            <span className='font-medium text-sm leading-tight'>
+                              Max {trip.group_size_limit} people
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Additional trip details can be added here */}
+                      {trip.trip_type && (
+                        <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
+                          <Tag className='h-4 w-4 mr-2 sm:mr-3 text-indigo-600 flex-shrink-0' />
+                          <div className='min-w-0'>
+                            <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+                              Type
+                            </div>
+                            <span className='font-medium text-sm leading-tight'>
+                              {trip.trip_type}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Enhanced Dives Display - Mobile Responsive */}
+                    {trip.dives && trip.dives.length > 0 && (
+                      <div className='mb-6'>
+                        <h4 className='text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3 flex items-center leading-tight'>
+                          <MapPin className='h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 text-blue-600 flex-shrink-0' />
+                          Dive Sites ({trip.dives.length})
+                        </h4>
+                        <div className='space-y-2 sm:space-y-3'>
+                          {trip.dives.map((dive, index) => (
+                            <div
+                              key={dive.id}
+                              className='flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 p-2 sm:p-4 bg-blue-50 rounded-lg border border-blue-200'
+                            >
+                              <div className='flex items-center space-x-2 sm:space-x-3'>
+                                <div className='flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex-shrink-0'>
+                                  <span className='text-xs sm:text-sm font-bold text-blue-700'>
+                                    {index + 1}
+                                  </span>
+                                </div>
+                                <div className='flex-1 min-w-0'>
+                                  <div className='flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-0.5 sm:mb-1'>
+                                    <span className='text-xs sm:text-sm font-medium text-gray-700 leading-tight'>
+                                      Dive {dive.dive_number || index + 1}:
+                                    </span>
+                                    {dive.dive_site_name ? (
+                                      renderDiveSiteWithRating(
+                                        dive.dive_site_id,
+                                        dive.dive_site_name
+                                      )
+                                    ) : (
+                                      <span className='text-xs sm:text-sm text-gray-500 italic leading-tight'>
+                                        No dive site specified
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className='flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-gray-500 leading-tight'>
+                                    {dive.dive_time && (
+                                      <span className='flex items-center'>
+                                        <Clock className='h-3 w-3 mr-1 flex-shrink-0' />
+                                        {formatTime(dive.dive_time)}
+                                      </span>
+                                    )}
+                                    {dive.dive_duration && (
+                                      <span className='flex items-center'>
+                                        <Clock className='h-3 w-3 mr-1 flex-shrink-0' />
+                                        {dive.dive_duration} min
+                                      </span>
+                                    )}
+                                    {dive.max_depth && (
+                                      <span className='flex items-center'>
+                                        <MapPin className='h-3 w-3 mr-1 flex-shrink-0' />
+                                        Max {dive.max_depth}m
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {dive.dive_description && (
+                                <div className='text-xs text-gray-600 p-1.5 sm:p-2 bg-white rounded border sm:ml-8 leading-tight'>
+                                  {dive.dive_description}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fallback for old single dive site display */}
+                    {(!trip.dives || trip.dives.length === 0) && trip.dive_site_name && (
+                      <div className='mb-6'>
+                        <div className='flex items-center space-x-2 sm:space-x-3 p-2 sm:p-4 bg-green-50 rounded-lg border border-green-200'>
+                          <MapPin className='h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0' />
+                          <div className='flex-1'>
+                            <div className='text-xs sm:text-sm font-medium text-gray-700 mb-0.5 sm:mb-1 leading-tight'>
+                              Dive Site:
+                            </div>
+                            {renderDiveSiteWithRating(trip.dive_site_id, trip.dive_site_name)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Special Requirements */}
+                    {trip.special_requirements && (
+                      <div className='p-4 bg-yellow-50 rounded-lg border border-yellow-200 mb-4'>
+                        <div className='flex items-start'>
+                          <div className='flex-shrink-0'>
+                            <Tag className='h-5 w-5 text-yellow-600 mt-0.5' />
+                          </div>
+                          <div className='ml-3'>
+                            <h5 className='text-sm font-medium text-yellow-800 mb-1'>
+                              Special Requirements
+                            </h5>
+                            <p className='text-sm text-yellow-700'>{trip.special_requirements}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Trip Actions - Mobile Responsive */}
+                    <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-gray-200 gap-4'>
+                      <div className='flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 text-sm text-gray-500'>
+                        {trip.created_at && (
+                          <span className='flex items-center'>
+                            <span>Added {new Date(trip.created_at).toLocaleDateString()}</span>
+                          </span>
+                        )}
+                        {trip.updated_at && trip.updated_at !== trip.created_at && (
+                          <span className='flex items-center'>
+                            <span>Updated {new Date(trip.updated_at).toLocaleDateString()}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {!user && (
+              <div
+                className='fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-6xl px-4 mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6 shadow-lg'
+                style={{
+                  userSelect: 'text',
+                  WebkitUserSelect: 'text',
+                  MozUserSelect: 'text',
+                  msUserSelect: 'text',
+                }}
+              >
+                <div className='flex items-center'>
+                  <LogIn className='h-8 w-8 text-blue-600 mr-4' />
+                  <div className='flex-1'>
+                    <h3 className='text-lg font-semibold text-blue-900 mb-2'>Login Required</h3>
+                    <p className='text-blue-700 mb-4'>
+                      To view all dive trips and discover upcoming diving adventures, please log in
+                      to your account.
+                    </p>
+                    <div className='flex space-x-3'>
+                      <Link
+                        to='/login'
+                        className='inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+                      >
+                        <LogIn className='h-4 w-4 mr-2' />
+                        Login
+                      </Link>
+                      <Link
+                        to='/register'
+                        className='inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
+                      >
+                        Register
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Dive Trips Grid */}
+        {viewMode === 'grid' && (
+          <>
+            <div
+              className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${compactLayout ? 'view-mode-compact' : ''} ${isMobile ? 'px-2 gap-4' : ''}`}
+            >
+              {displayTrips?.map(trip => {
+                const isBlurred = !user;
+                return (
+                  <div
+                    key={trip.id}
+                    className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-shadow ${
+                      compactLayout ? 'p-4' : 'p-6'
+                    } ${isBlurred ? 'pointer-events-none relative' : 'hover:shadow-md'}`}
+                    style={
+                      isBlurred
+                        ? {
+                            filter: 'blur(1.5px)',
+                            userSelect: 'none',
+                            WebkitUserSelect: 'none',
+                            MozUserSelect: 'none',
+                            msUserSelect: 'none',
+                          }
+                        : {}
+                    }
+                  >
+                    {isBlurred && (
+                      <div className='absolute inset-0 bg-white bg-opacity-30 z-10'></div>
+                    )}
+                    {/* Thumbnail removed */}
+
+                    <div className='p-4'>
+                      <h3
+                        className={`font-semibold text-gray-900 mb-2 ${compactLayout ? 'text-sm' : 'text-lg'}`}
+                      >
+                        {user ? (
                           <Link
                             to={`/dive-trips/${trip.id}`}
                             state={{ from: window.location.pathname + window.location.search }}
@@ -982,358 +1335,108 @@ const DiveTrips = () => {
                           >
                             {generateTripName(trip)}
                           </Link>
-                        </h3>
-                        <p className='text-gray-600 text-xs'>
-                          {trip.trip_date
-                            ? new Date(trip.trip_date).toLocaleDateString('en-GB')
-                            : 'N/A'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <Link
-                    to={`/dive-trips/${trip.id}`}
-                    state={{ from: window.location.pathname + window.location.search }}
-                    className='inline-flex items-center gap-2 px-4 py-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
-                  >
-                    <Eye className='w-4 h-4' />
-                    View Trip
-                  </Link>
-                </div>
+                        ) : (
+                          <span>{generateTripName(trip)}</span>
+                        )}
+                      </h3>
 
-                <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-4'>
-                  {trip.trip_difficulty_code && (
-                    <div className='flex items-center gap-2'>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)}`}
-                      >
-                        {trip.trip_difficulty_label ||
-                          getDifficultyLabel(trip.trip_difficulty_code)}
-                      </span>
-                    </div>
-                  )}
-                  {trip.max_depth && (
-                    <div className='flex items-center gap-2'>
-                      <TrendingUp className='w-4 h-4 text-gray-400' />
-                      <span className='text-[11px] text-gray-600'>{trip.max_depth}m max</span>
-                    </div>
-                  )}
-                  {trip.trip_price && (
-                    <div className='flex items-center gap-2'>
-                      <DollarSign className='w-4 h-4 text-gray-400' />
-                      <span className='text-[11px] text-gray-600'>
-                        {formatCurrency(trip.trip_price, trip.trip_currency)}
-                      </span>
-                    </div>
-                  )}
-                  <div className='flex items-center gap-2'>
-                    <MapPin className='w-4 h-4 text-gray-400' />
-                    <span className='text-sm text-gray-600'>
-                      {trip.diving_center_id && trip.diving_center_name ? (
-                        <Link
-                          to={`/diving-centers/${trip.diving_center_id}`}
-                          state={{ from: window.location.pathname + window.location.search }}
-                          className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
-                        >
-                          {trip.diving_center_name}
-                        </Link>
-                      ) : (
-                        trip.diving_center_name || 'Unknown Location'
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                <p className='text-gray-700 text-sm leading-relaxed mb-3 line-clamp-3'>
-                  {trip.trip_description || 'No description available.'}
-                </p>
-
-                {/* Enhanced Trip Details Grid - Mobile Responsive */}
-                <div className='trip-details-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-6'>
-                  <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
-                    <Calendar className='h-4 w-4 mr-2 sm:mr-3 text-blue-600 flex-shrink-0' />
-                    <div className='min-w-0'>
-                      <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
-                        Date
-                      </div>
-                      <button
-                        onClick={() => handleDateClick(trip.trip_date)}
-                        className='text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors font-medium text-sm truncate block w-full text-left leading-tight !min-h-0 !py-0'
-                        title='Click to filter by this date'
-                      >
+                      <p className='text-gray-600 mb-3 text-xs'>
                         {trip.trip_date
                           ? new Date(trip.trip_date).toLocaleDateString('en-GB')
                           : 'N/A'}
-                      </button>
-                    </div>
-                  </div>
+                      </p>
 
-                  <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
-                    <Clock className='h-4 w-4 mr-2 sm:mr-3 text-green-600 flex-shrink-0' />
-                    <div className='min-w-0'>
-                      <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
-                        Time
-                      </div>
-                      <span className='font-medium text-sm leading-tight'>
-                        {trip.trip_time ? formatTime(trip.trip_time) : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {trip.trip_duration && (
-                    <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
-                      <Clock className='h-4 w-4 mr-2 sm:mr-3 text-purple-600 flex-shrink-0' />
-                      <div className='min-w-0'>
-                        <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
-                          Duration
-                        </div>
-                        <span className='font-medium text-[11px] leading-tight'>
-                          {trip.trip_duration} min
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {trip.trip_price && (
-                    <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
-                      <Euro className='h-4 w-4 mr-2 sm:mr-3 text-green-600 flex-shrink-0' />
-                      <div className='min-w-0'>
-                        <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
-                          Price
-                        </div>
-                        <span className='font-medium text-base sm:text-lg leading-tight'>
-                          {formatCurrency(trip.trip_price, trip.trip_currency)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {trip.group_size_limit && (
-                    <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
-                      <Users className='h-4 w-4 mr-2 sm:mr-3 text-orange-600 flex-shrink-0' />
-                      <div className='min-w-0'>
-                        <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
-                          Group Size
-                        </div>
-                        <span className='font-medium text-sm leading-tight'>
-                          Max {trip.group_size_limit} people
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Additional trip details can be added here */}
-                  {trip.trip_type && (
-                    <div className='flex items-center text-gray-600 p-2 sm:p-3 bg-gray-50 rounded-lg'>
-                      <Tag className='h-4 w-4 mr-2 sm:mr-3 text-indigo-600 flex-shrink-0' />
-                      <div className='min-w-0'>
-                        <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
-                          Type
-                        </div>
-                        <span className='font-medium text-sm leading-tight'>{trip.trip_type}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Enhanced Dives Display - Mobile Responsive */}
-                {trip.dives && trip.dives.length > 0 && (
-                  <div className='mb-6'>
-                    <h4 className='text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3 flex items-center leading-tight'>
-                      <MapPin className='h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 text-blue-600 flex-shrink-0' />
-                      Dive Sites ({trip.dives.length})
-                    </h4>
-                    <div className='space-y-2 sm:space-y-3'>
-                      {trip.dives.map((dive, index) => (
-                        <div
-                          key={dive.id}
-                          className='flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 p-2 sm:p-4 bg-blue-50 rounded-lg border border-blue-200'
-                        >
-                          <div className='flex items-center space-x-2 sm:space-x-3'>
-                            <div className='flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex-shrink-0'>
-                              <span className='text-xs sm:text-sm font-bold text-blue-700'>
-                                {index + 1}
-                              </span>
-                            </div>
-                            <div className='flex-1 min-w-0'>
-                              <div className='flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-0.5 sm:mb-1'>
-                                <span className='text-xs sm:text-sm font-medium text-gray-700 leading-tight'>
-                                  Dive {dive.dive_number || index + 1}:
-                                </span>
-                                {dive.dive_site_name ? (
-                                  renderDiveSiteWithRating(dive.dive_site_id, dive.dive_site_name)
-                                ) : (
-                                  <span className='text-xs sm:text-sm text-gray-500 italic leading-tight'>
-                                    No dive site specified
-                                  </span>
-                                )}
-                              </div>
-
-                              <div className='flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-gray-500 leading-tight'>
-                                {dive.dive_time && (
-                                  <span className='flex items-center'>
-                                    <Clock className='h-3 w-3 mr-1 flex-shrink-0' />
-                                    {formatTime(dive.dive_time)}
-                                  </span>
-                                )}
-                                {dive.dive_duration && (
-                                  <span className='flex items-center'>
-                                    <Clock className='h-3 w-3 mr-1 flex-shrink-0' />
-                                    {dive.dive_duration} min
-                                  </span>
-                                )}
-                                {dive.max_depth && (
-                                  <span className='flex items-center'>
-                                    <MapPin className='h-3 w-3 mr-1 flex-shrink-0' />
-                                    Max {dive.max_depth}m
-                                  </span>
-                                )}
-                              </div>
-                            </div>
+                      {trip.trip_difficulty_code && (
+                        <div className='space-y-2 mb-4'>
+                          <div className='flex items-center gap-2'>
+                            <span
+                              className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)}`}
+                            >
+                              {trip.trip_difficulty_label ||
+                                getDifficultyLabel(trip.trip_difficulty_code)}
+                            </span>
                           </div>
-
-                          {dive.dive_description && (
-                            <div className='text-xs text-gray-600 p-1.5 sm:p-2 bg-white rounded border sm:ml-8 leading-tight'>
-                              {dive.dive_description}
-                            </div>
-                          )}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                      )}
 
-                {/* Fallback for old single dive site display */}
-                {(!trip.dives || trip.dives.length === 0) && trip.dive_site_name && (
-                  <div className='mb-6'>
-                    <div className='flex items-center space-x-2 sm:space-x-3 p-2 sm:p-4 bg-green-50 rounded-lg border border-green-200'>
-                      <MapPin className='h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0' />
-                      <div className='flex-1'>
-                        <div className='text-xs sm:text-sm font-medium text-gray-700 mb-0.5 sm:mb-1 leading-tight'>
-                          Dive Site:
-                        </div>
-                        {renderDiveSiteWithRating(trip.dive_site_id, trip.dive_site_name)}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Special Requirements */}
-                {trip.special_requirements && (
-                  <div className='p-4 bg-yellow-50 rounded-lg border border-yellow-200 mb-4'>
-                    <div className='flex items-start'>
-                      <div className='flex-shrink-0'>
-                        <Tag className='h-5 w-5 text-yellow-600 mt-0.5' />
-                      </div>
-                      <div className='ml-3'>
-                        <h5 className='text-sm font-medium text-yellow-800 mb-1'>
-                          Special Requirements
-                        </h5>
-                        <p className='text-sm text-yellow-700'>{trip.special_requirements}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Trip Actions - Mobile Responsive */}
-                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-gray-200 gap-4'>
-                  <div className='flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 text-sm text-gray-500'>
-                    {trip.created_at && (
-                      <span className='flex items-center'>
-                        <span>Added {new Date(trip.created_at).toLocaleDateString()}</span>
-                      </span>
-                    )}
-                    {trip.updated_at && trip.updated_at !== trip.created_at && (
-                      <span className='flex items-center'>
-                        <span>Updated {new Date(trip.updated_at).toLocaleDateString()}</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Dive Trips Grid */}
-        {viewMode === 'grid' && (
-          <div
-            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${compactLayout ? 'view-mode-compact' : ''} ${isMobile ? 'px-2 gap-4' : ''}`}
-          >
-            {sortedTrips?.map(trip => (
-              <div
-                key={trip.id}
-                className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
-                  compactLayout ? 'p-4' : 'p-6'
-                }`}
-              >
-                {/* Thumbnail removed */}
-
-                <div className='p-4'>
-                  <h3
-                    className={`font-semibold text-gray-900 mb-2 ${compactLayout ? 'text-sm' : 'text-lg'}`}
-                  >
-                    <Link
-                      to={`/dive-trips/${trip.id}`}
-                      state={{ from: window.location.pathname + window.location.search }}
-                      className='hover:text-blue-600 transition-colors'
-                    >
-                      {generateTripName(trip)}
-                    </Link>
-                  </h3>
-
-                  <p className='text-gray-600 mb-3 text-xs'>
-                    {trip.trip_date ? new Date(trip.trip_date).toLocaleDateString('en-GB') : 'N/A'}
-                  </p>
-
-                  {trip.trip_difficulty_code && (
-                    <div className='space-y-2 mb-4'>
-                      <div className='flex items-center gap-2'>
-                        <span
-                          className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)}`}
-                        >
-                          {trip.trip_difficulty_label ||
-                            getDifficultyLabel(trip.trip_difficulty_code)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className='grid grid-cols-2 gap-3 mb-4'>
-                    {trip.max_depth && (
-                      <div className='flex items-center gap-2'>
-                        <TrendingUp className='w-4 h-4 text-gray-400' />
-                        <span className='text-[11px] text-gray-600'>{trip.max_depth}m</span>
-                      </div>
-                    )}
-                    {trip.trip_price && (
-                      <div className='flex items-center gap-2'>
-                        <DollarSign className='w-4 h-4 text-gray-400' />
-                        <span className='text-[11px] text-gray-600'>
-                          {formatCurrency(trip.trip_price, trip.trip_currency)}
-                        </span>
-                      </div>
-                    )}
-                    <div className='flex items-center gap-2'>
-                      <MapPin className='w-4 h-4 text-gray-400' />
-                      <span className='text-sm text-gray-600'>
-                        {trip.diving_center_id && trip.diving_center_name ? (
-                          <Link
-                            to={`/diving-centers/${trip.diving_center_id}`}
-                            className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
-                          >
-                            {trip.diving_center_name}
-                          </Link>
-                        ) : (
-                          trip.diving_center_name || 'Unknown Location'
+                      <div className='grid grid-cols-2 gap-3 mb-4'>
+                        {trip.max_depth && (
+                          <div className='flex items-center gap-2'>
+                            <TrendingUp className='w-4 h-4 text-gray-400' />
+                            <span className='text-[11px] text-gray-600'>{trip.max_depth}m</span>
+                          </div>
                         )}
-                      </span>
+                        {trip.trip_price && (
+                          <div className='flex items-center gap-2'>
+                            <DollarSign className='w-4 h-4 text-gray-400' />
+                            <span className='text-[11px] text-gray-600'>
+                              {formatCurrency(trip.trip_price, trip.trip_currency)}
+                            </span>
+                          </div>
+                        )}
+                        <div className='flex items-center gap-2'>
+                          <MapPin className='w-4 h-4 text-gray-400' />
+                          <span className='text-sm text-gray-600'>
+                            {trip.diving_center_id && trip.diving_center_name ? (
+                              user ? (
+                                <Link
+                                  to={`/diving-centers/${trip.diving_center_id}`}
+                                  className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
+                                >
+                                  {trip.diving_center_name}
+                                </Link>
+                              ) : (
+                                <span>{trip.diving_center_name}</span>
+                              )
+                            ) : (
+                              trip.diving_center_name || 'Unknown Location'
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {!user && (
+              <div
+                className='fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-6xl px-4 mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6 shadow-lg'
+                style={{
+                  userSelect: 'text',
+                  WebkitUserSelect: 'text',
+                  MozUserSelect: 'text',
+                  msUserSelect: 'text',
+                }}
+              >
+                <div className='flex items-center'>
+                  <LogIn className='h-8 w-8 text-blue-600 mr-4' />
+                  <div className='flex-1'>
+                    <h3 className='text-lg font-semibold text-blue-900 mb-2'>Login Required</h3>
+                    <p className='text-blue-700 mb-4'>
+                      To view all dive trips and discover upcoming diving adventures, please log in
+                      to your account.
+                    </p>
+                    <div className='flex space-x-3'>
+                      <Link
+                        to='/login'
+                        className='inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+                      >
+                        <LogIn className='h-4 w-4 mr-2' />
+                        Login
+                      </Link>
+                      <Link
+                        to='/register'
+                        className='inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
+                      >
+                        Register
+                      </Link>
                     </div>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { Map, Star, Anchor, BookOpen } from 'lucide-react';
+import { Map, Star, Anchor, BookOpen, Calendar } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
@@ -116,6 +116,13 @@ const Home = () => {
     { speed: 400, minIncrement: 1, maxIncrement: 3 } // Slowest growth, smallest increments
   );
 
+  const animatedDiveTrips = useAnimatedCounter(
+    stats?.dive_trips || 0,
+    2800,
+    isBackendAvailable,
+    { speed: 250, minIncrement: 1, maxIncrement: 4 } // Medium growth, small increments
+  );
+
   return (
     <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 relative'>
       {/* Background Logo Watermark */}
@@ -124,7 +131,7 @@ const Home = () => {
       {/* Hero Section */}
       <HeroSection
         title='Discover Amazing Dive Sites'
-        subtitle="Explore the world's best scuba diving locations, read reviews from fellow divers, and find diving centers for your next underwater adventure."
+        subtitle="Explore the world's best scuba diving locations, read reviews from fellow divers, find diving centers, and discover organized dive trips for your next underwater adventure."
         background='ocean'
         size='large'
         showLogo={false}
@@ -133,28 +140,29 @@ const Home = () => {
       >
         <Link
           to='/dive-sites'
-          className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+          className='bg-blue-600 hover:bg-blue-700 text-white px-8 sm:px-10 py-2 text-sm sm:text-base font-semibold flex-1 sm:flex-initial min-w-[160px] sm:min-w-[180px] whitespace-nowrap rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105'
         >
           Explore Dive Sites
         </Link>
         <Link
           to='/dives'
-          className='bg-indigo-600 hover:bg-indigo-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+          className='bg-indigo-600 hover:bg-indigo-700 text-white px-8 sm:px-10 py-2 text-sm sm:text-base font-semibold flex-1 sm:flex-initial min-w-[160px] sm:min-w-[180px] whitespace-nowrap rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105'
         >
           Browse Dives
         </Link>
         <Link
           to='/map'
-          className='bg-purple-600 hover:bg-purple-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+          className='bg-purple-600 hover:bg-purple-700 text-white px-8 sm:px-10 py-2 text-sm sm:text-base font-semibold flex-1 sm:flex-initial min-w-[160px] sm:min-w-[180px] whitespace-nowrap rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105'
         >
           <Map className='h-5 w-5' />
           Interactive Map
         </Link>
         <Link
-          to='/register'
-          className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
+          to='/dive-trips'
+          className='bg-orange-600 hover:bg-orange-700 text-white px-8 sm:px-10 py-2 text-sm sm:text-base font-semibold flex-1 sm:flex-initial min-w-[160px] sm:min-w-[180px] whitespace-nowrap rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105'
         >
-          Join the Community
+          <Calendar className='h-5 w-5' />
+          Browse Dive Trips
         </Link>
       </HeroSection>
 
@@ -199,7 +207,7 @@ const Home = () => {
 
       {/* Stats Section */}
       <div className='bg-blue-600 text-white py-12 rounded-lg mb-12'>
-        <div className='grid md:grid-cols-4 gap-8 text-center'>
+        <div className='grid md:grid-cols-5 gap-8 text-center'>
           <Link to='/dives' className='hover:bg-blue-700 p-4 rounded-lg transition-colors'>
             <div className='text-3xl font-bold mb-2'>
               {animatedDives.toLocaleString()}
@@ -227,6 +235,13 @@ const Home = () => {
               {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
             </div>
             <div className='text-blue-200'>Diving Centers</div>
+          </Link>
+          <Link to='/dive-trips' className='hover:bg-blue-700 p-4 rounded-lg transition-colors'>
+            <div className='text-3xl font-bold mb-2'>
+              {animatedDiveTrips.toLocaleString()}
+              {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
+            </div>
+            <div className='text-blue-200'>Dive Trips</div>
           </Link>
         </div>
         {!isBackendAvailable && (

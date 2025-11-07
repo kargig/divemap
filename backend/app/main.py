@@ -13,7 +13,7 @@ from sqlalchemy import func
 
 # Lazy imports for faster startup - only import when needed
 from app.database import engine, get_db
-from app.models import Base, Dive, DiveSite, SiteRating, CenterRating, DivingCenter
+from app.models import Base, Dive, DiveSite, SiteRating, CenterRating, DivingCenter, ParsedDiveTrip
 from app.limiter import limiter
 from app.utils import get_client_ip, format_ip_for_logging, is_private_ip
 
@@ -501,18 +501,23 @@ async def get_statistics(db: Session = Depends(get_db)):
         # Count diving centers
         diving_center_count = db.query(func.count(DivingCenter.id)).scalar()
 
+        # Count dive trips
+        dive_trips_count = db.query(func.count(ParsedDiveTrip.id)).scalar()
+
         return {
             "dives": dive_count,
             "dive_sites": dive_site_count,
             "reviews": total_review_count,
-            "diving_centers": diving_center_count
+            "diving_centers": diving_center_count,
+            "dive_trips": dive_trips_count
         }
     except Exception as e:
         return {
             "dives": 0,
             "dive_sites": 0,
             "reviews": 0,
-            "diving_centers": 0
+            "diving_centers": 0,
+            "dive_trips": 0
         }
 
 # Add startup performance monitoring
