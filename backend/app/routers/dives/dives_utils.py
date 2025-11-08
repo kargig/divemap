@@ -33,9 +33,12 @@ from .dives_validation import raise_validation_error
 from .dives_logging import log_dive_operation, log_error
 
 
-def generate_dive_name(dive_site_name: str, dive_date: date) -> str:
-    """Generate automatic dive name from dive site and date"""
-    return f"{dive_site_name} - {dive_date.strftime('%Y/%m/%d')}"
+def generate_dive_name(dive_site_name: str, dive_date: date, original_dive_name: Optional[str] = None) -> str:
+    """Generate automatic dive name from dive site, date, and optional original dive name"""
+    date_str = dive_date.strftime('%Y/%m/%d')
+    if original_dive_name:
+        return f"{dive_site_name} - {date_str} - {original_dive_name}"
+    return f"{dive_site_name} - {date_str}"
 
 def get_or_create_deco_tag(db: Session) -> AvailableTag:
     """Get or create the 'deco' tag for decompression dives."""

@@ -204,6 +204,9 @@ const ResponsiveFilterBar = ({
     const active = [];
     if (filters.search_query)
       active.push({ key: 'search_query', label: 'Search', value: filters.search_query });
+    if (filters.search) active.push({ key: 'search', label: 'Search', value: filters.search });
+    if (filters.username)
+      active.push({ key: 'username', label: 'Username', value: filters.username });
     if (filters.country) active.push({ key: 'country', label: 'Country', value: filters.country });
     if (filters.region) active.push({ key: 'region', label: 'Region', value: filters.region });
     if (filters.difficulty_code) {
@@ -584,6 +587,20 @@ const ResponsiveFilterBar = ({
                     className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
                   />
                 </div>
+
+                {/* Username Filter - Only show for dives page */}
+                {pageType === 'dives' && (
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Username</label>
+                    <input
+                      type='text'
+                      placeholder='Enter username'
+                      value={filters.username || ''}
+                      onChange={e => onFilterChange('username', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                    />
+                  </div>
+                )}
 
                 {/* Country Filter */}
                 <div>

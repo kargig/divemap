@@ -57,6 +57,7 @@ def test_dives_utils_pure_functions_and_db(db_session):
     # generate_dive_name
     import datetime
     assert generate_dive_name("Blue Hole", datetime.date(2024, 1, 2)) == "Blue Hole - 2024/01/02"
+    assert generate_dive_name("Blue Hole", datetime.date(2024, 1, 2), "Dive #351") == "Blue Hole - 2024/01/02 - Dive #351"
 
     # has_deco_profile
     assert has_deco_profile({"samples": [{"in_deco": True}]}) is True
