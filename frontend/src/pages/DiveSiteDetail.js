@@ -9,6 +9,8 @@ import {
   ChevronDown,
   ChevronUp,
   Pencil,
+  Navigation,
+  ExternalLink,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
@@ -423,13 +425,33 @@ const DiveSiteDetail = () => {
               )}
               {diveSite.latitude && diveSite.longitude && (
                 <>
-                  <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3'>
-                    <div className='flex items-center text-gray-700'>
-                      <MapPin className='h-5 w-5 mr-2' />
-                      <span className='text-sm sm:text-base'>
-                        {diveSite.latitude}, {diveSite.longitude}
+                  {/* Get Directions Button with Coordinates */}
+                  <div className='mb-3 sm:mb-4'>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${diveSite.latitude},${diveSite.longitude}`}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-md transition-colors shadow-sm hover:shadow-md'
+                      title='Get driving directions from Google Maps'
+                    >
+                      <Navigation className='h-3.5 w-3.5 sm:h-4 sm:w-4' />
+                      <span>
+                        Get Directions to:{' '}
+                        <span className='font-mono'>
+                          {diveSite.latitude !== undefined && !isNaN(Number(diveSite.latitude))
+                            ? Number(diveSite.latitude).toFixed(5)
+                            : 'N/A'}
+                          ,{' '}
+                          {diveSite.longitude !== undefined && !isNaN(Number(diveSite.longitude))
+                            ? Number(diveSite.longitude).toFixed(5)
+                            : 'N/A'}
+                        </span>
                       </span>
-                    </div>
+                      <ExternalLink className='h-3 w-3 sm:h-3 sm:w-3 opacity-80' />
+                    </a>
+                  </div>
+
+                  <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3'>
                     <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
                       <button
                         onClick={handleDrawRouteClick}

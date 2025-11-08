@@ -207,7 +207,7 @@ class TestDiveImportWithProfiles:
             assert len(data["imported_dives"]) == 1
             
             dive = data["imported_dives"][0]
-            assert dive["name"] == "Test Dive with Profile"
+            assert dive["name"] == "Test Dive Site - 2024/09/27 - Test Dive with Profile"
             assert dive["dive_date"] == "2024-09-27"
             assert dive["dive_site_name"] == "Test Dive Site"
 

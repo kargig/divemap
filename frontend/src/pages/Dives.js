@@ -63,6 +63,7 @@ const Dives = () => {
   const getInitialFilters = () => {
     return {
       search: searchParams.get('search') || '',
+      username: searchParams.get('username') || '',
       dive_site_name: searchParams.get('dive_site_name') || '',
       min_depth: searchParams.get('min_depth') || '',
       duration_min: searchParams.get('duration_min') || '',
@@ -285,6 +286,13 @@ const Dives = () => {
         newSearchParams.set('search', newFilters.search.toString());
       }
       if (
+        newFilters.username &&
+        newFilters.username.toString &&
+        newFilters.username.toString().trim()
+      ) {
+        newSearchParams.set('username', newFilters.username.toString());
+      }
+      if (
         newFilters.dive_site_id &&
         newFilters.dive_site_id.toString &&
         newFilters.dive_site_id.toString().trim()
@@ -437,6 +445,7 @@ const Dives = () => {
     [
       'dives-count',
       debouncedSearchTerms.search,
+      filters.username,
       filters.dive_site_id,
       filters.difficulty_code,
       filters.exclude_unspecified_difficulty,
@@ -452,6 +461,9 @@ const Dives = () => {
 
       if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
       if (debouncedSearchTerms.search) params.append('search', debouncedSearchTerms.search);
+      if (filters.username && filters.username.trim()) {
+        params.append('username', filters.username.trim());
+      }
       if (filters.difficulty_code) params.append('difficulty_code', filters.difficulty_code);
       if (filters.exclude_unspecified_difficulty) {
         params.append('exclude_unspecified_difficulty', 'true');
@@ -491,6 +503,7 @@ const Dives = () => {
     [
       'dives',
       debouncedSearchTerms.search,
+      filters.username,
       filters.dive_site_id,
       filters.difficulty_code,
       filters.exclude_unspecified_difficulty,
@@ -510,6 +523,7 @@ const Dives = () => {
 
       if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
       if (debouncedSearchTerms.search) params.append('search', debouncedSearchTerms.search);
+      if (filters.username) params.append('username', filters.username);
       if (filters.difficulty_code) params.append('difficulty_code', filters.difficulty_code);
       if (filters.exclude_unspecified_difficulty) {
         params.append('exclude_unspecified_difficulty', 'true');

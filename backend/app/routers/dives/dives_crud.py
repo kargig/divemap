@@ -361,6 +361,7 @@ def get_dives(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
+    username: Optional[str] = Query(None, description="Filter by username (partial match)"),
     my_dives: Optional[bool] = Query(None, description="Filter to show only current user's dives"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
@@ -438,6 +439,13 @@ def get_dives(
     # Apply filters
     if dive_site_id:
         query = query.filter(Dive.dive_site_id == dive_site_id)
+
+    # Filter by username (partial match)
+    if username:
+        # User table is already joined, filter by username
+        sanitized_username = username.strip()
+        # Use ILIKE for case-insensitive partial matching
+        query = query.filter(User.username.ilike(f"%{sanitized_username}%"))
 
     # Filter by dive site name (partial match)
     if dive_site_name:

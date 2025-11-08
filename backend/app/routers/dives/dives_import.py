@@ -491,17 +491,24 @@ async def confirm_import_dives(
                 **dive_data_dict
             )
 
-            # Generate name if not provided
-            if not dive.name:
-                if dive.dive_site_id:
-                    dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
-                    if dive_site:
-                        # Use date object directly when available
-                        if isinstance(dive.dive_date, date):
-                            dive_date_obj = dive.dive_date
-                        else:
-                            dive_date_obj = datetime.strptime(dive.dive_date, '%Y-%m-%d').date()
-                        dive.name = generate_dive_name(dive_site.name, dive_date_obj)
+            # Generate name using format: "divesite - date - original dive name from XML"
+            # Store original name before generating new one
+            original_dive_name = dive.name  # This is the name from XML (e.g., "Dive #351")
+            
+            if dive.dive_site_id:
+                dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
+                if dive_site:
+                    # Use date object directly when available
+                    if isinstance(dive.dive_date, date):
+                        dive_date_obj = dive.dive_date
+                    else:
+                        dive_date_obj = datetime.strptime(dive.dive_date, '%Y-%m-%d').date()
+                    # Generate name with format: "divesite - date - original name"
+                    dive.name = generate_dive_name(dive_site.name, dive_date_obj, original_dive_name)
+            else:
+                # If no dive site, use fallback format
+                if original_dive_name:
+                    dive.name = f"Dive - {dive.dive_date} - {original_dive_name}"
                 else:
                     dive.name = f"Dive - {dive.dive_date}"
 
