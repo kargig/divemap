@@ -44,14 +44,23 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
   // Confirm import mutation
   const confirmMutation = useMutation(confirmImportDives, {
     onSuccess: data => {
-      toast.success(data.message);
-      queryClient.invalidateQueries(['dives']);
-      setIsProcessing(false);
-      setCurrentStep('upload');
-      onSuccess?.();
-      handleClose();
+      try {
+        const message = data?.message || `Successfully imported ${data?.total_imported || 0} dives`;
+        toast.success(message);
+        queryClient.invalidateQueries(['dives']);
+        setIsProcessing(false);
+        setCurrentStep('upload');
+        onSuccess?.();
+        handleClose();
+      } catch (error) {
+        console.error('Error in onSuccess handler:', error);
+        toast.error('Import completed but encountered an error');
+        setIsProcessing(false);
+        setCurrentStep('review');
+      }
     },
     onError: error => {
+      console.error('Import error:', error);
       toast.error(extractErrorMessage(error) || 'Failed to import dives');
       setIsProcessing(false);
       setCurrentStep('review');
@@ -120,9 +129,9 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       return;
     }
 
-    // Filter out dives with unresolved unmatched dive sites
+    // Filter out dives with unresolved unmatched dive sites (excluding skipped dives)
     const unresolvedDives = parsedDives.filter(
-      dive => dive.unmatched_dive_site && !dive.dive_site_id
+      dive => !dive.skip && dive.unmatched_dive_site && !dive.dive_site_id
     );
     if (unresolvedDives.length > 0) {
       toast.error(
@@ -131,9 +140,9 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       return;
     }
 
-    // Filter out dives with proposed dive sites but no selection
+    // Filter out dives with proposed dive sites but no selection (excluding skipped dives)
     const unresolvedProposedDives = parsedDives.filter(
-      dive => dive.proposed_dive_sites && !dive.dive_site_id
+      dive => !dive.skip && dive.proposed_dive_sites && !dive.dive_site_id
     );
     if (unresolvedProposedDives.length > 0) {
       toast.error(
@@ -142,13 +151,23 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       return;
     }
 
-    // Filter out dives with unmatched dive sites and skipped dives
-    const divesToImport = parsedDives.filter(dive => !dive.unmatched_dive_site && !dive.skip);
+    // Filter out dives with unmatched dive sites, proposed dive sites without selection, and skipped dives
+    const filteredDives = parsedDives.filter(
+      dive =>
+        !dive.skip && !dive.unmatched_dive_site && !(dive.proposed_dive_sites && !dive.dive_site_id)
+    );
 
-    if (divesToImport.length === 0) {
+    if (filteredDives.length === 0) {
       toast.error('No dives to import after filtering out unmatched dive sites and skipped dives');
       return;
     }
+
+    // Clean up dive data - remove UI-only fields before sending to backend
+    const divesToImport = filteredDives.map(dive => {
+      const { skip, unmatched_dive_site, proposed_dive_sites, available_dive_sites, ...cleanDive } =
+        dive;
+      return cleanDive;
+    });
 
     setIsProcessing(true);
     setCurrentStep('importing');
