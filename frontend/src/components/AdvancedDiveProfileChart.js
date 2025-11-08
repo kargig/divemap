@@ -1,6 +1,15 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { Thermometer, Clock, Activity, AlertTriangle, Download, Maximize, X } from 'lucide-react';
+import {
+  Thermometer,
+  Clock,
+  Activity,
+  AlertTriangle,
+  Download,
+  Maximize,
+  X,
+  Contrast,
+} from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
@@ -37,6 +46,18 @@ const AdvancedDiveProfileChart = ({
   const [isPanning, setIsPanning] = useState(false);
   const [chartScale, setChartScale] = useState(1);
   const [chartOffset, setChartOffset] = useState({ x: 0, y: 0 });
+  const [showLandscapeTip, setShowLandscapeTip] = useState(true);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+  // Detect mobile viewport
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileViewport(window.innerWidth < 640); // sm breakpoint
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Check if dive goes into deco
   const hasDeco = useMemo(() => {
@@ -650,112 +671,174 @@ const AdvancedDiveProfileChart = ({
             )}
           </div>
 
-          {/* Data Toggles Row */}
-          <div className={`flex items-center ${isMobileLandscape ? 'space-x-2' : 'space-x-4'}`}>
-            <label className='flex items-center'>
-              <input
-                type='checkbox'
-                checked={showTemperature}
-                onChange={e => setShowTemperature(e.target.checked)}
-                className={`${isMobileLandscape ? 'mr-1' : 'mr-2'}`}
-              />
-              <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
-                Temperature
-              </span>
-            </label>
-            {chartData.some(sample => sample.cns !== null && sample.cns !== undefined) && (
-              <label className='flex items-center'>
-                <input
-                  type='checkbox'
-                  checked={showCNS}
-                  onChange={e => setShowCNS(e.target.checked)}
-                  className={`${isMobileLandscape ? 'mr-1' : 'mr-2'}`}
-                />
-                <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
-                  CNS
-                </span>
-              </label>
-            )}
-            {hasDeco && hasStopdepth && (
-              <label className='flex items-center'>
-                <input
-                  type='checkbox'
-                  checked={showCeiling}
-                  onChange={e => setShowCeiling(e.target.checked)}
-                  className={`${isMobileLandscape ? 'mr-1' : 'mr-2'}`}
-                />
-                <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
-                  Ceiling
-                </span>
-              </label>
-            )}
-            {hasDeco &&
-              chartData.some(
-                sample =>
-                  sample.stoptime !== null && sample.stoptime !== undefined && sample.stoptime > 0
-              ) && (
-                <label className='flex items-center'>
+          {/* Data Toggles - Grouped by Chart vs Tooltip */}
+          <div className='mb-3'>
+            {/* Chart Visualization Toggles */}
+            <div className='mb-2'>
+              <div className='text-xs text-gray-500 mb-1.5 font-medium'>Chart Display:</div>
+              <div
+                className={`${
+                  isMobileViewport && !isMobileLandscape
+                    ? 'grid grid-cols-2 gap-x-2 gap-y-1.5'
+                    : `flex items-center ${isMobileLandscape ? 'space-x-2' : 'space-x-4'}`
+                }`}
+              >
+                <label className='flex items-center min-h-[34px] cursor-pointer'>
                   <input
                     type='checkbox'
-                    checked={showStoptime}
-                    onChange={e => setShowStoptime(e.target.checked)}
-                    className={`${isMobileLandscape ? 'mr-1' : 'mr-2'}`}
+                    checked={showTemperature}
+                    onChange={e => setShowTemperature(e.target.checked)}
+                    className={`${
+                      isMobileViewport && !isMobileLandscape
+                        ? 'mr-1.5'
+                        : isMobileLandscape
+                          ? 'mr-1'
+                          : 'mr-2'
+                    } w-4 h-4 cursor-pointer flex-shrink-0`}
                   />
                   <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
-                    Stop Time
+                    Temperature
                   </span>
                 </label>
-              )}
+                {hasDeco && hasStopdepth && (
+                  <label className='flex items-center min-h-[34px] cursor-pointer'>
+                    <input
+                      type='checkbox'
+                      checked={showCeiling}
+                      onChange={e => setShowCeiling(e.target.checked)}
+                      className={`${
+                        isMobileViewport && !isMobileLandscape
+                          ? 'mr-1.5'
+                          : isMobileLandscape
+                            ? 'mr-1'
+                            : 'mr-2'
+                      } w-4 h-4 cursor-pointer flex-shrink-0`}
+                    />
+                    <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                      Ceiling
+                    </span>
+                  </label>
+                )}
+              </div>
+            </div>
+
+            {/* Tooltip Display Toggles */}
+            {(chartData.some(sample => sample.cns !== null && sample.cns !== undefined) ||
+              (hasDeco &&
+                chartData.some(
+                  sample =>
+                    sample.stoptime !== null && sample.stoptime !== undefined && sample.stoptime > 0
+                ))) && (
+              <div>
+                <div className='text-xs text-gray-500 mb-1.5 font-medium'>Tooltip Display:</div>
+                <div
+                  className={`${
+                    isMobileViewport && !isMobileLandscape
+                      ? 'grid grid-cols-2 gap-x-2 gap-y-1.5'
+                      : `flex items-center ${isMobileLandscape ? 'space-x-2' : 'space-x-4'}`
+                  }`}
+                >
+                  {chartData.some(sample => sample.cns !== null && sample.cns !== undefined) && (
+                    <label className='flex items-center min-h-[34px] cursor-pointer'>
+                      <input
+                        type='checkbox'
+                        checked={showCNS}
+                        onChange={e => setShowCNS(e.target.checked)}
+                        className={`${
+                          isMobileViewport && !isMobileLandscape
+                            ? 'mr-1.5'
+                            : isMobileLandscape
+                              ? 'mr-1'
+                              : 'mr-2'
+                        } w-4 h-4 cursor-pointer flex-shrink-0`}
+                      />
+                      <span
+                        className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}
+                      >
+                        CNS
+                      </span>
+                    </label>
+                  )}
+                  {hasDeco &&
+                    chartData.some(
+                      sample =>
+                        sample.stoptime !== null &&
+                        sample.stoptime !== undefined &&
+                        sample.stoptime > 0
+                    ) && (
+                      <label className='flex items-center min-h-[34px] cursor-pointer'>
+                        <input
+                          type='checkbox'
+                          checked={showStoptime}
+                          onChange={e => setShowStoptime(e.target.checked)}
+                          className={`${
+                            isMobileViewport && !isMobileLandscape
+                              ? 'mr-1.5'
+                              : isMobileLandscape
+                                ? 'mr-1'
+                                : 'mr-2'
+                          } w-4 h-4 cursor-pointer flex-shrink-0`}
+                        />
+                        <span
+                          className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}
+                        >
+                          Stop Time
+                        </span>
+                      </label>
+                    )}
+                </div>
+              </div>
+            )}
           </div>
 
-          {!isMobileLandscape && (
-            <div className='flex items-center gap-2'>
-              {profileData?.samples && profileData.samples.length > 1000 && (
-                <button
-                  onClick={() => setShowAllSamples(!showAllSamples)}
-                  className={`px-3 py-1 text-xs rounded border ${
-                    showAllSamples
-                      ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
-                      : 'text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-300'
-                  }`}
-                  title={showAllSamples ? 'Switch to sampled view' : 'Switch to all samples view'}
-                  aria-label={
-                    showAllSamples ? 'Switch to sampled view' : 'Switch to all samples view'
-                  }
-                >
-                  {showAllSamples ? 'Sampled View' : 'All Samples'}
-                </button>
-              )}
+          {/* Action Buttons - Icon only for mobile optimization */}
+          <div className='flex items-center gap-2'>
+            {profileData?.samples && profileData.samples.length > 1000 && !isMobileLandscape && (
               <button
-                onClick={() => setHighContrastMode(!highContrastMode)}
-                className={`px-4 py-2 text-sm font-medium rounded-md border-2 transition-all duration-200 ${
-                  highContrastMode
-                    ? 'bg-gray-900 text-white border-gray-900 shadow-lg'
-                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 border-gray-400 hover:border-gray-500 shadow-sm hover:shadow-md'
+                onClick={() => setShowAllSamples(!showAllSamples)}
+                className={`px-3 py-1 text-xs rounded border ${
+                  showAllSamples
+                    ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
+                    : 'text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-300'
                 }`}
-                title='Toggle High Contrast Mode'
-                aria-label={`${highContrastMode ? 'Disable' : 'Enable'} high contrast mode`}
+                title={showAllSamples ? 'Switch to sampled view' : 'Switch to all samples view'}
+                aria-label={
+                  showAllSamples ? 'Switch to sampled view' : 'Switch to all samples view'
+                }
               >
-                {highContrastMode ? 'High Contrast On' : 'High Contrast Off'}
+                {showAllSamples ? 'Sampled View' : 'All Samples'}
               </button>
-              {onMaximize && (
-                <button
-                  onClick={onMaximize}
-                  className='px-3 py-1 text-xs rounded border text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-300'
-                  title='Maximize chart view'
-                  aria-label='Open chart in full-screen modal'
-                >
-                  <Maximize className='h-4 w-4 inline mr-1' />
-                  Maximize
-                </button>
-              )}
+            )}
+            <button
+              onClick={() => setHighContrastMode(!highContrastMode)}
+              className={`p-2 rounded-md border-2 transition-all duration-200 ${
+                highContrastMode
+                  ? 'bg-gray-900 text-white border-gray-900 shadow-lg'
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 border-gray-400 hover:border-gray-500 shadow-sm hover:shadow-md'
+              }`}
+              title={highContrastMode ? 'High Contrast On' : 'High Contrast Off'}
+              aria-label={`${highContrastMode ? 'Disable' : 'Enable'} high contrast mode`}
+            >
+              <Contrast className={`${isMobileLandscape ? 'h-4 w-4' : 'h-5 w-5'}`} />
+            </button>
+            {onMaximize && (
+              <button
+                onClick={onMaximize}
+                className='p-2 rounded border text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-300'
+                title='Maximize chart view'
+                aria-label='Open chart in full-screen modal'
+              >
+                <Maximize className={`${isMobileLandscape ? 'h-4 w-4' : 'h-5 w-5'}`} />
+              </button>
+            )}
+            {!isMobileLandscape && (
               <div className='relative group'>
                 <button
-                  className='p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded'
+                  className='p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded border border-gray-300 hover:border-gray-400'
                   title='Download Chart'
                   aria-label='Download chart options'
                 >
-                  <Download className='h-4 w-4' />
+                  <Download className='h-5 w-5' />
                 </button>
                 <div className='absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10'>
                   <button
@@ -774,63 +857,6 @@ const AdvancedDiveProfileChart = ({
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Mobile landscape suggestion - only show on mobile devices in portrait mode */}
-        <div className='sm:hidden bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2'>
-          <div className='flex items-center justify-center space-x-2 text-sm text-blue-700'>
-            <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
-              />
-            </svg>
-            <span className='font-medium'>
-              Tip: Rotate your phone to landscape for a better view of the dive profile
-            </span>
-          </div>
-        </div>
-
-        {/* Chart Legend */}
-        <div
-          className={`bg-gray-50 rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1 mb-1' : 'p-3 mb-2'}`}
-        >
-          <div
-            className={`flex items-center justify-center ${isMobileLandscape ? 'space-x-3' : 'space-x-6'} ${isMobileLandscape ? 'text-xs' : 'text-sm'}`}
-          >
-            <div className='flex items-center space-x-1'>
-              <div
-                className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'}`}
-                style={{ backgroundColor: '#0072B2' }}
-              ></div>
-              <span className='text-gray-700'>Depth</span>
-            </div>
-            <div className='flex items-center space-x-1'>
-              <div
-                className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'} border-dashed border-t-2`}
-                style={{ borderColor: '#E69F00' }}
-              ></div>
-              <span className='text-gray-700'>Avg Depth</span>
-            </div>
-            <div className='flex items-center space-x-1'>
-              <div
-                className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'} border-dashed border-t-2`}
-                style={{ borderColor: '#009E73' }}
-              ></div>
-              <span className='text-gray-700'>Temp</span>
-            </div>
-            {hasDeco && hasStopdepth && (
-              <div className='flex items-center space-x-1'>
-                <div
-                  className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'} border-dashed border-t-2`}
-                  style={{ borderColor: '#56B4E9' }}
-                ></div>
-                <span className='text-gray-700'>Ceiling</span>
-              </div>
             )}
           </div>
         </div>
@@ -848,6 +874,38 @@ const AdvancedDiveProfileChart = ({
             transition: isPanning ? 'none' : 'transform 0.1s ease-out',
           }}
         >
+          {/* Mobile Landscape Tip - Overlay at top of chart */}
+          {showLandscapeTip && isMobileViewport && !isMobileLandscape && (
+            <div className='absolute top-2 left-2 right-2 z-20 bg-blue-600 text-white rounded-md shadow-lg px-3 py-2 flex items-center justify-between gap-3'>
+              <div className='flex items-center gap-2 flex-1'>
+                <svg
+                  className='w-4 h-4 flex-shrink-0'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
+                  />
+                </svg>
+                <span className='text-xs font-medium'>
+                  Tip: Rotate your phone to landscape for a better view
+                </span>
+              </div>
+              <button
+                onClick={() => setShowLandscapeTip(false)}
+                className='flex-shrink-0 text-white hover:text-gray-200 transition-colors p-0.5'
+                title='Dismiss tip'
+                aria-label='Close tip'
+              >
+                <X className='h-4 w-4' />
+              </button>
+            </div>
+          )}
+
           {/* Mobile Controls */}
           {screenSize === 'mobile' &&
             (chartScale !== 1 || chartOffset.x !== 0 || chartOffset.y !== 0) && (
@@ -932,17 +990,17 @@ const AdvancedDiveProfileChart = ({
                 }
               />
 
-              {/* Stopdepth ceiling area - only show if dive has decompression stops */}
+              {/* Stopdepth ceiling area - only show if dive has decompression stops and toggle is enabled */}
               <Area
                 type='monotone'
                 dataKey='stopdepth'
                 fill='#56B4E9'
-                fillOpacity={hasDeco && hasStopdepth ? 0.2 : 0}
+                fillOpacity={hasDeco && hasStopdepth && showCeiling ? 0.2 : 0}
                 stroke='#E69F00'
-                strokeWidth={hasDeco && hasStopdepth ? 1 : 0}
+                strokeWidth={hasDeco && hasStopdepth && showCeiling ? 1 : 0}
                 strokeDasharray='3 3'
                 name='Decompression Ceiling'
-                hide={!hasDeco || !hasStopdepth}
+                hide={!hasDeco || !hasStopdepth || !showCeiling}
               />
 
               {/* Main depth line */}
@@ -1004,6 +1062,50 @@ const AdvancedDiveProfileChart = ({
           </ResponsiveContainer>
         </div>
 
+        {/* Chart Legend - Moved below chart for better mobile layout */}
+        <div
+          className={`bg-gray-50 rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1 mb-1 mt-2' : 'p-3 mb-2 mt-2'}`}
+        >
+          <div
+            className={`${
+              isMobileViewport && !isMobileLandscape
+                ? 'flex flex-wrap items-center justify-center gap-x-4 gap-y-2'
+                : `flex items-center justify-center ${isMobileLandscape ? 'space-x-3' : 'space-x-6'}`
+            } ${isMobileLandscape ? 'text-xs' : 'text-sm'}`}
+          >
+            <div className='flex items-center space-x-1'>
+              <div
+                className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'}`}
+                style={{ backgroundColor: '#0072B2' }}
+              ></div>
+              <span className='text-gray-700'>Depth</span>
+            </div>
+            <div className='flex items-center space-x-1'>
+              <div
+                className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'} border-dashed border-t-2`}
+                style={{ borderColor: '#E69F00' }}
+              ></div>
+              <span className='text-gray-700'>Avg Depth</span>
+            </div>
+            <div className='flex items-center space-x-1'>
+              <div
+                className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'} border-dashed border-t-2`}
+                style={{ borderColor: '#009E73' }}
+              ></div>
+              <span className='text-gray-700'>Temp</span>
+            </div>
+            {hasDeco && hasStopdepth && (
+              <div className='flex items-center space-x-1'>
+                <div
+                  className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'} border-dashed border-t-2`}
+                  style={{ borderColor: '#56B4E9' }}
+                ></div>
+                <span className='text-gray-700'>Ceiling</span>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Sampling Information */}
         {profileData?.samples && profileData.samples.length > 1000 && (
           <div className='mt-4 text-center'>
@@ -1052,7 +1154,7 @@ AdvancedDiveProfileChart.propTypes = {
         type: PropTypes.string,
         time_minutes: PropTypes.number,
         cylinder: PropTypes.string,
-        o2: PropTypes.number,
+        o2: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       })
     ),
   }),
