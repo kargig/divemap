@@ -3,7 +3,7 @@
 **Status:** In Progress
 **Created:** 2025-11-30T11:59:24Z
 **Started:** 2025-11-30T12:40:00Z
-**Last Updated:** 2025-11-30T16:07:38Z
+**Last Updated:** December 1, 2025
 **Agent PID:** 121961
 **Branch:** feature/wind-overlay-dive-sites-map
 
@@ -16,8 +16,14 @@
 - ✅ Phase 1: Database Schema & Backend API Foundation (100% - COMPLETE)
 - ✅ Phase 2: Wind Recommendation Logic (100% - COMPLETE)
 - ✅ Phase 3: Frontend Wind Overlay Component (100% - COMPLETE)
-- ⏳ Phase 4: Dive Site Suitability Visualization (0% - PENDING)
-- ⏳ Phase 5: Integration & Testing (0% - PENDING)
+- ⏳ Phase 4: Dive Site Suitability Visualization (80% - IN PROGRESS)
+  - ✅ Markers show suitability status (colored borders at zoom 13+, increased visibility)
+  - ✅ Popups display wind conditions and suitability (fixed wind data display bug)
+  - ⏳ Wind suitability filter (pending)
+- ⏳ Phase 5: Integration & Testing (70% - IN PROGRESS)
+  - ✅ Wind overlay integrated into IndependentMapView
+  - ✅ Wind overlay integrated into DiveSitesMap
+  - ✅ Frontend Forms - shore_direction input fields (COMPLETED)
 - ⏳ Phase 6: User Experience Polish (0% - PENDING)
 
 **Recent Fixes:**
@@ -36,6 +42,11 @@
 - Improved WindOverlay cleanup: Always remove markers when component unmounts or enabled becomes false
 - Fixed arrow direction calculation: Corrected formula from `(targetDirection - 90 + 360) % 360` to `(360 - targetDirection) % 360` to properly point arrows in the direction wind is going
 - Cleaned up WindOverlay.js comments: Removed redundant explanations, kept only essential documentation
+- Added wind conditions to dive site popups: Suitability badge, wind speed/direction/gusts, reasoning, and warnings
+- Updated dive site markers with colored borders: Show suitability status at zoom 13+ when wind overlay enabled
+- Increased border visibility: Changed border width from 2px to 4px and added white outline for better contrast
+- Fixed popup wind data bug: Changed from `rec.wind_data.wind_speed` to `rec.wind_speed` (wind data is directly on recommendation object, not nested)
+- Updated task.md: Marked Phase 4 markers and popups as complete
 
 ---
 
@@ -315,22 +326,24 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 
 **Tasks:**
 
-- [ ] Update dive site markers to show suitability status
-  - Add color coding or badge to markers
-  - Green for good, yellow for caution, orange for difficult, red for avoid, gray for unknown
-  - Implementation options: colored border/ring, small badge/indicator, or change marker icon color
-  - Conditional display: Only show suitability indicators when wind overlay is enabled
-  - Z-index: Ensure markers remain above wind arrows
+- [x] Update dive site markers to show suitability status
+  - ✅ Added colored border/ring to markers (4px width with white outline for visibility)
+  - ✅ Green for good, yellow for caution, orange for difficult, red for avoid, gray for unknown
+  - ✅ Implementation: Colored border around existing marker icon
+  - ✅ Conditional display: Only show suitability indicators when wind overlay is enabled AND zoom >= 13
+  - ✅ Z-index: Markers remain above wind arrows
+  - ✅ Increased border visibility: Changed from 2px to 4px with white outline for better contrast
 
-- [ ] Add suitability information to dive site popups
-  - Display wind conditions and suitability status
-  - Show wind speed in multiple units: m/s, km/h, and knots
-  - Show wind direction (degrees and cardinal)
-  - Show wind gusts if available
-  - Show shore direction if available
-  - Detailed reasoning explaining why site is suitable/unsuitable
-  - Wind speed warnings: Highlight when wind speed exceeds thresholds
-  - Conditional display: Only show wind info when wind overlay is enabled or wind data is available
+- [x] Add suitability information to dive site popups
+  - ✅ Display wind conditions and suitability status
+  - ✅ Show wind speed in multiple units: m/s and knots (via formatWindSpeed helper)
+  - ✅ Show wind direction (degrees and cardinal via formatWindDirection helper)
+  - ✅ Show wind gusts if available
+  - ✅ Show shore direction if available (in reasoning text)
+  - ✅ Detailed reasoning explaining why site is suitable/unsuitable
+  - ✅ Wind speed warnings: Warning message for sites without shore_direction
+  - ✅ Conditional display: Only show wind info when recommendation is available
+  - ✅ Fixed bug: Changed from `rec.wind_data.wind_speed` to `rec.wind_speed` (wind data is directly on recommendation object)
 
 - [ ] Add wind suitability filter to dive sites list/map
   - Filter option: "Show only suitable dive sites"
@@ -358,18 +371,23 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Display wind overlay when enabled
   - ✅ Fixed toggle functionality: Changed `enabled={true}` to `enabled={windOverlayEnabled}`
 
-- [ ] Frontend Forms (Not Started)
-  - [ ] Add shore_direction input field to `CreateDiveSite.js` form
-    - Number input with min=0, max=360, step=1
-    - Placeholder: "Auto-detected from coordinates (or enter manually)"
-    - Show detected value if available
-    - Allow manual override
-    - Optional field (not required)
-  - [ ] Add shore_direction input field to `EditDiveSite.js` form
-    - Same as create form
-    - Show current value (auto-detected or manual)
-    - Add "Re-detect from coordinates" button to trigger auto-detection
-    - Allow manual override
+- [x] Frontend Forms (COMPLETED)
+  - ✅ Added shore_direction input field to `CreateDiveSite.js` form
+    - ✅ Number input with min=0, max=360, step=0.01
+    - ✅ Placeholder: "Auto-detected from coordinates (or enter manually)"
+    - ✅ Helper text: "Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South, 270° = West"
+    - ✅ Optional field (not required)
+    - ✅ Manual override allowed
+    - ✅ All shore_direction fields included in formData state and submit payload
+  - ✅ Added shore_direction input field to `EditDiveSite.js` form
+    - ✅ Number input with min=0, max=360, step=0.01
+    - ✅ Shows current value from `diveSite.shore_direction`
+    - ✅ Shows confidence level if available (`shore_direction_confidence`)
+    - ✅ Shows detection method if available (`shore_direction_method`)
+    - ✅ Shows distance to coastline if available (`shore_direction_distance_m`)
+    - ✅ "Re-detect from coordinates" button triggers `/api/v1/dive-sites/{id}/detect-shore-direction` endpoint
+    - ✅ Manual override allowed
+    - ✅ All shore_direction fields included in formData state and submit payload
 
 - [ ] Testing Tasks
   - [ ] Test wind overlay on mobile devices

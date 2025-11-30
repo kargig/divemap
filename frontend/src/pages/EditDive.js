@@ -1,4 +1,5 @@
 import { Save, ArrowLeft, Plus, X, ChevronDown, Image, Video, FileText, Link } from 'lucide-react';
+import { UI_COLORS } from '../utils/colorPalette';
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -766,7 +767,10 @@ const EditDive = () => {
                   <button
                     type='button'
                     onClick={() => setShowMediaForm(true)}
-                    className='flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700'
+                    className='flex items-center gap-2 px-4 py-2 text-white rounded-md'
+                    style={{ backgroundColor: UI_COLORS.success }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#007a5c'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.success}
                   >
                     <Link size={16} />
                     Add Media URL
@@ -825,7 +829,10 @@ const EditDive = () => {
                           type='button'
                           onClick={handleUrlAdd}
                           disabled={!newMediaUrl.trim()}
-                          className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                          className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
+                          style={{ backgroundColor: UI_COLORS.success }}
+                          onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')}
+                          onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
                         >
                           Add Media
                         </button>
@@ -837,7 +844,10 @@ const EditDive = () => {
                             setNewMediaType('external_link');
                             setNewMediaDescription('');
                           }}
-                          className='px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700'
+                          className='px-4 py-2 text-white rounded-md'
+                          style={{ backgroundColor: UI_COLORS.neutral }}
+                          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1f2937'}
+                          onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.neutral}
                         >
                           Cancel
                         </button>
@@ -929,7 +939,10 @@ const EditDive = () => {
                 <button
                   type='button'
                   onClick={handleAddNewTag}
-                  className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2'
+                  className='px-4 py-2 text-white rounded-md flex items-center gap-2'
+                  style={{ backgroundColor: UI_COLORS.success }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#007a5c'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.success}
                 >
                   <Plus size={16} />
                   Add
@@ -944,14 +957,20 @@ const EditDive = () => {
           <button
             type='button'
             onClick={() => navigate(`/dives/${id}`)}
-            className='px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50'
+            className='px-6 py-2 text-white rounded-md'
+            style={{ backgroundColor: UI_COLORS.neutral }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1f2937'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.neutral}
           >
             Cancel
           </button>
           <button
             type='submit'
             disabled={updateDiveMutation.isLoading}
-            className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
+            className='px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
+            style={{ backgroundColor: UI_COLORS.primary }}
+            onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#005a8a')}
+            onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.primary)}
           >
             {updateDiveMutation.isLoading ? (
               <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>

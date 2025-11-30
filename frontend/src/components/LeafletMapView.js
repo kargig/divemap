@@ -10,6 +10,12 @@ import api from '../api';
 
 import WindOverlay from './WindOverlay';
 import WindOverlayToggle from './WindOverlayToggle';
+import {
+  getSuitabilityColor,
+  getSuitabilityLabel,
+  formatWindSpeed,
+  formatWindDirection,
+} from '../utils/windSuitabilityHelpers';
 
 // Helper: convert URLs in plain text to clickable links (for HTML string popups)
 const linkifyText = text => {
@@ -307,6 +313,43 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                       `
                           : ''
                       }
+                      ${
+                        marker.recommendation
+                          ? (() => {
+                              const rec = marker.recommendation;
+                            const suitability = rec.suitability || 'unknown';
+                            const suitabilityColor = getSuitabilityColor(suitability);
+                            const suitabilityLabel = getSuitabilityLabel(suitability);
+                            // Wind data is directly on the recommendation object, not nested in wind_data
+                            const windSpeed = rec.wind_speed || 0;
+                            const windDirection = rec.wind_direction || 0;
+                            const windGusts = rec.wind_gusts;
+                              
+                              const speedFormatted = formatWindSpeed(windSpeed);
+                              const directionFormatted = formatWindDirection(windDirection);
+                              
+                              return `
+                        <div class="border-t border-gray-200 pt-2 mt-2">
+                          <h4 class="font-semibold text-sm mb-2">Wind Conditions</h4>
+                          <div class="space-y-1.5">
+                            <div class="flex items-center gap-2">
+                              <span class="px-2 py-1 text-xs font-medium rounded-full" style="background-color: ${suitabilityColor}20; color: ${suitabilityColor}; border: 1px solid ${suitabilityColor}40;">
+                                ${suitabilityLabel}
+                              </span>
+                            </div>
+                            <div class="text-xs text-gray-600 space-y-0.5">
+                              <div><strong>Speed:</strong> ${speedFormatted.ms} m/s (${speedFormatted.knots} knots)</div>
+                              <div><strong>Direction:</strong> ${directionFormatted.full}</div>
+                              ${windGusts ? `<div><strong>Gusts:</strong> ${formatWindSpeed(windGusts).ms} m/s (${formatWindSpeed(windGusts).knots} knots)</div>` : ''}
+                            </div>
+                            ${rec.reasoning ? `<div class="text-xs text-gray-700 mt-1 italic">${rec.reasoning}</div>` : ''}
+                            ${suitability === 'unknown' ? `<div class="text-xs text-amber-600 mt-1 font-medium">⚠️ Warning: Shore direction unknown - cannot determine direction-based suitability</div>` : ''}
+                          </div>
+                        </div>
+                      `;
+                            })()
+                          : ''
+                      }
                     </div>
                   `
                     : `
@@ -506,26 +549,37 @@ const LeafletMapView = ({
   const setWindOverlayEnabled = externalSetWindOverlayEnabled || setInternalWindOverlayEnabled;
   const [debouncedBounds, setDebouncedBounds] = useState(null);
   // Create custom icons for different entity types
-  const createEntityIcon = useCallback((entityType, isCluster = false, count = 1) => {
-    const size = isCluster ? Math.min(24 + count * 2, 48) : 24;
+  const createEntityIcon = useCallback(
+    (entityType, isCluster = false, count = 1, suitability = null) => {
+      const size = isCluster ? Math.min(24 + count * 2, 48) : 24;
+      const borderWidth = suitability ? 4 : 0; // 4px colored border for suitability - increased for better visibility
+      const borderColor = suitability ? getSuitabilityColor(suitability) : null;
 
-    let svg = '';
+      let svg = '';
 
-    switch (entityType) {
-      case 'dive_site':
-        // Scuba flag (diver down flag) - red rectangle with white diagonal stripe
-        svg = `
-          <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Red rectangle background -->
-            <rect x="2" y="2" width="20" height="20" fill="#dc2626" stroke="white" stroke-width="1"/>
-            <!-- White diagonal stripe from top-left to bottom-right -->
-            <path d="M2 2 L22 22" stroke="white" stroke-width="3" stroke-linecap="round"/>
-            <!-- Optional: Add small white dots for bubbles -->
-            <circle cx="6" cy="6" r="1" fill="white"/>
-            <circle cx="18" cy="18" r="1" fill="white"/>
-          </svg>
-        `;
-        break;
+      switch (entityType) {
+        case 'dive_site':
+          // Scuba flag (diver down flag) - red rectangle with white diagonal stripe
+          // Add colored border if suitability is available
+          // Use a white outline around the colored border for better visibility
+          svg = `
+            <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              ${borderColor ? `
+                <!-- White outline for better contrast -->
+                <rect x="0" y="0" width="24" height="24" fill="white" stroke="white" stroke-width="${borderWidth + 1}"/>
+                <!-- Colored border -->
+                <rect x="0.5" y="0.5" width="23" height="23" fill="${borderColor}" stroke="${borderColor}" stroke-width="${borderWidth}" stroke-opacity="1"/>
+              ` : ''}
+              <!-- Red rectangle background -->
+              <rect x="${borderColor ? borderWidth + 0.5 : 2}" y="${borderColor ? borderWidth + 0.5 : 2}" width="${borderColor ? 24 - (borderWidth + 0.5) * 2 : 20}" height="${borderColor ? 24 - (borderWidth + 0.5) * 2 : 20}" fill="#dc2626" stroke="white" stroke-width="1"/>
+              <!-- White diagonal stripe from top-left to bottom-right -->
+              <path d="M${borderColor ? borderWidth + 0.5 : 2} ${borderColor ? borderWidth + 0.5 : 2} L${borderColor ? 24 - (borderWidth + 0.5) : 22} ${borderColor ? 24 - (borderWidth + 0.5) : 22}" stroke="white" stroke-width="3" stroke-linecap="round"/>
+              <!-- Optional: Add small white dots for bubbles -->
+              <circle cx="${borderColor ? 6 + borderWidth + 0.5 : 6}" cy="${borderColor ? 6 + borderWidth + 0.5 : 6}" r="1" fill="white"/>
+              <circle cx="${borderColor ? 18 - (borderWidth + 0.5) : 18}" cy="${borderColor ? 18 - (borderWidth + 0.5) : 18}" r="1" fill="white"/>
+            </svg>
+          `;
+          break;
       case 'dive':
         // Scuba flag (diver down flag) - red rectangle with white diagonal stripe
         svg = `
@@ -642,22 +696,81 @@ const LeafletMapView = ({
     }
   }, [windOverlayEnabled, mapMetadata?.zoom]);
 
+  // Fetch wind recommendations when overlay is enabled and zoom >= 13
+  const shouldFetchRecommendations =
+    windOverlayEnabled &&
+    mapMetadata?.zoom >= 13 &&
+    mapMetadata?.zoom <= 18 &&
+    debouncedBounds &&
+    selectedEntityType === 'dive-sites';
+
+  const { data: windRecommendations, isLoading: isLoadingRecommendations } = useQuery(
+    ['wind-recommendations', debouncedBounds],
+    async () => {
+      if (!debouncedBounds) return null;
+
+      const params = {
+        north: debouncedBounds.north,
+        south: debouncedBounds.south,
+        east: debouncedBounds.east,
+        west: debouncedBounds.west,
+        include_unknown: true, // Include sites without shore_direction
+      };
+
+      const response = await api.get('/api/v1/dive-sites/wind-recommendations', { params });
+      return response.data;
+    },
+    {
+      enabled: shouldFetchRecommendations,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 15 * 60 * 1000, // 15 minutes cache
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: true,
+      keepPreviousData: true,
+    }
+  );
+
+  // Create a map of dive site ID to recommendation for quick lookup
+  const recommendationsMap = useMemo(() => {
+    if (!windRecommendations?.recommendations) return {};
+    const map = {};
+    windRecommendations.recommendations.forEach(rec => {
+      map[rec.dive_site_id] = rec;
+    });
+    return map;
+  }, [windRecommendations]);
+
   // Process data into markers
   const markers = useMemo(() => {
     if (!data) return [];
 
     const allMarkers = [];
 
+    // Determine if suitability indicators should be shown
+    // Only show at zoom 13+ when wind overlay is enabled
+    const showSuitability =
+      windOverlayEnabled &&
+      mapMetadata?.zoom >= 13 &&
+      mapMetadata?.zoom <= 18 &&
+      selectedEntityType === 'dive-sites' &&
+      Object.keys(recommendationsMap).length > 0;
+
     // Process dive sites
     if (data.dive_sites && selectedEntityType === 'dive-sites') {
       data.dive_sites.forEach(site => {
         if (site.latitude && site.longitude) {
+          // Get suitability for this dive site if available
+          const recommendation = showSuitability ? recommendationsMap[site.id] : null;
+          const suitability = recommendation?.suitability || null;
+
           allMarkers.push({
             id: `dive-site-${site.id}`,
             position: [site.latitude, site.longitude],
             entityType: 'dive_site',
             data: site,
-            icon: createEntityIcon('dive_site'),
+            icon: createEntityIcon('dive_site', false, 1, suitability),
+            recommendation: recommendation, // Store recommendation for popup
           });
         }
       });
@@ -737,7 +850,14 @@ const LeafletMapView = ({
     }
 
     return allMarkers;
-  }, [data, selectedEntityType, createEntityIcon]);
+  }, [
+    data,
+    selectedEntityType,
+    createEntityIcon,
+    windOverlayEnabled,
+    mapMetadata?.zoom,
+    recommendationsMap,
+  ]);
 
   // Calculate center and bounds for the map
   const mapCenter = useMemo(() => {
