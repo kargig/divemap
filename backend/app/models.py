@@ -127,6 +127,10 @@ class DiveSite(Base):
     region = Column(String(100), index=True)  # Region/state/province name
     view_count = Column(Integer, default=0, nullable=False)  # Number of views
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # User who created the dive site
+    shore_direction = Column(DECIMAL(5, 2), nullable=True)  # Compass bearing (0-360 degrees) indicating which direction the shore/beach faces
+    shore_direction_confidence = Column(Enum('high', 'medium', 'low', name='shore_direction_confidence'), nullable=True)  # Confidence level of automatic detection
+    shore_direction_method = Column(String(50), nullable=True, default='osm_coastline')  # Method used to determine shore direction (e.g., 'osm_coastline', 'manual', 'ai')
+    shore_direction_distance_m = Column(DECIMAL(8, 2), nullable=True)  # Distance to coastline in meters (for reference/debugging)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
