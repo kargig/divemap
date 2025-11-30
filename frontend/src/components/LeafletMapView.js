@@ -539,6 +539,8 @@ const LeafletMapView = ({
   resetTrigger,
   windOverlayEnabled: externalWindOverlayEnabled,
   setWindOverlayEnabled: externalSetWindOverlayEnabled,
+  windDateTime,
+  setWindDateTime,
 }) => {
   const [mapMetadata, setMapMetadata] = useState(null);
   const [internalWindOverlayEnabled, setInternalWindOverlayEnabled] = useState(false);
@@ -663,7 +665,7 @@ const LeafletMapView = ({
   );
 
   const { data: windData, isLoading: isLoadingWind } = useQuery(
-    ['wind-data', debouncedBounds, mapMetadata?.zoom],
+    ['wind-data', debouncedBounds, mapMetadata?.zoom, windDateTime],
     async () => {
       if (!debouncedBounds) return null;
 
@@ -679,6 +681,11 @@ const LeafletMapView = ({
         west: debouncedBounds.west - lonMargin,
         zoom_level: Math.round(mapMetadata.zoom),
       };
+
+      // Add datetime_str if specified (null means current time, so don't include it)
+      if (windDateTime) {
+        params.datetime_str = windDateTime;
+      }
 
       const response = await api.get('/api/v1/weather/wind', { params });
       return response.data;
@@ -712,7 +719,7 @@ const LeafletMapView = ({
   );
 
   const { data: windRecommendations, isLoading: isLoadingRecommendations } = useQuery(
-    ['wind-recommendations', debouncedBounds],
+    ['wind-recommendations', debouncedBounds, windDateTime],
     async () => {
       if (!debouncedBounds) return null;
 
@@ -723,6 +730,11 @@ const LeafletMapView = ({
         west: debouncedBounds.west,
         include_unknown: true, // Include sites without shore_direction
       };
+
+      // Add datetime_str if specified (null means current time, so don't include it)
+      if (windDateTime) {
+        params.datetime_str = windDateTime;
+      }
 
       const response = await api.get('/api/v1/dive-sites/wind-recommendations', { params });
       return response.data;
@@ -946,6 +958,25 @@ const LeafletMapView = ({
       <div className='absolute top-4 left-16 z-50 bg-white/90 text-gray-800 text-xs px-2 py-1 rounded shadow border border-gray-200'>
         Zoom: {(mapMetadata?.zoom || viewport?.zoom || 8).toFixed(1)}
       </div>
+
+      {/* Wind datetime info box - only show when wind overlay is enabled */}
+      {selectedEntityType === 'dive-sites' &&
+        windOverlayEnabled &&
+        mapMetadata?.zoom >= 13 &&
+        (windDateTime || windData) && (
+          <div className='absolute top-4 left-48 z-50 bg-white/90 text-gray-800 text-xs px-2 py-1 rounded shadow border border-gray-200'>
+            Wind data for:{' '}
+            {windDateTime
+              ? new Date(windDateTime).toLocaleString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : 'Now'}
+          </div>
+        )}
 
       {/* Map controls overlay - positioned below the wind toggle button */}
       <div className='absolute top-20 right-4 bg-white rounded-lg shadow-lg p-3 text-sm space-y-2 max-w-xs z-40'>

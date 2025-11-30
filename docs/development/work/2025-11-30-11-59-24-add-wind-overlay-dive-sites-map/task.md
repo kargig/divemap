@@ -58,6 +58,9 @@
 - Improved jitter implementation: Added retry logic (up to 10 attempts) to ensure jittered points stay within bounds, maximizing visible arrows
 - Created comprehensive backend test suite: Added 71 new tests across 4 test files covering Open-Meteo service, Weather API router, OSM Coastline service, and Meteo API response parsing
 - Fixed test cache interference: Resolved test failures in Docker environment by using `monkeypatch` to clear cache before tests that need isolation
+- Added datetime selection for wind overlay: Users can now select date/time for wind data (current time or up to +2 days ahead) with clear display of which datetime is being shown
+- Fixed backend datetime validation: Rounded max_future to next hour to allow selecting any hour within 2-day window (prevents edge case where selecting hour at 2-day limit fails)
+- Fixed datetime display format: Updated to show "22:00" instead of "22" for better clarity in wind data info box
 
 ---
 
@@ -163,6 +166,8 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - Zoom level 13-18 restriction enforced (toggle disabled < 13, auto-hide < 13)
 - Wind data fetching debounced and cached
 - Performance optimized (max arrows, React.memo, lazy loading)
+- Datetime selection: Users can select date/time for wind data (current or up to +2 days ahead)
+- Datetime display: Clear indication on map showing which datetime wind data represents
 
 ### Phase 4: Dive Site Suitability Visualization
 
@@ -320,6 +325,18 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 ### Phase 3: Frontend Wind Overlay Component ✅
 
 **Status:** COMPLETED
+
+**Datetime Selection Feature:**
+
+- ✅ Created `WindDateTimePicker` component for selecting wind data datetime
+- ✅ Added datetime state management to `IndependentMapView`, `LeafletMapView`, and `DiveSitesMap`
+- ✅ Updated wind data API calls to include `datetime_str` parameter
+- ✅ Updated wind recommendations API calls to include `datetime_str` parameter
+- ✅ Added datetime info box display on map showing "Wind data for: [datetime]" or "Now" (format: "1 Dec 2025, 22:00")
+- ✅ Integrated datetime picker into map controls (visible when wind overlay enabled)
+- ✅ Validation: Max +2 days ahead, no past dates (min: current time - 1 hour)
+- ✅ Backend validation: Rounded max_future to next hour to allow selecting any hour within 2-day window
+- ✅ React Query cache keys updated to include datetime for proper cache separation
 
 **Tasks:**
 

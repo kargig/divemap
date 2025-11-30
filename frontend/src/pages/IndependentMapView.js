@@ -21,6 +21,7 @@ import ErrorPage from '../components/ErrorPage';
 import LeafletMapView from '../components/LeafletMapView';
 import MapLayersPanel from '../components/MapLayersPanel';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
+import WindDateTimePicker from '../components/WindDateTimePicker';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive } from '../hooks/useResponsive';
 import { useViewportData } from '../hooks/useViewportData';
@@ -118,6 +119,7 @@ const IndependentMapView = () => {
   const [showMobileControls, setShowMobileControls] = useState(!isMobile);
   const [selectedEntityType, setSelectedEntityType] = useState('dive-sites'); // 'dive-sites', 'diving-centers', 'dives', 'dive-trips'
   const [windOverlayEnabled, setWindOverlayEnabled] = useState(false);
+  const [windDateTime, setWindDateTime] = useState(null); // null = current time, ISO string = specific datetime
 
   // Update mobile controls visibility based on screen size
   useEffect(() => {
@@ -618,21 +620,33 @@ const IndependentMapView = () => {
 
                   {/* Wind Overlay Toggle - only show for dive sites */}
                   {selectedEntityType === 'dive-sites' && (
-                    <button
-                      onClick={() => {
-                        // Toggle wind overlay - we'll need to pass this to LeafletMapView
-                        // For now, we'll manage state here and pass it as a prop
-                        setWindOverlayEnabled(prev => !prev);
-                      }}
-                      className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
-                        windOverlayEnabled
-                          ? 'bg-blue-100 text-blue-600'
-                          : 'hover:bg-gray-100 text-gray-600'
-                      }`}
-                      title={windOverlayEnabled ? 'Disable wind overlay' : 'Enable wind overlay'}
-                    >
-                      <Wind className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
-                    </button>
+                    <>
+                      <button
+                        onClick={() => {
+                          // Toggle wind overlay - we'll need to pass this to LeafletMapView
+                          // For now, we'll manage state here and pass it as a prop
+                          setWindOverlayEnabled(prev => !prev);
+                        }}
+                        className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
+                          windOverlayEnabled
+                            ? 'bg-blue-100 text-blue-600'
+                            : 'hover:bg-gray-100 text-gray-600'
+                        }`}
+                        title={windOverlayEnabled ? 'Disable wind overlay' : 'Enable wind overlay'}
+                      >
+                        <Wind className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                      </button>
+                      {/* Wind DateTime Picker - only show when wind overlay is enabled */}
+                      {windOverlayEnabled && (
+                        <div className='hidden sm:block'>
+                          <WindDateTimePicker
+                            value={windDateTime}
+                            onChange={setWindDateTime}
+                            disabled={!windOverlayEnabled}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* Geolocation button - Smaller on mobile */}
@@ -835,6 +849,8 @@ const IndependentMapView = () => {
             resetTrigger={resetTrigger}
             windOverlayEnabled={windOverlayEnabled}
             setWindOverlayEnabled={setWindOverlayEnabled}
+            windDateTime={windDateTime}
+            setWindDateTime={setWindDateTime}
           />
 
           {/* Layers panel */}

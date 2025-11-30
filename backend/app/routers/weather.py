@@ -73,7 +73,9 @@ async def get_wind_data(
             try:
                 target_datetime = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
                 # Validate date range: only allow up to +2 days ahead
-                max_future = datetime.now() + timedelta(days=2)
+                # Round max_future to next hour to allow selecting any hour within 2-day window
+                now = datetime.now()
+                max_future = (now + timedelta(days=2)).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
                 if target_datetime > max_future:
                     raise HTTPException(
                         status_code=400,

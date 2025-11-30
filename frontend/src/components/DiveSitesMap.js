@@ -20,6 +20,7 @@ import {
 } from '../utils/windSuitabilityHelpers';
 import WindOverlay from './WindOverlay';
 import WindOverlayToggle from './WindOverlayToggle';
+import WindDateTimePicker from './WindDateTimePicker';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -296,6 +297,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
   const [useClustering, setUseClustering] = useState(true);
   const [mapCenter, setMapCenter] = useState([0, 0]);
   const [windOverlayEnabled, setWindOverlayEnabled] = useState(false);
+  const [windDateTime, setWindDateTime] = useState(null); // null = current time, ISO string = specific datetime
   const [mapMetadata, setMapMetadata] = useState(null);
   const [debouncedBounds, setDebouncedBounds] = useState(null);
 
@@ -418,7 +420,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
     windOverlayEnabled && mapMetadata?.zoom >= 13 && mapMetadata?.zoom <= 18 && debouncedBounds;
 
   const { data: windData, isLoading: isLoadingWind } = useQuery(
-    ['wind-data', debouncedBounds, mapMetadata?.zoom],
+    ['wind-data', debouncedBounds, mapMetadata?.zoom, windDateTime],
     async () => {
       if (!debouncedBounds) return null;
 
@@ -434,6 +436,11 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
         west: debouncedBounds.west - lonMargin,
         zoom_level: Math.round(mapMetadata.zoom),
       };
+
+      // Add datetime_str if specified (null means current time, so don't include it)
+      if (windDateTime) {
+        params.datetime_str = windDateTime;
+      }
 
       const response = await api.get('/api/v1/weather/wind', { params });
       return response.data;
@@ -457,7 +464,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
     debouncedBounds;
 
   const { data: windRecommendations } = useQuery(
-    ['wind-recommendations', debouncedBounds],
+    ['wind-recommendations', debouncedBounds, windDateTime],
     async () => {
       if (!debouncedBounds) return null;
 
@@ -468,6 +475,11 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
         west: debouncedBounds.west,
         include_unknown: true, // Include sites without shore_direction
       };
+
+      // Add datetime_str if specified (null means current time, so don't include it)
+      if (windDateTime) {
+        params.datetime_str = windDateTime;
+      }
 
       const response = await api.get('/api/v1/dive-sites/wind-recommendations', { params });
       return response.data;
@@ -644,6 +656,24 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
         Zoom: {currentZoom.toFixed(1)}
       </div>
 
+      {/* Wind datetime info box - only show when wind overlay is enabled */}
+      {windOverlayEnabled &&
+        currentZoom >= 13 &&
+        (windDateTime || windData) && (
+          <div className='absolute top-2 left-48 bg-white rounded px-2 py-1 text-xs font-medium z-10 shadow-sm border border-gray-200'>
+            Wind data for:{' '}
+            {windDateTime
+              ? new Date(windDateTime).toLocaleString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : 'Now'}
+          </div>
+        )}
+
       {/* Wind Overlay Toggle Button */}
       <div className='absolute top-2 right-2 bg-white rounded-lg shadow-lg p-2 z-10'>
         <WindOverlayToggle
@@ -652,6 +682,16 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
           zoomLevel={currentZoom}
           isLoading={isLoadingWind}
         />
+        {/* Wind DateTime Picker - only show when wind overlay is enabled */}
+        {windOverlayEnabled && (
+          <div className='mt-2'>
+            <WindDateTimePicker
+              value={windDateTime}
+              onChange={setWindDateTime}
+              disabled={!windOverlayEnabled}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
