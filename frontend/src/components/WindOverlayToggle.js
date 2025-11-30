@@ -7,21 +7,21 @@ import React, { useState, useEffect } from 'react';
  * Toggle button to enable/disable wind overlay with zoom level restrictions
  * Only enabled at zoom levels 13-18
  */
-const WindOverlayToggle = ({ enabled, onToggle, zoomLevel, isLoading, disabled }) => {
+const WindOverlayToggle = ({ isOverlayEnabled, onToggle, zoomLevel, isLoading, disabled }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   // Auto-disable when zoom drops below 13
   useEffect(() => {
-    if (enabled && zoomLevel < 13) {
+    if (isOverlayEnabled && zoomLevel < 13) {
       onToggle(false);
     }
-  }, [enabled, zoomLevel, onToggle]);
+  }, [isOverlayEnabled, zoomLevel, onToggle]);
 
   const isButtonDisabled = disabled || zoomLevel < 13;
 
   const handleClick = () => {
     if (!isButtonDisabled && !isLoading) {
-      onToggle(!enabled);
+      onToggle(!isOverlayEnabled);
     }
   };
 
@@ -32,7 +32,7 @@ const WindOverlayToggle = ({ enabled, onToggle, zoomLevel, isLoading, disabled }
     if (zoomLevel < 13) {
       return 'Zoom in to level 13 or higher to enable wind overlay';
     }
-    if (enabled) {
+    if (isOverlayEnabled) {
       return 'Disable wind overlay';
     }
     return 'Enable wind overlay (zoom 13+)';
@@ -50,7 +50,7 @@ const WindOverlayToggle = ({ enabled, onToggle, zoomLevel, isLoading, disabled }
           ${
             isButtonDisabled
               ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              : enabled
+              : isOverlayEnabled
                 ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
                 : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
           }
@@ -76,7 +76,7 @@ const WindOverlayToggle = ({ enabled, onToggle, zoomLevel, isLoading, disabled }
 };
 
 WindOverlayToggle.propTypes = {
-  enabled: PropTypes.bool.isRequired,
+  isOverlayEnabled: PropTypes.bool.isRequired,
   onToggle: PropTypes.func.isRequired,
   zoomLevel: PropTypes.number.isRequired,
   isLoading: PropTypes.bool,

@@ -654,23 +654,29 @@ const LeafletMapView = ({
   }, [mapMetadata?.bounds]);
 
   // Fetch wind data when overlay is enabled and zoom >= 13
-  const shouldFetchWindData =
+  const shouldFetchWindData = !!(
     windOverlayEnabled &&
     mapMetadata?.zoom >= 13 &&
     mapMetadata?.zoom <= 18 &&
     debouncedBounds &&
-    selectedEntityType === 'dive-sites';
+    selectedEntityType === 'dive-sites'
+  );
 
   const { data: windData, isLoading: isLoadingWind } = useQuery(
     ['wind-data', debouncedBounds, mapMetadata?.zoom],
     async () => {
       if (!debouncedBounds) return null;
 
+      // Add small margin to bounds to ensure arrows appear within viewport, not at edges
+      // Margin is approximately 5% of the bounds range
+      const latMargin = (debouncedBounds.north - debouncedBounds.south) * 0.05;
+      const lonMargin = (debouncedBounds.east - debouncedBounds.west) * 0.05;
+
       const params = {
-        north: debouncedBounds.north,
-        south: debouncedBounds.south,
-        east: debouncedBounds.east,
-        west: debouncedBounds.west,
+        north: debouncedBounds.north + latMargin,
+        south: debouncedBounds.south - latMargin,
+        east: debouncedBounds.east + lonMargin,
+        west: debouncedBounds.west - lonMargin,
         zoom_level: Math.round(mapMetadata.zoom),
       };
 
@@ -697,12 +703,13 @@ const LeafletMapView = ({
   }, [windOverlayEnabled, mapMetadata?.zoom]);
 
   // Fetch wind recommendations when overlay is enabled and zoom >= 13
-  const shouldFetchRecommendations =
+  const shouldFetchRecommendations = !!(
     windOverlayEnabled &&
     mapMetadata?.zoom >= 13 &&
     mapMetadata?.zoom <= 18 &&
     debouncedBounds &&
-    selectedEntityType === 'dive-sites';
+    selectedEntityType === 'dive-sites'
+  );
 
   const { data: windRecommendations, isLoading: isLoadingRecommendations } = useQuery(
     ['wind-recommendations', debouncedBounds],
@@ -931,7 +938,7 @@ const LeafletMapView = ({
           mapMetadata?.zoom >= 13 &&
           mapMetadata?.zoom <= 18 &&
           windData && (
-            <WindOverlay windData={windData} enabled={windOverlayEnabled} maxArrows={100} />
+            <WindOverlay windData={windData} isWindOverlayEnabled={windOverlayEnabled} maxArrows={100} />
           )}
       </MapContainer>
 

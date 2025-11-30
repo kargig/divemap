@@ -1,8 +1,9 @@
-import { X, Search, Filter, MapPin, Calendar, Star, Waves } from 'lucide-react';
+import { X, Search, Filter, MapPin, Calendar, Star, Waves, Wind } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
+import { getSuitabilityLabel } from '../utils/windSuitabilityHelpers';
 
 const UnifiedMapFilters = ({
   filters,
@@ -44,6 +45,7 @@ const UnifiedMapFilters = ({
       search: '',
       difficulty_code: '',
       exclude_unspecified_difficulty: false,
+      wind_suitability: '',
       min_rating: '',
       max_rating: '',
       country: '',
@@ -198,6 +200,35 @@ const UnifiedMapFilters = ({
             </div>
           </div>
         </div>
+
+        {/* Wind Suitability Filter - Only for Dive Sites */}
+        {selectedEntityType === 'dive-sites' && (
+          <div>
+            <label
+              htmlFor='wind-suitability-select'
+              className='block text-sm font-medium text-gray-700 mb-2'
+            >
+              <Wind className='w-4 h-4 inline mr-1' />
+              Wind Suitability
+            </label>
+            <select
+              id='wind-suitability-select'
+              value={localFilters.wind_suitability || ''}
+              onChange={e => handleFilterChange('wind_suitability', e.target.value)}
+              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+            >
+              <option value=''>All Conditions</option>
+              <option value='good'>Good Conditions</option>
+              <option value='caution'>Caution</option>
+              <option value='difficult'>Difficult</option>
+              <option value='avoid'>Avoid</option>
+              <option value='unknown'>Unknown</option>
+            </select>
+            <p className='text-xs text-gray-500 mt-1'>
+              Filter dive sites by current wind conditions suitability
+            </p>
+          </div>
+        )}
 
         {/* Difficulty Filter */}
         {(selectedEntityType === 'dive-sites' || selectedEntityType === 'dives') && (

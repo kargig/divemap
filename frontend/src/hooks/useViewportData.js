@@ -133,6 +133,7 @@ export const useViewportData = (viewport, filters, selectedEntityType) => {
               'search',
               'name',
               'difficulty_code',
+              'wind_suitability',
               'min_rating',
               'tag_ids',
               'country',

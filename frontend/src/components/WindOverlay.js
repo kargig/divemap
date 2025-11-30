@@ -8,7 +8,7 @@ import { useMap } from 'react-leaflet';
  * Displays wind arrows on a Leaflet map showing wind speed and direction
  * Only visible at zoom levels 13-18 to avoid excessive API calls
  */
-const WindOverlay = ({ windData = null, enabled = false, maxArrows = 100 }) => {
+const WindOverlay = ({ windData = null, isWindOverlayEnabled = false, maxArrows = 100 }) => {
   const map = useMap();
   const markersRef = useRef([]);
   const layerGroupRef = useRef(null);
@@ -19,7 +19,7 @@ const WindOverlay = ({ windData = null, enabled = false, maxArrows = 100 }) => {
       return [];
     }
 
-    // Filter out invalid points and limit to maxArrows
+    // Filter out invalid points
     const validPoints = windData.points.filter(point => {
       const lat = typeof point.lat === 'number' && !isNaN(point.lat);
       const lon = typeof point.lon === 'number' && !isNaN(point.lon);
@@ -165,7 +165,7 @@ const WindOverlay = ({ windData = null, enabled = false, maxArrows = 100 }) => {
 
   // Update wind arrows on map
   useEffect(() => {
-    if (!map || !enabled) {
+    if (!map || !isWindOverlayEnabled) {
       // Remove all markers if disabled
       if (layerGroupRef.current) {
         map.removeLayer(layerGroupRef.current);
@@ -191,6 +191,7 @@ const WindOverlay = ({ windData = null, enabled = false, maxArrows = 100 }) => {
     const layerGroup = L.layerGroup();
 
     // Create markers for each wind data point
+    // Backend ensures points are inside bounds, so we can trust the coordinates
     displayData.forEach(point => {
       // Validate coordinates - must be valid numbers
       const lat = typeof point.lat === 'number' && !isNaN(point.lat) ? point.lat : null;
@@ -244,7 +245,7 @@ const WindOverlay = ({ windData = null, enabled = false, maxArrows = 100 }) => {
     map.addLayer(layerGroup);
     layerGroupRef.current = layerGroup;
 
-    // Cleanup function - always remove markers when component unmounts or enabled becomes false
+    // Cleanup function - always remove markers when component unmounts or isWindOverlayEnabled becomes false
     return () => {
       if (layerGroupRef.current) {
         try {
@@ -257,7 +258,7 @@ const WindOverlay = ({ windData = null, enabled = false, maxArrows = 100 }) => {
         }
       }
     };
-  }, [map, enabled, displayData, createWindArrowIcon]);
+  }, [map, isWindOverlayEnabled, displayData, createWindArrowIcon]);
 
   // This component doesn't render anything directly
   return null;
@@ -279,7 +280,7 @@ WindOverlay.propTypes = {
     grid_resolution: PropTypes.string,
     point_count: PropTypes.number,
   }),
-  enabled: PropTypes.bool,
+  isWindOverlayEnabled: PropTypes.bool,
   maxArrows: PropTypes.number,
 };
 

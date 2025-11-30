@@ -7,6 +7,7 @@ Supports single point queries and grid-based queries for map overlays.
 
 import requests
 import math
+import random
 from typing import Optional, Dict, List, Tuple
 from datetime import datetime, timedelta
 import logging
@@ -89,9 +90,13 @@ def _create_grid_points(bounds: Dict, zoom_level: Optional[int] = None) -> List[
     Create a grid of points within the given bounds.
     
     Grid density adapts based on zoom level:
+    - Zoom 13-14: 0.08° spacing (~8.8km)
     - Zoom 15-16: 0.05° spacing (~5.5km)
     - Zoom 17: 0.03° spacing (~3.3km)
     - Zoom 18+: 0.02° spacing (~2.2km)
+    
+    Points are generated INSIDE the bounds (not at edges) to ensure they appear
+    within the visible viewport.
     """
     if zoom_level is None:
         zoom_level = 15  # Default to high zoom
@@ -101,15 +106,23 @@ def _create_grid_points(bounds: Dict, zoom_level: Optional[int] = None) -> List[
         spacing = 0.02
     elif zoom_level >= 17:
         spacing = 0.03
-    else:  # zoom 15-16
+    elif zoom_level >= 15:
         spacing = 0.05
+    else:  # zoom 13-14
+        spacing = 0.08
+    
+    # Add a small margin to ensure points are INSIDE bounds, not at edges
+    # Margin is 10% of spacing to keep points away from edges
+    margin = spacing * 0.1
     
     points = []
-    lat = bounds['south']
+    # Start from slightly inside south/west bounds
+    lat = bounds['south'] + margin
     
-    while lat <= bounds['north']:
-        lon = bounds['west']
-        while lon <= bounds['east']:
+    # End slightly before north/east bounds
+    while lat < bounds['north'] - margin:
+        lon = bounds['west'] + margin
+        while lon < bounds['east'] - margin:
             points.append((lat, lon))
             lon += spacing
         lat += spacing
@@ -254,7 +267,7 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
         return None
 
 
-def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_datetime: Optional[datetime] = None) -> List[Dict]:
+def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_datetime: Optional[datetime] = None, jitter_factor: int = 5) -> List[Dict]:
     """
     Fetch wind data for a grid of points within the given bounds.
     
@@ -262,18 +275,40 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
         bounds: Dictionary with 'north', 'south', 'east', 'west' keys
         zoom_level: Current map zoom level (affects grid density)
         target_datetime: Optional datetime for forecast (defaults to current time)
+        jitter_factor: Number of jittered variations to create for each grid point (default: 5)
     
     Returns:
         List of dictionaries with lat, lon, wind_speed_10m, wind_direction_10m, wind_gusts_10m
+        Each grid point is expanded into multiple points with small random jitter for visual density.
     """
     grid_points = _create_grid_points(bounds, zoom_level)
     wind_data_points = []
     
     logger.info(f"Fetching wind data for {len(grid_points)} grid points at {target_datetime or 'current time'}")
     
+    # Calculate jitter range based on grid spacing (small fraction of spacing)
+    if zoom_level is None:
+        zoom_level = 15
+    if zoom_level >= 18:
+        base_spacing = 0.02
+    elif zoom_level >= 17:
+        base_spacing = 0.03
+    elif zoom_level >= 15:
+        base_spacing = 0.05
+    else:  # zoom 13-14
+        base_spacing = 0.08
+    
+    # Jitter range is 20% of base spacing to create visual variety without losing accuracy
+    # Reduced from 40% to ensure jittered points stay within bounds
+    jitter_range = base_spacing * 0.2
+    
+    total_jittered_attempts = 0
+    total_jittered_success = 0
+    
     for lat, lon in grid_points:
         wind_data = fetch_wind_data_single_point(lat, lon, target_datetime)
         if wind_data:
+            # Create base point
             wind_data_points.append({
                 "lat": lat,
                 "lon": lon,
@@ -282,7 +317,53 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                 "wind_gusts_10m": wind_data.get("wind_gusts_10m"),
                 "timestamp": wind_data.get("timestamp")
             })
+            
+            # Create jittered variations for visual density
+            # Use same wind data (wind doesn't change significantly over small distances)
+            for _ in range(jitter_factor - 1):  # -1 because we already added the base point
+                total_jittered_attempts += 1
+                max_retries = 10  # Maximum retries to find a valid jittered point
+                jittered_point_created = False
+                
+                for retry in range(max_retries):
+                    # Generate random jitter within range
+                    lat_jitter = random.uniform(-jitter_range, jitter_range)
+                    lon_jitter = random.uniform(-jitter_range, jitter_range)
+                    
+                    # Calculate jittered coordinates
+                    jittered_lat = lat + lat_jitter
+                    jittered_lon = lon + lon_jitter
+                    
+                    # Validate jittered coordinates are within bounds
+                    # Use <= and >= to allow points at the edge (they'll be filtered by frontend if needed)
+                    if (bounds['south'] <= jittered_lat <= bounds['north'] and
+                        bounds['west'] <= jittered_lon <= bounds['east']):
+                        total_jittered_success += 1
+                        wind_data_points.append({
+                            "lat": jittered_lat,
+                            "lon": jittered_lon,
+                            "wind_speed_10m": wind_data.get("wind_speed_10m"),
+                            "wind_direction_10m": wind_data.get("wind_direction_10m"),
+                            "wind_gusts_10m": wind_data.get("wind_gusts_10m"),
+                            "timestamp": wind_data.get("timestamp")
+                        })
+                        jittered_point_created = True
+                        break  # Successfully created jittered point, move to next
+                
+                # If we couldn't create a valid jittered point after max_retries, skip it
+                # This should be rare with 20% jitter range, but can happen near bounds edges
+                if not jittered_point_created:
+                    logger.debug(
+                        f"Could not create valid jittered point for base point ({lat}, {lon}) "
+                        f"after {max_retries} retries. Point may be too close to bounds edge."
+                    )
     
-    logger.info(f"Successfully fetched wind data for {len(wind_data_points)}/{len(grid_points)} points")
+    # More accurate log message
+    expected_total = len(grid_points) * jitter_factor
+    logger.info(
+        f"Successfully fetched wind data for {len(wind_data_points)} points "
+        f"({len(grid_points)} base points + {total_jittered_success}/{total_jittered_attempts} jittered variations, "
+        f"expected ~{expected_total} total)"
+    )
     return wind_data_points
 

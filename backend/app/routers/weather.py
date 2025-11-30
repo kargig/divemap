@@ -49,6 +49,7 @@ async def get_wind_data(
     west: Optional[float] = Query(None, ge=-180, le=180, description="West bound for area query"),
     zoom_level: Optional[int] = Query(None, ge=1, le=20, description="Map zoom level (affects grid density)"),
     datetime_str: Optional[str] = Query(None, description="Target date/time in ISO format (YYYY-MM-DDTHH:MM:SS). Defaults to current time. Max +2 days ahead."),
+    jitter_factor: Optional[int] = Query(5, ge=1, le=10, description="Number of jittered variations per grid point (default: 5, max: 10)"),
     current_user: Optional = Depends(get_current_user_optional)
 ):
     """
@@ -136,7 +137,7 @@ async def get_wind_data(
                     detail="East bound must be greater than west bound"
                 )
             
-            wind_data_points = fetch_wind_data_grid(bounds, zoom_level, target_datetime)
+            wind_data_points = fetch_wind_data_grid(bounds, zoom_level, target_datetime, jitter_factor)
             
             points = [
                 WindDataPoint(

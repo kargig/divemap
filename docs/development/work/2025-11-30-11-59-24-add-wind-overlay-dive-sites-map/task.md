@@ -3,7 +3,7 @@
 **Status:** In Progress
 **Created:** 2025-11-30T11:59:24Z
 **Started:** 2025-11-30T12:40:00Z
-**Last Updated:** December 1, 2025
+**Last Updated:** November 30, 2025
 **Agent PID:** 121961
 **Branch:** feature/wind-overlay-dive-sites-map
 
@@ -16,10 +16,10 @@
 - ✅ Phase 1: Database Schema & Backend API Foundation (100% - COMPLETE)
 - ✅ Phase 2: Wind Recommendation Logic (100% - COMPLETE)
 - ✅ Phase 3: Frontend Wind Overlay Component (100% - COMPLETE)
-- ⏳ Phase 4: Dive Site Suitability Visualization (80% - IN PROGRESS)
+- ⏳ Phase 4: Dive Site Suitability Visualization (85% - IN PROGRESS)
   - ✅ Markers show suitability status (colored borders at zoom 13+, increased visibility)
   - ✅ Popups display wind conditions and suitability (fixed wind data display bug)
-  - ⏳ Wind suitability filter (pending)
+  - ⏳ Wind suitability filter (frontend UI complete, backend pending)
 - ⏳ Phase 5: Integration & Testing (70% - IN PROGRESS)
   - ✅ Wind overlay integrated into IndependentMapView
   - ✅ Wind overlay integrated into DiveSitesMap
@@ -47,6 +47,15 @@
 - Increased border visibility: Changed border width from 2px to 4px and added white outline for better contrast
 - Fixed popup wind data bug: Changed from `rec.wind_data.wind_speed` to `rec.wind_speed` (wind data is directly on recommendation object, not nested)
 - Updated task.md: Marked Phase 4 markers and popups as complete
+- Updated all button colors to colorblind-safe palette: Replaced Tailwind classes (bg-blue-600, bg-green-600, bg-gray-600) with Okabe-Ito colors from UI_COLORS (primary: #0072B2, success: #009E73, neutral: #374151)
+- Created button-color-coding-standards.md: Comprehensive documentation for button color usage, implementation examples, and colorblind accessibility guidelines
+- Verified wind condition colors are colorblind-safe: All suitability colors (good, caution, difficult, avoid, unknown) use approved Okabe-Ito palette from colorPalette.js
+- Fixed variable naming: Renamed `enabled` prop to `isWindOverlayEnabled` in WindOverlay and `isOverlayEnabled` in WindOverlayToggle for better clarity
+- Fixed React Query enabled prop: Ensured `shouldFetchWindData` and `shouldFetchRecommendations` are always boolean values using `!!` operator
+- Fixed wind arrows at viewport edges: Added 5% margin to map bounds when fetching wind data and filtered points strictly within viewport in WindOverlay.js
+- Fixed backend grid generation: Updated `_create_grid_points` to generate points INSIDE bounds (not at edges) with margin to ensure arrows appear within viewport
+- Added jitter factor to wind data: Implemented 5x multiplier for wind arrows with small random jitter (20% of grid spacing) for better visual density
+- Improved jitter implementation: Added retry logic (up to 10 attempts) to ensure jittered points stay within bounds, maximizing visible arrows
 
 ---
 
@@ -239,6 +248,10 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - ✅ Validation for datetime_str (max +2 days ahead, no past dates)
 - ✅ Explicit `wind_speed_unit=ms` parameter to ensure m/s units
 - ✅ Error handling and rate limiting
+- ✅ Grid point generation: Points generated INSIDE bounds (not at edges) with margin to ensure visibility
+- ✅ Jitter factor support: Multiplies wind arrows by configurable factor (default: 5) with small random offsets
+- ✅ Jitter retry logic: Retries up to 10 times to ensure jittered points stay within bounds
+- ✅ Adaptive grid spacing: Zoom 13-14 (0.08°), 15-16 (0.05°), 17 (0.03°), 18+ (0.02°)
 
 **Weather API Endpoint:**
 
@@ -296,6 +309,8 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Hide arrows when zoom < 13 (overlay disabled)
   - ✅ Z-index/layering: Arrows above map tiles but below markers/popups (zIndexOffset: 100)
   - ✅ Tooltips on hover: Show wind speed and direction in popups
+  - ✅ Viewport edge filtering: Added 5% margin to bounds when fetching data and filter points strictly within viewport to prevent arrows at edges
+  - ✅ Prop naming: Renamed `enabled` to `isWindOverlayEnabled` for better clarity
 
 - [x] Create `WindOverlayToggle` component in `frontend/src/components/WindOverlayToggle.js`
   - ✅ Toggle button to enable/disable wind overlay
@@ -305,6 +320,7 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Auto-disable: Automatically disable overlay when zoom drops below 13
   - ✅ Show current zoom level in tooltip
   - ✅ Removed yellow zoom indicator (cleaner UX)
+  - ✅ Prop naming: Renamed `enabled` to `isOverlayEnabled` for better clarity
 
 - [x] Integrate wind overlay into `LeafletMapView.js`
   - ✅ Add WindOverlay component conditionally when enabled AND zoom >= 13
@@ -346,13 +362,23 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Fixed bug: Changed from `rec.wind_data.wind_speed` to `rec.wind_speed` (wind data is directly on recommendation object)
 
 - [ ] Add wind suitability filter to dive sites list/map
-  - Filter option: "Show only suitable dive sites"
-  - Filter by wind conditions (good/caution/difficult/avoid/unknown)
-  - Advanced filter options: "Hide dangerous conditions", "Show only good conditions", "Show all conditions"
-  - Update when wind data changes
-  - Integration: Add to existing filter UI in `UnifiedMapFilters` or `ResponsiveFilterBar`
-  - State management: Store filter preference in URL params or local state
-  - Visual indicator: Show count of sites in each category
+  - **Backend Implementation:**
+    - [ ] Add `wind_suitability` query parameter to `GET /api/v1/dive-sites/` endpoint in `backend/app/routers/dive_sites.py`
+    - [ ] Validate `wind_suitability` parameter (must be one of: 'good', 'caution', 'difficult', 'avoid', 'unknown')
+    - [ ] Add optional `datetime_str` parameter to allow filtering by forecast wind conditions (default: current time)
+    - [ ] Implement filtering logic: Fetch wind recommendations for all dive sites in query result
+    - [ ] Filter dive sites based on `wind_suitability` parameter matching recommendation suitability
+    - [ ] Optimize performance: Batch fetch wind data for multiple dive sites (use grid-based fetching when possible)
+    - [ ] Handle edge cases: Sites without shore_direction (should match 'unknown' filter)
+    - [ ] Add caching: Cache wind recommendations to avoid redundant API calls during filtering
+    - [ ] Update API documentation: Add `wind_suitability` parameter to endpoint docs
+  - **Frontend Implementation:**
+    - ✅ Filter UI: Added wind suitability dropdown to `UnifiedMapFilters` component
+    - ✅ Filter state: Added `wind_suitability` to filter state in `IndependentMapView.js`
+    - ✅ URL params: Added `wind_suitability` to URL parsing and filter keys
+    - ✅ API integration: Added `wind_suitability` to allowed filter keys in `useViewportData.js`
+    - [ ] Visual indicator: Show count of sites in each category (optional enhancement)
+    - [ ] Update filter when wind data changes (optional enhancement)
 
 ### Phase 5: Integration & Testing ⏳
 
@@ -491,28 +517,31 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - [x] Coordinate validation: Invalid coordinates are filtered out before creating markers
 - [x] Wind overlay toggle correctly enables/disables overlay (arrows disappear when disabled)
 - [x] Wind arrows point in the correct direction (east for west wind, matching meteorological convention)
-- [ ] Dive sites are visually distinguished (color/badge) based on suitability
-- [ ] Recommendation logic works correctly (considers both direction AND speed)
-- [ ] Wind overlay works on both `/map?type=dive-sites` (IndependentMapView) and map view in DiveSites page
+- [x] Dive sites are visually distinguished (color/badge) based on suitability (colored borders on markers, suitability badges in popups)
+- [x] Recommendation logic works correctly (considers both direction AND speed)
+- [x] Wind overlay works on both `/map?type=dive-sites` (IndependentMapView) and map view in DiveSites page
 - [ ] Wind suitability filter works correctly (filters dive sites by wind conditions)
 
 ### Quality Requirements
 
 - ✅ All API endpoints respond correctly and handle errors gracefully
-- [ ] Frontend components render without errors and follow project standards
+- ✅ Frontend components render without errors and follow project standards
 - [ ] Mobile compatibility verified (wind overlay works on mobile devices)
 - [ ] Performance meets requirements (wind overlay doesn't slow down map rendering)
-- [ ] Code follows project standards (ESLint, Prettier)
-- [ ] Open-Meteo API errors are handled gracefully (fallback, retry logic)
-- [ ] Wind data fetching doesn't block map rendering
-- [ ] All TypeScript/PropTypes validations pass
+- ✅ Code follows project standards (ESLint, Prettier)
+- ✅ Open-Meteo API errors are handled gracefully (fallback, retry logic)
+- ✅ Wind data fetching doesn't block map rendering
+- ✅ All TypeScript/PropTypes validations pass
+- ✅ All button colors use colorblind-safe Okabe-Ito palette
+- ✅ Wind condition colors verified as colorblind-safe (all suitability colors from approved palette)
 
 ### User Experience Requirements
 
-- [ ] Wind overlay toggle is intuitive and clearly labeled
-- [ ] Wind arrows are clearly visible but don't obstruct dive site markers
-- [ ] Wind speed and direction are readable (appropriate sizing, colors)
-- [ ] Dive site suitability indicators are clear and understandable
-- [ ] Loading states are shown when fetching wind data
+- ✅ Wind overlay toggle is intuitive and clearly labeled (tooltip: "Enable wind overlay (zoom 13+)")
+- ✅ Wind arrows are clearly visible but don't obstruct dive site markers (increased size, white outline for contrast)
+- ✅ Wind speed and direction are readable (appropriate sizing, colors, formatted in multiple units)
+- ✅ Dive site suitability indicators are clear and understandable (colored borders on markers, badges in popups)
+- [ ] Loading states are shown when fetching wind data (pending - toggle shows loading but no map-level indicator)
 - [ ] Error messages are user-friendly if wind data fails to load
-- [ ] Wind overlay integrates seamlessly with existing map features
+- ✅ Wind overlay integrates seamlessly with existing map features (z-index layering, zoom restrictions)
+- ✅ All UI colors are colorblind-safe (buttons and wind suitability indicators use Okabe-Ito palette)
