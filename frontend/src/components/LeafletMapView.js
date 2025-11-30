@@ -1,9 +1,15 @@
 import L, { Icon } from 'leaflet';
 import React, { useMemo, useCallback, useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { useQuery } from 'react-query';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster';
+
+import api from '../api';
+
+import WindOverlay from './WindOverlay';
+import WindOverlayToggle from './WindOverlayToggle';
 
 // Helper: convert URLs in plain text to clickable links (for HTML string popups)
 const linkifyText = text => {
@@ -488,8 +494,17 @@ const LeafletMapView = ({
   onLayerChange,
   onMapInstance,
   resetTrigger,
+  windOverlayEnabled: externalWindOverlayEnabled,
+  setWindOverlayEnabled: externalSetWindOverlayEnabled,
 }) => {
   const [mapMetadata, setMapMetadata] = useState(null);
+  const [internalWindOverlayEnabled, setInternalWindOverlayEnabled] = useState(false);
+  const windOverlayEnabled =
+    externalWindOverlayEnabled !== undefined
+      ? externalWindOverlayEnabled
+      : internalWindOverlayEnabled;
+  const setWindOverlayEnabled = externalSetWindOverlayEnabled || setInternalWindOverlayEnabled;
+  const [debouncedBounds, setDebouncedBounds] = useState(null);
   // Create custom icons for different entity types
   const createEntityIcon = useCallback((entityType, isCluster = false, count = 1) => {
     const size = isCluster ? Math.min(24 + count * 2, 48) : 24;
@@ -572,6 +587,60 @@ const LeafletMapView = ({
       popupAnchor: [0, -size / 2],
     });
   }, []);
+
+  // Debounce bounds changes for wind data fetching
+  useEffect(() => {
+    if (!mapMetadata?.bounds) return;
+
+    const timer = setTimeout(() => {
+      setDebouncedBounds(mapMetadata.bounds);
+    }, 1000); // 1 second debounce
+
+    return () => clearTimeout(timer);
+  }, [mapMetadata?.bounds]);
+
+  // Fetch wind data when overlay is enabled and zoom >= 13
+  const shouldFetchWindData =
+    windOverlayEnabled &&
+    mapMetadata?.zoom >= 13 &&
+    mapMetadata?.zoom <= 18 &&
+    debouncedBounds &&
+    selectedEntityType === 'dive-sites';
+
+  const { data: windData, isLoading: isLoadingWind } = useQuery(
+    ['wind-data', debouncedBounds, mapMetadata?.zoom],
+    async () => {
+      if (!debouncedBounds) return null;
+
+      const params = {
+        north: debouncedBounds.north,
+        south: debouncedBounds.south,
+        east: debouncedBounds.east,
+        west: debouncedBounds.west,
+        zoom_level: Math.round(mapMetadata.zoom),
+      };
+
+      const response = await api.get('/api/v1/weather/wind', { params });
+      return response.data;
+    },
+    {
+      enabled: shouldFetchWindData,
+      staleTime: 5 * 60 * 1000, // 5 minutes - reduced for better responsiveness
+      cacheTime: 15 * 60 * 1000, // 15 minutes cache
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: true,
+      // Keep previous data while refetching to prevent arrows from disappearing
+      keepPreviousData: true,
+    }
+  );
+
+  // Auto-disable wind overlay when zoom drops below 13
+  useEffect(() => {
+    if (windOverlayEnabled && mapMetadata?.zoom < 13) {
+      setWindOverlayEnabled(false);
+    }
+  }, [windOverlayEnabled, mapMetadata?.zoom]);
 
   // Process data into markers
   const markers = useMemo(() => {
@@ -736,17 +805,26 @@ const LeafletMapView = ({
           onViewportChange={onViewportChange}
           resetTrigger={resetTrigger}
         />
+        {/* Wind Overlay - only show for dive sites */}
+        {selectedEntityType === 'dive-sites' &&
+          windOverlayEnabled &&
+          mapMetadata?.zoom >= 13 &&
+          mapMetadata?.zoom <= 18 &&
+          windData && (
+            <WindOverlay windData={windData} enabled={windOverlayEnabled} maxArrows={100} />
+          )}
       </MapContainer>
 
-      {/* Map controls overlay */}
-      <div className='absolute top-4 right-4 bg-white rounded-lg shadow-lg p-3 text-sm space-y-2 max-w-xs'>
+      {/* Zoom level indicator - top left (matching DiveSiteMap style) */}
+      <div className='absolute top-4 left-16 z-50 bg-white/90 text-gray-800 text-xs px-2 py-1 rounded shadow border border-gray-200'>
+        Zoom: {(mapMetadata?.zoom || viewport?.zoom || 8).toFixed(1)}
+      </div>
+
+      {/* Map controls overlay - positioned below the wind toggle button */}
+      <div className='absolute top-20 right-4 bg-white rounded-lg shadow-lg p-3 text-sm space-y-2 max-w-xs z-40'>
         <div className='flex items-center space-x-2'>
           <div className='w-3 h-3 bg-green-500 rounded-full'></div>
           <span>{markers.length} points</span>
-        </div>
-        <div className='flex items-center space-x-2'>
-          <div className='w-3 h-3 bg-blue-500 rounded-full'></div>
-          <span>Zoom: {mapMetadata?.zoom || viewport?.zoom || 8}</span>
         </div>
         {mapMetadata?.center && (
           <div className='flex items-center space-x-2'>

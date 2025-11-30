@@ -5,10 +5,15 @@ import 'leaflet.markercluster';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { useQuery } from 'react-query';
 import { Link, useLocation } from 'react-router-dom';
 
+import api from '../api';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
+
+import WindOverlay from './WindOverlay';
+import WindOverlayToggle from './WindOverlayToggle';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -44,6 +49,46 @@ const FitBounds = ({ bounds }) => {
     if (!map || !bounds) return;
     map.fitBounds(bounds, { padding: [20, 20] });
   }, [map, bounds]);
+  return null;
+};
+
+// Helper component to track map bounds and metadata for wind overlay
+const MapMetadataTracker = ({ onMetadataChange }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (!map) return;
+
+    const updateMetadata = () => {
+      const bounds = map.getBounds();
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+
+      onMetadataChange({
+        bounds: {
+          north: bounds.getNorth(),
+          south: bounds.getSouth(),
+          east: bounds.getEast(),
+          west: bounds.getWest(),
+        },
+        center: {
+          lat: center.lat,
+          lng: center.lng,
+        },
+        zoom,
+      });
+    };
+
+    // Update on move and zoom
+    map.on('moveend', updateMetadata);
+    map.on('zoomend', updateMetadata);
+    updateMetadata(); // Initial update
+
+    return () => {
+      map.off('moveend', updateMetadata);
+      map.off('zoomend', updateMetadata);
+    };
+  }, [map, onMetadataChange]);
+
   return null;
 };
 
@@ -196,6 +241,9 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
   const [maxZoom] = useState(18);
   const [useClustering, setUseClustering] = useState(true);
   const [mapCenter, setMapCenter] = useState([0, 0]);
+  const [windOverlayEnabled, setWindOverlayEnabled] = useState(false);
+  const [mapMetadata, setMapMetadata] = useState(null);
+  const [debouncedBounds, setDebouncedBounds] = useState(null);
 
   // Create custom dive site icon
   const createDiveSiteIcon = () => {
@@ -290,6 +338,48 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
     // Intentionally no-op to avoid render loops with parent state
   };
 
+  // Debounce bounds changes for wind data fetching
+  useEffect(() => {
+    if (!mapMetadata?.bounds) return;
+
+    const timer = setTimeout(() => {
+      setDebouncedBounds(mapMetadata.bounds);
+    }, 1000); // 1 second debounce
+
+    return () => clearTimeout(timer);
+  }, [mapMetadata?.bounds]);
+
+  // Fetch wind data when overlay is enabled and zoom >= 13
+  const shouldFetchWindData =
+    windOverlayEnabled && mapMetadata?.zoom >= 13 && mapMetadata?.zoom <= 18 && debouncedBounds;
+
+  const { data: windData, isLoading: isLoadingWind } = useQuery(
+    ['wind-data', debouncedBounds, mapMetadata?.zoom],
+    async () => {
+      if (!debouncedBounds) return null;
+
+      const params = {
+        north: debouncedBounds.north,
+        south: debouncedBounds.south,
+        east: debouncedBounds.east,
+        west: debouncedBounds.west,
+        zoom_level: Math.round(mapMetadata.zoom),
+      };
+
+      const response = await api.get('/api/v1/weather/wind', { params });
+      return response.data;
+    },
+    {
+      enabled: shouldFetchWindData,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 15 * 60 * 1000, // 15 minutes cache
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: true,
+      keepPreviousData: true,
+    }
+  );
+
   return (
     <div className='w-full h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden shadow-md relative'>
       <MapContainer
@@ -308,6 +398,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
           onZoomChange={handleZoomChange}
           onClusteringChange={handleClusteringChange}
         />
+        <MapMetadataTracker onMetadataChange={setMapMetadata} />
         {mapBounds && <FitBounds bounds={mapBounds} />}
 
         {/* Use clustering when enabled, individual markers when disabled */}
@@ -354,6 +445,11 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
             </Marker>
           ))
         )}
+
+        {/* Wind Overlay - only show when enabled and zoom >= 13 */}
+        {windOverlayEnabled && mapMetadata?.zoom >= 13 && mapMetadata?.zoom <= 18 && windData && (
+          <WindOverlay windData={windData} enabled={windOverlayEnabled} maxArrows={100} />
+        )}
       </MapContainer>
 
       {/* Info overlays */}
@@ -363,6 +459,16 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
 
       <div className='absolute top-2 left-12 bg-white rounded px-2 py-1 text-xs font-medium z-10 shadow-sm border border-gray-200'>
         Zoom: {currentZoom.toFixed(1)}
+      </div>
+
+      {/* Wind Overlay Toggle Button */}
+      <div className='absolute top-2 right-2 bg-white rounded-lg shadow-lg p-2 z-10'>
+        <WindOverlayToggle
+          enabled={windOverlayEnabled}
+          onToggle={setWindOverlayEnabled}
+          zoomLevel={currentZoom}
+          isLoading={isLoadingWind}
+        />
       </div>
     </div>
   );
@@ -391,6 +497,10 @@ MapZoomTracker.propTypes = {
 
 FitBounds.propTypes = {
   bounds: PropTypes.array.isRequired,
+};
+
+MapMetadataTracker.propTypes = {
+  onMetadataChange: PropTypes.func.isRequired,
 };
 
 MarkerClusterGroup.propTypes = {

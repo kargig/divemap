@@ -11,6 +11,7 @@ import {
   Check,
   RotateCcw,
   Wrench,
+  Wind,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGeolocated } from 'react-geolocated';
@@ -116,6 +117,7 @@ const IndependentMapView = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMobileControls, setShowMobileControls] = useState(!isMobile);
   const [selectedEntityType, setSelectedEntityType] = useState('dive-sites'); // 'dive-sites', 'diving-centers', 'dives', 'dive-trips'
+  const [windOverlayEnabled, setWindOverlayEnabled] = useState(false);
 
   // Update mobile controls visibility based on screen size
   useEffect(() => {
@@ -607,9 +609,29 @@ const IndependentMapView = () => {
                     className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
                       showLayers ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'
                     }`}
+                    title='Map layers'
                   >
                     <Layers className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
                   </button>
+
+                  {/* Wind Overlay Toggle - only show for dive sites */}
+                  {selectedEntityType === 'dive-sites' && (
+                    <button
+                      onClick={() => {
+                        // Toggle wind overlay - we'll need to pass this to LeafletMapView
+                        // For now, we'll manage state here and pass it as a prop
+                        setWindOverlayEnabled(prev => !prev);
+                      }}
+                      className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
+                        windOverlayEnabled
+                          ? 'bg-blue-100 text-blue-600'
+                          : 'hover:bg-gray-100 text-gray-600'
+                      }`}
+                      title={windOverlayEnabled ? 'Disable wind overlay' : 'Enable wind overlay'}
+                    >
+                      <Wind className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                    </button>
+                  )}
 
                   {/* Geolocation button - Smaller on mobile */}
                   <button
@@ -809,6 +831,8 @@ const IndependentMapView = () => {
             onLayerChange={handleLayerChange}
             onMapInstance={setMapInstance}
             resetTrigger={resetTrigger}
+            windOverlayEnabled={windOverlayEnabled}
+            setWindOverlayEnabled={setWindOverlayEnabled}
           />
 
           {/* Layers panel */}
