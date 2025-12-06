@@ -90,6 +90,7 @@ def _create_grid_points(bounds: Dict, zoom_level: Optional[int] = None) -> List[
     Create a grid of points within the given bounds.
     
     Grid density adapts based on zoom level:
+    - Zoom 12: 0.10° spacing (~11km)
     - Zoom 13-14: 0.08° spacing (~8.8km)
     - Zoom 15-16: 0.05° spacing (~5.5km)
     - Zoom 17: 0.03° spacing (~3.3km)
@@ -108,8 +109,10 @@ def _create_grid_points(bounds: Dict, zoom_level: Optional[int] = None) -> List[
         spacing = 0.03
     elif zoom_level >= 15:
         spacing = 0.05
-    else:  # zoom 13-14
+    elif zoom_level >= 13:
         spacing = 0.08
+    else:  # zoom 12
+        spacing = 0.10
     
     # Add a small margin to ensure points are INSIDE bounds, not at edges
     # Margin is 10% of spacing to keep points away from edges
@@ -133,6 +136,21 @@ def _create_grid_points(bounds: Dict, zoom_level: Optional[int] = None) -> List[
         # Sample evenly
         step = len(points) // max_points
         points = points[::step][:max_points]
+    
+    # Log grid point distribution for debugging
+    if points:
+        logger.info(
+            f"Grid point distribution: "
+            f"total={len(points)}, "
+            f"lat_range=[{min(p[0] for p in points):.6f}, {max(p[0] for p in points):.6f}], "
+            f"lon_range=[{min(p[1] for p in points):.6f}, {max(p[1] for p in points):.6f}], "
+            f"bounds={{north={bounds['north']:.6f}, south={bounds['south']:.6f}, "
+            f"east={bounds['east']:.6f}, west={bounds['west']:.6f}}}, "
+            f"zoom={zoom_level}, spacing={spacing}"
+        )
+        # Log first and last few points to verify distribution
+        logger.debug(f"First 5 grid points: {points[:5]}")
+        logger.debug(f"Last 5 grid points: {points[-5:]}")
     
     return points
 
@@ -295,8 +313,10 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
         base_spacing = 0.03
     elif zoom_level >= 15:
         base_spacing = 0.05
-    else:  # zoom 13-14
+    elif zoom_level >= 13:
         base_spacing = 0.08
+    else:  # zoom 12
+        base_spacing = 0.10
     
     # Jitter range is 20% of base spacing to create visual variety without losing accuracy
     # Reduced from 40% to ensure jittered points stay within bounds

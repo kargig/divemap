@@ -17,7 +17,7 @@
 - ✅ Phase 2: Wind Recommendation Logic (100% - COMPLETE)
 - ✅ Phase 3: Frontend Wind Overlay Component (100% - COMPLETE)
 - ⏳ Phase 4: Dive Site Suitability Visualization (85% - IN PROGRESS)
-  - ✅ Markers show suitability status (colored borders at zoom 13+, increased visibility)
+  - ✅ Markers show suitability status (colored borders at zoom 12+, increased visibility)
   - ✅ Popups display wind conditions and suitability (fixed wind data display bug)
   - ⏳ Wind suitability filter (frontend UI complete, backend pending)
 - ⏳ Phase 5: Integration & Testing (70% - IN PROGRESS)
@@ -36,14 +36,13 @@
 - Updated DiveSiteUpdate schema: Added missing shore_direction fields
 - Fixed RouteLayer validation in DiveSiteMap.js: Added coordinate validation to prevent "Invalid LatLng" errors
 - Updated zoom level display: Changed to match DiveSiteMap style (top-left, white background)
-- Changed minimum zoom level: Wind overlay now available at zoom 13-18 (changed from 15-18)
 - Removed yellow zoom indicator: Cleaned up WindOverlayToggle tooltip display
 - Fixed wind overlay toggle: Changed hardcoded `enabled={true}` to `enabled={windOverlayEnabled}` in LeafletMapView.js and DiveSitesMap.js
 - Improved WindOverlay cleanup: Always remove markers when component unmounts or enabled becomes false
-- Fixed arrow direction calculation: Corrected formula from `(targetDirection - 90 + 360) % 360` to `(360 - targetDirection) % 360` to properly point arrows in the direction wind is going
+- Fixed arrow direction calculation (first attempt): Corrected formula from `(targetDirection - 90 + 360) % 360` to `(360 - targetDirection) % 360` (this was still incorrect)
 - Cleaned up WindOverlay.js comments: Removed redundant explanations, kept only essential documentation
 - Added wind conditions to dive site popups: Suitability badge, wind speed/direction/gusts, reasoning, and warnings
-- Updated dive site markers with colored borders: Show suitability status at zoom 13+ when wind overlay enabled
+- Updated dive site markers with colored borders: Show suitability status at zoom 12+ when wind overlay enabled
 - Increased border visibility: Changed border width from 2px to 4px and added white outline for better contrast
 - Fixed popup wind data bug: Changed from `rec.wind_data.wind_speed` to `rec.wind_speed` (wind data is directly on recommendation object, not nested)
 - Updated task.md: Marked Phase 4 markers and popups as complete
@@ -64,6 +63,14 @@
 - Fixed test datetime mocking: Added freezegun library (v1.5.5) to simplify datetime mocking in tests, replacing complex manual datetime patching with simple `@freeze_time()` decorator
 - Refactored test datetime handling: Updated `test_parse_forecast_response_exact_hour` and `test_fetch_wind_data_single_point_forecast` to use freezegun, reducing test code complexity by ~13 lines per test
 - Fixed test cache isolation: Added cache clearing to `test_fetch_wind_data_single_point_caching` using `monkeypatch` to ensure test isolation
+- Fixed wind arrow direction calculation: Corrected formula from `(targetDirection - 90 + 360) % 360` to `(targetDirection - 180 + 360) % 360` to properly account for default arrow pointing down (south, 180° compass). Formula now correctly rotates from default down position to target direction
+- Changed minimum zoom level: Wind overlay now available at zoom 12-18 (changed from 13-18) for better accessibility
+- Added zoom level 12 support: Backend grid spacing updated to 0.10° (~11km) for zoom level 12
+- Added logging for debugging: Frontend console logs for bounds calculation and grid point distribution, backend logs for grid point generation
+- Reduced frontend margin: Changed from 5% to 2.5% margin for better arrow coverage while still ensuring arrows appear within viewport
+- Added visible loading indicator: Centered loading overlay on map showing "Loading wind data..." with spinner when wind data is being fetched (initial load or refetch on map movement)
+- Fixed loading state: Updated to use `isFetching` in addition to `isLoading` so loading indicator appears on refetches (map movement, zoom changes, datetime changes)
+- Added close button to map info box: Users can now dismiss the map info box showing points count and coordinates
 
 ---
 
@@ -166,7 +173,7 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - WindOverlay component renders wind arrows on map
 - WindOverlayToggle component enables/disables overlay with zoom restrictions
 - Wind overlay integrated into LeafletMapView
-- Zoom level 13-18 restriction enforced (toggle disabled < 13, auto-hide < 13)
+- Zoom level 12-18 restriction enforced (toggle disabled < 12, auto-hide < 12)
 - Wind data fetching debounced and cached
 - Performance optimized (max arrows, React.memo, lazy loading)
 - Datetime selection: Users can select date/time for wind data (current or up to +2 days ahead)
@@ -261,7 +268,7 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - ✅ Grid point generation: Points generated INSIDE bounds (not at edges) with margin to ensure visibility
 - ✅ Jitter factor support: Multiplies wind arrows by configurable factor (default: 5) with small random offsets
 - ✅ Jitter retry logic: Retries up to 10 times to ensure jittered points stay within bounds
-- ✅ Adaptive grid spacing: Zoom 13-14 (0.08°), 15-16 (0.05°), 17 (0.03°), 18+ (0.02°)
+- ✅ Adaptive grid spacing: Zoom 12 (0.10°), 13-14 (0.08°), 15-16 (0.05°), 17 (0.03°), 18+ (0.02°)
 
 **Weather API Endpoint:**
 
@@ -356,8 +363,8 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Grid placement: Show wind arrows at grid points from API response
   - ✅ Performance optimization: Limit max arrows (100), debounce map movements
   - ✅ Coordinate validation: Validates lat/lon are valid numbers within valid ranges before creating markers
-  - ✅ Zoom level handling: Only show arrows at zoom level 13-18
-  - ✅ Hide arrows when zoom < 13 (overlay disabled)
+  - ✅ Zoom level handling: Only show arrows at zoom level 12-18
+  - ✅ Hide arrows when zoom < 12 (overlay disabled)
   - ✅ Z-index/layering: Arrows above map tiles but below markers/popups (zIndexOffset: 100)
   - ✅ Tooltips on hover: Show wind speed and direction in popups
   - ✅ Viewport edge filtering: Added 5% margin to bounds when fetching data and filter points strictly within viewport to prevent arrows at edges
@@ -365,29 +372,33 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 
 - [x] Create `WindOverlayToggle` component in `frontend/src/components/WindOverlayToggle.js`
   - ✅ Toggle button to enable/disable wind overlay
-  - ✅ Zoom level checking: Disable button when zoom < 13
+  - ✅ Zoom level checking: Disable button when zoom < 12
   - ✅ Visual feedback: Disabled state (grayed out with tooltip), Enabled state (active button)
-  - ✅ Show loading state when fetching data
-  - ✅ Auto-disable: Automatically disable overlay when zoom drops below 13
+  - ✅ Show loading state when fetching data (spinner icon on button)
+  - ✅ Auto-disable: Automatically disable overlay when zoom drops below 12
   - ✅ Show current zoom level in tooltip
   - ✅ Removed yellow zoom indicator (cleaner UX)
   - ✅ Prop naming: Renamed `enabled` to `isOverlayEnabled` for better clarity
 
 - [x] Integrate wind overlay into `LeafletMapView.js`
-  - ✅ Add WindOverlay component conditionally when enabled AND zoom >= 13
+  - ✅ Add WindOverlay component conditionally when enabled AND zoom >= 12
   - ✅ Pass map bounds and zoom level to fetch wind data for visible area
-  - ✅ Zoom level restriction: Only fetch/display wind data when zoom >= 13
-  - ✅ Zoom change handling: Automatically hide wind overlay when zoom < 13
+  - ✅ Zoom level restriction: Only fetch/display wind data when zoom >= 12
+  - ✅ Zoom change handling: Automatically hide wind overlay when zoom < 12
   - ✅ Debounce map movements: Wait 1s after map stops moving before fetching
   - ✅ Viewport change detection: Only fetch when bounds change significantly
   - ✅ Handle wind data updates via React Query
-  - ✅ Lazy loading: Only fetch wind data when overlay toggle is enabled AND zoom >= 13
+  - ✅ Lazy loading: Only fetch wind data when overlay toggle is enabled AND zoom >= 12
   - ✅ Cache wind data: Use React Query cache (5min stale, 15min cache) - reduced for better responsiveness
-  - ✅ Zoom level monitoring: Auto-disable overlay when zoom < 13
+  - ✅ Zoom level monitoring: Auto-disable overlay when zoom < 12
   - ✅ Zoom level display: Updated to match DiveSiteMap style (top-left, white background with border)
   - ✅ Fixed toggle functionality: Changed `enabled={true}` to `enabled={windOverlayEnabled}` to properly respect toggle state
   - ✅ Improved marker cleanup: Always remove markers when overlay is disabled or component unmounts
-  - ✅ Fixed arrow direction: Corrected rotation formula to properly point arrows in the direction wind is going (east for west wind)
+  - ✅ Fixed arrow direction: Corrected rotation formula from `(targetDirection - 90 + 360) % 360` to `(targetDirection - 180 + 360) % 360` to properly point arrows in the direction wind is going (accounts for default arrow pointing down/south)
+  - ✅ Added visible loading indicator: Centered overlay on map showing "Loading wind data..." with spinner when fetching (uses `isFetching` to show on refetches too)
+  - ✅ Added logging: Console logs for bounds calculation and grid point distribution for debugging
+  - ✅ Reduced frontend margin: Changed from 5% to 2.5% for better arrow coverage
+  - ✅ Added close button to map info box: Users can dismiss the info box showing points count and coordinates
 
 ### Phase 4: Dive Site Suitability Visualization ⏳
 
@@ -397,7 +408,7 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Added colored border/ring to markers (4px width with white outline for visibility)
   - ✅ Green for good, yellow for caution, orange for difficult, red for avoid, gray for unknown
   - ✅ Implementation: Colored border around existing marker icon
-  - ✅ Conditional display: Only show suitability indicators when wind overlay is enabled AND zoom >= 13
+  - ✅ Conditional display: Only show suitability indicators when wind overlay is enabled AND zoom >= 12
   - ✅ Z-index: Markers remain above wind arrows
   - ✅ Increased border visibility: Changed from 2px to 4px with white outline for better contrast
 
@@ -496,10 +507,10 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - [x] Test shore direction detection (various coordinates, bearing calculations, confidence levels, manual override)
     - ✅ Test coverage includes distance calculations, bearing accuracy, confidence level assignment, and edge cases
   - [ ] Test wind overlay performance (many wind data points, map panning/zooming, mobile touch interactions, debouncing)
-  - [ ] Test zoom level restrictions (toggle disabled < 13, auto-hide < 13, enable at 13+, verify no API calls < 13)
+  - [ ] Test zoom level restrictions (toggle disabled < 12, auto-hide < 12, enable at 12+, verify no API calls < 12)
   - [ ] Test wind recommendation edge cases (null shore_direction, various wind speeds, gusts, 360° wrap, boat-only sites)
   - [x] Test wind data grid resolution (different zoom levels, grid density adaptation, large/small map bounds)
-    - ✅ Grid generation tests verify adaptive spacing for zoom levels 13-18
+    - ✅ Grid generation tests verify adaptive spacing for zoom levels 12-18
   - [ ] Test integration with existing map features (all map layers, z-index/layering, marker clustering, route overlays)
 
 ### Phase 6: User Experience Polish ⏳
@@ -510,7 +521,7 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - Explain what wind overlay shows (wind speed and direction)
   - Explain how to interpret arrows (direction wind is coming FROM)
   - Explain suitability colors (green/yellow/red)
-  - Explain zoom requirement: "Wind overlay requires zoom level 13 or higher to avoid excessive API calls"
+  - Explain zoom requirement: "Wind overlay requires zoom level 12 or higher to avoid excessive API calls"
   - Link to help documentation
 
 - [ ] Add legend explaining wind arrow colors/sizes
@@ -534,6 +545,8 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - [x] Add loading indicators during wind data fetch
   - ✅ Show spinner/loading state on toggle button (WindOverlayToggle component)
   - ✅ Show "Loading wind data..." message in tooltip
+  - ✅ Centered map overlay with spinner and message when fetching wind data (visible on initial load and refetches)
+  - ✅ Uses `isFetching` in addition to `isLoading` to show indicator on map movements, zoom changes, and datetime changes
   - ✅ Disable toggle while loading
   - ✅ Integrated loading state from LeafletMapView to IndependentMapView via callback prop
 
@@ -577,12 +590,12 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 **Frontend (Phase 3-4):**
 
 - [x] Wind overlay toggle button appears in map controls when viewing dive sites
-- [x] Wind overlay is only available at zoom level 13-18 (to avoid excessive API calls)
-- [x] Toggle button is disabled/grayed out when zoom < 13
-- [x] Show tooltip: "Zoom in to level 13 or higher to enable wind overlay"
-- [x] Wind overlay can be enabled/disabled via toggle button (when zoom >= 13)
+- [x] Wind overlay is only available at zoom level 12-18 (to avoid excessive API calls)
+- [x] Toggle button is disabled/grayed out when zoom < 12
+- [x] Show tooltip: "Zoom in to level 12 or higher to enable wind overlay"
+- [x] Wind overlay can be enabled/disabled via toggle button (when zoom >= 12)
 - [x] Wind arrows/vectors display on map showing direction and speed when overlay is enabled
-- [x] Wind overlay automatically disables when zoom drops below 13
+- [x] Wind overlay automatically disables when zoom drops below 12
 - [x] Wind data updates automatically (every 15-30 minutes) or on manual refresh
 - [x] Zoom level is visible in `/map?type=dive-sites` (IndependentMapView) - matches DiveSiteMap style
 - [x] Wind overlay respects zoom level restrictions (only active at zoom 13-18)
@@ -611,11 +624,14 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 
 ### User Experience Requirements
 
-- ✅ Wind overlay toggle is intuitive and clearly labeled (tooltip: "Enable wind overlay (zoom 13+)")
+- ✅ Wind overlay toggle is intuitive and clearly labeled (tooltip: "Enable wind overlay (zoom 12+)")
 - ✅ Wind arrows are clearly visible but don't obstruct dive site markers (increased size, white outline for contrast)
 - ✅ Wind speed and direction are readable (appropriate sizing, colors, formatted in multiple units)
 - ✅ Dive site suitability indicators are clear and understandable (colored borders on markers, badges in popups)
-- [ ] Loading states are shown when fetching wind data (pending - toggle shows loading but no map-level indicator)
+- [x] Loading states are shown when fetching wind data
+  - ✅ Toggle button shows spinner icon when loading
+  - ✅ Centered map overlay shows "Loading wind data..." with spinner when fetching (appears on initial load and refetches)
+  - ✅ Uses `isFetching` in addition to `isLoading` to show indicator on map movements and other refetches
 - [ ] Error messages are user-friendly if wind data fails to load
 - ✅ Wind overlay integrates seamlessly with existing map features (z-index layering, zoom restrictions)
 - ✅ All UI colors are colorblind-safe (buttons and wind suitability indicators use Okabe-Ito palette)

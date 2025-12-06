@@ -5,19 +5,19 @@ import React, { useState, useEffect } from 'react';
 /**
  * WindOverlayToggle Component
  * Toggle button to enable/disable wind overlay with zoom level restrictions
- * Only enabled at zoom levels 13-18
+ * Only enabled at zoom levels 12-18
  */
 const WindOverlayToggle = ({ isOverlayEnabled, onToggle, zoomLevel, isLoading, disabled }) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  // Auto-disable when zoom drops below 13
+  // Auto-disable when zoom drops below 12
   useEffect(() => {
-    if (isOverlayEnabled && zoomLevel < 13) {
+    if (isOverlayEnabled && zoomLevel < 12) {
       onToggle(false);
     }
   }, [isOverlayEnabled, zoomLevel, onToggle]);
 
-  const isButtonDisabled = disabled || zoomLevel < 13;
+  const isButtonDisabled = disabled || zoomLevel < 12;
 
   const handleClick = () => {
     if (!isButtonDisabled && !isLoading) {
@@ -29,13 +29,13 @@ const WindOverlayToggle = ({ isOverlayEnabled, onToggle, zoomLevel, isLoading, d
     if (isLoading) {
       return 'Loading wind data...';
     }
-    if (zoomLevel < 13) {
-      return 'Zoom in to level 13 or higher to enable wind overlay';
+    if (zoomLevel < 12) {
+      return 'Zoom in to level 12 or higher to enable wind overlay';
     }
     if (isOverlayEnabled) {
       return 'Disable wind overlay';
     }
-    return 'Enable wind overlay (zoom 13+)';
+    return 'Enable wind overlay (zoom 12+)';
   };
 
   return (
@@ -66,7 +66,7 @@ const WindOverlayToggle = ({ isOverlayEnabled, onToggle, zoomLevel, isLoading, d
       {isHovered && (
         <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50'>
           {getTooltipText()}
-          {zoomLevel >= 13 && (
+          {zoomLevel >= 12 && (
             <div className='text-gray-300 text-[10px] mt-0.5'>Zoom: {zoomLevel.toFixed(1)}</div>
           )}
         </div>

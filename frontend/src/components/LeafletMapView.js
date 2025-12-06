@@ -541,6 +541,7 @@ const LeafletMapView = ({
   setWindOverlayEnabled: externalSetWindOverlayEnabled,
   windDateTime,
   setWindDateTime,
+  onWindLoadingChange,
 }) => {
   const [mapMetadata, setMapMetadata] = useState(null);
   const [internalWindOverlayEnabled, setInternalWindOverlayEnabled] = useState(false);
@@ -550,6 +551,7 @@ const LeafletMapView = ({
       : internalWindOverlayEnabled;
   const setWindOverlayEnabled = externalSetWindOverlayEnabled || setInternalWindOverlayEnabled;
   const [debouncedBounds, setDebouncedBounds] = useState(null);
+  const [showMapInfoBox, setShowMapInfoBox] = useState(true);
   // Create custom icons for different entity types
   const createEntityIcon = useCallback(
     (entityType, isCluster = false, count = 1, suitability = null) => {
@@ -655,24 +657,24 @@ const LeafletMapView = ({
     return () => clearTimeout(timer);
   }, [mapMetadata?.bounds]);
 
-  // Fetch wind data when overlay is enabled and zoom >= 13
+  // Fetch wind data when overlay is enabled and zoom >= 12
   const shouldFetchWindData = !!(
     windOverlayEnabled &&
-    mapMetadata?.zoom >= 13 &&
+    mapMetadata?.zoom >= 12 &&
     mapMetadata?.zoom <= 18 &&
     debouncedBounds &&
     selectedEntityType === 'dive-sites'
   );
 
-  const { data: windData, isLoading: isLoadingWind } = useQuery(
+  const { data: windData, isLoading: isLoadingWind, isFetching: isFetchingWind } = useQuery(
     ['wind-data', debouncedBounds, mapMetadata?.zoom, windDateTime],
     async () => {
       if (!debouncedBounds) return null;
 
       // Add small margin to bounds to ensure arrows appear within viewport, not at edges
-      // Margin is approximately 5% of the bounds range
-      const latMargin = (debouncedBounds.north - debouncedBounds.south) * 0.05;
-      const lonMargin = (debouncedBounds.east - debouncedBounds.west) * 0.05;
+      // Margin is approximately 2.5% of the bounds range (reduced from 5% for better coverage)
+      const latMargin = (debouncedBounds.north - debouncedBounds.south) * 0.025;
+      const lonMargin = (debouncedBounds.east - debouncedBounds.west) * 0.025;
 
       const params = {
         north: debouncedBounds.north + latMargin,
@@ -682,12 +684,47 @@ const LeafletMapView = ({
         zoom_level: Math.round(mapMetadata.zoom),
       };
 
+      // Log bounds calculation for debugging
+      console.log('[WindOverlay] Bounds calculation:', {
+        originalBounds: {
+          north: debouncedBounds.north,
+          south: debouncedBounds.south,
+          east: debouncedBounds.east,
+          west: debouncedBounds.west,
+        },
+        margins: {
+          latMargin,
+          lonMargin,
+        },
+        expandedBounds: params,
+        zoom: mapMetadata.zoom,
+        boundsSize: {
+          latRange: debouncedBounds.north - debouncedBounds.south,
+          lonRange: debouncedBounds.east - debouncedBounds.west,
+        },
+      });
+
       // Add datetime_str if specified (null means current time, so don't include it)
       if (windDateTime) {
         params.datetime_str = windDateTime;
       }
 
       const response = await api.get('/api/v1/weather/wind', { params });
+      
+      // Log grid point distribution from API response
+      if (response.data && response.data.points) {
+        const points = response.data.points;
+        const lats = points.map(p => p.lat);
+        const lons = points.map(p => p.lon);
+        console.log('[WindOverlay] Grid point distribution from API:', {
+          totalPoints: points.length,
+          latRange: [Math.min(...lats), Math.max(...lats)],
+          lonRange: [Math.min(...lons), Math.max(...lons)],
+          first5Points: points.slice(0, 5).map(p => ({ lat: p.lat, lon: p.lon })),
+          last5Points: points.slice(-5).map(p => ({ lat: p.lat, lon: p.lon })),
+        });
+      }
+      
       return response.data;
     },
     {
@@ -702,23 +739,23 @@ const LeafletMapView = ({
     }
   );
 
-  // Auto-disable wind overlay when zoom drops below 13
+  // Auto-disable wind overlay when zoom drops below 12
   useEffect(() => {
-    if (windOverlayEnabled && mapMetadata?.zoom < 13) {
+    if (windOverlayEnabled && mapMetadata?.zoom < 12) {
       setWindOverlayEnabled(false);
     }
   }, [windOverlayEnabled, mapMetadata?.zoom]);
 
-  // Fetch wind recommendations when overlay is enabled and zoom >= 13
+  // Fetch wind recommendations when overlay is enabled and zoom >= 12
   const shouldFetchRecommendations = !!(
     windOverlayEnabled &&
-    mapMetadata?.zoom >= 13 &&
+    mapMetadata?.zoom >= 12 &&
     mapMetadata?.zoom <= 18 &&
     debouncedBounds &&
     selectedEntityType === 'dive-sites'
   );
 
-  const { data: windRecommendations, isLoading: isLoadingRecommendations } = useQuery(
+  const { data: windRecommendations, isLoading: isLoadingRecommendations, isFetching: isFetchingRecommendations } = useQuery(
     ['wind-recommendations', debouncedBounds, windDateTime],
     async () => {
       if (!debouncedBounds) return null;
@@ -750,6 +787,13 @@ const LeafletMapView = ({
     }
   );
 
+  // Notify parent of loading state changes (include fetching for refetches)
+  useEffect(() => {
+    if (onWindLoadingChange) {
+      onWindLoadingChange(isLoadingWind || isLoadingRecommendations || isFetchingWind || isFetchingRecommendations);
+    }
+  }, [isLoadingWind, isLoadingRecommendations, isFetchingWind, isFetchingRecommendations, onWindLoadingChange]);
+
   // Create a map of dive site ID to recommendation for quick lookup
   const recommendationsMap = useMemo(() => {
     if (!windRecommendations?.recommendations) return {};
@@ -767,10 +811,10 @@ const LeafletMapView = ({
     const allMarkers = [];
 
     // Determine if suitability indicators should be shown
-    // Only show at zoom 13+ when wind overlay is enabled
+    // Only show at zoom 12+ when wind overlay is enabled
     const showSuitability =
       windOverlayEnabled &&
-      mapMetadata?.zoom >= 13 &&
+      mapMetadata?.zoom >= 12 &&
       mapMetadata?.zoom <= 18 &&
       selectedEntityType === 'dive-sites' &&
       Object.keys(recommendationsMap).length > 0;
@@ -947,7 +991,7 @@ const LeafletMapView = ({
         {/* Wind Overlay - only show for dive sites */}
         {selectedEntityType === 'dive-sites' &&
           windOverlayEnabled &&
-          mapMetadata?.zoom >= 13 &&
+          mapMetadata?.zoom >= 12 &&
           mapMetadata?.zoom <= 18 &&
           windData && (
             <WindOverlay windData={windData} isWindOverlayEnabled={windOverlayEnabled} maxArrows={100} />
@@ -959,10 +1003,42 @@ const LeafletMapView = ({
         Zoom: {(mapMetadata?.zoom || viewport?.zoom || 8).toFixed(1)}
       </div>
 
+      {/* Wind loading indicator - show when fetching wind data (initial load or refetch) */}
+      {selectedEntityType === 'dive-sites' &&
+        windOverlayEnabled &&
+        mapMetadata?.zoom >= 12 &&
+        (isLoadingWind || isFetchingWind) && (
+          <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] bg-white/95 text-gray-800 px-4 py-3 rounded-lg shadow-lg border border-gray-300 flex items-center gap-3'>
+            <div className='animate-spin'>
+              <svg
+                className='w-5 h-5 text-blue-600'
+                xmlns='http://www.w3.org/2000/svg'
+                fill='none'
+                viewBox='0 0 24 24'
+              >
+                <circle
+                  className='opacity-25'
+                  cx='12'
+                  cy='12'
+                  r='10'
+                  stroke='currentColor'
+                  strokeWidth='4'
+                ></circle>
+                <path
+                  className='opacity-75'
+                  fill='currentColor'
+                  d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                ></path>
+              </svg>
+            </div>
+            <span className='text-sm font-medium'>Loading wind data...</span>
+          </div>
+        )}
+
       {/* Wind datetime info box - only show when wind overlay is enabled */}
       {selectedEntityType === 'dive-sites' &&
         windOverlayEnabled &&
-        mapMetadata?.zoom >= 13 &&
+        mapMetadata?.zoom >= 12 &&
         (windDateTime || windData) && (
           <div className='absolute top-4 left-48 z-50 bg-white/90 text-gray-800 text-xs px-2 py-1 rounded shadow border border-gray-200'>
             Wind data for:{' '}
@@ -979,24 +1055,50 @@ const LeafletMapView = ({
         )}
 
       {/* Map controls overlay - positioned below the wind toggle button */}
-      <div className='absolute top-20 right-4 bg-white rounded-lg shadow-lg p-3 text-sm space-y-2 max-w-xs z-40'>
-        <div className='flex items-center space-x-2'>
-          <div className='w-3 h-3 bg-green-500 rounded-full'></div>
-          <span>{markers.length} points</span>
+      {showMapInfoBox && (
+        <div className='absolute top-20 right-4 bg-white rounded-lg shadow-lg p-3 text-sm space-y-2 max-w-xs z-40'>
+          <div className='flex items-center justify-between mb-1'>
+            <span className='font-medium text-gray-700'>Map Info</span>
+            <button
+              onClick={() => setShowMapInfoBox(false)}
+              className='text-gray-400 hover:text-gray-600 transition-colors p-1 rounded hover:bg-gray-100'
+              aria-label='Close map info box'
+              title='Close'
+            >
+              <svg
+                className='w-4 h-4'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+                xmlns='http://www.w3.org/2000/svg'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M6 18L18 6M6 6l12 12'
+                />
+              </svg>
+            </button>
+          </div>
+          <div className='flex items-center space-x-2'>
+            <div className='w-3 h-3 bg-green-500 rounded-full'></div>
+            <span>{markers.length} points</span>
+          </div>
+          {mapMetadata?.center && (
+            <div className='flex items-center space-x-2'>
+              <div className='w-3 h-3 bg-purple-500 rounded-full'></div>
+              <span>Lat: {mapMetadata.center.lat.toFixed(4)}</span>
+            </div>
+          )}
+          {mapMetadata?.center && (
+            <div className='flex items-center space-x-2'>
+              <div className='w-3 h-3 bg-purple-500 rounded-full'></div>
+              <span>Lng: {mapMetadata.center.lng.toFixed(4)}</span>
+            </div>
+          )}
         </div>
-        {mapMetadata?.center && (
-          <div className='flex items-center space-x-2'>
-            <div className='w-3 h-3 bg-purple-500 rounded-full'></div>
-            <span>Lat: {mapMetadata.center.lat}</span>
-          </div>
-        )}
-        {mapMetadata?.center && (
-          <div className='flex items-center space-x-2'>
-            <div className='w-3 h-3 bg-purple-500 rounded-full'></div>
-            <span>Lng: {mapMetadata.center.lng}</span>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 };

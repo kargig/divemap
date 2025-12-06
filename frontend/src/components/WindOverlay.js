@@ -6,7 +6,7 @@ import { useMap } from 'react-leaflet';
 /**
  * WindOverlay Component
  * Displays wind arrows on a Leaflet map showing wind speed and direction
- * Only visible at zoom levels 13-18 to avoid excessive API calls
+ * Only visible at zoom levels 12-18 to avoid excessive API calls
  */
 const WindOverlay = ({ windData = null, isWindOverlayEnabled = false, maxArrows = 100 }) => {
   const map = useMap();
@@ -67,20 +67,24 @@ const WindOverlay = ({ windData = null, isWindOverlayEnabled = false, maxArrows 
       //
       // Coordinate systems:
       // - Compass: 0° = north, 90° = east, 180° = south, 270° = west
-      // - SVG rotation: 0° = right (east), 90° = down (south), 180° = left (west), 270° = up (north)
+      // - SVG rotation: positive = clockwise, 0° = no rotation (default arrow position)
       // - Arrow path: M12 2 L12 18 - from top to bottom, arrowhead at bottom
-      //   So arrow points DOWN (compass 180° / SVG 90°) by default
+      //   So default arrow (0° rotation) points DOWN (south, 180° compass)
       //
       // Calculation:
       // 1. Convert wind direction (where wind comes FROM) to target direction (where wind goes TO)
-      // 2. Convert target compass direction to SVG rotation angle
-      // 3. Rotate arrow from default down position to target direction
+      // 2. Calculate SVG rotation needed to point from default down (180° compass) to target direction
+      // 3. Rotation = (targetDirection - 180 + 360) % 360
       //
-      // Example: Wind 272° (west) → going 92° (east-southeast)
-      // targetDirection = (272 + 180) % 360 = 92° (compass)
-      // arrowDirection = (360 - 92) % 360 = 268° (SVG rotation from down to east)
+      // Example: Wind 4° (north) → going 184° (south-southwest)
+      // targetDirection = (4 + 180) % 360 = 184° (compass)
+      // arrowDirection = (184 - 180 + 360) % 360 = 4° (SVG rotation: 4° clockwise from down)
+      //
+      // Example: Wind 270° (west) → going 90° (east)
+      // targetDirection = (270 + 180) % 360 = 90° (compass)
+      // arrowDirection = (90 - 180 + 360) % 360 = 270° (SVG rotation: 270° clockwise = points east)
       const targetDirection = (windDirection + 180) % 360; // Compass direction wind is going TOWARD
-      const arrowDirection = (360 - targetDirection) % 360; // SVG rotation from down (90°) to target direction
+      const arrowDirection = (targetDirection - 180 + 360) % 360; // SVG rotation from default down (180° compass) to target direction
 
       // Increase stroke width for better visibility on larger arrows
       const strokeWidth = Math.max(3, Math.floor(arrowSize / 15));

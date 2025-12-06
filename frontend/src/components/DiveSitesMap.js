@@ -415,19 +415,19 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
     return () => clearTimeout(timer);
   }, [mapMetadata?.bounds]);
 
-  // Fetch wind data when overlay is enabled and zoom >= 13
+  // Fetch wind data when overlay is enabled and zoom >= 12
   const shouldFetchWindData =
-    windOverlayEnabled && mapMetadata?.zoom >= 13 && mapMetadata?.zoom <= 18 && debouncedBounds;
+    windOverlayEnabled && mapMetadata?.zoom >= 12 && mapMetadata?.zoom <= 18 && debouncedBounds;
 
-  const { data: windData, isLoading: isLoadingWind } = useQuery(
+  const { data: windData, isLoading: isLoadingWind, isFetching: isFetchingWind } = useQuery(
     ['wind-data', debouncedBounds, mapMetadata?.zoom, windDateTime],
     async () => {
       if (!debouncedBounds) return null;
 
       // Add small margin to bounds to ensure arrows appear within viewport, not at edges
-      // Margin is approximately 5% of the bounds range
-      const latMargin = (debouncedBounds.north - debouncedBounds.south) * 0.05;
-      const lonMargin = (debouncedBounds.east - debouncedBounds.west) * 0.05;
+      // Margin is approximately 2.5% of the bounds range (reduced from 5% for better coverage)
+      const latMargin = (debouncedBounds.north - debouncedBounds.south) * 0.025;
+      const lonMargin = (debouncedBounds.east - debouncedBounds.west) * 0.025;
 
       const params = {
         north: debouncedBounds.north + latMargin,
@@ -437,12 +437,47 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
         zoom_level: Math.round(mapMetadata.zoom),
       };
 
+      // Log bounds calculation for debugging
+      console.log('[WindOverlay] Bounds calculation:', {
+        originalBounds: {
+          north: debouncedBounds.north,
+          south: debouncedBounds.south,
+          east: debouncedBounds.east,
+          west: debouncedBounds.west,
+        },
+        margins: {
+          latMargin,
+          lonMargin,
+        },
+        expandedBounds: params,
+        zoom: mapMetadata.zoom,
+        boundsSize: {
+          latRange: debouncedBounds.north - debouncedBounds.south,
+          lonRange: debouncedBounds.east - debouncedBounds.west,
+        },
+      });
+
       // Add datetime_str if specified (null means current time, so don't include it)
       if (windDateTime) {
         params.datetime_str = windDateTime;
       }
 
       const response = await api.get('/api/v1/weather/wind', { params });
+      
+      // Log grid point distribution from API response
+      if (response.data && response.data.points) {
+        const points = response.data.points;
+        const lats = points.map(p => p.lat);
+        const lons = points.map(p => p.lon);
+        console.log('[WindOverlay] Grid point distribution from API:', {
+          totalPoints: points.length,
+          latRange: [Math.min(...lats), Math.max(...lats)],
+          lonRange: [Math.min(...lons), Math.max(...lons)],
+          first5Points: points.slice(0, 5).map(p => ({ lat: p.lat, lon: p.lon })),
+          last5Points: points.slice(-5).map(p => ({ lat: p.lat, lon: p.lon })),
+        });
+      }
+      
       return response.data;
     },
     {
@@ -456,10 +491,10 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
     }
   );
 
-  // Fetch wind recommendations when overlay is enabled and zoom >= 13
+  // Fetch wind recommendations when overlay is enabled and zoom >= 12
   const shouldFetchRecommendations =
     windOverlayEnabled &&
-    mapMetadata?.zoom >= 13 &&
+    mapMetadata?.zoom >= 12 &&
     mapMetadata?.zoom <= 18 &&
     debouncedBounds;
 
@@ -535,7 +570,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
             recommendationsMap={recommendationsMap}
             showSuitability={
               windOverlayEnabled &&
-              mapMetadata?.zoom >= 13 &&
+              mapMetadata?.zoom >= 12 &&
               mapMetadata?.zoom <= 18 &&
               Object.keys(recommendationsMap).length > 0
             }
@@ -545,7 +580,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
             // Get suitability for this dive site if available
             const showSuitability =
               windOverlayEnabled &&
-              mapMetadata?.zoom >= 13 &&
+              mapMetadata?.zoom >= 12 &&
               mapMetadata?.zoom <= 18 &&
               Object.keys(recommendationsMap).length > 0;
             const recommendation = showSuitability ? recommendationsMap[site.id] : null;
@@ -641,11 +676,42 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
           })
         )}
 
-        {/* Wind Overlay - only show when enabled and zoom >= 13 */}
-        {windOverlayEnabled && mapMetadata?.zoom >= 13 && mapMetadata?.zoom <= 18 && windData && (
+        {/* Wind Overlay - only show when enabled and zoom >= 12 */}
+        {windOverlayEnabled && mapMetadata?.zoom >= 12 && mapMetadata?.zoom <= 18 && windData && (
           <WindOverlay windData={windData} isWindOverlayEnabled={windOverlayEnabled} maxArrows={100} />
         )}
       </MapContainer>
+
+      {/* Wind loading indicator - show when fetching wind data (initial load or refetch) */}
+      {windOverlayEnabled &&
+        currentZoom >= 12 &&
+        (isLoadingWind || isFetchingWind) && (
+          <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] bg-white/95 text-gray-800 px-4 py-3 rounded-lg shadow-lg border border-gray-300 flex items-center gap-3'>
+            <div className='animate-spin'>
+              <svg
+                className='w-5 h-5 text-blue-600'
+                xmlns='http://www.w3.org/2000/svg'
+                fill='none'
+                viewBox='0 0 24 24'
+              >
+                <circle
+                  className='opacity-25'
+                  cx='12'
+                  cy='12'
+                  r='10'
+                  stroke='currentColor'
+                  strokeWidth='4'
+                ></circle>
+                <path
+                  className='opacity-75'
+                  fill='currentColor'
+                  d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                ></path>
+              </svg>
+            </div>
+            <span className='text-sm font-medium'>Loading wind data...</span>
+          </div>
+        )}
 
       {/* Info overlays */}
       <div className='absolute bottom-2 left-2 bg-white bg-opacity-90 px-2 py-1 rounded text-xs'>
@@ -658,7 +724,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
 
       {/* Wind datetime info box - only show when wind overlay is enabled */}
       {windOverlayEnabled &&
-        currentZoom >= 13 &&
+        currentZoom >= 12 &&
         (windDateTime || windData) && (
           <div className='absolute top-2 left-48 bg-white rounded px-2 py-1 text-xs font-medium z-10 shadow-sm border border-gray-200'>
             Wind data for:{' '}
@@ -680,7 +746,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
           isOverlayEnabled={windOverlayEnabled}
           onToggle={setWindOverlayEnabled}
           zoomLevel={currentZoom}
-          isLoading={isLoadingWind}
+          isLoading={isLoadingWind || isFetchingWind}
         />
         {/* Wind DateTime Picker - only show when wind overlay is enabled */}
         {windOverlayEnabled && (
