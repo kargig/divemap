@@ -12,6 +12,7 @@ import {
   RotateCcw,
   Wrench,
   Wind,
+  Info,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGeolocated } from 'react-geolocated';
@@ -22,6 +23,7 @@ import LeafletMapView from '../components/LeafletMapView';
 import MapLayersPanel from '../components/MapLayersPanel';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
 import WindDateTimePicker from '../components/WindDateTimePicker';
+import WindOverlayLegend from '../components/WindOverlayLegend';
 import WindOverlayToggle from '../components/WindOverlayToggle';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive } from '../hooks/useResponsive';
@@ -127,6 +129,7 @@ const IndependentMapView = () => {
   const [isWindLoading, setIsWindLoading] = useState(false);
   const [isWindFetching, setIsWindFetching] = useState(false);
   const [showWindSlider, setShowWindSlider] = useState(true); // Show slider by default when wind overlay is enabled
+  const [showWindLegend, setShowWindLegend] = useState(false); // Show legend (can be toggled)
 
   // Update mobile controls visibility based on screen size
   useEffect(() => {
@@ -973,6 +976,27 @@ const IndependentMapView = () => {
                 Show Time Slider
               </button>
             )}
+
+          {/* Button to show wind legend - top right of map */}
+          {selectedEntityType === 'dive-sites' &&
+            windOverlayEnabled &&
+            currentZoom >= 12 &&
+            !showWindLegend && (
+              <button
+                onClick={() => setShowWindLegend(true)}
+                className='absolute top-4 right-4 z-40 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg transition-colors flex items-center gap-2'
+                title='Show wind overlay legend'
+              >
+                <Info className='w-3.5 h-3.5' />
+                Show Legend
+              </button>
+            )}
+
+          {/* Wind Overlay Legend */}
+          {selectedEntityType === 'dive-sites' &&
+            windOverlayEnabled &&
+            currentZoom >= 12 &&
+            showWindLegend && <WindOverlayLegend onClose={() => setShowWindLegend(false)} />}
         </div>
       </div>
 

@@ -38,6 +38,34 @@ const WindOverlayToggle = ({ isOverlayEnabled, onToggle, zoomLevel, isLoading, d
     return 'Enable wind overlay (zoom 12+)';
   };
 
+  const getDetailedTooltip = () => {
+    if (isLoading) {
+      return {
+        title: 'Loading wind data...',
+        description: 'Fetching current wind conditions from weather service',
+      };
+    }
+    if (zoomLevel < 12) {
+      return {
+        title: 'Zoom Required',
+        description:
+          'Wind overlay requires zoom level 12 or higher to avoid excessive API calls. Zoom in to see wind speed, direction, and dive site suitability.',
+      };
+    }
+    if (isOverlayEnabled) {
+      return {
+        title: 'Wind Overlay Enabled',
+        description:
+          'Shows wind arrows (direction wind is going) and dive site suitability colors. Click to disable.',
+      };
+    }
+    return {
+      title: 'Enable Wind Overlay',
+      description:
+        'Display real-time wind speed and direction with arrows. Arrows point where wind is going. Colored borders on dive sites show suitability based on wind conditions.',
+    };
+  };
+
   return (
     <div className='relative'>
       <button
@@ -62,12 +90,22 @@ const WindOverlayToggle = ({ isOverlayEnabled, onToggle, zoomLevel, isLoading, d
         {isLoading ? <Loader2 className='w-4 h-4 animate-spin' /> : <Wind className='w-4 h-4' />}
       </button>
 
-      {/* Tooltip */}
+      {/* Enhanced Tooltip */}
       {isHovered && (
-        <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-50'>
-          {getTooltipText()}
+        <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded shadow-lg z-50 max-w-xs'>
+          <div className='font-medium mb-1'>{getDetailedTooltip().title}</div>
+          <div className='text-gray-300 text-[10px] leading-relaxed'>
+            {getDetailedTooltip().description}
+          </div>
           {zoomLevel >= 12 && (
-            <div className='text-gray-300 text-[10px] mt-0.5'>Zoom: {zoomLevel.toFixed(1)}</div>
+            <div className='text-gray-400 text-[10px] mt-1.5 pt-1.5 border-t border-gray-700'>
+              Current zoom: {zoomLevel.toFixed(1)}
+            </div>
+          )}
+          {zoomLevel < 12 && (
+            <div className='text-gray-400 text-[10px] mt-1.5 pt-1.5 border-t border-gray-700'>
+              Required: Zoom 12+ (current: {zoomLevel.toFixed(1)})
+            </div>
           )}
         </div>
       )}

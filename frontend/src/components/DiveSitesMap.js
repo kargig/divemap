@@ -2,6 +2,7 @@ import L, { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster';
+import { Info } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -20,6 +21,7 @@ import {
 
 import WindDateTimePicker from './WindDateTimePicker';
 import WindOverlay from './WindOverlay';
+import WindOverlayLegend from './WindOverlayLegend';
 import WindOverlayToggle from './WindOverlayToggle';
 
 // Fix default marker icons
@@ -300,6 +302,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
   const [windDateTime, setWindDateTime] = useState(null); // null = current time, ISO string = specific datetime
   const [mapMetadata, setMapMetadata] = useState(null);
   const [debouncedBounds, setDebouncedBounds] = useState(null);
+  const [showWindLegend, setShowWindLegend] = useState(false); // Show legend (can be toggled)
 
   // Create custom dive site icon with optional suitability border
   const createDiveSiteIcon = (suitability = null) => {
@@ -705,6 +708,18 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
         />
       </div>
 
+      {/* Button to show wind legend - top right of map */}
+      {windOverlayEnabled && currentZoom >= 12 && !showWindLegend && (
+        <button
+          onClick={() => setShowWindLegend(true)}
+          className='absolute top-4 right-4 z-40 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg transition-colors flex items-center gap-2'
+          title='Show wind overlay legend'
+        >
+          <Info className='w-3.5 h-3.5' />
+          Show Legend
+        </button>
+      )}
+
       {/* Wind DateTime Picker - floating on top of map */}
       {windOverlayEnabled && currentZoom >= 12 && (
         <WindDateTimePicker
@@ -713,6 +728,11 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
           disabled={!windOverlayEnabled}
           isFetchingWind={isFetchingWind}
         />
+      )}
+
+      {/* Wind Overlay Legend */}
+      {windOverlayEnabled && currentZoom >= 12 && showWindLegend && (
+        <WindOverlayLegend onClose={() => setShowWindLegend(false)} />
       )}
     </div>
   );

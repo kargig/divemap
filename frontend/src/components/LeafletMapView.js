@@ -1,4 +1,5 @@
 import L, { Icon } from 'leaflet';
+import { Info } from 'lucide-react';
 import React, { useMemo, useCallback, useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { useQuery } from 'react-query';
@@ -552,7 +553,7 @@ const LeafletMapView = ({
       : internalWindOverlayEnabled;
   const setWindOverlayEnabled = externalSetWindOverlayEnabled || setInternalWindOverlayEnabled;
   const [debouncedBounds, setDebouncedBounds] = useState(null);
-  const [showMapInfoBox, setShowMapInfoBox] = useState(true);
+  const [showMapInfoBox, setShowMapInfoBox] = useState(false);
   // Create custom icons for different entity types
   const createEntityIcon = useCallback(
     (entityType, isCluster = false, count = 1, suitability = null) => {
@@ -1035,9 +1036,22 @@ const LeafletMapView = ({
           </div>
         )}
 
-      {/* Map controls overlay - positioned below the wind toggle button */}
+      {/* Button to show map info - left side, below zoom buttons */}
+      {!showMapInfoBox && (
+        <button
+          onClick={() => setShowMapInfoBox(true)}
+          className='absolute left-4 top-24 z-40 bg-white hover:bg-gray-100 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg transition-colors flex items-center gap-2 border border-gray-300'
+          title='Show map info'
+          aria-label='Show map info'
+        >
+          <Info className='w-3.5 h-3.5' />
+          Map Info
+        </button>
+      )}
+
+      {/* Map controls overlay - positioned on left, below zoom buttons */}
       {showMapInfoBox && (
-        <div className='absolute top-20 right-4 bg-white rounded-lg shadow-lg p-3 text-sm space-y-2 max-w-xs z-40'>
+        <div className='absolute left-4 top-24 bg-white rounded-lg shadow-lg p-3 text-sm space-y-2 max-w-xs z-40'>
           <div className='flex items-center justify-between mb-1'>
             <span className='font-medium text-gray-700'>Map Info</span>
             <button

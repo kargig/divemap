@@ -24,7 +24,7 @@
   - ✅ Wind overlay integrated into IndependentMapView
   - ✅ Wind overlay integrated into DiveSitesMap
   - ✅ Frontend Forms - shore_direction input fields (COMPLETED)
-- ⏳ Phase 6: User Experience Polish (0% - PENDING)
+- ⏳ Phase 6: User Experience Polish (60% - IN PROGRESS)
 
 **Recent Fixes:**
 
@@ -71,6 +71,11 @@
 - Added visible loading indicator: Centered loading overlay on map showing "Loading wind data..." with spinner when wind data is being fetched (initial load or refetch on map movement)
 - Fixed loading state: Updated to use `isFetching` in addition to `isLoading` so loading indicator appears on refetches (map movement, zoom changes, datetime changes)
 - Added close button to map info box: Users can now dismiss the map info box showing points count and coordinates
+- Enhanced tooltips: Added detailed tooltips to WindOverlayToggle explaining wind overlay features, arrow direction, and zoom requirements
+- Created WindOverlayLegend component: Combined legend with tabs for wind arrows and dive site suitability, includes color scales, explanations, and wind speed thresholds
+- Added "Show Legend" button: Map button (top right) to show/hide wind overlay legend, similar to "Show Time Slider" button
+- Moved map info to button: Changed map info from always visible to toggle button (left side, below zoom buttons) for cleaner UI
+- Integrated legends: Added legend toggle buttons and rendering in both IndependentMapView and DiveSitesMap components
 
 ---
 
@@ -412,6 +417,8 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Removed debugging console.log statements: Cleaned up bounds calculation and grid point distribution logs
   - ✅ Reduced frontend margin: Changed from 5% to 2.5% for better arrow coverage
   - ✅ Added close button to map info box: Users can dismiss the info box showing points count and coordinates
+  - ✅ Moved map info to button: Changed from always visible to toggle button (left side, below zoom buttons) for cleaner UI
+  - ✅ Map info button: Shows "Map Info" button when info box is hidden, positioned at `left-4 top-24`
   - ✅ Fixed z-index layering: Changed slider z-index from z-50 to z-40 and added CSS rules so Leaflet popups (z-1000) can overlay the slider
   - ✅ Removed redundant wind data info box: Removed "Wind data for: [timestamp]" box since timestamp is now visible on slider
   - ✅ Added `onWindFetchingChange` callback: Passes `isFetchingWind` state to parent component for slider play/pause logic
@@ -475,6 +482,8 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Added `handleWindOverlayToggle`: Custom toggle handler that automatically shows slider when enabling wind overlay
   - ✅ Added `showWindSlider` state: Controls slider visibility, can be hidden/shown
   - ✅ Added "Show Time Slider" button: Appears when slider is hidden to allow users to re-open it
+  - ✅ Added "Show Legend" button: Map button (top right) to show/hide wind overlay legend, similar to "Show Time Slider" button
+  - ✅ Removed legend toggle from controls: Moved legend toggle from controls area to map button for better UX
 
 - [x] Integrate wind overlay into `DiveSitesMap.js` (for map view in DiveSites page)
   - ✅ Add toggle button in top-right corner
@@ -538,30 +547,40 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 
 **Tasks:**
 
-- [ ] Add tooltips/help text explaining wind overlay
-  - Explain what wind overlay shows (wind speed and direction)
-  - Explain how to interpret arrows (direction wind is coming FROM)
-  - Explain suitability colors (green/yellow/red)
-  - Explain zoom requirement: "Wind overlay requires zoom level 12 or higher to avoid excessive API calls"
-  - Link to help documentation
+- [x] Add tooltips/help text explaining wind overlay
+  - ✅ Enhanced tooltips in WindOverlayToggle component with detailed explanations
+  - ✅ Explains what wind overlay shows (wind speed and direction)
+  - ✅ Explains how to interpret arrows (direction wind is going TO, opposite of where it comes FROM)
+  - ✅ Explains suitability colors (green/yellow/orange/red/gray)
+  - ✅ Explains zoom requirement: "Wind overlay requires zoom level 12 or higher to avoid excessive API calls"
+  - ✅ Shows current zoom level in tooltip
+  - ✅ Tooltip appears on hover with title, description, and zoom information
 
-- [ ] Add legend explaining wind arrow colors/sizes
-  - Show examples of different wind speeds
-  - Explain arrow direction meaning
-  - Show color scale (light blue → dark blue/red)
+- [x] Add legend explaining wind arrow colors/sizes
+  - ✅ Created WindOverlayLegend component with "Wind Arrows" tab
+  - ✅ Shows examples of different wind speeds with color swatches
+  - ✅ Explains arrow direction meaning (arrows point where wind is going)
+  - ✅ Shows color scale: Light blue (< 5 m/s), Blue (5-7.7 m/s), Orange (7.7-10 m/s), Red (> 10 m/s)
+  - ✅ Explains arrow size: Larger arrows indicate stronger winds (40px base + 10px per 5 m/s, max 80px)
+  - ✅ Includes wind speed thresholds with descriptions
 
-- [ ] Add legend explaining dive site suitability colors
-  - Green: Good conditions
-  - Yellow: Caution
-  - Orange: Difficult (experienced divers only)
-  - Red: Avoid (not recommended)
-  - Gray: Unknown (no shore direction data)
-  - Include wind speed reference
+- [x] Add legend explaining dive site suitability colors
+  - ✅ Created "Suitability" tab in WindOverlayLegend component
+  - ✅ Green: Good conditions (< 6.2 m/s)
+  - ✅ Yellow: Caution (6.2-7.7 m/s)
+  - ✅ Orange: Difficult (7.7-10 m/s, experienced divers only)
+  - ✅ Red: Avoid (> 10 m/s, not recommended)
+  - ✅ Gray: Unknown (no shore direction data)
+  - ✅ Includes wind speed reference and thresholds
+  - ✅ Explains shore direction consideration in suitability calculation
 
-- [ ] Ensure accessibility (keyboard navigation, screen readers)
-  - Add ARIA labels to wind overlay toggle
-  - Add descriptive text for wind arrows
-  - Ensure keyboard navigation works for all controls
+- [x] Ensure accessibility (keyboard navigation, screen readers)
+  - ✅ Added ARIA labels to wind overlay toggle button
+  - ✅ Added ARIA labels to legend toggle buttons
+  - ✅ Added ARIA labels to map info button
+  - ✅ Added descriptive text for wind arrows in legend
+  - ✅ Keyboard navigation works for all controls (buttons are focusable)
+  - ✅ Screen reader friendly descriptions in tooltips and legends
 
 - [x] Add loading indicators during wind data fetch
   - ✅ Show spinner/loading state on toggle button (WindOverlayToggle component)
@@ -662,3 +681,6 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - ✅ Wind date/time slider can be hidden/shown: Close button and "Show Time Slider" button for better UX
 - ✅ Wind feature promotion: Banner appears when overlay is disabled, with one-click enable and auto-zoom to demo location
 - ✅ Fixed zoom level tracking: Wind button now correctly enables at zoom 12+ using accurate zoom from map instance
+- ✅ Enhanced tooltips: Detailed tooltips explain wind overlay features, arrow direction, and zoom requirements
+- ✅ Wind overlay legend: Combined legend with tabs for wind arrows and dive site suitability, accessible via "Show Legend" button
+- ✅ Map info button: Changed from always visible to toggle button (left side, below zoom buttons) for cleaner UI
