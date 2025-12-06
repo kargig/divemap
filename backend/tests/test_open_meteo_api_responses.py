@@ -7,6 +7,7 @@ Tests actual API response structure parsing, edge cases, and data extraction.
 import pytest
 from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
+from freezegun import freeze_time
 
 from app.services.open_meteo_service import fetch_wind_data_single_point
 
@@ -112,8 +113,10 @@ class TestMeteoAPIForecastResponse:
     """Test parsing of hourly forecast API responses."""
 
     @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time("2025-12-01 12:00:00")  # Freeze time to 2 hours before target
     def test_parse_forecast_response_exact_hour(self, mock_get):
         """Test parsing forecast response with exact hour match."""
+        # Target datetime is now in the future relative to frozen time
         target_datetime = datetime(2025, 12, 1, 14, 0, 0)
         
         mock_response = MagicMock()

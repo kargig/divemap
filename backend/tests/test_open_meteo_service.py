@@ -7,6 +7,7 @@ Tests grid point generation, jitter factor functionality, and wind data fetching
 import pytest
 from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
+from freezegun import freeze_time
 
 from app.services.open_meteo_service import (
     _create_grid_points,
@@ -314,8 +315,10 @@ class TestWindDataFetching:
         assert call_args.kwargs['params']['wind_speed_unit'] == 'ms'
 
     @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time("2025-12-01 12:00:00")  # Freeze time to 2 hours before target
     def test_fetch_wind_data_single_point_forecast(self, mock_get):
         """Test fetching forecast wind data for a single point."""
+        # Target datetime is now in the future relative to frozen time
         target_datetime = datetime(2025, 12, 1, 14, 0, 0)
         
         mock_response = MagicMock()
@@ -582,8 +585,11 @@ class TestWindDataFetching:
         assert len(points) > 0
 
     @patch('app.services.open_meteo_service.requests.get')
-    def test_fetch_wind_data_single_point_caching(self, mock_get):
+    def test_fetch_wind_data_single_point_caching(self, mock_get, monkeypatch):
         """Test that wind data is cached and reused."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})  # Clear cache before test
+        
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {

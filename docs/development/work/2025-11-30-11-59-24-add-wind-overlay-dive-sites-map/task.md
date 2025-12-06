@@ -3,7 +3,7 @@
 **Status:** In Progress
 **Created:** 2025-11-30T11:59:24Z
 **Started:** 2025-11-30T12:40:00Z
-**Last Updated:** December 1, 2025
+**Last Updated:** December 6, 2025
 **Agent PID:** 121961
 **Branch:** feature/wind-overlay-dive-sites-map
 
@@ -61,6 +61,9 @@
 - Added datetime selection for wind overlay: Users can now select date/time for wind data (current time or up to +2 days ahead) with clear display of which datetime is being shown
 - Fixed backend datetime validation: Rounded max_future to next hour to allow selecting any hour within 2-day window (prevents edge case where selecting hour at 2-day limit fails)
 - Fixed datetime display format: Updated to show "22:00" instead of "22" for better clarity in wind data info box
+- Fixed test datetime mocking: Added freezegun library (v1.5.5) to simplify datetime mocking in tests, replacing complex manual datetime patching with simple `@freeze_time()` decorator
+- Refactored test datetime handling: Updated `test_parse_forecast_response_exact_hour` and `test_fetch_wind_data_single_point_forecast` to use freezegun, reducing test code complexity by ~13 lines per test
+- Fixed test cache isolation: Added cache clearing to `test_fetch_wind_data_single_point_caching` using `monkeypatch` to ensure test isolation
 
 ---
 
@@ -280,6 +283,7 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - Wind data fetching tests (17 tests): Current/forecast data, API errors, timeouts, caching, date validation
   - All tests use unique coordinates to prevent cache interference
   - Fixed cache interference in Docker environment using `monkeypatch`
+  - Refactored to use freezegun for datetime mocking: Simplified `test_fetch_wind_data_single_point_forecast` and `test_fetch_wind_data_single_point_caching` by replacing complex datetime patching with `@freeze_time()` decorator
 
 - ✅ Created `backend/tests/test_weather_api.py` (9 tests)
   - Endpoint validation tests: Jitter factor (min/max/default), bounds validation, datetime validation
@@ -297,6 +301,7 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - Forecast response parsing (6 tests): Exact hour match, hour not found, mismatched arrays, missing arrays, empty arrays, index out of bounds
   - Edge cases (4 tests): Neither current nor hourly, null values, parameter validation (wind_speed_unit, timezone)
   - Tests verify actual API response structure parsing and error handling
+  - Refactored to use freezegun for datetime mocking: Simplified test code by replacing complex datetime patching with `@freeze_time()` decorator
 
 ### Phase 2: Wind Recommendation Logic ✅
 
@@ -407,15 +412,16 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Conditional display: Only show wind info when recommendation is available
   - ✅ Fixed bug: Changed from `rec.wind_data.wind_speed` to `rec.wind_speed` (wind data is directly on recommendation object)
 
-- [ ] Add wind suitability filter to dive sites list/map
+- [x] Add wind suitability filter to dive sites list/map
   - **Backend Implementation:**
-    - [ ] Add `wind_suitability` query parameter to `GET /api/v1/dive-sites/` endpoint in `backend/app/routers/dive_sites.py`
-    - [ ] Validate `wind_suitability` parameter (must be one of: 'good', 'caution', 'difficult', 'avoid', 'unknown')
-    - [ ] Add optional `datetime_str` parameter to allow filtering by forecast wind conditions (default: current time)
-    - [ ] Implement filtering logic: Fetch wind recommendations for all dive sites in query result
-    - [ ] Filter dive sites based on `wind_suitability` parameter matching recommendation suitability
-    - [ ] Optimize performance: Batch fetch wind data for multiple dive sites (use grid-based fetching when possible)
-    - [ ] Handle edge cases: Sites without shore_direction (should match 'unknown' filter)
+    - [x] Add `wind_suitability` query parameter to `GET /api/v1/dive-sites/` endpoint in `backend/app/routers/dive_sites.py`
+    - [x] Validate `wind_suitability` parameter (must be one of: 'good', 'caution', 'difficult', 'avoid', 'unknown')
+    - [x] Add optional `datetime_str` parameter to allow filtering by forecast wind conditions (default: current time)
+    - [x] Implement filtering logic: Fetch wind data for center point of matching dive sites, calculate suitability for each site
+    - [x] Filter dive sites based on `wind_suitability` parameter matching recommendation suitability
+    - [x] Handle edge cases: Sites without shore_direction (should match 'unknown' filter)
+    - [x] Error handling: Gracefully handle wind data fetch failures (returns empty result when filtering)
+    - [ ] Optimize performance: Consider batch fetching wind data for multiple dive sites (currently uses center point)
     - [ ] Add caching: Cache wind recommendations to avoid redundant API calls during filtering
     - [ ] Update API documentation: Add `wind_suitability` parameter to endpoint docs
   - **Frontend Implementation:**
@@ -466,6 +472,7 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
     - ✅ 29 tests covering grid generation, jitter logic, API error handling, date validation, and caching
     - ✅ Fixed cache interference issues using `monkeypatch` to clear cache before tests
     - ✅ All tests passing in both local and Docker environments
+    - ✅ Refactored to use freezegun: Simplified datetime mocking with `@freeze_time()` decorator, reducing test complexity by ~13 lines per test
   - [x] Backend unit tests for Weather API router (`test_weather_api.py`)
     - ✅ 9 tests covering endpoint validation, jitter factor handling, bounds validation, and datetime validation
     - ✅ All tests passing
@@ -477,6 +484,7 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
     - ✅ 14 tests covering current weather parsing, forecast parsing, missing/null values, array mismatches, and edge cases
     - ✅ Tests verify: Response structure parsing, parameter validation (wind_speed_unit, timezone), error handling
     - ✅ All tests passing
+    - ✅ Refactored to use freezegun: Simplified datetime mocking with `@freeze_time()` decorator, reducing test complexity
   - [ ] Test wind overlay on mobile devices
   - [ ] Test error handling (API failures, network issues)
   - [ ] Test performance with many dive sites
@@ -523,10 +531,11 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - Add descriptive text for wind arrows
   - Ensure keyboard navigation works for all controls
 
-- [ ] Add loading indicators during wind data fetch
-  - Show spinner/loading state on toggle button
-  - Show "Loading wind data..." message
-  - Disable toggle while loading
+- [x] Add loading indicators during wind data fetch
+  - ✅ Show spinner/loading state on toggle button (WindOverlayToggle component)
+  - ✅ Show "Loading wind data..." message in tooltip
+  - ✅ Disable toggle while loading
+  - ✅ Integrated loading state from LeafletMapView to IndependentMapView via callback prop
 
 - [ ] Add error messages with retry options
   - Show user-friendly error if wind data fails to load

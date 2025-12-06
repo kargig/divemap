@@ -750,6 +750,8 @@ async def get_dive_sites(
     sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
+    wind_suitability: Optional[str] = Query(None, description="Filter by wind suitability: good, caution, difficult, avoid, unknown"),
+    datetime_str: Optional[str] = Query(None, description="Target date/time in ISO format (YYYY-MM-DDTHH:MM:SS) for wind filtering. Defaults to current time. Max +2 days ahead."),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
@@ -760,6 +762,42 @@ async def get_dive_sites(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="page_size must be one of: 25, 50, 100, 1000"
         )
+    
+    # Validate wind_suitability parameter if provided
+    if wind_suitability is not None:
+        valid_suitabilities = ['good', 'caution', 'difficult', 'avoid', 'unknown']
+        if wind_suitability.lower() not in valid_suitabilities:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"wind_suitability must be one of: {', '.join(valid_suitabilities)}"
+            )
+        wind_suitability = wind_suitability.lower()
+    
+    # Parse and validate datetime_str if provided
+    target_datetime = None
+    if datetime_str:
+        try:
+            target_datetime = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
+            # Validate date range: only allow up to +2 days ahead
+            # Round max_future to next hour to allow selecting any hour within 2-day window
+            now_utc = datetime.utcnow()
+            max_future = (now_utc + timedelta(days=2)).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+            if target_datetime > max_future:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Date/time cannot be more than 2 days ahead. Maximum allowed: {max_future.isoformat()}"
+                )
+            # Don't allow past dates (only current and future up to +2 days)
+            if target_datetime < datetime.utcnow() - timedelta(hours=1):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Date/time cannot be more than 1 hour in the past"
+                )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid datetime format. Use ISO 8601 format (e.g., '2025-12-01T14:00:00'): {str(e)}"
+            )
 
     # Eager load difficulty relationship for efficient access
     query = db.query(DiveSite).options(joinedload(DiveSite.difficulty))
@@ -783,6 +821,74 @@ async def get_dive_sites(
 
     # Apply sorting using utility function
     query = apply_sorting(query, sort_by, sort_order, current_user)
+
+    # Apply wind suitability filtering if requested
+    if wind_suitability is not None:
+        try:
+            # Get all matching dive sites before pagination (needed for wind filtering)
+            all_matching_sites = query.all()
+            
+            # Calculate center point for wind data fetching (use average of all site coordinates)
+            if all_matching_sites:
+                sites_with_coords = [s for s in all_matching_sites if s.latitude is not None and s.longitude is not None]
+                if sites_with_coords:
+                    avg_lat = sum(site.latitude for site in sites_with_coords) / len(sites_with_coords)
+                    avg_lon = sum(site.longitude for site in sites_with_coords) / len(sites_with_coords)
+                    
+                    # Fetch wind data for the center point
+                    try:
+                        wind_data = fetch_wind_data_single_point(avg_lat, avg_lon, target_datetime)
+                        if wind_data:
+                            wind_direction = wind_data.get("wind_direction_10m")
+                            wind_speed = wind_data.get("wind_speed_10m")
+                            wind_gusts = wind_data.get("wind_gusts_10m")
+                            
+                            if wind_direction is not None and wind_speed is not None:
+                                # Calculate suitability for each dive site and filter
+                                filtered_site_ids = []
+                                for site in all_matching_sites:
+                                    try:
+                                        suitability_result = calculate_wind_suitability(
+                                            wind_direction=wind_direction,
+                                            wind_speed=wind_speed,
+                                            shore_direction=float(site.shore_direction) if site.shore_direction else None,
+                                            wind_gusts=wind_gusts
+                                        )
+                                        
+                                        # Filter by suitability
+                                        if suitability_result["suitability"] == wind_suitability:
+                                            filtered_site_ids.append(site.id)
+                                    except Exception as e:
+                                        logger.error(f"Error calculating suitability for site {site.id}: {str(e)}")
+                                        # Skip this site if calculation fails
+                                        continue
+                                
+                                # Rebuild query with filtered site IDs
+                                if filtered_site_ids:
+                                    query = query.filter(DiveSite.id.in_(filtered_site_ids))
+                                else:
+                                    # No sites match the suitability filter
+                                    query = query.filter(False)
+                            else:
+                                # Invalid wind data, return empty result
+                                query = query.filter(False)
+                        else:
+                            # If wind data fetch fails, return empty result when filtering by suitability
+                            query = query.filter(False)
+                    except Exception as e:
+                        logger.error(f"Error fetching wind data for suitability filter: {str(e)}")
+                        # If wind data fetch fails, return empty result when filtering by suitability
+                        query = query.filter(False)
+                else:
+                    # No sites with valid coordinates, return empty result
+                    query = query.filter(False)
+            else:
+                # No matching sites, return empty result
+                query = query.filter(False)
+        except Exception as e:
+            logger.error(f"Error in wind suitability filter: {str(e)}")
+            # If any error occurs, return empty result when filtering by suitability
+            query = query.filter(False)
 
     # Get total count for pagination
     total_count = query.count()
@@ -992,8 +1098,6 @@ async def get_dive_sites(
         # If header is still too large, truncate or omit it
         if len(match_types_json) > 8000:  # 8KB limit for headers
             # Log warning about large header
-            import logging
-            logger = logging.getLogger(__name__)
             logger.warning(f"X-Match-Types header too large ({len(match_types_json)} chars), omitting to prevent nginx errors")
         else:
             response.headers["X-Match-Types"] = match_types_json
