@@ -3,7 +3,7 @@
 **Status:** In Progress
 **Created:** 2025-11-30T11:59:24Z
 **Started:** 2025-11-30T12:40:00Z
-**Last Updated:** December 6, 2025
+**Last Updated:** December 8, 2025
 **Agent PID:** 121961
 **Branch:** feature/wind-overlay-dive-sites-map
 
@@ -341,14 +341,27 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 **Datetime Selection Feature:**
 
 - ✅ Created `WindDateTimePicker` component for selecting wind data datetime
+- ✅ **Major rewrite: Replaced dropdown/calendar with slider-based picker using `react-slider`**
+  - ✅ Floating design: Slider floats on top of map (z-40) without interfering with map interaction
+  - ✅ Slider-based control: Horizontal slider for selecting date/time within -1 hour to +2 days range
+  - ✅ Play/pause animation: Automatically advances slider by 3 hours, waits for data to load + minimum 3 second pause
+  - ✅ Manual control: Users can drag slider to any date/time within bounds
+  - ✅ Date labels: Centered in day ranges (not at day boundaries) for better UX
+  - ✅ Day boundary markers: Vertical lines and markers show day transitions at midnight
+  - ✅ Timezone display: Shows user's browser timezone (UTC+X format)
+  - ✅ Close button: X button in top-right corner to hide slider
+  - ✅ Compact design: Reduced height (24px slider, smaller buttons/text), increased width (600px min, 95vw max)
+  - ✅ Tooltip: Orange tooltip above slider thumb shows current selected date/time
 - ✅ Added datetime state management to `IndependentMapView`, `LeafletMapView`, and `DiveSitesMap`
 - ✅ Updated wind data API calls to include `datetime_str` parameter
 - ✅ Updated wind recommendations API calls to include `datetime_str` parameter
-- ✅ Added datetime info box display on map showing "Wind data for: [datetime]" or "Now" (format: "1 Dec 2025, 22:00")
-- ✅ Integrated datetime picker into map controls (visible when wind overlay enabled)
+- ✅ Removed redundant datetime info box: Removed "Wind data for: [timestamp]" box since timestamp is now visible on slider
+- ✅ Integrated datetime picker as floating component (visible when wind overlay enabled and zoom >= 12)
 - ✅ Validation: Max +2 days ahead, no past dates (min: current time - 1 hour)
 - ✅ Backend validation: Rounded max_future to next hour to allow selecting any hour within 2-day window
 - ✅ React Query cache keys updated to include datetime for proper cache separation
+- ✅ Added `showWindSlider` state: Controls slider visibility, can be hidden/shown via close button
+- ✅ Added "Show Time Slider" button: Appears when slider is hidden to allow re-opening
 
 **Tasks:**
 
@@ -372,7 +385,7 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 
 - [x] Create `WindOverlayToggle` component in `frontend/src/components/WindOverlayToggle.js`
   - ✅ Toggle button to enable/disable wind overlay
-  - ✅ Zoom level checking: Disable button when zoom < 12
+  - ✅ Zoom level checking: Disable button when zoom < 12 (now uses accurate zoom from map instance)
   - ✅ Visual feedback: Disabled state (grayed out with tooltip), Enabled state (active button)
   - ✅ Show loading state when fetching data (spinner icon on button)
   - ✅ Auto-disable: Automatically disable overlay when zoom drops below 12
@@ -396,9 +409,12 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Improved marker cleanup: Always remove markers when overlay is disabled or component unmounts
   - ✅ Fixed arrow direction: Corrected rotation formula from `(targetDirection - 90 + 360) % 360` to `(targetDirection - 180 + 360) % 360` to properly point arrows in the direction wind is going (accounts for default arrow pointing down/south)
   - ✅ Added visible loading indicator: Centered overlay on map showing "Loading wind data..." with spinner when fetching (uses `isFetching` to show on refetches too)
-  - ✅ Added logging: Console logs for bounds calculation and grid point distribution for debugging
+  - ✅ Removed debugging console.log statements: Cleaned up bounds calculation and grid point distribution logs
   - ✅ Reduced frontend margin: Changed from 5% to 2.5% for better arrow coverage
   - ✅ Added close button to map info box: Users can dismiss the info box showing points count and coordinates
+  - ✅ Fixed z-index layering: Changed slider z-index from z-50 to z-40 and added CSS rules so Leaflet popups (z-1000) can overlay the slider
+  - ✅ Removed redundant wind data info box: Removed "Wind data for: [timestamp]" box since timestamp is now visible on slider
+  - ✅ Added `onWindFetchingChange` callback: Passes `isFetchingWind` state to parent component for slider play/pause logic
 
 ### Phase 4: Dive Site Suitability Visualization ⏳
 
@@ -451,9 +467,14 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Add WindOverlayToggle to map controls (next to layers button)
   - ✅ Connect to wind data fetching via LeafletMapView
   - ✅ Handle state management (windOverlayEnabled state)
-  - ✅ Zoom level tracking: Pass current zoom level to WindOverlayToggle component
-  - ✅ Zoom change handling: Update toggle button state when zoom changes
+  - ✅ Zoom level tracking: Added `currentZoom` state that tracks actual map zoom from map instance (fixes wind button being disabled incorrectly)
+  - ✅ Zoom change handling: Update toggle button state when zoom changes via map instance `zoomend` event
   - ✅ Fixed ReferenceError: Added missing windOverlayEnabled state declaration
+  - ✅ Added wind feature promotion banner: Banner appears when wind overlay is disabled, promoting the feature with "Try Wind Overlay" button
+  - ✅ Added `handleEnableWindFeature`: Enables wind overlay, shows slider, and zooms to demo location (Lat: 37.7135, Lng: 23.9643)
+  - ✅ Added `handleWindOverlayToggle`: Custom toggle handler that automatically shows slider when enabling wind overlay
+  - ✅ Added `showWindSlider` state: Controls slider visibility, can be hidden/shown
+  - ✅ Added "Show Time Slider" button: Appears when slider is hidden to allow users to re-open it
 
 - [x] Integrate wind overlay into `DiveSitesMap.js` (for map view in DiveSites page)
   - ✅ Add toggle button in top-right corner
@@ -549,6 +570,7 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Uses `isFetching` in addition to `isLoading` to show indicator on map movements, zoom changes, and datetime changes
   - ✅ Disable toggle while loading
   - ✅ Integrated loading state from LeafletMapView to IndependentMapView via callback prop
+  - ✅ Slider play/pause respects loading state: Waits for data to finish loading before advancing (minimum 3 second pause between advances)
 
 - [ ] Add error messages with retry options
   - Show user-friendly error if wind data fails to load
@@ -621,6 +643,8 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - ✅ All TypeScript/PropTypes validations pass
 - ✅ All button colors use colorblind-safe Okabe-Ito palette
 - ✅ Wind condition colors verified as colorblind-safe (all suitability colors from approved palette)
+- ✅ Removed all debugging console.log statements from frontend files (code cleanup)
+- ✅ Fixed z-index layering: Leaflet popups can now overlay the wind date/time slider
 
 ### User Experience Requirements
 
@@ -635,3 +659,6 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - [ ] Error messages are user-friendly if wind data fails to load
 - ✅ Wind overlay integrates seamlessly with existing map features (z-index layering, zoom restrictions)
 - ✅ All UI colors are colorblind-safe (buttons and wind suitability indicators use Okabe-Ito palette)
+- ✅ Wind date/time slider can be hidden/shown: Close button and "Show Time Slider" button for better UX
+- ✅ Wind feature promotion: Banner appears when overlay is disabled, with one-click enable and auto-zoom to demo location
+- ✅ Fixed zoom level tracking: Wind button now correctly enables at zoom 12+ using accurate zoom from map instance

@@ -42,6 +42,9 @@ const IndependentMapView = () => {
     bounds: null,
   });
 
+  // Track current zoom from map instance for accurate zoom level checks
+  const [currentZoom, setCurrentZoom] = useState(2);
+
   // Geolocation using react-geolocated hook
   const { coords, isGeolocationAvailable, isGeolocationEnabled, positionError, getPosition } =
     useGeolocated({
@@ -53,10 +56,10 @@ const IndependentMapView = () => {
       userDecisionTimeout: 5000, // Firefox-specific timeout
       suppressLocationOnMount: true, // Don't auto-request on mount
       onError: error => {
-        console.log('Geolocation error:', error);
+        // Geolocation error handled silently
       },
       onSuccess: position => {
-        console.log('Geolocation success:', position);
+        // Geolocation success handled silently
       },
     });
 
@@ -122,6 +125,8 @@ const IndependentMapView = () => {
   const [windOverlayEnabled, setWindOverlayEnabled] = useState(false);
   const [windDateTime, setWindDateTime] = useState(null); // null = current time, ISO string = specific datetime
   const [isWindLoading, setIsWindLoading] = useState(false);
+  const [isWindFetching, setIsWindFetching] = useState(false);
+  const [showWindSlider, setShowWindSlider] = useState(true); // Show slider by default when wind overlay is enabled
 
   // Update mobile controls visibility based on screen size
   useEffect(() => {
@@ -366,7 +371,33 @@ const IndependentMapView = () => {
   // Handle viewport changes
   const handleViewportChange = newViewport => {
     setViewport(newViewport);
+    // Update current zoom for accurate checks
+    if (newViewport?.zoom !== undefined) {
+      setCurrentZoom(newViewport.zoom);
+    }
   };
+
+  // Update zoom from map instance when available
+  useEffect(() => {
+    if (mapInstance) {
+      const updateZoom = () => {
+        const zoom = mapInstance.getZoom();
+        if (zoom !== undefined && !isNaN(zoom)) {
+          setCurrentZoom(zoom);
+        }
+      };
+
+      // Initial update
+      updateZoom();
+
+      // Listen to zoom changes
+      mapInstance.on('zoomend', updateZoom);
+
+      return () => {
+        mapInstance.off('zoomend', updateZoom);
+      };
+    }
+  }, [mapInstance]);
 
   // Handle filter changes
   const handleFilterChange = newFilters => {
@@ -380,6 +411,33 @@ const IndependentMapView = () => {
     if (validTypes.includes(entityType)) {
       setSelectedEntityType(entityType);
     }
+  };
+
+  // Handle wind overlay toggle - show slider when enabling
+  const handleWindOverlayToggle = enabled => {
+    setWindOverlayEnabled(enabled);
+    if (enabled) {
+      // Show slider when enabling wind overlay
+      setShowWindSlider(true);
+    }
+  };
+
+  // Handle wind feature promotion - enable wind overlay and zoom to location
+  const handleEnableWindFeature = () => {
+    // Set entity type to dive-sites (required for wind overlay)
+    setSelectedEntityType('dive-sites');
+
+    // Enable wind overlay
+    setWindOverlayEnabled(true);
+    setShowWindSlider(true); // Show slider when enabling wind feature
+
+    // Zoom to the specified location with appropriate zoom level (12+ for wind overlay)
+    setViewport({
+      longitude: 23.9643,
+      latitude: 37.7135,
+      zoom: 13, // Zoom level 13 to show wind overlay
+      bounds: null,
+    });
   };
 
   // Check if any filters are active
@@ -401,21 +459,21 @@ const IndependentMapView = () => {
     // Get current map viewport from the map instance if available
     let currentLat = viewport.latitude;
     let currentLng = viewport.longitude;
-    let currentZoom = viewport.zoom;
+    let shareZoom = viewport.zoom;
 
     if (mapInstance) {
       const center = mapInstance.getCenter();
       const zoom = mapInstance.getZoom();
       currentLat = center.lat;
       currentLng = center.lng;
-      currentZoom = zoom;
+      shareZoom = zoom;
     }
 
     // Add viewport
     if (currentLat && currentLng) {
       params.set('lat', currentLat.toFixed(6));
       params.set('lng', currentLng.toFixed(6));
-      params.set('zoom', currentZoom.toFixed(1));
+      params.set('zoom', shareZoom.toFixed(1));
     }
 
     // Add filters
@@ -478,7 +536,6 @@ const IndependentMapView = () => {
       const retryDelay = error?.retryAfter ? parseInt(error.retryAfter) * 1000 : 5000; // Default 5 seconds
 
       const timer = setTimeout(() => {
-        console.log(`Retrying after rate limit (attempt ${retryCount + 1}/3)...`);
         setRetryCount(prev => prev + 1);
         refetch();
       }, retryDelay);
@@ -579,6 +636,47 @@ const IndependentMapView = () => {
             </select>
           </div>
 
+          {/* Wind Feature Promotion Banner */}
+          {!windOverlayEnabled && selectedEntityType === 'dive-sites' && (
+            <div className='mt-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg shadow-sm'>
+              <div className='flex items-start justify-between gap-3'>
+                <div className='flex items-start gap-3 flex-1'>
+                  <div className='flex-shrink-0 mt-0.5'>
+                    <Wind className='w-5 h-5 text-blue-600' />
+                  </div>
+                  <div className='flex-1 min-w-0'>
+                    <h3 className='text-sm font-semibold text-gray-900 mb-1'>
+                      New: Real-Time Wind Conditions
+                    </h3>
+                    <p className='text-xs text-gray-700 mb-2'>
+                      View live wind speed, direction, and forecasts on the map. Plan your dives
+                      based on current and future weather conditions with interactive wind arrows
+                      and dive site suitability indicators. View a location on Zoom level 12+ and
+                      activate wind overlay to see the wind conditions.
+                    </p>
+                    <button
+                      onClick={handleEnableWindFeature}
+                      className='inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm'
+                    >
+                      <Wind className='w-4 h-4' />
+                      Try Wind Overlay
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    // Hide banner by enabling wind overlay (user can disable it if they want)
+                    setWindOverlayEnabled(true);
+                  }}
+                  className='flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors'
+                  aria-label='Dismiss'
+                >
+                  <X className='w-4 h-4' />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Collapsible Controls Section */}
           {showMobileControls && (
             <div className='mt-4 pt-4 border-t border-gray-200'>
@@ -625,21 +723,12 @@ const IndependentMapView = () => {
                     <>
                       <WindOverlayToggle
                         isOverlayEnabled={windOverlayEnabled}
-                        onToggle={setWindOverlayEnabled}
-                        zoomLevel={viewport?.zoom || 2}
+                        onToggle={handleWindOverlayToggle}
+                        zoomLevel={currentZoom}
                         isLoading={isWindLoading}
                         disabled={false}
                       />
-                      {/* Wind DateTime Picker - only show when wind overlay is enabled */}
-                      {windOverlayEnabled && (
-                        <div className='hidden sm:block'>
-                          <WindDateTimePicker
-                            value={windDateTime}
-                            onChange={setWindDateTime}
-                            disabled={!windOverlayEnabled}
-                          />
-                        </div>
-                      )}
+                      {/* Wind DateTime Picker is now floating on top of map - handled separately below */}
                     </>
                   )}
 
@@ -845,6 +934,7 @@ const IndependentMapView = () => {
             setWindOverlayEnabled={setWindOverlayEnabled}
             windDateTime={windDateTime}
             setWindDateTime={setWindDateTime}
+            onWindFetchingChange={setIsWindFetching}
           />
 
           {/* Layers panel */}
@@ -854,6 +944,35 @@ const IndependentMapView = () => {
             selectedLayer={selectedLayer}
             onLayerChange={handleLayerChange}
           />
+
+          {/* Wind DateTime Picker - floating on top of map */}
+          {selectedEntityType === 'dive-sites' &&
+            windOverlayEnabled &&
+            currentZoom >= 12 &&
+            showWindSlider && (
+              <WindDateTimePicker
+                value={windDateTime}
+                onChange={setWindDateTime}
+                disabled={!windOverlayEnabled}
+                isFetchingWind={isWindFetching}
+                onClose={() => setShowWindSlider(false)}
+              />
+            )}
+
+          {/* Button to re-open wind slider when it's hidden */}
+          {selectedEntityType === 'dive-sites' &&
+            windOverlayEnabled &&
+            currentZoom >= 12 &&
+            !showWindSlider && (
+              <button
+                onClick={() => setShowWindSlider(true)}
+                className='absolute top-4 left-1/2 transform -translate-x-1/2 z-40 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg transition-colors flex items-center gap-2'
+                title='Show wind date/time slider'
+              >
+                <Wind className='w-3.5 h-3.5' />
+                Show Time Slider
+              </button>
+            )}
         </div>
       </div>
 

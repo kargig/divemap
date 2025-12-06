@@ -121,4 +121,3 @@ export const formatWindDirection = direction => {
 export const shouldShowSuitability = (windOverlayEnabled, recommendation) => {
   return windOverlayEnabled && recommendation && recommendation.suitability;
 };
-

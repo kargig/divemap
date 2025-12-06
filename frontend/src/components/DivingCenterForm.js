@@ -1,7 +1,8 @@
 import { ArrowLeft } from 'lucide-react';
-import { UI_COLORS } from '../utils/colorPalette';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+
+import { UI_COLORS } from '../utils/colorPalette';
 
 // Reusable form for creating/editing Diving Centers
 // Props:
@@ -364,8 +365,12 @@ const DivingCenterForm = ({
           disabled={!formData.latitude || !formData.longitude}
           className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors'
           style={{ backgroundColor: UI_COLORS.success }}
-          onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')}
-          onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+          onMouseEnter={e =>
+            !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')
+          }
+          onMouseLeave={e =>
+            !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+          }
         >
           <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
             <path
@@ -443,8 +448,8 @@ const DivingCenterForm = ({
           onClick={onCancel}
           className='flex items-center px-4 py-2 text-white rounded-md'
           style={{ backgroundColor: UI_COLORS.neutral }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1f2937'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.neutral}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+          onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)}
         >
           Cancel
         </button>
@@ -452,8 +457,8 @@ const DivingCenterForm = ({
           type='submit'
           className='flex items-center px-4 py-2 text-white rounded-md'
           style={{ backgroundColor: UI_COLORS.primary }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#005a8a'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.primary}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#005a8a')}
+          onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.primary)}
         >
           {mode === 'create' ? 'Create Diving Center' : 'Save Changes'}
         </button>

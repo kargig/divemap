@@ -1,5 +1,4 @@
 import { ArrowLeft, Trash2, Plus } from 'lucide-react';
-import { UI_COLORS } from '../utils/colorPalette';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -9,6 +8,7 @@ import api from '../api';
 import DivingCenterForm from '../components/DivingCenterForm';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { UI_COLORS } from '../utils/colorPalette';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
 
 // Helper function to safely extract error message
@@ -399,8 +399,14 @@ const EditDivingCenter = () => {
                     disabled={addOrganizationMutation.isLoading}
                     className='flex items-center px-4 py-2 text-white rounded-md disabled:opacity-50'
                     style={{ backgroundColor: UI_COLORS.success }}
-                    onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')}
-                    onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                    onMouseEnter={e =>
+                      !e.currentTarget.disabled &&
+                      (e.currentTarget.style.backgroundColor = '#007a5c')
+                    }
+                    onMouseLeave={e =>
+                      !e.currentTarget.disabled &&
+                      (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                    }
                   >
                     <Plus className='h-4 w-4 mr-2' />
                     {addOrganizationMutation.isLoading ? 'Adding...' : 'Add Organization'}
@@ -472,8 +478,8 @@ const EditDivingCenter = () => {
                 onClick={() => setIsAddingGear(!isAddingGear)}
                 className='flex items-center px-4 py-2 text-white rounded-md'
                 style={{ backgroundColor: UI_COLORS.success }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#007a5c'}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.success}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
               >
                 <Plus className='w-4 h-4 mr-2' />
                 Add Gear Rental
@@ -552,8 +558,14 @@ const EditDivingCenter = () => {
                       disabled={addGearMutation.isLoading}
                       className='px-4 py-2 text-white rounded-md disabled:opacity-50'
                       style={{ backgroundColor: UI_COLORS.success }}
-                      onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')}
-                      onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                      onMouseEnter={e =>
+                        !e.currentTarget.disabled &&
+                        (e.currentTarget.style.backgroundColor = '#007a5c')
+                      }
+                      onMouseLeave={e =>
+                        !e.currentTarget.disabled &&
+                        (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                      }
                     >
                       {addGearMutation.isLoading ? 'Adding...' : 'Add Gear Rental'}
                     </button>
@@ -562,8 +574,10 @@ const EditDivingCenter = () => {
                       onClick={() => setIsAddingGear(false)}
                       className='px-4 py-2 text-white rounded-md'
                       style={{ backgroundColor: UI_COLORS.neutral }}
-                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1f2937'}
-                      onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.neutral}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                      onMouseLeave={e =>
+                        (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                      }
                     >
                       Cancel
                     </button>

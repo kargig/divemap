@@ -1,5 +1,4 @@
 import { ArrowLeft, Save, X } from 'lucide-react';
-import { UI_COLORS } from '../utils/colorPalette';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
@@ -8,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import api, { extractErrorMessage } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 
 const CreateDiveSite = () => {
@@ -75,7 +75,13 @@ const CreateDiveSite = () => {
 
     // Convert latitude/longitude to numbers
     // Start with formData but exclude shore_direction fields (we'll add them conditionally)
-    const { shore_direction, shore_direction_confidence, shore_direction_method, shore_direction_distance_m, ...baseData } = formData;
+    const {
+      shore_direction,
+      shore_direction_confidence,
+      shore_direction_method,
+      shore_direction_distance_m,
+      ...baseData
+    } = formData;
     const submitData = {
       ...baseData,
       latitude: parseFloat(formData.latitude),
@@ -100,9 +106,12 @@ const CreateDiveSite = () => {
     // This allows creating without shore_direction (backend will auto-detect if coordinates are provided)
     if (formData.shore_direction && formData.shore_direction.trim() !== '') {
       submitData.shore_direction = parseFloat(formData.shore_direction);
-      
+
       // Include other shore_direction fields if shore_direction is set
-      if (formData.shore_direction_confidence && formData.shore_direction_confidence.trim() !== '') {
+      if (
+        formData.shore_direction_confidence &&
+        formData.shore_direction_confidence.trim() !== ''
+      ) {
         submitData.shore_direction_confidence = formData.shore_direction_confidence;
       } else {
         submitData.shore_direction_confidence = null;
@@ -112,7 +121,10 @@ const CreateDiveSite = () => {
       } else {
         submitData.shore_direction_method = null;
       }
-      if (formData.shore_direction_distance_m && formData.shore_direction_distance_m.trim() !== '') {
+      if (
+        formData.shore_direction_distance_m &&
+        formData.shore_direction_distance_m.trim() !== ''
+      ) {
         submitData.shore_direction_distance_m = parseFloat(formData.shore_direction_distance_m);
       } else {
         submitData.shore_direction_distance_m = null;
@@ -185,11 +197,13 @@ const CreateDiveSite = () => {
       // However, the API endpoint requires a dive site ID, so we'll need to handle this differently
       // For now, we'll create the dive site first, then detect shore direction
       // But that's not ideal. Let's check if there's a way to detect without a dive site ID
-      
+
       // Actually, looking at the backend, the detect endpoint requires a dive site ID
       // So for create flow, we'll just let the backend auto-detect on creation
       // But we can still allow manual entry
-      toast.info('Shore direction will be auto-detected when you create the dive site. You can also enter it manually.');
+      toast.info(
+        'Shore direction will be auto-detected when you create the dive site. You can also enter it manually.'
+      );
     } catch (error) {
       let errorMessage = 'Failed to detect shore direction';
       if (error.response?.data?.detail) {
@@ -330,8 +344,13 @@ const CreateDiveSite = () => {
               disabled={!formData.latitude || !formData.longitude}
               className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
               style={{ backgroundColor: UI_COLORS.success }}
-              onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')}
-              onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+              onMouseEnter={e =>
+                !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')
+              }
+              onMouseLeave={e =>
+                !e.currentTarget.disabled &&
+                (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+              }
             >
               🗺️ Suggest Country & Region from Coordinates
             </button>
@@ -372,7 +391,10 @@ const CreateDiveSite = () => {
 
           {/* Shore Direction Information */}
           <div>
-            <label htmlFor='shore_direction' className='block text-sm font-medium text-gray-700 mb-2'>
+            <label
+              htmlFor='shore_direction'
+              className='block text-sm font-medium text-gray-700 mb-2'
+            >
               Shore Direction (degrees)
             </label>
             <input
@@ -389,7 +411,8 @@ const CreateDiveSite = () => {
             />
             <p className='mt-1 text-xs text-gray-500'>
               Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South, 270° = West.
-              If left empty, shore direction will be auto-detected from coordinates when the dive site is created.
+              If left empty, shore direction will be auto-detected from coordinates when the dive
+              site is created.
             </p>
           </div>
 
@@ -480,8 +503,13 @@ const CreateDiveSite = () => {
               disabled={createDiveSiteMutation.isLoading}
               className='flex items-center px-4 py-2 text-white rounded-md disabled:opacity-50'
               style={{ backgroundColor: UI_COLORS.primary }}
-              onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#005a8a')}
-              onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.primary)}
+              onMouseEnter={e =>
+                !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#005a8a')
+              }
+              onMouseLeave={e =>
+                !e.currentTarget.disabled &&
+                (e.currentTarget.style.backgroundColor = UI_COLORS.primary)
+              }
             >
               <Save className='h-4 w-4 mr-2' />
               {createDiveSiteMutation.isLoading ? 'Creating...' : 'Create Dive Site'}

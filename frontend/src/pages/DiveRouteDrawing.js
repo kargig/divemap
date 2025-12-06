@@ -121,10 +121,6 @@ const DiveRouteDrawing = () => {
   // Route creation mutation
   const createRouteMutation = useMutation(
     async routeData => {
-      console.log('=== DEBUG: createRouteMutation called ===');
-      console.log('routeData parameter:', routeData);
-      console.log('routeData.route_data:', routeData.route_data);
-
       const response = await api.post('/api/v1/dive-routes/', {
         dive_site_id: parseInt(diveSiteId),
         name: routeData.name,
@@ -133,10 +129,6 @@ const DiveRouteDrawing = () => {
         route_type: routeData.route_type,
         // drawing_type will be auto-detected by backend
       });
-
-      console.log('=== DEBUG: API Response ===');
-      console.log('Response status:', response.status);
-      console.log('Response data:', response.data);
 
       return response.data;
     },
@@ -184,19 +176,12 @@ const DiveRouteDrawing = () => {
   // Route update mutation
   const updateRouteMutation = useMutation(
     async routeData => {
-      console.log('=== DEBUG: updateRouteMutation called ===');
-      console.log('routeData parameter:', routeData);
-
       const response = await api.put(`/api/v1/dive-routes/${editRouteId}`, {
         name: routeData.name,
         description: routeData.description,
         route_data: routeData.route_data,
         route_type: routeData.route_type,
       });
-
-      console.log('=== DEBUG: API Response ===');
-      console.log('Response status:', response.status);
-      console.log('Response data:', response.data);
 
       return response.data;
     },
@@ -259,12 +244,6 @@ const DiveRouteDrawing = () => {
   }
 
   const handleSave = drawnRouteData => {
-    console.log('=== DEBUG: handleSave called ===');
-    console.log('drawnRouteData received:', drawnRouteData);
-    console.log('routeData state:', routeData);
-    console.log('routeName:', routeName);
-    console.log('routeType:', routeType);
-
     // Validation checks
     if (!routeName.trim()) {
       toast.error('Please enter a route name');
@@ -278,7 +257,6 @@ const DiveRouteDrawing = () => {
 
     // Use the provided routeData or the stored routeData
     const dataToSave = drawnRouteData || routeData;
-    console.log('dataToSave:', dataToSave);
 
     if (!dataToSave) {
       toast.error('Please draw a route before saving');
@@ -303,12 +281,6 @@ const DiveRouteDrawing = () => {
       route_type: routeType,
       // drawing_type will be auto-detected by backend from geometry
     };
-
-    console.log('=== DEBUG: Payload being sent ===');
-    console.log('Full payload:', payload);
-    console.log('detectDrawingType result:', detectDrawingType(dataToSave));
-    console.log('route_data.features:', dataToSave.features);
-    console.log('route_data.features[0]:', dataToSave.features[0]);
 
     if (isEditing) {
       updateRouteMutation.mutate(payload);

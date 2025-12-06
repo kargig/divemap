@@ -7,15 +7,15 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster';
 
 import api from '../api';
-
-import WindOverlay from './WindOverlay';
-import WindOverlayToggle from './WindOverlayToggle';
 import {
   getSuitabilityColor,
   getSuitabilityLabel,
   formatWindSpeed,
   formatWindDirection,
 } from '../utils/windSuitabilityHelpers';
+
+import WindOverlay from './WindOverlay';
+import WindOverlayToggle from './WindOverlayToggle';
 
 // Helper: convert URLs in plain text to clickable links (for HTML string popups)
 const linkifyText = text => {
@@ -317,17 +317,17 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                         marker.recommendation
                           ? (() => {
                               const rec = marker.recommendation;
-                            const suitability = rec.suitability || 'unknown';
-                            const suitabilityColor = getSuitabilityColor(suitability);
-                            const suitabilityLabel = getSuitabilityLabel(suitability);
-                            // Wind data is directly on the recommendation object, not nested in wind_data
-                            const windSpeed = rec.wind_speed || 0;
-                            const windDirection = rec.wind_direction || 0;
-                            const windGusts = rec.wind_gusts;
-                              
+                              const suitability = rec.suitability || 'unknown';
+                              const suitabilityColor = getSuitabilityColor(suitability);
+                              const suitabilityLabel = getSuitabilityLabel(suitability);
+                              // Wind data is directly on the recommendation object, not nested in wind_data
+                              const windSpeed = rec.wind_speed || 0;
+                              const windDirection = rec.wind_direction || 0;
+                              const windGusts = rec.wind_gusts;
+
                               const speedFormatted = formatWindSpeed(windSpeed);
                               const directionFormatted = formatWindDirection(windDirection);
-                              
+
                               return `
                         <div class="border-t border-gray-200 pt-2 mt-2">
                           <h4 class="font-semibold text-sm mb-2">Wind Conditions</h4>
@@ -542,6 +542,7 @@ const LeafletMapView = ({
   windDateTime,
   setWindDateTime,
   onWindLoadingChange,
+  onWindFetchingChange,
 }) => {
   const [mapMetadata, setMapMetadata] = useState(null);
   const [internalWindOverlayEnabled, setInternalWindOverlayEnabled] = useState(false);
@@ -568,12 +569,16 @@ const LeafletMapView = ({
           // Use a white outline around the colored border for better visibility
           svg = `
             <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              ${borderColor ? `
+              ${
+                borderColor
+                  ? `
                 <!-- White outline for better contrast -->
                 <rect x="0" y="0" width="24" height="24" fill="white" stroke="white" stroke-width="${borderWidth + 1}"/>
                 <!-- Colored border -->
                 <rect x="0.5" y="0.5" width="23" height="23" fill="${borderColor}" stroke="${borderColor}" stroke-width="${borderWidth}" stroke-opacity="1"/>
-              ` : ''}
+              `
+                  : ''
+              }
               <!-- Red rectangle background -->
               <rect x="${borderColor ? borderWidth + 0.5 : 2}" y="${borderColor ? borderWidth + 0.5 : 2}" width="${borderColor ? 24 - (borderWidth + 0.5) * 2 : 20}" height="${borderColor ? 24 - (borderWidth + 0.5) * 2 : 20}" fill="#dc2626" stroke="white" stroke-width="1"/>
               <!-- White diagonal stripe from top-left to bottom-right -->
@@ -584,9 +589,9 @@ const LeafletMapView = ({
             </svg>
           `;
           break;
-      case 'dive':
-        // Scuba flag (diver down flag) - red rectangle with white diagonal stripe
-        svg = `
+        case 'dive':
+          // Scuba flag (diver down flag) - red rectangle with white diagonal stripe
+          svg = `
           <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <!-- Red rectangle background -->
             <rect x="2" y="2" width="20" height="20" fill="#dc2626" stroke="white" stroke-width="1"/>
@@ -597,10 +602,10 @@ const LeafletMapView = ({
             <circle cx="18" cy="18" r="1" fill="white"/>
           </svg>
         `;
-        break;
-      case 'diving_center':
-        // Blue square with "DC" text for diving centers
-        svg = `
+          break;
+        case 'diving_center':
+          // Blue square with "DC" text for diving centers
+          svg = `
           <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <!-- Blue rectangle background -->
             <rect x="2" y="2" width="20" height="20" fill="#2563eb" stroke="white" stroke-width="1"/>
@@ -608,11 +613,11 @@ const LeafletMapView = ({
             <text x="12" y="16" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">DC</text>
           </svg>
         `;
-        break;
-      case 'dive_trip': {
-        // Trip icon with status-based color
-        const baseColor = '#3b82f6'; // Default blue for scheduled
-        svg = `
+          break;
+        case 'dive_trip': {
+          // Trip icon with status-based color
+          const baseColor = '#3b82f6'; // Default blue for scheduled
+          svg = `
           <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <!-- Background circle -->
             <circle cx="12" cy="12" r="10" fill="${baseColor}" stroke="white" stroke-width="2"/>
@@ -624,27 +629,29 @@ const LeafletMapView = ({
             <line x1="15" y1="7" x2="15" y2="10" stroke="white" stroke-width="1"/>
           </svg>
         `;
-        break;
-      }
-      default:
-        // Default gray circle
-        svg = `
+          break;
+        }
+        default:
+          // Default gray circle
+          svg = `
           <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="12" cy="12" r="10" fill="#6b7280" stroke="white" stroke-width="2"/>
             <text x="12" y="16" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">?</text>
           </svg>
         `;
-    }
+      }
 
-    const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 
-    return new Icon({
-      iconUrl: dataUrl,
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
-      popupAnchor: [0, -size / 2],
-    });
-  }, []);
+      return new Icon({
+        iconUrl: dataUrl,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        popupAnchor: [0, -size / 2],
+      });
+    },
+    []
+  );
 
   // Debounce bounds changes for wind data fetching
   useEffect(() => {
@@ -666,7 +673,11 @@ const LeafletMapView = ({
     selectedEntityType === 'dive-sites'
   );
 
-  const { data: windData, isLoading: isLoadingWind, isFetching: isFetchingWind } = useQuery(
+  const {
+    data: windData,
+    isLoading: isLoadingWind,
+    isFetching: isFetchingWind,
+  } = useQuery(
     ['wind-data', debouncedBounds, mapMetadata?.zoom, windDateTime],
     async () => {
       if (!debouncedBounds) return null;
@@ -684,47 +695,13 @@ const LeafletMapView = ({
         zoom_level: Math.round(mapMetadata.zoom),
       };
 
-      // Log bounds calculation for debugging
-      console.log('[WindOverlay] Bounds calculation:', {
-        originalBounds: {
-          north: debouncedBounds.north,
-          south: debouncedBounds.south,
-          east: debouncedBounds.east,
-          west: debouncedBounds.west,
-        },
-        margins: {
-          latMargin,
-          lonMargin,
-        },
-        expandedBounds: params,
-        zoom: mapMetadata.zoom,
-        boundsSize: {
-          latRange: debouncedBounds.north - debouncedBounds.south,
-          lonRange: debouncedBounds.east - debouncedBounds.west,
-        },
-      });
-
       // Add datetime_str if specified (null means current time, so don't include it)
       if (windDateTime) {
         params.datetime_str = windDateTime;
       }
 
       const response = await api.get('/api/v1/weather/wind', { params });
-      
-      // Log grid point distribution from API response
-      if (response.data && response.data.points) {
-        const points = response.data.points;
-        const lats = points.map(p => p.lat);
-        const lons = points.map(p => p.lon);
-        console.log('[WindOverlay] Grid point distribution from API:', {
-          totalPoints: points.length,
-          latRange: [Math.min(...lats), Math.max(...lats)],
-          lonRange: [Math.min(...lons), Math.max(...lons)],
-          first5Points: points.slice(0, 5).map(p => ({ lat: p.lat, lon: p.lon })),
-          last5Points: points.slice(-5).map(p => ({ lat: p.lat, lon: p.lon })),
-        });
-      }
-      
+
       return response.data;
     },
     {
@@ -755,7 +732,11 @@ const LeafletMapView = ({
     selectedEntityType === 'dive-sites'
   );
 
-  const { data: windRecommendations, isLoading: isLoadingRecommendations, isFetching: isFetchingRecommendations } = useQuery(
+  const {
+    data: windRecommendations,
+    isLoading: isLoadingRecommendations,
+    isFetching: isFetchingRecommendations,
+  } = useQuery(
     ['wind-recommendations', debouncedBounds, windDateTime],
     async () => {
       if (!debouncedBounds) return null;
@@ -790,9 +771,24 @@ const LeafletMapView = ({
   // Notify parent of loading state changes (include fetching for refetches)
   useEffect(() => {
     if (onWindLoadingChange) {
-      onWindLoadingChange(isLoadingWind || isLoadingRecommendations || isFetchingWind || isFetchingRecommendations);
+      onWindLoadingChange(
+        isLoadingWind || isLoadingRecommendations || isFetchingWind || isFetchingRecommendations
+      );
     }
-  }, [isLoadingWind, isLoadingRecommendations, isFetchingWind, isFetchingRecommendations, onWindLoadingChange]);
+  }, [
+    isLoadingWind,
+    isLoadingRecommendations,
+    isFetchingWind,
+    isFetchingRecommendations,
+    onWindLoadingChange,
+  ]);
+
+  // Notify parent of wind fetching state specifically (for play/pause functionality)
+  useEffect(() => {
+    if (onWindFetchingChange) {
+      onWindFetchingChange(isFetchingWind);
+    }
+  }, [isFetchingWind, onWindFetchingChange]);
 
   // Create a map of dive site ID to recommendation for quick lookup
   const recommendationsMap = useMemo(() => {
@@ -994,7 +990,11 @@ const LeafletMapView = ({
           mapMetadata?.zoom >= 12 &&
           mapMetadata?.zoom <= 18 &&
           windData && (
-            <WindOverlay windData={windData} isWindOverlayEnabled={windOverlayEnabled} maxArrows={100} />
+            <WindOverlay
+              windData={windData}
+              isWindOverlayEnabled={windOverlayEnabled}
+              maxArrows={100}
+            />
           )}
       </MapContainer>
 
@@ -1032,25 +1032,6 @@ const LeafletMapView = ({
               </svg>
             </div>
             <span className='text-sm font-medium'>Loading wind data...</span>
-          </div>
-        )}
-
-      {/* Wind datetime info box - only show when wind overlay is enabled */}
-      {selectedEntityType === 'dive-sites' &&
-        windOverlayEnabled &&
-        mapMetadata?.zoom >= 12 &&
-        (windDateTime || windData) && (
-          <div className='absolute top-4 left-48 z-50 bg-white/90 text-gray-800 text-xs px-2 py-1 rounded shadow border border-gray-200'>
-            Wind data for:{' '}
-            {windDateTime
-              ? new Date(windDateTime).toLocaleString(undefined, {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              : 'Now'}
           </div>
         )}
 

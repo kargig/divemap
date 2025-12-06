@@ -1,5 +1,4 @@
 import { Save, ArrowLeft, Plus, X, ChevronDown, Image, Video, FileText, Link } from 'lucide-react';
-import { UI_COLORS } from '../utils/colorPalette';
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -16,6 +15,7 @@ import {
 import RouteSelection from '../components/RouteSelection';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 
 const EditDive = () => {
@@ -769,8 +769,8 @@ const EditDive = () => {
                     onClick={() => setShowMediaForm(true)}
                     className='flex items-center gap-2 px-4 py-2 text-white rounded-md'
                     style={{ backgroundColor: UI_COLORS.success }}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#007a5c'}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.success}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
                   >
                     <Link size={16} />
                     Add Media URL
@@ -831,8 +831,14 @@ const EditDive = () => {
                           disabled={!newMediaUrl.trim()}
                           className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
                           style={{ backgroundColor: UI_COLORS.success }}
-                          onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')}
-                          onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                          onMouseEnter={e =>
+                            !e.currentTarget.disabled &&
+                            (e.currentTarget.style.backgroundColor = '#007a5c')
+                          }
+                          onMouseLeave={e =>
+                            !e.currentTarget.disabled &&
+                            (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                          }
                         >
                           Add Media
                         </button>
@@ -846,8 +852,10 @@ const EditDive = () => {
                           }}
                           className='px-4 py-2 text-white rounded-md'
                           style={{ backgroundColor: UI_COLORS.neutral }}
-                          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1f2937'}
-                          onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.neutral}
+                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                          onMouseLeave={e =>
+                            (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                          }
                         >
                           Cancel
                         </button>
@@ -941,8 +949,8 @@ const EditDive = () => {
                   onClick={handleAddNewTag}
                   className='px-4 py-2 text-white rounded-md flex items-center gap-2'
                   style={{ backgroundColor: UI_COLORS.success }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#007a5c'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.success}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
                 >
                   <Plus size={16} />
                   Add
@@ -959,8 +967,8 @@ const EditDive = () => {
             onClick={() => navigate(`/dives/${id}`)}
             className='px-6 py-2 text-white rounded-md'
             style={{ backgroundColor: UI_COLORS.neutral }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1f2937'}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.neutral}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)}
           >
             Cancel
           </button>
@@ -969,8 +977,13 @@ const EditDive = () => {
             disabled={updateDiveMutation.isLoading}
             className='px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
             style={{ backgroundColor: UI_COLORS.primary }}
-            onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#005a8a')}
-            onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.primary)}
+            onMouseEnter={e =>
+              !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#005a8a')
+            }
+            onMouseLeave={e =>
+              !e.currentTarget.disabled &&
+              (e.currentTarget.style.backgroundColor = UI_COLORS.primary)
+            }
           >
             {updateDiveMutation.isLoading ? (
               <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>

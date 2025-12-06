@@ -1,5 +1,4 @@
 import { ArrowLeft, Save, Trash2, Upload, X, Tag, Building, Plus, Edit } from 'lucide-react';
-import { UI_COLORS } from '../utils/colorPalette';
 import { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -8,6 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api, { getNearbyDivingCenters, searchDivingCenters } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { UI_COLORS } from '../utils/colorPalette';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 
@@ -477,9 +477,13 @@ const EditDiveSite = () => {
     }
 
     try {
-      const response = await api.post(`/api/v1/dive-sites/${id}/detect-shore-direction`, {}, {
-        timeout: 30000, // 30 second timeout
-      });
+      const response = await api.post(
+        `/api/v1/dive-sites/${id}/detect-shore-direction`,
+        {},
+        {
+          timeout: 30000, // 30 second timeout
+        }
+      );
 
       const { shore_direction, confidence, method, distance_to_coastline_m } = response.data;
 
@@ -491,7 +495,9 @@ const EditDiveSite = () => {
         shore_direction_distance_m: distance_to_coastline_m?.toString() || '',
       }));
 
-      toast.success(`Shore direction detected: ${shore_direction?.toFixed(1)}° (${confidence || 'unknown'} confidence)`);
+      toast.success(
+        `Shore direction detected: ${shore_direction?.toFixed(1)}° (${confidence || 'unknown'} confidence)`
+      );
     } catch (error) {
       let errorMessage = 'Failed to detect shore direction';
       if (error.response?.data?.detail) {
@@ -542,9 +548,12 @@ const EditDiveSite = () => {
     // This allows saving without shore_direction (backend will keep existing value or auto-detect)
     if (formData.shore_direction && formData.shore_direction.trim() !== '') {
       updateData.shore_direction = parseFloat(formData.shore_direction);
-      
+
       // Include other shore_direction fields if shore_direction is set
-      if (formData.shore_direction_confidence && formData.shore_direction_confidence.trim() !== '') {
+      if (
+        formData.shore_direction_confidence &&
+        formData.shore_direction_confidence.trim() !== ''
+      ) {
         updateData.shore_direction_confidence = formData.shore_direction_confidence;
       } else {
         updateData.shore_direction_confidence = null;
@@ -554,7 +563,10 @@ const EditDiveSite = () => {
       } else {
         updateData.shore_direction_method = null;
       }
-      if (formData.shore_direction_distance_m && formData.shore_direction_distance_m.trim() !== '') {
+      if (
+        formData.shore_direction_distance_m &&
+        formData.shore_direction_distance_m.trim() !== ''
+      ) {
         updateData.shore_direction_distance_m = parseFloat(formData.shore_direction_distance_m);
       } else {
         updateData.shore_direction_distance_m = null;
@@ -752,8 +764,8 @@ const EditDiveSite = () => {
                   onClick={() => setShowAliasForm(!showAliasForm)}
                   className='flex items-center px-4 py-2 text-white rounded-md'
                   style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#007a5c'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.success}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
                 >
                   <Plus className='w-4 h-4 mr-2' />
                   Add Alias
@@ -787,8 +799,14 @@ const EditDiveSite = () => {
                         disabled={addAliasMutation.isLoading}
                         className='px-4 py-2 text-white rounded-md disabled:opacity-50'
                         style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                        onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')}
-                        onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                        onMouseEnter={e =>
+                          !e.currentTarget.disabled &&
+                          (e.currentTarget.style.backgroundColor = '#007a5c')
+                        }
+                        onMouseLeave={e =>
+                          !e.currentTarget.disabled &&
+                          (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                        }
                       >
                         {addAliasMutation.isLoading ? 'Adding...' : 'Add Alias'}
                       </button>
@@ -797,8 +815,10 @@ const EditDiveSite = () => {
                         onClick={() => setShowAliasForm(false)}
                         className='px-4 py-2 text-white rounded-md'
                         style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1f2937'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.neutral}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                        onMouseLeave={e =>
+                          (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                        }
                       >
                         Cancel
                       </button>
@@ -968,8 +988,13 @@ const EditDiveSite = () => {
                 disabled={!formData.latitude || !formData.longitude}
                 className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
                 style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')}
-                onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                onMouseEnter={e =>
+                  !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')
+                }
+                onMouseLeave={e =>
+                  !e.currentTarget.disabled &&
+                  (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                }
               >
                 🗺️ Suggest Country & Region from Coordinates
               </button>
@@ -977,7 +1002,10 @@ const EditDiveSite = () => {
 
             {/* Shore Direction Information */}
             <div>
-              <label htmlFor='shore_direction' className='block text-sm font-medium text-gray-700 mb-2'>
+              <label
+                htmlFor='shore_direction'
+                className='block text-sm font-medium text-gray-700 mb-2'
+              >
                 Shore Direction (degrees)
               </label>
               <div className='flex gap-2'>
@@ -999,18 +1027,25 @@ const EditDiveSite = () => {
                   disabled={!formData.latitude || !formData.longitude}
                   className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap'
                   style={{ backgroundColor: UI_COLORS.success }}
-                  onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')}
-                  onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                  onMouseEnter={e =>
+                    !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')
+                  }
+                  onMouseLeave={e =>
+                    !e.currentTarget.disabled &&
+                    (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                  }
                 >
                   🔍 Re-detect from Coordinates
                 </button>
               </div>
               <p className='mt-1 text-xs text-gray-500'>
-                Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South, 270° = West.
+                Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South, 270° =
+                West.
               </p>
               {formData.shore_direction_confidence && (
                 <div className='mt-2 text-xs text-gray-600'>
-                  <span className='font-medium'>Confidence:</span> {formData.shore_direction_confidence}
+                  <span className='font-medium'>Confidence:</span>{' '}
+                  {formData.shore_direction_confidence}
                   {formData.shore_direction_method && (
                     <>
                       {' • '}
@@ -1020,7 +1055,8 @@ const EditDiveSite = () => {
                   {formData.shore_direction_distance_m && (
                     <>
                       {' • '}
-                      <span className='font-medium'>Distance:</span> {parseFloat(formData.shore_direction_distance_m).toFixed(1)}m
+                      <span className='font-medium'>Distance:</span>{' '}
+                      {parseFloat(formData.shore_direction_distance_m).toFixed(1)}m
                     </>
                   )}
                 </div>
@@ -1107,8 +1143,8 @@ const EditDiveSite = () => {
                   onClick={() => setIsAddingMedia(!isAddingMedia)}
                   className='flex items-center px-4 py-2 text-white rounded-md'
                   style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#007a5c'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.success}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
                 >
                   <Upload className='w-4 h-4 mr-2' />
                   Add Media
@@ -1181,8 +1217,14 @@ const EditDiveSite = () => {
                         disabled={addMediaMutation.isLoading}
                         className='px-4 py-2 text-white rounded-md disabled:opacity-50'
                         style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                        onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')}
-                        onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                        onMouseEnter={e =>
+                          !e.currentTarget.disabled &&
+                          (e.currentTarget.style.backgroundColor = '#007a5c')
+                        }
+                        onMouseLeave={e =>
+                          !e.currentTarget.disabled &&
+                          (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                        }
                       >
                         {addMediaMutation.isLoading ? 'Adding...' : 'Add Media'}
                       </button>
@@ -1191,8 +1233,10 @@ const EditDiveSite = () => {
                         onClick={() => setIsAddingMedia(false)}
                         className='px-4 py-2 text-white rounded-md'
                         style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1f2937'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.neutral}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                        onMouseLeave={e =>
+                          (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                        }
                       >
                         Cancel
                       </button>
@@ -1263,8 +1307,8 @@ const EditDiveSite = () => {
                   onClick={() => setShowTagForm(!showTagForm)}
                   className='flex items-center px-4 py-2 text-white rounded-md'
                   style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#007a5c'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.success}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
                 >
                   <Tag className='w-4 h-4 mr-2' />
                   Add Tag
@@ -1320,8 +1364,14 @@ const EditDiveSite = () => {
                         disabled={createTagMutation.isLoading}
                         className='px-4 py-2 text-white rounded-md disabled:opacity-50'
                         style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                        onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')}
-                        onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                        onMouseEnter={e =>
+                          !e.currentTarget.disabled &&
+                          (e.currentTarget.style.backgroundColor = '#007a5c')
+                        }
+                        onMouseLeave={e =>
+                          !e.currentTarget.disabled &&
+                          (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                        }
                       >
                         {createTagMutation.isLoading ? 'Adding...' : 'Add Tag'}
                       </button>
@@ -1330,8 +1380,10 @@ const EditDiveSite = () => {
                         onClick={() => setShowTagForm(false)}
                         className='px-4 py-2 text-white rounded-md'
                         style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1f2937'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.neutral}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                        onMouseLeave={e =>
+                          (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                        }
                       >
                         Cancel
                       </button>
@@ -1397,8 +1449,8 @@ const EditDiveSite = () => {
                 onClick={() => navigate(`/dive-sites/${id}`)}
                 className='px-6 py-2 text-white rounded-md'
                 style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1f2937'}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.neutral}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)}
               >
                 Cancel
               </button>
@@ -1407,8 +1459,8 @@ const EditDiveSite = () => {
                 disabled={updateMutation.isLoading}
                 className='flex items-center px-6 py-2 text-white rounded-md disabled:opacity-50'
                 style={{ backgroundColor: UI_COLORS.primary, color: 'white' }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#005a8a'}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.primary}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#005a8a')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.primary)}
               >
                 <Save className='w-4 h-4 mr-2' />
                 {updateMutation.isLoading ? 'Saving...' : 'Save Changes'}
@@ -1425,8 +1477,8 @@ const EditDiveSite = () => {
                 onClick={handleToggleDivingCenterForm}
                 className='flex items-center px-4 py-2 text-white rounded-md'
                 style={{ backgroundColor: UI_COLORS.success }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#007a5c'}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.success}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
               >
                 <Building className='w-4 h-4 mr-2' />
                 Add Diving Center
@@ -1566,8 +1618,14 @@ const EditDiveSite = () => {
                       disabled={addDivingCenterMutation.isLoading}
                       className='px-4 py-2 text-white rounded-md disabled:opacity-50'
                       style={{ backgroundColor: UI_COLORS.success }}
-                      onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')}
-                      onMouseLeave={e => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                      onMouseEnter={e =>
+                        !e.currentTarget.disabled &&
+                        (e.currentTarget.style.backgroundColor = '#007a5c')
+                      }
+                      onMouseLeave={e =>
+                        !e.currentTarget.disabled &&
+                        (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                      }
                     >
                       {addDivingCenterMutation.isLoading ? 'Adding...' : 'Add Diving Center'}
                     </button>
@@ -1576,8 +1634,10 @@ const EditDiveSite = () => {
                       onClick={() => setShowDivingCenterForm(false)}
                       className='px-4 py-2 text-white rounded-md'
                       style={{ backgroundColor: UI_COLORS.neutral }}
-                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1f2937'}
-                      onMouseLeave={e => e.currentTarget.style.backgroundColor = UI_COLORS.neutral}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                      onMouseLeave={e =>
+                        (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                      }
                     >
                       Cancel
                     </button>
