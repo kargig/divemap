@@ -3,7 +3,7 @@
 **Status:** In Progress
 **Created:** 2025-11-30T11:59:24Z
 **Started:** 2025-11-30T12:40:00Z
-**Last Updated:** December 8, 2025
+**Last Updated:** December 9, 2025
 **Agent PID:** 121961
 **Branch:** feature/wind-overlay-dive-sites-map
 
@@ -76,6 +76,10 @@
 - Added "Show Legend" button: Map button (top right) to show/hide wind overlay legend, similar to "Show Time Slider" button
 - Moved map info to button: Changed map info from always visible to toggle button (left side, below zoom buttons) for cleaner UI
 - Integrated legends: Added legend toggle buttons and rendering in both IndependentMapView and DiveSitesMap components
+- Created bulk update script: `scripts/bulk_update_shore_direction.py` for updating shore direction for multiple dive sites
+  - CLI interface with comprehensive options (dry-run, force, ids, rate limiting controls)
+  - Rate limiting with sliding window support and retry logic
+  - Progress tracking with percentage, ETA, and running statistics
 
 ---
 
@@ -260,6 +264,38 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - Rate limiting (10/minute for admins)
   - Permission checks (admin/moderator/owner)
   - Returns detection result with confidence and distance
+
+**Bulk Update Script:**
+
+- ✅ Created `scripts/bulk_update_shore_direction.py` - Bulk update shore direction for multiple dive sites
+  - Authenticates using username/password (from CLI args or environment variables)
+  - Fetches all dive sites (or specific IDs with `--ids` option)
+  - Filters sites without shore_direction that have coordinates
+  - For each site, calls detect-shore-direction endpoint and updates the dive site
+  - CLI options:
+    - `--dry-run`: Preview changes without making updates
+    - `--force`: Skip confirmation prompt
+    - `--ids IDS`: Process only specific dive site IDs (comma-separated)
+    - `--base-url URL`: API base URL (default: DIVEMAP_URL env var or `http://localhost:8000`)
+    - `--username USER`: Username for authentication (default: DIVEMAP_USERNAME env var)
+    - `--password PASS`: Password for authentication (default: DIVEMAP_PASSWORD env var)
+    - `--debug`: Enable debug logging
+    - `--max-retries N`: Maximum retries for rate-limited requests (default: 3)
+    - `--base-wait-time SEC`: Base wait time for rate limits (default: 120)
+    - `--max-requests-per-minute N`: Maximum requests per minute (default: 60)
+  - Rate limiting features:
+    - Sliding window rate limiting with proactive checking
+    - Retry logic with exponential backoff for 429 responses
+    - Respects Retry-After headers from API
+    - Tracks requests per minute to prevent hitting limits
+    - Auto-refreshes expired authentication tokens
+  - Progress display:
+    - Shows progress percentage (X/Y sites, X.X%)
+    - Estimated time remaining (ETA) based on average time per site
+    - Running statistics after each site (✓ success | ✗ failed | ⏭️ skipped)
+    - Total time and average time per site in summary
+  - Comprehensive logging with timestamps and emoji indicators
+  - Summary statistics including rate limit encounters
 
 **Open-Meteo Service:**
 
@@ -602,11 +638,18 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - Show wind forecast (optional: next 24 hours)
   - Update automatically or on refresh
 
-- [ ] Add admin tools for shore direction management (optional)
-  - Bulk detection endpoint for existing dive sites
-  - Admin UI to view/edit shore directions
-  - Statistics: How many sites have shore_direction set
-  - Manual override capability for admins
+- [x] Add admin tools for shore direction management (optional)
+  - ✅ Bulk update script: Created `scripts/bulk_update_shore_direction.py` for bulk updating shore direction
+    - ✅ CLI options: `--dry-run`, `--force`, `--ids`, `--base-url`, `--username`, `--password`, `--debug`, `--max-retries`, `--base-wait-time`, `--max-requests-per-minute`
+    - ✅ Rate limiting: Implements sliding window rate limiting with retry logic (similar to `update_dive_site_locations.py`)
+    - ✅ Progress display: Shows progress percentage, ETA, running stats (success/failed/skipped), and total time
+    - ✅ Token management: Auto-refreshes expired tokens, handles 401 authentication errors
+    - ✅ Error handling: Handles rate limits (429), retries with exponential backoff, respects Retry-After headers
+    - ✅ Comprehensive logging: Timestamped log messages with emoji indicators for status
+    - ✅ Summary statistics: Shows total time, average time per site, rate limit summary
+  - [ ] Admin UI to view/edit shore directions
+  - [ ] Statistics: How many sites have shore_direction set
+  - ✅ Manual override capability for admins (via API endpoint and forms)
 
 ---
 
