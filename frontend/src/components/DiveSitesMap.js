@@ -23,6 +23,7 @@ import WindDateTimePicker from './WindDateTimePicker';
 import WindOverlay from './WindOverlay';
 import WindOverlayLegend from './WindOverlayLegend';
 import WindOverlayToggle from './WindOverlayToggle';
+import WindDataError from './WindDataError';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -430,6 +431,9 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
     data: windData,
     isLoading: isLoadingWind,
     isFetching: isFetchingWind,
+    error: windDataError,
+    isError: isWindDataError,
+    refetch: refetchWindData,
   } = useQuery(
     ['wind-data', debouncedBounds, mapMetadata?.zoom, windDateTime],
     async () => {
@@ -688,6 +692,18 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
           <span className='text-sm font-medium'>Loading wind data...</span>
         </div>
       )}
+
+      {/* Wind data error indicator */}
+      {windOverlayEnabled &&
+        currentZoom >= 12 &&
+        isWindDataError &&
+        windDataError && (
+          <WindDataError
+            error={windDataError}
+            onRetry={() => refetchWindData()}
+            isUsingCachedData={!!windData && windData.points && windData.points.length > 0}
+          />
+        )}
 
       {/* Info overlays */}
       <div className='absolute bottom-2 left-2 bg-white bg-opacity-90 px-2 py-1 rounded text-xs'>

@@ -17,6 +17,7 @@ import {
 
 import WindOverlay from './WindOverlay';
 import WindOverlayToggle from './WindOverlayToggle';
+import WindDataError from './WindDataError';
 
 // Helper: convert URLs in plain text to clickable links (for HTML string popups)
 const linkifyText = text => {
@@ -678,6 +679,9 @@ const LeafletMapView = ({
     data: windData,
     isLoading: isLoadingWind,
     isFetching: isFetchingWind,
+    error: windDataError,
+    isError: isWindDataError,
+    refetch: refetchWindData,
   } = useQuery(
     ['wind-data', debouncedBounds, mapMetadata?.zoom, windDateTime],
     async () => {
@@ -1034,6 +1038,19 @@ const LeafletMapView = ({
             </div>
             <span className='text-sm font-medium'>Loading wind data...</span>
           </div>
+        )}
+
+      {/* Wind data error indicator */}
+      {selectedEntityType === 'dive-sites' &&
+        windOverlayEnabled &&
+        mapMetadata?.zoom >= 12 &&
+        isWindDataError &&
+        windDataError && (
+          <WindDataError
+            error={windDataError}
+            onRetry={() => refetchWindData()}
+            isUsingCachedData={!!windData && windData.points && windData.points.length > 0}
+          />
         )}
 
       {/* Button to show map info - left side, below zoom buttons */}

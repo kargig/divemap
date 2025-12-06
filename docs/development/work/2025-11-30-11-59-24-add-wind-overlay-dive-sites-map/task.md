@@ -3,7 +3,7 @@
 **Status:** In Progress
 **Created:** 2025-11-30T11:59:24Z
 **Started:** 2025-11-30T12:40:00Z
-**Last Updated:** December 9, 2025
+**Last Updated:** December 6, 2025
 **Agent PID:** 121961
 **Branch:** feature/wind-overlay-dive-sites-map
 
@@ -24,7 +24,7 @@
   - ✅ Wind overlay integrated into IndependentMapView
   - ✅ Wind overlay integrated into DiveSitesMap
   - ✅ Frontend Forms - shore_direction input fields (COMPLETED)
-- ⏳ Phase 6: User Experience Polish (60% - IN PROGRESS)
+- ⏳ Phase 6: User Experience Polish (70% - IN PROGRESS)
 
 **Recent Fixes:**
 
@@ -80,6 +80,15 @@
   - CLI interface with comprehensive options (dry-run, force, ids, rate limiting controls)
   - Rate limiting with sliding window support and retry logic
   - Progress tracking with percentage, ETA, and running statistics
+- Added error messages with retry options for wind data fetching
+  - Created WindDataError component (`frontend/src/components/WindDataError.js`) with user-friendly error messages
+  - Shows specific error messages for different error types (network, rate limit, server errors, etc.)
+  - Provides "Retry" button to manually retry fetching wind data via `refetchWindData()`
+  - Shows "Using cached data" indicator when cached data exists but fresh fetch fails
+  - Integrated into both LeafletMapView and DiveSitesMap components
+  - Extracts `error`, `isError`, and `refetch` from React Query `useQuery` hooks
+  - Error component positioned at top center of map (z-50) with optional dismiss button
+- Simplified legend text: Removed specific arrow size details (40px base + 10px per 5 m/s, max 80px) from WindArrowLegend and WindOverlayLegend components for cleaner, more concise descriptions
 
 ---
 
@@ -597,7 +606,7 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Shows examples of different wind speeds with color swatches
   - ✅ Explains arrow direction meaning (arrows point where wind is going)
   - ✅ Shows color scale: Light blue (< 5 m/s), Blue (5-7.7 m/s), Orange (7.7-10 m/s), Red (> 10 m/s)
-  - ✅ Explains arrow size: Larger arrows indicate stronger winds (40px base + 10px per 5 m/s, max 80px)
+  - ✅ Explains arrow size: Larger arrows indicate stronger winds (simplified description for cleaner UI)
   - ✅ Includes wind speed thresholds with descriptions
 
 - [x] Add legend explaining dive site suitability colors
@@ -627,10 +636,14 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Integrated loading state from LeafletMapView to IndependentMapView via callback prop
   - ✅ Slider play/pause respects loading state: Waits for data to finish loading before advancing (minimum 3 second pause between advances)
 
-- [ ] Add error messages with retry options
-  - Show user-friendly error if wind data fails to load
-  - Provide "Retry" button
-  - Show "Using cached data" if available
+- [x] Add error messages with retry options
+  - ✅ Created WindDataError component with user-friendly error messages
+  - ✅ Shows specific error messages for different error types (network, 429, 500+, 404, etc.)
+  - ✅ Provides "Retry" button that calls refetchWindData() to retry fetching
+  - ✅ Shows "Using cached data" indicator when cached data exists but fresh fetch fails
+  - ✅ Integrated error display in both LeafletMapView and DiveSitesMap components
+  - ✅ Error component positioned at top center of map (z-50) with dismissible option
+  - ✅ Extracts error, isError, and refetch from React Query useQuery hooks
 
 - [ ] Add wind conditions to dive site detail pages
   - Show current wind conditions for dive site location
@@ -718,7 +731,10 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
   - ✅ Toggle button shows spinner icon when loading
   - ✅ Centered map overlay shows "Loading wind data..." with spinner when fetching (appears on initial load and refetches)
   - ✅ Uses `isFetching` in addition to `isLoading` to show indicator on map movements and other refetches
-- [ ] Error messages are user-friendly if wind data fails to load
+- [x] Error messages are user-friendly if wind data fails to load
+  - ✅ WindDataError component displays contextual error messages
+  - ✅ Shows retry button for manual retry
+  - ✅ Indicates when cached data is being used
 - ✅ Wind overlay integrates seamlessly with existing map features (z-index layering, zoom restrictions)
 - ✅ All UI colors are colorblind-safe (buttons and wind suitability indicators use Okabe-Ito palette)
 - ✅ Wind date/time slider can be hidden/shown: Close button and "Show Time Slider" button for better UX

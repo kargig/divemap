@@ -155,8 +155,7 @@ const WindOverlayLegend = ({ onClose }) => {
                 <div className='pt-2 border-t border-gray-200'>
                   <div className='text-xs font-medium text-gray-700 mb-1'>Arrow Size:</div>
                   <p className='text-xs text-gray-600'>
-                    Larger arrows indicate stronger winds. Size increases with wind speed (40px base
-                    + 10px per 5 m/s, max 80px).
+                    Larger arrows indicate stronger winds. Size increases with wind speed.
                   </p>
                 </div>
               </div>
