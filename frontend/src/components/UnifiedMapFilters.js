@@ -47,7 +47,6 @@ const UnifiedMapFilters = ({
       exclude_unspecified_difficulty: false,
       wind_suitability: '',
       include_unknown_wind: false,
-      include_unknown_wind: false,
       min_rating: '',
       max_rating: '',
       country: '',
