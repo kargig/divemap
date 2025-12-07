@@ -311,14 +311,9 @@ const DiveDetail = () => {
   });
   const [currentZoom, setCurrentZoom] = useState(15);
 
-  // Debug function to track map viewport changes
+  // Handle map viewport changes
   const handleMapViewportChange = viewport => {
-    console.log('=== MAP VIEWPORT CHANGE DEBUG ===');
-    console.log('Timestamp:', new Date().toISOString());
-    console.log('URL:', window.location.href);
-    console.log('New viewport:', viewport);
-    console.log('Previous routeMapViewport:', routeMapViewport);
-    console.log('=== END MAP VIEWPORT CHANGE DEBUG ===');
+    // Viewport change handler (no debug logging)
   };
 
   // Handle tab change and update URL

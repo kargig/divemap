@@ -71,6 +71,60 @@ const RouteLayer = ({ routes, diveSiteId }) => {
     routes.forEach(route => {
       if (!route.route_data) return;
 
+      // Validate route_data structure
+      try {
+        // Check if route_data is valid GeoJSON
+        if (!route.route_data || typeof route.route_data !== 'object') {
+          console.warn('RouteLayer: Invalid route_data structure', route);
+          return;
+        }
+
+        // Validate coordinates in the GeoJSON
+        const validateCoordinates = coords => {
+          if (!Array.isArray(coords)) return false;
+          if (coords.length < 2) return false;
+          const [lon, lat] = coords;
+          return (
+            typeof lat === 'number' &&
+            !isNaN(lat) &&
+            lat >= -90 &&
+            lat <= 90 &&
+            typeof lon === 'number' &&
+            !isNaN(lon) &&
+            lon >= -180 &&
+            lon <= 180
+          );
+        };
+
+        // Recursively validate coordinates in GeoJSON
+        const validateGeoJSON = geojson => {
+          if (geojson.type === 'Point') {
+            return validateCoordinates(geojson.coordinates);
+          } else if (geojson.type === 'LineString' || geojson.type === 'MultiPoint') {
+            return geojson.coordinates.every(validateCoordinates);
+          } else if (geojson.type === 'Polygon' || geojson.type === 'MultiLineString') {
+            return geojson.coordinates.every(ring => ring.every(validateCoordinates));
+          } else if (geojson.type === 'MultiPolygon') {
+            return geojson.coordinates.every(polygon =>
+              polygon.every(ring => ring.every(validateCoordinates))
+            );
+          } else if (geojson.type === 'Feature') {
+            return validateGeoJSON(geojson.geometry);
+          } else if (geojson.type === 'FeatureCollection') {
+            return geojson.features.every(validateGeoJSON);
+          }
+          return false;
+        };
+
+        if (!validateGeoJSON(route.route_data)) {
+          console.warn('RouteLayer: Invalid coordinates in route_data', route);
+          return;
+        }
+      } catch (error) {
+        console.error('RouteLayer: Error validating route_data', error, route);
+        return;
+      }
+
       const routeLayer = L.geoJSON(route.route_data, {
         style: feature => {
           // Use smart route color detection for consistent coloring
@@ -128,6 +182,21 @@ const RouteLayer = ({ routes, diveSiteId }) => {
       // Calculate bearings and create markers (but don't add to map yet)
       const bearings = calculateRouteBearings(route.route_data);
       bearings.forEach(({ position, bearing }) => {
+        // Validate position before creating marker
+        if (!position || !Array.isArray(position) || position.length < 2) {
+          console.warn('RouteLayer: Invalid bearing position', { position, bearing });
+          return;
+        }
+        const [lat, lon] = position;
+        if (typeof lat !== 'number' || isNaN(lat) || typeof lon !== 'number' || isNaN(lon)) {
+          console.warn('RouteLayer: Invalid bearing coordinates', { position, bearing });
+          return;
+        }
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+          console.warn('RouteLayer: Bearing coordinates out of range', { position, bearing });
+          return;
+        }
+
         const bearingLabel = formatBearing(bearing, true);
 
         // Create a custom icon with bearing text

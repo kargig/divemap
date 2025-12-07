@@ -97,6 +97,7 @@ class DiveSiteBase(BaseModel):
     max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
     country: Optional[str] = None  # Country name
     region: Optional[str] = None  # Region/state/province name
+    shore_direction: Optional[float] = Field(None, ge=0, le=360, description="Compass bearing (0-360 degrees) indicating which direction the shore/beach faces")
 
 class DiveSiteCreate(DiveSiteBase):
     pass
@@ -113,6 +114,10 @@ class DiveSiteUpdate(BaseModel):
     max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
     country: Optional[str] = None  # Country name
     region: Optional[str] = None  # Region/state/province name
+    shore_direction: Optional[float] = Field(None, ge=0, le=360, description="Compass bearing (0-360 degrees) indicating which direction the shore/beach faces")
+    shore_direction_confidence: Optional[str] = Field(None, description="Confidence level: 'high', 'medium', 'low'")
+    shore_direction_method: Optional[str] = Field(None, description="Method used: 'osm_coastline', 'manual', 'ai', etc.")
+    shore_direction_distance_m: Optional[float] = Field(None, ge=0, description="Distance to coastline in meters")
 
 # Dive Site Alias Schemas
 class DiveSiteAliasBase(BaseModel):
@@ -144,6 +149,10 @@ class DiveSiteResponse(DiveSiteBase):
     distance_km: Optional[float] = None
     aliases: List[DiveSiteAliasResponse] = []  # List of aliases for this dive site
     difficulty_label: Optional[str] = None  # Human-readable difficulty label
+    shore_direction: Optional[float] = None  # Compass bearing (0-360 degrees) indicating which direction the shore/beach faces
+    shore_direction_confidence: Optional[str] = None  # Confidence level: 'high', 'medium', 'low'
+    shore_direction_method: Optional[str] = None  # Method used: 'osm_coastline', 'manual', 'ai', etc.
+    shore_direction_distance_m: Optional[float] = None  # Distance to coastline in meters
 
     class Config:
         from_attributes = True

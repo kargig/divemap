@@ -2,35 +2,7 @@
 
 ## Active Development Tasks
 
-### Backend Refactoring
-
-- [ ] **Refactor dives.py router into multiple focused modules**
-  - Split oversized dives.py file (130KB, 3,400+ lines) into focused modules
-  - Create dives_crud.py for core CRUD operations
-  - Create dives_admin.py for admin operations  
-  - Create dives_media.py for media and tag operations
-  - Create dives_search.py for search functionality
-  - Create dives_import.py for Subsurface XML import
-  - Create dives_profiles.py for dive profile management
-  - Create dives_utils.py for utility functions
-  - Maintain all existing API endpoints and functionality
-  - Update tests and dependencies to reference new modules
-
 ### UI/UX Enhancements
-
-- [ ] **Implement dive route drawing and selection system**
-  - Interactive dive route drawing interface with mouse/touch support
-  - Route saving and association with specific dive logs (dive ID)
-  - Route storage and retrieval from database with proper relationships
-  - Dive site route browsing interface showing available routes
-  - Route selection interface for users to choose from available routes
-  - Route metadata (depth, time, difficulty, etc.) linked to dive ID
-  - Route sharing and community features
-  - Mobile compatibility for touch-based route drawing
-  - Route validation and quality checks
-  - Route search and filtering by dive site
-  - Dive details page integration showing route information
-  - Route preview and summary on dive site pages
 
 - [x] **Improve dive profile visualization colorblind accessibility**
   - Replace current colors with Okabe-Ito colorblind-safe palette
