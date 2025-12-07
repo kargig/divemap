@@ -38,13 +38,13 @@ const MapZoomTracker = ({ onZoomChange, onClusteringChange }) => {
   const map = useMap();
   useEffect(() => {
     if (!map) return;
-    const onZoom = () => {
-      const zoom = map.getZoom();
-      onZoomChange(zoom);
-      // Enable clustering at zoom <= 11, disable at zoom > 11
-      const shouldUseClustering = zoom <= 11;
-      onClusteringChange(shouldUseClustering);
-    };
+      const onZoom = () => {
+        const zoom = map.getZoom();
+        onZoomChange(zoom);
+        // Enable clustering at zoom <= 12, disable at zoom >= 13
+        const shouldUseClustering = zoom <= 12;
+        onClusteringChange(shouldUseClustering);
+      };
     map.on('zoomend', onZoom);
     onZoom(); // Call immediately to set initial zoom
     return () => map.off('zoomend', onZoom);

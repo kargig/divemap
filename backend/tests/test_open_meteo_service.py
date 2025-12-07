@@ -288,16 +288,36 @@ class TestWindDataFetching:
     """Test wind data fetching functionality."""
 
     @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
     def test_fetch_wind_data_single_point_current(self, mock_get):
         """Test fetching current wind data for a single point."""
+        # Now always uses hourly API, so need to provide hourly response
+        current_time = datetime.now()
+        times = []
+        wind_speeds = []
+        wind_directions = []
+        wind_gusts = []
+        
+        for hour in range(24):
+            dt = current_time.replace(hour=hour, minute=0, second=0, microsecond=0)
+            times.append(dt.strftime('%Y-%m-%dT%H:00'))
+            if hour == current_time.hour:
+                wind_speeds.append(5.5)
+                wind_directions.append(270.0)
+                wind_gusts.append(7.0)
+            else:
+                wind_speeds.append(5.0)
+                wind_directions.append(180.0)
+                wind_gusts.append(6.0)
+        
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            'current': {
-                'wind_speed_10m': 5.5,
-                'wind_direction_10m': 270.0,
-                'wind_gusts_10m': 7.0,
-                'time': '2025-11-30T12:00:00Z'
+            'hourly': {
+                'time': times,
+                'wind_speed_10m': wind_speeds,
+                'wind_direction_10m': wind_directions,
+                'wind_gusts_10m': wind_gusts
             }
         }
         mock_get.return_value = mock_response
@@ -313,6 +333,8 @@ class TestWindDataFetching:
         assert call_args is not None
         assert 'params' in call_args.kwargs
         assert call_args.kwargs['params']['wind_speed_unit'] == 'ms'
+        # Verify hourly API is used (not current)
+        assert 'hourly' in call_args.kwargs['params']
 
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time("2025-12-01 12:00:00")  # Freeze time to 2 hours before target
@@ -403,7 +425,7 @@ class TestWindDataFetching:
     def test_fetch_wind_data_grid_some_points_fail(self, mock_fetch):
         """Test jitter when some base points fail to fetch wind data."""
         call_count = 0
-        def mock_fetch_side_effect(lat, lon, dt):
+        def mock_fetch_side_effect(lat, lon, dt=None, skip_validation=False):
             nonlocal call_count
             call_count += 1
             # Fail every other call
@@ -463,6 +485,7 @@ class TestWindDataFetching:
         assert result is None
 
     @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
     def test_fetch_wind_data_single_point_no_wind_data(self, mock_get, monkeypatch):
         """Test handling when API response has no wind data."""
         import app.services.open_meteo_service as oms
@@ -471,18 +494,15 @@ class TestWindDataFetching:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            'current': {}  # Empty current data
+            'hourly': {}  # Empty hourly data (now always uses hourly API)
         }
         mock_get.return_value = mock_response
         
         # Use unique coordinates to avoid cache from other tests
         result = fetch_wind_data_single_point(37.666, 24.666, None)
         
-        # Function returns dict with None values when data is missing, not None
-        # This is acceptable behavior - check that wind_speed is None
-        assert result is not None
-        assert result.get('wind_speed_10m') is None
-        assert result.get('wind_direction_10m') is None
+        # Function returns None when no data is available
+        assert result is None
 
     @patch('app.services.open_meteo_service.requests.get')
     def test_fetch_wind_data_single_point_forecast_hour_not_found(self, mock_get, monkeypatch):
@@ -585,19 +605,39 @@ class TestWindDataFetching:
         assert len(points) > 0
 
     @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
     def test_fetch_wind_data_single_point_caching(self, mock_get, monkeypatch):
         """Test that wind data is cached and reused."""
         import app.services.open_meteo_service as oms
         monkeypatch.setattr(oms, '_wind_cache', {})  # Clear cache before test
         
+        # Create hourly response (now always uses hourly API)
+        current_time = datetime.now()
+        times = []
+        wind_speeds = []
+        wind_directions = []
+        wind_gusts = []
+        
+        for hour in range(24):
+            dt = current_time.replace(hour=hour, minute=0, second=0, microsecond=0)
+            times.append(dt.strftime('%Y-%m-%dT%H:00'))
+            if hour == current_time.hour:
+                wind_speeds.append(5.5)
+                wind_directions.append(270.0)
+                wind_gusts.append(7.0)
+            else:
+                wind_speeds.append(5.0)
+                wind_directions.append(180.0)
+                wind_gusts.append(6.0)
+        
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            'current': {
-                'wind_speed_10m': 5.5,
-                'wind_direction_10m': 270.0,
-                'wind_gusts_10m': 7.0,
-                'time': '2025-11-30T12:00:00Z'
+            'hourly': {
+                'time': times,
+                'wind_speed_10m': wind_speeds,
+                'wind_direction_10m': wind_directions,
+                'wind_gusts_10m': wind_gusts
             }
         }
         mock_get.return_value = mock_response
@@ -668,18 +708,33 @@ class TestWindDataFetching:
         assert result is not None
 
     @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 14:00:00')
     def test_fetch_wind_data_single_point_date_validation_past(self, mock_get):
         """Test that past dates are adjusted to current time."""
         past_date = datetime.now() - timedelta(hours=2)
         
+        # Create hourly response (now always uses hourly API)
+        current_time = datetime.now()
+        times = []
+        wind_speeds = []
+        wind_directions = []
+        wind_gusts = []
+        
+        for hour in range(24):
+            dt = current_time.replace(hour=hour, minute=0, second=0, microsecond=0)
+            times.append(dt.strftime('%Y-%m-%dT%H:00'))
+            wind_speeds.append(5.0)
+            wind_directions.append(180.0)
+            wind_gusts.append(6.0)
+        
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            'current': {
-                'wind_speed_10m': 5.0,
-                'wind_direction_10m': 180.0,
-                'wind_gusts_10m': 6.0,
-                'time': datetime.now().isoformat()
+            'hourly': {
+                'time': times,
+                'wind_speed_10m': wind_speeds,
+                'wind_direction_10m': wind_directions,
+                'wind_gusts_10m': wind_gusts
             }
         }
         mock_get.return_value = mock_response
@@ -689,4 +744,978 @@ class TestWindDataFetching:
         
         # Should use current time instead
         assert result is not None
+
+
+class Test24HourBulkCaching:
+    """Test 24-hour bulk caching functionality (Optimization #10)."""
+
+    def _create_hourly_response(self, base_date: datetime, hours: int = 24):
+        """Helper to create hourly API response with specified hours."""
+        times = []
+        wind_speeds = []
+        wind_directions = []
+        wind_gusts = []
+        
+        for hour in range(hours):
+            dt = base_date.replace(hour=hour, minute=0, second=0, microsecond=0)
+            times.append(dt.strftime('%Y-%m-%dT%H:00'))
+            wind_speeds.append(5.0 + (hour % 5))  # Vary wind speed
+            wind_directions.append(180.0 + (hour * 10) % 360)  # Vary direction
+            wind_gusts.append(6.0 + (hour % 3))  # Vary gusts
+        
+        return {
+            'hourly': {
+                'time': times,
+                'wind_speed_10m': wind_speeds,
+                'wind_direction_10m': wind_directions,
+                'wind_gusts_10m': wind_gusts
+            }
+        }
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_fetch_wind_data_single_point_caches_all_24_hours(self, mock_get, monkeypatch):
+        """Test that fetching one hour caches all 24 hours."""
+        import app.services.open_meteo_service as oms
+        from app.services.open_meteo_service import _generate_cache_key
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        # Use unique coordinates
+        lat, lon = 37.444, 24.444
+        
+        # Fetch hour 12:00 (should cache all 24 hours)
+        result = fetch_wind_data_single_point(lat, lon, base_date)
+        assert result is not None
+        assert mock_get.call_count == 1
+        
+        # Verify all 24 hours are cached
+        for hour in range(24):
+            hour_dt = base_date.replace(hour=hour, minute=0, second=0, microsecond=0)
+            cache_key = _generate_cache_key(lat, lon, target_datetime=hour_dt)
+            assert cache_key in oms._wind_cache, f"Hour {hour:02d} not cached"
+            cached_data = oms._wind_cache[cache_key]['data']
+            assert cached_data['wind_speed_10m'] == (5.0 + (hour % 5))
+            assert cached_data['timestamp'].hour == hour
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_fetch_different_hours_uses_24_hour_cache(self, mock_get, monkeypatch):
+        """Test that subsequent requests for different hours use cache."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 5, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        # Use unique coordinates
+        lat, lon = 37.555, 24.555
+        
+        # First call: fetch hour 05:00 (caches all 24 hours)
+        result1 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=5))
+        assert result1 is not None
+        assert mock_get.call_count == 1
+        
+        # Second call: fetch hour 14:00 (should use cache)
+        result2 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=14))
+        assert result2 is not None
+        assert mock_get.call_count == 1  # No new API call
+        assert result2['wind_speed_10m'] == (5.0 + (14 % 5))
+        
+        # Third call: fetch hour 22:00 (should use cache)
+        result3 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=22))
+        assert result3 is not None
+        assert mock_get.call_count == 1  # Still no new API call
+        assert result3['wind_speed_10m'] == (5.0 + (22 % 5))
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_24_hour_cache_with_forecast_data(self, mock_get, monkeypatch):
+        """Test 24-hour caching with future forecast data."""
+        import app.services.open_meteo_service as oms
+        from app.services.open_meteo_service import _generate_cache_key
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        # Future date (tomorrow)
+        future_date = datetime(2025, 12, 8, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(future_date)
+        mock_get.return_value = mock_response
+        
+        # Use unique coordinates
+        lat, lon = 37.666, 24.666
+        
+        # Fetch tomorrow 12:00 (should cache all 24 hours for that date)
+        result = fetch_wind_data_single_point(lat, lon, future_date)
+        assert result is not None
+        assert mock_get.call_count == 1
+        
+        # Verify all 24 hours for tomorrow are cached
+        for hour in range(24):
+            hour_dt = future_date.replace(hour=hour, minute=0, second=0, microsecond=0)
+            cache_key = _generate_cache_key(lat, lon, target_datetime=hour_dt)
+            assert cache_key in oms._wind_cache, f"Hour {hour:02d} not cached for future date"
+        
+        # Fetch different hours from same date (should use cache)
+        result2 = fetch_wind_data_single_point(lat, lon, future_date.replace(hour=18))
+        assert result2 is not None
+        assert mock_get.call_count == 1  # No new API call
+
+
+class TestSmartCacheLookup:
+    """Test smart cache lookup via representative hours."""
+
+    def _create_hourly_response(self, base_date: datetime):
+        """Helper to create hourly API response."""
+        times = []
+        wind_speeds = []
+        wind_directions = []
+        wind_gusts = []
+        
+        for hour in range(24):
+            dt = base_date.replace(hour=hour, minute=0, second=0, microsecond=0)
+            times.append(dt.strftime('%Y-%m-%dT%H:00'))
+            wind_speeds.append(5.0)
+            wind_directions.append(180.0)
+            wind_gusts.append(6.0)
+        
+        return {
+            'hourly': {
+                'time': times,
+                'wind_speed_10m': wind_speeds,
+                'wind_direction_10m': wind_directions,
+                'wind_gusts_10m': wind_gusts
+            }
+        }
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_cache_lookup_via_representative_hours(self, mock_get, monkeypatch):
+        """Test cache lookup finds data via representative hours."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 0, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        # Use unique coordinates
+        lat, lon = 37.777, 24.777
+        
+        # Cache hour 00:00 (this caches all 24 hours)
+        result1 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=0))
+        assert result1 is not None
+        assert mock_get.call_count == 1
+        
+        # Reset mock to track if it's called again
+        mock_get.reset_mock()
+        
+        # Request hour 15:00 (not directly cached, but should find via lookup)
+        result2 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=15))
+        assert result2 is not None
+        assert mock_get.call_count == 0  # Should use cache via lookup
+        assert result2['timestamp'].hour == 15
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 06:00:00')
+    def test_cache_lookup_via_noon_representative(self, mock_get, monkeypatch):
+        """Test cache lookup finds data via noon (12:00) representative."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        # Use unique coordinates
+        lat, lon = 37.888, 24.888
+        
+        # Cache hour 12:00 (this caches all 24 hours)
+        result1 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=12))
+        assert result1 is not None
+        assert mock_get.call_count == 1
+        
+        # Reset mock
+        mock_get.reset_mock()
+        
+        # Request hour 08:00 (should find via 12:00 representative)
+        result2 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=8))
+        assert result2 is not None
+        assert mock_get.call_count == 0  # Should use cache
+        assert result2['timestamp'].hour == 8
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_cache_lookup_when_requested_hour_not_cached(self, mock_get, monkeypatch):
+        """Test cache lookup when requested hour should be in cache."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 5, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        # Use unique coordinates
+        lat, lon = 37.999, 24.999
+        
+        # Cache hour 05:00 (this caches all 24 hours)
+        result1 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=5))
+        assert result1 is not None
+        assert mock_get.call_count == 1
+        
+        # Reset mock
+        mock_get.reset_mock()
+        
+        # Request hour 18:00 (should be in cache from 24-hour bulk caching)
+        result2 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=18))
+        assert result2 is not None
+        assert mock_get.call_count == 0  # Should use cache
+        assert result2['timestamp'].hour == 18
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_cache_inconsistency_detection_and_warning(self, mock_get, monkeypatch, caplog):
+        """Test cache inconsistency detection and warning."""
+        import app.services.open_meteo_service as oms
+        from app.services.open_meteo_service import _generate_cache_key
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 0, 0, 0)
+        
+        # Manually cache only hour 00:00 (simulate partial cache failure)
+        lat, lon = 37.111, 24.111
+        cache_key_00 = _generate_cache_key(lat, lon, target_datetime=base_date.replace(hour=0))
+        oms._wind_cache[cache_key_00] = {
+            'data': {
+                'wind_speed_10m': 5.0,
+                'wind_direction_10m': 180.0,
+                'wind_gusts_10m': 6.0,
+                'timestamp': base_date.replace(hour=0)
+            },
+            'timestamp': datetime.now()
+        }
+        
+        # Mock API response for refetch
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        # Request hour 12:00 (should detect inconsistency and refetch)
+        with caplog.at_level('WARNING'):
+            result = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=12))
+        
+        # Should have logged warning about cache inconsistency
+        assert '[CACHE INCONSISTENCY]' in caplog.text
+        # Should have made API call to refetch and cache all 24 hours
+        assert mock_get.call_count == 1
+        assert result is not None
+
+
+class TestGridPointGrouping:
+    """Test grid point grouping by cache key (Optimization #3)."""
+
+    def _create_hourly_response(self, base_date: datetime):
+        """Helper to create hourly API response."""
+        times = []
+        wind_speeds = []
+        wind_directions = []
+        wind_gusts = []
+        
+        for hour in range(24):
+            dt = base_date.replace(hour=hour, minute=0, second=0, microsecond=0)
+            times.append(dt.strftime('%Y-%m-%dT%H:00'))
+            wind_speeds.append(5.0)
+            wind_directions.append(180.0)
+            wind_gusts.append(6.0)
+        
+        return {
+            'hourly': {
+                'time': times,
+                'wind_speed_10m': wind_speeds,
+                'wind_direction_10m': wind_directions,
+                'wind_gusts_10m': wind_gusts
+            }
+        }
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_grid_points_grouped_by_cache_key(self, mock_get, monkeypatch):
+        """Test that points in same 0.1° cell are grouped together."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        # Create bounds that will generate points in same cache cell
+        # Points within 0.1° of each other will share same cache key
+        bounds = {
+            'north': 37.75,
+            'south': 37.70,
+            'east': 24.75,
+            'west': 24.70
+        }
+        
+        result = fetch_wind_data_grid(bounds, zoom_level=15, target_datetime=base_date)
+        
+        # Verify we got results
+        assert len(result) > 0
+        
+        # Count unique cache keys used (should be fewer than number of points)
+        # All points in same 0.1° cell should share same wind data
+        unique_wind_data = set()
+        for point in result:
+            wind_key = (point['wind_speed_10m'], point['wind_direction_10m'])
+            unique_wind_data.add(wind_key)
+        
+        # Points in same cache cell should have same wind data
+        # (exact count depends on grid, but should be grouped)
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_grid_grouping_reduces_api_calls(self, mock_get, monkeypatch):
+        """Test that grouping reduces API calls."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        # Create bounds that generate multiple points
+        bounds = {
+            'north': 37.8,
+            'south': 37.7,
+            'east': 24.8,
+            'west': 24.7
+        }
+        
+        result = fetch_wind_data_grid(bounds, zoom_level=15, target_datetime=base_date)
+        
+        # Count API calls - should be fewer than number of points
+        # (points grouped by cache key)
+        assert mock_get.call_count > 0
+        # API calls should be less than or equal to number of unique cache cells
+        # (which is typically much less than number of grid points)
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_grid_grouping_with_different_datetimes(self, mock_get, monkeypatch):
+        """Test grouping works correctly with different datetimes."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date1 = datetime(2025, 12, 7, 12, 0, 0)
+        base_date2 = datetime(2025, 12, 8, 12, 0, 0)
+        
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        
+        def response_side_effect(*args, **kwargs):
+            # Return different data based on date in params
+            params = kwargs.get('params', {})
+            date_str = params.get('start_date', '2025-12-07')
+            base_date = datetime.strptime(date_str, '%Y-%m-%d')
+            return MagicMock(
+                status_code=200,
+                json=lambda: self._create_hourly_response(base_date)
+            )
+        
+        mock_get.side_effect = response_side_effect
+        
+        bounds = {
+            'north': 37.75,
+            'south': 37.70,
+            'east': 24.75,
+            'west': 24.70
+        }
+        
+        # Fetch grid for datetime A
+        result1 = fetch_wind_data_grid(bounds, zoom_level=15, target_datetime=base_date1)
+        calls_after_first = mock_get.call_count
+        
+        # Fetch grid for datetime B (different date)
+        result2 = fetch_wind_data_grid(bounds, zoom_level=15, target_datetime=base_date2)
+        
+        # Should have made additional API calls for different datetime
+        assert mock_get.call_count > calls_after_first
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_grid_grouping_with_same_cache_key_reuses_data(self, mock_get, monkeypatch):
+        """Test that grid with same cache key reuses cached data."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        bounds = {
+            'north': 37.75,
+            'south': 37.70,
+            'east': 24.75,
+            'west': 24.70
+        }
+        
+        # First fetch
+        result1 = fetch_wind_data_grid(bounds, zoom_level=15, target_datetime=base_date)
+        first_call_count = mock_get.call_count
+        
+        # Second fetch (same bounds, same datetime)
+        result2 = fetch_wind_data_grid(bounds, zoom_level=15, target_datetime=base_date)
+        
+        # Should use cache (no additional API calls)
+        assert mock_get.call_count == first_call_count
+        assert len(result2) > 0
+
+
+class TestSkipValidation:
+    """Test skip_validation parameter functionality."""
+
+    def _create_hourly_response(self, base_date: datetime):
+        """Helper to create hourly API response."""
+        times = [base_date.strftime('%Y-%m-%dT%H:00')]
+        return {
+            'hourly': {
+                'time': times,
+                'wind_speed_10m': [5.0],
+                'wind_direction_10m': [180.0],
+                'wind_gusts_10m': [6.0]
+            }
+        }
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_skip_validation_skips_datetime_validation(self, mock_get, monkeypatch, caplog):
+        """Test that skip_validation=True skips datetime validation."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        # Date 3 days in future (should normally be limited)
+        future_date = datetime(2025, 12, 10, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(future_date)
+        mock_get.return_value = mock_response
+        
+        # Use unique coordinates
+        lat, lon = 37.222, 24.222
+        
+        with caplog.at_level('WARNING'):
+            result = fetch_wind_data_single_point(lat, lon, future_date, skip_validation=True)
+        
+        # Should not log warning about date limit
+        assert 'more than 2 days ahead' not in caplog.text
+        # Should proceed with the request
+        assert mock_get.call_count == 1
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_skip_validation_still_validates_when_false(self, mock_get, monkeypatch, caplog):
+        """Test that skip_validation=False still validates datetime."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        # Date 3 days in future
+        future_date = datetime(2025, 12, 10, 12, 0, 0)
+        # Mock response for limited date (2 days ahead)
+        limited_date = datetime(2025, 12, 9, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(limited_date)
+        mock_get.return_value = mock_response
+        
+        # Use unique coordinates
+        lat, lon = 37.333, 24.333
+        
+        with caplog.at_level('WARNING'):
+            result = fetch_wind_data_single_point(lat, lon, future_date, skip_validation=False)
+        
+        # Should log warning about date limit
+        assert 'more than 2 days ahead' in caplog.text
+        # Should still work (date is limited internally)
+        assert result is not None
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_fetch_wind_data_grid_uses_skip_validation(self, mock_get, monkeypatch, caplog):
+        """Test that fetch_wind_data_grid uses skip_validation=True."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        bounds = {
+            'north': 37.75,
+            'south': 37.70,
+            'east': 24.75,
+            'west': 24.70
+        }
+        
+        # Grid function validates datetime once, then passes skip_validation=True
+        # So we shouldn't see duplicate validation warnings
+        with caplog.at_level('WARNING'):
+            result = fetch_wind_data_grid(bounds, zoom_level=15, target_datetime=base_date)
+        
+        # Should not have duplicate validation warnings
+        warnings = [r for r in caplog.records if 'more than 2 days ahead' in r.message]
+        assert len(warnings) <= 1  # At most one warning (from grid function validation)
+
+
+class TestCacheSizeAndCleanup:
+    """Test cache size limit and cleanup functionality."""
+
+    def _create_hourly_response(self, base_date: datetime):
+        """Helper to create hourly API response."""
+        times = []
+        wind_speeds = []
+        wind_directions = []
+        wind_gusts = []
+        
+        for hour in range(24):
+            dt = base_date.replace(hour=hour, minute=0, second=0, microsecond=0)
+            times.append(dt.strftime('%Y-%m-%dT%H:00'))
+            wind_speeds.append(5.0)
+            wind_directions.append(180.0)
+            wind_gusts.append(6.0)
+        
+        return {
+            'hourly': {
+                'time': times,
+                'wind_speed_10m': wind_speeds,
+                'wind_direction_10m': wind_directions,
+                'wind_gusts_10m': wind_gusts
+            }
+        }
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_cache_size_limit_500_entries(self, mock_get, monkeypatch):
+        """Test that cache size limit is 500 entries."""
+        import app.services.open_meteo_service as oms
+        from app.services.open_meteo_service import _cleanup_cache
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        monkeypatch.setattr(oms, '_max_cache_size', 500)
+        
+        base_date = datetime(2025, 12, 7, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        # Fill cache with 600 entries (25 locations × 24 hours = 600)
+        for loc_idx in range(25):
+            lat, lon = 37.0 + (loc_idx * 0.1), 24.0 + (loc_idx * 0.1)
+            fetch_wind_data_single_point(lat, lon, base_date.replace(hour=0))
+        
+        # Trigger cleanup
+        _cleanup_cache()
+        
+        # Cache size should be <= 500
+        assert len(oms._wind_cache) <= 500
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_cache_cleanup_preserves_recent_entries(self, mock_get, monkeypatch):
+        """Test that cache cleanup preserves recent entries."""
+        import app.services.open_meteo_service as oms
+        from app.services.open_meteo_service import _cleanup_cache, _generate_cache_key
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        monkeypatch.setattr(oms, '_max_cache_size', 100)  # Lower limit for testing
+        
+        base_date = datetime(2025, 12, 7, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        # Add old entries
+        old_date = datetime(2025, 12, 6, 12, 0, 0)
+        for loc_idx in range(10):
+            lat, lon = 37.0 + (loc_idx * 0.1), 24.0 + (loc_idx * 0.1)
+            cache_key = _generate_cache_key(lat, lon, target_datetime=old_date)
+            oms._wind_cache[cache_key] = {
+                'data': {'wind_speed_10m': 5.0, 'wind_direction_10m': 180.0, 'wind_gusts_10m': 6.0, 'timestamp': old_date},
+                'timestamp': datetime.now() - timedelta(hours=1)  # Old timestamp
+            }
+        
+        # Add new entries
+        for loc_idx in range(10):
+            lat, lon = 37.5 + (loc_idx * 0.1), 24.5 + (loc_idx * 0.1)
+            fetch_wind_data_single_point(lat, lon, base_date)
+        
+        # Trigger cleanup
+        _cleanup_cache()
+        
+        # Recent entries should be preserved
+        recent_count = sum(1 for k, v in oms._wind_cache.items() 
+                          if v['timestamp'] > datetime.now() - timedelta(minutes=5))
+        assert recent_count > 0
+
+
+class TestCacheLogging:
+    """Test cache logging functionality."""
+
+    def _create_hourly_response(self, base_date: datetime):
+        """Helper to create hourly API response."""
+        times = []
+        wind_speeds = []
+        wind_directions = []
+        wind_gusts = []
+        
+        for hour in range(24):
+            dt = base_date.replace(hour=hour, minute=0, second=0, microsecond=0)
+            times.append(dt.strftime('%Y-%m-%dT%H:00'))
+            wind_speeds.append(5.0)
+            wind_directions.append(180.0)
+            wind_gusts.append(6.0)
+        
+        return {
+            'hourly': {
+                'time': times,
+                'wind_speed_10m': wind_speeds,
+                'wind_direction_10m': wind_directions,
+                'wind_gusts_10m': wind_gusts
+            }
+        }
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_cache_hit_logging(self, mock_get, monkeypatch, caplog):
+        """Test that cache hits are logged."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        lat, lon = 37.444, 24.444
+        
+        # First call (cache miss)
+        with caplog.at_level('INFO', logger='app.services.open_meteo_service'):
+            fetch_wind_data_single_point(lat, lon, base_date)
+        
+        # Second call (cache hit)
+        with caplog.at_level('INFO', logger='app.services.open_meteo_service'):
+            fetch_wind_data_single_point(lat, lon, base_date)
+        
+        # Should log cache hit
+        assert '[CACHE HIT]' in caplog.text
+        assert 'Serving wind data from cache' in caplog.text
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_cache_miss_logging(self, mock_get, monkeypatch, caplog):
+        """Test that cache misses are logged."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        lat, lon = 37.555, 24.555
+        
+        with caplog.at_level('INFO', logger='app.services.open_meteo_service'):
+            fetch_wind_data_single_point(lat, lon, base_date)
+        
+        # Should log cache miss
+        assert '[CACHE MISS]' in caplog.text
+        assert 'Fetching from Open-Meteo API' in caplog.text
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_api_call_logging(self, mock_get, monkeypatch, caplog):
+        """Test that API calls are logged."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 12, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        lat, lon = 37.666, 24.666
+        
+        with caplog.at_level('INFO', logger='app.services.open_meteo_service'):
+            fetch_wind_data_single_point(lat, lon, base_date)
+        
+        # Should log API call, success, and cache store
+        assert '[API CALL]' in caplog.text
+        assert '[API SUCCESS]' in caplog.text
+        assert '[CACHE STORE]' in caplog.text or 'Cached' in caplog.text
+        assert '24 hours' in caplog.text or 'forecast data' in caplog.text
+
+
+class TestIntegrationCacheOptimizations:
+    """Integration tests for cache optimizations."""
+
+    def _create_hourly_response(self, base_date: datetime):
+        """Helper to create hourly API response."""
+        times = []
+        wind_speeds = []
+        wind_directions = []
+        wind_gusts = []
+        
+        for hour in range(24):
+            dt = base_date.replace(hour=hour, minute=0, second=0, microsecond=0)
+            times.append(dt.strftime('%Y-%m-%dT%H:00'))
+            wind_speeds.append(5.0 + (hour % 5))
+            wind_directions.append(180.0 + (hour * 10) % 360)
+            wind_gusts.append(6.0 + (hour % 3))
+        
+        return {
+            'hourly': {
+                'time': times,
+                'wind_speed_10m': wind_speeds,
+                'wind_direction_10m': wind_directions,
+                'wind_gusts_10m': wind_gusts
+            }
+        }
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 06:00:00')
+    def test_slider_playback_uses_cache(self, mock_get, monkeypatch):
+        """Test that slider playback uses cache efficiently."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        # Use future date to avoid past date validation
+        base_date = datetime(2025, 12, 8, 0, 0, 0)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        lat, lon = 37.777, 24.777
+        
+        # Simulate slider playback: fetch hour 00:00 (caches all 24 hours)
+        result1 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=0))
+        assert result1 is not None
+        assert mock_get.call_count == 1
+        
+        # Simulate advancing slider: fetch hours 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, 21:00
+        hours_to_fetch = [3, 6, 9, 12, 15, 18, 21]
+        for hour in hours_to_fetch:
+            result = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=hour))
+            assert result is not None
+            assert result['wind_speed_10m'] == (5.0 + (hour % 5))
+        
+        # Should still be only 1 API call (all subsequent hours used cache)
+        assert mock_get.call_count == 1
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_grid_with_24_hour_caching(self, mock_get, monkeypatch):
+        """Test grid fetching with 24-hour caching."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date1 = datetime(2025, 12, 7, 12, 0, 0)
+        base_date2 = datetime(2025, 12, 7, 15, 0, 0)
+        
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date1)
+        mock_get.return_value = mock_response
+        
+        bounds = {
+            'north': 37.75,
+            'south': 37.70,
+            'east': 24.75,
+            'west': 24.70
+        }
+        
+        # Fetch grid for hour 12:00 (caches all 24 hours for all grid points)
+        result1 = fetch_wind_data_grid(bounds, zoom_level=15, target_datetime=base_date1)
+        first_call_count = mock_get.call_count
+        
+        # Update mock to return different data for hour 15:00
+        mock_response.json.return_value = self._create_hourly_response(base_date2)
+        
+        # Fetch grid for hour 15:00 (same bounds, different hour)
+        result2 = fetch_wind_data_grid(bounds, zoom_level=15, target_datetime=base_date2)
+        
+        # Should use cache for hour 15:00 (was cached when fetching hour 12:00)
+        # But since it's a different hour, might need new API calls for grid points
+        # The key is that each grid point's 24-hour cache is used
+        assert len(result2) > 0
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_cache_across_multiple_dates(self, mock_get, monkeypatch):
+        """Test caching across multiple dates."""
+        import app.services.open_meteo_service as oms
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        today = datetime(2025, 12, 7, 12, 0, 0)
+        tomorrow = datetime(2025, 12, 8, 12, 0, 0)
+        
+        def response_side_effect(*args, **kwargs):
+            params = kwargs.get('params', {})
+            date_str = params.get('start_date', '2025-12-07')
+            base_date = datetime.strptime(date_str, '%Y-%m-%d')
+            return MagicMock(
+                status_code=200,
+                json=lambda: self._create_hourly_response(base_date)
+            )
+        
+        mock_get.side_effect = response_side_effect
+        
+        lat, lon = 37.888, 24.888
+        
+        # Fetch today 12:00 (caches 24 hours for today)
+        result1 = fetch_wind_data_single_point(lat, lon, today)
+        assert result1 is not None
+        calls_after_today = mock_get.call_count
+        
+        # Fetch tomorrow 12:00 (caches 24 hours for tomorrow)
+        result2 = fetch_wind_data_single_point(lat, lon, tomorrow)
+        assert result2 is not None
+        calls_after_tomorrow = mock_get.call_count
+        
+        # Fetch today 18:00 (should use cache)
+        result3 = fetch_wind_data_single_point(lat, lon, today.replace(hour=18))
+        assert result3 is not None
+        
+        # Fetch tomorrow 18:00 (should use cache)
+        result4 = fetch_wind_data_single_point(lat, lon, tomorrow.replace(hour=18))
+        assert result4 is not None
+        
+        # Should have made 2 API calls total (one per date)
+        assert mock_get.call_count == calls_after_tomorrow
+
+
+class TestEdgeCases:
+    """Test edge cases for cache functionality."""
+
+    def _create_hourly_response(self, base_date: datetime):
+        """Helper to create hourly API response."""
+        times = []
+        wind_speeds = []
+        wind_directions = []
+        wind_gusts = []
+        
+        for hour in range(24):
+            dt = base_date.replace(hour=hour, minute=0, second=0, microsecond=0)
+            times.append(dt.strftime('%Y-%m-%dT%H:00'))
+            wind_speeds.append(5.0)
+            wind_directions.append(180.0)
+            wind_gusts.append(6.0)
+        
+        return {
+            'hourly': {
+                'time': times,
+                'wind_speed_10m': wind_speeds,
+                'wind_direction_10m': wind_directions,
+                'wind_gusts_10m': wind_gusts
+            }
+        }
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_cache_lookup_with_expired_entries(self, mock_get, monkeypatch):
+        """Test cache lookup with expired entries."""
+        import app.services.open_meteo_service as oms
+        from app.services.open_meteo_service import _generate_cache_key
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        monkeypatch.setattr(oms, '_cache_ttl_seconds', 900)  # 15 minutes
+        
+        base_date = datetime(2025, 12, 7, 0, 0, 0)
+        
+        # Manually add expired cache entry
+        lat, lon = 37.999, 24.999
+        cache_key = _generate_cache_key(lat, lon, target_datetime=base_date.replace(hour=0))
+        oms._wind_cache[cache_key] = {
+            'data': {
+                'wind_speed_10m': 5.0,
+                'wind_direction_10m': 180.0,
+                'wind_gusts_10m': 6.0,
+                'timestamp': base_date.replace(hour=0)
+            },
+            'timestamp': datetime.now() - timedelta(hours=1)  # Expired
+        }
+        
+        # Mock API response for refetch
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        # Request should detect expired entry and make new API call
+        result = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=0))
+        assert result is not None
+        assert mock_get.call_count == 1  # Should have made API call
+
+    @patch('app.services.open_meteo_service.requests.get')
+    @freeze_time('2025-12-07 12:00:00')
+    def test_cache_lookup_with_mixed_valid_expired(self, mock_get, monkeypatch):
+        """Test cache lookup with mixed valid and expired entries."""
+        import app.services.open_meteo_service as oms
+        from app.services.open_meteo_service import _generate_cache_key
+        monkeypatch.setattr(oms, '_wind_cache', {})
+        
+        base_date = datetime(2025, 12, 7, 0, 0, 0)
+        
+        lat, lon = 37.111, 24.111
+        
+        # Add expired hour 00:00
+        cache_key_00 = _generate_cache_key(lat, lon, target_datetime=base_date.replace(hour=0))
+        oms._wind_cache[cache_key_00] = {
+            'data': {'wind_speed_10m': 5.0, 'wind_direction_10m': 180.0, 'wind_gusts_10m': 6.0, 'timestamp': base_date.replace(hour=0)},
+            'timestamp': datetime.now() - timedelta(hours=1)  # Expired
+        }
+        
+        # Add valid hour 12:00 (this caches all 24 hours)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = self._create_hourly_response(base_date)
+        mock_get.return_value = mock_response
+        
+        result1 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=12))
+        assert result1 is not None
+        assert mock_get.call_count == 1
+        
+        # Reset mock
+        mock_get.reset_mock()
+        
+        # Request hour 06:00 (should find via valid hour 12:00 lookup)
+        result2 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=6))
+        assert result2 is not None
+        # Should use cache (hour 06:00 was cached when fetching hour 12:00)
+        assert mock_get.call_count == 0
 

@@ -101,6 +101,15 @@
   - **Prefetch integration:** Added `onPrefetch` prop to `WindDateTimePicker` that calls `prefetchWindHours` immediately when play is pressed, ensuring upcoming hours are cached before slider advances
   - **Progressive loading optimization:** Enhanced `useViewportData` hook with zoom-based detail levels (minimal < 4, minimal 4-7, basic 8-9, full >= 10) and expanded bounds for zoom >= 11 to ensure nearby dive sites are always visible when panning
   - **Debounce improvement:** Increased debounce time from 1s to 1.5s in `useViewportData` for smoother user experience and fewer API calls
+- **Dive site clustering improvements:**
+  - **Updated clustering threshold:** Changed clustering threshold from `zoom <= 11` to `zoom <= 12` in `DiveSitesMap.js`, so dive sites are unclustered (individual markers) at zoom level 13 and above
+  - **Conditional clustering in LeafletMapView:** Added zoom-based clustering logic in `LeafletMapView.js`:
+    - Dive sites at zoom <= 12: Use clustering (added to cluster group)
+    - Dive sites at zoom >= 13: No clustering (added directly to map as individual markers)
+    - Other entity types (diving centers, dives, trips): Always use clustering at all zoom levels
+  - **Zoom tracking:** Added `currentZoom` state and zoom change listener to re-cluster/un-cluster markers when zoom crosses the threshold
+  - **Individual marker management:** Added `individualMarkersRef` to track and cleanup individual markers when zoom changes or markers update
+  - **Improved UX:** At high zoom levels (13+), users can see and interact with individual dive sites without needing to click clusters
 
 ---
 

@@ -178,15 +178,31 @@ const MapInstanceCapture = ({ onMapInstance }) => {
 const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, resetTrigger }) => {
   const map = useMap();
   const clusterRef = useRef();
+  const individualMarkersRef = useRef([]); // Store individual markers (dive sites at zoom >= 13)
   const hasAutoFittedRef = useRef(false);
   const userHasZoomedRef = useRef(false);
   const [mapMetadata, setMapMetadata] = useState(null);
+  const [currentZoom, setCurrentZoom] = useState(map?.getZoom() || 8);
   const onViewportChangeRef = useRef(onViewportChange);
 
   // Update ref when function changes
   useEffect(() => {
     onViewportChangeRef.current = onViewportChange;
   }, [onViewportChange]);
+
+  // Track zoom changes
+  useEffect(() => {
+    if (!map) return;
+    const updateZoom = () => {
+      const zoom = map.getZoom();
+      setCurrentZoom(zoom);
+    };
+    map.on('zoomend', updateZoom);
+    updateZoom(); // Initial zoom
+    return () => {
+      map.off('zoomend', updateZoom);
+    };
+  }, [map]);
 
   // Create cluster group
   useEffect(() => {
@@ -213,7 +229,14 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
         return;
       }
 
-      // Create new cluster group
+      // Determine if clustering should be used for dive sites based on current zoom
+      const shouldClusterDiveSites = currentZoom <= 12; // Disable clustering for dive sites at zoom >= 13
+
+      // Separate dive sites from other markers
+      const diveSiteMarkers = markers.filter(m => m.entityType === 'dive_site');
+      const otherMarkers = markers.filter(m => m.entityType !== 'dive_site');
+
+      // Create new cluster group (always used for non-dive-site markers, conditionally for dive sites)
       const clusterGroup = L.markerClusterGroup({
         chunkedLoading: true,
         maxClusterRadius: 50,
@@ -239,19 +262,19 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
         },
       });
 
-      // Add markers to cluster group with error handling
-      markers.forEach(marker => {
+      // Helper function to create a marker with popup
+      const createMarker = (marker) => {
         try {
           // Validate marker position
           if (!marker.position || !Array.isArray(marker.position) || marker.position.length !== 2) {
             console.warn('Invalid marker position:', marker);
-            return;
+            return null;
           }
 
           const [lat, lng] = marker.position;
           if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
             console.warn('Invalid marker coordinates:', marker);
-            return;
+            return null;
           }
 
           const leafletMarker = L.marker([lat, lng], { icon: marker.icon });
@@ -364,18 +387,55 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
         `;
 
           leafletMarker.bindPopup(popupContent);
-          clusterGroup.addLayer(leafletMarker);
+          return leafletMarker;
         } catch (error) {
           console.warn('Error creating marker:', error, marker);
+          return null;
+        }
+      };
+
+      // Clear existing individual markers (dive sites at zoom >= 13)
+      individualMarkersRef.current.forEach(marker => {
+        try {
+          map.removeLayer(marker);
+        } catch (error) {
+          // Marker might already be removed
+        }
+      });
+      individualMarkersRef.current = [];
+
+      // Add dive site markers conditionally based on zoom
+      diveSiteMarkers.forEach(marker => {
+        const leafletMarker = createMarker(marker);
+        if (!leafletMarker) return;
+
+        if (shouldClusterDiveSites) {
+          // Add to cluster group at zoom <= 12
+          clusterGroup.addLayer(leafletMarker);
+        } else {
+          // Add directly to map at zoom >= 13 (no clustering)
+          map.addLayer(leafletMarker);
+          individualMarkersRef.current.push(leafletMarker);
         }
       });
 
-      // Add cluster group to map
-      try {
-        map.addLayer(clusterGroup);
-        clusterRef.current = clusterGroup;
-      } catch (error) {
-        console.warn('Error adding cluster group to map:', error);
+      // Add all other markers to cluster group (always clustered)
+      otherMarkers.forEach(marker => {
+        const leafletMarker = createMarker(marker);
+        if (!leafletMarker) return;
+        clusterGroup.addLayer(leafletMarker);
+      });
+
+      // Add cluster group to map (only if it has markers)
+      if (clusterGroup.getLayers().length > 0) {
+        try {
+          map.addLayer(clusterGroup);
+          clusterRef.current = clusterGroup;
+        } catch (error) {
+          console.warn('Error adding cluster group to map:', error);
+        }
+      } else {
+        clusterRef.current = null;
       }
     }, 50); // Small delay to prevent race conditions
 
@@ -420,7 +480,7 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
       }
       map.off('moveend', handleMoveEnd);
     };
-  }, [markers, map]);
+  }, [markers, map, currentZoom, selectedEntityType]);
 
   // Separate effect for auto-fit to prevent re-triggering on every marker change
   useEffect(() => {
