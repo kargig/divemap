@@ -565,8 +565,6 @@ const RouteCanvas = ({
       existingRouteData.features &&
       !hasRestoredRef.current
     ) {
-      console.log('Restoring segments from existing route data:', existingRouteData);
-
       const restoredSegments = existingRouteData.features.map((feature, index) => ({
         id: Date.now() + index, // Simple ID generation
         type: feature.properties?.segmentType || 'walk',
@@ -578,8 +576,6 @@ const RouteCanvas = ({
             getRouteTypeColor(feature.properties?.segmentType || 'walk'),
         },
       }));
-
-      console.log('Restored segments:', restoredSegments);
       setSegments(restoredSegments);
       hasRestoredRef.current = true;
     }

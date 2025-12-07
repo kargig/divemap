@@ -3,11 +3,15 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_, desc, asc
 from slowapi.util import get_remote_address
+from datetime import datetime, timedelta
 import difflib
 import json
 
 from app.database import get_db
 from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus
+from app.services.osm_coastline_service import detect_shore_direction
+from app.services.wind_recommendation_service import calculate_wind_suitability
+from app.services.open_meteo_service import fetch_wind_data_single_point
 from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse,
     SiteRatingCreate, SiteRatingResponse,
@@ -26,6 +30,9 @@ from app.utils import (
     get_unified_fuzzy_trigger_conditions,
     UNIFIED_TYPO_TOLERANCE
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -743,6 +750,14 @@ async def get_dive_sites(
     sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
+    wind_suitability: Optional[str] = Query(None, description="Filter by wind suitability range: 'good' (only good), 'caution' (good+caution), 'difficult' (good+caution+difficult), 'avoid' (all conditions)"),
+    include_unknown_wind: bool = Query(False, description="Include dive sites with unknown wind conditions in addition to the selected range"),
+    datetime_str: Optional[str] = Query(None, description="Target date/time in ISO format (YYYY-MM-DDTHH:MM:SS) for wind filtering. Defaults to current time. Max +2 days ahead."),
+    north: Optional[float] = Query(None, ge=-90, le=90, description="North bound for viewport filtering"),
+    south: Optional[float] = Query(None, ge=-90, le=90, description="South bound for viewport filtering"),
+    east: Optional[float] = Query(None, ge=-180, le=180, description="East bound for viewport filtering"),
+    west: Optional[float] = Query(None, ge=-180, le=180, description="West bound for viewport filtering"),
+    detail_level: Optional[str] = Query('full', description="Data detail level: 'minimal' (id, lat, lng only), 'basic' (id, name, lat, lng, difficulty, rating), 'full' (all fields)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
@@ -753,6 +768,65 @@ async def get_dive_sites(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="page_size must be one of: 25, 50, 100, 1000"
         )
+    
+    # Validate wind_suitability parameter if provided
+    if wind_suitability is not None:
+        valid_suitabilities = ['good', 'caution', 'difficult', 'avoid', 'unknown']
+        if wind_suitability.lower() not in valid_suitabilities:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"wind_suitability must be one of: {', '.join(valid_suitabilities)}"
+            )
+        wind_suitability = wind_suitability.lower()
+    
+    # Validate detail_level parameter if provided
+    if detail_level is not None:
+        valid_detail_levels = ['minimal', 'basic', 'full']
+        if detail_level.lower() not in valid_detail_levels:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"detail_level must be one of: {', '.join(valid_detail_levels)}"
+            )
+        detail_level = detail_level.lower()
+    else:
+        detail_level = 'full'
+    
+    # Validate bounds if provided
+    if all(x is not None for x in [north, south, east, west]):
+        if north <= south:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="north must be greater than south"
+            )
+        # Handle longitude wrap-around (e.g., -179 to 179)
+        # For now, we'll allow east < west to handle date line crossing
+        # The between() filter will handle this correctly
+    
+    # Parse and validate datetime_str if provided
+    target_datetime = None
+    if datetime_str:
+        try:
+            target_datetime = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
+            # Validate date range: only allow up to +2 days ahead
+            # Round max_future to next hour to allow selecting any hour within 2-day window
+            now_utc = datetime.utcnow()
+            max_future = (now_utc + timedelta(days=2)).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+            if target_datetime > max_future:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Date/time cannot be more than 2 days ahead. Maximum allowed: {max_future.isoformat()}"
+                )
+            # Don't allow past dates (only current and future up to +2 days)
+            if target_datetime < datetime.utcnow() - timedelta(hours=1):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Date/time cannot be more than 1 hour in the past"
+                )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid datetime format. Use ISO 8601 format (e.g., '2025-12-01T14:00:00'): {str(e)}"
+            )
 
     # Eager load difficulty relationship for efficient access
     query = db.query(DiveSite).options(joinedload(DiveSite.difficulty))
@@ -774,8 +848,174 @@ async def get_dive_sites(
     # Apply rating filtering using utility function
     query = apply_rating_filtering(query, min_rating, db)
 
+    # Apply bounds filtering if provided
+    if all(x is not None for x in [north, south, east, west]):
+        query = query.filter(
+            DiveSite.latitude.between(south, north),
+            DiveSite.longitude.between(west, east)
+        )
+
     # Apply sorting using utility function
     query = apply_sorting(query, sort_by, sort_order, current_user)
+
+    # Apply wind suitability filtering if requested
+    if wind_suitability is not None:
+        try:
+            logger.info(f"[WIND FILTER] Filtering by wind_suitability={wind_suitability}, include_unknown_wind={include_unknown_wind}, target_datetime={target_datetime}")
+            
+            # Define suitability hierarchy for range filtering
+            # Order: good < caution < difficult < avoid
+            suitability_order = {"good": 0, "caution": 1, "difficult": 2, "avoid": 3}
+            
+            # Determine which suitabilities to include based on range
+            if wind_suitability == "good":
+                allowed_suitabilities = ["good"]
+            elif wind_suitability == "caution":
+                allowed_suitabilities = ["good", "caution"]
+            elif wind_suitability == "difficult":
+                allowed_suitabilities = ["good", "caution", "difficult"]
+            elif wind_suitability == "avoid":
+                allowed_suitabilities = ["good", "caution", "difficult", "avoid"]
+            else:
+                # Invalid value, return empty result
+                logger.warning(f"[WIND FILTER] Invalid wind_suitability value: {wind_suitability}")
+                query = query.filter(False)
+                allowed_suitabilities = []
+            
+            # Get all matching dive sites before pagination (needed for wind filtering)
+            all_matching_sites = query.all()
+            logger.info(f"[WIND FILTER] Found {len(all_matching_sites)} sites before wind suitability filtering")
+            
+            if all_matching_sites and allowed_suitabilities:
+                sites_with_coords = [s for s in all_matching_sites if s.latitude is not None and s.longitude is not None]
+                if sites_with_coords:
+                    # OPTIMIZATION: Group sites by cache key (0.1° grid cell) to batch fetch wind data
+                    # This reduces API calls and improves accuracy (sites get wind data from their actual grid cell)
+                    # The open_meteo_service cache already handles deduplication at the 0.1° level
+                    
+                    def get_cache_key_for_site(site, target_datetime):
+                        """Generate cache key for a site (matches open_meteo_service logic)."""
+                        rounded_lat = round(site.latitude * 10) / 10
+                        rounded_lon = round(site.longitude * 10) / 10
+                        base_key = (rounded_lat, rounded_lon)
+                        
+                        if target_datetime:
+                            # Round to nearest hour for cache efficiency
+                            hour_key = target_datetime.replace(minute=0, second=0, microsecond=0).isoformat()
+                            return (base_key, hour_key)
+                        return base_key
+                    
+                    # Group sites by cache key
+                    sites_by_cache_key = {}
+                    for site in sites_with_coords:
+                        cache_key = get_cache_key_for_site(site, target_datetime)
+                        if cache_key not in sites_by_cache_key:
+                            sites_by_cache_key[cache_key] = []
+                        sites_by_cache_key[cache_key].append(site)
+                    
+                    # Fetch wind data once per unique grid cell
+                    # Use a representative site from each group (first site in group)
+                    wind_data_by_cache_key = {}
+                    fetch_errors = []
+                    
+                    for cache_key, sites_in_group in sites_by_cache_key.items():
+                        # Use first site in group as representative for fetching wind data
+                        representative_site = sites_in_group[0]
+                        
+                        try:
+                            wind_data = fetch_wind_data_single_point(
+                                representative_site.latitude,
+                                representative_site.longitude,
+                                target_datetime,
+                                skip_validation=True  # Validation already done at endpoint level
+                            )
+                            
+                            if wind_data:
+                                wind_data_by_cache_key[cache_key] = wind_data
+                            else:
+                                fetch_errors.append(f"Failed to fetch wind data for grid cell {cache_key}")
+                        except Exception as e:
+                            logger.error(f"Error fetching wind data for grid cell {cache_key}: {str(e)}")
+                            fetch_errors.append(f"Error fetching wind data for grid cell {cache_key}: {str(e)}")
+                    
+                    # Calculate suitability for each site
+                    filtered_site_ids = []
+                    
+                    for site in all_matching_sites:
+                        try:
+                            # Handle sites without coordinates (they have "unknown" suitability)
+                            if site.latitude is None or site.longitude is None:
+                                if include_unknown_wind:
+                                    filtered_site_ids.append(site.id)
+                                continue
+                            
+                            # Get cache key for this site
+                            cache_key = get_cache_key_for_site(site, target_datetime)
+                            
+                            # Get wind data for this site's grid cell
+                            wind_data = wind_data_by_cache_key.get(cache_key)
+                            
+                            if not wind_data:
+                                # No wind data for this grid cell - site has "unknown" suitability
+                                if include_unknown_wind:
+                                    filtered_site_ids.append(site.id)
+                                continue
+                            
+                            wind_direction = wind_data.get("wind_direction_10m")
+                            wind_speed = wind_data.get("wind_speed_10m")
+                            wind_gusts = wind_data.get("wind_gusts_10m")
+                            
+                            if wind_direction is not None and wind_speed is not None:
+                                suitability_result = calculate_wind_suitability(
+                                    wind_direction=wind_direction,
+                                    wind_speed=wind_speed,
+                                    shore_direction=float(site.shore_direction) if site.shore_direction else None,
+                                    wind_gusts=wind_gusts
+                                )
+                                
+                                site_suitability = suitability_result["suitability"]
+                                
+                                # Filter by suitability range
+                                if site_suitability in allowed_suitabilities:
+                                    filtered_site_ids.append(site.id)
+                                elif include_unknown_wind and site_suitability == "unknown":
+                                    # Include unknown if checkbox is checked
+                                    filtered_site_ids.append(site.id)
+                            else:
+                                # Invalid wind data - site has "unknown" suitability
+                                if include_unknown_wind:
+                                    filtered_site_ids.append(site.id)
+                        except Exception as e:
+                            logger.error(f"Error calculating suitability for site {site.id}: {str(e)}")
+                            # Skip this site if calculation fails
+                            continue
+                    
+                    # Rebuild query with filtered site IDs
+                    logger.info(f"[WIND FILTER] After filtering: {len(filtered_site_ids)} sites match wind_suitability={wind_suitability} (range: {allowed_suitabilities}), include_unknown={include_unknown_wind} for target_datetime={target_datetime}")
+                    if filtered_site_ids:
+                        query = query.filter(DiveSite.id.in_(filtered_site_ids))
+                    else:
+                        # No sites match the suitability filter
+                        logger.info(f"[WIND FILTER] No sites match, returning empty result")
+                        query = query.filter(False)
+                else:
+                    # No sites with valid coordinates
+                    if include_unknown_wind:
+                        # Include sites without coordinates if unknown is allowed
+                        sites_without_coords = [s.id for s in all_matching_sites if s.latitude is None or s.longitude is None]
+                        if sites_without_coords:
+                            query = query.filter(DiveSite.id.in_(sites_without_coords))
+                        else:
+                            query = query.filter(False)
+                    else:
+                        query = query.filter(False)
+            else:
+                # No matching sites, return empty result
+                query = query.filter(False)
+        except Exception as e:
+            logger.error(f"Error in wind suitability filter: {str(e)}")
+            # If any error occurs, return empty result when filtering by suitability
+            query = query.filter(False)
 
     # Get total count for pagination
     total_count = query.count()
@@ -874,58 +1114,85 @@ async def get_dive_sites(
             # Initialize empty match_types if no fuzzy search was performed
             match_types = {}
 
-    # Calculate average ratings and get tags
+    # Calculate average ratings and get tags/aliases (only when needed)
     result = []
     for site in dive_sites:
-        avg_rating = db.query(func.avg(SiteRating.score)).filter(
-            SiteRating.dive_site_id == site.id
-        ).scalar()
+        # Only calculate average_rating for basic and full detail levels
+        avg_rating = None
+        total_ratings = 0
+        if detail_level in ['basic', 'full']:
+            avg_rating = db.query(func.avg(SiteRating.score)).filter(
+                SiteRating.dive_site_id == site.id
+            ).scalar()
+            total_ratings = db.query(func.count(SiteRating.id)).filter(
+                SiteRating.dive_site_id == site.id
+            ).scalar()
 
-        total_ratings = db.query(func.count(SiteRating.id)).filter(
-            SiteRating.dive_site_id == site.id
-        ).scalar()
+        # Get tags and aliases only for full detail level
+        tags_dict = []
+        aliases_dict = []
+        if detail_level == 'full':
+            from app.models import DiveSiteTag, AvailableTag
+            tags = db.query(AvailableTag).join(DiveSiteTag).filter(
+                DiveSiteTag.dive_site_id == site.id
+            ).order_by(AvailableTag.name.asc()).all()
 
-        # Get tags for this dive site
-        from app.models import DiveSiteTag, AvailableTag
-        tags = db.query(AvailableTag).join(DiveSiteTag).filter(
-            DiveSiteTag.dive_site_id == site.id
-        ).order_by(AvailableTag.name.asc()).all()
+            # Convert tags to dictionaries
+            tags_dict = [
+                {
+                    "id": tag.id,
+                    "name": tag.name,
+                    "description": tag.description,
+                    "created_by": tag.created_by,
+                    "created_at": tag.created_at.isoformat() if tag.created_at else None
+                }
+                for tag in tags
+            ]
 
-        # Convert tags to dictionaries
-        tags_dict = [
-            {
-                "id": tag.id,
-                "name": tag.name,
-                "description": tag.description,
-                "created_by": tag.created_by,
-                "created_at": tag.created_at.isoformat() if tag.created_at else None
+            # Get aliases for this dive site
+            aliases = db.query(DiveSiteAlias).filter(
+                DiveSiteAlias.dive_site_id == site.id
+            ).order_by(DiveSiteAlias.alias.asc()).all()
+
+            # Convert aliases to dictionaries
+            aliases_dict = [
+                {
+                    "id": alias.id,
+                    "dive_site_id": alias.dive_site_id,
+                    "alias": alias.alias,
+                    "created_at": alias.created_at.isoformat() if alias.created_at else None
+                }
+                for alias in aliases
+            ]
+
+        # Build site_dict based on detail_level
+        if detail_level == 'minimal':
+            # Minimal: only id, latitude, longitude
+            site_dict = {
+                "id": site.id,
+                "latitude": float(site.latitude) if site.latitude else None,
+                "longitude": float(site.longitude) if site.longitude else None,
             }
-            for tag in tags
-        ]
-
-        # Get aliases for this dive site
-        aliases = db.query(DiveSiteAlias).filter(
-            DiveSiteAlias.dive_site_id == site.id
-        ).order_by(DiveSiteAlias.alias.asc()).all()
-
-        # Convert aliases to dictionaries
-        aliases_dict = [
-            {
-                "id": alias.id,
-                "dive_site_id": alias.dive_site_id,
-                "alias": alias.alias,
-                "created_at": alias.created_at.isoformat() if alias.created_at else None
+        elif detail_level == 'basic':
+            # Basic: id, name, latitude, longitude, difficulty_code, difficulty_label, average_rating
+            site_dict = {
+                "id": site.id,
+                "name": site.name,
+                "latitude": float(site.latitude) if site.latitude else None,
+                "longitude": float(site.longitude) if site.longitude else None,
+                "difficulty_code": site.difficulty.code if site.difficulty else None,
+                "difficulty_label": site.difficulty.label if site.difficulty else None,
+                "average_rating": float(avg_rating) if avg_rating else None,
             }
-            for alias in aliases
-        ]
+        else:
+            # Full: all fields
+            # Get creator username if available
+            creator_username = None
+            if site.created_by:
+                creator_user = db.query(User).filter(User.id == site.created_by).first()
+                creator_username = creator_user.username if creator_user else None
 
-        # Get creator username if available
-        creator_username = None
-        if site.created_by:
-            creator_user = db.query(User).filter(User.id == site.created_by).first()
-            creator_username = creator_user.username if creator_user else None
-
-        site_dict = {
+            site_dict = {
                 "id": site.id,
                 "name": site.name,
                 "description": site.description,
@@ -949,9 +1216,9 @@ async def get_dive_sites(
                 "aliases": aliases_dict
             }
 
-        # Only include view_count for admin users
-        if current_user and current_user.is_admin:
-            site_dict["view_count"] = site.view_count
+            # Only include view_count for admin users
+            if current_user and current_user.is_admin:
+                site_dict["view_count"] = site.view_count
 
         result.append(site_dict)
 
@@ -985,13 +1252,171 @@ async def get_dive_sites(
         # If header is still too large, truncate or omit it
         if len(match_types_json) > 8000:  # 8KB limit for headers
             # Log warning about large header
-            import logging
-            logger = logging.getLogger(__name__)
             logger.warning(f"X-Match-Types header too large ({len(match_types_json)} chars), omitting to prevent nginx errors")
         else:
             response.headers["X-Match-Types"] = match_types_json
 
     return response
+
+@router.get("/wind-recommendations")
+@skip_rate_limit_for_admin("60/minute")
+async def get_wind_recommendations(
+    request: Request,
+    latitude: Optional[float] = Query(None, ge=-90, le=90, description="Latitude for wind data"),
+    longitude: Optional[float] = Query(None, ge=-180, le=180, description="Longitude for wind data"),
+    north: Optional[float] = Query(None, ge=-90, le=90, description="North bound for area query"),
+    south: Optional[float] = Query(None, ge=-90, le=90, description="South bound for area query"),
+    east: Optional[float] = Query(None, ge=-180, le=180, description="East bound for area query"),
+    west: Optional[float] = Query(None, ge=-180, le=180, description="West bound for area query"),
+    wind_direction: Optional[float] = Query(None, ge=0, le=360, description="Wind direction in degrees (optional, will fetch if not provided)"),
+    wind_speed: Optional[float] = Query(None, ge=0, description="Wind speed in m/s (optional, will fetch if not provided)"),
+    wind_gusts: Optional[float] = Query(None, ge=0, description="Wind gusts in m/s (optional)"),
+    datetime_str: Optional[str] = Query(None, description="Target date/time in ISO format (YYYY-MM-DDTHH:MM:SS). Defaults to current time. Max +2 days ahead."),
+    include_unknown: bool = Query(False, description="Include sites without shore_direction"),
+    min_suitability: Optional[str] = Query(None, description="Minimum suitability filter: good, caution, difficult, avoid"),
+    current_user: Optional = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """
+    Get wind suitability recommendations for dive sites.
+    
+    Fetches wind data if not provided, then calculates suitability for each dive site
+    based on wind direction, wind speed, and shore direction.
+    
+    Date/time parameter:
+    - If not provided, fetches current weather data (NOW)
+    - If provided, fetches forecast for that date/time (max +2 days ahead)
+    - Format: ISO 8601 (e.g., "2025-12-01T14:00:00")
+    """
+    try:
+        # Parse target datetime if provided
+        target_datetime = None
+        if datetime_str:
+            try:
+                target_datetime = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
+                # Validate date range: only allow up to +2 days ahead
+                # Round max_future to next hour to allow selecting any hour within 2-day window
+                now = datetime.now()
+                max_future = (now + timedelta(days=2)).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+                if target_datetime > max_future:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Date/time cannot be more than 2 days ahead. Maximum allowed: {max_future.isoformat()}"
+                    )
+                # Don't allow past dates (only current and future up to +2 days)
+                if target_datetime < datetime.now() - timedelta(hours=1):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Date/time cannot be more than 1 hour in the past"
+                    )
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid datetime format. Use ISO 8601 format (e.g., '2025-12-01T14:00:00'): {str(e)}"
+                )
+        
+        # Determine wind data source
+        if wind_direction is None or wind_speed is None:
+            # Need to fetch wind data
+            if latitude and longitude:
+                wind_data = fetch_wind_data_single_point(latitude, longitude, target_datetime)
+                if not wind_data:
+                    raise HTTPException(
+                        status_code=503,
+                        detail="Failed to fetch wind data from weather service"
+                    )
+                wind_direction = wind_direction or wind_data.get("wind_direction_10m")
+                wind_speed = wind_speed or wind_data.get("wind_speed_10m")
+                wind_gusts = wind_gusts or wind_data.get("wind_gusts_10m")
+            elif all(x is not None for x in [north, south, east, west]):
+                # Use center of bounds for wind data
+                center_lat = (north + south) / 2
+                center_lon = (east + west) / 2
+                wind_data = fetch_wind_data_single_point(center_lat, center_lon, target_datetime)
+                if wind_data:
+                    wind_direction = wind_direction or wind_data.get("wind_direction_10m")
+                    wind_speed = wind_speed or wind_data.get("wind_speed_10m")
+                    wind_gusts = wind_gusts or wind_data.get("wind_gusts_10m")
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Must provide (latitude, longitude) or bounds to fetch wind data"
+                )
+        
+        if wind_direction is None or wind_speed is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Wind direction and speed are required"
+            )
+        
+        # Query dive sites
+        query = db.query(DiveSite)
+        
+        # Filter by bounds if provided
+        if all(x is not None for x in [north, south, east, west]):
+            query = query.filter(
+                DiveSite.latitude.between(south, north),
+                DiveSite.longitude.between(west, east)
+            )
+        
+        # Filter out sites without shore_direction if include_unknown is False
+        if not include_unknown:
+            query = query.filter(DiveSite.shore_direction.isnot(None))
+        
+        dive_sites = query.all()
+        
+        # Calculate suitability for each dive site
+        recommendations = []
+        for site in dive_sites:
+            suitability_result = calculate_wind_suitability(
+                wind_direction=wind_direction,
+                wind_speed=wind_speed,
+                shore_direction=float(site.shore_direction) if site.shore_direction else None,
+                wind_gusts=wind_gusts
+            )
+            
+            # Apply min_suitability filter if specified
+            if min_suitability:
+                suitability_order = {"good": 0, "caution": 1, "difficult": 2, "avoid": 3, "unknown": 4}
+                min_order = suitability_order.get(min_suitability.lower(), 0)
+                site_order = suitability_order.get(suitability_result["suitability"], 4)
+                if site_order > min_order:
+                    continue
+            
+            recommendations.append({
+                "dive_site_id": site.id,
+                "name": site.name,
+                "suitability": suitability_result["suitability"],
+                "wind_direction": wind_direction,
+                "wind_speed": wind_speed,
+                "wind_gusts": wind_gusts,
+                "shore_direction": float(site.shore_direction) if site.shore_direction else None,
+                "reasoning": suitability_result["reasoning"],
+                "wind_speed_category": suitability_result["wind_speed_category"]
+            })
+        
+        # Sort by suitability (good first, then caution, then difficult, then avoid, then unknown)
+        suitability_order = {"good": 0, "caution": 1, "difficult": 2, "avoid": 3, "unknown": 4}
+        recommendations.sort(key=lambda x: suitability_order.get(x["suitability"], 4))
+        
+        return {
+            "recommendations": recommendations,
+            "wind_data": {
+                "wind_direction": wind_direction,
+                "wind_speed": wind_speed,
+                "wind_gusts": wind_gusts
+            },
+            "total_sites": len(recommendations)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error calculating wind recommendations: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error while calculating recommendations"
+        )
 
 @router.get("/count")
 @skip_rate_limit_for_admin("250/minute")
@@ -1038,6 +1463,22 @@ async def create_dive_site(
     if 'difficulty_code' in dive_site_data:
         difficulty_code = dive_site_data.pop('difficulty_code')
         dive_site_data['difficulty_id'] = get_difficulty_id_by_code(db, difficulty_code)
+    
+    # Auto-detect shore direction if not provided and coordinates are available
+    if dive_site_data.get('shore_direction') is None and dive_site_data.get('latitude') and dive_site_data.get('longitude'):
+        try:
+            result = detect_shore_direction(
+                float(dive_site_data['latitude']),
+                float(dive_site_data['longitude'])
+            )
+            if result:
+                dive_site_data['shore_direction'] = result.get('shore_direction')
+                dive_site_data['shore_direction_confidence'] = result.get('confidence')
+                dive_site_data['shore_direction_method'] = result.get('method')
+                dive_site_data['shore_direction_distance_m'] = result.get('distance_to_coastline_m')
+        except Exception as e:
+            # Log error but don't fail dive site creation
+            logger.warning(f"Failed to auto-detect shore direction for new dive site: {e}")
     
     db_dive_site = DiveSite(**dive_site_data)
     db.add(db_dive_site)
@@ -1162,6 +1603,10 @@ async def get_dive_site(
         "max_depth": float(dive_site.max_depth) if dive_site.max_depth else None,
         "country": dive_site.country,
         "region": dive_site.region,
+        "shore_direction": float(dive_site.shore_direction) if dive_site.shore_direction else None,
+        "shore_direction_confidence": dive_site.shore_direction_confidence,
+        "shore_direction_method": dive_site.shore_direction_method,
+        "shore_direction_distance_m": float(dive_site.shore_direction_distance_m) if dive_site.shore_direction_distance_m else None,
         "created_at": dive_site.created_at.isoformat() if dive_site.created_at else None,
         "updated_at": dive_site.updated_at.isoformat() if dive_site.updated_at else None,
         "created_by": dive_site.created_by,
@@ -1459,6 +1904,46 @@ async def update_dive_site(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Longitude cannot be empty"
         )
+    
+    # Validate shore_direction if provided - must be a valid value (0-360), cannot be None
+    if 'shore_direction' in update_data:
+        if update_data['shore_direction'] is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Shore direction cannot be set to None. Use a valid compass bearing (0-360 degrees) or omit the field."
+            )
+        if not (0 <= update_data['shore_direction'] <= 360):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Shore direction must be between 0 and 360 degrees"
+            )
+    
+    # Auto-detect shore direction if:
+    # 1. Coordinates changed and shore_direction not provided, OR
+    # 2. Shore direction is currently NULL in database and not being explicitly set
+    coordinates_changed = ('latitude' in update_data or 'longitude' in update_data)
+    shore_direction_not_provided = 'shore_direction' not in update_data or update_data.get('shore_direction') is None
+    shore_direction_is_null = dive_site.shore_direction is None
+    
+    should_detect = (coordinates_changed and shore_direction_not_provided) or (shore_direction_is_null and shore_direction_not_provided)
+    
+    if should_detect:
+        # Use updated coordinates if provided, otherwise use existing
+        lat = update_data.get('latitude', dive_site.latitude)
+        lon = update_data.get('longitude', dive_site.longitude)
+        
+        if lat and lon:
+            try:
+                result = detect_shore_direction(float(lat), float(lon))
+                if result:
+                    update_data['shore_direction'] = result.get('shore_direction')
+                    update_data['shore_direction_confidence'] = result.get('confidence')
+                    update_data['shore_direction_method'] = result.get('method')
+                    update_data['shore_direction_distance_m'] = result.get('distance_to_coastline_m')
+                    logger.info(f"Auto-detected shore direction {result.get('shore_direction')}° for dive site {dive_site_id}")
+            except Exception as e:
+                # Log error but don't fail dive site update
+                logger.warning(f"Failed to auto-detect shore direction for dive site {dive_site_id}: {e}")
 
     for field, value in update_data.items():
         setattr(dive_site, field, value)
@@ -1514,6 +1999,10 @@ async def update_dive_site(
         "max_depth": float(dive_site.max_depth) if dive_site.max_depth else None,
         "country": dive_site.country,
         "region": dive_site.region,
+        "shore_direction": float(dive_site.shore_direction) if dive_site.shore_direction else None,
+        "shore_direction_confidence": dive_site.shore_direction_confidence,
+        "shore_direction_method": dive_site.shore_direction_method,
+        "shore_direction_distance_m": float(dive_site.shore_direction_distance_m) if dive_site.shore_direction_distance_m else None,
         "created_at": dive_site.created_at.isoformat() if dive_site.created_at else None,
         "updated_at": dive_site.updated_at.isoformat() if dive_site.updated_at else None,
         "created_by": dive_site.created_by,
@@ -2155,3 +2644,60 @@ async def create_dive_site_route(
     db.refresh(db_route)
     
     return db_route
+
+@router.post("/{dive_site_id}/detect-shore-direction")
+@skip_rate_limit_for_admin("10/minute")
+async def detect_shore_direction_for_dive_site(
+    request: Request,
+    dive_site_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Detect shore direction for an existing dive site using OpenStreetMap coastline data.
+    
+    This endpoint triggers automatic detection of shore direction based on the dive site's
+    coordinates. The detected value can be used to update the dive site or returned for
+    user confirmation.
+    
+    Rate limited to prevent API abuse.
+    """
+    # Check if dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+    
+    # Check permissions (user must own the site or be admin/moderator)
+    if not (current_user.is_admin or current_user.is_moderator or 
+            (dive_site.created_by == current_user.id)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to modify this dive site"
+        )
+    
+    # Check if coordinates are available
+    if dive_site.latitude is None or dive_site.longitude is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Dive site must have latitude and longitude to detect shore direction"
+        )
+    
+    # Detect shore direction
+    result = detect_shore_direction(float(dive_site.latitude), float(dive_site.longitude))
+    
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Could not detect shore direction. No coastline found nearby or API error occurred."
+        )
+    
+    return {
+        "shore_direction": result.get("shore_direction"),
+        "confidence": result.get("confidence"),
+        "method": result.get("method"),
+        "distance_to_coastline_m": result.get("distance_to_coastline_m"),
+        "message": "Shore direction detected successfully. Update the dive site to save this value."
+    }

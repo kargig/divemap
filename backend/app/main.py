@@ -415,6 +415,19 @@ def load_share_router():
         router_time = time.time() - router_start
         print(f"✅ Share router loaded lazily in {router_time:.2f}s")
 
+def load_weather_router():
+    """Load weather router lazily when first accessed"""
+    if not hasattr(app, '_weather_router_loaded'):
+        print("🔧 Loading weather router lazily...")
+        router_start = time.time()
+        
+        from app.routers import weather
+        app.include_router(weather.router, prefix="/api/v1/weather", tags=["Weather"])
+        
+        app._weather_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Weather router loaded lazily in {router_time:.2f}s")
+
 # Load routers
 load_routers()
 
@@ -471,6 +484,10 @@ async def lazy_router_loading(request: Request, call_next):
     # Load share router
     elif path.startswith("/api/v1/share") and not hasattr(app, '_share_router_loaded'):
         load_share_router()
+    
+    # Load weather router
+    elif path.startswith("/api/v1/weather") and not hasattr(app, '_weather_router_loaded'):
+        load_weather_router()
     
     response = await call_next(request)
     return response
