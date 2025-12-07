@@ -57,8 +57,12 @@ class TestDiveSitesWindSuitabilityFilter:
         assert mock_fetch_wind.called
         call_args = mock_fetch_wind.call_args
         # Check that it was called with average coordinates
-        assert 37.7 <= call_args[0][0] <= 37.8  # lat
-        assert 24.0 <= call_args[0][1] <= 24.1  # lon
+        # Convert Decimal to float for comparison (SQLAlchemy returns Decimal for DECIMAL columns)
+        from decimal import Decimal
+        lat = float(call_args[0][0]) if isinstance(call_args[0][0], Decimal) else call_args[0][0]
+        lon = float(call_args[0][1]) if isinstance(call_args[0][1], Decimal) else call_args[0][1]
+        assert 37.7 <= lat <= 37.8  # lat
+        assert 24.0 <= lon <= 24.1  # lon
 
     @patch('app.routers.dive_sites.fetch_wind_data_single_point')
     def test_wind_suitability_filter_valid_avoid(self, mock_fetch_wind, client, db_session):
@@ -97,13 +101,17 @@ class TestDiveSitesWindSuitabilityFilter:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        # Should only return site2 (avoid conditions)
-        assert len(data) == 1
-        assert data[0]["name"] == "Site Bad Conditions"
+        # With range-based filtering, "avoid" includes all conditions (good, caution, difficult, avoid)
+        # So both sites are returned: site1 (good) and site2 (avoid)
+        assert len(data) == 2
+        # Verify both sites are present
+        site_names = [site["name"] for site in data]
+        assert "Site Good Conditions" in site_names
+        assert "Site Bad Conditions" in site_names
 
     @patch('app.routers.dive_sites.fetch_wind_data_single_point')
     def test_wind_suitability_filter_unknown(self, mock_fetch_wind, client, db_session):
-        """Test filtering by wind_suitability='unknown' (sites without shore_direction)."""
+        """Test filtering with include_unknown_wind parameter (sites without shore_direction)."""
         # Create dive sites: one with shore_direction, one without
         site1 = DiveSite(
             name="Site With Shore Direction",
@@ -128,16 +136,20 @@ class TestDiveSitesWindSuitabilityFilter:
             "wind_gusts_10m": 6.0
         }
 
+        # Use include_unknown_wind=true with a range filter (e.g., "good")
+        # This should return site1 (good conditions) + site2 (unknown conditions)
         response = client.get(
             "/api/v1/dive-sites/",
-            params={"wind_suitability": "unknown"}
+            params={"wind_suitability": "good", "include_unknown_wind": "true"}
         )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        # Should only return site2 (unknown suitability)
-        assert len(data) == 1
-        assert data[0]["name"] == "Site Without Shore Direction"
+        # Should return site1 (good conditions) and site2 (unknown conditions)
+        assert len(data) == 2
+        site_names = [site["name"] for site in data]
+        assert "Site With Shore Direction" in site_names
+        assert "Site Without Shore Direction" in site_names
 
     def test_wind_suitability_filter_invalid_value(self, client):
         """Test filtering with invalid wind_suitability value."""

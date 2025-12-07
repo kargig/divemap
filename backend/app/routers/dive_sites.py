@@ -750,7 +750,8 @@ async def get_dive_sites(
     sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
-    wind_suitability: Optional[str] = Query(None, description="Filter by wind suitability: good, caution, difficult, avoid, unknown"),
+    wind_suitability: Optional[str] = Query(None, description="Filter by wind suitability range: 'good' (only good), 'caution' (good+caution), 'difficult' (good+caution+difficult), 'avoid' (all conditions)"),
+    include_unknown_wind: bool = Query(False, description="Include dive sites with unknown wind conditions in addition to the selected range"),
     datetime_str: Optional[str] = Query(None, description="Target date/time in ISO format (YYYY-MM-DDTHH:MM:SS) for wind filtering. Defaults to current time. Max +2 days ahead."),
     north: Optional[float] = Query(None, ge=-90, le=90, description="North bound for viewport filtering"),
     south: Optional[float] = Query(None, ge=-90, le=90, description="South bound for viewport filtering"),
@@ -860,63 +861,154 @@ async def get_dive_sites(
     # Apply wind suitability filtering if requested
     if wind_suitability is not None:
         try:
+            logger.info(f"[WIND FILTER] Filtering by wind_suitability={wind_suitability}, include_unknown_wind={include_unknown_wind}, target_datetime={target_datetime}")
+            
+            # Define suitability hierarchy for range filtering
+            # Order: good < caution < difficult < avoid
+            suitability_order = {"good": 0, "caution": 1, "difficult": 2, "avoid": 3}
+            
+            # Determine which suitabilities to include based on range
+            if wind_suitability == "good":
+                allowed_suitabilities = ["good"]
+            elif wind_suitability == "caution":
+                allowed_suitabilities = ["good", "caution"]
+            elif wind_suitability == "difficult":
+                allowed_suitabilities = ["good", "caution", "difficult"]
+            elif wind_suitability == "avoid":
+                allowed_suitabilities = ["good", "caution", "difficult", "avoid"]
+            else:
+                # Invalid value, return empty result
+                logger.warning(f"[WIND FILTER] Invalid wind_suitability value: {wind_suitability}")
+                query = query.filter(False)
+                allowed_suitabilities = []
+            
             # Get all matching dive sites before pagination (needed for wind filtering)
             all_matching_sites = query.all()
+            logger.info(f"[WIND FILTER] Found {len(all_matching_sites)} sites before wind suitability filtering")
             
-            # Calculate center point for wind data fetching (use average of all site coordinates)
-            if all_matching_sites:
+            if all_matching_sites and allowed_suitabilities:
                 sites_with_coords = [s for s in all_matching_sites if s.latitude is not None and s.longitude is not None]
                 if sites_with_coords:
-                    avg_lat = sum(site.latitude for site in sites_with_coords) / len(sites_with_coords)
-                    avg_lon = sum(site.longitude for site in sites_with_coords) / len(sites_with_coords)
+                    # OPTIMIZATION: Group sites by cache key (0.1° grid cell) to batch fetch wind data
+                    # This reduces API calls and improves accuracy (sites get wind data from their actual grid cell)
+                    # The open_meteo_service cache already handles deduplication at the 0.1° level
                     
-                    # Fetch wind data for the center point
-                    try:
-                        wind_data = fetch_wind_data_single_point(avg_lat, avg_lon, target_datetime)
-                        if wind_data:
+                    def get_cache_key_for_site(site, target_datetime):
+                        """Generate cache key for a site (matches open_meteo_service logic)."""
+                        rounded_lat = round(site.latitude * 10) / 10
+                        rounded_lon = round(site.longitude * 10) / 10
+                        base_key = (rounded_lat, rounded_lon)
+                        
+                        if target_datetime:
+                            # Round to nearest hour for cache efficiency
+                            hour_key = target_datetime.replace(minute=0, second=0, microsecond=0).isoformat()
+                            return (base_key, hour_key)
+                        return base_key
+                    
+                    # Group sites by cache key
+                    sites_by_cache_key = {}
+                    for site in sites_with_coords:
+                        cache_key = get_cache_key_for_site(site, target_datetime)
+                        if cache_key not in sites_by_cache_key:
+                            sites_by_cache_key[cache_key] = []
+                        sites_by_cache_key[cache_key].append(site)
+                    
+                    # Fetch wind data once per unique grid cell
+                    # Use a representative site from each group (first site in group)
+                    wind_data_by_cache_key = {}
+                    fetch_errors = []
+                    
+                    for cache_key, sites_in_group in sites_by_cache_key.items():
+                        # Use first site in group as representative for fetching wind data
+                        representative_site = sites_in_group[0]
+                        
+                        try:
+                            wind_data = fetch_wind_data_single_point(
+                                representative_site.latitude,
+                                representative_site.longitude,
+                                target_datetime,
+                                skip_validation=True  # Validation already done at endpoint level
+                            )
+                            
+                            if wind_data:
+                                wind_data_by_cache_key[cache_key] = wind_data
+                            else:
+                                fetch_errors.append(f"Failed to fetch wind data for grid cell {cache_key}")
+                        except Exception as e:
+                            logger.error(f"Error fetching wind data for grid cell {cache_key}: {str(e)}")
+                            fetch_errors.append(f"Error fetching wind data for grid cell {cache_key}: {str(e)}")
+                    
+                    # Calculate suitability for each site
+                    filtered_site_ids = []
+                    
+                    for site in all_matching_sites:
+                        try:
+                            # Handle sites without coordinates (they have "unknown" suitability)
+                            if site.latitude is None or site.longitude is None:
+                                if include_unknown_wind:
+                                    filtered_site_ids.append(site.id)
+                                continue
+                            
+                            # Get cache key for this site
+                            cache_key = get_cache_key_for_site(site, target_datetime)
+                            
+                            # Get wind data for this site's grid cell
+                            wind_data = wind_data_by_cache_key.get(cache_key)
+                            
+                            if not wind_data:
+                                # No wind data for this grid cell - site has "unknown" suitability
+                                if include_unknown_wind:
+                                    filtered_site_ids.append(site.id)
+                                continue
+                            
                             wind_direction = wind_data.get("wind_direction_10m")
                             wind_speed = wind_data.get("wind_speed_10m")
                             wind_gusts = wind_data.get("wind_gusts_10m")
                             
                             if wind_direction is not None and wind_speed is not None:
-                                # Calculate suitability for each dive site and filter
-                                filtered_site_ids = []
-                                for site in all_matching_sites:
-                                    try:
-                                        suitability_result = calculate_wind_suitability(
-                                            wind_direction=wind_direction,
-                                            wind_speed=wind_speed,
-                                            shore_direction=float(site.shore_direction) if site.shore_direction else None,
-                                            wind_gusts=wind_gusts
-                                        )
-                                        
-                                        # Filter by suitability
-                                        if suitability_result["suitability"] == wind_suitability:
-                                            filtered_site_ids.append(site.id)
-                                    except Exception as e:
-                                        logger.error(f"Error calculating suitability for site {site.id}: {str(e)}")
-                                        # Skip this site if calculation fails
-                                        continue
+                                suitability_result = calculate_wind_suitability(
+                                    wind_direction=wind_direction,
+                                    wind_speed=wind_speed,
+                                    shore_direction=float(site.shore_direction) if site.shore_direction else None,
+                                    wind_gusts=wind_gusts
+                                )
                                 
-                                # Rebuild query with filtered site IDs
-                                if filtered_site_ids:
-                                    query = query.filter(DiveSite.id.in_(filtered_site_ids))
-                                else:
-                                    # No sites match the suitability filter
-                                    query = query.filter(False)
+                                site_suitability = suitability_result["suitability"]
+                                
+                                # Filter by suitability range
+                                if site_suitability in allowed_suitabilities:
+                                    filtered_site_ids.append(site.id)
+                                elif include_unknown_wind and site_suitability == "unknown":
+                                    # Include unknown if checkbox is checked
+                                    filtered_site_ids.append(site.id)
                             else:
-                                # Invalid wind data, return empty result
-                                query = query.filter(False)
-                        else:
-                            # If wind data fetch fails, return empty result when filtering by suitability
-                            query = query.filter(False)
-                    except Exception as e:
-                        logger.error(f"Error fetching wind data for suitability filter: {str(e)}")
-                        # If wind data fetch fails, return empty result when filtering by suitability
+                                # Invalid wind data - site has "unknown" suitability
+                                if include_unknown_wind:
+                                    filtered_site_ids.append(site.id)
+                        except Exception as e:
+                            logger.error(f"Error calculating suitability for site {site.id}: {str(e)}")
+                            # Skip this site if calculation fails
+                            continue
+                    
+                    # Rebuild query with filtered site IDs
+                    logger.info(f"[WIND FILTER] After filtering: {len(filtered_site_ids)} sites match wind_suitability={wind_suitability} (range: {allowed_suitabilities}), include_unknown={include_unknown_wind} for target_datetime={target_datetime}")
+                    if filtered_site_ids:
+                        query = query.filter(DiveSite.id.in_(filtered_site_ids))
+                    else:
+                        # No sites match the suitability filter
+                        logger.info(f"[WIND FILTER] No sites match, returning empty result")
                         query = query.filter(False)
                 else:
-                    # No sites with valid coordinates, return empty result
-                    query = query.filter(False)
+                    # No sites with valid coordinates
+                    if include_unknown_wind:
+                        # Include sites without coordinates if unknown is allowed
+                        sites_without_coords = [s.id for s in all_matching_sites if s.latitude is None or s.longitude is None]
+                        if sites_without_coords:
+                            query = query.filter(DiveSite.id.in_(sites_without_coords))
+                        else:
+                            query = query.filter(False)
+                    else:
+                        query = query.filter(False)
             else:
                 # No matching sites, return empty result
                 query = query.filter(False)

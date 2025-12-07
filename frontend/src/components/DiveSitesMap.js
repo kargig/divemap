@@ -19,11 +19,11 @@ import {
   formatWindDirection,
 } from '../utils/windSuitabilityHelpers';
 
+import WindDataError from './WindDataError';
 import WindDateTimePicker from './WindDateTimePicker';
 import WindOverlay from './WindOverlay';
 import WindOverlayLegend from './WindOverlayLegend';
 import WindOverlayToggle from './WindOverlayToggle';
-import WindDataError from './WindDataError';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -38,13 +38,13 @@ const MapZoomTracker = ({ onZoomChange, onClusteringChange }) => {
   const map = useMap();
   useEffect(() => {
     if (!map) return;
-      const onZoom = () => {
-        const zoom = map.getZoom();
-        onZoomChange(zoom);
-        // Enable clustering at zoom <= 12, disable at zoom >= 13
-        const shouldUseClustering = zoom <= 12;
-        onClusteringChange(shouldUseClustering);
-      };
+    const onZoom = () => {
+      const zoom = map.getZoom();
+      onZoomChange(zoom);
+      // Enable clustering at zoom <= 12, disable at zoom >= 13
+      const shouldUseClustering = zoom <= 12;
+      onClusteringChange(shouldUseClustering);
+    };
     map.on('zoomend', onZoom);
     onZoom(); // Call immediately to set initial zoom
     return () => map.off('zoomend', onZoom);
@@ -486,25 +486,25 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
       refetchOnReconnect: true,
       keepPreviousData: true,
       // Prefetch nearby hours when data is successfully fetched
-      onSuccess: (data) => {
+      onSuccess: data => {
         if (!windDateTime || !debouncedBounds) return;
-        
+
         // Prefetch next 12 hours (4 steps of 3-hour increments) in the background
         // This ensures smooth playback without loading indicators
         const currentDate = new Date(windDateTime);
         const prefetchHours = [3, 6, 9, 12]; // Hours ahead to prefetch
-        
+
         prefetchHours.forEach(hoursAhead => {
           const futureDate = new Date(currentDate);
           futureDate.setHours(futureDate.getHours() + hoursAhead);
-          
+
           // Don't prefetch beyond 2 days from now
           const maxDate = new Date();
           maxDate.setDate(maxDate.getDate() + 2);
           if (futureDate > maxDate) return;
-          
+
           const futureDateTimeStr = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}T${String(futureDate.getHours()).padStart(2, '0')}:00:00`;
-          
+
           // Prefetch in background (silently, without showing loading indicators)
           queryClient.prefetchQuery(
             [
@@ -523,7 +523,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
             async () => {
               const latMargin = (debouncedBounds.north - debouncedBounds.south) * 0.025;
               const lonMargin = (debouncedBounds.east - debouncedBounds.west) * 0.025;
-              
+
               const params = {
                 north: debouncedBounds.north + latMargin,
                 south: debouncedBounds.south - latMargin,
@@ -532,7 +532,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
                 zoom_level: Math.round(mapMetadata.zoom),
                 datetime_str: futureDateTimeStr,
               };
-              
+
               const response = await api.get('/api/v1/weather/wind', { params });
               return response.data;
             },
@@ -746,45 +746,44 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
 
       {/* Wind loading indicator - show when fetching wind data (initial load or refetch) */}
       {/* OPTIMIZATION: Only show loading if data is not in cache AND is currently fetching */}
-      {windOverlayEnabled && currentZoom >= 12 && (isLoadingWind || (isFetchingWind && !windData)) && (
-        <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] bg-white/95 text-gray-800 px-4 py-3 rounded-lg shadow-lg border border-gray-300 flex items-center gap-3'>
-          <div className='animate-spin'>
-            <svg
-              className='w-5 h-5 text-blue-600'
-              xmlns='http://www.w3.org/2000/svg'
-              fill='none'
-              viewBox='0 0 24 24'
-            >
-              <circle
-                className='opacity-25'
-                cx='12'
-                cy='12'
-                r='10'
-                stroke='currentColor'
-                strokeWidth='4'
-              ></circle>
-              <path
-                className='opacity-75'
-                fill='currentColor'
-                d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-              ></path>
-            </svg>
-          </div>
-          <span className='text-sm font-medium'>Loading wind data...</span>
-        </div>
-      )}
-
-      {/* Wind data error indicator */}
       {windOverlayEnabled &&
         currentZoom >= 12 &&
-        isWindDataError &&
-        windDataError && (
-          <WindDataError
-            error={windDataError}
-            onRetry={() => refetchWindData()}
-            isUsingCachedData={!!windData && windData.points && windData.points.length > 0}
-          />
+        (isLoadingWind || (isFetchingWind && !windData)) && (
+          <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] bg-white/95 text-gray-800 px-4 py-3 rounded-lg shadow-lg border border-gray-300 flex items-center gap-3'>
+            <div className='animate-spin'>
+              <svg
+                className='w-5 h-5 text-blue-600'
+                xmlns='http://www.w3.org/2000/svg'
+                fill='none'
+                viewBox='0 0 24 24'
+              >
+                <circle
+                  className='opacity-25'
+                  cx='12'
+                  cy='12'
+                  r='10'
+                  stroke='currentColor'
+                  strokeWidth='4'
+                ></circle>
+                <path
+                  className='opacity-75'
+                  fill='currentColor'
+                  d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                ></path>
+              </svg>
+            </div>
+            <span className='text-sm font-medium'>Loading wind data...</span>
+          </div>
         )}
+
+      {/* Wind data error indicator */}
+      {windOverlayEnabled && currentZoom >= 12 && isWindDataError && windDataError && (
+        <WindDataError
+          error={windDataError}
+          onRetry={() => refetchWindData()}
+          isUsingCachedData={!!windData && windData.points && windData.points.length > 0}
+        />
+      )}
 
       {/* Info overlays */}
       <div className='absolute bottom-2 left-2 bg-white bg-opacity-90 px-2 py-1 rounded text-xs'>

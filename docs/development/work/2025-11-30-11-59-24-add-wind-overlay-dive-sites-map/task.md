@@ -16,10 +16,10 @@
 - ✅ Phase 1: Database Schema & Backend API Foundation (100% - COMPLETE)
 - ✅ Phase 2: Wind Recommendation Logic (100% - COMPLETE)
 - ✅ Phase 3: Frontend Wind Overlay Component (100% - COMPLETE)
-- ⏳ Phase 4: Dive Site Suitability Visualization (85% - IN PROGRESS)
+- ✅ Phase 4: Dive Site Suitability Visualization (100% - COMPLETE)
   - ✅ Markers show suitability status (colored borders at zoom 12+, increased visibility)
   - ✅ Popups display wind conditions and suitability (fixed wind data display bug)
-  - ⏳ Wind suitability filter (frontend UI complete, backend pending)
+  - ✅ Wind suitability filter (range-based filtering with unknown checkbox)
 - ⏳ Phase 5: Integration & Testing (70% - IN PROGRESS)
   - ✅ Wind overlay integrated into IndependentMapView
   - ✅ Wind overlay integrated into DiveSitesMap
@@ -101,6 +101,19 @@
   - **Prefetch integration:** Added `onPrefetch` prop to `WindDateTimePicker` that calls `prefetchWindHours` immediately when play is pressed, ensuring upcoming hours are cached before slider advances
   - **Progressive loading optimization:** Enhanced `useViewportData` hook with zoom-based detail levels (minimal < 4, minimal 4-7, basic 8-9, full >= 10) and expanded bounds for zoom >= 11 to ensure nearby dive sites are always visible when panning
   - **Debounce improvement:** Increased debounce time from 1s to 1.5s in `useViewportData` for smoother user experience and fewer API calls
+- **Database caching for Open-Meteo requests:**
+  - **3-tier cache system:** In-memory cache (fastest) → Database cache (persistent) → Open-Meteo API (source)
+  - **Database model:** Created `WindDataCache` table with cache_key, coordinates, target_datetime, wind_data (JSON), expires_at, last_accessed_at
+  - **Automatic TTL cleanup:** MySQL event scheduler removes expired entries every 5 minutes (15-minute TTL)
+  - **Cache serialization:** Timestamps serialized to ISO strings for JSON storage, deserialized on retrieval
+  - **Performance:** Database cache persists across server restarts, shared across multiple backend instances
+  - **Error handling:** Database cache errors are logged but don't break API flow (graceful fallback to API)
+- **Wind suitability filter range implementation:**
+  - **Range-based filtering:** Changed from single value to cumulative range (good, caution, difficult, avoid)
+  - **Unknown checkbox:** Added `include_unknown_wind` parameter to include unknown conditions in addition to selected range
+  - **Backend optimization:** Groups sites by cache key (0.1° grid cell) to batch fetch wind data, reducing API calls
+  - **Frontend UI:** Updated dropdown labels to show range behavior, added checkbox for unknown conditions
+  - **Filter clarity:** Fixed duplicate "All Conditions" labels, clarified empty value vs. "avoid" option
 - **Dive site clustering improvements:**
   - **Updated clustering threshold:** Changed clustering threshold from `zoom <= 11` to `zoom <= 12` in `DiveSitesMap.js`, so dive sites are unclustered (individual markers) at zoom level 13 and above
   - **Conditional clustering in LeafletMapView:** Added zoom-based clustering logic in `LeafletMapView.js`:
@@ -331,12 +344,24 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 
 - ✅ Created `backend/app/services/open_meteo_service.py`
 - ✅ Single point and grid fetching implemented
-- ✅ In-memory caching with TTL (15 minutes)
+- ✅ **3-tier caching system implemented:**
+  - ✅ Tier 1: In-memory cache with TTL (15 minutes, 500 entry limit)
+  - ✅ Tier 2: Database cache (persistent, shared across instances, 15-minute TTL)
+  - ✅ Tier 3: Open-Meteo API (source of truth)
+- ✅ **Database cache implementation:**
+  - ✅ Created `WindDataCache` model with cache_key, latitude, longitude, target_datetime, wind_data (JSON), expires_at, last_accessed_at
+  - ✅ Created Alembic migration `0043_add_wind_data_cache_table.py` with automatic TTL cleanup via MySQL event scheduler
+  - ✅ Created Alembic migration `0044_add_last_accessed_at_to_wind_cache.py` for cache usage tracking and improved cleanup logic
+  - ✅ Added `_get_from_database_cache()`: Retrieves from database cache, deserializes timestamps, updates last_accessed_at on access
+  - ✅ Added `_store_in_database_cache()`: Stores in database cache, serializes timestamps to ISO format for JSON storage
+  - ✅ Database cache lookup: Checks cache_key first, then location+datetime for smart lookup
+  - ✅ Automatic TTL cleanup: MySQL event scheduler removes expired entries every 5 minutes (only deletes entries that expired AND haven't been accessed in last hour)
+  - ✅ Error handling: Database cache errors are logged but don't break API flow (graceful fallback)
 - ✅ **Cache size increased:** `_max_cache_size` increased from 100 to 500 to accommodate 24-hour caching for multiple grid points
-- ✅ **Optimization #10 - 24-hour bulk caching:** Always uses hourly forecast API (not "current") to get 24 hours of data, then caches all 24 hours from a single API response
+- ✅ **Optimization #10 - 24-hour bulk caching:** Always uses hourly forecast API (not "current") to get 24 hours of data, then caches all 24 hours from a single API response (both in-memory and database)
 - ✅ **Smart cache lookup:** Intelligent cache lookup checks representative hours (00:00, 12:00, requested hour) to quickly find if data for a date exists, then verifies exact hour is cached
 - ✅ **Cache inconsistency detection:** Logging detects and warns when cached data for a date exists but specific hour is missing
-- ✅ **Enhanced logging:** Detailed cache logging with `[CACHE HIT]`, `[CACHE MISS]`, `[CACHE LOOKUP]`, `[API CALL]`, `[API SUCCESS]`, `[CACHE STORE]` prefixes
+- ✅ **Enhanced logging:** Detailed cache logging with `[CACHE HIT]`, `[CACHE MISS]`, `[CACHE LOOKUP]`, `[DB CACHE HIT]`, `[DB CACHE STORE]`, `[API CALL]`, `[API SUCCESS]`, `[CACHE STORE]` prefixes
 - ✅ **Optimization #3 - Group by cache key:** Grid points grouped by cache key (0.1° rounding) before API calls, ensuring only one API call per cache cell
 - ✅ **Skip validation parameter:** Added `skip_validation` parameter to `fetch_wind_data_single_point` to skip datetime validation when called from grid function
 - ✅ Support for current and forecast data (datetime_str parameter)
@@ -443,6 +468,7 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - ✅ **Frontend prefetch optimization:** Added `prefetchWindHours` function in `IndependentMapView` that prefetches wind data for next 2 days (one request per day at noon) when play button is pressed
 - ✅ **Prefetch integration:** Added `onPrefetch` prop to `WindDateTimePicker` that calls `prefetchWindHours` immediately when play is pressed, ensuring upcoming hours are cached before slider advances
 - ✅ **Prefetch strategy:** Leverages 24-hour caching - only one request per day needed (at noon) to cache all 24 hours for that day
+- ✅ **React component fix:** Replaced `defaultProps` with JavaScript default parameters in `WindDateTimePicker` to eliminate React deprecation warning
 
 **Tasks:**
 
@@ -712,11 +738,14 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - ✅ Dive site schemas support `shore_direction_confidence` and `shore_direction_method` fields
 - ✅ Recommendation algorithm calculates wind suitability for each dive site
 - ✅ Wind data is cached appropriately to avoid excessive API calls
-  - ✅ 24-hour bulk caching: All 24 hours cached from single API response
+  - ✅ 3-tier caching system: In-memory cache → Database cache → Open-Meteo API
+  - ✅ 24-hour bulk caching: All 24 hours cached from single API response (both in-memory and database)
   - ✅ Cache size increased to 500 entries to accommodate multiple grid points × 24 hours
   - ✅ Smart cache lookup: Checks representative hours to quickly find cached data for a date
   - ✅ Grid point grouping: Groups points by cache key (0.1° rounding) to minimize API calls
   - ✅ Frontend prefetch: Prefetches upcoming hours when play button is pressed
+  - ✅ Database persistence: Cache survives server restarts and is shared across multiple backend instances
+  - ✅ Automatic cleanup: MySQL event scheduler removes expired entries every 5 minutes
 - ✅ Dive sites without shore_direction are handled gracefully (shown as "unknown" suitability)
 - ✅ All API endpoints respond correctly and handle errors gracefully
 
@@ -783,3 +812,39 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - ✅ Enhanced tooltips: Detailed tooltips explain wind overlay features, arrow direction, and zoom requirements
 - ✅ Wind overlay legend: Combined legend with tabs for wind arrows and dive site suitability, accessible via "Show Legend" button
 - ✅ Map info button: Changed from always visible to toggle button (left side, below zoom buttons) for cleaner UI
+- **Database caching implementation:**
+  - ✅ Created `WindDataCache` database model for persistent caching across server restarts
+  - ✅ Created Alembic migrations 0043 (table creation) and 0044 (last_accessed_at tracking)
+  - ✅ Implemented 3-tier caching: In-memory cache → Database cache → Open-Meteo API
+  - ✅ Added database cache functions: `_get_from_database_cache()` and `_store_in_database_cache()`
+  - ✅ Automatic TTL cleanup: MySQL event scheduler removes expired entries every 5 minutes
+  - ✅ Cache serialization: Timestamps serialized to ISO strings for JSON storage
+  - ✅ Error handling: Database cache errors don't break API flow (graceful fallback)
+- **Wind suitability filter range implementation:**
+  - ✅ Changed filter from single value to cumulative range (good, caution, difficult, avoid)
+  - ✅ Added `include_unknown_wind` checkbox to include unknown conditions in addition to selected range
+  - ✅ Backend optimization: Groups sites by cache key (0.1° grid cell) to batch fetch wind data
+  - ✅ Updated frontend UI: Dropdown shows range behavior, added checkbox for unknown conditions
+  - ✅ Fixed duplicate "All Conditions" labels: Clarified empty value vs. "avoid" option
+- **React component improvements:**
+  - ✅ Fixed WindDateTimePicker defaultProps warning: Replaced `defaultProps` with JavaScript default parameters
+- **Database caching implementation:**
+  - ✅ Created `WindDataCache` database model for persistent caching across server restarts
+  - ✅ Created Alembic migration `0043_add_wind_data_cache_table.py` with automatic TTL cleanup via MySQL event scheduler
+  - ✅ Implemented 3-tier caching system: In-memory cache → Database cache → Open-Meteo API
+  - ✅ Added `_get_from_database_cache()` function: Retrieves from database cache with timestamp deserialization
+  - ✅ Added `_store_in_database_cache()` function: Stores in database cache with timestamp serialization (ISO format)
+  - ✅ Database cache integration: Checks database cache after in-memory cache miss, stores all 24 hours when fetching from API
+  - ✅ Automatic TTL cleanup: MySQL event scheduler removes expired entries every 5 minutes (15-minute TTL)
+  - ✅ Cache key matching: Uses same 0.1° rounding logic as in-memory cache for consistency
+  - ✅ Error handling: Database cache errors are logged but don't break API flow (graceful fallback to API)
+  - ✅ Last accessed tracking: Added `last_accessed_at` field to track cache entry usage (migration 0044)
+- **Wind suitability filter range implementation:**
+  - ✅ Changed filter from single value to cumulative range: "good" (only good), "caution" (good+caution), "difficult" (good+caution+difficult), "avoid" (all conditions)
+  - ✅ Added `include_unknown_wind` parameter: Checkbox to include unknown conditions in addition to selected range
+  - ✅ Updated backend filtering logic: Determines allowed suitabilities based on range selection
+  - ✅ Updated frontend UI: Dropdown shows range behavior, added checkbox for unknown conditions
+  - ✅ Updated filter labels: "All Conditions (No Filter)" for empty value, range descriptions for each option
+  - ✅ Fixed duplicate "All Conditions" labels: Clarified empty value vs. "avoid" option
+- **React component improvements:**
+  - ✅ Fixed WindDateTimePicker defaultProps warning: Replaced `defaultProps` with JavaScript default parameters (React best practice)

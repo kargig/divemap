@@ -15,9 +15,9 @@ import {
   formatWindDirection,
 } from '../utils/windSuitabilityHelpers';
 
+import WindDataError from './WindDataError';
 import WindOverlay from './WindOverlay';
 import WindOverlayToggle from './WindOverlayToggle';
-import WindDataError from './WindDataError';
 
 // Helper: convert URLs in plain text to clickable links (for HTML string popups)
 const linkifyText = text => {
@@ -263,7 +263,7 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
       });
 
       // Helper function to create a marker with popup
-      const createMarker = (marker) => {
+      const createMarker = marker => {
         try {
           // Validate marker position
           if (!marker.position || !Array.isArray(marker.position) || marker.position.length !== 2) {
@@ -293,7 +293,7 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                       : 'dive-trips'
               }/${marker.data.id}" 
                  class="text-blue-600 hover:text-blue-800 hover:underline">
-                ${marker.entityType === 'dive_site' ? (marker.data.name || `Dive Site #${marker.data.id}`) : ''}
+                ${marker.entityType === 'dive_site' ? marker.data.name || `Dive Site #${marker.data.id}` : ''}
                 ${marker.entityType === 'diving_center' ? marker.data.name : ''}
                 ${marker.entityType === 'dive' ? `Dive #${marker.data.id}` : ''}
                 ${marker.entityType === 'dive_trip' ? `Trip #${marker.data.id}` : ''}
@@ -618,69 +618,66 @@ const LeafletMapView = ({
   const queryClient = useQueryClient();
 
   // Helper function to prefetch wind data for multiple hours ahead
-  const prefetchWindHours = useCallback(
-    (startDateTime, bounds, zoom, client) => {
-      if (!startDateTime || !bounds) return;
+  const prefetchWindHours = useCallback((startDateTime, bounds, zoom, client) => {
+    if (!startDateTime || !bounds) return;
 
-      // OPTIMIZATION: Only prefetch one hour per day (not every 3 hours)
-      // The backend caches all 24 hours when fetching any hour, so we only need one request per day
-      // Prefetch next 2 days (one request per day) - this will cache all 48 hours
-      const currentDate = new Date(startDateTime);
-      const prefetchDays = [1, 2]; // Days ahead to prefetch (one request per day)
+    // OPTIMIZATION: Only prefetch one hour per day (not every 3 hours)
+    // The backend caches all 24 hours when fetching any hour, so we only need one request per day
+    // Prefetch next 2 days (one request per day) - this will cache all 48 hours
+    const currentDate = new Date(startDateTime);
+    const prefetchDays = [1, 2]; // Days ahead to prefetch (one request per day)
 
-      prefetchDays.forEach(daysAhead => {
-        const futureDate = new Date(currentDate);
-        futureDate.setDate(futureDate.getDate() + daysAhead);
-        // Use noon (12:00) as the representative hour for each day - this will cache all 24 hours for that day
-        futureDate.setHours(12, 0, 0, 0);
+    prefetchDays.forEach(daysAhead => {
+      const futureDate = new Date(currentDate);
+      futureDate.setDate(futureDate.getDate() + daysAhead);
+      // Use noon (12:00) as the representative hour for each day - this will cache all 24 hours for that day
+      futureDate.setHours(12, 0, 0, 0);
 
-        // Don't prefetch beyond 2 days from now
-        const maxDate = new Date();
-        maxDate.setDate(maxDate.getDate() + 2);
-        if (futureDate > maxDate) return;
+      // Don't prefetch beyond 2 days from now
+      const maxDate = new Date();
+      maxDate.setDate(maxDate.getDate() + 2);
+      if (futureDate > maxDate) return;
 
-        const futureDateTimeStr = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}T${String(futureDate.getHours()).padStart(2, '0')}:00:00`;
+      const futureDateTimeStr = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}T${String(futureDate.getHours()).padStart(2, '0')}:00:00`;
 
-        // Prefetch in background (silently, without showing loading indicators)
-        client.prefetchQuery(
-          [
-            'wind-data',
-            bounds
-              ? {
-                  north: Math.round(bounds.north * 10) / 10,
-                  south: Math.round(bounds.south * 10) / 10,
-                  east: Math.round(bounds.east * 10) / 10,
-                  west: Math.round(bounds.west * 10) / 10,
-                }
-              : null,
-            zoom,
-            futureDateTimeStr,
-          ],
-          async () => {
-            const latMargin = (bounds.north - bounds.south) * 0.025;
-            const lonMargin = (bounds.east - bounds.west) * 0.025;
+      // Prefetch in background (silently, without showing loading indicators)
+      client.prefetchQuery(
+        [
+          'wind-data',
+          bounds
+            ? {
+                north: Math.round(bounds.north * 10) / 10,
+                south: Math.round(bounds.south * 10) / 10,
+                east: Math.round(bounds.east * 10) / 10,
+                west: Math.round(bounds.west * 10) / 10,
+              }
+            : null,
+          zoom,
+          futureDateTimeStr,
+        ],
+        async () => {
+          const latMargin = (bounds.north - bounds.south) * 0.025;
+          const lonMargin = (bounds.east - bounds.west) * 0.025;
 
-            const params = {
-              north: bounds.north + latMargin,
-              south: bounds.south - latMargin,
-              east: bounds.east + lonMargin,
-              west: bounds.west - lonMargin,
-              zoom_level: Math.round(zoom),
-              datetime_str: futureDateTimeStr,
-            };
+          const params = {
+            north: bounds.north + latMargin,
+            south: bounds.south - latMargin,
+            east: bounds.east + lonMargin,
+            west: bounds.west - lonMargin,
+            zoom_level: Math.round(zoom),
+            datetime_str: futureDateTimeStr,
+          };
 
-            const response = await api.get('/api/v1/weather/wind', { params });
-            return response.data;
-          },
-          {
-            staleTime: 5 * 60 * 1000,
-            cacheTime: 15 * 60 * 1000,
-          }
-        );
-      });
-    },
-    []
-  );
+          const response = await api.get('/api/v1/weather/wind', { params });
+          return response.data;
+        },
+        {
+          staleTime: 5 * 60 * 1000,
+          cacheTime: 15 * 60 * 1000,
+        }
+      );
+    });
+  }, []);
 
   // Create custom icons for different entity types
   const createEntityIcon = useCallback(
@@ -862,7 +859,7 @@ const LeafletMapView = ({
       // Keep previous data while refetching to prevent arrows from disappearing
       keepPreviousData: true,
       // Prefetch nearby hours when data is successfully fetched
-      onSuccess: (data) => {
+      onSuccess: data => {
         if (!windDateTime || !debouncedBounds) return;
         prefetchWindHours(windDateTime, debouncedBounds, mapMetadata?.zoom, queryClient);
       },

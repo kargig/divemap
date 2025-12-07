@@ -15,10 +15,11 @@ import {
   Info,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useQueryClient } from 'react-query';
 import { useGeolocated } from 'react-geolocated';
+import { useQueryClient } from 'react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
+import api from '../api';
 import ErrorPage from '../components/ErrorPage';
 import LeafletMapView from '../components/LeafletMapView';
 import MapLayersPanel from '../components/MapLayersPanel';
@@ -29,7 +30,6 @@ import WindOverlayToggle from '../components/WindOverlayToggle';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive } from '../hooks/useResponsive';
 import { useViewportData } from '../hooks/useViewportData';
-import api from '../api';
 
 const IndependentMapView = () => {
   // Set page title
@@ -143,7 +143,7 @@ const IndependentMapView = () => {
   // Helper function to prefetch wind data for multiple hours ahead
   // This is called immediately when play is pressed to prefetch upcoming hours
   const prefetchWindHours = useCallback(
-    (startDateTime) => {
+    startDateTime => {
       if (!startDateTime || !viewport.bounds || currentZoom < 12) return;
 
       // OPTIMIZATION: Only prefetch one hour per day (not every 3 hours)
@@ -439,7 +439,12 @@ const IndependentMapView = () => {
     error,
     refetch,
     performanceMetrics: hookPerformanceMetrics,
-  } = useViewportData(viewport, filters, selectedEntityType);
+  } = useViewportData(viewport, filters, selectedEntityType, windDateTime);
+
+  // Debug logging for windDateTime
+  useEffect(() => {
+    console.log('[IndependentMapView] windDateTime state:', windDateTime);
+  }, [windDateTime]);
 
   // Update performance metrics when data changes
   useEffect(() => {

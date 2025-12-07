@@ -593,3 +593,30 @@ class Setting(Base):
     description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class WindDataCache(Base):
+    """
+    Database cache for Open-Meteo wind data.
+    
+    Provides persistent caching across server restarts and enables shared cache
+    across multiple backend instances. Cache entries automatically expire after TTL.
+    """
+    __tablename__ = "wind_data_cache"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cache_key = Column(String(255), unique=True, nullable=False, index=True)  # Generated cache key (e.g., "wind-37.7-24.0-2025-12-08T09:00:00")
+    latitude = Column(DECIMAL(10, 8), nullable=False, index=True)  # Rounded to 0.1° for cache efficiency
+    longitude = Column(DECIMAL(11, 8), nullable=False, index=True)  # Rounded to 0.1° for cache efficiency
+    target_datetime = Column(DateTime(timezone=True), nullable=True, index=True)  # Target datetime (rounded to hour) or NULL for current time
+    wind_data = Column(sa.JSON, nullable=False)  # Cached wind data (wind_speed_10m, wind_direction_10m, wind_gusts_10m, timestamp)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)  # TTL expiration time (created_at + 15 minutes)
+    last_accessed_at = Column(DateTime(timezone=True), nullable=True, index=True)  # Last time this cache entry was accessed
+    
+    # Composite index for efficient lookups by location and datetime
+    __table_args__ = (
+        sa.Index('idx_wind_cache_lat_lon_datetime', 'latitude', 'longitude', 'target_datetime'),
+        sa.Index('idx_wind_cache_expires_at', 'expires_at'),
+        sa.Index('idx_wind_cache_last_accessed_at', 'last_accessed_at'),
+    )

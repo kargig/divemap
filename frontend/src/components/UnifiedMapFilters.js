@@ -46,6 +46,8 @@ const UnifiedMapFilters = ({
       difficulty_code: '',
       exclude_unspecified_difficulty: false,
       wind_suitability: '',
+      include_unknown_wind: false,
+      include_unknown_wind: false,
       min_rating: '',
       max_rating: '',
       country: '',
@@ -217,15 +219,31 @@ const UnifiedMapFilters = ({
               onChange={e => handleFilterChange('wind_suitability', e.target.value)}
               className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
             >
-              <option value=''>All Conditions</option>
-              <option value='good'>Good Conditions</option>
-              <option value='caution'>Caution</option>
-              <option value='difficult'>Difficult</option>
-              <option value='avoid'>Avoid</option>
-              <option value='unknown'>Unknown</option>
+              <option value=''>All Conditions (No Filter)</option>
+              <option value='good'>Good Conditions Only</option>
+              <option value='caution'>Good + Caution</option>
+              <option value='difficult'>Good + Caution + Difficult</option>
+              <option value='avoid'>Good + Caution + Difficult + Avoid</option>
             </select>
             <p className='text-xs text-gray-500 mt-1'>
-              Filter dive sites by current wind conditions suitability
+              Filter dive sites by wind conditions (range: selected level and better)
+            </p>
+
+            {/* Unknown conditions checkbox */}
+            <div className='mt-3 flex items-center'>
+              <input
+                type='checkbox'
+                id='include-unknown-wind'
+                checked={localFilters.include_unknown_wind || false}
+                onChange={e => handleFilterChange('include_unknown_wind', e.target.checked)}
+                className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+              />
+              <label htmlFor='include-unknown-wind' className='ml-2 block text-sm text-gray-700'>
+                Include unknown conditions
+              </label>
+            </div>
+            <p className='text-xs text-gray-500 mt-1 ml-6'>
+              Also show dive sites with unknown wind conditions
             </p>
           </div>
         )}

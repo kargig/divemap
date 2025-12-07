@@ -3,6 +3,11 @@ Open-Meteo Weather Service
 
 Service to fetch current wind data from Open-Meteo API for dive site locations.
 Supports single point queries and grid-based queries for map overlays.
+
+Uses 3-tier caching:
+1. In-memory cache (fastest, lost on restart)
+2. Database cache (persistent, shared across instances)
+3. Open-Meteo API (source of truth)
 """
 
 import requests
@@ -11,6 +16,7 @@ import random
 from typing import Optional, Dict, List, Tuple
 from datetime import datetime, timedelta
 import logging
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +91,150 @@ def _cleanup_cache():
         entries_to_remove = len(_wind_cache) - _max_cache_size
         for key, _ in sorted_entries[:entries_to_remove]:
             del _wind_cache[key]
+
+
+def _get_from_database_cache(cache_key: str, latitude: float, longitude: float, target_datetime: Optional[datetime]) -> Optional[Dict]:
+    """
+    Retrieve wind data from database cache (Tier 2 cache).
+    
+    Returns None if not found or expired.
+    """
+    try:
+        # Import here to avoid circular dependencies
+        from app.database import SessionLocal
+        from app.models import WindDataCache
+        
+        db = SessionLocal()
+        try:
+            # Calculate rounded coordinates (matching cache key generation)
+            rounded_lat = round(latitude * 10) / 10
+            rounded_lon = round(longitude * 10) / 10
+            
+            # Query by cache_key first (fastest lookup)
+            cache_entry = db.query(WindDataCache).filter(
+                WindDataCache.cache_key == cache_key,
+                WindDataCache.expires_at > datetime.utcnow()  # Only return non-expired entries
+            ).first()
+            
+            if cache_entry:
+                logger.debug(f"[DB CACHE] Found valid cache entry for key: {cache_key}")
+                # Update last_accessed_at timestamp
+                cache_entry.last_accessed_at = datetime.utcnow()
+                db.commit()
+                # Deserialize wind_data (convert ISO string timestamp back to datetime)
+                wind_data = cache_entry.wind_data.copy()
+                if 'timestamp' in wind_data and isinstance(wind_data['timestamp'], str):
+                    try:
+                        wind_data['timestamp'] = datetime.fromisoformat(wind_data['timestamp'])
+                    except (ValueError, TypeError):
+                        # If deserialization fails, keep as string or use target_datetime
+                        if target_datetime:
+                            wind_data['timestamp'] = target_datetime
+                return wind_data
+            
+            # If not found by cache_key, try location + datetime lookup (for smart lookup)
+            if target_datetime:
+                # Round datetime to hour for lookup
+                rounded_datetime = target_datetime.replace(minute=0, second=0, microsecond=0)
+                cache_entry = db.query(WindDataCache).filter(
+                    WindDataCache.latitude == Decimal(str(rounded_lat)),
+                    WindDataCache.longitude == Decimal(str(rounded_lon)),
+                    WindDataCache.target_datetime == rounded_datetime,
+                    WindDataCache.expires_at > datetime.utcnow()
+                ).first()
+                
+                if cache_entry:
+                    logger.debug(f"[DB CACHE] Found valid cache entry by location+datetime for {rounded_lat}, {rounded_lon} at {rounded_datetime}")
+                    # Update last_accessed_at timestamp
+                    cache_entry.last_accessed_at = datetime.utcnow()
+                    db.commit()
+                    # Deserialize wind_data (convert ISO string timestamp back to datetime)
+                    wind_data = cache_entry.wind_data.copy()
+                    if 'timestamp' in wind_data and isinstance(wind_data['timestamp'], str):
+                        try:
+                            wind_data['timestamp'] = datetime.fromisoformat(wind_data['timestamp'])
+                        except (ValueError, TypeError):
+                            # If deserialization fails, keep as string or use target_datetime
+                            if target_datetime:
+                                wind_data['timestamp'] = target_datetime
+                    return wind_data
+            
+            logger.debug(f"[DB CACHE] No valid cache entry found for key: {cache_key}")
+            return None
+            
+        finally:
+            db.close()
+    except Exception as e:
+        # Log error but don't fail - fall back to API
+        logger.warning(f"[DB CACHE] Error reading from database cache: {e}")
+        return None
+
+
+def _store_in_database_cache(cache_key: str, latitude: float, longitude: float, target_datetime: Optional[datetime], wind_data: Dict):
+    """
+    Store wind data in database cache (Tier 2 cache).
+    
+    Silently handles errors to avoid breaking the API flow.
+    """
+    try:
+        # Import here to avoid circular dependencies
+        from app.database import SessionLocal
+        from app.models import WindDataCache
+        
+        db = SessionLocal()
+        try:
+            # Calculate rounded coordinates (matching cache key generation)
+            rounded_lat = round(latitude * 10) / 10
+            rounded_lon = round(longitude * 10) / 10
+            
+            # Round datetime to hour if provided
+            rounded_datetime = None
+            if target_datetime:
+                rounded_datetime = target_datetime.replace(minute=0, second=0, microsecond=0)
+            
+            # Calculate expiration time (15 minutes from now)
+            expires_at = datetime.utcnow() + timedelta(minutes=15)
+            
+            # Serialize wind_data for JSON storage (convert datetime to ISO string)
+            serialized_wind_data = wind_data.copy()
+            if 'timestamp' in serialized_wind_data and isinstance(serialized_wind_data['timestamp'], datetime):
+                serialized_wind_data['timestamp'] = serialized_wind_data['timestamp'].isoformat()
+            
+            # Check if entry already exists
+            existing = db.query(WindDataCache).filter(
+                WindDataCache.cache_key == cache_key
+            ).first()
+            
+            if existing:
+                # Update existing entry
+                existing.wind_data = serialized_wind_data
+                existing.expires_at = expires_at
+                existing.target_datetime = rounded_datetime
+                logger.debug(f"[DB CACHE] Updated cache entry for key: {cache_key}")
+            else:
+                # Create new entry
+                cache_entry = WindDataCache(
+                    cache_key=cache_key,
+                    latitude=Decimal(str(rounded_lat)),
+                    longitude=Decimal(str(rounded_lon)),
+                    target_datetime=rounded_datetime,
+                    wind_data=serialized_wind_data,
+                    expires_at=expires_at
+                )
+                db.add(cache_entry)
+                logger.debug(f"[DB CACHE] Created new cache entry for key: {cache_key}")
+            
+            db.commit()
+            logger.info(f"[DB CACHE STORE] Stored wind data in database cache for {latitude:.4f}, {longitude:.4f} at {target_datetime}")
+            
+        except Exception as e:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+    except Exception as e:
+        # Log error but don't fail - in-memory cache still works
+        logger.warning(f"[DB CACHE] Error storing in database cache: {e}")
 
 
 def _create_grid_points(bounds: Dict, zoom_level: Optional[int] = None) -> List[Tuple[float, float]]:
@@ -244,8 +394,19 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
             else:
                 logger.debug(f"[CACHE LOOKUP] Hour {hour:02d} not in cache (key: {check_cache_key})")
     
+    # Tier 2: Check database cache (if in-memory cache missed)
+    db_cache_data = _get_from_database_cache(cache_key, latitude, longitude, target_datetime)
+    if db_cache_data:
+        logger.info(f"[DB CACHE HIT] Serving wind data from database cache for {latitude:.4f}, {longitude:.4f} at {target_datetime}")
+        # Also store in in-memory cache for faster subsequent access
+        _wind_cache[cache_key] = {
+            'data': db_cache_data,
+            'timestamp': datetime.now()
+        }
+        return db_cache_data
+    
     # Cache miss - need to fetch from Open-Meteo API
-    logger.info(f"[CACHE MISS] Wind data not in cache for {latitude:.4f}, {longitude:.4f} at {target_datetime}. Fetching from Open-Meteo API.")
+    logger.info(f"[CACHE MISS] Wind data not in cache (memory or database) for {latitude:.4f}, {longitude:.4f} at {target_datetime}. Fetching from Open-Meteo API.")
     
     try:
         # OPTIMIZATION: Always use hourly forecast API (not "current") to get 24 hours of data
@@ -338,6 +499,25 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                             continue
                 
                 logger.info(f"[CACHE STORE] Cached {len(times)} hours of forecast data for {latitude:.4f}, {longitude:.4f} on {forecast_date} (from Open-Meteo API response)")
+                
+                # OPTIMIZATION: Store all 24 hours in database cache as well
+                # This enables persistent caching across server restarts
+                for idx, time_str in enumerate(times):
+                    if idx < len(wind_speeds) and idx < len(wind_directions) and idx < len(wind_gusts):
+                        try:
+                            hour_datetime = datetime.fromisoformat(time_str)
+                            hour_cache_key = _generate_cache_key(latitude, longitude, target_datetime=hour_datetime)
+                            hour_wind_data = {
+                                "wind_speed_10m": wind_speeds[idx],
+                                "wind_direction_10m": wind_directions[idx],
+                                "wind_gusts_10m": wind_gusts[idx],
+                                "timestamp": hour_datetime
+                            }
+                            # Store in database cache (non-blocking, errors are logged but don't fail)
+                            _store_in_database_cache(hour_cache_key, latitude, longitude, hour_datetime, hour_wind_data)
+                        except (ValueError, IndexError) as e:
+                            logger.debug(f"Could not store hour {time_str} in database cache: {e}")
+                            continue
         
         if not wind_data:
             logger.warning(f"No wind data in Open-Meteo response for {latitude}, {longitude} at {target_datetime}")
@@ -349,7 +529,11 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                 "data": wind_data,
                 "timestamp": datetime.now()
             }
-            logger.info(f"[CACHE STORE] Stored wind data in cache for {latitude:.4f}, {longitude:.4f} at {target_datetime}")
+            logger.info(f"[CACHE STORE] Stored wind data in in-memory cache for {latitude:.4f}, {longitude:.4f} at {target_datetime}")
+        
+        # Also store in database cache (non-blocking, errors are logged but don't fail)
+        _store_in_database_cache(cache_key, latitude, longitude, target_datetime, wind_data)
+        
         _cleanup_cache()
         
         return wind_data

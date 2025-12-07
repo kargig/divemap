@@ -15,12 +15,12 @@ import ReactSlider from 'react-slider';
  * - Close button to hide the slider
  */
 const WindDateTimePicker = ({
-  value,
+  value = null,
   onChange,
   disabled = false,
   isFetchingWind = false,
-  onClose,
-  onPrefetch,
+  onClose = null,
+  onPrefetch = null,
 }) => {
   const [sliderValue, setSliderValue] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -76,6 +76,12 @@ const WindDateTimePicker = ({
     setSliderValue(value);
     const targetDateTime = sliderToDateTime(value);
     const isoString = `${targetDateTime.getFullYear()}-${String(targetDateTime.getMonth() + 1).padStart(2, '0')}-${String(targetDateTime.getDate()).padStart(2, '0')}T${String(targetDateTime.getHours()).padStart(2, '0')}:00:00`;
+    console.log(
+      '[WindDateTimePicker] Slider changed, calling onChange with:',
+      isoString,
+      'from slider value:',
+      value
+    );
     onChange(isoString);
   };
 
@@ -437,14 +443,6 @@ WindDateTimePicker.propTypes = {
   disabled: PropTypes.bool,
   isFetchingWind: PropTypes.bool,
   onClose: PropTypes.func,
-};
-
-WindDateTimePicker.defaultProps = {
-  value: null,
-  disabled: false,
-  isFetchingWind: false,
-  onClose: null,
-  onPrefetch: null,
 };
 
 export default WindDateTimePicker;
