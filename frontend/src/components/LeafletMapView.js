@@ -17,6 +17,7 @@ import {
 
 import WindDataError from './WindDataError';
 import WindOverlay from './WindOverlay';
+import WindOverlayLegend from './WindOverlayLegend';
 import WindOverlayToggle from './WindOverlayToggle';
 
 // Helper: convert URLs in plain text to clickable links (for HTML string popups)
@@ -605,6 +606,8 @@ const LeafletMapView = ({
   setWindDateTime,
   onWindLoadingChange,
   onWindFetchingChange,
+  showWindLegend: externalShowWindLegend,
+  setShowWindLegend: externalSetShowWindLegend,
 }) => {
   const [mapMetadata, setMapMetadata] = useState(null);
   const [internalWindOverlayEnabled, setInternalWindOverlayEnabled] = useState(false);
@@ -615,6 +618,10 @@ const LeafletMapView = ({
   const setWindOverlayEnabled = externalSetWindOverlayEnabled || setInternalWindOverlayEnabled;
   const [debouncedBounds, setDebouncedBounds] = useState(null);
   const [showMapInfoBox, setShowMapInfoBox] = useState(false);
+  const [internalShowWindLegend, setInternalShowWindLegend] = useState(false);
+  const showWindLegend =
+    externalShowWindLegend !== undefined ? externalShowWindLegend : internalShowWindLegend;
+  const setShowWindLegend = externalSetShowWindLegend || setInternalShowWindLegend;
   const queryClient = useQueryClient();
 
   // Helper function to prefetch wind data for multiple hours ahead
@@ -1149,7 +1156,7 @@ const LeafletMapView = ({
       </MapContainer>
 
       {/* Zoom level indicator - top left (matching DiveSiteMap style) */}
-      <div className='absolute top-4 left-16 z-50 bg-white/90 text-gray-800 text-xs px-2 py-1 rounded shadow border border-gray-200'>
+      <div className='absolute top-2 left-12 sm:top-4 sm:left-16 z-50 bg-white/90 backdrop-blur-sm text-gray-800 text-[10px] sm:text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-sm border border-gray-200'>
         Zoom: {(mapMetadata?.zoom || viewport?.zoom || 8).toFixed(1)}
       </div>
 
@@ -1202,14 +1209,52 @@ const LeafletMapView = ({
       {!showMapInfoBox && (
         <button
           onClick={() => setShowMapInfoBox(true)}
-          className='absolute left-4 top-24 z-40 bg-white hover:bg-gray-100 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg transition-colors flex items-center gap-2 border border-gray-300'
+          className='absolute left-2 top-20 sm:left-4 sm:top-24 z-40 bg-white/90 backdrop-blur-sm hover:bg-white text-gray-700 text-[10px] sm:text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-sm border border-gray-200 transition-colors flex items-center gap-1'
           title='Show map info'
           aria-label='Show map info'
         >
-          <Info className='w-3.5 h-3.5' />
-          Map Info
+          <Info className='w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-gray-600' />
+          <span className='hidden sm:inline'>Map Info</span>
+          <span className='sm:hidden'>Info</span>
         </button>
       )}
+
+      {/* Button to show wind legend - positioned below Map Info button */}
+      {selectedEntityType === 'dive-sites' &&
+        windOverlayEnabled &&
+        mapMetadata?.zoom >= 12 &&
+        !showWindLegend && (
+          <button
+            onClick={() => setShowWindLegend(true)}
+            className='absolute left-2 top-28 sm:left-4 sm:top-32 z-40 bg-white/90 backdrop-blur-sm hover:bg-white text-gray-700 text-[10px] sm:text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-sm border border-gray-200 transition-colors flex items-center gap-1'
+            title='Show wind overlay legend'
+            aria-label='Show wind overlay legend'
+          >
+            <Info className='w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-gray-600' />
+            Legend
+          </button>
+        )}
+
+      {/* Wind Overlay Legend - full screen on mobile (below navbar), positioned overlay on desktop */}
+      {selectedEntityType === 'dive-sites' &&
+        windOverlayEnabled &&
+        mapMetadata?.zoom >= 12 &&
+        showWindLegend && (
+          <>
+            {/* Backdrop for mobile - click to close */}
+            <div
+              className='fixed top-16 left-0 right-0 bottom-0 bg-black/20 sm:hidden z-[9998]'
+              onClick={() => setShowWindLegend(false)}
+              aria-hidden='true'
+            />
+            <div
+              className='fixed top-16 left-0 right-0 bottom-0 sm:absolute sm:inset-auto sm:left-4 sm:top-[8.5rem] sm:bottom-auto sm:right-auto'
+              style={{ zIndex: 99999, position: 'fixed' }}
+            >
+              <WindOverlayLegend onClose={() => setShowWindLegend(false)} />
+            </div>
+          </>
+        )}
 
       {/* Map controls overlay - positioned on left, below zoom buttons */}
       {showMapInfoBox && (

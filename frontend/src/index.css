@@ -1506,18 +1506,35 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
 /* Wind DateTime Picker - React Slider Styles */
 .horizontal-slider {
   width: 100%;
-  height: 24px;
+  height: 28px; /* Taller on mobile for easier touch */
   position: relative;
+  margin-bottom: 12px; /* Space for date labels below */
 }
 
-/* Base track style (unfilled portion) */
+/* Desktop: smaller height, less margin for date labels */
+@media (min-width: 640px) {
+  .horizontal-slider {
+    height: 20px; /* Reduced from 24px to make it more compact */
+    margin-bottom: 14px; /* Space for date labels below */
+  }
+}
+
+/* Base track style (unfilled portion) - thicker on mobile */
 .horizontal-slider .slider-track {
   top: 50%;
   transform: translateY(-50%);
-  height: 4px;
+  height: 5px; /* Thicker on mobile for easier touch */
   background: #e5e7eb;
-  border-radius: 2px;
+  border-radius: 2.5px;
   position: absolute;
+}
+
+/* Desktop: thinner track */
+@media (min-width: 640px) {
+  .horizontal-slider .slider-track {
+    height: 4px;
+    border-radius: 2px;
+  }
 }
 
 /* Filled track (portion before thumb) */
@@ -1532,13 +1549,13 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
   border-radius: 2px;
 }
 
-/* Slider thumb */
+/* Slider thumb - larger on mobile for touch */
 .horizontal-slider .slider-thumb {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   background: #2563eb;
   border: 2px solid white;
   border-radius: 50%;
@@ -1547,6 +1564,15 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
   transition: all 0.2s ease;
   z-index: 10;
   outline: none;
+  touch-action: none; /* Prevent scrolling when dragging on mobile */
+}
+
+/* Desktop: smaller thumb */
+@media (min-width: 640px) {
+  .horizontal-slider .slider-thumb {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .horizontal-slider .slider-thumb:hover {

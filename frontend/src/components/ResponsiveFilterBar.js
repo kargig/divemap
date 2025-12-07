@@ -11,6 +11,7 @@ import {
   SortDesc,
   TrendingUp,
   Grid,
+  ChevronDown,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useRef } from 'react';
@@ -56,6 +57,11 @@ const ResponsiveFilterBar = ({
   const [activeTab, setActiveTab] = useState('filters');
   const searchBarRef = useRef(null);
   const [searchBarHeight, setSearchBarHeight] = useState(64);
+
+  // Dive site search state (for dives page)
+  const [diveSiteSearch, setDiveSiteSearch] = useState('');
+  const [isDiveSiteDropdownOpen, setIsDiveSiteDropdownOpen] = useState(false);
+  const diveSiteDropdownRef = useRef(null);
 
   // Sorting state management
   const [pendingSortBy, setPendingSortBy] = useState(sortBy);
@@ -147,6 +153,61 @@ const ResponsiveFilterBar = ({
     onToggleFilters();
   };
 
+  // Handle clicking outside dive site dropdown
+  useEffect(() => {
+    const handleClickOutside = event => {
+      if (diveSiteDropdownRef.current && !diveSiteDropdownRef.current.contains(event.target)) {
+        setIsDiveSiteDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Initialize dive site search when dive_site_id is set
+  useEffect(() => {
+    if (pageType === 'dives' && filters.availableDiveSites && filters.dive_site_id) {
+      const selectedSite = filters.availableDiveSites.find(
+        site => site.id.toString() === filters.dive_site_id.toString()
+      );
+      if (selectedSite) {
+        setDiveSiteSearch(selectedSite.name);
+      } else {
+        setDiveSiteSearch('');
+      }
+    } else if (!filters.dive_site_id) {
+      setDiveSiteSearch('');
+    }
+  }, [filters.dive_site_id, filters.availableDiveSites, pageType]);
+
+  // Filter dive sites based on search input
+  const filteredDiveSites =
+    pageType === 'dives' && filters.availableDiveSites
+      ? filters.availableDiveSites.filter(site =>
+          site.name.toLowerCase().includes(diveSiteSearch.toLowerCase())
+        )
+      : [];
+
+  // Handle dive site selection
+  const handleDiveSiteSelect = (siteId, siteName) => {
+    onFilterChange('dive_site_id', siteId.toString());
+    setDiveSiteSearch(siteName);
+    setIsDiveSiteDropdownOpen(false);
+  };
+
+  // Handle dive site search change
+  const handleDiveSiteSearchChange = value => {
+    setDiveSiteSearch(value);
+    setIsDiveSiteDropdownOpen(true);
+    if (!value) {
+      // Clear dive_site_id when search is cleared
+      onFilterChange('dive_site_id', '');
+    }
+  };
+
   const handleFilterOverlayToggle = () => {
     setIsFilterOverlayOpen(!isFilterOverlayOpen);
     setActiveTab('filters'); // Reset to filters tab when opening
@@ -207,6 +268,14 @@ const ResponsiveFilterBar = ({
     if (filters.search) active.push({ key: 'search', label: 'Search', value: filters.search });
     if (filters.username)
       active.push({ key: 'username', label: 'Username', value: filters.username });
+    if (filters.dive_site_id && pageType === 'dives' && filters.availableDiveSites) {
+      const selectedSite = filters.availableDiveSites.find(
+        site => site.id.toString() === filters.dive_site_id.toString()
+      );
+      if (selectedSite) {
+        active.push({ key: 'dive_site_id', label: 'Dive Site', value: selectedSite.name });
+      }
+    }
     if (filters.country) active.push({ key: 'country', label: 'Country', value: filters.country });
     if (filters.region) active.push({ key: 'region', label: 'Region', value: filters.region });
     if (filters.difficulty_code) {
@@ -588,6 +657,63 @@ const ResponsiveFilterBar = ({
                   />
                 </div>
 
+                {/* Dive Site Filter - Only show for dives page */}
+                {pageType === 'dives' && (
+                  <div className='relative' ref={diveSiteDropdownRef}>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Dive Site
+                    </label>
+                    <div className='relative'>
+                      <input
+                        type='text'
+                        placeholder='Search for a dive site...'
+                        value={diveSiteSearch}
+                        onChange={e => handleDiveSiteSearchChange(e.target.value)}
+                        onFocus={() => setIsDiveSiteDropdownOpen(true)}
+                        className='w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                      />
+                      <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                        <ChevronDown
+                          size={16}
+                          className={`text-gray-400 transition-transform ${
+                            isDiveSiteDropdownOpen ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </div>
+                    </div>
+                    {/* Dropdown */}
+                    {isDiveSiteDropdownOpen && filteredDiveSites.length > 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                        {filteredDiveSites.map(site => (
+                          <div
+                            key={site.id}
+                            onClick={() => handleDiveSiteSelect(site.id, site.name)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleDiveSiteSelect(site.id, site.name);
+                              }
+                            }}
+                            role='button'
+                            tabIndex={0}
+                            className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                          >
+                            <div className='font-medium text-gray-900'>{site.name}</div>
+                            {site.country && (
+                              <div className='text-sm text-gray-500'>{site.country}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isDiveSiteDropdownOpen && diveSiteSearch && filteredDiveSites.length === 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'>
+                        <div className='px-3 py-2 text-gray-500 text-sm'>No dive sites found</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Username Filter - Only show for dives page */}
                 {pageType === 'dives' && (
                   <div>
@@ -916,6 +1042,83 @@ const ResponsiveFilterBar = ({
                         <span className='text-sm text-gray-600'>Exclude Unspecified</span>
                       </label>
                     </div>
+
+                    {/* Dive Site Filter - Only show for dives page */}
+                    {pageType === 'dives' && (
+                      <div className='relative' ref={diveSiteDropdownRef}>
+                        <label className='block text-sm font-medium text-gray-700 mb-3'>
+                          Dive Site
+                        </label>
+                        <div className='relative'>
+                          <input
+                            type='text'
+                            placeholder='Search for a dive site...'
+                            value={diveSiteSearch}
+                            onChange={e => handleDiveSiteSearchChange(e.target.value)}
+                            onFocus={() => setIsDiveSiteDropdownOpen(true)}
+                            className='w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+                          />
+                          <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                            <ChevronDown
+                              size={16}
+                              className={`text-gray-400 transition-transform ${
+                                isDiveSiteDropdownOpen ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </div>
+                        </div>
+                        {/* Dropdown */}
+                        {isDiveSiteDropdownOpen && filteredDiveSites.length > 0 && (
+                          <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                            {filteredDiveSites.map(site => (
+                              <div
+                                key={site.id}
+                                onClick={() => handleDiveSiteSelect(site.id, site.name)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    handleDiveSiteSelect(site.id, site.name);
+                                  }
+                                }}
+                                role='button'
+                                tabIndex={0}
+                                className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                              >
+                                <div className='font-medium text-gray-900'>{site.name}</div>
+                                {site.country && (
+                                  <div className='text-sm text-gray-500'>{site.country}</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {isDiveSiteDropdownOpen &&
+                          diveSiteSearch &&
+                          filteredDiveSites.length === 0 && (
+                            <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'>
+                              <div className='px-3 py-2 text-gray-500 text-sm'>
+                                No dive sites found
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    )}
+
+                    {/* Username Filter - Only show for dives page */}
+                    {pageType === 'dives' && (
+                      <div>
+                        <label className='block text-sm font-medium text-gray-700 mb-3'>
+                          Username
+                        </label>
+                        <input
+                          type='text'
+                          placeholder='Enter username'
+                          value={filters.username || ''}
+                          onChange={e => onFilterChange('username', e.target.value)}
+                          className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+                        />
+                      </div>
+                    )}
 
                     {/* Min Rating Filter */}
                     <div>

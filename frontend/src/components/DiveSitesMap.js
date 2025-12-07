@@ -790,7 +790,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
         {processedDiveSites.length} dive sites loaded
       </div>
 
-      <div className='absolute top-2 left-12 bg-white rounded px-2 py-1 text-xs font-medium z-10 shadow-sm border border-gray-200'>
+      <div className='absolute top-2 left-12 bg-white/90 backdrop-blur-sm rounded px-1.5 py-0.5 text-[10px] sm:text-xs font-medium z-10 shadow-sm border border-gray-200'>
         Zoom: {currentZoom.toFixed(1)}
       </div>
 
@@ -804,20 +804,21 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
         />
       </div>
 
-      {/* Button to show wind legend - top right of map */}
+      {/* Button to show wind legend - positioned below zoom info (since DiveSitesMap doesn't have Map Info button) */}
       {windOverlayEnabled && currentZoom >= 12 && !showWindLegend && (
         <button
           onClick={() => setShowWindLegend(true)}
-          className='absolute top-4 right-4 z-40 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg transition-colors flex items-center gap-2'
+          className='absolute left-2 top-20 sm:left-4 sm:top-24 z-40 bg-white/90 backdrop-blur-sm hover:bg-white text-gray-700 text-[10px] sm:text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-sm border border-gray-200 transition-colors flex items-center gap-1'
           title='Show wind overlay legend'
+          aria-label='Show wind overlay legend'
         >
-          <Info className='w-3.5 h-3.5' />
-          Show Legend
+          <Info className='w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-gray-600' />
+          Legend
         </button>
       )}
 
-      {/* Wind DateTime Picker - floating on top of map */}
-      {windOverlayEnabled && currentZoom >= 12 && (
+      {/* Wind DateTime Picker - floating on top of map (hidden when legend is open on mobile) */}
+      {windOverlayEnabled && currentZoom >= 12 && !showWindLegend && (
         <WindDateTimePicker
           value={windDateTime}
           onChange={setWindDateTime}
@@ -826,9 +827,22 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
         />
       )}
 
-      {/* Wind Overlay Legend */}
+      {/* Wind Overlay Legend - full screen on mobile (below navbar), positioned overlay on desktop */}
       {windOverlayEnabled && currentZoom >= 12 && showWindLegend && (
-        <WindOverlayLegend onClose={() => setShowWindLegend(false)} />
+        <>
+          {/* Backdrop for mobile - click to close */}
+          <div
+            className='fixed top-16 left-0 right-0 bottom-0 bg-black/20 sm:hidden z-[9998]'
+            onClick={() => setShowWindLegend(false)}
+            aria-hidden='true'
+          />
+          <div
+            className='fixed top-16 left-0 right-0 bottom-0 sm:absolute sm:inset-auto sm:left-4 sm:top-[6.5rem] sm:bottom-auto sm:right-auto'
+            style={{ zIndex: 99999, position: 'fixed' }}
+          >
+            <WindOverlayLegend onClose={() => setShowWindLegend(false)} />
+          </div>
+        </>
       )}
     </div>
   );

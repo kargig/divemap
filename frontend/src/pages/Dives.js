@@ -24,7 +24,7 @@ import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
-import api, { deleteDive } from '../api';
+import api, { deleteDive, getDiveSites } from '../api';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import DivesMap from '../components/DivesMap';
 import ErrorPage from '../components/ErrorPage';
@@ -61,10 +61,11 @@ const Dives = () => {
   };
 
   const getInitialFilters = () => {
+    const diveSiteIdParam = searchParams.get('dive_site_id');
     return {
       search: searchParams.get('search') || '',
       username: searchParams.get('username') || '',
-      dive_site_name: searchParams.get('dive_site_name') || '',
+      dive_site_id: diveSiteIdParam ? diveSiteIdParam : '',
       min_depth: searchParams.get('min_depth') || '',
       duration_min: searchParams.get('duration_min') || '',
       duration_max: searchParams.get('duration_max') || '',
@@ -113,8 +114,21 @@ const Dives = () => {
   const [pagination, setPagination] = useState(getInitialPagination);
   const [showImportModal, setShowImportModal] = useState(false);
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
-    dive_site_name: getInitialFilters().dive_site_name,
+    search: getInitialFilters().search,
   });
+
+  // Sync URL params back to filters when URL changes (e.g., when navigating with dive_site_id)
+  // This ensures that when navigating to /dives?dive_site_id=18, the filter is applied
+  useEffect(() => {
+    const diveSiteIdFromURL = searchParams.get('dive_site_id') || '';
+    const currentDiveSiteId = filters.dive_site_id || '';
+    // Only update if URL param differs from current filter state
+    // This prevents infinite loops while ensuring URL params are synced to filters
+    if (diveSiteIdFromURL !== currentDiveSiteId) {
+      setFilters(prev => ({ ...prev, dive_site_id: diveSiteIdFromURL }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]); // Depend on location.search to detect URL changes
 
   // Quick filter state
   const [quickFilter, setQuickFilter] = useState('');
@@ -300,13 +314,6 @@ const Dives = () => {
         newSearchParams.set('dive_site_id', newFilters.dive_site_id.toString());
       }
       if (
-        newFilters.dive_site_name &&
-        newFilters.dive_site_name.toString &&
-        newFilters.dive_site_name.toString().trim()
-      ) {
-        newSearchParams.set('dive_site_name', newFilters.dive_site_name.toString());
-      }
-      if (
         newFilters.difficulty_code &&
         newFilters.difficulty_code.toString &&
         newFilters.difficulty_code.toString().trim()
@@ -437,6 +444,15 @@ const Dives = () => {
     () => api.get('/api/v1/tags/').then(res => res.data),
     {
       staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+
+  // Fetch dive sites for filtering
+  const { data: diveSites = [] } = useQuery(
+    ['dive-sites-for-filter'],
+    () => getDiveSites({ page_size: 1000 }),
+    {
+      staleTime: 10 * 60 * 1000, // 10 minutes
     }
   );
 
@@ -672,7 +688,6 @@ const Dives = () => {
   const clearFilters = () => {
     setFilters({
       dive_site_id: '',
-      dive_site_name: '',
       difficulty_code: '',
       exclude_unspecified_difficulty: false,
       min_depth: '',
@@ -945,6 +960,7 @@ const Dives = () => {
           filters={{
             ...filters,
             availableTags: availableTags || [],
+            availableDiveSites: diveSites || [],
           }}
           onFilterChange={handleFilterChange}
           onQuickFilter={handleQuickFilter}

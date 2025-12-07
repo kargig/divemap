@@ -25,7 +25,6 @@ import LeafletMapView from '../components/LeafletMapView';
 import MapLayersPanel from '../components/MapLayersPanel';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
 import WindDateTimePicker from '../components/WindDateTimePicker';
-import WindOverlayLegend from '../components/WindOverlayLegend';
 import WindOverlayToggle from '../components/WindOverlayToggle';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive } from '../hooks/useResponsive';
@@ -136,8 +135,8 @@ const IndependentMapView = () => {
   const [windDateTime, setWindDateTime] = useState(null); // null = current time, ISO string = specific datetime
   const [isWindLoading, setIsWindLoading] = useState(false);
   const [isWindFetching, setIsWindFetching] = useState(false);
-  const [showWindSlider, setShowWindSlider] = useState(true); // Show slider by default when wind overlay is enabled
-  const [showWindLegend, setShowWindLegend] = useState(false); // Show legend (can be toggled)
+  const [showWindSlider, setShowWindSlider] = useState(true);
+  const [showWindLegend, setShowWindLegend] = useState(false); // Show slider by default when wind overlay is enabled
   const queryClient = useQueryClient();
 
   // Helper function to prefetch wind data for multiple hours ahead
@@ -1021,6 +1020,8 @@ const IndependentMapView = () => {
             windDateTime={windDateTime}
             setWindDateTime={setWindDateTime}
             onWindFetchingChange={setIsWindFetching}
+            showWindLegend={showWindLegend}
+            setShowWindLegend={setShowWindLegend}
           />
 
           {/* Layers panel */}
@@ -1031,19 +1032,22 @@ const IndependentMapView = () => {
             onLayerChange={handleLayerChange}
           />
 
-          {/* Wind DateTime Picker - floating on top of map */}
+          {/* Wind DateTime Picker - floating on top of map (hidden when legend is open) */}
           {selectedEntityType === 'dive-sites' &&
             windOverlayEnabled &&
             currentZoom >= 12 &&
-            showWindSlider && (
-              <WindDateTimePicker
-                value={windDateTime}
-                onChange={setWindDateTime}
-                disabled={!windOverlayEnabled}
-                isFetchingWind={isWindFetching}
-                onClose={() => setShowWindSlider(false)}
-                onPrefetch={prefetchWindHours}
-              />
+            showWindSlider &&
+            !showWindLegend && (
+              <div style={{ zIndex: 30 }}>
+                <WindDateTimePicker
+                  value={windDateTime}
+                  onChange={setWindDateTime}
+                  disabled={!windOverlayEnabled}
+                  isFetchingWind={isWindFetching}
+                  onClose={() => setShowWindSlider(false)}
+                  onPrefetch={prefetchWindHours}
+                />
+              </div>
             )}
 
           {/* Button to re-open wind slider when it's hidden */}
@@ -1061,26 +1065,7 @@ const IndependentMapView = () => {
               </button>
             )}
 
-          {/* Button to show wind legend - top right of map */}
-          {selectedEntityType === 'dive-sites' &&
-            windOverlayEnabled &&
-            currentZoom >= 12 &&
-            !showWindLegend && (
-              <button
-                onClick={() => setShowWindLegend(true)}
-                className='absolute top-4 right-4 z-40 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg transition-colors flex items-center gap-2'
-                title='Show wind overlay legend'
-              >
-                <Info className='w-3.5 h-3.5' />
-                Show Legend
-              </button>
-            )}
-
-          {/* Wind Overlay Legend */}
-          {selectedEntityType === 'dive-sites' &&
-            windOverlayEnabled &&
-            currentZoom >= 12 &&
-            showWindLegend && <WindOverlayLegend onClose={() => setShowWindLegend(false)} />}
+          {/* Wind Overlay Legend is now handled in LeafletMapView component */}
         </div>
       </div>
 
