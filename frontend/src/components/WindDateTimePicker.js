@@ -266,83 +266,75 @@ const WindDateTimePicker = ({
 
   return (
     <div
-      className='absolute top-4 left-1/2 transform -translate-x-1/2 z-40 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 px-4 py-2'
+      className='absolute bottom-4 top-auto left-2 right-2 sm:top-4 sm:bottom-auto sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 z-30 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 px-1 py-0.5 sm:px-3 sm:py-1.5 sm:w-auto sm:min-w-[600px] sm:max-w-[95vw]'
       style={{
         pointerEvents: 'auto', // Allow interaction with slider
-        minWidth: '600px',
-        maxWidth: '95vw',
+        zIndex: 30,
       }}
       onMouseDown={e => e.stopPropagation()} // Prevent map panning when interacting with slider
       onTouchStart={e => e.stopPropagation()} // Prevent map panning on touch
     >
-      <div className='flex flex-col gap-2'>
-        {/* Header with play/pause, now button, and close button */}
-        <div className='flex items-center justify-between'>
-          <div className='flex items-center gap-2'>
+      <div className='flex flex-col gap-0.5 sm:gap-1'>
+        {/* Compact header with play/pause, now button, and close button */}
+        <div className='flex items-center justify-between gap-1'>
+          <div className='flex items-center gap-1 flex-shrink-0'>
             <button
               type='button'
               onClick={handlePlayPause}
               disabled={disabled}
-              className='flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors'
+              className='flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors flex-shrink-0 shadow-sm'
               title={isPlaying ? 'Pause' : 'Play (3-hour increments)'}
+              aria-label={isPlaying ? 'Pause animation' : 'Play animation'}
             >
               {isPlaying ? (
-                <Pause className='w-3.5 h-3.5' />
+                <Pause className='w-3 h-3 sm:w-3.5 sm:h-3.5' fill='currentColor' />
               ) : (
-                <Play className='w-3.5 h-3.5 ml-0.5' />
+                <Play className='w-3 h-3 sm:w-3.5 sm:h-3.5 ml-0.5' fill='currentColor' />
               )}
             </button>
             <button
               type='button'
               onClick={handleNowClick}
               disabled={disabled}
-              className='px-2.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors'
+              className='px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors flex-shrink-0'
               title='Use current time'
             >
               Now
             </button>
           </div>
 
-          {/* Current date/time display and close button */}
-          <div className='flex items-center gap-2'>
-            <div className='text-[10px] text-gray-700 font-medium'>
-              {isNow
-                ? 'Now'
-                : `${formatDateLabel(currentDateTime)} ${String(currentDateTime.getHours()).padStart(2, '0')}:00`}
-              <span className='text-gray-500 ml-1'>{timezoneLabel}</span>
-            </div>
-            {onClose && (
-              <button
-                type='button'
-                onClick={onClose}
-                className='flex items-center justify-center w-5 h-5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors'
-                title='Hide slider'
-                aria-label='Hide slider'
-              >
-                <X className='w-3.5 h-3.5' />
-              </button>
-            )}
-          </div>
+          {/* Close button */}
+          {onClose && (
+            <button
+              type='button'
+              onClick={onClose}
+              className='flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0'
+              title='Hide slider'
+              aria-label='Hide slider'
+            >
+              <X className='w-2.5 h-2.5 sm:w-3 sm:h-3' />
+            </button>
+          )}
         </div>
 
-        {/* Slider Container */}
-        <div className='relative pb-1'>
-          {/* Day boundary lines and date labels */}
-          <div className='relative h-6 mb-1'>
-            {/* Day boundary vertical lines - full height (at midnight boundaries) */}
+        {/* Compact Slider Container with integrated date labels */}
+        <div className='relative'>
+          {/* React Slider with integrated date labels and day boundary markers */}
+          <div className='relative'>
+            {/* Day boundary markers on slider track (at midnight boundaries) */}
             {dateLabels.map((date, idx) => {
               const position = getDayBoundaryPosition(date);
               const percent = (position / totalHours) * 100;
               return (
                 <div
-                  key={`line-${idx}`}
-                  className='absolute top-0 bottom-0 w-px bg-gray-300 z-0'
+                  key={`marker-${idx}`}
+                  className='absolute top-1/2 transform -translate-y-1/2 w-px h-4 sm:h-5 bg-gray-300 z-0'
                   style={{ left: `${percent}%` }}
                 />
               );
             })}
 
-            {/* Date labels - positioned with smart spacing to prevent overlap */}
+            {/* Date labels integrated into slider track - positioned below track */}
             {dateLabels.map((date, idx) => {
               const position = getDateLabelPosition(date);
               const percent = (position / totalHours) * 100;
@@ -355,8 +347,8 @@ const WindDateTimePicker = ({
                   ? (getDateLabelPosition(dateLabels[idx + 1]) / totalHours) * 100
                   : 120;
 
-              // Minimum spacing: 12% to prevent overlap (accounts for label width ~40px on 400px slider = 10%)
-              const minSpacing = 12;
+              // Minimum spacing: 10% to prevent overlap
+              const minSpacing = 10;
               let adjustedPercent = percent;
 
               // Adjust if too close to previous label
@@ -364,7 +356,7 @@ const WindDateTimePicker = ({
                 adjustedPercent = Math.max(percent, prevPercent + minSpacing);
               }
 
-              // Adjust if too close to next label (but don't go past it)
+              // Adjust if too close to next label
               if (idx < dateLabels.length - 1 && nextPercent - adjustedPercent < minSpacing) {
                 adjustedPercent = Math.min(adjustedPercent, nextPercent - minSpacing);
               }
@@ -375,27 +367,11 @@ const WindDateTimePicker = ({
               return (
                 <div
                   key={`label-${idx}`}
-                  className='absolute transform -translate-x-1/2 text-[10px] text-gray-600 font-medium whitespace-nowrap z-10 bg-white/80 px-1 rounded'
-                  style={{ left: `${adjustedPercent}%`, top: '50%', marginTop: '-5px' }}
+                  className='absolute transform -translate-x-1/2 text-[9px] sm:text-[10px] text-gray-600 font-medium whitespace-nowrap z-10'
+                  style={{ left: `${adjustedPercent}%`, top: 'calc(100% + 2px)' }}
                 >
                   {formatDateLabel(date)}
                 </div>
-              );
-            })}
-          </div>
-
-          {/* React Slider with day boundary markers */}
-          <div className='relative'>
-            {/* Day boundary markers on slider track (at midnight boundaries) */}
-            {dateLabels.map((date, idx) => {
-              const position = getDayBoundaryPosition(date);
-              const percent = (position / totalHours) * 100;
-              return (
-                <div
-                  key={`marker-${idx}`}
-                  className='absolute top-1/2 transform -translate-y-1/2 w-0.5 h-3 bg-gray-400 z-0'
-                  style={{ left: `${percent}%` }}
-                />
               );
             })}
 
@@ -411,12 +387,12 @@ const WindDateTimePicker = ({
               trackClassName='slider-track'
             />
 
-            {/* Tooltip above slider thumb */}
+            {/* Date/time display integrated into thumb - like windy.com */}
             <div
-              className='absolute top-0 transform -translate-x-1/2 pointer-events-none z-20'
+              className='absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20'
               style={{ left: `${(sliderValue / totalHours) * 100}%` }}
             >
-              <div className='-mt-10 bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap'>
+              <div className='bg-orange-500 text-white text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded shadow-lg whitespace-nowrap -mt-8 sm:-mt-9'>
                 <div className='font-medium'>
                   {formatDateLabel(currentDateTime)}{' '}
                   {String(currentDateTime.getHours()).padStart(2, '0')}:00
