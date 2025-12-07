@@ -20,6 +20,7 @@ const WindDateTimePicker = ({
   disabled = false,
   isFetchingWind = false,
   onClose,
+  onPrefetch,
 }) => {
   const [sliderValue, setSliderValue] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -112,6 +113,12 @@ const WindDateTimePicker = ({
       // 2. Minimum 3 seconds since last advance
       // Advance happens at the maximum of these two conditions (whichever comes later)
       setIsPlaying(true);
+
+      // OPTIMIZATION: Prefetch immediately when play is pressed
+      // This ensures upcoming hours are already in cache before slider advances
+      if (onPrefetch && value) {
+        onPrefetch(value);
+      }
 
       // Initialize timestamp if starting fresh
       if (!lastAdvanceTimeRef.current) {
@@ -437,6 +444,7 @@ WindDateTimePicker.defaultProps = {
   disabled: false,
   isFetchingWind: false,
   onClose: null,
+  onPrefetch: null,
 };
 
 export default WindDateTimePicker;

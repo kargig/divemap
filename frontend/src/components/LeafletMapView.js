@@ -2,7 +2,7 @@ import L, { Icon } from 'leaflet';
 import { Info } from 'lucide-react';
 import React, { useMemo, useCallback, useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster';
@@ -270,14 +270,14 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                       : 'dive-trips'
               }/${marker.data.id}" 
                  class="text-blue-600 hover:text-blue-800 hover:underline">
-                ${marker.entityType === 'dive_site' ? marker.data.name : ''}
+                ${marker.entityType === 'dive_site' ? (marker.data.name || `Dive Site #${marker.data.id}`) : ''}
                 ${marker.entityType === 'diving_center' ? marker.data.name : ''}
                 ${marker.entityType === 'dive' ? `Dive #${marker.data.id}` : ''}
                 ${marker.entityType === 'dive_trip' ? `Trip #${marker.data.id}` : ''}
               </a>
             </h3>
             <p class="text-sm text-gray-600">
-              ${marker.entityType === 'dive_site' ? trimWithMore(marker.data.description || '', 150, `/dive-sites/${marker.data.id}`) : ''}
+              ${marker.entityType === 'dive_site' && marker.data.description ? trimWithMore(marker.data.description, 150, `/dive-sites/${marker.data.id}`) : ''}
               ${marker.entityType === 'diving_center' ? trimWithMore(marker.data.description || '', 150, `/diving-centers/${marker.data.id}`) : ''}
               ${marker.entityType === 'dive' ? `Dive at ${marker.data.dive_site?.name || 'Unknown Site'}` : ''}
               ${marker.entityType === 'dive_trip' ? `Trip on ${new Date(marker.data.trip_date).toLocaleDateString()} - ${marker.data.diving_center_name || 'Unknown Center'}` : ''}
@@ -555,6 +555,73 @@ const LeafletMapView = ({
   const setWindOverlayEnabled = externalSetWindOverlayEnabled || setInternalWindOverlayEnabled;
   const [debouncedBounds, setDebouncedBounds] = useState(null);
   const [showMapInfoBox, setShowMapInfoBox] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Helper function to prefetch wind data for multiple hours ahead
+  const prefetchWindHours = useCallback(
+    (startDateTime, bounds, zoom, client) => {
+      if (!startDateTime || !bounds) return;
+
+      // OPTIMIZATION: Only prefetch one hour per day (not every 3 hours)
+      // The backend caches all 24 hours when fetching any hour, so we only need one request per day
+      // Prefetch next 2 days (one request per day) - this will cache all 48 hours
+      const currentDate = new Date(startDateTime);
+      const prefetchDays = [1, 2]; // Days ahead to prefetch (one request per day)
+
+      prefetchDays.forEach(daysAhead => {
+        const futureDate = new Date(currentDate);
+        futureDate.setDate(futureDate.getDate() + daysAhead);
+        // Use noon (12:00) as the representative hour for each day - this will cache all 24 hours for that day
+        futureDate.setHours(12, 0, 0, 0);
+
+        // Don't prefetch beyond 2 days from now
+        const maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() + 2);
+        if (futureDate > maxDate) return;
+
+        const futureDateTimeStr = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}T${String(futureDate.getHours()).padStart(2, '0')}:00:00`;
+
+        // Prefetch in background (silently, without showing loading indicators)
+        client.prefetchQuery(
+          [
+            'wind-data',
+            bounds
+              ? {
+                  north: Math.round(bounds.north * 10) / 10,
+                  south: Math.round(bounds.south * 10) / 10,
+                  east: Math.round(bounds.east * 10) / 10,
+                  west: Math.round(bounds.west * 10) / 10,
+                }
+              : null,
+            zoom,
+            futureDateTimeStr,
+          ],
+          async () => {
+            const latMargin = (bounds.north - bounds.south) * 0.025;
+            const lonMargin = (bounds.east - bounds.west) * 0.025;
+
+            const params = {
+              north: bounds.north + latMargin,
+              south: bounds.south - latMargin,
+              east: bounds.east + lonMargin,
+              west: bounds.west - lonMargin,
+              zoom_level: Math.round(zoom),
+              datetime_str: futureDateTimeStr,
+            };
+
+            const response = await api.get('/api/v1/weather/wind', { params });
+            return response.data;
+          },
+          {
+            staleTime: 5 * 60 * 1000,
+            cacheTime: 15 * 60 * 1000,
+          }
+        );
+      });
+    },
+    []
+  );
+
   // Create custom icons for different entity types
   const createEntityIcon = useCallback(
     (entityType, isCluster = false, count = 1, suitability = null) => {
@@ -682,8 +749,24 @@ const LeafletMapView = ({
     error: windDataError,
     isError: isWindDataError,
     refetch: refetchWindData,
+    dataUpdatedAt: windDataUpdatedAt,
   } = useQuery(
-    ['wind-data', debouncedBounds, mapMetadata?.zoom, windDateTime],
+    // OPTIMIZATION #4: Round bounds in query key to match backend cache granularity (0.1°)
+    // This reduces unnecessary refetches when bounds change slightly but stay in same cache cell
+    [
+      'wind-data',
+      debouncedBounds
+        ? {
+            // Round bounds to 0.1° to match backend cache key generation
+            north: Math.round(debouncedBounds.north * 10) / 10,
+            south: Math.round(debouncedBounds.south * 10) / 10,
+            east: Math.round(debouncedBounds.east * 10) / 10,
+            west: Math.round(debouncedBounds.west * 10) / 10,
+          }
+        : null,
+      mapMetadata?.zoom,
+      windDateTime,
+    ],
     async () => {
       if (!debouncedBounds) return null;
 
@@ -718,6 +801,11 @@ const LeafletMapView = ({
       refetchOnReconnect: true,
       // Keep previous data while refetching to prevent arrows from disappearing
       keepPreviousData: true,
+      // Prefetch nearby hours when data is successfully fetched
+      onSuccess: (data) => {
+        if (!windDateTime || !debouncedBounds) return;
+        prefetchWindHours(windDateTime, debouncedBounds, mapMetadata?.zoom, queryClient);
+      },
     }
   );
 
@@ -1012,7 +1100,7 @@ const LeafletMapView = ({
       {selectedEntityType === 'dive-sites' &&
         windOverlayEnabled &&
         mapMetadata?.zoom >= 12 &&
-        (isLoadingWind || isFetchingWind) && (
+        (isLoadingWind || (isFetchingWind && !windData)) && (
           <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] bg-white/95 text-gray-800 px-4 py-3 rounded-lg shadow-lg border border-gray-300 flex items-center gap-3'>
             <div className='animate-spin'>
               <svg

@@ -3,7 +3,7 @@
 **Status:** In Progress
 **Created:** 2025-11-30T11:59:24Z
 **Started:** 2025-11-30T12:40:00Z
-**Last Updated:** December 6, 2025
+**Last Updated:** December 7, 2025
 **Agent PID:** 121961
 **Branch:** feature/wind-overlay-dive-sites-map
 
@@ -89,6 +89,18 @@
   - Extracts `error`, `isError`, and `refetch` from React Query `useQuery` hooks
   - Error component positioned at top center of map (z-50) with optional dismiss button
 - Simplified legend text: Removed specific arrow size details (40px base + 10px per 5 m/s, max 80px) from WindArrowLegend and WindOverlayLegend components for cleaner, more concise descriptions
+- **Cache optimization improvements (Optimizations #3, #4, #10):**
+  - **Increased cache size:** Changed `_max_cache_size` from 100 to 500 to accommodate 24-hour caching for multiple grid points (12 grid points × 24 hours = 288 entries, plus buffer)
+  - **Optimization #10 - Cache all 24 hours:** Modified `fetch_wind_data_single_point` to always use hourly forecast API (not "current") to get 24 hours of data, then cache all 24 hours from a single API response
+  - **Smart cache lookup:** Added intelligent cache lookup that checks representative hours (00:00, 12:00, and requested hour) to quickly find if data for a date exists, then verifies exact hour is cached
+  - **Cache inconsistency detection:** Added logging to detect and warn when cached data for a date exists but specific hour is missing (indicates caching issue)
+  - **Enhanced logging:** Added detailed cache logging with `[CACHE HIT]`, `[CACHE MISS]`, `[CACHE LOOKUP]`, `[API CALL]`, `[API SUCCESS]`, `[CACHE STORE]` prefixes for better debugging
+  - **Skip validation parameter:** Added `skip_validation` parameter to `fetch_wind_data_single_point` to skip datetime validation when called from `fetch_wind_data_grid` (validation already done at grid level)
+  - **Optimization #3 - Group grid points by cache key:** Modified `fetch_wind_data_grid` to group grid points by their cache key (0.1° rounding) before API calls, ensuring only one API call per cache cell
+  - **Frontend prefetch optimization:** Added `prefetchWindHours` function in `IndependentMapView` that prefetches wind data for next 2 days (one request per day at noon) when play button is pressed, leveraging 24-hour caching
+  - **Prefetch integration:** Added `onPrefetch` prop to `WindDateTimePicker` that calls `prefetchWindHours` immediately when play is pressed, ensuring upcoming hours are cached before slider advances
+  - **Progressive loading optimization:** Enhanced `useViewportData` hook with zoom-based detail levels (minimal < 4, minimal 4-7, basic 8-9, full >= 10) and expanded bounds for zoom >= 11 to ensure nearby dive sites are always visible when panning
+  - **Debounce improvement:** Increased debounce time from 1s to 1.5s in `useViewportData` for smoother user experience and fewer API calls
 
 ---
 
@@ -310,7 +322,14 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 
 - ✅ Created `backend/app/services/open_meteo_service.py`
 - ✅ Single point and grid fetching implemented
-- ✅ In-memory caching with TTL (15-30 minutes)
+- ✅ In-memory caching with TTL (15 minutes)
+- ✅ **Cache size increased:** `_max_cache_size` increased from 100 to 500 to accommodate 24-hour caching for multiple grid points
+- ✅ **Optimization #10 - 24-hour bulk caching:** Always uses hourly forecast API (not "current") to get 24 hours of data, then caches all 24 hours from a single API response
+- ✅ **Smart cache lookup:** Intelligent cache lookup checks representative hours (00:00, 12:00, requested hour) to quickly find if data for a date exists, then verifies exact hour is cached
+- ✅ **Cache inconsistency detection:** Logging detects and warns when cached data for a date exists but specific hour is missing
+- ✅ **Enhanced logging:** Detailed cache logging with `[CACHE HIT]`, `[CACHE MISS]`, `[CACHE LOOKUP]`, `[API CALL]`, `[API SUCCESS]`, `[CACHE STORE]` prefixes
+- ✅ **Optimization #3 - Group by cache key:** Grid points grouped by cache key (0.1° rounding) before API calls, ensuring only one API call per cache cell
+- ✅ **Skip validation parameter:** Added `skip_validation` parameter to `fetch_wind_data_single_point` to skip datetime validation when called from grid function
 - ✅ Support for current and forecast data (datetime_str parameter)
 - ✅ Validation for datetime_str (max +2 days ahead, no past dates)
 - ✅ Explicit `wind_speed_unit=ms` parameter to ensure m/s units
@@ -412,6 +431,9 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - ✅ React Query cache keys updated to include datetime for proper cache separation
 - ✅ Added `showWindSlider` state: Controls slider visibility, can be hidden/shown via close button
 - ✅ Added "Show Time Slider" button: Appears when slider is hidden to allow re-opening
+- ✅ **Frontend prefetch optimization:** Added `prefetchWindHours` function in `IndependentMapView` that prefetches wind data for next 2 days (one request per day at noon) when play button is pressed
+- ✅ **Prefetch integration:** Added `onPrefetch` prop to `WindDateTimePicker` that calls `prefetchWindHours` immediately when play is pressed, ensuring upcoming hours are cached before slider advances
+- ✅ **Prefetch strategy:** Leverages 24-hour caching - only one request per day needed (at noon) to cache all 24 hours for that day
 
 **Tasks:**
 
@@ -681,6 +703,11 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - ✅ Dive site schemas support `shore_direction_confidence` and `shore_direction_method` fields
 - ✅ Recommendation algorithm calculates wind suitability for each dive site
 - ✅ Wind data is cached appropriately to avoid excessive API calls
+  - ✅ 24-hour bulk caching: All 24 hours cached from single API response
+  - ✅ Cache size increased to 500 entries to accommodate multiple grid points × 24 hours
+  - ✅ Smart cache lookup: Checks representative hours to quickly find cached data for a date
+  - ✅ Grid point grouping: Groups points by cache key (0.1° rounding) to minimize API calls
+  - ✅ Frontend prefetch: Prefetches upcoming hours when play button is pressed
 - ✅ Dive sites without shore_direction are handled gracefully (shown as "unknown" suitability)
 - ✅ All API endpoints respond correctly and handle errors gracefully
 
@@ -711,7 +738,11 @@ Add a wind overlay feature to the dive sites map that displays real-time wind sp
 - ✅ All API endpoints respond correctly and handle errors gracefully
 - ✅ Frontend components render without errors and follow project standards
 - [ ] Mobile compatibility verified (wind overlay works on mobile devices)
-- [ ] Performance meets requirements (wind overlay doesn't slow down map rendering)
+- [x] Performance meets requirements (wind overlay doesn't slow down map rendering)
+  - ✅ Cache optimizations reduce API calls significantly (24-hour bulk caching, grid point grouping)
+  - ✅ Frontend prefetch ensures smooth slider playback without waiting for data
+  - ✅ Progressive loading with zoom-based detail levels reduces initial load time
+  - ✅ Debounce increased to 1.5s for smoother map panning experience
 - ✅ Code follows project standards (ESLint, Prettier)
 - ✅ Open-Meteo API errors are handled gracefully (fallback, retry logic)
 - ✅ Wind data fetching doesn't block map rendering

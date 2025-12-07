@@ -6,7 +6,7 @@ import { Info } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import { Link, useLocation } from 'react-router-dom';
 
 import api from '../api';
@@ -426,6 +426,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
   // Fetch wind data when overlay is enabled and zoom >= 12
   const shouldFetchWindData =
     windOverlayEnabled && mapMetadata?.zoom >= 12 && mapMetadata?.zoom <= 18 && debouncedBounds;
+  const queryClient = useQueryClient();
 
   const {
     data: windData,
@@ -435,7 +436,22 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
     isError: isWindDataError,
     refetch: refetchWindData,
   } = useQuery(
-    ['wind-data', debouncedBounds, mapMetadata?.zoom, windDateTime],
+    // OPTIMIZATION #4: Round bounds in query key to match backend cache granularity (0.1°)
+    // This reduces unnecessary refetches when bounds change slightly but stay in same cache cell
+    [
+      'wind-data',
+      debouncedBounds
+        ? {
+            // Round bounds to 0.1° to match backend cache key generation
+            north: Math.round(debouncedBounds.north * 10) / 10,
+            south: Math.round(debouncedBounds.south * 10) / 10,
+            east: Math.round(debouncedBounds.east * 10) / 10,
+            west: Math.round(debouncedBounds.west * 10) / 10,
+          }
+        : null,
+      mapMetadata?.zoom,
+      windDateTime,
+    ],
     async () => {
       if (!debouncedBounds) return null;
 
@@ -469,6 +485,64 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
       refetchOnMount: false,
       refetchOnReconnect: true,
       keepPreviousData: true,
+      // Prefetch nearby hours when data is successfully fetched
+      onSuccess: (data) => {
+        if (!windDateTime || !debouncedBounds) return;
+        
+        // Prefetch next 12 hours (4 steps of 3-hour increments) in the background
+        // This ensures smooth playback without loading indicators
+        const currentDate = new Date(windDateTime);
+        const prefetchHours = [3, 6, 9, 12]; // Hours ahead to prefetch
+        
+        prefetchHours.forEach(hoursAhead => {
+          const futureDate = new Date(currentDate);
+          futureDate.setHours(futureDate.getHours() + hoursAhead);
+          
+          // Don't prefetch beyond 2 days from now
+          const maxDate = new Date();
+          maxDate.setDate(maxDate.getDate() + 2);
+          if (futureDate > maxDate) return;
+          
+          const futureDateTimeStr = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}T${String(futureDate.getHours()).padStart(2, '0')}:00:00`;
+          
+          // Prefetch in background (silently, without showing loading indicators)
+          queryClient.prefetchQuery(
+            [
+              'wind-data',
+              debouncedBounds
+                ? {
+                    north: Math.round(debouncedBounds.north * 10) / 10,
+                    south: Math.round(debouncedBounds.south * 10) / 10,
+                    east: Math.round(debouncedBounds.east * 10) / 10,
+                    west: Math.round(debouncedBounds.west * 10) / 10,
+                  }
+                : null,
+              mapMetadata?.zoom,
+              futureDateTimeStr,
+            ],
+            async () => {
+              const latMargin = (debouncedBounds.north - debouncedBounds.south) * 0.025;
+              const lonMargin = (debouncedBounds.east - debouncedBounds.west) * 0.025;
+              
+              const params = {
+                north: debouncedBounds.north + latMargin,
+                south: debouncedBounds.south - latMargin,
+                east: debouncedBounds.east + lonMargin,
+                west: debouncedBounds.west - lonMargin,
+                zoom_level: Math.round(mapMetadata.zoom),
+                datetime_str: futureDateTimeStr,
+              };
+              
+              const response = await api.get('/api/v1/weather/wind', { params });
+              return response.data;
+            },
+            {
+              staleTime: 5 * 60 * 1000,
+              cacheTime: 15 * 60 * 1000,
+            }
+          );
+        });
+      },
     }
   );
 
@@ -568,26 +642,32 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
               <Marker key={site.id} position={site.position} icon={createDiveSiteIcon(suitability)}>
                 <Popup>
                   <div className='p-2'>
-                    <h3 className='font-semibold text-gray-900 mb-1'>{site.name}</h3>
+                    <h3 className='font-semibold text-gray-900 mb-1'>
+                      {site.name || `Dive Site #${site.id}`}
+                    </h3>
                     {site.description && (
                       <p className='text-sm text-gray-600 mb-2 line-clamp-2'>
                         {renderTextWithLinks(site.description)}
                       </p>
                     )}
-                    <div className='flex items-center justify-between mb-2'>
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(site.difficulty_code)}`}
-                      >
-                        {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
-                      </span>
-                      {site.average_rating && (
-                        <div className='flex items-center'>
-                          <span className='text-sm text-gray-700'>
-                            {site.average_rating.toFixed(1)}
+                    {(site.difficulty_code || site.average_rating) && (
+                      <div className='flex items-center justify-between mb-2'>
+                        {site.difficulty_code && (
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(site.difficulty_code)}`}
+                          >
+                            {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
                           </span>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                        {site.average_rating && (
+                          <div className='flex items-center'>
+                            <span className='text-sm text-gray-700'>
+                              {site.average_rating.toFixed(1)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {recommendation && (
                       <div className='border-t border-gray-200 pt-2 mt-2'>
                         <h4 className='font-semibold text-sm mb-2'>Wind Conditions</h4>
@@ -665,7 +745,8 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
       </MapContainer>
 
       {/* Wind loading indicator - show when fetching wind data (initial load or refetch) */}
-      {windOverlayEnabled && currentZoom >= 12 && (isLoadingWind || isFetchingWind) && (
+      {/* OPTIMIZATION: Only show loading if data is not in cache AND is currently fetching */}
+      {windOverlayEnabled && currentZoom >= 12 && (isLoadingWind || (isFetchingWind && !windData)) && (
         <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] bg-white/95 text-gray-800 px-4 py-3 rounded-lg shadow-lg border border-gray-300 flex items-center gap-3'>
           <div className='animate-spin'>
             <svg

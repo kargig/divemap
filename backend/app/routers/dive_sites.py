@@ -752,6 +752,11 @@ async def get_dive_sites(
     page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
     wind_suitability: Optional[str] = Query(None, description="Filter by wind suitability: good, caution, difficult, avoid, unknown"),
     datetime_str: Optional[str] = Query(None, description="Target date/time in ISO format (YYYY-MM-DDTHH:MM:SS) for wind filtering. Defaults to current time. Max +2 days ahead."),
+    north: Optional[float] = Query(None, ge=-90, le=90, description="North bound for viewport filtering"),
+    south: Optional[float] = Query(None, ge=-90, le=90, description="South bound for viewport filtering"),
+    east: Optional[float] = Query(None, ge=-180, le=180, description="East bound for viewport filtering"),
+    west: Optional[float] = Query(None, ge=-180, le=180, description="West bound for viewport filtering"),
+    detail_level: Optional[str] = Query('full', description="Data detail level: 'minimal' (id, lat, lng only), 'basic' (id, name, lat, lng, difficulty, rating), 'full' (all fields)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
@@ -772,6 +777,29 @@ async def get_dive_sites(
                 detail=f"wind_suitability must be one of: {', '.join(valid_suitabilities)}"
             )
         wind_suitability = wind_suitability.lower()
+    
+    # Validate detail_level parameter if provided
+    if detail_level is not None:
+        valid_detail_levels = ['minimal', 'basic', 'full']
+        if detail_level.lower() not in valid_detail_levels:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"detail_level must be one of: {', '.join(valid_detail_levels)}"
+            )
+        detail_level = detail_level.lower()
+    else:
+        detail_level = 'full'
+    
+    # Validate bounds if provided
+    if all(x is not None for x in [north, south, east, west]):
+        if north <= south:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="north must be greater than south"
+            )
+        # Handle longitude wrap-around (e.g., -179 to 179)
+        # For now, we'll allow east < west to handle date line crossing
+        # The between() filter will handle this correctly
     
     # Parse and validate datetime_str if provided
     target_datetime = None
@@ -818,6 +846,13 @@ async def get_dive_sites(
 
     # Apply rating filtering using utility function
     query = apply_rating_filtering(query, min_rating, db)
+
+    # Apply bounds filtering if provided
+    if all(x is not None for x in [north, south, east, west]):
+        query = query.filter(
+            DiveSite.latitude.between(south, north),
+            DiveSite.longitude.between(west, east)
+        )
 
     # Apply sorting using utility function
     query = apply_sorting(query, sort_by, sort_order, current_user)
@@ -987,58 +1022,85 @@ async def get_dive_sites(
             # Initialize empty match_types if no fuzzy search was performed
             match_types = {}
 
-    # Calculate average ratings and get tags
+    # Calculate average ratings and get tags/aliases (only when needed)
     result = []
     for site in dive_sites:
-        avg_rating = db.query(func.avg(SiteRating.score)).filter(
-            SiteRating.dive_site_id == site.id
-        ).scalar()
+        # Only calculate average_rating for basic and full detail levels
+        avg_rating = None
+        total_ratings = 0
+        if detail_level in ['basic', 'full']:
+            avg_rating = db.query(func.avg(SiteRating.score)).filter(
+                SiteRating.dive_site_id == site.id
+            ).scalar()
+            total_ratings = db.query(func.count(SiteRating.id)).filter(
+                SiteRating.dive_site_id == site.id
+            ).scalar()
 
-        total_ratings = db.query(func.count(SiteRating.id)).filter(
-            SiteRating.dive_site_id == site.id
-        ).scalar()
+        # Get tags and aliases only for full detail level
+        tags_dict = []
+        aliases_dict = []
+        if detail_level == 'full':
+            from app.models import DiveSiteTag, AvailableTag
+            tags = db.query(AvailableTag).join(DiveSiteTag).filter(
+                DiveSiteTag.dive_site_id == site.id
+            ).order_by(AvailableTag.name.asc()).all()
 
-        # Get tags for this dive site
-        from app.models import DiveSiteTag, AvailableTag
-        tags = db.query(AvailableTag).join(DiveSiteTag).filter(
-            DiveSiteTag.dive_site_id == site.id
-        ).order_by(AvailableTag.name.asc()).all()
+            # Convert tags to dictionaries
+            tags_dict = [
+                {
+                    "id": tag.id,
+                    "name": tag.name,
+                    "description": tag.description,
+                    "created_by": tag.created_by,
+                    "created_at": tag.created_at.isoformat() if tag.created_at else None
+                }
+                for tag in tags
+            ]
 
-        # Convert tags to dictionaries
-        tags_dict = [
-            {
-                "id": tag.id,
-                "name": tag.name,
-                "description": tag.description,
-                "created_by": tag.created_by,
-                "created_at": tag.created_at.isoformat() if tag.created_at else None
+            # Get aliases for this dive site
+            aliases = db.query(DiveSiteAlias).filter(
+                DiveSiteAlias.dive_site_id == site.id
+            ).order_by(DiveSiteAlias.alias.asc()).all()
+
+            # Convert aliases to dictionaries
+            aliases_dict = [
+                {
+                    "id": alias.id,
+                    "dive_site_id": alias.dive_site_id,
+                    "alias": alias.alias,
+                    "created_at": alias.created_at.isoformat() if alias.created_at else None
+                }
+                for alias in aliases
+            ]
+
+        # Build site_dict based on detail_level
+        if detail_level == 'minimal':
+            # Minimal: only id, latitude, longitude
+            site_dict = {
+                "id": site.id,
+                "latitude": float(site.latitude) if site.latitude else None,
+                "longitude": float(site.longitude) if site.longitude else None,
             }
-            for tag in tags
-        ]
-
-        # Get aliases for this dive site
-        aliases = db.query(DiveSiteAlias).filter(
-            DiveSiteAlias.dive_site_id == site.id
-        ).order_by(DiveSiteAlias.alias.asc()).all()
-
-        # Convert aliases to dictionaries
-        aliases_dict = [
-            {
-                "id": alias.id,
-                "dive_site_id": alias.dive_site_id,
-                "alias": alias.alias,
-                "created_at": alias.created_at.isoformat() if alias.created_at else None
+        elif detail_level == 'basic':
+            # Basic: id, name, latitude, longitude, difficulty_code, difficulty_label, average_rating
+            site_dict = {
+                "id": site.id,
+                "name": site.name,
+                "latitude": float(site.latitude) if site.latitude else None,
+                "longitude": float(site.longitude) if site.longitude else None,
+                "difficulty_code": site.difficulty.code if site.difficulty else None,
+                "difficulty_label": site.difficulty.label if site.difficulty else None,
+                "average_rating": float(avg_rating) if avg_rating else None,
             }
-            for alias in aliases
-        ]
+        else:
+            # Full: all fields
+            # Get creator username if available
+            creator_username = None
+            if site.created_by:
+                creator_user = db.query(User).filter(User.id == site.created_by).first()
+                creator_username = creator_user.username if creator_user else None
 
-        # Get creator username if available
-        creator_username = None
-        if site.created_by:
-            creator_user = db.query(User).filter(User.id == site.created_by).first()
-            creator_username = creator_user.username if creator_user else None
-
-        site_dict = {
+            site_dict = {
                 "id": site.id,
                 "name": site.name,
                 "description": site.description,
@@ -1062,9 +1124,9 @@ async def get_dive_sites(
                 "aliases": aliases_dict
             }
 
-        # Only include view_count for admin users
-        if current_user and current_user.is_admin:
-            site_dict["view_count"] = site.view_count
+            # Only include view_count for admin users
+            if current_user and current_user.is_admin:
+                site_dict["view_count"] = site.view_count
 
         result.append(site_dict)
 

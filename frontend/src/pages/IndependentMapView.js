@@ -15,6 +15,7 @@ import {
   Info,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQueryClient } from 'react-query';
 import { useGeolocated } from 'react-geolocated';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
@@ -28,6 +29,7 @@ import WindOverlayToggle from '../components/WindOverlayToggle';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive } from '../hooks/useResponsive';
 import { useViewportData } from '../hooks/useViewportData';
+import api from '../api';
 
 const IndependentMapView = () => {
   // Set page title
@@ -125,11 +127,86 @@ const IndependentMapView = () => {
   const [showMobileControls, setShowMobileControls] = useState(!isMobile);
   const [selectedEntityType, setSelectedEntityType] = useState('dive-sites'); // 'dive-sites', 'diving-centers', 'dives', 'dive-trips'
   const [windOverlayEnabled, setWindOverlayEnabled] = useState(false);
+  // Track if user has dismissed the wind feature promotion banner
+  const [windBannerDismissed, setWindBannerDismissed] = useState(() => {
+    // Check localStorage for previous dismissal
+    const dismissed = localStorage.getItem('windBannerDismissed');
+    return dismissed === 'true';
+  });
   const [windDateTime, setWindDateTime] = useState(null); // null = current time, ISO string = specific datetime
   const [isWindLoading, setIsWindLoading] = useState(false);
   const [isWindFetching, setIsWindFetching] = useState(false);
   const [showWindSlider, setShowWindSlider] = useState(true); // Show slider by default when wind overlay is enabled
   const [showWindLegend, setShowWindLegend] = useState(false); // Show legend (can be toggled)
+  const queryClient = useQueryClient();
+
+  // Helper function to prefetch wind data for multiple hours ahead
+  // This is called immediately when play is pressed to prefetch upcoming hours
+  const prefetchWindHours = useCallback(
+    (startDateTime) => {
+      if (!startDateTime || !viewport.bounds || currentZoom < 12) return;
+
+      // OPTIMIZATION: Only prefetch one hour per day (not every 3 hours)
+      // The backend caches all 24 hours when fetching any hour, so we only need one request per day
+      // Prefetch next 2 days (one request per day) - this will cache all 48 hours
+      const currentDate = new Date(startDateTime);
+      const prefetchDays = [1, 2]; // Days ahead to prefetch (one request per day)
+
+      prefetchDays.forEach(daysAhead => {
+        const futureDate = new Date(currentDate);
+        futureDate.setDate(futureDate.getDate() + daysAhead);
+        // Use noon (12:00) as the representative hour for each day - this will cache all 24 hours for that day
+        futureDate.setHours(12, 0, 0, 0);
+
+        // Don't prefetch beyond 2 days from now
+        const maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() + 2);
+        if (futureDate > maxDate) return;
+
+        const futureDateTimeStr = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}T${String(futureDate.getHours()).padStart(2, '0')}:00:00`;
+
+        // Calculate bounds with margin (matching LeafletMapView logic)
+        const bounds = viewport.bounds;
+        const latMargin = (bounds.north - bounds.south) * 0.025;
+        const lonMargin = (bounds.east - bounds.west) * 0.025;
+
+        // Prefetch in background (silently, without showing loading indicators)
+        queryClient.prefetchQuery(
+          [
+            'wind-data',
+            bounds
+              ? {
+                  north: Math.round(bounds.north * 10) / 10,
+                  south: Math.round(bounds.south * 10) / 10,
+                  east: Math.round(bounds.east * 10) / 10,
+                  west: Math.round(bounds.west * 10) / 10,
+                }
+              : null,
+            currentZoom,
+            futureDateTimeStr,
+          ],
+          async () => {
+            const params = {
+              north: bounds.north + latMargin,
+              south: bounds.south - latMargin,
+              east: bounds.east + lonMargin,
+              west: bounds.west - lonMargin,
+              zoom_level: Math.round(currentZoom),
+              datetime_str: futureDateTimeStr,
+            };
+
+            const response = await api.get('/api/v1/weather/wind', { params });
+            return response.data;
+          },
+          {
+            staleTime: 5 * 60 * 1000,
+            cacheTime: 15 * 60 * 1000,
+          }
+        );
+      });
+    },
+    [viewport.bounds, currentZoom, queryClient]
+  );
 
   // Update mobile controls visibility based on screen size
   useEffect(() => {
@@ -640,7 +717,7 @@ const IndependentMapView = () => {
           </div>
 
           {/* Wind Feature Promotion Banner */}
-          {!windOverlayEnabled && selectedEntityType === 'dive-sites' && (
+          {!windOverlayEnabled && !windBannerDismissed && selectedEntityType === 'dive-sites' && (
             <div className='mt-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg shadow-sm'>
               <div className='flex items-start justify-between gap-3'>
                 <div className='flex items-start gap-3 flex-1'>
@@ -668,8 +745,9 @@ const IndependentMapView = () => {
                 </div>
                 <button
                   onClick={() => {
-                    // Hide banner by enabling wind overlay (user can disable it if they want)
-                    setWindOverlayEnabled(true);
+                    // Permanently dismiss the banner
+                    setWindBannerDismissed(true);
+                    localStorage.setItem('windBannerDismissed', 'true');
                   }}
                   className='flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors'
                   aria-label='Dismiss'
@@ -959,6 +1037,7 @@ const IndependentMapView = () => {
                 disabled={!windOverlayEnabled}
                 isFetchingWind={isWindFetching}
                 onClose={() => setShowWindSlider(false)}
+                onPrefetch={prefetchWindHours}
               />
             )}
 
