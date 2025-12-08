@@ -287,10 +287,12 @@ class TestJitterFactor:
 class TestWindDataFetching:
     """Test wind data fetching functionality."""
 
+    @patch('app.services.open_meteo_service._get_from_database_cache')
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-07 12:00:00')
-    def test_fetch_wind_data_single_point_current(self, mock_get):
+    def test_fetch_wind_data_single_point_current(self, mock_get, mock_db_cache):
         """Test fetching current wind data for a single point."""
+        mock_db_cache.return_value = None  # Mock database cache to return None
         # Now always uses hourly API, so need to provide hourly response
         current_time = datetime.now()
         times = []
@@ -486,12 +488,14 @@ class TestWindDataFetching:
         
         assert result is None
 
+    @patch('app.services.open_meteo_service._get_from_database_cache')
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-07 12:00:00')
-    def test_fetch_wind_data_single_point_no_wind_data(self, mock_get, monkeypatch):
+    def test_fetch_wind_data_single_point_no_wind_data(self, mock_get, mock_db_cache, monkeypatch):
         """Test handling when API response has no wind data."""
         import app.services.open_meteo_service as oms
         monkeypatch.setattr(oms, '_wind_cache', {})  # Clear cache
+        mock_db_cache.return_value = None  # Mock database cache to return None
         
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -610,12 +614,14 @@ class TestWindDataFetching:
         # Should have some points (sampling should work)
         assert len(points) > 0
 
+    @patch('app.services.open_meteo_service._get_from_database_cache')
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-07 12:00:00')
-    def test_fetch_wind_data_single_point_caching(self, mock_get, monkeypatch):
+    def test_fetch_wind_data_single_point_caching(self, mock_get, mock_db_cache, monkeypatch):
         """Test that wind data is cached and reused."""
         import app.services.open_meteo_service as oms
         monkeypatch.setattr(oms, '_wind_cache', {})  # Clear cache before test
+        mock_db_cache.return_value = None  # Mock database cache to return None
         
         # Create hourly response (now always uses hourly API)
         current_time = datetime.now()
@@ -778,13 +784,15 @@ class Test24HourBulkCaching:
             }
         }
 
+    @patch('app.services.open_meteo_service._get_from_database_cache')
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-07 12:00:00')
-    def test_fetch_wind_data_single_point_caches_all_24_hours(self, mock_get, monkeypatch):
+    def test_fetch_wind_data_single_point_caches_all_24_hours(self, mock_get, mock_db_cache, monkeypatch):
         """Test that fetching one hour caches all 24 hours."""
         import app.services.open_meteo_service as oms
         from app.services.open_meteo_service import _generate_cache_key
         monkeypatch.setattr(oms, '_wind_cache', {})
+        mock_db_cache.return_value = None  # Mock database cache to return None
         
         base_date = datetime(2025, 12, 7, 12, 0, 0)
         mock_response = MagicMock()
@@ -809,12 +817,14 @@ class Test24HourBulkCaching:
             assert cached_data['wind_speed_10m'] == (5.0 + (hour % 5))
             assert cached_data['timestamp'].hour == hour
 
+    @patch('app.services.open_meteo_service._get_from_database_cache')
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-07 12:00:00')
-    def test_fetch_different_hours_uses_24_hour_cache(self, mock_get, monkeypatch):
+    def test_fetch_different_hours_uses_24_hour_cache(self, mock_get, mock_db_cache, monkeypatch):
         """Test that subsequent requests for different hours use cache."""
         import app.services.open_meteo_service as oms
         monkeypatch.setattr(oms, '_wind_cache', {})
+        mock_db_cache.return_value = None  # Mock database cache to return None
         
         base_date = datetime(2025, 12, 7, 5, 0, 0)
         mock_response = MagicMock()
@@ -905,12 +915,14 @@ class TestSmartCacheLookup:
             }
         }
 
+    @patch('app.services.open_meteo_service._get_from_database_cache')
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-07 12:00:00')
-    def test_cache_lookup_via_representative_hours(self, mock_get, monkeypatch):
+    def test_cache_lookup_via_representative_hours(self, mock_get, mock_db_cache, monkeypatch):
         """Test cache lookup finds data via representative hours."""
         import app.services.open_meteo_service as oms
         monkeypatch.setattr(oms, '_wind_cache', {})
+        mock_db_cache.return_value = None  # Mock database cache to return None
         
         base_date = datetime(2025, 12, 7, 0, 0, 0)
         mock_response = MagicMock()
@@ -935,12 +947,14 @@ class TestSmartCacheLookup:
         assert mock_get.call_count == 0  # Should use cache via lookup
         assert result2['timestamp'].hour == 15
 
+    @patch('app.services.open_meteo_service._get_from_database_cache')
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-07 06:00:00')
-    def test_cache_lookup_via_noon_representative(self, mock_get, monkeypatch):
+    def test_cache_lookup_via_noon_representative(self, mock_get, mock_db_cache, monkeypatch):
         """Test cache lookup finds data via noon (12:00) representative."""
         import app.services.open_meteo_service as oms
         monkeypatch.setattr(oms, '_wind_cache', {})
+        mock_db_cache.return_value = None  # Mock database cache to return None
         
         base_date = datetime(2025, 12, 7, 12, 0, 0)
         mock_response = MagicMock()
@@ -965,12 +979,14 @@ class TestSmartCacheLookup:
         assert mock_get.call_count == 0  # Should use cache
         assert result2['timestamp'].hour == 8
 
+    @patch('app.services.open_meteo_service._get_from_database_cache')
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-07 12:00:00')
-    def test_cache_lookup_when_requested_hour_not_cached(self, mock_get, monkeypatch):
+    def test_cache_lookup_when_requested_hour_not_cached(self, mock_get, mock_db_cache, monkeypatch):
         """Test cache lookup when requested hour should be in cache."""
         import app.services.open_meteo_service as oms
         monkeypatch.setattr(oms, '_wind_cache', {})
+        mock_db_cache.return_value = None  # Mock database cache to return None
         
         base_date = datetime(2025, 12, 7, 5, 0, 0)
         mock_response = MagicMock()
@@ -1102,10 +1118,12 @@ class TestGridPointGrouping:
 
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-07 12:00:00')
-    def test_grid_grouping_reduces_api_calls(self, mock_get, monkeypatch):
+    @patch('app.services.open_meteo_service._get_from_database_cache')
+    def test_grid_grouping_reduces_api_calls(self, mock_db_cache, mock_get, monkeypatch):
         """Test that grouping reduces API calls."""
         import app.services.open_meteo_service as oms
         monkeypatch.setattr(oms, '_wind_cache', {})
+        mock_db_cache.return_value = None  # Mock database cache to return None
         
         base_date = datetime(2025, 12, 7, 12, 0, 0)
         mock_response = MagicMock()
@@ -1175,10 +1193,12 @@ class TestGridPointGrouping:
 
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-07 12:00:00')
-    def test_grid_grouping_with_same_cache_key_reuses_data(self, mock_get, monkeypatch):
+    @patch('app.services.open_meteo_service._get_from_database_cache')
+    def test_grid_grouping_with_same_cache_key_reuses_data(self, mock_db_cache, mock_get, monkeypatch):
         """Test that grid with same cache key reuses cached data."""
         import app.services.open_meteo_service as oms
         monkeypatch.setattr(oms, '_wind_cache', {})
+        mock_db_cache.return_value = None  # Mock database cache to return None
         
         base_date = datetime(2025, 12, 7, 12, 0, 0)
         mock_response = MagicMock()
@@ -1423,10 +1443,12 @@ class TestCacheLogging:
 
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-07 12:00:00')
-    def test_cache_hit_logging(self, mock_get, monkeypatch, caplog):
+    @patch('app.services.open_meteo_service._get_from_database_cache')
+    def test_cache_hit_logging(self, mock_db_cache, mock_get, monkeypatch, caplog):
         """Test that cache hits are logged."""
         import app.services.open_meteo_service as oms
         monkeypatch.setattr(oms, '_wind_cache', {})
+        mock_db_cache.return_value = None  # Mock database cache to return None
         
         base_date = datetime(2025, 12, 7, 12, 0, 0)
         mock_response = MagicMock()
