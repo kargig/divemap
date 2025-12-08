@@ -14,7 +14,7 @@ import requests
 import math
 import random
 from typing import Optional, Dict, List, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 from decimal import Decimal
 
@@ -25,10 +25,13 @@ OPEN_METEO_BASE_URL = "https://api.open-meteo.com/v1/forecast"
 
 # Cache for wind data (in-memory dictionary)
 _wind_cache: Dict[str, Dict] = {}
-_cache_ttl_seconds = 15 * 60  # 15 minutes
-# Increased cache size to accommodate 24-hour caching for multiple grid points
-# With 12 grid points and 24 hours each = 288 entries, plus some buffer
-_max_cache_size = 500  # Maximum number of cache entries
+_cache_ttl_seconds = 15 * 60  # 15 minutes (fallback for old cache entries)
+# Increased cache size to accommodate zoom 12-13 usage patterns
+# Single viewport at zoom 13: ~480 entries
+# Typical session (panning + time exploration): ~1100-1600 entries
+# Buffer: ~500-1000 entries
+# Memory cost: ~875 KB (negligible)
+_max_cache_size = 2500  # Maximum number of cache entries
 
 
 def _generate_cache_key(latitude: float, longitude: float, bounds: Optional[Dict] = None, target_datetime: Optional[datetime] = None) -> str:
@@ -59,21 +62,86 @@ def _generate_cache_key(latitude: float, longitude: float, bounds: Optional[Dict
     return base_key
 
 
-def _is_cache_valid(cache_entry: Dict) -> bool:
-    """Check if a cache entry is still valid (not expired)."""
+def _calculate_cache_ttl(target_datetime: Optional[datetime], now: datetime) -> timedelta:
+    """
+    Calculate cache TTL based on forecast distance from current time.
+    
+    Args:
+        target_datetime: Forecast datetime (None for current time)
+        now: Current datetime
+    
+    Returns:
+        timedelta representing cache TTL
+    """
+    # Current time requests: use shortest cache (1 hour)
+    if target_datetime is None:
+        return timedelta(hours=1)
+    
+    # Past forecasts: use shortest cache (shouldn't happen, but handle gracefully)
+    if target_datetime < now:
+        return timedelta(hours=1)
+    
+    # Calculate hours until forecast
+    time_until_forecast = target_datetime - now
+    hours_until = time_until_forecast.total_seconds() / 3600
+    
+    # Apply caching rules
+    if hours_until <= 6:
+        # 0-6 hours: cache until forecast time (dynamic)
+        # But ensure minimum TTL of 1 hour for current time or very near-future requests
+        if hours_until <= 0:
+            # Current time or past: use 1 hour minimum
+            return timedelta(hours=1)
+        elif hours_until < 1:
+            # Less than 1 hour away: use 1 hour minimum TTL
+            return timedelta(hours=1)
+        return time_until_forecast
+    elif hours_until <= 12:
+        # 6-12 hours: cache for 3 hours
+        return timedelta(hours=3)
+    elif hours_until <= 24:
+        # 12-24 hours: cache for 2 hours
+        return timedelta(hours=2)
+    else:
+        # 24+ hours: cache for 1 hour
+        return timedelta(hours=1)
+
+
+def _is_cache_valid(cache_entry: Dict, target_datetime: Optional[datetime] = None) -> bool:
+    """
+    Check if a cache entry is still valid (not expired).
+    
+    Uses dynamic TTL based on target_datetime if available, otherwise falls back
+    to fixed 15-minute TTL for backward compatibility with old cache entries.
+    """
     if 'timestamp' not in cache_entry:
         return False
     
-    age = (datetime.now() - cache_entry['timestamp']).total_seconds()
-    return age < _cache_ttl_seconds
+    # Get target_datetime from cache entry or parameter
+    entry_target_datetime = cache_entry.get('target_datetime')
+    if entry_target_datetime is None:
+        entry_target_datetime = target_datetime
+    
+    # Calculate dynamic TTL based on target_datetime
+    now = datetime.now()
+    
+    # If we have target_datetime, use dynamic TTL
+    if entry_target_datetime is not None:
+        ttl = _calculate_cache_ttl(entry_target_datetime, now)
+    else:
+        # Fallback to fixed TTL for old cache entries without target_datetime
+        ttl = timedelta(seconds=_cache_ttl_seconds)
+    
+    # Check if cache age is less than calculated TTL
+    age = now - cache_entry['timestamp']
+    return age < ttl
 
 
 def _cleanup_cache():
     """Remove expired entries and limit cache size."""
     global _wind_cache
     
-    # Remove expired entries
-    current_time = datetime.now()
+    # Remove expired entries using dynamic TTL
     expired_keys = [
         key for key, entry in _wind_cache.items()
         if not _is_cache_valid(entry)
@@ -192,8 +260,24 @@ def _store_in_database_cache(cache_key: str, latitude: float, longitude: float, 
             if target_datetime:
                 rounded_datetime = target_datetime.replace(minute=0, second=0, microsecond=0)
             
-            # Calculate expiration time (15 minutes from now)
-            expires_at = datetime.utcnow() + timedelta(minutes=15)
+            # Calculate expiration time using dynamic TTL based on forecast distance
+            now_utc = datetime.utcnow()
+            # Convert target_datetime to UTC if it's timezone-aware, otherwise assume it's in local time
+            # and convert to UTC for comparison
+            if target_datetime:
+                if target_datetime.tzinfo is not None:
+                    # Timezone-aware: convert to UTC
+                    target_datetime_utc = target_datetime.astimezone(timezone.utc).replace(tzinfo=None)
+                else:
+                    # Naive datetime: assume it's in local time, convert to UTC
+                    # For simplicity, we'll use the naive datetime directly and compare with UTC now
+                    # This works because we're calculating relative time differences
+                    target_datetime_utc = target_datetime
+            else:
+                target_datetime_utc = None
+            
+            ttl = _calculate_cache_ttl(target_datetime_utc, now_utc)
+            expires_at = now_utc + ttl
             
             # Serialize wind_data for JSON storage (convert datetime to ISO string)
             serialized_wind_data = wind_data.copy()
@@ -340,7 +424,7 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
     cache_key = _generate_cache_key(latitude, longitude, target_datetime=target_datetime)
     
     # Check cache - first try exact hour match
-    if cache_key in _wind_cache and _is_cache_valid(_wind_cache[cache_key]):
+    if cache_key in _wind_cache and _is_cache_valid(_wind_cache[cache_key], target_datetime):
         logger.info(f"[CACHE HIT] Serving wind data from cache for {latitude:.4f}, {longitude:.4f} at {target_datetime} (exact match)")
         return _wind_cache[cache_key].get('data')
     
@@ -366,13 +450,13 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
             logger.debug(f"[CACHE LOOKUP] Checking for cached hour {hour:02d} with key: {check_cache_key}")
             
             if check_cache_key in _wind_cache:
-                if _is_cache_valid(_wind_cache[check_cache_key]):
+                if _is_cache_valid(_wind_cache[check_cache_key], check_datetime):
                     # Found cached data for this date! Since we cache all 24 hours when fetching any hour,
                     # the requested hour should also be in cache. Let's verify the exact hour exists.
                     logger.info(f"[CACHE LOOKUP] Found cached data for {target_date} hour {hour:02d}, checking if requested hour {target_datetime.hour:02d} is also cached...")
                     
                     # The exact hour should be in cache - check one more time (in case of race condition)
-                    if cache_key in _wind_cache and _is_cache_valid(_wind_cache[cache_key]):
+                    if cache_key in _wind_cache and _is_cache_valid(_wind_cache[cache_key], target_datetime):
                         logger.info(f"[CACHE HIT] Serving wind data from cache for {latitude:.4f}, {longitude:.4f} at {target_datetime} (found via date lookup, originally cached for hour {hour:02d})")
                         return _wind_cache[cache_key].get('data')
                     else:
@@ -401,7 +485,8 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
         # Also store in in-memory cache for faster subsequent access
         _wind_cache[cache_key] = {
             'data': db_cache_data,
-            'timestamp': datetime.now()
+            'timestamp': datetime.now(),
+            'target_datetime': target_datetime  # Store for TTL calculation
         }
         return db_cache_data
     
@@ -492,7 +577,8 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                                     "wind_gusts_10m": wind_gusts[idx],
                                     "timestamp": hour_datetime
                                 },
-                                "timestamp": datetime.now()
+                                "timestamp": datetime.now(),
+                                "target_datetime": hour_datetime  # Store for TTL calculation
                             }
                         except (ValueError, IndexError) as e:
                             logger.debug(f"Could not parse/cache hour {time_str}: {e}")
@@ -527,7 +613,8 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
         if cache_key not in _wind_cache:
             _wind_cache[cache_key] = {
                 "data": wind_data,
-                "timestamp": datetime.now()
+                "timestamp": datetime.now(),
+                "target_datetime": target_datetime  # Store for TTL calculation
             }
             logger.info(f"[CACHE STORE] Stored wind data in in-memory cache for {latitude:.4f}, {longitude:.4f} at {target_datetime}")
         
