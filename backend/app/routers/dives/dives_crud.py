@@ -1526,7 +1526,9 @@ def add_buddies_to_dive(
         )
     
     # Validate all buddy user IDs exist and have public visibility
-    buddy_ids = list(set(request.buddy_ids))  # Remove duplicates
+    # Remove duplicates to prevent adding the same buddy multiple times
+    buddy_ids = list(set(request.buddy_ids))
+    # Query all buddy users at once for efficient validation
     buddy_users = db.query(User).filter(
         User.id.in_(buddy_ids),
         User.enabled == True,

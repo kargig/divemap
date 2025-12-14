@@ -214,7 +214,10 @@ async def get_user_public_profile(
             detail="User not found"
         )
 
-    # Calculate user statistics
+    # Calculate user statistics for profile display
+    # These queries are optimized with scalar() for single-value results
+    
+    # Rating and comment statistics
     dive_sites_rated = db.query(func.count(SiteRating.id)).filter(
         SiteRating.user_id == user.id
     ).scalar()
@@ -227,9 +230,10 @@ async def get_user_public_profile(
         CenterComment.user_id == user.id
     ).scalar()
 
+    # Total comments includes both dive site and diving center comments
     comments_posted = (site_comments_count or 0) + (center_comments_count or 0)
 
-    # Calculate additional statistics
+    # Content creation statistics
     dive_sites_created = db.query(func.count(DiveSite.id)).filter(
         DiveSite.created_by == user.id
     ).scalar()
@@ -242,10 +246,13 @@ async def get_user_public_profile(
         DivingCenter.owner_id == user.id
     ).scalar()
 
-    site_ratings_count = dive_sites_rated or 0  # Same as dive_sites_rated
+    # Rating count is the same as dive_sites_rated (for consistency in stats display)
+    site_ratings_count = dive_sites_rated or 0
 
+    # User's claimed total dives (from their profile)
     total_dives_claimed = user.number_of_dives or 0
 
+    # Count dives where this user is a buddy (not the owner)
     buddy_dives_count = db.query(func.count(DiveBuddy.id)).filter(
         DiveBuddy.user_id == user.id
     ).scalar()

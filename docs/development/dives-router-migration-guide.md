@@ -142,7 +142,7 @@ All original API endpoints remain unchanged:
 - `GET /api/v1/dives/{dive_id}/profile` - Get dive profile
 - `POST /api/v1/dives/{dive_id}/profile` - Upload dive profile
 - `DELETE /api/v1/dives/{dive_id}/profile` - Delete dive profile
-- `DELETE /api/v1/dives/profiles/user/{user_id}` - Delete user profiles
+- `DELETE /api/v1/dives/profiles/users/{user_id}` - Delete user profiles
 
 ### Admin Endpoints
 - `GET /api/v1/dives/admin/dives/count` - Admin dive count
