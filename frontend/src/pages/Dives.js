@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Grid,
   Route,
+  User,
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
@@ -65,6 +66,7 @@ const Dives = () => {
     return {
       search: searchParams.get('search') || '',
       username: searchParams.get('username') || '',
+      buddy_username: searchParams.get('buddy_username') || '',
       dive_site_id: diveSiteIdParam ? diveSiteIdParam : '',
       min_depth: searchParams.get('min_depth') || '',
       duration_min: searchParams.get('duration_min') || '',
@@ -307,6 +309,13 @@ const Dives = () => {
         newSearchParams.set('username', newFilters.username.toString());
       }
       if (
+        newFilters.buddy_username &&
+        newFilters.buddy_username.toString &&
+        newFilters.buddy_username.toString().trim()
+      ) {
+        newSearchParams.set('buddy_username', newFilters.buddy_username.toString());
+      }
+      if (
         newFilters.dive_site_id &&
         newFilters.dive_site_id.toString &&
         newFilters.dive_site_id.toString().trim()
@@ -430,6 +439,7 @@ const Dives = () => {
     filters.end_date,
     filters.my_dives,
     filters.tag_ids,
+    filters.buddy_username,
     immediateUpdateURL,
   ]);
 
@@ -480,6 +490,9 @@ const Dives = () => {
       if (filters.username && filters.username.trim()) {
         params.append('username', filters.username.trim());
       }
+      if (filters.buddy_username && filters.buddy_username.trim()) {
+        params.append('buddy_username', filters.buddy_username.trim());
+      }
       if (filters.difficulty_code) params.append('difficulty_code', filters.difficulty_code);
       if (filters.exclude_unspecified_difficulty) {
         params.append('exclude_unspecified_difficulty', 'true');
@@ -520,6 +533,7 @@ const Dives = () => {
       'dives',
       debouncedSearchTerms.search,
       filters.username,
+      filters.buddy_username,
       filters.dive_site_id,
       filters.difficulty_code,
       filters.exclude_unspecified_difficulty,
@@ -540,6 +554,9 @@ const Dives = () => {
       if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
       if (debouncedSearchTerms.search) params.append('search', debouncedSearchTerms.search);
       if (filters.username) params.append('username', filters.username);
+      if (filters.buddy_username && filters.buddy_username.trim()) {
+        params.append('buddy_username', filters.buddy_username.trim());
+      }
       if (filters.difficulty_code) params.append('difficulty_code', filters.difficulty_code);
       if (filters.exclude_unspecified_difficulty) {
         params.append('exclude_unspecified_difficulty', 'true');
@@ -1092,17 +1109,29 @@ const Dives = () => {
                           <div className='flex flex-wrap items-center gap-2 mb-1'>
                             <div className='flex items-center gap-2 flex-1 min-w-0'>
                               <h3
-                                className={`font-semibold text-gray-900 flex-1 min-w-0 ${compactLayout ? 'text-sm' : 'text-lg'}`}
+                                className={`font-semibold text-gray-900 flex-1 min-w-0 flex items-center gap-2 flex-wrap ${compactLayout ? 'text-sm' : 'text-lg'}`}
                               >
                                 <Link
                                   to={`/dives/${dive.id}`}
                                   state={{
                                     from: window.location.pathname + window.location.search,
                                   }}
-                                  className='hover:text-blue-600 transition-colors block whitespace-normal break-words'
+                                  className='hover:text-blue-600 transition-colors whitespace-normal break-words'
                                 >
                                   {dive.name || `Dive #${dive.id}`}
                                 </Link>
+                                {dive.user_username && (
+                                  <span className='text-gray-500 font-normal text-xs sm:text-sm whitespace-nowrap'>
+                                    by{' '}
+                                    <Link
+                                      to={`/users/${dive.user_username}`}
+                                      className='text-blue-600 hover:text-blue-800 hover:underline'
+                                      onClick={e => e.stopPropagation()}
+                                    >
+                                      {dive.user_username}
+                                    </Link>
+                                  </span>
+                                )}
                               </h3>
                               {dive.selected_route_id && (
                                 <div
@@ -1204,6 +1233,45 @@ const Dives = () => {
                         )}
                       </div>
                     )}
+
+                    {/* Buddies */}
+                    {dive.buddies && dive.buddies.length > 0 && (
+                      <div className='flex flex-wrap items-center gap-2 mt-2'>
+                        <User size={12} className='text-gray-400' />
+                        <span className='text-[11px] text-gray-500'>Buddies:</span>
+                        <div className='flex flex-wrap gap-1'>
+                          {dive.buddies.slice(0, 3).map(buddy => (
+                            <Link
+                              key={buddy.id}
+                              to={`/users/${buddy.username}`}
+                              onClick={e => e.stopPropagation()}
+                              className='inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors'
+                              title={buddy.name || buddy.username}
+                            >
+                              {buddy.avatar_url ? (
+                                <img
+                                  src={buddy.avatar_url}
+                                  alt={buddy.username}
+                                  className='w-4 h-4 rounded-full object-cover'
+                                />
+                              ) : (
+                                <div className='w-4 h-4 rounded-full bg-blue-200 flex items-center justify-center'>
+                                  <span className='text-[8px] font-medium text-blue-700'>
+                                    {buddy.username.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <span>{buddy.username}</span>
+                            </Link>
+                          ))}
+                          {dive.buddies.length > 3 && (
+                            <span className='inline-flex items-center px-2 py-1 text-[11px] font-medium bg-gray-100 text-gray-600 rounded-full'>
+                              +{dive.buddies.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {dive.dive_information && dive.dive_information.trim() ? (
@@ -1258,15 +1326,27 @@ const Dives = () => {
                     <div className='flex items-center gap-2 mb-2'>
                       <div className='flex items-center gap-2 flex-1 min-w-0'>
                         <h3
-                          className={`font-semibold text-gray-900 flex-1 min-w-0 ${compactLayout ? 'text-base' : 'text-lg'}`}
+                          className={`font-semibold text-gray-900 flex-1 min-w-0 flex items-center gap-2 flex-wrap ${compactLayout ? 'text-base' : 'text-lg'}`}
                         >
                           <Link
                             to={`/dives/${dive.id}`}
                             state={{ from: location.pathname + location.search }}
-                            className='hover:text-blue-600 transition-colors block whitespace-normal break-words'
+                            className='hover:text-blue-600 transition-colors whitespace-normal break-words'
                           >
                             {dive.name || `Dive #${dive.id}`}
                           </Link>
+                          {dive.user_username && (
+                            <span className='text-gray-500 font-normal text-xs sm:text-sm whitespace-nowrap'>
+                              by{' '}
+                              <Link
+                                to={`/users/${dive.user_username}`}
+                                className='text-blue-600 hover:text-blue-800 hover:underline'
+                                onClick={e => e.stopPropagation()}
+                              >
+                                {dive.user_username}
+                              </Link>
+                            </span>
+                          )}
                         </h3>
                         {dive.selected_route_id && (
                           <div

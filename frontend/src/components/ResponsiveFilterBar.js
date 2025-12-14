@@ -268,6 +268,8 @@ const ResponsiveFilterBar = ({
     if (filters.search) active.push({ key: 'search', label: 'Search', value: filters.search });
     if (filters.username)
       active.push({ key: 'username', label: 'Username', value: filters.username });
+    if (filters.buddy_username)
+      active.push({ key: 'buddy_username', label: 'Buddy', value: filters.buddy_username });
     if (filters.dive_site_id && pageType === 'dives' && filters.availableDiveSites) {
       const selectedSite = filters.availableDiveSites.find(
         site => site.id.toString() === filters.dive_site_id.toString()
@@ -728,6 +730,25 @@ const ResponsiveFilterBar = ({
                   </div>
                 )}
 
+                {/* Buddy Username Filter - Only show for dives page */}
+                {pageType === 'dives' && (
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Filter by Buddy
+                    </label>
+                    <input
+                      type='text'
+                      placeholder='Enter buddy username'
+                      value={filters.buddy_username || ''}
+                      onChange={e => onFilterChange('buddy_username', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                    />
+                    <p className='mt-1 text-xs text-gray-500'>
+                      Show dives where this user is a buddy
+                    </p>
+                  </div>
+                )}
+
                 {/* Country Filter */}
                 <div>
                   <label className='block text-sm font-medium text-gray-700 mb-2'>Country</label>
@@ -1117,6 +1138,25 @@ const ResponsiveFilterBar = ({
                           onChange={e => onFilterChange('username', e.target.value)}
                           className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
                         />
+                      </div>
+                    )}
+
+                    {/* Buddy Username Filter - Only show for dives page */}
+                    {pageType === 'dives' && (
+                      <div>
+                        <label className='block text-sm font-medium text-gray-700 mb-3'>
+                          Filter by Buddy
+                        </label>
+                        <input
+                          type='text'
+                          placeholder='Enter buddy username'
+                          value={filters.buddy_username || ''}
+                          onChange={e => onFilterChange('buddy_username', e.target.value)}
+                          className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+                        />
+                        <p className='mt-1 text-xs text-gray-500'>
+                          Show dives where this user is a buddy
+                        </p>
                       </div>
                     )}
 

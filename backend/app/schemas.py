@@ -20,6 +20,7 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     password: Optional[str] = Field(None, min_length=8, max_length=128)
     number_of_dives: Optional[int] = Field(None, ge=0)
+    buddy_visibility: Optional[str] = Field(None, pattern=r"^(public|private)$", description="Control whether user can be added as buddy: 'public' or 'private'")
 
 class UserResponse(UserBase):
     id: int
@@ -507,6 +508,13 @@ class UserResponseWithCertifications(UserResponse):
 class UserProfileStats(BaseModel):
     dive_sites_rated: int
     comments_posted: int
+    dive_sites_created: int
+    dives_created: int
+    diving_centers_owned: int
+    site_comments_count: int
+    site_ratings_count: int
+    total_dives_claimed: int
+    buddy_dives_count: int
 
     class Config:
         from_attributes = True
@@ -518,6 +526,26 @@ class UserPublicProfileResponse(BaseModel):
     member_since: datetime
     certifications: List[UserCertificationResponse] = []
     stats: UserProfileStats
+
+    class Config:
+        from_attributes = True
+
+# User Public Info for buddy lists
+class UserPublicInfo(BaseModel):
+    id: int
+    username: str
+    name: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+# User Search Response
+class UserSearchResponse(BaseModel):
+    id: int
+    username: str
+    name: Optional[str] = None
+    avatar_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -552,7 +580,7 @@ class DiveBase(BaseModel):
     duration: Optional[int] = Field(None, ge=1, le=1440)  # Duration in minutes
 
 class DiveCreate(DiveBase):
-    pass
+    buddies: Optional[List[int]] = None  # List of user IDs to add as buddies
 
 class DiveUpdate(BaseModel):
     dive_site_id: Optional[int] = None
@@ -575,6 +603,7 @@ class DiveUpdate(BaseModel):
     dive_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}:\d{2}$")
     duration: Optional[int] = Field(None, ge=1, le=1440)
     tags: Optional[List[int]] = None  # List of tag IDs
+    buddies: Optional[List[int]] = None  # List of user IDs to add as buddies
 
 class DiveResponse(DiveBase):
     id: int
@@ -603,6 +632,7 @@ class DiveResponse(DiveBase):
     selected_route: Optional[dict] = None  # Selected route information
     media: List[dict] = []
     tags: List[dict] = []
+    buddies: List[UserPublicInfo] = []  # List of buddy users
     user_username: Optional[str] = None  # For public dives
 
     class Config:
@@ -624,6 +654,13 @@ class DiveMediaResponse(BaseModel):
     title: Optional[str] = None
     thumbnail_url: Optional[str] = None
     created_at: datetime
+
+# Buddy Management Schemas
+class AddBuddiesRequest(BaseModel):
+    buddy_ids: List[int] = Field(..., min_items=1, max_items=20, description="List of user IDs to add as buddies (max 20)")
+
+class ReplaceBuddiesRequest(BaseModel):
+    buddy_ids: List[int] = Field(..., max_items=20, description="List of user IDs to set as buddies (max 20, can be empty to remove all)")
 
     class Config:
         from_attributes = True

@@ -14,6 +14,8 @@ import {
   Link,
   Activity,
   Route,
+  User,
+  X,
 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
@@ -27,7 +29,7 @@ import {
   Link as RouterLink,
 } from 'react-router-dom';
 
-import api, { getDive, deleteDive, deleteDiveMedia } from '../api';
+import api, { getDive, deleteDive, deleteDiveMedia, removeBuddy } from '../api';
 import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
 import DiveProfileModal from '../components/DiveProfileModal';
 import RateLimitError from '../components/RateLimitError';
@@ -515,6 +517,24 @@ const DiveDetail = () => {
     }
   };
 
+  // Remove buddy mutation
+  const removeBuddyMutation = useMutation(({ diveId, userId }) => removeBuddy(diveId, userId), {
+    onSuccess: () => {
+      toast.success('Removed from dive buddies');
+      queryClient.invalidateQueries(['dive', id]);
+    },
+    onError: error => {
+      const errorMessage = error.response?.data?.detail || 'Failed to remove buddy';
+      toast.error(errorMessage);
+    },
+  });
+
+  const handleRemoveSelf = () => {
+    if (window.confirm('Remove yourself from this dive?')) {
+      removeBuddyMutation.mutate({ diveId: id, userId: user?.id });
+    }
+  };
+
   const formatDate = dateString => {
     return new Date(dateString).toLocaleDateString();
   };
@@ -621,8 +641,8 @@ const DiveDetail = () => {
               {formatDate(dive.dive_date)}
               {dive.dive_time && ` at ${formatTime(dive.dive_time)}`}
             </p>
-            {/* Privacy Status */}
-            <div className='flex items-center gap-2 mt-1'>
+            {/* Privacy Status and Created By */}
+            <div className='flex items-center gap-2 mt-1 flex-wrap'>
               {dive.is_private ? (
                 <div className='flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium'>
                   <EyeOff size={12} />
@@ -632,6 +652,17 @@ const DiveDetail = () => {
                 <div className='flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium'>
                   <Eye size={12} />
                   Public
+                </div>
+              )}
+              {dive.user_username && (
+                <div className='flex items-center gap-1 text-sm text-gray-600'>
+                  <span>Created by:</span>
+                  <RouterLink
+                    to={`/users/${dive.user_username}`}
+                    className='font-medium text-blue-600 hover:text-blue-800 hover:underline'
+                  >
+                    {dive.user_username}
+                  </RouterLink>
                 </div>
               )}
             </div>
@@ -819,6 +850,58 @@ const DiveDetail = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Buddies */}
+                <div className='mt-4'>
+                  <h3 className='text-sm font-medium text-gray-700 mb-2'>Dive Buddies</h3>
+                  {dive.buddies && dive.buddies.length > 0 ? (
+                    <div className='space-y-2'>
+                      <div className='flex flex-wrap gap-2'>
+                        {dive.buddies.map(buddy => (
+                          <div
+                            key={buddy.id}
+                            className='flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg'
+                          >
+                            {buddy.avatar_url ? (
+                              <img
+                                src={buddy.avatar_url}
+                                alt={buddy.username}
+                                className='w-8 h-8 rounded-full object-cover'
+                              />
+                            ) : (
+                              <div className='w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center'>
+                                <User size={16} className='text-blue-600' />
+                              </div>
+                            )}
+                            <div className='flex-1 min-w-0'>
+                              <RouterLink
+                                to={`/users/${buddy.username}`}
+                                className='text-sm font-medium text-blue-700 hover:text-blue-900'
+                              >
+                                {buddy.username}
+                              </RouterLink>
+                              {buddy.name && (
+                                <div className='text-xs text-gray-600'>{buddy.name}</div>
+                              )}
+                            </div>
+                            {/* Show "Remove me" button if current user is a buddy (not the owner) */}
+                            {user && user.id === buddy.id && dive.user_id !== user.id && (
+                              <button
+                                onClick={handleRemoveSelf}
+                                className='ml-2 px-2 py-1 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded'
+                                title='Remove yourself from this dive'
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className='text-sm text-gray-500'>No buddies assigned to this dive</p>
+                  )}
+                </div>
 
                 {dive.gas_bottles_used && (
                   <div className='mt-4'>

@@ -321,7 +321,7 @@ class TestDiveProfileAPI:
         with patch('app.routers.system.r2_storage') as mock_r2:
             mock_r2.delete_user_profiles.return_value = True
             
-            response = client.delete("/api/v1/dives/profiles/user/1", 
+            response = client.delete("/api/v1/dives/profiles/users/1", 
                                    headers=admin_headers)
             
             assert response.status_code == status.HTTP_200_OK
@@ -329,14 +329,14 @@ class TestDiveProfileAPI:
 
     def test_delete_user_profiles_non_admin(self, client, auth_headers):
         """Test deletion of user profiles by non-admin user."""
-        response = client.delete("/api/v1/dives/profiles/user/1", headers=auth_headers)
+        response = client.delete("/api/v1/dives/profiles/users/1", headers=auth_headers)
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "Admin access required" in response.json()["detail"]
 
     def test_delete_user_profiles_unauthorized(self, client):
         """Test deletion of user profiles without authentication."""
-        response = client.delete("/api/v1/dives/profiles/user/1")
+        response = client.delete("/api/v1/dives/profiles/users/1")
         
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 

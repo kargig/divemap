@@ -19,6 +19,10 @@ and review dive sites and diving centers.
   organization associations
 - **Dive Logging**: Complete dive logging system with media uploads, tags, and
   statistics
+- **Dive Buddies**: Add registered users as dive buddies with privacy controls
+  and filtering
+- **Dive Route Drawing**: Interactive route creation and editing on maps with
+  compass bearings and map layers
 - **Rating System**: Rate dive sites and diving centers (1-10 scale) with proper
   state management
 - **Comments**: User comments on dive sites and diving centers with diving
@@ -29,13 +33,21 @@ and review dive sites and diving centers.
   dives
 - **Tag System**: Comprehensive tag/label management for dive sites and dives
   with enhanced validation
+- **Social Sharing**: Share dives, dive sites, and routes to social media
+  platforms
+- **Wind Overlay & Recommendations**: Real-time wind data overlay with
+  intelligent dive site suitability recommendations based on weather conditions
 
 ### **Advanced Search & Filtering**
 
+- **Global Search**: Unified search across all content types from navbar
 - **Multi-criteria Search**: Search by name, difficulty, location, and tags
 - **Geographic Filtering**: Filter by country and region
 - **Rating-based Filtering**: Filter by minimum and maximum ratings
 - **Tag-based Filtering**: Filter by multiple tags simultaneously
+- **Wind Suitability Filtering**: Filter dive sites by wind conditions and
+  suitability recommendations
+- **Buddy Filtering**: Filter dives by dive buddy username
 - **Full-text Search**: Advanced search across multiple fields with
   location-based filtering
 - **Trip Search**: Intelligent search across trip descriptions, requirements,
@@ -58,6 +70,8 @@ and review dive sites and diving centers.
   capabilities
 - **Permission System**: Comprehensive role-based access control with admin,
   moderator, and user roles
+- **Platform Settings**: System-wide settings including review controls and
+  feature toggles
 - **Bulk Operations**: Mass delete functionality for efficient management
 - **Real-time Updates**: React Query integration for instant data refresh
 
@@ -267,12 +281,17 @@ Documentation](./docs/development/api.md).
 The API provides RESTful endpoints for:
 
 - **Authentication & User Management** - Registration, login, profile management
-- **Dive Sites** - CRUD operations, ratings, comments, media management
+- **Dive Sites** - CRUD operations, ratings, comments, media management, wind
+  recommendations
 - **Diving Centers** - Full management with gear rental costs
 - **Diving Organizations** - Complete organization management system
 - **User Certifications** -
   Certification tracking with organization associations
-- **Dive Logging** - Complete dive logging with media uploads and tags
+- **Dive Logging** - Complete dive logging with media uploads, tags, and buddy
+  management
+- **Dive Routes** - Interactive route drawing, editing, and management
+- **Weather & Wind Data** - Real-time wind data and dive site suitability
+  recommendations
 - **Newsletter Management** - Upload, parse, and manage dive trip information
 - **Tag System** - Comprehensive tag management for dive sites and dives
 - **Media Management** - Photo and video uploads for dive sites and dives

@@ -97,6 +97,7 @@ class User(Base):
     number_of_dives = Column(Integer, default=0, nullable=False)  # Number of dives completed
     avatar_url = Column(String(500), nullable=True)  # User avatar URL
     turnstile_verified_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when Turnstile was verified
+    buddy_visibility = Column(String(20), default='public', nullable=False)  # Control whether user can be added as buddy ('public' or 'private')
 
     # Relationships
     site_ratings = relationship("SiteRating", back_populates="user", cascade="all, delete-orphan")
@@ -109,6 +110,7 @@ class User(Base):
     diving_centers = relationship("DivingCenter", back_populates="owner")
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     auth_audit_logs = relationship("AuthAuditLog", back_populates="user", cascade="all, delete-orphan")
+    buddy_dives = relationship("Dive", secondary="dive_buddies", back_populates="buddies")
 
 class DiveSite(Base):
     __tablename__ = "dive_sites"
@@ -464,6 +466,7 @@ class Dive(Base):
     selected_route = relationship("DiveRoute", foreign_keys=[selected_route_id])
     media = relationship("DiveMedia", back_populates="dive", cascade="all, delete-orphan")
     tags = relationship("DiveTag", back_populates="dive", cascade="all, delete-orphan")
+    buddies = relationship("User", secondary="dive_buddies", back_populates="buddy_dives")
 
 class DiveMedia(Base):
     __tablename__ = "dive_media"
@@ -491,6 +494,24 @@ class DiveTag(Base):
     # Relationships
     dive = relationship("Dive", back_populates="tags")
     tag = relationship("AvailableTag", back_populates="dive_tags")
+
+
+class DiveBuddy(Base):
+    __tablename__ = "dive_buddies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dive_id = Column(Integer, ForeignKey("dives.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    dive = relationship("Dive", overlaps="buddies,buddy_dives")
+    user = relationship("User", overlaps="buddies,buddy_dives")
+
+    # Unique constraint to prevent duplicate buddies for the same dive
+    __table_args__ = (
+        sa.UniqueConstraint('dive_id', 'user_id', name='_dive_buddy_uc'),
+    )
 
 
 class RefreshToken(Base):

@@ -229,7 +229,7 @@ def apply_search_filters(query, search, name, db):
     return query
 
 
-def apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db):
+def apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db, created_by_username=None):
     """
     Apply basic filtering criteria to a query.
     
@@ -242,6 +242,7 @@ def apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, 
         my_dive_sites: Whether to filter by user's dive sites
         current_user: Current authenticated user
         db: Database session for lookups
+        created_by_username: Username of the user who created the dive sites
         
     Returns:
         Filtered query object
@@ -267,6 +268,15 @@ def apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, 
     
     if my_dive_sites and current_user:
         query = query.filter(DiveSite.created_by == current_user.id)
+    
+    if created_by_username:
+        # Find user by username and filter by their created_by ID
+        user = db.query(User).filter(User.username == created_by_username, User.enabled == True).first()
+        if user:
+            query = query.filter(DiveSite.created_by == user.id)
+        else:
+            # User not found, return empty result
+            query = query.filter(False)
     
     return query
 
@@ -746,6 +756,7 @@ async def get_dive_sites(
     country: Optional[str] = Query(None, max_length=100),
     region: Optional[str] = Query(None, max_length=100),
     my_dive_sites: Optional[bool] = Query(None, description="Filter to show only dive sites created by the current user"),
+    created_by_username: Optional[str] = Query(None, description="Filter by username of the user who created the dive sites"),
     sort_by: Optional[str] = Query(None, description="Sort field (name, country, region, difficulty_level, created_at, updated_at). Admin users can also sort by view_count and comment_count."),
     sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
@@ -840,7 +851,7 @@ async def get_dive_sites(
     query = apply_search_filters(query, search, name, db)
 
     # Apply basic filters using utility function
-    query = apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db)
+    query = apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db, created_by_username)
 
     # Apply tag filtering using utility function
     query = apply_tag_filtering(query, tag_ids, db)
@@ -1031,7 +1042,7 @@ async def get_dive_sites(
         
         # Apply the same filters to the full query using utility functions
         all_dive_sites_query = apply_search_filters(all_dive_sites_query, search, name, db)
-        all_dive_sites_query = apply_basic_filters(all_dive_sites_query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db)
+        all_dive_sites_query = apply_basic_filters(all_dive_sites_query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db, created_by_username)
         all_dive_sites_query = apply_tag_filtering(all_dive_sites_query, tag_ids, db)
         all_dive_sites_query = apply_rating_filtering(all_dive_sites_query, min_rating, db)
         
@@ -1430,6 +1441,7 @@ async def get_dive_sites_count(
     country: Optional[str] = Query(None, max_length=100),
     region: Optional[str] = Query(None, max_length=100),
     my_dive_sites: Optional[bool] = Query(None, description="Filter to show only dive sites created by the current user"),
+    created_by_username: Optional[str] = Query(None, description="Filter by username of the user who created the dive sites"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
@@ -1438,7 +1450,7 @@ async def get_dive_sites_count(
 
     # Apply all filters using utility functions
     query = apply_search_filters(query, None, name, db)  # No search parameter in count function
-    query = apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db)
+    query = apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db, created_by_username)
     query = apply_tag_filtering(query, tag_ids, db)
     query = apply_rating_filtering(query, min_rating, db)
 

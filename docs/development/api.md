@@ -345,6 +345,102 @@ Change user password.
 }
 ```text
 
+#### GET /users/search
+
+Search for users by username or name. Only returns users with `buddy_visibility='public'` and `enabled=True`. Excludes the current user from results.
+
+**Headers:** `Authorization: Bearer <token>` (required)
+
+**Query Parameters:**
+
+- `query` (required): Search term for username or name (min length: 1)
+- `limit` (optional): Maximum number of results (default: 25, max: 100)
+
+**Response:**
+
+```json
+[
+  {
+    "id": 2,
+    "username": "diver2",
+    "name": "Jane Diver",
+    "avatar_url": "https://example.com/avatar.jpg"
+  },
+  {
+    "id": 3,
+    "username": "diver3",
+    "name": "Bob Diver",
+    "avatar_url": null
+  }
+]
+```text
+
+**Note:** This endpoint is primarily used for buddy selection in dive creation/editing. Only public users are returned.
+
+#### GET /users/{username}/public
+
+Get public profile information for a user by username.
+
+**Headers:** None required (public endpoint)
+
+**Response:**
+
+```json
+{
+  "username": "diver1",
+  "avatar_url": "https://example.com/avatar.jpg",
+  "number_of_dives": 25,
+  "member_since": "2024-01-15T10:30:00Z",
+  "certifications": [
+    {
+      "id": 1,
+      "certification_level": "Open Water Diver",
+      "diving_organization": {
+        "id": 1,
+        "name": "Professional Association of Diving Instructors",
+        "acronym": "PADI"
+      },
+      "is_active": true
+    }
+  ],
+  "stats": {
+    "dive_sites_rated": 5,
+    "comments_posted": 12,
+    "dive_sites_created": 3,
+    "dives_created": 25,
+    "diving_centers_owned": 1,
+    "site_comments_count": 8,
+    "site_ratings_count": 5,
+    "total_dives_claimed": 25,
+    "buddy_dives_count": 10
+  }
+}
+```text
+
+**Note:** Only enabled users are accessible. This endpoint provides comprehensive user statistics for profile pages.
+
+#### PUT /users/me
+
+Update current user profile.
+
+**Headers:** `Authorization: Bearer <token>` (required)
+
+**Request Body:**
+
+```json
+{
+  "name": "Updated Name",
+  "email": "newemail@example.com",
+  "number_of_dives": 30,
+  "buddy_visibility": "public"
+}
+```text
+
+**Note:** 
+- `buddy_visibility` can be `"public"` (default) or `"private"`
+- When set to `"private"`, the user will not appear in buddy search results
+- All fields are optional
+
 ### Dive Sites Endpoints
 
 #### GET /dive-sites/count
@@ -388,6 +484,7 @@ Get dive sites with comprehensive sorting and filtering.
 - `sort_order`: Sort order (asc, desc, default: asc)
 - `tag_ids`: Comma-separated tag IDs
 - `my_dive_sites`: Filter to show only dive sites created by the current user
+- `created_by_username`: Filter by username of the user who created the dive sites
 
 **Note:** `view_count` and `comment_count` sorting require admin privileges.
 
@@ -1951,6 +2048,9 @@ Get total count of dives matching filters.
 - `start_date`: Start date filter (YYYY-MM-DD)
 - `end_date`: End date filter (YYYY-MM-DD)
 - `tag_ids`: Comma-separated tag IDs
+- `username`: Filter by username (partial match)
+- `buddy_id`: Filter by buddy user ID
+- `buddy_username`: Filter by buddy username
 
 **Response:**
 
@@ -1987,6 +2087,9 @@ Get dives with comprehensive sorting and filtering.
 - `start_date`: Start date filter (YYYY-MM-DD)
 - `end_date`: End date filter (YYYY-MM-DD)
 - `tag_ids`: Comma-separated tag IDs
+- `username`: Filter by username (partial match)
+- `buddy_id`: Filter by buddy user ID
+- `buddy_username`: Filter by buddy username
 - `sort_by`: Sort field (dive_date, max_depth, duration, difficulty_level, visibility_rating, user_rating, created_at, updated_at). Admin users can also sort by view_count. Note: `difficulty_level` sorting uses order_index from the difficulty_levels lookup table.
 - `sort_order`: Sort order (asc, desc, default: desc)
 
@@ -2032,11 +2135,14 @@ Create a new dive.
   "max_depth": 25.5,
   "difficulty_code": "ADVANCED_OPEN_WATER",
   "visibility_rating": 8,
-  "user_rating": 9
+  "user_rating": 9,
+  "buddies": [2, 3]
 }
 ```text
 
-**Note:** `difficulty_code` can be one of: `OPEN_WATER`, `ADVANCED_OPEN_WATER`, `DEEP_NITROX`, `TECHNICAL_DIVING`, or `null` for unspecified.
+**Note:** 
+- `difficulty_code` can be one of: `OPEN_WATER`, `ADVANCED_OPEN_WATER`, `DEEP_NITROX`, `TECHNICAL_DIVING`, or `null` for unspecified.
+- `buddies` is an optional array of user IDs. All buddy users must have `buddy_visibility='public'` and be enabled. Users cannot add themselves as buddies.
 
 #### PUT /dives/{dive_id}
 
@@ -2127,6 +2233,112 @@ curl -X PUT "https://divemap-backend.fly.dev/api/v1/dives/1" \
 
 # Delete a dive
 curl -X DELETE "https://divemap-backend.fly.dev/api/v1/dives/1" \
+     -H "Authorization: Bearer USER_TOKEN"
+```text
+
+#### Dive Buddy Management
+
+**Note:** Only dive owners can add or update buddies. Buddies can remove themselves from a dive.
+
+##### POST /dives/{dive_id}/buddies
+
+Add one or more buddies to a dive.
+
+**Headers:** `Authorization: Bearer <token>` (required, dive owner only)
+
+**Request Body:**
+
+```json
+{
+  "buddy_ids": [2, 3]
+}
+```text
+
+**Response:**
+
+```json
+{
+  "message": "Buddies added successfully",
+  "buddies": [
+    {
+      "id": 2,
+      "username": "diver2",
+      "name": "Jane Diver",
+      "avatar_url": "https://example.com/avatar.jpg"
+    },
+    {
+      "id": 3,
+      "username": "diver3",
+      "name": "Bob Diver",
+      "avatar_url": null
+    }
+  ]
+}
+```text
+
+**Validation:**
+- All buddy user IDs must exist and be enabled
+- All buddy users must have `buddy_visibility='public'`
+- Users cannot add themselves as buddies
+- Duplicate buddies are automatically prevented
+
+##### PUT /dives/{dive_id}/buddies
+
+Replace all buddies for a dive.
+
+**Headers:** `Authorization: Bearer <token>` (required, dive owner only)
+
+**Request Body:**
+
+```json
+{
+  "buddy_ids": [2, 3, 4]
+}
+```text
+
+**Response:** Same as POST /dives/{dive_id}/buddies
+
+**Note:** This replaces the entire buddy list. To add buddies without replacing, use POST endpoint.
+
+##### DELETE /dives/{dive_id}/buddies/{user_id}
+
+Remove a buddy from a dive.
+
+**Headers:** `Authorization: Bearer <token>` (required)
+
+**Permissions:**
+- Dive owner can remove any buddy
+- Buddy can remove themselves (but not re-add themselves)
+
+**Response:**
+
+```json
+{
+  "message": "Buddy removed successfully"
+}
+```text
+
+**Example Requests:**
+
+```bash
+# Add buddies to a dive
+curl -X POST "https://divemap-backend.fly.dev/api/v1/dives/1/buddies" \
+     -H "Authorization: Bearer USER_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "buddy_ids": [2, 3]
+     }'
+
+# Replace all buddies for a dive
+curl -X PUT "https://divemap-backend.fly.dev/api/v1/dives/1/buddies" \
+     -H "Authorization: Bearer USER_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "buddy_ids": [2, 3, 4]
+     }'
+
+# Remove a buddy from a dive (owner or buddy themselves)
+curl -X DELETE "https://divemap-backend.fly.dev/api/v1/dives/1/buddies/2" \
      -H "Authorization: Bearer USER_TOKEN"
 ```text
 

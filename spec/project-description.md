@@ -1,7 +1,7 @@
 # Divemap Project Description
 
-**Last Updated**: September 22, 2025  
-**Version**: 2.0  
+**Last Updated**: December 14, 2025  
+**Version**: 2.1  
 **Author**: AI Assistant
 
 ## Project Overview
@@ -13,9 +13,11 @@ Divemap is a comprehensive web application for scuba diving enthusiasts to disco
 ### User Management
 
 - **Authentication**: Google OAuth and email/password registration
-- **User Profiles**: Comprehensive user profiles with diving credentials
+- **User Profiles**: Comprehensive user profiles with diving credentials and statistics
+- **Public Profiles**: User profile pages with dive statistics, certifications, and activity metrics
 - **Role-Based Access**: Admin, moderator, and user roles with appropriate permissions
 - **Certification Tracking**: Integration with diving organizations (PADI, SSI, GUE, etc.)
+- **Buddy Visibility**: Users can control whether they appear in buddy search results (public/private)
 
 ### Dive Site Management
 
@@ -41,6 +43,9 @@ Divemap is a comprehensive web application for scuba diving enthusiasts to disco
 - **Media Integration**: Photo and video attachments for each dive
 - **Statistics Tracking**: Dive statistics and personal diving metrics
 - **Privacy Controls**: Public/private dive visibility settings
+- **Dive Buddies**: Add registered users as dive buddies with privacy controls
+- **Buddy Management**: Dive owners can add/update buddies; buddies can remove themselves
+- **Buddy Filtering**: Filter dives by buddy username in dive list
 
 ### Interactive Mapping
 
@@ -221,6 +226,9 @@ The project is in active development with a focus on:
 - Enhanced user experience with mobile optimization
 - Advanced search and discovery capabilities
 - Comprehensive dive logging and visualization
+- **NEW**: Dive buddies functionality - add registered users as dive buddies
+- **NEW**: User profile statistics with comprehensive activity metrics
+- **NEW**: Buddy filtering in dive lists
 - **NEW**: Interactive dive profile visualizations with mobile touch support
 - **NEW**: Dive profile import from Subsurface XML format
 - **NEW**: Chart export functionality (PNG/PDF)

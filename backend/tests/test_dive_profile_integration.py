@@ -287,7 +287,7 @@ class TestDiveProfileIntegration:
         with patch('app.routers.dives.dives_profiles.r2_storage') as mock_r2:
             mock_r2.delete_user_profiles.return_value = True
             
-            response = client.delete("/api/v1/dives/profiles/user/1", 
+            response = client.delete("/api/v1/dives/profiles/users/1", 
                                    headers=admin_headers)
             
             assert response.status_code == status.HTTP_200_OK
@@ -353,7 +353,7 @@ class TestDiveProfileIntegration:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         
         # Test 4: User profile deletion without admin access
-        response = client.delete("/api/v1/dives/profiles/user/1")
+        response = client.delete("/api/v1/dives/profiles/users/1")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_permission_workflow(self, client, test_dive, db_session):
