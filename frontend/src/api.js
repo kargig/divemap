@@ -166,13 +166,51 @@ export const searchGlobal = async (query, limit = 8) => {
 
 export default api;
 
+// Utility function to extract field name from Pydantic error location
+const getFieldNameFromLoc = loc => {
+  if (!Array.isArray(loc) || loc.length === 0) return null;
+  // Pydantic validation errors have loc like ["body", "field_name"]
+  // or ["query", "field_name"] etc. We want the last element which is the field name
+  const fieldName = loc[loc.length - 1];
+  // Convert snake_case to human-readable format
+  return fieldName
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+// Utility function to extract all field errors from Pydantic validation errors
+export const extractFieldErrors = error => {
+  const fieldErrors = {};
+  if (error.response?.data?.detail) {
+    if (Array.isArray(error.response.data.detail)) {
+      error.response.data.detail.forEach(err => {
+        if (err.loc && Array.isArray(err.loc)) {
+          const fieldName = err.loc[err.loc.length - 1];
+          const fieldDisplayName = getFieldNameFromLoc(err.loc);
+          fieldErrors[fieldName] = {
+            message: err.msg || 'Validation error',
+            displayName: fieldDisplayName || fieldName,
+          };
+        }
+      });
+    }
+  }
+  return fieldErrors;
+};
+
 // Utility function to extract error message from API responses
 export const extractErrorMessage = error => {
   if (error.response?.data?.detail) {
     // Handle Pydantic validation errors
     if (Array.isArray(error.response.data.detail)) {
-      // Extract the first validation error message
+      // Extract the first validation error message with field name
       const firstError = error.response.data.detail[0];
+      if (firstError.loc && Array.isArray(firstError.loc)) {
+        const fieldDisplayName = getFieldNameFromLoc(firstError.loc);
+        const errorMsg = firstError.msg || 'Validation error';
+        return `${fieldDisplayName}: ${errorMsg}`;
+      }
       return firstError.msg || 'Validation error';
     } else {
       // Handle simple string error messages

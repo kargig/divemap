@@ -47,8 +47,8 @@ const EditDive = () => {
   } = useQuery(['dive', id], () => getDive(id), {
     enabled: !!id && !authLoading && !!user,
     onSuccess: data => {
-      // Check if the dive belongs to the current user
-      if (data.user_id !== user?.id) {
+      // Check if the dive belongs to the current user (admins can edit any dive)
+      if (data.user_id !== user?.id && !user?.is_admin) {
         toast.error('You can only edit your own dives');
         navigate('/dives');
         return;
@@ -168,7 +168,7 @@ const EditDive = () => {
     onError: error => {
       let errorMessage = 'Failed to update dive';
       if (error.response?.status === 404) {
-        errorMessage = 'You can only edit your own dives. This dive belongs to another user.';
+        errorMessage = 'Dive not found or you do not have permission to edit it.';
       } else if (error.response?.data?.detail) {
         if (Array.isArray(error.response.data.detail)) {
           // Handle validation errors array
