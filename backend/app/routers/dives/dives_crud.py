@@ -153,7 +153,7 @@ def create_dive(
         if missing_buddy_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid buddy user IDs or users with private visibility: {missing_buddy_ids}"
+                detail=f"Some user IDs are invalid or users have private visibility. {len(missing_buddy_ids)} user(s) could not be added."
             )
         
         # Prevent adding yourself as a buddy
@@ -414,16 +414,16 @@ def get_dives_count(
     # Apply buddy filtering
     if buddy_username:
         # Convert username to user ID
+        # Don't reveal if username exists to prevent enumeration attacks
         buddy_user = db.query(User).filter(
             User.username == buddy_username,
             User.enabled == True
         ).first()
         if not buddy_user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with username '{buddy_username}' not found"
-            )
-        buddy_id = buddy_user.id
+            # Return empty results instead of error to prevent username enumeration
+            buddy_id = None
+        else:
+            buddy_id = buddy_user.id
     
     if buddy_id:
         # Filter dives that have this user as a buddy
@@ -631,16 +631,16 @@ def get_dives(
     # Apply buddy filtering
     if buddy_username:
         # Convert username to user ID
+        # Don't reveal if username exists to prevent enumeration attacks
         buddy_user = db.query(User).filter(
             User.username == buddy_username,
             User.enabled == True
         ).first()
         if not buddy_user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with username '{buddy_username}' not found"
-            )
-        buddy_id = buddy_user.id
+            # Return empty results instead of error to prevent username enumeration
+            buddy_id = None
+        else:
+            buddy_id = buddy_user.id
     
     if buddy_id:
         # Filter dives that have this user as a buddy
@@ -1303,7 +1303,7 @@ def update_dive(
         if missing_buddy_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid buddy user IDs or users with private visibility: {missing_buddy_ids}"
+                detail=f"Some user IDs are invalid or users have private visibility. {len(missing_buddy_ids)} user(s) could not be added."
             )
         
         # Prevent adding yourself as a buddy
@@ -1542,7 +1542,7 @@ def add_buddies_to_dive(
     if missing_buddy_ids:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid buddy user IDs or users with private visibility: {missing_buddy_ids}"
+            detail=f"Some user IDs are invalid or users have private visibility. {len(missing_buddy_ids)} user(s) could not be added."
         )
     
     # Prevent adding yourself as a buddy
@@ -1618,7 +1618,7 @@ def replace_dive_buddies(
         if missing_buddy_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid buddy user IDs or users with private visibility: {missing_buddy_ids}"
+                detail=f"Some user IDs are invalid or users have private visibility. {len(missing_buddy_ids)} user(s) could not be added."
             )
         
         # Prevent adding yourself as a buddy

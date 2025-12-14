@@ -698,13 +698,15 @@ class TestBuddyFiltering:
         assert len(data) == 1
         assert data[0]["id"] == dive.id
 
-    def test_filter_dives_by_invalid_buddy_username_fails(self, client, auth_headers):
-        """Test filtering by non-existent buddy username returns 404."""
+    def test_filter_dives_by_invalid_buddy_username_returns_empty(self, client, auth_headers):
+        """Test filtering by non-existent buddy username returns empty results (prevents username enumeration)."""
         response = client.get(
             "/api/v1/dives/?buddy_username=nonexistent",
             headers=auth_headers
         )
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data == []  # Should return empty list, not error
 
     def test_filter_dives_count_by_buddy(self, client, auth_headers, test_user, test_dive_site, db_session):
         """Test filtering dive count by buddy."""
@@ -908,3 +910,63 @@ class TestMultipleBuddies:
 
         data = response.json()
         assert len(data["buddies"]) == 5
+
+    def test_add_too_many_buddies_fails_validation(self, client, auth_headers, test_user, test_dive_site, db_session):
+        """Test that adding more than 20 buddies fails validation."""
+        # Create a dive first
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            dive_date=date(2025, 1, 15),
+            name="Max buddies test"
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Create 21 buddies
+        buddies = []
+        for i in range(21):
+            buddy = User(
+                username=f"maxbuddy{i}",
+                email=f"maxbuddy{i}@example.com",
+                password_hash="hashed_password",
+                buddy_visibility="public",
+                enabled=True
+            )
+            db_session.add(buddy)
+            buddies.append(buddy)
+        db_session.commit()
+
+        # Try to add 21 buddies via POST endpoint
+        response = client.post(
+            f"/api/v1/dives/{dive.id}/buddies",
+            json={"buddy_ids": [b.id for b in buddies]},
+            headers=auth_headers
+        )
+        # Should fail validation due to max_items=20 constraint
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_add_too_many_buddies_fails_validation(self, client, auth_headers, test_user, test_dive_site, db_session):
+        """Test that adding more than 20 buddies fails validation."""
+        # Create 21 buddies
+        buddies = []
+        for i in range(21):
+            buddy = User(
+                username=f"maxbuddy{i}",
+                email=f"maxbuddy{i}@example.com",
+                password_hash="hashed_password",
+                buddy_visibility="public",
+                enabled=True
+            )
+            db_session.add(buddy)
+            buddies.append(buddy)
+        db_session.commit()
+
+        # Try to add 21 buddies via POST endpoint
+        response = client.post(
+            f"/api/v1/dives/{test_dive_site.id}/buddies",
+            json={"buddy_ids": [b.id for b in buddies]},
+            headers=auth_headers
+        )
+        # Should fail validation due to max_items=20 constraint
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY

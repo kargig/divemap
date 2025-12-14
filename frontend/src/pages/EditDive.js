@@ -242,10 +242,17 @@ const EditDive = () => {
   };
 
   // Handle buddy selection
+  const MAX_BUDDIES = 20;
+
   const handleBuddySelect = user => {
     // Prevent duplicate buddies
     if (selectedBuddies.find(buddy => buddy.id === user.id)) {
       toast.error('This user is already added as a buddy');
+      return;
+    }
+    // Enforce maximum buddies limit
+    if (selectedBuddies.length >= MAX_BUDDIES) {
+      toast.error(`Maximum ${MAX_BUDDIES} buddies allowed per dive`);
       return;
     }
     setSelectedBuddies(prev => [...prev, user]);

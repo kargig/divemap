@@ -657,10 +657,10 @@ class DiveMediaResponse(BaseModel):
 
 # Buddy Management Schemas
 class AddBuddiesRequest(BaseModel):
-    buddy_ids: List[int] = Field(..., min_items=1, description="List of user IDs to add as buddies")
+    buddy_ids: List[int] = Field(..., min_items=1, max_items=20, description="List of user IDs to add as buddies (max 20)")
 
 class ReplaceBuddiesRequest(BaseModel):
-    buddy_ids: List[int] = Field(..., description="List of user IDs to set as buddies (can be empty to remove all)")
+    buddy_ids: List[int] = Field(..., max_items=20, description="List of user IDs to set as buddies (max 20, can be empty to remove all)")
 
     class Config:
         from_attributes = True

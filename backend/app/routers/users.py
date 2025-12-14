@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import List, Optional
@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy
 from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
+from app.limiter import skip_rate_limit_for_admin
 from sqlalchemy import func
 
 router = APIRouter()
@@ -158,8 +159,10 @@ async def change_password(
     return {"message": "Password changed successfully"}
 
 @router.get("/search", response_model=List[UserSearchResponse])
+@skip_rate_limit_for_admin("60/minute")
 async def search_users(
-    query: str = Query(..., min_length=1, description="Search term for username or name"),
+    request: Request,
+    query: str = Query(..., min_length=1, max_length=100, description="Search term for username or name (max 100 characters)"),
     limit: int = Query(25, ge=1, le=100, description="Maximum number of results"),
     current_user: Optional[User] = Depends(get_current_active_user),
     db: Session = Depends(get_db)
@@ -197,7 +200,9 @@ async def search_users(
     ]
 
 @router.get("/{username}/public", response_model=UserPublicProfileResponse)
+@skip_rate_limit_for_admin("60/minute")
 async def get_user_public_profile(
+    request: Request,
     username: str,
     db: Session = Depends(get_db)
 ):

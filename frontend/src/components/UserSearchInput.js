@@ -62,6 +62,14 @@ const UserSearchInput = ({
 
   // Handle search input change with debouncing
   const handleSearchChange = value => {
+    // Validate input length
+    if (value && value.length > 100) {
+      setError('Search query too long (max 100 characters)');
+      setSearchResults([]);
+      setIsDropdownOpen(false);
+      return;
+    }
+
     setSearchQuery(value);
     setIsDropdownOpen(true);
     setSelectedIndex(-1);
