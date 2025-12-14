@@ -19,7 +19,8 @@ from datetime import datetime
 import json
 
 from .dives_shared import router, get_db, get_current_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage, UNIFIED_TYPO_TOLERANCE
-from app.schemas import DiveCreate, DiveUpdate, DiveResponse
+from app.models import DiveBuddy
+from app.schemas import DiveCreate, DiveUpdate, DiveResponse, AddBuddiesRequest, ReplaceBuddiesRequest
 from app.models import DiveSite, DivingCenter, DiveSiteAlias, DifficultyLevel, get_difficulty_id_by_code
 from .dives_utils import generate_dive_name
 from .dives_import import parse_dive_information_text
@@ -135,6 +136,50 @@ def create_dive(
     db.commit()
     db.refresh(db_dive)
 
+    # Handle buddies if provided
+    if dive.buddies:
+        # Validate all buddy user IDs exist and have public visibility
+        buddy_ids = list(set(dive.buddies))  # Remove duplicates
+        buddy_users = db.query(User).filter(
+            User.id.in_(buddy_ids),
+            User.enabled == True,
+            User.buddy_visibility == 'public'
+        ).all()
+        
+        # Check if all requested buddies were found and valid
+        found_buddy_ids = {user.id for user in buddy_users}
+        missing_buddy_ids = set(buddy_ids) - found_buddy_ids
+        
+        if missing_buddy_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid buddy user IDs or users with private visibility: {missing_buddy_ids}"
+            )
+        
+        # Prevent adding yourself as a buddy
+        if current_user.id in buddy_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot add yourself as a buddy"
+            )
+        
+        # Create DiveBuddy records
+        for buddy_user in buddy_users:
+            # Check if buddy relationship already exists (shouldn't happen due to unique constraint, but check anyway)
+            existing_buddy = db.query(DiveBuddy).filter(
+                DiveBuddy.dive_id == db_dive.id,
+                DiveBuddy.user_id == buddy_user.id
+            ).first()
+            
+            if not existing_buddy:
+                dive_buddy = DiveBuddy(
+                    dive_id=db_dive.id,
+                    user_id=buddy_user.id
+                )
+                db.add(dive_buddy)
+        
+        db.commit()
+
     # Get dive site information if available
     dive_site_info = None
     if db_dive.dive_site_id:
@@ -186,6 +231,18 @@ def create_dive(
     # Ensure difficulty relationship is loaded for response serialization
     db_dive = db.query(Dive).options(joinedload(Dive.difficulty)).filter(Dive.id == db_dive.id).first()
 
+    # Get buddies for this dive
+    dive_buddies = db.query(User).join(DiveBuddy).filter(DiveBuddy.dive_id == db_dive.id).all()
+    buddies_list = [
+        {
+            "id": buddy.id,
+            "username": buddy.username,
+            "name": buddy.name,
+            "avatar_url": buddy.avatar_url
+        }
+        for buddy in dive_buddies
+    ]
+
     # Convert to dict to avoid SQLAlchemy relationship serialization issues
     dive_dict = {
         "id": db_dive.id,
@@ -215,6 +272,7 @@ def create_dive(
         "selected_route": selected_route_info,
         "media": [],
         "tags": [],
+        "buddies": buddies_list,
         "user_username": current_user.username
     }
 
@@ -241,6 +299,8 @@ def get_dives_count(
     start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
+    buddy_id: Optional[int] = Query(None, description="Filter by buddy user ID"),
+    buddy_username: Optional[str] = Query(None, description="Filter by buddy username")
 ):
     """Get total count of dives matching the filters."""
     query = db.query(Dive).join(User, Dive.user_id == User.id)
@@ -351,6 +411,25 @@ def get_dives_count(
                 detail="Invalid tag_ids format. Use comma-separated integers"
             )
 
+    # Apply buddy filtering
+    if buddy_username:
+        # Convert username to user ID
+        buddy_user = db.query(User).filter(
+            User.username == buddy_username,
+            User.enabled == True
+        ).first()
+        if not buddy_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User with username '{buddy_username}' not found"
+            )
+        buddy_id = buddy_user.id
+    
+    if buddy_id:
+        # Filter dives that have this user as a buddy
+        query = query.join(DiveBuddy, Dive.id == DiveBuddy.dive_id)
+        query = query.filter(DiveBuddy.user_id == buddy_id)
+
     # Get total count
     total_count = query.count()
 
@@ -378,6 +457,8 @@ def get_dives(
     start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
+    buddy_id: Optional[int] = Query(None, description="Filter by buddy user ID"),
+    buddy_username: Optional[str] = Query(None, description="Filter by buddy username"),
     sort_by: Optional[str] = Query(None, description="Sort field (dive_date, max_depth, duration, difficulty_level, visibility_rating, user_rating, created_at, updated_at). Admin users can also sort by view_count."),
     sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
@@ -544,6 +625,25 @@ def get_dives(
                 detail="Invalid tag_ids format"
             )
 
+    # Apply buddy filtering
+    if buddy_username:
+        # Convert username to user ID
+        buddy_user = db.query(User).filter(
+            User.username == buddy_username,
+            User.enabled == True
+        ).first()
+        if not buddy_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User with username '{buddy_username}' not found"
+            )
+        buddy_id = buddy_user.id
+    
+    if buddy_id:
+        # Filter dives that have this user as a buddy
+        query = query.join(DiveBuddy, Dive.id == DiveBuddy.dive_id)
+        query = query.filter(DiveBuddy.user_id == buddy_id)
+
     # Get total count for pagination headers
     total_count = query.count()
 
@@ -682,6 +782,18 @@ def get_dives(
         dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).order_by(AvailableTag.name.asc()).all()
         tags_list = [{"id": tag.id, "name": tag.name} for tag in dive_tags]
 
+        # Get buddies for this dive
+        dive_buddies = db.query(User).join(DiveBuddy).filter(DiveBuddy.dive_id == dive.id).all()
+        buddies_list = [
+            {
+                "id": buddy.id,
+                "username": buddy.username,
+                "name": buddy.name,
+                "avatar_url": buddy.avatar_url
+            }
+            for buddy in dive_buddies
+        ]
+
         # Parse dive information to extract individual fields
         parsed_info = parse_dive_information_text(dive.dive_information)
 
@@ -712,6 +824,7 @@ def get_dives(
             "diving_center": diving_center_info,
             "media": [],
             "tags": tags_list,
+            "buddies": buddies_list,
             "user_username": dive.user.username,
             # Add parsed fields from dive_information
             "buddy": parsed_info.get('buddy'),
@@ -848,6 +961,18 @@ def get_dive(
         for tag in dive_tags
     ]
 
+    # Get buddies for this dive
+    dive_buddies = db.query(User).join(DiveBuddy).filter(DiveBuddy.dive_id == dive.id).all()
+    buddies_list = [
+        {
+            "id": buddy.id,
+            "username": buddy.username,
+            "name": buddy.name,
+            "avatar_url": buddy.avatar_url
+        }
+        for buddy in dive_buddies
+    ]
+
     # Parse dive information to extract individual fields
     parsed_info = parse_dive_information_text(dive.dive_information)
 
@@ -901,6 +1026,7 @@ def get_dive(
         "selected_route": selected_route_info,
         "media": [],
         "tags": tags_dict,
+        "buddies": buddies_list,
         "user_username": dive.user.username,
         # Add parsed fields from dive_information
         "buddy": parsed_info.get('buddy'),
@@ -1151,8 +1277,50 @@ def update_dive(
         dive.difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
     
     for field, value in update_data.items():
-        if field not in ['dive_date', 'dive_time', 'name', 'tags']:
+        if field not in ['dive_date', 'dive_time', 'name', 'tags', 'buddies']:
             setattr(dive, field, value)
+
+    # Handle buddy updates if provided
+    if dive_update.buddies is not None:
+        # Get current buddies for this dive
+        current_buddies = db.query(DiveBuddy).filter(DiveBuddy.dive_id == dive_id).all()
+        current_buddy_ids = [buddy.user_id for buddy in current_buddies]
+        
+        # Validate all buddy user IDs exist and have public visibility
+        buddy_ids = list(set(dive_update.buddies))  # Remove duplicates
+        buddy_users = db.query(User).filter(
+            User.id.in_(buddy_ids),
+            User.enabled == True,
+            User.buddy_visibility == 'public'
+        ).all()
+        
+        # Check if all requested buddies were found and valid
+        found_buddy_ids = {user.id for user in buddy_users}
+        missing_buddy_ids = set(buddy_ids) - found_buddy_ids
+        
+        if missing_buddy_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid buddy user IDs or users with private visibility: {missing_buddy_ids}"
+            )
+        
+        # Prevent adding yourself as a buddy
+        if current_user.id in buddy_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot add yourself as a buddy"
+            )
+        
+        # Add new buddies
+        for buddy_user in buddy_users:
+            if buddy_user.id not in current_buddy_ids:
+                new_dive_buddy = DiveBuddy(dive_id=dive_id, user_id=buddy_user.id)
+                db.add(new_dive_buddy)
+        
+        # Remove buddies that are no longer selected
+        for current_buddy in current_buddies:
+            if current_buddy.user_id not in buddy_ids:
+                db.delete(current_buddy)
 
     # Handle tag updates if provided
     if dive_update.tags is not None:
@@ -1230,6 +1398,18 @@ def update_dive(
         for tag in dive_tags
     ]
 
+    # Get buddies for this dive
+    dive_buddies = db.query(User).join(DiveBuddy).filter(DiveBuddy.dive_id == dive.id).all()
+    buddies_list = [
+        {
+            "id": buddy.id,
+            "username": buddy.username,
+            "name": buddy.name,
+            "avatar_url": buddy.avatar_url
+        }
+        for buddy in dive_buddies
+    ]
+
     # Get selected route information if available
     selected_route_info = None
     if dive.selected_route_id:
@@ -1276,6 +1456,7 @@ def update_dive(
         "selected_route": selected_route_info,
         "media": [],
         "tags": tags_dict,
+        "buddies": buddies_list,
         "user_username": current_user.username
     }
 
@@ -1310,3 +1491,208 @@ def delete_dive(
     db.commit()
 
     return {"message": "Dive deleted successfully"}
+
+
+# Buddy Management Endpoints
+@router.post("/{dive_id}/buddies")
+def add_buddies_to_dive(
+    dive_id: int,
+    request: AddBuddiesRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Add one or more buddies to a dive. Only dive owner can add buddies."""
+    if not current_user.enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled"
+        )
+    
+    # Check if dive exists and user owns it
+    dive = db.query(Dive).filter(Dive.id == dive_id).first()
+    if not dive:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive not found"
+        )
+    
+    # Only dive owner can add buddies
+    if dive.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the dive owner can add buddies"
+        )
+    
+    # Validate all buddy user IDs exist and have public visibility
+    buddy_ids = list(set(request.buddy_ids))  # Remove duplicates
+    buddy_users = db.query(User).filter(
+        User.id.in_(buddy_ids),
+        User.enabled == True,
+        User.buddy_visibility == 'public'
+    ).all()
+    
+    # Check if all requested buddies were found and valid
+    found_buddy_ids = {user.id for user in buddy_users}
+    missing_buddy_ids = set(buddy_ids) - found_buddy_ids
+    
+    if missing_buddy_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid buddy user IDs or users with private visibility: {missing_buddy_ids}"
+        )
+    
+    # Prevent adding yourself as a buddy
+    if current_user.id in buddy_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot add yourself as a buddy"
+        )
+    
+    # Add buddies (skip if already exists due to unique constraint)
+    added_count = 0
+    for buddy_user in buddy_users:
+        existing_buddy = db.query(DiveBuddy).filter(
+            DiveBuddy.dive_id == dive_id,
+            DiveBuddy.user_id == buddy_user.id
+        ).first()
+        
+        if not existing_buddy:
+            dive_buddy = DiveBuddy(
+                dive_id=dive_id,
+                user_id=buddy_user.id
+            )
+            db.add(dive_buddy)
+            added_count += 1
+    
+    db.commit()
+    
+    return {"message": f"Added {added_count} buddy(ies) to dive", "added_count": added_count}
+
+
+@router.put("/{dive_id}/buddies")
+def replace_dive_buddies(
+    dive_id: int,
+    request: ReplaceBuddiesRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Replace the entire buddy list for a dive. Only dive owner can use this."""
+    if not current_user.enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled"
+        )
+    
+    # Check if dive exists and user owns it
+    dive = db.query(Dive).filter(Dive.id == dive_id).first()
+    if not dive:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive not found"
+        )
+    
+    # Only dive owner can replace buddies
+    if dive.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the dive owner can replace buddies"
+        )
+    
+    # Validate all buddy user IDs exist and have public visibility
+    buddy_ids = list(set(request.buddy_ids))  # Remove duplicates
+    if buddy_ids:  # Only validate if list is not empty
+        buddy_users = db.query(User).filter(
+            User.id.in_(buddy_ids),
+            User.enabled == True,
+            User.buddy_visibility == 'public'
+        ).all()
+        
+        # Check if all requested buddies were found and valid
+        found_buddy_ids = {user.id for user in buddy_users}
+        missing_buddy_ids = set(buddy_ids) - found_buddy_ids
+        
+        if missing_buddy_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid buddy user IDs or users with private visibility: {missing_buddy_ids}"
+            )
+        
+        # Prevent adding yourself as a buddy
+        if current_user.id in buddy_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot add yourself as a buddy"
+            )
+    
+    # Get current buddies
+    current_buddies = db.query(DiveBuddy).filter(DiveBuddy.dive_id == dive_id).all()
+    current_buddy_ids = {buddy.user_id for buddy in current_buddies}
+    
+    # Remove buddies that are no longer in the list
+    for current_buddy in current_buddies:
+        if current_buddy.user_id not in buddy_ids:
+            db.delete(current_buddy)
+    
+    # Add new buddies
+    for buddy_id in buddy_ids:
+        if buddy_id not in current_buddy_ids:
+            dive_buddy = DiveBuddy(
+                dive_id=dive_id,
+                user_id=buddy_id
+            )
+            db.add(dive_buddy)
+    
+    db.commit()
+    
+    return {"message": "Buddies updated successfully"}
+
+
+@router.delete("/{dive_id}/buddies/{user_id}")
+def remove_buddy_from_dive(
+    dive_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Remove a buddy from a dive. Can be called by dive owner or the buddy themselves."""
+    if not current_user.enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled"
+        )
+    
+    # Check if dive exists
+    dive = db.query(Dive).filter(Dive.id == dive_id).first()
+    if not dive:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive not found"
+        )
+    
+    # Check if user is the dive owner or the buddy themselves
+    is_owner = dive.user_id == current_user.id
+    is_buddy = user_id == current_user.id
+    
+    if not (is_owner or is_buddy):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the dive owner or the buddy themselves can remove a buddy"
+        )
+    
+    # Find the buddy relationship
+    dive_buddy = db.query(DiveBuddy).filter(
+        DiveBuddy.dive_id == dive_id,
+        DiveBuddy.user_id == user_id
+    ).first()
+    
+    if not dive_buddy:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Buddy relationship not found"
+        )
+    
+    # Remove the buddy
+    db.delete(dive_buddy)
+    db.commit()
+    
+    return {"message": "Buddy removed successfully"}

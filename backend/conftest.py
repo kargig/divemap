@@ -122,7 +122,8 @@ def test_user(db_session):
         password_hash="$2b$12$bkh2s0S1uAXrAMa5CewBwubJhyiZJTs1jEwy7I4R2Sn9q9cXW2BxO",  # "TestPass123!"
         is_admin=False,
         is_moderator=False,
-        enabled=True
+        enabled=True,
+        buddy_visibility="public"
     )
     db_session.add(user)
     db_session.commit()
@@ -138,7 +139,8 @@ def test_admin_user(db_session):
         password_hash="$2b$12$Qf4ceC4ETacht.pNDme/H.nTnGtc7bNpWDZD2R39K.1Nh32oH7cfy",  # "password"
         is_admin=True,
         is_moderator=False,
-        enabled=True
+        enabled=True,
+        buddy_visibility="public"
     )
     db_session.add(admin)
     db_session.commit()
@@ -170,7 +172,8 @@ def test_user_other(db_session):
         password_hash="$2b$12$Qf4ceC4ETacht.pNDme/H.nTnGtc7bNpWDZD2R39K.1Nh32oH7cfy",  # "password"
         is_admin=False,
         is_moderator=False,
-        enabled=True
+        enabled=True,
+        buddy_visibility="public"
     )
     db_session.add(user)
     db_session.commit()

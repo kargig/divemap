@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy import or_
+from typing import List, Optional
 
 from app.database import get_db
 from app.models import User, SiteRating, SiteComment, CenterComment
-from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats
+from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
 from sqlalchemy import func
 
@@ -155,6 +156,45 @@ async def change_password(
     db.commit()
 
     return {"message": "Password changed successfully"}
+
+@router.get("/search", response_model=List[UserSearchResponse])
+async def search_users(
+    query: str = Query(..., min_length=1, description="Search term for username or name"),
+    limit: int = Query(25, ge=1, le=100, description="Maximum number of results"),
+    current_user: Optional[User] = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Search for users by username or name. Only returns users with buddy_visibility='public' and enabled=True.
+    Excludes the current user from results."""
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required"
+        )
+    
+    # Search for users matching query in username or name
+    # Only include users with buddy_visibility='public' and enabled=True
+    # Exclude current user
+    search_term = f"%{query.strip()}%"
+    users = db.query(User).filter(
+        User.enabled == True,
+        User.buddy_visibility == 'public',
+        User.id != current_user.id,
+        or_(
+            User.username.ilike(search_term),
+            User.name.ilike(search_term)
+        )
+    ).limit(limit).all()
+    
+    return [
+        UserSearchResponse(
+            id=user.id,
+            username=user.username,
+            name=user.name,
+            avatar_url=user.avatar_url
+        )
+        for user in users
+    ]
 
 @router.get("/{username}/public", response_model=UserPublicProfileResponse)
 async def get_user_public_profile(
