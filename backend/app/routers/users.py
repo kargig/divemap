@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy import or_
+from typing import List, Optional
 
 from app.database import get_db
-from app.models import User, SiteRating, SiteComment, CenterComment
-from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats
+from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy
+from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
+from app.limiter import skip_rate_limit_for_admin
 from sqlalchemy import func
 
 router = APIRouter()
@@ -156,8 +158,51 @@ async def change_password(
 
     return {"message": "Password changed successfully"}
 
+@router.get("/search", response_model=List[UserSearchResponse])
+@skip_rate_limit_for_admin("60/minute")
+async def search_users(
+    request: Request,
+    query: str = Query(..., min_length=1, max_length=100, description="Search term for username or name (max 100 characters)"),
+    limit: int = Query(25, ge=1, le=100, description="Maximum number of results"),
+    current_user: Optional[User] = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Search for users by username or name. Only returns users with buddy_visibility='public' and enabled=True.
+    Excludes the current user from results."""
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required"
+        )
+    
+    # Search for users matching query in username or name
+    # Only include users with buddy_visibility='public' and enabled=True
+    # Exclude current user
+    search_term = f"%{query.strip()}%"
+    users = db.query(User).filter(
+        User.enabled == True,
+        User.buddy_visibility == 'public',
+        User.id != current_user.id,
+        or_(
+            User.username.ilike(search_term),
+            User.name.ilike(search_term)
+        )
+    ).limit(limit).all()
+    
+    return [
+        UserSearchResponse(
+            id=user.id,
+            username=user.username,
+            name=user.name,
+            avatar_url=user.avatar_url
+        )
+        for user in users
+    ]
+
 @router.get("/{username}/public", response_model=UserPublicProfileResponse)
+@skip_rate_limit_for_admin("60/minute")
 async def get_user_public_profile(
+    request: Request,
     username: str,
     db: Session = Depends(get_db)
 ):
@@ -174,7 +219,10 @@ async def get_user_public_profile(
             detail="User not found"
         )
 
-    # Calculate user statistics
+    # Calculate user statistics for profile display
+    # These queries are optimized with scalar() for single-value results
+    
+    # Rating and comment statistics
     dive_sites_rated = db.query(func.count(SiteRating.id)).filter(
         SiteRating.user_id == user.id
     ).scalar()
@@ -187,12 +235,44 @@ async def get_user_public_profile(
         CenterComment.user_id == user.id
     ).scalar()
 
+    # Total comments includes both dive site and diving center comments
     comments_posted = (site_comments_count or 0) + (center_comments_count or 0)
+
+    # Content creation statistics
+    dive_sites_created = db.query(func.count(DiveSite.id)).filter(
+        DiveSite.created_by == user.id
+    ).scalar()
+
+    dives_created = db.query(func.count(Dive.id)).filter(
+        Dive.user_id == user.id
+    ).scalar()
+
+    diving_centers_owned = db.query(func.count(DivingCenter.id)).filter(
+        DivingCenter.owner_id == user.id
+    ).scalar()
+
+    # Rating count is the same as dive_sites_rated (for consistency in stats display)
+    site_ratings_count = dive_sites_rated or 0
+
+    # User's claimed total dives (from their profile)
+    total_dives_claimed = user.number_of_dives or 0
+
+    # Count dives where this user is a buddy (not the owner)
+    buddy_dives_count = db.query(func.count(DiveBuddy.id)).filter(
+        DiveBuddy.user_id == user.id
+    ).scalar()
 
     # Create stats object
     stats = UserProfileStats(
         dive_sites_rated=dive_sites_rated or 0,
-        comments_posted=comments_posted or 0
+        comments_posted=comments_posted or 0,
+        dive_sites_created=dive_sites_created or 0,
+        dives_created=dives_created or 0,
+        diving_centers_owned=diving_centers_owned or 0,
+        site_comments_count=site_comments_count or 0,
+        site_ratings_count=site_ratings_count or 0,
+        total_dives_claimed=total_dives_claimed,
+        buddy_dives_count=buddy_dives_count or 0
     )
 
     # Create response object

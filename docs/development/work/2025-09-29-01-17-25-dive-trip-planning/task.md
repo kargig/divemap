@@ -369,7 +369,7 @@ A comprehensive dive trip planning platform that allows groups of divers to coll
 - POST /api/dive-trip-plans/{plan_id}/participate - Submit vote
 - GET /api/dive-trip-plans/{plan_id}/results - Get voting results
 - GET /api/dive-trip-plans/search - Search and filter trip plans
-- GET /api/dive-trip-plans/user/{user_id} - Get user's trip plans
+- GET /api/dive-trip-plans/users/{user_id} - Get user's trip plans
 
 **Enhanced Endpoints:**
 

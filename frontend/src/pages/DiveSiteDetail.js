@@ -579,7 +579,7 @@ const DiveSiteDetail = () => {
                         <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
                           <span className='font-medium'>By:</span>
                           <RouterLink
-                            to={`/user/${dive.user_username}`}
+                            to={`/users/${dive.user_username}`}
                             className='text-blue-600 hover:text-blue-800 hover:underline'
                           >
                             {dive.user_username}
@@ -828,7 +828,7 @@ const DiveSiteDetail = () => {
                   <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2'>
                     <div className='flex flex-col sm:flex-row sm:items-center gap-2'>
                       <RouterLink
-                        to={`/user/${comment.username}`}
+                        to={`/users/${comment.username}`}
                         className='font-medium text-blue-600 hover:text-blue-800 hover:underline text-sm'
                       >
                         {comment.username}

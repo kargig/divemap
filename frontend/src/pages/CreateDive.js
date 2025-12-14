@@ -14,6 +14,7 @@ import {
   getDivingCenters,
 } from '../api';
 import RouteSelection from '../components/RouteSelection';
+import UserSearchInput from '../components/UserSearchInput';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 
@@ -55,6 +56,7 @@ const CreateDive = () => {
   const divingCenterDropdownRef = useRef(null);
   const [mediaUrls, setMediaUrls] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [selectedBuddies, setSelectedBuddies] = useState([]);
 
   // Fetch diving centers for dropdown
   const { data: divingCenters = [] } = useQuery(['diving-centers'], () =>
@@ -211,6 +213,28 @@ const CreateDive = () => {
       toast.info('Tag creation feature coming soon!');
       setNewTag('');
     }
+  };
+
+  // Handle buddy selection
+  const MAX_BUDDIES = 20;
+
+  const handleBuddySelect = user => {
+    // Prevent duplicate buddies
+    if (selectedBuddies.find(buddy => buddy.id === user.id)) {
+      toast.error('This user is already added as a buddy');
+      return;
+    }
+    // Enforce maximum buddies limit
+    if (selectedBuddies.length >= MAX_BUDDIES) {
+      toast.error(`Maximum ${MAX_BUDDIES} buddies allowed per dive`);
+      return;
+    }
+    setSelectedBuddies(prev => [...prev, user]);
+  };
+
+  // Handle buddy removal
+  const handleBuddyRemove = buddyId => {
+    setSelectedBuddies(prev => prev.filter(buddy => buddy.id !== buddyId));
   };
 
   // Use dynamically searched dive sites instead of static filtering
@@ -424,6 +448,7 @@ const CreateDive = () => {
           : null,
       dive_time:
         formData.dive_time && formData.dive_time !== '' ? `${formData.dive_time}:00` : null,
+      buddies: selectedBuddies.length > 0 ? selectedBuddies.map(buddy => buddy.id) : [],
     };
 
     try {
@@ -1023,6 +1048,62 @@ const CreateDive = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Buddies */}
+          <div className='md:col-span-2'>
+            <h2 className='text-xl font-semibold mb-4'>Buddies</h2>
+            <div className='space-y-4'>
+              <UserSearchInput
+                onSelect={handleBuddySelect}
+                excludeUserIds={selectedBuddies.map(buddy => buddy.id)}
+                placeholder='Search for users to add as buddies...'
+                label='Add Dive Buddies (Optional)'
+              />
+
+              {/* Selected Buddies */}
+              {selectedBuddies.length > 0 && (
+                <div className='mt-4'>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Selected Buddies
+                  </label>
+                  <div className='flex flex-wrap gap-2'>
+                    {selectedBuddies.map(buddy => (
+                      <div
+                        key={buddy.id}
+                        className='flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-full border border-blue-300'
+                      >
+                        {buddy.avatar_url ? (
+                          <img
+                            src={buddy.avatar_url}
+                            alt={buddy.username}
+                            className='w-6 h-6 rounded-full object-cover'
+                          />
+                        ) : (
+                          <div className='w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center'>
+                            <span className='text-xs font-medium text-blue-800'>
+                              {buddy.username.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <span className='text-sm font-medium'>{buddy.username}</span>
+                        {buddy.name && (
+                          <span className='text-xs text-blue-600'>({buddy.name})</span>
+                        )}
+                        <button
+                          type='button'
+                          onClick={() => handleBuddyRemove(buddy.id)}
+                          className='ml-1 text-blue-600 hover:text-blue-800'
+                          aria-label={`Remove ${buddy.username}`}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

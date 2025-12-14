@@ -22,7 +22,7 @@ const PAGES_TO_TEST = [
   '/admin/tags',
   '/create-dive-site',
   '/create-diving-center',
-  '/user/testuser'
+  '/users/testuser'
 ];
 
 // Test data for forms
@@ -130,7 +130,7 @@ async function testPage(browser, url) {
       await testCreateDiveSitePage(page);
     } else if (url === '/create-diving-center') {
       await testCreateDivingCenterPage(page);
-    } else if (url === '/user/testuser') {
+    } else if (url === '/users/testuser') {
       await testUserProfilePage(page);
     } else if (url === '/') {
       await testHomePage(page);
