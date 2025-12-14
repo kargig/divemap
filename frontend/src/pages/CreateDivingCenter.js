@@ -74,7 +74,7 @@ const CreateDivingCenter = () => {
   // Persist create form state to survive unexpected remounts
   useEffect(() => {
     try {
-      const stored = sessionStorage.getItem('create-diving-center-form');
+      const stored = window.sessionStorage.getItem('create-diving-center-form');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed && typeof parsed === 'object') {
@@ -87,7 +87,7 @@ const CreateDivingCenter = () => {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem('create-diving-center-form', JSON.stringify(createFormData));
+      window.sessionStorage.setItem('create-diving-center-form', JSON.stringify(createFormData));
     } catch {}
   }, [createFormData]);
 
@@ -116,7 +116,7 @@ const CreateDivingCenter = () => {
       onSuccess: () => {
         // Clear persisted draft and reset local state for future creations
         try {
-          sessionStorage.removeItem('create-diving-center-form');
+          window.sessionStorage.removeItem('create-diving-center-form');
         } catch {}
         resetCreateForm();
 

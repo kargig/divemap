@@ -107,7 +107,7 @@ const WindDateTimePicker = ({
     if (isPlaying) {
       // Pause
       if (playIntervalRef.current) {
-        clearInterval(playIntervalRef.current);
+        window.clearInterval(playIntervalRef.current);
         playIntervalRef.current = null;
       }
       setIsPlaying(false);
@@ -137,7 +137,7 @@ const WindDateTimePicker = ({
       }
 
       // Start checking interval - advances when both conditions are met
-      playIntervalRef.current = setInterval(() => {
+      playIntervalRef.current = window.setInterval(() => {
         const now = Date.now();
         const timeSinceLastAdvance = lastAdvanceTimeRef.current
           ? now - lastAdvanceTimeRef.current
@@ -159,7 +159,7 @@ const WindDateTimePicker = ({
               setIsPlaying(false);
               isWaitingForDataRef.current = false;
               if (playIntervalRef.current) {
-                clearInterval(playIntervalRef.current);
+                window.clearInterval(playIntervalRef.current);
                 playIntervalRef.current = null;
               }
               return totalHours;
@@ -192,7 +192,7 @@ const WindDateTimePicker = ({
   useEffect(() => {
     return () => {
       if (playIntervalRef.current) {
-        clearInterval(playIntervalRef.current);
+        window.clearInterval(playIntervalRef.current);
       }
     };
   }, []);
@@ -200,7 +200,7 @@ const WindDateTimePicker = ({
   // Handle "Now" button
   const handleNowClick = () => {
     if (playIntervalRef.current) {
-      clearInterval(playIntervalRef.current);
+      window.clearInterval(playIntervalRef.current);
       playIntervalRef.current = null;
     }
     setIsPlaying(false);
