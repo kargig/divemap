@@ -38,6 +38,7 @@ import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getRouteTypeColor, getDrawingTypeColor } from '../utils/colorPalette';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 import { renderTextWithLinks } from '../utils/textHelpers';
@@ -203,10 +204,13 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
     });
 
     // Add popup to route
+    const decodedDescription = route.description
+      ? decodeHtmlEntities(route.description)
+      : 'No description';
     routeLayer.bindPopup(`
       <div class="p-2">
         <h3 class="font-semibold text-gray-800 mb-1">${route.name}</h3>
-        <p class="text-sm text-gray-600 mb-2">${route.description || 'No description'}</p>
+        <p class="text-sm text-gray-600 mb-2">${decodedDescription}</p>
         <div class="flex items-center gap-2 text-xs text-gray-500">
           <span class="px-2 py-1 bg-gray-100 rounded">${route.route_type}</span>
           <span>by ${route.creator_username || 'Unknown'}</span>
@@ -1062,7 +1066,9 @@ const DiveDetail = () => {
                         </span>
                       </div>
                       {dive.selected_route.description && (
-                        <p className='text-gray-600 mt-2'>{dive.selected_route.description}</p>
+                        <p className='text-gray-600 mt-2'>
+                          {decodeHtmlEntities(dive.selected_route.description)}
+                        </p>
                       )}
                     </div>
                   </div>

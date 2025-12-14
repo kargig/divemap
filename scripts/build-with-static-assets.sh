@@ -15,6 +15,11 @@ fi
 # Build frontend with compression
 echo "📦 Building frontend..."
 cd frontend
+
+# Update browserslist data to prevent warnings (silent if already up to date)
+echo "🔄 Updating browserslist data..."
+npx update-browserslist-db@latest --silent 2>/dev/null || true
+
 npm run build:with-compression
 cd ..
 

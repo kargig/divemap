@@ -29,6 +29,7 @@ import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { CHART_COLORS, getRouteTypeColor } from '../utils/colorPalette';
 import { formatDate } from '../utils/dateHelpers';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getRouteTypeLabel, calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 
 // Fix default marker icons
@@ -701,7 +702,7 @@ const RouteDetail = () => {
         {route.description && (
           <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
             <h2 className='text-lg font-semibold text-gray-900 mb-3'>Description</h2>
-            <p className='text-gray-700'>{route.description}</p>
+            <p className='text-gray-700'>{decodeHtmlEntities(route.description)}</p>
           </div>
         )}
 

@@ -11,6 +11,7 @@ import api from '../api';
 import MapLayersPanel from '../components/MapLayersPanel';
 import usePageTitle from '../hooks/usePageTitle';
 import { getRouteTypeColor } from '../utils/colorPalette';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getSmartRouteColor, calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 
 // Fix default marker icons
@@ -159,10 +160,13 @@ const RouteLayer = ({ routes, diveSiteId }) => {
       });
 
       // Add popup to route
+      const decodedDescription = route.description
+        ? decodeHtmlEntities(route.description)
+        : 'No description';
       routeLayer.bindPopup(`
         <div class="p-2">
           <h3 class="font-semibold text-gray-800 mb-1">${route.name}</h3>
-          <p class="text-sm text-gray-600 mb-2">${route.description || 'No description'}</p>
+          <p class="text-sm text-gray-600 mb-2">${decodedDescription}</p>
           <div class="flex items-center gap-2 text-xs text-gray-500">
             <span class="px-2 py-1 bg-gray-100 rounded">${route.route_type}</span>
             <span>by ${route.creator?.username || 'Unknown'}</span>

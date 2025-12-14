@@ -40,6 +40,7 @@
     "puppeteer": "^24.15.0"
   },
   "scripts": {
+    "postinstall": "npx update-browserslist-db@latest || true",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "build:prod": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
