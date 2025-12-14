@@ -310,11 +310,6 @@ const CreateDive = () => {
       return;
     }
 
-    if (!formData.dive_site_id && !formData.diving_center_id) {
-      toast.error('Either a dive site or diving center is required');
-      return;
-    }
-
     const diveData = {
       ...formData,
       dive_site_id:
