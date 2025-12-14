@@ -31,6 +31,10 @@ const EditDive = () => {
   const [diveSiteSearch, setDiveSiteSearch] = useState('');
   const [isDiveSiteDropdownOpen, setIsDiveSiteDropdownOpen] = useState(false);
   const diveSiteDropdownRef = useRef(null);
+  const [diveSiteSearchResults, setDiveSiteSearchResults] = useState([]);
+  const [diveSiteSearchLoading, setDiveSiteSearchLoading] = useState(false);
+  const [diveSiteSearchError, setDiveSiteSearchError] = useState(null);
+  const diveSiteSearchTimeoutRef = useRef(null);
   const [divingCenterSearch, setDivingCenterSearch] = useState('');
   const [isDivingCenterDropdownOpen, setIsDivingCenterDropdownOpen] = useState(false);
   const divingCenterDropdownRef = useRef(null);
@@ -93,8 +97,7 @@ const EditDive = () => {
     },
   });
 
-  // Fetch dive sites for dropdown
-  const { data: diveSites = [] } = useQuery(['dive-sites'], () => getDiveSites({ page_size: 100 }));
+  // Note: Dive sites are now loaded dynamically via search, not statically
 
   // Fetch diving centers for dropdown
   const { data: divingCenters = [] } = useQuery(['diving-centers'], () =>
@@ -126,23 +129,67 @@ const EditDive = () => {
 
   // Initialize dive site search when dive data loads
   useEffect(() => {
-    if (dive && dive.dive_site_id && Array.isArray(diveSites) && diveSites.length > 0) {
-      const selectedSite = diveSites.find(site => site.id === dive.dive_site_id);
-      if (selectedSite) {
-        setDiveSiteSearch(selectedSite.name);
-      }
+    if (dive && dive.dive_site) {
+      // Use dive site name directly from API response
+      setDiveSiteSearch(dive.dive_site.name);
+      // Also add the current dive site to search results so it's available for selection
+      setDiveSiteSearchResults([dive.dive_site]);
     }
-  }, [dive, diveSites]);
+  }, [dive]);
 
   // Initialize diving center search when dive data loads
   useEffect(() => {
-    if (dive && dive.diving_center_id && Array.isArray(divingCenters) && divingCenters.length > 0) {
+    if (dive && dive.diving_center) {
+      // Use diving center name directly from API response
+      setDivingCenterSearch(dive.diving_center.name);
+    } else if (
+      dive &&
+      dive.diving_center_id &&
+      Array.isArray(divingCenters) &&
+      divingCenters.length > 0
+    ) {
+      // Fallback: search in divingCenters array if diving_center object is not available
       const selectedCenter = divingCenters.find(center => center.id === dive.diving_center_id);
       if (selectedCenter) {
         setDivingCenterSearch(selectedCenter.name);
       }
     }
   }, [dive, divingCenters]);
+
+  // Fetch initial dive sites with "Attiki" on component mount
+  useEffect(() => {
+    // Only load initial sites if no dive site is already set
+    if (!dive || !dive.dive_site) {
+      const loadInitialDiveSites = async () => {
+        try {
+          setDiveSiteSearchLoading(true);
+          setDiveSiteSearchError(null);
+          const results = await getDiveSites({
+            search: 'Attiki',
+            page_size: 25,
+          });
+          setDiveSiteSearchResults(Array.isArray(results) ? results : []);
+        } catch (error) {
+          console.error('Failed to load initial dive sites:', error);
+          setDiveSiteSearchError('Failed to load dive sites');
+          setDiveSiteSearchResults([]);
+        } finally {
+          setDiveSiteSearchLoading(false);
+        }
+      };
+
+      loadInitialDiveSites();
+    }
+  }, []);
+
+  // Cleanup pending debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (diveSiteSearchTimeoutRef.current) {
+        clearTimeout(diveSiteSearchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // TODO: Clear route selection when dive site changes (but not during initial load)
   // This useEffect was causing issues with route pre-selection during form initialization
@@ -263,10 +310,8 @@ const EditDive = () => {
     setSelectedBuddies(prev => prev.filter(buddy => buddy.id !== buddyId));
   };
 
-  // Filter dive sites based on search input
-  const filteredDiveSites = Array.isArray(diveSites)
-    ? diveSites.filter(site => site.name.toLowerCase().includes(diveSiteSearch.toLowerCase()))
-    : [];
+  // Use search results directly (no client-side filtering needed)
+  const filteredDiveSites = diveSiteSearchResults;
 
   // Filter diving centers based on search input
   const filteredDivingCenters = divingCenterSearch
@@ -292,7 +337,51 @@ const EditDive = () => {
     setIsDiveSiteDropdownOpen(true);
     if (!value) {
       handleInputChange('dive_site_id', '');
+      // Reload initial "Attiki" results when search is cleared
+      const loadInitialDiveSites = async () => {
+        try {
+          setDiveSiteSearchLoading(true);
+          setDiveSiteSearchError(null);
+          const results = await getDiveSites({
+            search: 'Attiki',
+            page_size: 25,
+          });
+          setDiveSiteSearchResults(Array.isArray(results) ? results : []);
+        } catch (error) {
+          console.error('Failed to load initial dive sites:', error);
+          setDiveSiteSearchError('Failed to load dive sites');
+          setDiveSiteSearchResults([]);
+        } finally {
+          setDiveSiteSearchLoading(false);
+        }
+      };
+      loadInitialDiveSites();
+      return;
     }
+
+    // Clear previous timeout
+    if (diveSiteSearchTimeoutRef.current) {
+      clearTimeout(diveSiteSearchTimeoutRef.current);
+    }
+
+    // Debounce search: wait 0.5 seconds after user stops typing
+    diveSiteSearchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setDiveSiteSearchLoading(true);
+        setDiveSiteSearchError(null);
+        const results = await getDiveSites({
+          search: value,
+          page_size: 25,
+        });
+        setDiveSiteSearchResults(Array.isArray(results) ? results : []);
+      } catch (error) {
+        console.error('Search dive sites failed', error);
+        setDiveSiteSearchError('Search failed');
+        setDiveSiteSearchResults([]);
+      } finally {
+        setDiveSiteSearchLoading(false);
+      }
+    }, 500);
   };
 
   const handleDivingCenterSearchChange = value => {
@@ -530,7 +619,11 @@ const EditDive = () => {
             {/* Dropdown */}
             {isDiveSiteDropdownOpen && (
               <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
-                {filteredDiveSites.length > 0 ? (
+                {diveSiteSearchLoading ? (
+                  <div className='px-3 py-2 text-gray-500 text-sm'>Searching...</div>
+                ) : diveSiteSearchError ? (
+                  <div className='px-3 py-2 text-red-500 text-sm'>{diveSiteSearchError}</div>
+                ) : filteredDiveSites.length > 0 ? (
                   filteredDiveSites.map(site => (
                     <div
                       key={site.id}
