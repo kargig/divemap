@@ -97,14 +97,41 @@
   - Buddy visibility settings (3 tests)
   - Permission enforcement (3 tests)
 
-### 🔄 Next Phases (4-8, 10)
+### ✅ Completed Phases (4-8)
 
-**Phase 4: Frontend - User Search Component** (Not Started)
-**Phase 5: Frontend - Create/Edit Dive Forms** (Not Started)
-**Phase 6: Frontend - Dive Details Page** (Not Started)
-**Phase 7: Frontend - User Profile Settings** (Not Started)
-**Phase 8: Frontend - Dive List Filtering** (Not Started)
-**Phase 9: Testing & Validation** ✅ COMPLETED - All 30 backend tests passing
+**Phase 4: Frontend - User Search Component** ✅
+- Created `UserSearchInput` component with debounced search
+- Added `searchUsers` API function
+- Component includes avatar display, keyboard navigation, loading/error states
+
+**Phase 5: Frontend - Create/Edit Dive Forms** ✅
+- Added buddies section to `CreateDive.js`
+- Added buddies section to `EditDive.js`
+- Integrated `UserSearchInput` component
+- Display selected buddies as removable chips
+- Include buddies in form submission
+
+**Phase 6: Frontend - Dive Details Page** ✅
+- Added buddies display section to `DiveDetail.js`
+- Shows buddy avatars, usernames, and names
+- "Remove me" button for buddies (not owners)
+- Links to user profiles
+- Added `removeBuddy` API function
+
+**Phase 7: Frontend - User Profile Settings** ✅
+- Added buddy visibility toggle to `Profile.js`
+- Dropdown with Public/Private options
+- Displays current visibility setting in view mode
+- Updates via existing profile update endpoint
+
+**Phase 8: Frontend - Dive List Filtering** ✅
+- Added `buddy_username` filter to `Dives.js`
+- Added filter input to `ResponsiveFilterBar.js` (desktop and mobile)
+- Integrated with URL query parameters
+- Added to API query params and count query
+
+### 🔄 Remaining Phase
+
 **Phase 10: Documentation & Cleanup** (Not Started)
 
 ## Implementation Plan

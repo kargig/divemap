@@ -508,6 +508,13 @@ class UserResponseWithCertifications(UserResponse):
 class UserProfileStats(BaseModel):
     dive_sites_rated: int
     comments_posted: int
+    dive_sites_created: int
+    dives_created: int
+    diving_centers_owned: int
+    site_comments_count: int
+    site_ratings_count: int
+    total_dives_claimed: int
+    buddy_dives_count: int
 
     class Config:
         from_attributes = True

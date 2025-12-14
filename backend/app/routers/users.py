@@ -4,7 +4,7 @@ from sqlalchemy import or_
 from typing import List, Optional
 
 from app.database import get_db
-from app.models import User, SiteRating, SiteComment, CenterComment
+from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy
 from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
 from sqlalchemy import func
@@ -229,10 +229,38 @@ async def get_user_public_profile(
 
     comments_posted = (site_comments_count or 0) + (center_comments_count or 0)
 
+    # Calculate additional statistics
+    dive_sites_created = db.query(func.count(DiveSite.id)).filter(
+        DiveSite.created_by == user.id
+    ).scalar()
+
+    dives_created = db.query(func.count(Dive.id)).filter(
+        Dive.user_id == user.id
+    ).scalar()
+
+    diving_centers_owned = db.query(func.count(DivingCenter.id)).filter(
+        DivingCenter.owner_id == user.id
+    ).scalar()
+
+    site_ratings_count = dive_sites_rated or 0  # Same as dive_sites_rated
+
+    total_dives_claimed = user.number_of_dives or 0
+
+    buddy_dives_count = db.query(func.count(DiveBuddy.id)).filter(
+        DiveBuddy.user_id == user.id
+    ).scalar()
+
     # Create stats object
     stats = UserProfileStats(
         dive_sites_rated=dive_sites_rated or 0,
-        comments_posted=comments_posted or 0
+        comments_posted=comments_posted or 0,
+        dive_sites_created=dive_sites_created or 0,
+        dives_created=dives_created or 0,
+        diving_centers_owned=diving_centers_owned or 0,
+        site_comments_count=site_comments_count or 0,
+        site_ratings_count=site_ratings_count or 0,
+        total_dives_claimed=total_dives_claimed,
+        buddy_dives_count=buddy_dives_count or 0
     )
 
     # Create response object

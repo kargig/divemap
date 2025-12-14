@@ -868,7 +868,7 @@ const DivingCenterDetail = () => {
                       <div>
                         <div className='flex items-center space-x-2'>
                           <Link
-                            to={`/user/${comment.username}`}
+                            to={`/users/${comment.username}`}
                             className='font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors'
                           >
                             {comment.username}

@@ -2,24 +2,39 @@
 
 **Task:** Add dive buddies functionality  
 **Created:** 2025-12-14  
-**Status:** In Progress - Backend Complete, Testing Phase
+**Status:** ✅ Core Feature Complete | 🔄 Documentation Pending
+
+## Quick Status Summary
+
+### ✅ Fully Completed (Phases 1-9)
+- **Backend:** Database schema, API endpoints, user search, buddy management, filtering
+- **Frontend:** User search component, create/edit forms, dive details, profile settings, dive list filtering
+- **Testing:** 30 comprehensive backend tests, all passing
+- **Code Quality:** Linting errors fixed, route consistency fixed, N+1 query optimization
+
+### 🔄 Remaining Work (Phase 10)
+- **Documentation:** API documentation updates, project description updates
+- **Final Review:** Cross-browser testing, mobile testing, production readiness review
+
+### 📋 Post-Implementation Enhancements
+- User profile statistics page with comprehensive stats and filtered list links
+- Backend endpoint enhancements for user profile statistics
+- Dive sites API filter enhancement (`created_by_username` parameter)
 
 ## Implementation Status Summary
 
-### ✅ Completed: Phases 1-3 (Backend Implementation)
+### ✅ Completed: Phases 1-9 (Backend & Frontend Implementation)
 - **Phase 1:** Database schema and models ✅
 - **Phase 2:** Backend API core endpoints ✅
 - **Phase 3:** Backend API user profile settings ✅
+- **Phase 4:** Frontend user search component ✅
+- **Phase 5:** Frontend create/edit dive forms ✅
+- **Phase 6:** Frontend dive details page ✅
+- **Phase 7:** Frontend user profile settings ✅
+- **Phase 8:** Frontend dive list filtering ✅
+- **Phase 9:** Testing & validation ✅
 
-### 🔄 In Progress: Phase 9 (Testing)
-- Creating comprehensive test suite for buddy functionality
-
-### ⏳ Pending: Phases 4-8, 10 (Frontend & Documentation)
-- Phase 4: Frontend user search component
-- Phase 5: Frontend create/edit dive forms
-- Phase 6: Frontend dive details page
-- Phase 7: Frontend user profile settings
-- Phase 8: Frontend dive list filtering
+### ⏳ Pending: Phase 10 (Documentation & Cleanup)
 - Phase 10: Documentation & cleanup
 
 ## Overview
@@ -258,11 +273,21 @@ This document outlines a detailed phased implementation plan for adding dive bud
 - `frontend/src/components/UserSearchInput.js`
 
 **Success Criteria:**
-- [ ] Component searches users correctly
-- [ ] Component filters out current user
-- [ ] Component displays loading/error states
-- [ ] Component is reusable and well-structured
-- [ ] Component handles edge cases (no results, API errors)
+- [x] Component searches users correctly ✅
+- [x] Component filters out current user ✅
+- [x] Component displays loading/error states ✅
+- [x] Component is reusable and well-structured ✅
+- [x] Component handles edge cases (no results, API errors) ✅
+
+**Status:** ✅ COMPLETED
+
+**Implementation Details:**
+- Created `frontend/src/components/UserSearchInput.js`
+- Debounced search (0.5 seconds)
+- Keyboard navigation support
+- Avatar display with fallback
+- Excludes specified user IDs
+- Loading and error state handling
 
 ---
 
@@ -302,12 +327,22 @@ This document outlines a detailed phased implementation plan for adding dive bud
 - `frontend/src/pages/EditDive.js`
 
 **Success Criteria:**
-- [ ] Users can search and select buddies in create form
-- [ ] Users can add/remove buddies in edit form
-- [ ] Selected buddies display correctly as chips
-- [ ] Form submission includes buddies
-- [ ] Validation works correctly
-- [ ] UI is consistent with existing design
+- [x] Users can search and select buddies in create form ✅
+- [x] Users can add/remove buddies in edit form ✅
+- [x] Selected buddies display correctly as chips ✅
+- [x] Form submission includes buddies ✅
+- [x] Validation works correctly ✅
+- [x] UI is consistent with existing design ✅
+
+**Status:** ✅ COMPLETED
+
+**Implementation Details:**
+- Added `handleBuddySelect` and `handleBuddyRemove` functions
+- Integrated `UserSearchInput` component in both forms
+- Selected buddies displayed as removable chips with avatars
+- Buddies included in API submission (mapped to user IDs)
+- Duplicate prevention implemented
+- Admin users can edit any dive (permission check updated)
 
 ---
 
@@ -343,12 +378,23 @@ This document outlines a detailed phased implementation plan for adding dive bud
 - `frontend/src/pages/DiveDetail.js`
 
 **Success Criteria:**
-- [ ] Buddies display correctly on dive details page
-- [ ] Buddy avatars and names show correctly
-- [ ] "Remove me" button appears for buddies only
-- [ ] Self-removal works correctly
-- [ ] UI updates after removal
-- [ ] Links to user profiles work
+- [x] Buddies display correctly on dive details page ✅
+- [x] Buddy avatars and names show correctly ✅
+- [x] "Remove me" button appears for buddies only ✅
+- [x] Self-removal works correctly ✅
+- [x] UI updates after removal ✅
+- [x] Links to user profiles work ✅
+
+**Status:** ✅ COMPLETED
+
+**Implementation Details:**
+- Added "Dive Buddies" section below Tags section
+- Displays up to 3 buddies in dive list with "+N" indicator
+- Shows buddy avatars, usernames, and names
+- "Remove me" button for non-owner buddies
+- Links to `/users/:username` profile pages
+- Added `removeBuddy` API function
+- Optimized with eager loading to prevent N+1 queries
 
 ---
 
@@ -376,11 +422,20 @@ This document outlines a detailed phased implementation plan for adding dive bud
 - `frontend/src/pages/Profile.js`
 
 **Success Criteria:**
-- [ ] Toggle displays current setting correctly
-- [ ] Users can change their buddy visibility
-- [ ] Setting persists correctly
-- [ ] Setting affects search results immediately
-- [ ] UI is clear and user-friendly
+- [x] Toggle displays current setting correctly ✅
+- [x] Users can change their buddy visibility ✅
+- [x] Setting persists correctly ✅
+- [x] Setting affects search results immediately ✅
+- [x] UI is clear and user-friendly ✅
+
+**Status:** ✅ COMPLETED
+
+**Implementation Details:**
+- Added buddy visibility dropdown (Public/Private) to Profile.js
+- Integrated into "Account Information" section
+- Displays current setting in view mode
+- Updates via existing `PUT /api/v1/users/me` endpoint
+- Removed duplicate statistics from Account Information section
 
 ---
 
@@ -416,11 +471,21 @@ This document outlines a detailed phased implementation plan for adding dive bud
 - `frontend/src/pages/Dives.js`
 
 **Success Criteria:**
-- [ ] Users can filter dives by buddy username
-- [ ] Filter works with other existing filters
-- [ ] Filter persists in URL
-- [ ] Filter can be cleared
-- [ ] UI is consistent with existing filters
+- [x] Users can filter dives by buddy username ✅
+- [x] Filter works with other existing filters ✅
+- [x] Filter persists in URL ✅
+- [x] Filter can be cleared ✅
+- [x] UI is consistent with existing filters ✅
+
+**Status:** ✅ COMPLETED
+
+**Implementation Details:**
+- Added `buddy_username` filter to `Dives.js` and `ResponsiveFilterBar.js`
+- Integrated with URL query parameters
+- Added to both dive list and count API calls
+- Filter displayed in active filters list
+- Buddies displayed in dive cards (up to 3 with "+N" indicator)
+- Fixed route consistency: all routes use `/users/:username` (plural)
 
 ---
 
@@ -480,10 +545,19 @@ This document outlines a detailed phased implementation plan for adding dive bud
 
 **Success Criteria:**
 - [x] All backend tests pass (30/30) ✅
-- [ ] All frontend functionality works correctly (Pending Phase 4-8)
+- [x] All frontend functionality works correctly ✅
 - [x] All edge cases handled ✅
 - [x] No API errors ✅
-- [ ] All user flows work end-to-end (Pending frontend implementation)
+- [x] All user flows work end-to-end ✅
+
+**Additional Testing Completed:**
+- [x] Frontend buddy selection in create/edit forms tested ✅
+- [x] Frontend buddy display on dive details tested ✅
+- [x] Frontend self-removal functionality tested ✅
+- [x] Frontend buddy visibility toggle tested ✅
+- [x] Frontend buddy filtering in dive list tested ✅
+- [x] Route consistency fixed (/user/ vs /users/) ✅
+- [x] Linting errors fixed ✅
 
 ---
 
@@ -498,13 +572,14 @@ This document outlines a detailed phased implementation plan for adding dive bud
    - Add comments to complex code sections
    - Document buddy visibility behavior
    - Update project description if needed
+   - Document user profile statistics feature (added post-implementation)
 
 2. **Code Review & Cleanup**
    - Review all code changes
    - Remove debug code
    - Ensure consistent code style
-   - Fix any linting issues
-   - Optimize database queries if needed
+   - Fix any linting issues ✅ (Fixed: CreateDive.js missing functions, route consistency)
+   - Optimize database queries if needed ✅ (N+1 query fix for dive list buddies)
 
 3. **Final Testing**
    - Run full test suite
@@ -512,27 +587,62 @@ This document outlines a detailed phased implementation plan for adding dive bud
    - Test on mobile devices
    - Verify no regressions
 
+**Additional Features Added (Post-Implementation):**
+- User profile statistics page (`/users/:username`):
+  - Dive sites created (with link to filtered list)
+  - Dives created (with link to filtered list)
+  - Diving centers owned
+  - Dive site comments count
+  - Dive site ratings count
+  - Total dives claimed
+  - Dives as buddy (with link to filtered list)
+- Backend endpoint: `GET /api/v1/users/{username}/public` enhanced with statistics
+- Backend endpoint: `GET /api/v1/dive-sites/` added `created_by_username` filter parameter
+
 **Success Criteria:**
-- [ ] Code is clean and well-documented
-- [ ] No linting errors
-- [ ] All tests pass
-- [ ] Documentation is updated
-- [ ] Ready for production
+- [x] Code is clean and well-documented (mostly complete)
+- [x] No linting errors ✅
+- [x] All tests pass ✅
+- [ ] Documentation is updated (API docs, project description)
+- [ ] Ready for production (pending final documentation review)
+
+**Status:** 🔄 IN PROGRESS
 
 ---
 
 ## Implementation Order Summary
 
-1. **Phase 1:** Database Schema & Models (Foundation)
-2. **Phase 2:** Backend API - Core Endpoints
-3. **Phase 3:** Backend API - User Profile Settings
-4. **Phase 4:** Frontend - User Search Component
-5. **Phase 5:** Frontend - Create/Edit Dive Forms
-6. **Phase 6:** Frontend - Dive Details Page
-7. **Phase 7:** Frontend - User Profile Settings
-8. **Phase 8:** Frontend - Dive List Filtering
-9. **Phase 9:** Testing & Validation
-10. **Phase 10:** Documentation & Cleanup
+1. **Phase 1:** Database Schema & Models (Foundation) ✅ COMPLETED
+2. **Phase 2:** Backend API - Core Endpoints ✅ COMPLETED
+3. **Phase 3:** Backend API - User Profile Settings ✅ COMPLETED
+4. **Phase 4:** Frontend - User Search Component ✅ COMPLETED
+5. **Phase 5:** Frontend - Create/Edit Dive Forms ✅ COMPLETED
+6. **Phase 6:** Frontend - Dive Details Page ✅ COMPLETED
+7. **Phase 7:** Frontend - User Profile Settings ✅ COMPLETED
+8. **Phase 8:** Frontend - Dive List Filtering ✅ COMPLETED
+9. **Phase 9:** Testing & Validation ✅ COMPLETED
+10. **Phase 10:** Documentation & Cleanup 🔄 IN PROGRESS
+
+## Recent Updates
+
+### Post-Implementation Enhancements
+- **User Profile Statistics:** Added comprehensive statistics display to `/users/:username` page
+  - Shows dive sites created, dives created, diving centers owned, comments, ratings, total dives, and buddy dives
+  - Includes clickable links to filtered dive lists
+  - Backend schema updated with `UserProfileStats` including all new fields
+- **Route Consistency:** Fixed all routes to use `/users/:username` (plural) consistently
+- **Code Quality:** Fixed linting errors in `CreateDive.js` (missing `handleBuddySelect` and `handleBuddyRemove` functions)
+- **Performance:** Optimized dive list query to prevent N+1 queries when displaying buddies
+
+## Remaining Work
+
+### Phase 10: Documentation & Cleanup
+- [ ] Update API documentation with new endpoints and parameters
+- [ ] Document user profile statistics feature
+- [ ] Update project description if needed
+- [ ] Final code review and cleanup
+- [ ] Cross-browser and mobile testing
+- [ ] Production readiness review
 
 ## Dependencies
 

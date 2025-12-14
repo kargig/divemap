@@ -480,8 +480,11 @@ def get_dives(
         )
 
     # Build query - user can see their own dives and public dives from others
-    # Eager load difficulty relationship for efficient access
-    query = db.query(Dive).options(joinedload(Dive.difficulty)).join(User, Dive.user_id == User.id)
+    # Eager load difficulty and buddies relationships for efficient access
+    query = db.query(Dive).options(
+        joinedload(Dive.difficulty),
+        joinedload(Dive.buddies)
+    ).join(User, Dive.user_id == User.id)
 
     # Filter by user if specified, otherwise show own dives and public dives from others
     if user_id:
@@ -782,8 +785,7 @@ def get_dives(
         dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).order_by(AvailableTag.name.asc()).all()
         tags_list = [{"id": tag.id, "name": tag.name} for tag in dive_tags]
 
-        # Get buddies for this dive
-        dive_buddies = db.query(User).join(DiveBuddy).filter(DiveBuddy.dive_id == dive.id).all()
+        # Get buddies for this dive (already eagerly loaded)
         buddies_list = [
             {
                 "id": buddy.id,
@@ -791,7 +793,7 @@ def get_dives(
                 "name": buddy.name,
                 "avatar_url": buddy.avatar_url
             }
-            for buddy in dive_buddies
+            for buddy in dive.buddies
         ]
 
         # Parse dive information to extract individual fields

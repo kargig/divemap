@@ -212,7 +212,7 @@ def delete_dive_profile(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error deleting profile: {str(e)}")
 
 
-@router.delete("/profiles/user/{user_id}")
+@router.delete("/profiles/users/{user_id}")
 def delete_user_profiles(
     user_id: int,
     db: Session = Depends(get_db),

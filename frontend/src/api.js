@@ -267,6 +267,12 @@ export const deleteDiveMedia = async (diveId, mediaId) => {
   return response.data;
 };
 
+// Remove buddy from dive
+export const removeBuddy = async (diveId, userId) => {
+  const response = await api.delete(`/api/v1/dives/${diveId}/buddies/${userId}`);
+  return response.data;
+};
+
 export const addDiveTag = async (diveId, tagData) => {
   const response = await api.post(`/api/v1/dives/${diveId}/tags`, tagData);
   return response.data;
@@ -347,6 +353,14 @@ export const getOwnershipRequestHistory = async () => {
 // Dive Sites API functions
 export const getDiveSites = async (params = {}) => {
   const response = await api.get('/api/v1/dive-sites/', { params });
+  return response.data;
+};
+
+// User search API function for buddy selection
+export const searchUsers = async (query, limit = 25) => {
+  const response = await api.get('/api/v1/users/search', {
+    params: { query, limit },
+  });
   return response.data;
 };
 

@@ -10,7 +10,6 @@ import {
   Edit,
   Trash2,
   X,
-  Anchor,
   Building2,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -36,6 +35,7 @@ const Profile = () => {
     name: user?.name || '',
     email: user?.email || '',
     number_of_dives: user?.number_of_dives || 0,
+    buddy_visibility: user?.buddy_visibility || 'public',
   });
   const [certificationForm, setCertificationForm] = useState({
     diving_organization_id: '',
@@ -335,6 +335,24 @@ const Profile = () => {
                   />
                 </div>
 
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Buddy Visibility
+                  </label>
+                  <select
+                    name='buddy_visibility'
+                    value={formData.buddy_visibility}
+                    onChange={handleChange}
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+                  >
+                    <option value='public'>Public - Others can add me as a dive buddy</option>
+                    <option value='private'>Private - Hide me from buddy search</option>
+                  </select>
+                  <p className='mt-1 text-xs text-gray-500'>
+                    Control whether other users can find and add you as a dive buddy
+                  </p>
+                </div>
+
                 <div className='flex justify-end space-x-3'>
                   <button
                     type='button'
@@ -388,32 +406,21 @@ const Profile = () => {
                 </div>
 
                 <div className='flex items-center'>
-                  <Anchor className='h-5 w-5 text-gray-400 mr-3' />
+                  <Shield className='h-5 w-5 text-gray-400 mr-3' />
                   <div>
-                    <span className='text-sm text-gray-500'>Dives Created</span>
-                    <div className='mt-1'>
-                      <Link
-                        to='/dives'
-                        className='text-blue-600 hover:text-blue-800 font-medium text-lg'
-                      >
-                        {userStats?.divesCreated || 0}
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-
-                <div className='flex items-center'>
-                  <Anchor className='h-5 w-5 text-gray-400 mr-3' />
-                  <div>
-                    <span className='text-sm text-gray-500'>Dive Sites Created</span>
-                    <div className='mt-1'>
-                      <Link
-                        to='/dive-sites?my_dive_sites=true'
-                        className='text-blue-600 hover:text-blue-800 font-medium text-lg'
-                      >
-                        {userStats?.diveSitesCreated || 0}
-                      </Link>
-                    </div>
+                    <span className='text-sm text-gray-500'>Buddy Visibility</span>
+                    <p className='text-gray-900'>
+                      {user.buddy_visibility === 'public' ? (
+                        <span className='text-green-600 font-medium'>Public</span>
+                      ) : (
+                        <span className='text-gray-600 font-medium'>Private</span>
+                      )}
+                    </p>
+                    <p className='text-xs text-gray-500 mt-1'>
+                      {user.buddy_visibility === 'public'
+                        ? 'Others can add you as a dive buddy'
+                        : 'You are hidden from buddy search'}
+                    </p>
                   </div>
                 </div>
 

@@ -13,6 +13,7 @@ import {
   getDivingCenters,
 } from '../api';
 import RouteSelection from '../components/RouteSelection';
+import UserSearchInput from '../components/UserSearchInput';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
@@ -38,6 +39,7 @@ const EditDive = () => {
   const [newMediaUrl, setNewMediaUrl] = useState('');
   const [newMediaType, setNewMediaType] = useState('external_link');
   const [newMediaDescription, setNewMediaDescription] = useState('');
+  const [selectedBuddies, setSelectedBuddies] = useState([]);
 
   // Fetch dive data
   const {
@@ -73,6 +75,13 @@ const EditDive = () => {
         duration: data.duration || '',
         selectedTags: data.tags ? data.tags.map(tag => tag.id) : [],
       });
+
+      // Load existing buddies
+      if (data.buddies && Array.isArray(data.buddies)) {
+        setSelectedBuddies(data.buddies);
+      } else {
+        setSelectedBuddies([]);
+      }
     },
     onError: error => {
       if (error.response?.status === 404) {
@@ -232,6 +241,21 @@ const EditDive = () => {
     }
   };
 
+  // Handle buddy selection
+  const handleBuddySelect = user => {
+    // Prevent duplicate buddies
+    if (selectedBuddies.find(buddy => buddy.id === user.id)) {
+      toast.error('This user is already added as a buddy');
+      return;
+    }
+    setSelectedBuddies(prev => [...prev, user]);
+  };
+
+  // Handle buddy removal
+  const handleBuddyRemove = buddyId => {
+    setSelectedBuddies(prev => prev.filter(buddy => buddy.id !== buddyId));
+  };
+
   // Filter dive sites based on search input
   const filteredDiveSites = Array.isArray(diveSites)
     ? diveSites.filter(site => site.name.toLowerCase().includes(diveSiteSearch.toLowerCase()))
@@ -357,6 +381,7 @@ const EditDive = () => {
         formData.dive_time && formData.dive_time !== '' ? `${formData.dive_time}:00` : null,
       duration: formData.duration ? parseInt(formData.duration) : null,
       tags: formData.selectedTags || [],
+      buddies: selectedBuddies.length > 0 ? selectedBuddies.map(buddy => buddy.id) : [],
     };
 
     try {
@@ -910,6 +935,62 @@ const EditDive = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Buddies */}
+          <div className='md:col-span-2'>
+            <h2 className='text-xl font-semibold mb-4'>Buddies</h2>
+            <div className='space-y-4'>
+              <UserSearchInput
+                onSelect={handleBuddySelect}
+                excludeUserIds={selectedBuddies.map(buddy => buddy.id)}
+                placeholder='Search for users to add as buddies...'
+                label='Add Dive Buddies (Optional)'
+              />
+
+              {/* Selected Buddies */}
+              {selectedBuddies.length > 0 && (
+                <div className='mt-4'>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Selected Buddies
+                  </label>
+                  <div className='flex flex-wrap gap-2'>
+                    {selectedBuddies.map(buddy => (
+                      <div
+                        key={buddy.id}
+                        className='flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-full border border-blue-300'
+                      >
+                        {buddy.avatar_url ? (
+                          <img
+                            src={buddy.avatar_url}
+                            alt={buddy.username}
+                            className='w-6 h-6 rounded-full object-cover'
+                          />
+                        ) : (
+                          <div className='w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center'>
+                            <span className='text-xs font-medium text-blue-800'>
+                              {buddy.username.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <span className='text-sm font-medium'>{buddy.username}</span>
+                        {buddy.name && (
+                          <span className='text-xs text-blue-600'>({buddy.name})</span>
+                        )}
+                        <button
+                          type='button'
+                          onClick={() => handleBuddyRemove(buddy.id)}
+                          className='ml-1 text-blue-600 hover:text-blue-800'
+                          aria-label={`Remove ${buddy.username}`}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

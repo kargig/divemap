@@ -146,7 +146,7 @@ function App() {
                 <Route path='/privacy' element={<Privacy />} />
                 <Route path='/login' element={<Login />} />
                 <Route path='/register' element={<Register />} />
-                <Route path='/user/:username' element={<UserProfile />} />
+                <Route path='/users/:username' element={<UserProfile />} />
                 <Route path='/dive-sites' element={<DiveSites />} />
                 <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />
                 <Route path='/dive-sites/:id/map' element={<DiveSiteMap />} />
