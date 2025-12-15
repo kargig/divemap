@@ -43,6 +43,42 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
+  // Retry fetching user when backend comes back after being down
+  // Listen for successful API calls after gateway timeouts
+  useEffect(() => {
+    if (!token) return;
+
+    const handleBackendOnline = () => {
+      // If we have a token but no user data, try to fetch user
+      // This handles the case where backend was down and came back
+      if (token && !user) {
+        console.log('Backend recovered, fetching user data...');
+        fetchUser();
+      }
+    };
+
+    // Listen for successful API responses indicating backend is back online
+    window.addEventListener('backendOnline', handleBackendOnline);
+
+    // Also set up a periodic check when user is null but token exists
+    // This is a fallback in case the event doesn't fire
+    let retryInterval = null;
+    if (token && !user) {
+      // Retry fetching user every 10 seconds if we have token but no user
+      // This will keep trying until we get user data or token becomes invalid
+      retryInterval = window.setInterval(() => {
+        fetchUser();
+      }, 10000); // 10 seconds
+    }
+
+    return () => {
+      window.removeEventListener('backendOnline', handleBackendOnline);
+      if (retryInterval) {
+        window.clearInterval(retryInterval);
+      }
+    };
+  }, [token, user, loading]);
+
   // Listen for token refresh events from API interceptor
   useEffect(() => {
     const handleTokenRefresh = event => {
@@ -61,11 +97,46 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.get('/api/v1/auth/me');
       setUser(response.data);
+      setLoading(false); // Successfully loaded user data
     } catch (error) {
-      // Error fetching user, logging out
-      logout();
-    } finally {
-      setLoading(false);
+      // Don't log out on gateway timeouts (504) or server errors (5xx)
+      // These often happen when backend is cold-starting
+      // The API interceptor will retry automatically
+      if (
+        error.response?.status >= 500 ||
+        error.response?.status === 504 ||
+        error.isGatewayTimeout
+      ) {
+        // Server error or gateway timeout - don't log out, preserve session
+        // If we have a token, keep user state as-is (don't clear it)
+        // User will remain logged in (token still valid) and can retry later
+        console.warn(
+          'Backend unavailable, keeping user session:',
+          error.response?.status || 'gateway timeout'
+        );
+        // Don't set user to null - preserve existing state if token exists
+        // This allows user to stay "logged in" even if we can't verify right now
+        // When backend comes back, any API call will trigger a retry and fetchUser will succeed
+        if (token) {
+          // We have a token, so user should be considered logged in
+          // Don't clear user state - keep it as-is (might be null on first load, that's okay)
+          // Keep loading as true so app shows loading state instead of "logged out"
+          // User data will be fetched when backend comes back (via periodic retry or backendOnline event)
+          setLoading(true); // Keep loading true so we keep retrying
+        } else {
+          // No token, so user is not logged in
+          setUser(null);
+          setLoading(false);
+        }
+      } else if (error.response?.status === 401) {
+        // Unauthorized - token is invalid, log out
+        logout();
+        setLoading(false);
+      } else {
+        // Other errors - log out to be safe
+        logout();
+        setLoading(false);
+      }
     }
   };
 

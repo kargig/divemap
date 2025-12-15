@@ -1,11 +1,40 @@
 import { useEffect, useState } from 'react';
 
+import { healthCheck } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 export const SessionManager = () => {
   const { user, token } = useAuth();
   const [showWarning, setShowWarning] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+
+  // Keep backend warm to prevent Fly.io cold starts
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    // Ping health endpoint every 4 minutes to keep backend alive
+    // Fly.io auto_stop_machines = 'stop' shuts down after inactivity
+    // Health checks run every 4 seconds, so 4 minutes is safe
+    const keepAliveInterval = window.setInterval(
+      () => {
+        healthCheck().catch(() => {
+          // Silently fail - this is just a keepalive
+        });
+      },
+      4 * 60 * 1000
+    ); // 4 minutes
+
+    // Also ping immediately when user logs in
+    healthCheck().catch(() => {
+      // Silently fail
+    });
+
+    return () => {
+      window.clearInterval(keepAliveInterval);
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!user || !token) return;

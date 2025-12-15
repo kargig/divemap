@@ -49,6 +49,9 @@ api.interceptors.request.use(
 let isRefreshing = false;
 let failedQueue = [];
 
+// Track retry attempts for gateway timeouts
+const retryAttempts = new Map();
+
 const processQueue = (error, token = null) => {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) {
@@ -61,11 +64,41 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+// Helper to check if error is a gateway/server error that should be retried
+const isRetryableError = error => {
+  if (!error.response) {
+    // Network error or timeout - retry
+    return true;
+  }
+  const status = error.response.status;
+  // Retry on 5xx errors (server errors) and 504 (gateway timeout)
+  return status >= 500 || status === 504;
+};
+
+// Helper to get retry delay with exponential backoff
+const getRetryDelay = attempt => {
+  // Exponential backoff: 1s, 2s, 4s, 8s, max 10s
+  return Math.min(1000 * Math.pow(2, attempt), 10000);
+};
+
 // Response interceptor for successful responses
 api.interceptors.response.use(
   response => {
     if (response.config.url?.includes('/auth/login') && response.status === 200) {
     }
+
+    // If we get a successful response after backend was down, notify AuthContext
+    // This helps recover user session when backend comes back
+    if (response.status >= 200 && response.status < 300) {
+      // Dispatch event to notify that backend is back online
+      // AuthContext can use this to retry fetching user if needed
+      window.dispatchEvent(
+        new window.CustomEvent('backendOnline', {
+          detail: { url: response.config.url },
+        })
+      );
+    }
+
     return response;
   },
   async error => {
@@ -143,11 +176,55 @@ api.interceptors.response.use(
         error.response.headers['retry-after'] || error.response.data?.retry_after || 30;
       error.retryAfter = retryAfter;
       error.isRateLimited = true;
+    } else if (isRetryableError(error) && !originalRequest._gatewayRetry && !isAuthEndpoint) {
+      // Handle gateway timeouts (504) and server errors (5xx)
+      // These often happen when backend is cold-starting on Fly.io
+      const requestKey = `${originalRequest.method}:${originalRequest.url}`;
+      const attempt = retryAttempts.get(requestKey) || 0;
+      const maxRetries = 3;
+
+      if (attempt < maxRetries) {
+        // Mark as gateway retry to prevent infinite loops
+        originalRequest._gatewayRetry = true;
+        retryAttempts.set(requestKey, attempt + 1);
+
+        const delay = getRetryDelay(attempt);
+
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, delay));
+
+        // Retry the request (don't clear _gatewayRetry, it prevents infinite loops)
+        return api(originalRequest);
+      } else {
+        // Max retries reached, clear tracking and reject
+        retryAttempts.delete(requestKey);
+        error.isGatewayTimeout = true;
+        error.isServerError = true;
+      }
+    }
+
+    // Clear retry tracking on final failure (if not already cleared)
+    if (originalRequest.url && !error.isGatewayTimeout) {
+      const requestKey = `${originalRequest.method}:${originalRequest.url}`;
+      retryAttempts.delete(requestKey);
     }
 
     return Promise.reject(error);
   }
 );
+
+// Health check API (for keepalive to prevent backend cold starts)
+export const healthCheck = async () => {
+  try {
+    const response = await api.get('/health', {
+      timeout: 5000, // 5 second timeout
+    });
+    return response.data;
+  } catch (error) {
+    // Silently fail - this is just a keepalive
+    return null;
+  }
+};
 
 // Global Search API
 export const searchGlobal = async (query, limit = 8) => {
