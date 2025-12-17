@@ -29,7 +29,7 @@ from app.utils import get_unified_fuzzy_trigger_conditions
 
 
 @router.post("/", response_model=DiveResponse)
-def create_dive(
+async def create_dive(
     dive: DiveCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -135,6 +135,17 @@ def create_dive(
     db.add(db_dive)
     db.commit()
     db.refresh(db_dive)
+    
+    # Notify users about new dive
+    try:
+        from app.services.notification_service import NotificationService
+        notification_service = NotificationService()
+        await notification_service.notify_users_for_new_dive(db_dive.id, db)
+    except Exception as e:
+        # Log error but don't fail dive creation
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to send notifications for new dive: {e}")
 
     # Handle buddies if provided
     if dive.buddies:

@@ -234,23 +234,23 @@ async def refresh_token(request: Request, response: Response, db: Session):
 ┌─────────┐                    ┌──────────┐
 │ Client  │                    │ Backend  │
 └────┬────┘                    └────┬─────┘
-     │                               │
+     │                              │
      │ 1. POST /api/v1/auth/logout  │
      │    Cookie: refresh_token=... │
-     ├──────────────────────────────>│
-     │                               │
-     │                               │ 2. Revoke refresh_token
-     │                               │    (mark as revoked in DB)
-     │                               │
-     │                               │ 3. Delete refresh_token cookie
-     │                               │
-     │ 4. Response: 200 OK            │
-     │<──────────────────────────────┤
-     │                               │
-     │ 5. Clear localStorage         │
-     │    - access_token             │
-     │    - tokenExpiry              │
-     │                               │
+     ├─────────────────────────────>│
+     │                              │
+     │                              │ 2. Revoke refresh_token
+     │                              │    (mark as revoked in DB)
+     │                              │
+     │                              │ 3. Delete refresh_token cookie
+     │                              │
+     │ 4. Response: 200 OK          │
+     │<─────────────────────────────┤
+     │                              │
+     │ 5. Clear localStorage        │
+     │    - access_token            │
+     │    - tokenExpiry             │
+     │                              │
 ```
 
 **Client Code** (`AuthContext.js`):

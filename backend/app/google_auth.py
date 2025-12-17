@@ -145,6 +145,17 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
+        
+        # Create default notification preferences for new user
+        try:
+            from app.utils import create_default_notification_preferences
+            create_default_notification_preferences(new_user.id, db)
+        except Exception as e:
+            # Log error but don't fail user creation if preference creation fails
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to create default notification preferences for Google user {new_user.id}: {e}")
+        
         return new_user
     except IntegrityError as e:
         db.rollback()
