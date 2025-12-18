@@ -2,6 +2,7 @@ import pytest
 from fastapi import status
 from datetime import datetime, timedelta, timezone
 from app.models import Notification, NotificationPreference, EmailConfig, User
+from app.services.notification_service import NotificationService
 
 
 class TestNotificationEndpoints:
@@ -263,20 +264,31 @@ class TestNotificationEndpoints:
 
     def test_update_last_check(self, client, auth_headers, db_session, test_user):
         """Test updating last notification check timestamp."""
+        # Capture time before the API call
+        before_time = datetime.now(timezone.utc)
+        
         response = client.put("/api/v1/notifications/update-last-check", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
+
+        # Capture time after the API call
+        after_time = datetime.now(timezone.utc)
 
         # Verify timestamp was updated
         db_session.refresh(test_user)
         assert test_user.last_notification_check is not None
+        
         # Handle timezone-aware vs naive datetime comparison
-        now = datetime.now(timezone.utc)
+        # Check that last_notification_check is between before_time and after_time
+        # (with small tolerance for timing differences)
         if test_user.last_notification_check.tzinfo is None:
             # If DB returned naive datetime, compare with naive
-            now_naive = now.replace(tzinfo=None)
-            assert test_user.last_notification_check <= now_naive
+            before_naive = before_time.replace(tzinfo=None)
+            after_naive = after_time.replace(tzinfo=None)
+            # Allow 1 second tolerance for timing differences
+            assert before_naive - timedelta(seconds=1) <= test_user.last_notification_check <= after_naive + timedelta(seconds=1)
         else:
-            assert test_user.last_notification_check <= now
+            # Both are timezone-aware, compare directly with tolerance
+            assert before_time - timedelta(seconds=1) <= test_user.last_notification_check <= after_time + timedelta(seconds=1)
 
     def test_delete_notification(self, client, auth_headers, db_session, test_user):
         """Test deleting a notification."""
@@ -611,3 +623,201 @@ class TestAdminNotificationEndpoints:
         )
         # Should return 200 (success) or 400/500 (SMTP error), not 403
         assert response.status_code != status.HTTP_403_FORBIDDEN
+
+    def test_test_email_config_with_env_vars(self, client, admin_headers, monkeypatch):
+        """Test the new environment variable-based email configuration."""
+        from unittest.mock import patch, MagicMock
+        
+        # Set environment variables
+        monkeypatch.setenv('AWS_SES_FROM_EMAIL', 'test@example.com')
+        monkeypatch.setenv('AWS_SES_FROM_NAME', 'Test Sender')
+        
+        # Mock EmailService.send_notification_email to return success
+        with patch('app.routers.notifications.EmailService') as mock_email_service_class:
+            mock_email_service = MagicMock()
+            mock_email_service_class.return_value = mock_email_service
+            mock_email_service.send_notification_email.return_value = True
+            
+            response = client.post(
+                "/api/v1/notifications/admin/test-email",
+                headers=admin_headers
+            )
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert "message" in data
+            assert "Test email sent successfully" in data["message"]
+            
+            # Verify EmailService was called with correct parameters
+            mock_email_service.send_notification_email.assert_called_once()
+            call_args = mock_email_service.send_notification_email.call_args
+            assert call_args[1]['from_email'] == 'test@example.com'
+            assert call_args[1]['from_name'] == 'Test Sender'
+            assert call_args[1]['template_name'] == 'test_email'
+
+    def test_test_email_config_missing_env_var(self, client, admin_headers, monkeypatch):
+        """Test test_email_config when AWS_SES_FROM_EMAIL is not set."""
+        # Ensure environment variable is not set
+        monkeypatch.delenv('AWS_SES_FROM_EMAIL', raising=False)
+        monkeypatch.delenv('AWS_SES_FROM_NAME', raising=False)
+        
+        response = client.post(
+            "/api/v1/notifications/admin/test-email",
+            headers=admin_headers
+        )
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        data = response.json()
+        assert "AWS_SES_FROM_EMAIL environment variable not set" in data["detail"]
+
+    def test_test_email_config_default_from_name(self, client, admin_headers, monkeypatch):
+        """Test test_email_config uses default 'Divemap' when AWS_SES_FROM_NAME not set."""
+        from unittest.mock import patch, MagicMock
+        
+        # Set only AWS_SES_FROM_EMAIL
+        monkeypatch.setenv('AWS_SES_FROM_EMAIL', 'test@example.com')
+        monkeypatch.delenv('AWS_SES_FROM_NAME', raising=False)
+        
+        with patch('app.routers.notifications.EmailService') as mock_email_service_class:
+            mock_email_service = MagicMock()
+            mock_email_service_class.return_value = mock_email_service
+            mock_email_service.send_notification_email.return_value = True
+            
+            response = client.post(
+                "/api/v1/notifications/admin/test-email",
+                headers=admin_headers
+            )
+            
+            assert response.status_code == status.HTTP_200_OK
+            
+            # Verify default from_name was used
+            call_args = mock_email_service.send_notification_email.call_args
+            assert call_args[1]['from_name'] == 'Divemap'
+
+    def test_test_email_config_email_service_failure(self, client, admin_headers, monkeypatch):
+        """Test test_email_config when email service fails."""
+        from unittest.mock import patch, MagicMock
+        
+        monkeypatch.setenv('AWS_SES_FROM_EMAIL', 'test@example.com')
+        monkeypatch.setenv('AWS_SES_FROM_NAME', 'Test Sender')
+        
+        with patch('app.routers.notifications.EmailService') as mock_email_service_class:
+            mock_email_service = MagicMock()
+            mock_email_service_class.return_value = mock_email_service
+            mock_email_service.send_notification_email.return_value = False
+            
+            response = client.post(
+                "/api/v1/notifications/admin/test-email",
+                headers=admin_headers
+            )
+            
+            assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+            data = response.json()
+            assert "Failed to send test email" in data["detail"]
+            assert "AWS SES configuration" in data["detail"]
+
+    def test_test_email_config_non_admin(self, client, auth_headers):
+        """Test test_email_config requires admin access."""
+        response = client.post(
+            "/api/v1/notifications/admin/test-email",
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_test_email_queue_success(self, client, admin_headers, db_session, test_admin_user, monkeypatch):
+        """Test the test-email-queue endpoint successfully queues to SQS."""
+        from unittest.mock import patch, MagicMock
+        from app.models import Notification
+        
+        # Set up environment for SQS (optional, but good to have)
+        monkeypatch.setenv('AWS_SQS_QUEUE_URL', 'https://sqs.eu-central-1.amazonaws.com/123456789/test-queue')
+        monkeypatch.setenv('AWS_ACCESS_KEY_ID', 'test-key')
+        monkeypatch.setenv('AWS_SECRET_ACCESS_KEY', 'test-secret')
+        monkeypatch.setenv('AWS_REGION', 'eu-central-1')
+        
+        # Mock NotificationService
+        with patch('app.routers.notifications.NotificationService') as mock_service_class:
+            mock_service = MagicMock()
+            mock_service_class.return_value = mock_service
+            
+            # Mock create_notification to return a notification
+            test_notification = Notification(
+                id=1,
+                user_id=test_admin_user.id,
+                category='admin_alerts',
+                title='Test Email via SQS/Lambda',
+                message='Test message',
+                email_sent=False
+            )
+            mock_service.create_notification.return_value = test_notification
+            
+            # Mock _queue_email_notification to return True (success)
+            mock_service._queue_email_notification.return_value = True
+            
+            response = client.post(
+                "/api/v1/notifications/admin/test-email-queue",
+                headers=admin_headers
+            )
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert "message" in data
+            assert "queued successfully" in data["message"].lower()
+            assert data["notification_id"] == 1
+            assert data["user_email"] == test_admin_user.email
+            assert data["category"] == "admin_alerts"
+            assert data["queued_to_sqs"] is True
+            
+            # Verify NotificationService methods were called
+            mock_service.create_notification.assert_called_once()
+            mock_service._queue_email_notification.assert_called_once()
+
+    def test_test_email_queue_notification_creation_failure(self, client, admin_headers, monkeypatch):
+        """Test test-email-queue when notification creation fails."""
+        from unittest.mock import patch, MagicMock
+        
+        with patch('app.routers.notifications.NotificationService') as mock_service_class:
+            mock_service = MagicMock()
+            mock_service_class.return_value = mock_service
+            
+            # Mock create_notification to return None (failure)
+            mock_service.create_notification.return_value = None
+            
+            response = client.post(
+                "/api/v1/notifications/admin/test-email-queue",
+                headers=admin_headers
+            )
+            
+            assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+            data = response.json()
+            assert "Failed to create test notification" in data["detail"]
+            
+            # Verify _queue_email_notification was NOT called
+            mock_service._queue_email_notification.assert_not_called()
+
+    def test_test_email_queue_sqs_failure(self, client, admin_headers, db_session, test_admin_user, monkeypatch):
+        """Test test-email-queue when SQS queuing fails."""
+        from unittest.mock import patch, MagicMock
+        
+        # Mock the NotificationService._queue_email_notification method to return False
+        # This simulates SQS queuing failure
+        with patch.object(NotificationService, '_queue_email_notification') as mock_queue:
+            mock_queue.return_value = False
+            
+            response = client.post(
+                "/api/v1/notifications/admin/test-email-queue",
+                headers=admin_headers
+            )
+            
+            assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+            # FastAPI should return JSON error response
+            data = response.json()
+            assert "Failed to queue email to SQS" in data["detail"]
+
+    def test_test_email_queue_non_admin(self, client, auth_headers):
+        """Test test-email-queue requires admin access."""
+        response = client.post(
+            "/api/v1/notifications/admin/test-email-queue",
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
