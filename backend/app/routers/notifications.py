@@ -27,6 +27,7 @@ from app.schemas import (
     EmailConfigUpdate
 )
 from app.services.email_service import EmailService
+from app.services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
 
@@ -562,14 +563,20 @@ def test_email_config(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
-    """Test email configuration by sending a test email (admin only)."""
-    email_service = EmailService()
-    config = email_service.get_email_config(db)
+    """Test email configuration by sending a test email via AWS SES (admin only)."""
+    import os
     
-    if not config:
+    email_service = EmailService()
+    
+    # Use environment variables for SES (AWS_SES_FROM_EMAIL, AWS_SES_FROM_NAME)
+    # These are set in backend .env file and match terraform.tfvars values
+    from_email = os.getenv('AWS_SES_FROM_EMAIL')
+    from_name = os.getenv('AWS_SES_FROM_NAME', 'Divemap')
+    
+    if not from_email:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No active email configuration found"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="AWS_SES_FROM_EMAIL environment variable not set. Please configure it in backend .env file."
         )
     
     # Send test email to admin
@@ -583,8 +590,8 @@ def test_email_config(
         user_email=current_user.email,
         notification=test_notification,
         template_name='test_email',
-        from_email=config.from_email,
-        from_name=config.from_name
+        from_email=from_email,
+        from_name=from_name
     )
     
     if success:
@@ -592,8 +599,66 @@ def test_email_config(
     else:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send test email"
+            detail="Failed to send test email. Check backend logs and AWS SES configuration."
         )
+
+
+@router.post("/admin/test-email-queue")
+def test_email_queue(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """
+    Test the full SQS -> Lambda -> SES email flow (admin only).
+    
+    Creates a notification record, queues it to SQS, and Lambda will process it.
+    This tests the complete asynchronous email notification pipeline.
+    """
+    notification_service = NotificationService()
+    
+    # Create a test notification for the admin user
+    notification = notification_service.create_notification(
+        user_id=current_user.id,
+        category='admin_alerts',
+        title='Test Email via SQS/Lambda',
+        message='This is a test email sent through the SQS queue and processed by Lambda. If you receive this, the full notification pipeline is working correctly.',
+        link_url=None,
+        entity_type=None,
+        entity_id=None,
+        db=db
+    )
+    
+    if not notification:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create test notification"
+        )
+    
+    # Queue the email notification to SQS
+    user = db.query(User).filter(User.id == current_user.id).first()
+    queued = notification_service._queue_email_notification(
+        notification=notification,
+        user=user,
+        template_name='admin_alert'
+    )
+    
+    if not queued:
+        # Notification was created but queuing failed
+        # Clean up the notification
+        db.delete(notification)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to queue email to SQS. Check AWS SQS configuration and backend logs."
+        )
+    
+    return {
+        "message": "Test notification queued successfully. Lambda will process it and send the email.",
+        "notification_id": notification.id,
+        "user_email": current_user.email,
+        "category": notification.category,
+        "queued_to_sqs": True
+    }
 
 
 @router.get("/admin/email-config", response_model=EmailConfigResponse)

@@ -65,6 +65,9 @@ def call_backend_api(endpoint: str, method: str = "GET", data: Optional[Dict] = 
     # Construct full URL
     url = f"{backend_url.rstrip('/')}{endpoint}"
     
+    # Log the full URL being called (without API key for security)
+    logger.info(f"Calling backend API: {method} {url}")
+    
     try:
         # Prepare request
         req_data = None
@@ -73,23 +76,49 @@ def call_backend_api(endpoint: str, method: str = "GET", data: Optional[Dict] = 
             "Content-Type": "application/json"
         }
         
+        # Add Cloudflare API token if configured (for bypassing challenges)
+        cloudflare_token = os.getenv('CLOUDFLARE_API_TOKEN')
+        if cloudflare_token:
+            headers["CF-Access-Token"] = cloudflare_token
+        
         if data and method in ["PUT", "POST"]:
             req_data = json.dumps(data).encode('utf-8')
         
-        # Create request
+        # Create request - User-Agent must be set via add_header to override urllib default
         req = urllib.request.Request(url, data=req_data, headers=headers, method=method)
+        req.add_header("User-Agent", "Divemap-Lambda-EmailProcessor/1.0")
         
         # Make request
-        with urllib.request.urlopen(req, timeout=10) as response:
+        # Increased timeout to 30 seconds to handle slower backend responses or Cloudflare delays
+        with urllib.request.urlopen(req, timeout=30) as response:
             response_data = response.read().decode('utf-8')
+            logger.info(f"Backend API response: {response.status} {response.reason}")
             if response_data:
                 return json.loads(response_data)
             return {}
             
     except urllib.error.HTTPError as e:
-        logger.error(f"HTTP error calling backend API {endpoint}: {e.code} - {e.reason}")
+        # Log full error details including response body if available
+        error_body = None
+        try:
+            error_body = e.read().decode('utf-8')
+        except:
+            pass
+        
+        logger.error(f"HTTP error calling backend API {url}: {e.code} - {e.reason}")
+        if error_body:
+            logger.error(f"Error response body: {error_body}")
+        
+        # 404 is a valid response (notification doesn't exist)
         if e.code == 404:
-            return None  # Not found is a valid response
+            return None
+        
+        # 5xx errors (500, 502, 503, 504) are retryable - raise exception to trigger SQS redelivery
+        if e.code >= 500:
+            logger.warning(f"Retryable server error {e.code} - will trigger SQS redelivery")
+            raise Exception(f"Backend API returned {e.code} {e.reason}: {error_body or 'No error body'}")
+        
+        # 4xx errors (except 404) are client errors - don't retry
         return None
     except urllib.error.URLError as e:
         logger.error(f"URL error calling backend API {endpoint}: {e.reason}")
@@ -113,9 +142,13 @@ def process_email_notification(notification_id: int, user_email: str, notificati
     
     Returns:
         True if email was sent successfully, False otherwise
+    
+    Raises:
+        Exception: For retryable errors (5xx) to trigger SQS redelivery
     """
     try:
         # Fetch notification from backend API to check status
+        # This may raise Exception for 5xx errors (retryable)
         notification = call_backend_api(f"/api/v1/notifications/internal/{notification_id}")
         
         if not notification:
@@ -175,8 +208,16 @@ def process_email_notification(notification_id: int, user_email: str, notificati
             return False
             
     except Exception as e:
-        logger.error(f"Error processing email notification {notification_id}: {e}")
-        return False
+        # Check if this is a retryable error (5xx from backend API)
+        error_msg = str(e)
+        if "Backend API returned 5" in error_msg or any(code in error_msg for code in ["504", "503", "502", "500"]):
+            # Re-raise retryable errors so SQS will redeliver
+            logger.warning(f"Retryable error processing notification {notification_id}: {e} - re-raising for SQS redelivery")
+            raise
+        else:
+            # Non-retryable errors - log and return False
+            logger.error(f"Non-retryable error processing email notification {notification_id}: {e}")
+            return False
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -212,17 +253,38 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     continue
                 
                 # Process email notification
-                if process_email_notification(notification_id, user_email, notification_data):
-                    success_count += 1
-                else:
-                    failure_count += 1
+                # If process_email_notification raises an exception (e.g., 5xx errors),
+                # we need to re-raise it so SQS will redeliver the message for retry
+                try:
+                    if process_email_notification(notification_id, user_email, notification_data):
+                        success_count += 1
+                    else:
+                        failure_count += 1
+                except Exception as e:
+                    # Re-raise retryable errors (5xx) to trigger SQS redelivery
+                    # The exception message should indicate if it's retryable
+                    error_msg = str(e)
+                    if "Backend API returned 5" in error_msg or "504" in error_msg or "503" in error_msg or "502" in error_msg or "500" in error_msg:
+                        logger.warning(f"Retryable error for notification {notification_id}: {e} - re-raising to trigger SQS redelivery")
+                        raise  # Re-raise to trigger SQS retry
+                    else:
+                        # Non-retryable errors - log and continue
+                        logger.error(f"Non-retryable error processing notification {notification_id}: {e}")
+                        failure_count += 1
                     
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse message body: {e}")
                 failure_count += 1
             except Exception as e:
-                logger.error(f"Error processing record: {e}")
-                failure_count += 1
+                # This catches retryable exceptions that were re-raised above
+                # Re-raise them so Lambda fails and SQS redelivers
+                error_msg = str(e)
+                if "Backend API returned 5" in error_msg or "504" in error_msg or "503" in error_msg or "502" in error_msg or "500" in error_msg:
+                    logger.error(f"Retryable error - re-raising to trigger SQS redelivery: {e}")
+                    raise  # Re-raise to fail Lambda and trigger SQS retry
+                else:
+                    logger.error(f"Error processing record: {e}")
+                    failure_count += 1
         
         # Return result
         result = {
@@ -239,6 +301,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return result
         
     except Exception as e:
+        # Check if this is a retryable error (5xx from backend API)
+        error_msg = str(e)
+        if "Backend API returned 5" in error_msg or any(code in error_msg for code in ["504", "503", "502", "500"]):
+            # Re-raise retryable errors so Lambda fails and SQS redelivers
+            logger.error(f"Lambda handler: Retryable error - re-raising to trigger SQS redelivery: {e}")
+            raise  # This will cause Lambda to fail and SQS to retry
+        
+        # For non-retryable errors, return error response
         logger.error(f"Lambda handler error: {e}")
         return {
             'statusCode': 500,
