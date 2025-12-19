@@ -99,7 +99,7 @@ export const useNotifications = () => {
   // Stop polling when user logs out
   useEffect(() => {
     if (!user && pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
+      window.clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
     }
   }, [user]);

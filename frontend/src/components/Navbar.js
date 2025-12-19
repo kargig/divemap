@@ -23,6 +23,7 @@ import {
   HelpCircle,
   Shield,
   Code,
+  Bell,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -399,6 +400,14 @@ const Navbar = () => {
                           <Users className='h-4 w-4 mr-2' />
                           Users
                         </Link>
+                        <Link
+                          to='/admin/notification-preferences'
+                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <Bell className='h-4 w-4 mr-2' />
+                          Notification Preferences
+                        </Link>
                       </div>
                     )}
                   </div>
@@ -703,6 +712,14 @@ const Navbar = () => {
                                 >
                                   <Users className='h-4 w-4 mr-3' />
                                   <span>Users</span>
+                                </Link>
+                                <Link
+                                  to='/admin/notification-preferences'
+                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                  onClick={closeMobileMenu}
+                                >
+                                  <Bell className='h-4 w-4 mr-3' />
+                                  <span>Notification Preferences</span>
                                 </Link>
                               </div>
                             )}

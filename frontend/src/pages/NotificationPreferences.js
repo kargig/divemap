@@ -1,7 +1,7 @@
 import { Mail, Globe, MapPin, Trash2, ArrowLeft } from 'lucide-react';
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { useQuery } from 'react-query';
+import { Link } from 'react-router-dom';
 
 import { getNotificationPreferences } from '../api';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -135,12 +135,18 @@ const NotificationPreferencesPage = () => {
         <div className='space-y-6'>
           {categories.map(category => {
             const preference = getPreference(category.value);
-            const enableWebsite = preference?.enable_website ?? category.value !== 'admin_alerts';
+            // Only use preference values if preference exists, otherwise show as not configured
+            const enableWebsite = preference?.enable_website ?? false;
             const enableEmail = preference?.enable_email ?? false;
             const frequency = preference?.frequency ?? 'immediate';
 
             return (
-              <div key={category.value} className='border border-gray-200 rounded-lg p-4'>
+              <div
+                key={category.value}
+                className={`border rounded-lg p-4 ${
+                  preference ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'
+                }`}
+              >
                 <div className='flex items-start justify-between mb-4'>
                   <div className='flex-1'>
                     <h3 className='text-lg font-semibold text-gray-900'>{category.label}</h3>
@@ -157,78 +163,101 @@ const NotificationPreferencesPage = () => {
                   )}
                 </div>
 
-                <div className='space-y-4'>
-                  {/* Website Notifications */}
-                  <div className='flex items-center justify-between'>
-                    <div className='flex items-center space-x-2'>
-                      <Globe className='h-5 w-5 text-gray-500' />
-                      <span className='text-sm font-medium text-gray-700'>
-                        Website Notifications
-                      </span>
-                    </div>
-                    <label className='relative inline-flex items-center cursor-pointer'>
-                      <input
-                        type='checkbox'
-                        checked={enableWebsite}
-                        onChange={e =>
-                          handleToggle(category.value, 'enable_website', e.target.checked)
-                        }
-                        className='sr-only peer'
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-
-                  {/* Email Notifications */}
-                  <div className='flex items-center justify-between'>
-                    <div className='flex items-center space-x-2'>
-                      <Mail className='h-5 w-5 text-gray-500' />
-                      <span className='text-sm font-medium text-gray-700'>Email Notifications</span>
-                    </div>
-                    <label className='relative inline-flex items-center cursor-pointer'>
-                      <input
-                        type='checkbox'
-                        checked={enableEmail}
-                        onChange={e =>
-                          handleToggle(category.value, 'enable_email', e.target.checked)
-                        }
-                        className='sr-only peer'
-                        disabled={!enableWebsite}
-                      />
-                      <div
-                        className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 ${!enableWebsite ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      ></div>
-                    </label>
-                  </div>
-
-                  {/* Frequency (only if email is enabled) */}
-                  {enableEmail && (
-                    <div className='flex items-center justify-between pt-2 border-t border-gray-200'>
-                      <span className='text-sm font-medium text-gray-700'>Frequency</span>
-                      <select
-                        value={frequency}
-                        onChange={e => handleFrequencyChange(category.value, e.target.value)}
-                        className='border border-gray-300 rounded-md px-3 py-1 text-sm'
-                      >
-                        {frequencies.map(freq => (
-                          <option key={freq.value} value={freq.value}>
-                            {freq.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Area Filter (future enhancement - placeholder) */}
-                  {enableWebsite && category.value !== 'admin_alerts' && (
-                    <div className='pt-2 border-t border-gray-200'>
-                      <div className='flex items-center space-x-2 text-sm text-gray-600'>
-                        <MapPin className='h-4 w-4' />
-                        <span>Area filtering coming soon</span>
+                {preference ? (
+                  <div className='space-y-4'>
+                    {/* Website Notifications */}
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center space-x-2'>
+                        <Globe className='h-5 w-5 text-gray-500' />
+                        <span className='text-sm font-medium text-gray-700'>
+                          Website Notifications
+                        </span>
                       </div>
+                      <label className='relative inline-flex items-center cursor-pointer'>
+                        <input
+                          type='checkbox'
+                          checked={enableWebsite}
+                          onChange={e =>
+                            handleToggle(category.value, 'enable_website', e.target.checked)
+                          }
+                          className='sr-only peer'
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
                     </div>
-                  )}
-                </div>
+
+                    {/* Email Notifications */}
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center space-x-2'>
+                        <Mail className='h-5 w-5 text-gray-500' />
+                        <span className='text-sm font-medium text-gray-700'>
+                          Email Notifications
+                        </span>
+                      </div>
+                      <label className='relative inline-flex items-center cursor-pointer'>
+                        <input
+                          type='checkbox'
+                          checked={enableEmail}
+                          onChange={e =>
+                            handleToggle(category.value, 'enable_email', e.target.checked)
+                          }
+                          className='sr-only peer'
+                          disabled={!enableWebsite}
+                        />
+                        <div
+                          className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 ${!enableWebsite ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        ></div>
+                      </label>
+                    </div>
+
+                    {/* Frequency (only if email is enabled) */}
+                    {enableEmail && (
+                      <div className='flex items-center justify-between pt-2 border-t border-gray-200'>
+                        <span className='text-sm font-medium text-gray-700'>Frequency</span>
+                        <select
+                          value={frequency}
+                          onChange={e => handleFrequencyChange(category.value, e.target.value)}
+                          className='border border-gray-300 rounded-md px-3 py-1 text-sm'
+                        >
+                          {frequencies.map(freq => (
+                            <option key={freq.value} value={freq.value}>
+                              {freq.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Area Filter (future enhancement - placeholder) */}
+                    {enableWebsite && category.value !== 'admin_alerts' && (
+                      <div className='pt-2 border-t border-gray-200'>
+                        <div className='flex items-center space-x-2 text-sm text-gray-600'>
+                          <MapPin className='h-4 w-4' />
+                          <span>Area filtering coming soon</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className='space-y-4'>
+                    <p className='text-sm text-gray-500 italic mb-4'>No preference configured</p>
+                    <button
+                      onClick={() => {
+                        // Create preference with sensible defaults
+                        const defaultData = {
+                          category: category.value,
+                          enable_website: category.value !== 'admin_alerts',
+                          enable_email: false,
+                          frequency: 'immediate',
+                        };
+                        createPreference(defaultData);
+                      }}
+                      className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm'
+                    >
+                      <span>Create Preference</span>
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}

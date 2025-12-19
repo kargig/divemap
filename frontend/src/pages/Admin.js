@@ -9,6 +9,7 @@ import {
   Crown,
   Anchor,
   FileText,
+  Bell,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -94,6 +95,15 @@ const Admin = () => {
       icon: <Users className='h-8 w-8 text-orange-600' />,
       href: '/admin/users',
       color: 'bg-orange-50 border-orange-200 hover:bg-orange-100',
+    },
+    {
+      id: 'notification-preferences',
+      title: 'Notification Preferences',
+      description:
+        'Manage notification preferences for any user, configure email and website notifications.',
+      icon: <Bell className='h-8 w-8 text-indigo-600' />,
+      href: '/admin/notification-preferences',
+      color: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100',
     },
   ];
 
