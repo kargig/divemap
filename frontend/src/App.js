@@ -15,6 +15,7 @@ import AdminDiveSites from './pages/AdminDiveSites';
 import AdminDivingCenters from './pages/AdminDivingCenters';
 import AdminDivingOrganizations from './pages/AdminDivingOrganizations';
 import AdminNewsletters from './pages/AdminNewsletters';
+import AdminNotificationPreferences from './pages/AdminNotificationPreferences';
 import AdminOwnershipRequests from './pages/AdminOwnershipRequests';
 import AdminRecentActivity from './pages/AdminRecentActivity';
 import AdminSystemOverview from './pages/AdminSystemOverview';
@@ -292,6 +293,14 @@ function App() {
                     element={
                       <ProtectedRoute requireAdmin={true}>
                         <AdminUsers />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/admin/notification-preferences'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminNotificationPreferences />
                       </ProtectedRoute>
                     }
                   />

@@ -712,3 +712,32 @@ export const testEmailConfig = async () => {
   const response = await api.post('/api/v1/notifications/admin/test-email');
   return response.data;
 };
+
+// Admin user notification preferences API functions
+export const getUserNotificationPreferences = async userId => {
+  const response = await api.get(`/api/v1/notifications/admin/users/${userId}/preferences`);
+  return response.data;
+};
+
+export const createUserNotificationPreference = async (userId, preferenceData) => {
+  const response = await api.post(
+    `/api/v1/notifications/admin/users/${userId}/preferences`,
+    preferenceData
+  );
+  return response.data;
+};
+
+export const updateUserNotificationPreference = async (userId, category, preferenceData) => {
+  const response = await api.put(
+    `/api/v1/notifications/admin/users/${userId}/preferences/${category}`,
+    preferenceData
+  );
+  return response.data;
+};
+
+export const deleteUserNotificationPreference = async (userId, category) => {
+  const response = await api.delete(
+    `/api/v1/notifications/admin/users/${userId}/preferences/${category}`
+  );
+  return response.data;
+};

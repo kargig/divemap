@@ -840,3 +840,187 @@ def create_email_config(
         created_at=new_config.created_at,
         updated_at=new_config.updated_at
     )
+
+
+# Admin User Notification Preferences Endpoints
+@router.get("/admin/users/{user_id}/preferences", response_model=List[NotificationPreferenceResponse])
+def get_user_notification_preferences(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Get notification preferences for a specific user (admin only)."""
+    # Verify user exists
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {user_id} not found"
+        )
+    
+    preferences = db.query(NotificationPreference).filter(
+        NotificationPreference.user_id == user_id
+    ).all()
+    
+    return [
+        NotificationPreferenceResponse(
+            id=p.id,
+            user_id=p.user_id,
+            category=p.category,
+            enable_website=p.enable_website,
+            enable_email=p.enable_email,
+            frequency=p.frequency,
+            area_filter=p.area_filter,
+            created_at=p.created_at,
+            updated_at=p.updated_at
+        )
+        for p in preferences
+    ]
+
+
+@router.post("/admin/users/{user_id}/preferences", response_model=NotificationPreferenceResponse)
+def create_user_notification_preference(
+    user_id: int,
+    preference: NotificationPreferenceCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Create notification preference for a specific user (admin only)."""
+    # Verify user exists
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {user_id} not found"
+        )
+    
+    # Check if preference already exists
+    existing = db.query(NotificationPreference).filter(
+        NotificationPreference.user_id == user_id,
+        NotificationPreference.category == preference.category
+    ).first()
+    
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Preference for category '{preference.category}' already exists for user {user_id}"
+        )
+    
+    # Create new preference
+    new_preference = NotificationPreference(
+        user_id=user_id,
+        category=preference.category,
+        enable_website=preference.enable_website,
+        enable_email=preference.enable_email,
+        frequency=preference.frequency,
+        area_filter=preference.area_filter
+    )
+    
+    db.add(new_preference)
+    db.commit()
+    db.refresh(new_preference)
+    
+    logger.info(f"Admin {current_user.id} created notification preference for user {user_id}, category: {preference.category}")
+    
+    return NotificationPreferenceResponse(
+        id=new_preference.id,
+        user_id=new_preference.user_id,
+        category=new_preference.category,
+        enable_website=new_preference.enable_website,
+        enable_email=new_preference.enable_email,
+        frequency=new_preference.frequency,
+        area_filter=new_preference.area_filter,
+        created_at=new_preference.created_at,
+        updated_at=new_preference.updated_at
+    )
+
+
+@router.put("/admin/users/{user_id}/preferences/{category}", response_model=NotificationPreferenceResponse)
+def update_user_notification_preference(
+    user_id: int,
+    category: str,
+    preference_update: NotificationPreferenceUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Update notification preference for a specific user (admin only)."""
+    # Verify user exists
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {user_id} not found"
+        )
+    
+    preference = db.query(NotificationPreference).filter(
+        NotificationPreference.user_id == user_id,
+        NotificationPreference.category == category
+    ).first()
+    
+    if not preference:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Preference for category '{category}' not found for user {user_id}"
+        )
+    
+    # Update fields
+    if preference_update.enable_website is not None:
+        preference.enable_website = preference_update.enable_website
+    if preference_update.enable_email is not None:
+        preference.enable_email = preference_update.enable_email
+    if preference_update.frequency is not None:
+        preference.frequency = preference_update.frequency
+    if preference_update.area_filter is not None:
+        preference.area_filter = preference_update.area_filter
+    
+    db.commit()
+    db.refresh(preference)
+    
+    logger.info(f"Admin {current_user.id} updated notification preference for user {user_id}, category: {category}")
+    
+    return NotificationPreferenceResponse(
+        id=preference.id,
+        user_id=preference.user_id,
+        category=preference.category,
+        enable_website=preference.enable_website,
+        enable_email=preference.enable_email,
+        frequency=preference.frequency,
+        area_filter=preference.area_filter,
+        created_at=preference.created_at,
+        updated_at=preference.updated_at
+    )
+
+
+@router.delete("/admin/users/{user_id}/preferences/{category}")
+def delete_user_notification_preference(
+    user_id: int,
+    category: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Delete notification preference for a specific user (admin only)."""
+    # Verify user exists
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {user_id} not found"
+        )
+    
+    preference = db.query(NotificationPreference).filter(
+        NotificationPreference.user_id == user_id,
+        NotificationPreference.category == category
+    ).first()
+    
+    if not preference:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Preference for category '{category}' not found for user {user_id}"
+        )
+    
+    db.delete(preference)
+    db.commit()
+    
+    logger.info(f"Admin {current_user.id} deleted notification preference for user {user_id}, category: {category}")
+    
+    return {"message": f"Preference for category '{category}' deleted for user {user_id}"}
