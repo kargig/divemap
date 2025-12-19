@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Weekly Divemap Digest</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background-color: #0066cc; color: white; padding: 20px; text-align: center;">
+        <h1 style="margin: 0;">{{ site_name }}</h1>
+        <h2 style="margin: 10px 0 0 0;">Weekly Digest</h2>
+    </div>
+    
+    <div style="background-color: #f9f9f9; padding: 20px; margin-top: 20px;">
+        <p>You have <strong>{{ count }}</strong> new notification{{ 's' if count != 1 else '' }} this week:</p>
+        
+        <ul style="list-style: none; padding: 0;">
+            {% for notification in notifications %}
+            <li style="background-color: white; padding: 15px; margin-bottom: 10px; border-left: 4px solid #0066cc;">
+                <h3 style="margin: 0 0 10px 0; color: #0066cc;">{{ notification.title }}</h3>
+                <p style="margin: 0 0 10px 0;">{{ notification.message }}</p>
+                {% if notification.link_url %}
+                <a href="{{ site_url }}{{ notification.link_url }}" style="color: #0066cc; text-decoration: none;">View Details →</a>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="{{ site_url }}/notifications" style="background-color: #0066cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">View All Notifications</a>
+        </div>
+    </div>
+    
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 12px;">
+        <p>You're receiving this weekly digest because you have digest notifications enabled.</p>
+        <p><a href="{{ site_url }}/profile/notifications" style="color: #0066cc;">Manage notification preferences</a></p>
+        <p>&copy; {{ current_year }} {{ site_name }}. All rights reserved.</p>
+    </div>
+</body>
+</html>

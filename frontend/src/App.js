@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Navbar from './components/Navbar';
 import { SessionManager } from './components/SessionManager';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import About from './pages/About';
 import Admin from './pages/Admin';
 import AdminDives from './pages/AdminDives';
@@ -41,6 +42,8 @@ import Help from './pages/Help';
 import Home from './pages/Home';
 import IndependentMapView from './pages/IndependentMapView';
 import Login from './pages/Login';
+import NotificationPreferencesPage from './pages/NotificationPreferences';
+import Notifications from './pages/Notifications';
 import Privacy from './pages/Privacy';
 import Profile from './pages/Profile';
 import Register from './pages/Register';
@@ -132,238 +135,264 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
-          <div className='min-h-screen bg-gray-50'>
-            <Navbar />
-            <SessionManager />
-            <main className='container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pt-16'>
-              <Routes>
-                <Route path='/' element={<Home />} />
-                <Route path='/about' element={<About />} />
-                <Route path='/api-docs' element={<API />} />
-                <Route path='/changelog' element={<Changelog />} />
-                <Route path='/help' element={<Help />} />
-                <Route path='/privacy' element={<Privacy />} />
-                <Route path='/login' element={<Login />} />
-                <Route path='/register' element={<Register />} />
-                <Route path='/users/:username' element={<UserProfile />} />
-                <Route path='/dive-sites' element={<DiveSites />} />
-                <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />
-                <Route path='/dive-sites/:id/map' element={<DiveSiteMap />} />
-                <Route
-                  path='/dive-sites/:diveSiteId/dive-route'
-                  element={
-                    <ProtectedRoute>
-                      <DiveRouteDrawing />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path='/dive-sites/:diveSiteId/route/:routeId' element={<RouteDetail />} />
-                <Route
-                  path='/dive-sites/:diveSiteId/route/:routeId/edit'
-                  element={
-                    <ProtectedRoute>
-                      <DiveRouteDrawing />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path='/dive-sites/create'
-                  element={
-                    <ProtectedRoute>
-                      <CreateDiveSite />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path='/dive-sites/:id/edit'
-                  element={
-                    <ProtectedEditRoute>
-                      <EditDiveSite />
-                    </ProtectedEditRoute>
-                  }
-                />
-                <Route path='/diving-centers' element={<DivingCenters />} />
-                <Route path='/diving-centers/:id' element={<DivingCenterDetail />} />
-                <Route
-                  path='/diving-centers/create'
-                  element={
-                    <ProtectedRoute>
-                      <CreateDivingCenter />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path='/diving-centers/:id/edit'
-                  element={
-                    <ProtectedEditRoute>
-                      <EditDivingCenter />
-                    </ProtectedEditRoute>
-                  }
-                />
-                <Route
-                  path='/profile'
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path='/admin'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <Admin />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path='/admin/dive-sites'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <AdminDiveSites />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path='/admin/dive-sites/:diveSiteId/aliases'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <AdminDiveSiteAliases />
-                    </ProtectedRoute>
-                  }
-                />
+        <NotificationProvider>
+          <Router>
+            <div className='min-h-screen bg-gray-50'>
+              <Navbar />
+              <SessionManager />
+              <main className='container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pt-16'>
+                <Routes>
+                  <Route path='/' element={<Home />} />
+                  <Route path='/about' element={<About />} />
+                  <Route path='/api-docs' element={<API />} />
+                  <Route path='/changelog' element={<Changelog />} />
+                  <Route path='/help' element={<Help />} />
+                  <Route path='/privacy' element={<Privacy />} />
+                  <Route path='/login' element={<Login />} />
+                  <Route path='/register' element={<Register />} />
+                  <Route path='/users/:username' element={<UserProfile />} />
+                  <Route path='/dive-sites' element={<DiveSites />} />
+                  <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />
+                  <Route path='/dive-sites/:id/map' element={<DiveSiteMap />} />
+                  <Route
+                    path='/dive-sites/:diveSiteId/dive-route'
+                    element={
+                      <ProtectedRoute>
+                        <DiveRouteDrawing />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path='/dive-sites/:diveSiteId/route/:routeId' element={<RouteDetail />} />
+                  <Route
+                    path='/dive-sites/:diveSiteId/route/:routeId/edit'
+                    element={
+                      <ProtectedRoute>
+                        <DiveRouteDrawing />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/dive-sites/create'
+                    element={
+                      <ProtectedRoute>
+                        <CreateDiveSite />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/dive-sites/:id/edit'
+                    element={
+                      <ProtectedEditRoute>
+                        <EditDiveSite />
+                      </ProtectedEditRoute>
+                    }
+                  />
+                  <Route path='/diving-centers' element={<DivingCenters />} />
+                  <Route path='/diving-centers/:id' element={<DivingCenterDetail />} />
+                  <Route
+                    path='/diving-centers/create'
+                    element={
+                      <ProtectedRoute>
+                        <CreateDivingCenter />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/diving-centers/:id/edit'
+                    element={
+                      <ProtectedEditRoute>
+                        <EditDivingCenter />
+                      </ProtectedEditRoute>
+                    }
+                  />
+                  <Route
+                    path='/profile'
+                    element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/notifications'
+                    element={
+                      <ProtectedRoute>
+                        <Notifications />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/notifications/preferences'
+                    element={
+                      <ProtectedRoute>
+                        <NotificationPreferencesPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/profile/notifications'
+                    element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/admin'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <Admin />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/admin/dive-sites'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminDiveSites />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/admin/dive-sites/:diveSiteId/aliases'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminDiveSiteAliases />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                <Route
-                  path='/admin/diving-centers'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <AdminDivingCenters />
-                    </ProtectedRoute>
-                  }
-                />
+                  <Route
+                    path='/admin/diving-centers'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminDivingCenters />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                <Route
-                  path='/admin/diving-organizations'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <AdminDivingOrganizations />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path='/admin/tags'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <AdminTags />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path='/admin/users'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <AdminUsers />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path='/dives' element={<Dives />} />
-                <Route
-                  path='/dives/create'
-                  element={
-                    <ProtectedRoute>
-                      <CreateDive />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path='/dives/:id' element={<DiveDetail />} />
-                <Route
-                  path='/dives/:id/edit'
-                  element={
-                    <ProtectedRoute>
-                      <EditDive />
-                    </ProtectedRoute>
-                  }
-                />
+                  <Route
+                    path='/admin/diving-organizations'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminDivingOrganizations />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/admin/tags'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminTags />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/admin/users'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminUsers />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path='/dives' element={<Dives />} />
+                  <Route
+                    path='/dives/create'
+                    element={
+                      <ProtectedRoute>
+                        <CreateDive />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path='/dives/:id' element={<DiveDetail />} />
+                  <Route
+                    path='/dives/:id/edit'
+                    element={
+                      <ProtectedRoute>
+                        <EditDive />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                {/* Independent Map View Routes */}
-                <Route path='/map' element={<IndependentMapView />} />
-                <Route path='/map/dive-sites' element={<IndependentMapView />} />
-                <Route path='/map/diving-centers' element={<IndependentMapView />} />
-                <Route
-                  path='/map/dives'
-                  element={
-                    <ProtectedRoute>
-                      <IndependentMapView />
-                    </ProtectedRoute>
-                  }
-                />
+                  {/* Independent Map View Routes */}
+                  <Route path='/map' element={<IndependentMapView />} />
+                  <Route path='/map/dive-sites' element={<IndependentMapView />} />
+                  <Route path='/map/diving-centers' element={<IndependentMapView />} />
+                  <Route
+                    path='/map/dives'
+                    element={
+                      <ProtectedRoute>
+                        <IndependentMapView />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                <Route
-                  path='/admin/dives'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <AdminDives />
-                    </ProtectedRoute>
-                  }
-                />
+                  <Route
+                    path='/admin/dives'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminDives />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                <Route
-                  path='/admin/ownership-requests'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <AdminOwnershipRequests />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path='/admin/newsletters'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <AdminNewsletters />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path='/admin/system-overview'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <AdminSystemOverview />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path='/admin/recent-activity'
-                  element={
-                    <ProtectedRoute requireAdmin={true}>
-                      <AdminRecentActivity />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path='/dive-trips' element={<DiveTrips />} />
-                <Route
-                  path='/dive-trips/create'
-                  element={
-                    <ProtectedTripCreationRoute>
-                      <CreateTrip />
-                    </ProtectedTripCreationRoute>
-                  }
-                />
-                <Route path='/dive-trips/:id' element={<TripDetail />} />
-              </Routes>
-            </main>
-            <Toaster
-              position='top-right'
-              toastOptions={{
-                duration: 2000,
-                style: {
-                  marginTop: '4rem', // Add top margin to appear below navbar
-                  zIndex: 9999, // Ensure it's above other elements but below navbar dropdown
-                },
-              }}
-            />
-          </div>
-        </Router>
+                  <Route
+                    path='/admin/ownership-requests'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminOwnershipRequests />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/admin/newsletters'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminNewsletters />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/admin/system-overview'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminSystemOverview />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/admin/recent-activity'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminRecentActivity />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path='/dive-trips' element={<DiveTrips />} />
+                  <Route
+                    path='/dive-trips/create'
+                    element={
+                      <ProtectedTripCreationRoute>
+                        <CreateTrip />
+                      </ProtectedTripCreationRoute>
+                    }
+                  />
+                  <Route path='/dive-trips/:id' element={<TripDetail />} />
+                </Routes>
+              </main>
+              <Toaster
+                position='top-right'
+                toastOptions={{
+                  duration: 2000,
+                  style: {
+                    marginTop: '4rem', // Add top margin to appear below navbar
+                    zIndex: 9999, // Ensure it's above other elements but below navbar dropdown
+                  },
+                }}
+              />
+            </div>
+          </Router>
+        </NotificationProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

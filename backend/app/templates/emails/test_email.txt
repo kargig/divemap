@@ -1,0 +1,14 @@
+{{ site_name }}
+
+{{ notification.title }}
+
+{{ notification.message }}
+
+{% if notification.link_url %}
+View details: {{ site_url }}{{ notification.link_url }}
+{% endif %}
+
+---
+This is a test email to verify your email notification system is working correctly.
+
+© {{ current_year }} {{ site_name }}. All rights reserved.

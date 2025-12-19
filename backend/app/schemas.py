@@ -1108,6 +1108,99 @@ class RouteDeletionCheck(BaseModel):
     requires_migration: bool = False
 
 
+# Notification Schemas
+class NotificationResponse(BaseModel):
+    """Notification response model"""
+    id: int
+    user_id: int
+    category: str
+    title: str
+    message: str
+    link_url: Optional[str] = None
+    entity_type: Optional[str] = None
+    entity_id: Optional[int] = None
+    is_read: bool
+    read_at: Optional[datetime] = None
+    email_sent: bool
+    email_sent_at: Optional[datetime] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class NotificationPreferenceResponse(BaseModel):
+    """Notification preference response model"""
+    id: int
+    user_id: int
+    category: str
+    enable_website: bool
+    enable_email: bool
+    frequency: str
+    area_filter: Optional[dict] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class NotificationPreferenceCreate(BaseModel):
+    """Create notification preference"""
+    category: str = Field(..., description="Category: new_dive_sites, new_dives, new_diving_centers, new_dive_trips, admin_alerts")
+    enable_website: bool = True
+    enable_email: bool = False
+    frequency: str = Field("immediate", description="Frequency: immediate, daily_digest, weekly_digest")
+    area_filter: Optional[dict] = None
+
+
+class NotificationPreferenceUpdate(BaseModel):
+    """Update notification preference"""
+    enable_website: Optional[bool] = None
+    enable_email: Optional[bool] = None
+    frequency: Optional[str] = None
+    area_filter: Optional[dict] = None
+
+
+class EmailConfigResponse(BaseModel):
+    """Email configuration response model"""
+    id: int
+    smtp_host: str
+    smtp_port: int
+    use_starttls: bool
+    from_email: str
+    from_name: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class EmailConfigCreate(BaseModel):
+    """Create email configuration"""
+    smtp_host: str
+    smtp_port: int = 587
+    use_starttls: bool = True
+    smtp_username: str
+    smtp_password: str
+    from_email: str
+    from_name: str = "Divemap"
+
+
+class EmailConfigUpdate(BaseModel):
+    """Update email configuration"""
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    use_starttls: Optional[bool] = None
+    smtp_username: Optional[str] = None
+    smtp_password: Optional[str] = None
+    from_email: Optional[str] = None
+    from_name: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 class RouteDeletionRequest(BaseModel):
     """Request to delete a route"""
     route_id: int
@@ -1155,3 +1248,47 @@ class GlobalSearchResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# API Key Schemas
+class ApiKeyResponse(BaseModel):
+    """API key response model (key value only shown on creation)"""
+    id: int
+    name: str
+    description: Optional[str] = None
+    created_by_user_id: Optional[int] = None
+    created_by_username: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    last_used_at: Optional[datetime] = None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ApiKeyCreate(BaseModel):
+    """Create API key request"""
+    name: str = Field(..., min_length=1, max_length=255, description="Human-readable name for the API key")
+    description: Optional[str] = Field(None, description="Optional description")
+    expires_at: Optional[datetime] = Field(None, description="Optional expiration date (ISO format)")
+
+
+class ApiKeyCreateResponse(BaseModel):
+    """Response when creating a new API key (includes the actual key value)"""
+    id: int
+    name: str
+    api_key: str = Field(..., description="The actual API key value (only shown once!)")
+    description: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    created_at: datetime
+    warning: str = Field(default="Store this API key securely. It will not be shown again.")
+
+
+class ApiKeyUpdate(BaseModel):
+    """Update API key request"""
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    is_active: Optional[bool] = None

@@ -1,0 +1,15 @@
+{{ site_name }}
+
+{{ notification.title }}
+
+{{ notification.message }}
+
+{% if notification.link_url %}
+View dive: {{ site_url }}{{ notification.link_url }}
+{% endif %}
+
+---
+You're receiving this email because you have notifications enabled for new dives.
+Manage preferences: {{ site_url }}/profile/notifications
+
+© {{ current_year }} {{ site_name }}. All rights reserved.

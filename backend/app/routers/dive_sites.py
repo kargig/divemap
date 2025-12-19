@@ -1502,6 +1502,15 @@ async def create_dive_site(
         joinedload(DiveSite.difficulty)
     ).filter(DiveSite.id == db_dive_site.id).first()
 
+    # Notify users about new dive site
+    try:
+        from app.services.notification_service import NotificationService
+        notification_service = NotificationService()
+        await notification_service.notify_users_for_new_dive_site(db_dive_site.id, db)
+    except Exception as e:
+        # Log error but don't fail dive site creation
+        logger.warning(f"Failed to send notifications for new dive site: {e}")
+
     # Serialize response with difficulty_code and difficulty_label
     response_data = {
         **dive_site.dict(),

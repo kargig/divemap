@@ -210,7 +210,7 @@ const CreateDive = () => {
       !availableTags.find(tag => tag.name.toLowerCase() === newTag.toLowerCase())
     ) {
       // In a real implementation, you would create the tag via API
-      toast.info('Tag creation feature coming soon!');
+      toast('Tag creation feature coming soon!');
       setNewTag('');
     }
   };

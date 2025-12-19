@@ -33,6 +33,7 @@ import { useResponsiveScroll } from '../hooks/useResponsive';
 
 import GlobalSearchBar from './GlobalSearchBar';
 import Logo from './Logo';
+import NotificationBell from './NotificationBell';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -303,6 +304,8 @@ const Navbar = () => {
 
             {user ? (
               <div className='flex items-center space-x-4'>
+                <NotificationBell />
+
                 {user.is_admin && (
                   <div className='relative'>
                     <button

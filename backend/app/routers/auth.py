@@ -93,6 +93,16 @@ async def register(
             detail="Username or email already registered"
         )
 
+    # Create default notification preferences for new user
+    try:
+        from app.utils import create_default_notification_preferences
+        create_default_notification_preferences(db_user.id, db)
+    except Exception as e:
+        # Log error but don't fail registration if preference creation fails
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to create default notification preferences for user {db_user.id}: {e}")
+
     # Create token pair (user can login but will be blocked by enabled check)
     token_data = token_service.create_token_pair(db_user, request, db)
 

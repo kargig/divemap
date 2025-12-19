@@ -981,6 +981,17 @@ async def create_diving_center(
     db.commit()
     db.refresh(db_diving_center)
 
+    # Notify users about new diving center
+    try:
+        from app.services.notification_service import NotificationService
+        notification_service = NotificationService()
+        await notification_service.notify_users_for_new_diving_center(db_diving_center.id, db)
+    except Exception as e:
+        # Log error but don't fail diving center creation
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to send notifications for new diving center: {e}")
+
     return {
         **diving_center.dict(),
         "id": db_diving_center.id,

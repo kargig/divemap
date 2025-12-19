@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ notification.title }}</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background-color: #0066cc; color: white; padding: 20px; text-align: center;">
+        <h1 style="margin: 0;">{{ site_name }}</h1>
+    </div>
+    
+    <div style="background-color: #f9f9f9; padding: 20px; margin-top: 20px;">
+        <h2 style="color: #0066cc; margin-top: 0;">{{ notification.title }}</h2>
+        <p>{{ notification.message }}</p>
+        
+        {% if notification.link_url %}
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="{{ site_url }}{{ notification.link_url }}" style="background-color: #0066cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">View Dive</a>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 12px;">
+        <p>You're receiving this email because you have notifications enabled for new dives.</p>
+        <p><a href="{{ site_url }}/profile/notifications" style="color: #0066cc;">Manage notification preferences</a></p>
+        <p>&copy; {{ current_year }} {{ site_name }}. All rights reserved.</p>
+    </div>
+</body>
+</html>

@@ -448,7 +448,7 @@ const EditDiveSite = () => {
       if (country || region) {
         toast.success('Location suggestions applied!');
       } else {
-        toast.info('No location data found for these coordinates');
+        toast('No location data found for these coordinates');
       }
     } catch (error) {
       console.error('Geocoding error:', error);

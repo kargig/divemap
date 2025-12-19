@@ -833,9 +833,18 @@ const Profile = () => {
               >
                 Add Certification
               </button>
-              <button className='w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'>
-                Notification Settings
-              </button>
+              <Link
+                to='/notifications'
+                className='block w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+              >
+                View Notifications
+              </Link>
+              <Link
+                to='/notifications/preferences'
+                className='block w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+              >
+                Notification Preferences
+              </Link>
               <button className='w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors'>
                 Delete Account
               </button>

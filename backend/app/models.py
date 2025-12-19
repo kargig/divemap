@@ -98,6 +98,7 @@ class User(Base):
     avatar_url = Column(String(500), nullable=True)  # User avatar URL
     turnstile_verified_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when Turnstile was verified
     buddy_visibility = Column(String(20), default='public', nullable=False)  # Control whether user can be added as buddy ('public' or 'private')
+    last_notification_check = Column(DateTime(timezone=True), nullable=True)  # Track when user last checked notifications
 
     # Relationships
     site_ratings = relationship("SiteRating", back_populates="user", cascade="all, delete-orphan")
@@ -111,6 +112,8 @@ class User(Base):
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     auth_audit_logs = relationship("AuthAuditLog", back_populates="user", cascade="all, delete-orphan")
     buddy_dives = relationship("Dive", secondary="dive_buddies", back_populates="buddies")
+    notification_preferences = relationship("NotificationPreference", back_populates="user", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
 class DiveSite(Base):
     __tablename__ = "dive_sites"
@@ -640,4 +643,95 @@ class WindDataCache(Base):
         sa.Index('idx_wind_cache_lat_lon_datetime', 'latitude', 'longitude', 'target_datetime'),
         sa.Index('idx_wind_cache_expires_at', 'expires_at'),
         sa.Index('idx_wind_cache_last_accessed_at', 'last_accessed_at'),
+    )
+
+
+class NotificationPreference(Base):
+    """User notification preferences for different categories."""
+    __tablename__ = "notification_preferences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    category = Column(String(50), nullable=False, index=True)
+    enable_website = Column(Boolean, default=True, nullable=False)
+    enable_email = Column(Boolean, default=False, nullable=False)
+    frequency = Column(String(20), default="immediate", nullable=False)  # 'immediate', 'daily_digest', 'weekly_digest'
+    area_filter = Column(sa.JSON, nullable=True)  # {country, region, radius_km, center_lat, center_lng}
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Relationships
+    user = relationship("User", back_populates="notification_preferences")
+
+    __table_args__ = (
+        sa.UniqueConstraint('user_id', 'category', name='unique_user_category'),
+    )
+
+
+class Notification(Base):
+    """Individual notification records for users."""
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    category = Column(String(50), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    link_url = Column(String(500), nullable=True)
+    entity_type = Column(String(50), nullable=True)  # 'dive_site', 'dive', 'diving_center', 'dive_trip'
+    entity_id = Column(Integer, nullable=True)
+    is_read = Column(Boolean, default=False, nullable=False)
+    read_at = Column(DateTime(timezone=True), nullable=True)
+    email_sent = Column(Boolean, default=False, nullable=False)
+    email_sent_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relationships
+    user = relationship("User", back_populates="notifications")
+
+    __table_args__ = (
+        sa.Index('idx_user_unread', 'user_id', 'is_read', 'created_at'),
+        sa.Index('idx_entity', 'entity_type', 'entity_id'),
+    )
+
+
+class EmailConfig(Base):
+    """SMTP configuration for email notifications (admin-managed)."""
+    __tablename__ = "email_config"
+
+    id = Column(Integer, primary_key=True, index=True)
+    smtp_host = Column(String(255), nullable=False)
+    smtp_port = Column(Integer, default=587, nullable=False)
+    use_starttls = Column(Boolean, default=True, nullable=False)
+    smtp_username = Column(String(255), nullable=False)
+    smtp_password = Column(String(500), nullable=False)  # Encrypted password
+    from_email = Column(String(255), nullable=False)
+    from_name = Column(String(255), default="Divemap", nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class ApiKey(Base):
+    """Long-lived API keys for service authentication (e.g., Lambda functions)."""
+    __tablename__ = "api_keys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)  # Human-readable name (e.g., "Lambda Email Processor")
+    key_hash = Column(String(255), nullable=False, unique=True, index=True)  # Hashed API key
+    description = Column(Text, nullable=True)  # Optional description
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # Admin who created it
+    expires_at = Column(DateTime(timezone=True), nullable=True)  # Optional expiration date
+    last_used_at = Column(DateTime(timezone=True), nullable=True)  # Track last usage
+    is_active = Column(Boolean, nullable=False, server_default='1')  # Can be revoked without deletion
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Relationships
+    created_by = relationship("User", foreign_keys=[created_by_user_id])
+
+    __table_args__ = (
+        sa.Index('idx_api_key_hash', 'key_hash'),
+        sa.Index('idx_api_key_active', 'is_active'),
+        sa.Index('idx_api_key_expires', 'expires_at'),
     )
