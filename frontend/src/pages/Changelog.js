@@ -25,7 +25,108 @@ const Changelog = () => {
           <div className='prose prose-lg max-w-none'>
             <h2 className='text-2xl font-semibold text-gray-900 mb-6 flex items-center'>
               <Calendar className='h-6 w-6 mr-3 text-blue-600' />
-              Latest Release - November 03, 2025
+              Latest Release - December 19, 2025
+            </h2>
+
+            <div className='grid md:grid-cols-2 gap-6 mb-8'>
+              <div className='bg-blue-50 p-6 rounded-lg border border-blue-200'>
+                <h3 className='text-lg font-semibold text-blue-900 mb-3 flex items-center'>
+                  🚀 Major Features
+                </h3>
+                <ul className='text-blue-800 space-y-2'>
+                  <li>• Comprehensive Notification System with AWS Integration</li>
+                  <li>• In-App Notifications with Real-Time Polling</li>
+                  <li>• Email Notifications via AWS SQS, Lambda, and SES</li>
+                  <li>• Dive Buddies Functionality with Privacy Controls</li>
+                  <li>• Wind Overlay with Real-Time Weather Data</li>
+                  <li>• Intelligent Dive Site Suitability Recommendations</li>
+                  <li>• Admin Notification Preferences Management</li>
+                  <li>• Dive Trips Promotion and Access Controls</li>
+                </ul>
+              </div>
+
+              <div className='bg-green-50 p-6 rounded-lg border border-green-200'>
+                <h3 className='text-lg font-semibold text-green-900 mb-3 flex items-center'>
+                  🔧 Improvements
+                </h3>
+                <ul className='text-green-800 space-y-2'>
+                  <li>• Database Backup Script Using mysqldump</li>
+                  <li>• Enhanced Auth Resilience to Backend Downtime</li>
+                  <li>• Dynamic Dive Site Search with Attiki Prefetch</li>
+                  <li>• Time-Based Forecast Caching Strategy</li>
+                  <li>• Wind Overlay UI Enhancements with Tooltips and Legends</li>
+                  <li>• Wind Date/Time Picker with Interactive Slider</li>
+                  <li>• Optimized Wind Data Caching and API Calls</li>
+                  <li>• Error Handling with Retry for Wind Data Fetching</li>
+                  <li>• Dive Site Clustering Disabled at High Zoom Levels (13+)</li>
+                  <li>• Improved Dive Import Validation and Mobile UX</li>
+                  <li>• Enhanced Nginx Timeouts for Specific Endpoints</li>
+                  <li>• Standardized Font Sizes and Search Bar UX</li>
+                  <li>• Improved Mobile Filter Bar Attachment</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className='grid md:grid-cols-2 gap-6 mb-8'>
+              <div className='bg-orange-50 p-6 rounded-lg border border-orange-200'>
+                <h3 className='text-lg font-semibold text-orange-900 mb-3 flex items-center'>
+                  🐛 Bug Fixes
+                </h3>
+                <ul className='text-orange-800 space-y-2'>
+                  <li>• Fixed HTML Entity Encoding/Decoding in Route Descriptions</li>
+                  <li>• Fixed Security Issues in Dive Buddies Feature</li>
+                  <li>• Fixed Duplicate Key Database Errors</li>
+                  <li>• Fixed Wind Arrow Direction and Display Issues</li>
+                  <li>• Fixed Datetime Validation and Display Format</li>
+                  <li>• Fixed Viewport Issues in Wind Overlay</li>
+                  <li>• Fixed Form Validation UX and Admin Permissions</li>
+                </ul>
+              </div>
+
+              <div className='bg-purple-50 p-6 rounded-lg border border-purple-200'>
+                <h3 className='text-lg font-semibold text-purple-900 mb-3 flex items-center'>
+                  🗄️ Database Changes
+                </h3>
+                <ul className='text-purple-800 space-y-2'>
+                  <li>
+                    • Notification System Tables (notifications, notification_preferences,
+                    email_queue)
+                  </li>
+                  <li>• Dive Buddies Junction Table (dive_buddies)</li>
+                  <li>• Buddy Visibility Field in Users Table</li>
+                  <li>• Shore Direction Field in Dive Sites Table</li>
+                  <li>• Enhanced User Profile Settings for Buddy Visibility</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className='bg-gray-50 p-6 rounded-lg border border-gray-200 mb-8'>
+              <h3 className='text-lg font-semibold text-gray-900 mb-3 flex items-center'>
+                🎨 User Experience
+              </h3>
+              <ul className='text-gray-800 space-y-2'>
+                <li>• Real-Time Notification Bell with Unread Count Badge</li>
+                <li>• User-Configurable Notification Preferences per Category</li>
+                <li>• Search and Add Dive Buddies from User Directory</li>
+                <li>• Filter Dives by Buddy (ID or Username)</li>
+                <li>• Interactive Wind Overlay with Visual Arrows and Indicators</li>
+                <li>• Color-Coded Dive Site Markers Based on Wind Suitability</li>
+                <li>• Wind Suitability Filter for Dive Sites</li>
+                <li>• Enhanced Dive Site Popups with Wind Conditions</li>
+                <li>• Improved Mobile Experience for Dive Profile Charts</li>
+                <li>• Better Search Bar Positioning and Mobile Responsiveness</li>
+                <li>• Unauthenticated User Restrictions for Dive Trips</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Previous Release */}
+        <div className='bg-white rounded-lg shadow-lg p-8 mb-8'>
+          <div className='prose prose-lg max-w-none'>
+            <h2 className='text-2xl font-semibold text-gray-900 mb-6 flex items-center'>
+              <Calendar className='h-6 w-6 mr-3 text-blue-600' />
+              Previous Release - November 03, 2025
             </h2>
 
             <div className='grid md:grid-cols-2 gap-6 mb-8'>
@@ -349,7 +450,7 @@ const Changelog = () => {
               </a>{' '}
               standard for clear, user-friendly documentation of all changes.
             </p>
-            <p className='text-sm text-gray-500'>Last updated: November 03, 2025</p>
+            <p className='text-sm text-gray-500'>Last updated: December 19, 2025</p>
           </div>
         </div>
       </div>

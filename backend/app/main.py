@@ -122,6 +122,24 @@ app.add_middleware(
     max_age=3600,
 )
 
+# Fix request URL scheme based on X-Forwarded-Proto header
+# This ensures FastAPI generates correct HTTPS URLs for redirects
+@app.middleware("http")
+async def fix_request_scheme(request: Request, call_next):
+    """Fix request URL scheme to use X-Forwarded-Proto header"""
+    # Check X-Forwarded-Proto header (set by nginx/Cloudflare)
+    forwarded_proto = request.headers.get("X-Forwarded-Proto", "").lower()
+    if forwarded_proto == "https":
+        # Replace the request URL with HTTPS scheme
+        # This ensures FastAPI redirects use HTTPS
+        request.scope["scheme"] = "https"
+    elif not forwarded_proto and request.headers.get("host", "").endswith(".gr"):
+        # If no header but domain suggests production, default to HTTPS
+        request.scope["scheme"] = "https"
+    
+    response = await call_next(request)
+    return response
+
 # Security middleware
 @app.middleware("http")
 async def add_security_headers(request, call_next):

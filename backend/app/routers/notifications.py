@@ -122,6 +122,7 @@ def verify_api_key(api_key: str = Depends(api_key_header), db: Session = Depends
 verify_lambda_api_key = verify_api_key
 
 
+@router.get("", include_in_schema=False)
 @router.get("/")
 def get_notifications(
     is_read: Optional[bool] = Query(None, description="Filter by read status"),

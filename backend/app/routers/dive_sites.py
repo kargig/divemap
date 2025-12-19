@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_, desc, asc
 from slowapi.util import get_remote_address
@@ -1459,11 +1459,29 @@ async def get_dive_sites_count(
 
     return {"total": total_count}
 
+async def _send_dive_site_notifications(dive_site_id: int):
+    """Background task to send notifications for a new dive site."""
+    try:
+        from app.services.notification_service import NotificationService
+        from app.database import SessionLocal
+        
+        # Create a new database session for the background task
+        db = SessionLocal()
+        try:
+            notification_service = NotificationService()
+            await notification_service.notify_users_for_new_dive_site(dive_site_id, db)
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Failed to send notifications for new dive site {dive_site_id}: {e}")
+
+
 @router.post("/", response_model=DiveSiteResponse)
 @skip_rate_limit_for_admin("15/minute")
 async def create_dive_site(
     request: Request,
     dive_site: DiveSiteCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -1502,14 +1520,9 @@ async def create_dive_site(
         joinedload(DiveSite.difficulty)
     ).filter(DiveSite.id == db_dive_site.id).first()
 
-    # Notify users about new dive site
-    try:
-        from app.services.notification_service import NotificationService
-        notification_service = NotificationService()
-        await notification_service.notify_users_for_new_dive_site(db_dive_site.id, db)
-    except Exception as e:
-        # Log error but don't fail dive site creation
-        logger.warning(f"Failed to send notifications for new dive site: {e}")
+    # Schedule notification sending as a background task
+    # This allows the API to return immediately while notifications are sent asynchronously
+    background_tasks.add_task(_send_dive_site_notifications, db_dive_site.id)
 
     # Serialize response with difficulty_code and difficulty_label
     response_data = {
