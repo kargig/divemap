@@ -167,3 +167,7 @@ database_backups/
 wg-*.conf
 .playwright-mcp/
 nginx/frontend-build/
+.terraform*
+terraform.tfstate*
+terraform.tfvars
+terraform/lambda_email_processor.zip

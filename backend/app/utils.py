@@ -460,4 +460,66 @@ def get_unified_fuzzy_trigger_conditions(
             len(search_query.strip()) <= max_query_length or
             ' ' in search_query.strip()  # Multi-word queries
         )
-    ) 
+    )
+
+
+# Notification defaults for users
+# Default notification categories that should be enabled for all users
+DEFAULT_NOTIFICATION_CATEGORIES = [
+    'new_dive_sites',
+    'new_dive_trips',
+    'admin_alerts'
+]
+
+# Opt-in categories (users must manually enable these)
+OPT_IN_CATEGORIES = [
+    'new_dives',
+    'new_diving_centers'
+]
+
+
+def create_default_notification_preferences(user_id: int, db: Session) -> list:
+    """
+    Create default notification preferences for a user.
+    
+    Args:
+        user_id: User ID to create preferences for
+        db: Database session
+    
+    Returns:
+        List of created NotificationPreference instances
+    """
+    from app.models import NotificationPreference
+    
+    created_preferences = []
+    
+    for category in DEFAULT_NOTIFICATION_CATEGORIES:
+        # Check if preference already exists
+        existing = db.query(NotificationPreference).filter(
+            NotificationPreference.user_id == user_id,
+            NotificationPreference.category == category
+        ).first()
+        
+        if existing:
+            continue  # Skip if already exists
+        
+        # Create default preference
+        preference = NotificationPreference(
+            user_id=user_id,
+            category=category,
+            enable_website=True,  # Website notifications enabled by default
+            enable_email=False,  # Email notifications disabled by default
+            frequency='immediate',  # Immediate notifications
+            area_filter=None  # No area filtering (all areas)
+        )
+        
+        db.add(preference)
+        created_preferences.append(preference)
+    
+    if created_preferences:
+        db.commit()
+        # Refresh all created preferences
+        for pref in created_preferences:
+            db.refresh(pref)
+    
+    return created_preferences 

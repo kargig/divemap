@@ -4,11 +4,17 @@ from sqlalchemy import or_
 from typing import List, Optional
 
 from app.database import get_db
-from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy
-from app.schemas import UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse
+from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy, ApiKey
+from app.schemas import (
+    UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, 
+    PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse,
+    ApiKeyResponse, ApiKeyCreate, ApiKeyCreateResponse, ApiKeyUpdate
+)
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
 from app.limiter import skip_rate_limit_for_admin
 from sqlalchemy import func
+import secrets
+import base64
 
 router = APIRouter()
 
@@ -54,6 +60,16 @@ async def create_user(
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+
+    # Create default notification preferences for new user
+    try:
+        from app.utils import create_default_notification_preferences
+        create_default_notification_preferences(db_user.id, db)
+    except Exception as e:
+        # Log error but don't fail user creation if preference creation fails
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to create default notification preferences for user {db_user.id}: {e}")
 
     return db_user
 
@@ -286,3 +302,182 @@ async def get_user_public_profile(
     )
 
     return response
+
+
+# API Key Management Endpoints (Admin Only)
+@router.get("/admin/api-keys", response_model=List[ApiKeyResponse])
+async def list_api_keys(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """List all API keys (admin only)"""
+    api_keys = db.query(ApiKey).order_by(ApiKey.created_at.desc()).all()
+    
+    # Build response with created_by username
+    result = []
+    for key in api_keys:
+        created_by_username = None
+        if key.created_by_user_id:
+            creator = db.query(User).filter(User.id == key.created_by_user_id).first()
+            if creator:
+                created_by_username = creator.username
+        
+        result.append(ApiKeyResponse(
+            id=key.id,
+            name=key.name,
+            description=key.description,
+            created_by_user_id=key.created_by_user_id,
+            created_by_username=created_by_username,
+            expires_at=key.expires_at,
+            last_used_at=key.last_used_at,
+            is_active=key.is_active,
+            created_at=key.created_at,
+            updated_at=key.updated_at
+        ))
+    
+    return result
+
+
+@router.post("/admin/api-keys", response_model=ApiKeyCreateResponse)
+async def create_api_key(
+    key_data: ApiKeyCreate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new API key (admin only).
+    The actual key value is only returned once on creation.
+    """
+    # Generate secure API key: "dm_" prefix + base64(32 random bytes)
+    random_bytes = secrets.token_bytes(32)
+    api_key_value = "dm_" + base64.urlsafe_b64encode(random_bytes).decode('utf-8').rstrip('=')
+    
+    # Hash the key for storage (using bcrypt like passwords)
+    key_hash = get_password_hash(api_key_value)
+    
+    # Create API key record
+    db_api_key = ApiKey(
+        name=key_data.name,
+        key_hash=key_hash,
+        description=key_data.description,
+        created_by_user_id=current_user.id,
+        expires_at=key_data.expires_at,
+        is_active=True
+    )
+    
+    db.add(db_api_key)
+    db.commit()
+    db.refresh(db_api_key)
+    
+    # Return response with the actual key (only time it's shown)
+    return ApiKeyCreateResponse(
+        id=db_api_key.id,
+        name=db_api_key.name,
+        api_key=api_key_value,
+        description=db_api_key.description,
+        expires_at=db_api_key.expires_at,
+        created_at=db_api_key.created_at,
+        warning="Store this API key securely. It will not be shown again."
+    )
+
+
+@router.get("/admin/api-keys/{key_id}", response_model=ApiKeyResponse)
+async def get_api_key(
+    key_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get API key details (admin only, key value not shown)"""
+    api_key = db.query(ApiKey).filter(ApiKey.id == key_id).first()
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="API key not found"
+        )
+    
+    # Get created_by username
+    created_by_username = None
+    if api_key.created_by_user_id:
+        creator = db.query(User).filter(User.id == api_key.created_by_user_id).first()
+        if creator:
+            created_by_username = creator.username
+    
+    return ApiKeyResponse(
+        id=api_key.id,
+        name=api_key.name,
+        description=api_key.description,
+        created_by_user_id=api_key.created_by_user_id,
+        created_by_username=created_by_username,
+        expires_at=api_key.expires_at,
+        last_used_at=api_key.last_used_at,
+        is_active=api_key.is_active,
+        created_at=api_key.created_at,
+        updated_at=api_key.updated_at
+    )
+
+
+@router.put("/admin/api-keys/{key_id}", response_model=ApiKeyResponse)
+async def update_api_key(
+    key_id: int,
+    key_update: ApiKeyUpdate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Update API key (admin only)"""
+    api_key = db.query(ApiKey).filter(ApiKey.id == key_id).first()
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="API key not found"
+        )
+    
+    # Update only provided fields
+    update_data = key_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(api_key, field, value)
+    
+    db.commit()
+    db.refresh(api_key)
+    
+    # Get created_by username
+    created_by_username = None
+    if api_key.created_by_user_id:
+        creator = db.query(User).filter(User.id == api_key.created_by_user_id).first()
+        if creator:
+            created_by_username = creator.username
+    
+    return ApiKeyResponse(
+        id=api_key.id,
+        name=api_key.name,
+        description=api_key.description,
+        created_by_user_id=api_key.created_by_user_id,
+        created_by_username=created_by_username,
+        expires_at=api_key.expires_at,
+        last_used_at=api_key.last_used_at,
+        is_active=api_key.is_active,
+        created_at=api_key.created_at,
+        updated_at=api_key.updated_at
+    )
+
+
+@router.delete("/admin/api-keys/{key_id}")
+async def delete_api_key(
+    key_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Delete API key (admin only)"""
+    api_key = db.query(ApiKey).filter(ApiKey.id == key_id).first()
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="API key not found"
+        )
+    
+    db.delete(api_key)
+    db.commit()
+    
+    return {"message": "API key deleted successfully"}

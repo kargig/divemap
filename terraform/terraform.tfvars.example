@@ -1,0 +1,41 @@
+# Copy this file to terraform.tfvars and fill in your values
+# terraform.tfvars is git-ignored and should not be committed
+
+# AWS Configuration
+aws_region  = "eu-central-1"
+environment = "prod"
+project_name = "divemap"
+
+# SQS Configuration
+notification_queue_name = "divemap-email-notifications"
+dead_letter_queue_name  = "divemap-email-notifications-dlq"
+max_receive_count       = 3
+message_retention_seconds = 1209600 # 14 days
+visibility_timeout_seconds = 300     # 5 minutes
+
+# Lambda Configuration
+lambda_function_name = "divemap-email-processor"
+lambda_runtime       = "python3.11"
+lambda_timeout       = 300  # 5 minutes
+lambda_memory_size   = 256  # MB
+
+# Backend API Configuration
+# Lambda uses backend API instead of direct database access
+backend_api_url = "https://api.divemap.com"  # Your backend API URL
+lambda_api_key  = "your-secure-api-key-here"  # Generate a secure random key
+
+# Cloudflare Configuration (optional)
+# Only needed if your backend is behind Cloudflare and Lambda requests are being blocked
+# See DEPLOY.md for instructions on creating a Cloudflare API token
+cloudflare_api_token = ""  # Optional: Cloudflare API token for bypassing challenges
+
+# Email Configuration
+ses_from_email = "notifications@yourdomain.com"
+ses_from_name  = "Divemap"
+frontend_url   = "https://divemap.example.com"
+
+# EventBridge Schedule Configuration
+enable_daily_digest  = true
+enable_weekly_digest = true
+daily_digest_schedule  = "cron(0 8 * * ? *)"   # 8 AM UTC daily
+weekly_digest_schedule = "cron(0 8 ? * MON *)" # 8 AM UTC every Monday

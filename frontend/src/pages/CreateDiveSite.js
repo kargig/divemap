@@ -171,7 +171,7 @@ const CreateDiveSite = () => {
       if (country || region) {
         toast.success('Location suggestions applied!');
       } else {
-        toast.info('No location data found for these coordinates');
+        toast('No location data found for these coordinates');
       }
     } catch (error) {
       let errorMessage = 'Failed to get location suggestions';
@@ -201,7 +201,7 @@ const CreateDiveSite = () => {
       // Actually, looking at the backend, the detect endpoint requires a dive site ID
       // So for create flow, we'll just let the backend auto-detect on creation
       // But we can still allow manual entry
-      toast.info(
+      toast(
         'Shore direction will be auto-detected when you create the dive site. You can also enter it manually.'
       );
     } catch (error) {
