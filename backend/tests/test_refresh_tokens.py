@@ -303,8 +303,10 @@ class TestAuthEndpoints:
         # The cookie value should be present
         assert response.cookies["refresh_token"] is not None
 
-    def test_register_with_refresh_token(self, client):
+    def test_register_with_refresh_token(self, client, monkeypatch):
         """Test registration endpoint returns access token and sets refresh token as cookie"""
+        # Disable email verification requirement for this test so tokens are created
+        monkeypatch.setenv("EMAIL_VERIFICATION_REQUIRED", "false")
 
         response = client.post("/api/v1/auth/register", json={
             "username": "newuser",

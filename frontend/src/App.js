@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
+import EmailVerificationBanner from './components/EmailVerificationBanner';
 import Navbar from './components/Navbar';
 import { SessionManager } from './components/SessionManager';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -23,6 +24,7 @@ import AdminTags from './pages/AdminTags';
 import AdminUsers from './pages/AdminUsers';
 import API from './pages/API';
 import Changelog from './pages/Changelog';
+import CheckYourEmail from './pages/CheckYourEmail';
 import CreateDive from './pages/CreateDive';
 import CreateDiveSite from './pages/CreateDiveSite';
 import CreateDivingCenter from './pages/CreateDivingCenter';
@@ -51,6 +53,7 @@ import Register from './pages/Register';
 import RouteDetail from './pages/RouteDetail';
 import TripDetail from './pages/TripDetail';
 import UserProfile from './pages/UserProfile';
+import VerifyEmail from './pages/VerifyEmail';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -142,6 +145,7 @@ function App() {
               <Navbar />
               <SessionManager />
               <main className='container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pt-16'>
+                <EmailVerificationBanner />
                 <Routes>
                   <Route path='/' element={<Home />} />
                   <Route path='/about' element={<About />} />
@@ -151,6 +155,8 @@ function App() {
                   <Route path='/privacy' element={<Privacy />} />
                   <Route path='/login' element={<Login />} />
                   <Route path='/register' element={<Register />} />
+                  <Route path='/verify-email' element={<VerifyEmail />} />
+                  <Route path='/check-email' element={<CheckYourEmail />} />
                   <Route path='/users/:username' element={<UserProfile />} />
                   <Route path='/dive-sites' element={<DiveSites />} />
                   <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />
