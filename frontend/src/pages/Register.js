@@ -28,7 +28,7 @@ const Register = () => {
   const [turnstileToken, setTurnstileToken] = useState(null);
   const [turnstileError, setTurnstileError] = useState(false);
 
-  const { register: authRegister, loginWithGoogle } = useAuth();
+  const { register: authRegister, loginWithGoogle, user } = useAuth();
   const navigate = useNavigate();
 
   // Memoize Turnstile configuration to prevent infinite re-renders
@@ -160,10 +160,18 @@ const Register = () => {
         turnstileToken
       );
       if (success) {
-        toast.success(
-          "Registration successful! Your account is pending admin approval. You'll be notified once approved."
-        );
-        navigate('/');
+        // Check if user was logged in by checking auth context user state
+        // If user object exists, they were logged in (email verification not required)
+        // If no user object, email verification is required
+        setTimeout(() => {
+          if (user) {
+            // User is logged in (email verification not required) - go to home
+            navigate('/');
+          } else {
+            // Email verification required - redirect to check email page with email
+            navigate('/check-email', { state: { email: formData.email } });
+          }
+        }, 200); // Small delay to allow auth context to update
       }
     } catch (error) {
       // Handle error

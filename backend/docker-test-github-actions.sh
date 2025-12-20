@@ -4,17 +4,26 @@
 # This uses Docker containers to match the GitHub Actions environment precisely
 #
 # Usage:
-#   ./docker-test-github-actions.sh                    # Run all tests
-#   ./docker-test-github-actions.sh tests/test_file.py # Run specific test file
-#   ./docker-test-github-actions.sh tests/test_file.py::TestClass::test_method # Run specific test
+#   ./docker-test-github-actions.sh                                    # Run all tests
+#   ./docker-test-github-actions.sh tests/test_file.py                 # Run specific test file
+#   ./docker-test-github-actions.sh tests/test_file1.py tests/test_file2.py tests/test_file3.py  # Run multiple test files
+#   ./docker-test-github-actions.sh tests/test_file.py::TestClass::test_method  # Run specific test
 
 set -e  # Exit on any error
 
-# Get test path from command line argument, default to all tests
-TEST_PATH="${1:-tests/}"
-
-echo "🚀 Starting Docker-based GitHub Actions test environment..."
-echo "📝 Test path: ${TEST_PATH}"
+# Get test paths from command line arguments, default to all tests
+# If no arguments provided, use tests/; otherwise use all provided arguments
+if [ $# -eq 0 ]; then
+    TEST_PATHS="tests/"
+    echo "🚀 Starting Docker-based GitHub Actions test environment..."
+    echo "📝 Test path: ${TEST_PATHS}"
+else
+    echo "🚀 Starting Docker-based GitHub Actions test environment..."
+    echo "📝 Test path(s):"
+    for test_path in "$@"; do
+        echo "   - ${test_path}"
+    done
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -140,11 +149,24 @@ docker build -f Dockerfile.test -t divemap-test-backend .
 
 # Run the test container with GitHub Actions environment
 print_status "Running tests in Docker container (GitHub Actions environment)..."
+
+# Build the pytest command with all test paths as separate arguments
+# If no arguments, use tests/; otherwise pass all arguments to pytest
+if [ $# -eq 0 ]; then
+    PYTEST_CMD="python -m pytest tests/ -v --cov=app --cov-report=term-missing -x --maxfail=5 --tb=short"
+else
+    # Build pytest command with all test paths as separate arguments
+    PYTEST_CMD="python -m pytest"
+    for test_path in "$@"; do
+        PYTEST_CMD="${PYTEST_CMD} ${test_path}"
+    done
+    PYTEST_CMD="${PYTEST_CMD} -v --cov=app --cov-report=term-missing -x --maxfail=5 --tb=short"
+fi
+
 docker run --rm \
     --name divemap-test-runner \
     --network divemap-test-network \
     -v "$(pwd)/.pytest_cache:/app/.pytest_cache" \
-    -e TEST_PATH="${TEST_PATH}" \
     divemap-test-backend \
     bash -c "
         # Create virtual environment (like GitHub Actions)
@@ -174,7 +196,7 @@ docker run --rm \
         
         # Run tests with exact GitHub Actions command
         echo 'Running tests...'
-        python -m pytest \${TEST_PATH} -v --cov=app --cov-report=term-missing -x --maxfail=5 --tb=short
+        ${PYTEST_CMD}
     "
 
 # Check exit code

@@ -7,24 +7,28 @@ from datetime import datetime, timezone, timedelta
 class TestAuth:
     """Test authentication endpoints."""
 
-    def test_register_success(self, client):
+    def test_register_success(self, client, monkeypatch):
         """Test successful user registration with enabled=True by default."""
+        # Disable email verification requirement for this test
+        monkeypatch.setenv("EMAIL_VERIFICATION_REQUIRED", "false")
+        
         # Mock Turnstile service to be disabled for this test
         with patch('app.routers.auth.turnstile_service') as mock_service:
             mock_service.is_enabled.return_value = False
-            
-            response = client.post("/api/v1/auth/register", json={
-                "username": "newuser",
-                "email": "newuser@example.com",
-                "password": "Password123!"
-            })
+            with patch('app.services.email_service.EmailService.send_verification_email') as mock_send:
+                mock_send.return_value = True
+                
+                response = client.post("/api/v1/auth/register", json={
+                    "username": "newuser",
+                    "email": "newuser@example.com",
+                    "password": "Password123!"
+                })
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
         assert "access_token" in data
         assert data["token_type"] == "bearer"
         assert "message" in data
-        assert "now active" in data["message"]
 
     def test_register_duplicate_username(self, client, test_user):
         """Test registration with duplicate username."""
@@ -356,23 +360,26 @@ class TestAuth:
             assert db_user.is_moderator is False
 
     def test_regular_registration_creates_enabled_user(self, client, db_session):
-        """Test that regular registration creates a user with enabled=True."""
+        """Test that regular registration creates a user with enabled=True and email_verified=False."""
         # Mock Turnstile service to be disabled for this test
         with patch('app.routers.auth.turnstile_service') as mock_service:
             mock_service.is_enabled.return_value = False
-            
-            response = client.post("/api/v1/auth/register", json={
-                "username": "newuser",
-                "email": "newuser@example.com",
-                "password": "Password123!"
-            })
+            with patch('app.services.email_service.EmailService.send_verification_email') as mock_send:
+                mock_send.return_value = True
+                
+                response = client.post("/api/v1/auth/register", json={
+                    "username": "newuser",
+                    "email": "newuser@example.com",
+                    "password": "Password123!"
+                })
 
         assert response.status_code == status.HTTP_201_CREATED
         
-        # Verify the user was created in the database with enabled=True
+        # Verify the user was created in the database with enabled=True and email_verified=False
         user = db_session.query(User).filter(User.username == "newuser").first()
         assert user is not None
         assert user.enabled is True
+        assert user.email_verified is False  # Email verification required
         assert user.google_id is None  # Should not have Google ID
 
     def test_login_success(self, client, test_user):
@@ -395,11 +402,14 @@ class TestAuth:
         """Test login with disabled user."""
         # Create a disabled user
         from app.auth import get_password_hash
+        from datetime import datetime, timezone
         disabled_user = User(
             username="disableduser",
             email="disabled@example.com",
             password_hash=get_password_hash("password"),
-            enabled=False
+            enabled=False,
+            email_verified=True,  # User is verified but disabled
+            email_verified_at=datetime.now(timezone.utc)
         )
         db_session.add(disabled_user)
         db_session.commit()

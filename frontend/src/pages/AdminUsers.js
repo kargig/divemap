@@ -289,6 +289,9 @@ const AdminUsers = () => {
                   Status
                 </th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  Email Verified
+                </th>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                   Created
                 </th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
@@ -335,6 +338,56 @@ const AdminUsers = () => {
                     >
                       {userItem.enabled ? 'Enabled' : 'Disabled'}
                     </span>
+                  </td>
+                  <td className='px-6 py-4 whitespace-nowrap'>
+                    <div className='flex items-center space-x-2'>
+                      {userItem.email_verified ? (
+                        <>
+                          <div className='flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-green-100'>
+                            <svg
+                              className='w-4 h-4 text-green-600'
+                              fill='none'
+                              stroke='currentColor'
+                              viewBox='0 0 24 24'
+                            >
+                              <path
+                                strokeLinecap='round'
+                                strokeLinejoin='round'
+                                strokeWidth={2.5}
+                                d='M5 13l4 4L19 7'
+                              />
+                            </svg>
+                          </div>
+                          <div className='flex flex-col'>
+                            <span className='text-sm font-medium text-green-700'>Verified</span>
+                            {userItem.email_verified_at && (
+                              <span className='text-xs text-gray-500'>
+                                {new Date(userItem.email_verified_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className='flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-amber-100'>
+                            <svg
+                              className='w-4 h-4 text-amber-600'
+                              fill='none'
+                              stroke='currentColor'
+                              viewBox='0 0 24 24'
+                            >
+                              <path
+                                strokeLinecap='round'
+                                strokeLinejoin='round'
+                                strokeWidth={2.5}
+                                d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'
+                              />
+                            </svg>
+                          </div>
+                          <span className='text-sm font-medium text-amber-700'>Unverified</span>
+                        </>
+                      )}
+                    </div>
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
                     {new Date(userItem.created_at).toLocaleDateString()}

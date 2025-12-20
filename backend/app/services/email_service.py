@@ -199,6 +199,74 @@ class EmailService:
             from_name=from_name
         )
     
+    def send_verification_email(
+        self,
+        user_email: str,
+        verification_token: str,
+        from_email: Optional[str] = None,
+        from_name: Optional[str] = None
+    ) -> bool:
+        """
+        Send email verification email with verification link.
+        
+        Args:
+            user_email: Recipient email address
+            verification_token: Verification token to include in link
+            from_email: Sender email (optional, uses SES default)
+            from_name: Sender name (optional, uses SES default)
+        
+        Returns:
+            True if email was sent successfully, False otherwise
+        """
+        # Build verification link - should point to backend API endpoint
+        # The backend will then redirect to frontend with success/error parameters
+        # Use FRONTEND_URL as base since nginx proxies both frontend and backend
+        base_url = os.getenv('FRONTEND_URL', 'http://localhost')
+        # Remove trailing slash if present
+        base_url = base_url.rstrip('/')
+        verification_link = f"{base_url}/api/v1/auth/verify-email?token={verification_token}"
+        
+        # Get token expiry hours from env
+        expiry_hours = int(os.getenv("EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS", "24"))
+        
+        # Get frontend URL for site_url in template
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost')
+        
+        # Prepare template context
+        context = {
+            'verification_link': verification_link,
+            'user_email': user_email,
+            'expires_in_hours': expiry_hours,
+            'site_name': 'Divemap',
+            'site_url': frontend_url,
+            'current_year': datetime.now().year
+        }
+        
+        # Render HTML template
+        html_body = self._render_template('email_verification', context, 'html')
+        if not html_body:
+            logger.error("Failed to render HTML template: email_verification")
+            return False
+        
+        # Render text template
+        text_body = self._render_template('email_verification', context, 'txt')
+        if not text_body:
+            # Generate basic text version from HTML
+            import re
+            text_body = re.sub(r'<[^>]+>', '', html_body)  # Strip HTML tags
+            text_body = re.sub(r'\n\s*\n', '\n\n', text_body)  # Normalize whitespace
+        
+        # Send email via SES
+        subject = "Verify your email address - Divemap"
+        return self.ses_service.send_email(
+            to_email=user_email,
+            subject=subject,
+            html_body=html_body,
+            text_body=text_body,
+            from_email=from_email,
+            from_name=from_name
+        )
+    
     def get_email_config(self, db: Optional[Session] = None) -> Optional[Any]:
         """
         Get active email configuration from database.

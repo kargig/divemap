@@ -1,15 +1,17 @@
-from datetime import timedelta, datetime
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
+from datetime import timedelta, datetime, timezone
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from slowapi.util import get_remote_address
 from slowapi import Limiter
 from pydantic import BaseModel
 import os
+import logging
 
 from app.database import get_db
-from app.models import User
-from app.schemas import UserCreate, Token, LoginRequest, UserResponse, RegistrationResponse
+from app.models import User, EmailVerificationToken
+from app.schemas import UserCreate, Token, LoginRequest, UserResponse, RegistrationResponse, ResendVerificationRequest
 from app.auth import (
     authenticate_user,
     get_password_hash,
@@ -20,9 +22,16 @@ from app.token_service import token_service
 from app.google_auth import authenticate_google_user, verify_google_token, get_or_create_google_user
 from app.limiter import limiter, skip_rate_limit_for_admin
 from app.turnstile_service import TurnstileService
-from datetime import datetime, timezone
-
+from app.services.email_verification_service import email_verification_service
+from app.services.email_service import EmailService
 from app.utils import get_client_ip
+
+# Constants
+RESEND_VERIFICATION_RATE_LIMIT = 3  # requests per day
+EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS = 24
+TOAST_DURATION_MS = 6000  # milliseconds
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Initialize Turnstile service
@@ -67,13 +76,14 @@ async def register(
             detail="Username or email already registered"
         )
 
-    # Create new user (enabled by default)
+    # Create new user (enabled by default, email not verified)
     hashed_password = get_password_hash(user_data.password)
     db_user = User(
         username=user_data.username,
         email=user_data.email,
         password_hash=hashed_password,
         enabled=True,
+        email_verified=False,  # Email verification required
         is_admin=False,
         is_moderator=False
     )
@@ -99,29 +109,48 @@ async def register(
         create_default_notification_preferences(db_user.id, db)
     except Exception as e:
         # Log error but don't fail registration if preference creation fails
-        import logging
-        logger = logging.getLogger(__name__)
         logger.warning(f"Failed to create default notification preferences for user {db_user.id}: {e}")
 
-    # Create token pair (user can login but will be blocked by enabled check)
-    token_data = token_service.create_token_pair(db_user, request, db)
+    # Generate verification token and send verification email
+    try:
+        verification_token_obj = email_verification_service.create_verification_token(db_user.id, db)
+        email_service = EmailService()
+        email_service.send_verification_email(db_user.email, verification_token_obj.token)
+    except Exception as e:
+        # Log error but don't fail registration if email sending fails
+        logger.error(f"Failed to send verification email for user {db_user.id}: {e}")
 
-    # Set refresh token as HTTP-only cookie
-    response.set_cookie(
-        "refresh_token",
-        token_data["refresh_token"],
-        max_age=int(token_service.refresh_token_expire.total_seconds()),
-        httponly=True,
-        secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true",
-        samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
-    )
-
-    return {
-        "access_token": token_data["access_token"],
-        "token_type": "bearer",
-        "expires_in": token_data["expires_in"],
-        "message": "Registration successful. Your account is now active."
-    }
+    # Check if email verification is required before login
+    email_verification_required = os.getenv("EMAIL_VERIFICATION_REQUIRED", "true").lower() == "true"
+    
+    if not email_verification_required:
+        # Create token pair if verification not required
+        token_data = token_service.create_token_pair(db_user, request, db)
+        
+        # Set refresh token as HTTP-only cookie
+        response.set_cookie(
+            "refresh_token",
+            token_data["refresh_token"],
+            max_age=int(token_service.refresh_token_expire.total_seconds()),
+            httponly=True,
+            secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true",
+            samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
+        )
+        
+        return {
+            "access_token": token_data["access_token"],
+            "token_type": "bearer",
+            "expires_in": token_data["expires_in"],
+            "message": "Registration successful. Please check your email to verify your account."
+        }
+    else:
+        # Don't create tokens - user must verify email first
+        return {
+            "access_token": None,
+            "token_type": "bearer",
+            "expires_in": 0,
+            "message": "Registration successful. Please check your email to verify your account before logging in."
+        }
 
 @router.post("/login", response_model=Token)
 @skip_rate_limit_for_admin("30/minute")
@@ -155,6 +184,14 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username/email or password",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Check if email verification is required
+    email_verification_required = os.getenv("EMAIL_VERIFICATION_REQUIRED", "true").lower() == "true"
+    if email_verification_required and not user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email address before logging in. Check your email for the verification link."
         )
 
     # Create token pair
@@ -237,8 +274,6 @@ async def google_login(
         raise
     except Exception as e:
         # Log the actual error for debugging
-        import logging
-        logger = logging.getLogger(__name__)
         logger.error(f"Google login error: {str(e)}", exc_info=True)
         
         # Return 400 for client errors (invalid token format, etc.)
@@ -253,6 +288,143 @@ async def google_login(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Google authentication failed"
             )
+
+@router.get("/verify-email")
+async def verify_email(
+    token: str = Query(..., description="Email verification token from email link"),
+    format: Optional[str] = Query(None, description="Response format: 'json' for API calls, 'redirect' for direct browser access (default)"),
+    db: Session = Depends(get_db)
+):
+    """
+    Verify email address using verification token.
+    
+    This endpoint processes email verification tokens sent to users via email.
+    It can return either a JSON response (for API calls) or redirect to the frontend
+    (for direct browser access from email links).
+    
+    Args:
+        token: Verification token from email link
+        format: Response format - 'json' for API calls, 'redirect' for direct browser access
+        db: Database session
+        
+    Returns:
+        - If format='json': JSON response with success/error status
+        - Otherwise: Redirect to frontend with success/error query parameters
+        
+    Example:
+        ```
+        GET /api/v1/auth/verify-email?token=abc123...
+        GET /api/v1/auth/verify-email?token=abc123...&format=json
+        ```
+        
+    Response (JSON format):
+        ```json
+        {
+            "success": true,
+            "message": "Email verified successfully"
+        }
+        ```
+        
+    Response (Redirect format):
+        Redirects to: `{FRONTEND_URL}/verify-email?success=true`
+        or: `{FRONTEND_URL}/verify-email?error=invalid_or_expired`
+    """
+    from fastapi.responses import RedirectResponse
+    
+    # Get frontend URL for redirects - default to localhost if not set
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost")
+    
+    # Verify token
+    user = email_verification_service.verify_token(token, db)
+    
+    if format == "json":
+        # Return JSON response for API calls
+        if user:
+            return {"success": True, "message": "Email verified successfully"}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired verification token"
+            )
+    else:
+        # Redirect for direct browser access (email links)
+        if user:
+            success_url = f"{frontend_url}/verify-email?success=true"
+            return RedirectResponse(url=success_url, status_code=302)
+        else:
+            error_url = f"{frontend_url}/verify-email?error=invalid_or_expired"
+            return RedirectResponse(url=error_url, status_code=302)
+
+@router.post("/resend-verification")
+@limiter.limit("3/day")
+async def resend_verification(
+    request: Request,
+    email_data: ResendVerificationRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Resend verification email.
+    
+    Does NOT require authentication (user can't log in without verification).
+    Rate limited to 3 requests per day per IP address.
+    
+    Args:
+        request: FastAPI request object
+        email_data: Request body with email field
+        db: Database session
+        
+    Returns:
+        Success message (always returns success to prevent email enumeration)
+    """
+    from app.models import EmailVerificationToken
+    
+    email = email_data.email.strip().lower()
+    
+    # Find user by email
+    user = db.query(User).filter(User.email == email).first()
+    
+    # Always return success message (prevent email enumeration)
+    success_message = "If the email exists and is not verified, a new verification email has been sent."
+    
+    if not user:
+        # User doesn't exist - return success anyway
+        return {"message": success_message}
+    
+    if user.email_verified:
+        # Email already verified - return success anyway
+        return {"message": success_message}
+    
+    # Check rate limit by email address (check recent tokens for this user)
+    # Use a single query with aggregation to avoid N+1
+    now = datetime.now(timezone.utc)
+    one_day_ago = now - timedelta(days=1)
+    recent_tokens_count = db.query(EmailVerificationToken).filter(
+        EmailVerificationToken.user_id == user.id,
+        EmailVerificationToken.created_at >= one_day_ago
+    ).count()
+    
+    if recent_tokens_count >= RESEND_VERIFICATION_RATE_LIMIT:
+        # Rate limit exceeded - return success anyway (don't reveal limit)
+        return {"message": success_message}
+    
+    # Generate new token and send email
+    try:
+        verification_token_obj = email_verification_service.resend_verification_email(user.id, db)
+        if verification_token_obj:
+            logger.info(f"Resending verification email to {email} (user_id: {user.id})")
+            email_service = EmailService()
+            email_sent = email_service.send_verification_email(user.email, verification_token_obj.token)
+            if email_sent:
+                logger.info(f"Verification email sent successfully to {email}")
+            else:
+                logger.error(f"Failed to send verification email to {email} - send_verification_email returned False")
+        else:
+            logger.warning(f"resend_verification_email returned None for user {user.id} (email: {email})")
+    except Exception as e:
+        # Log error but return success (don't reveal failure)
+        logger.error(f"Failed to resend verification email for {email}: {e}", exc_info=True)
+    
+    return {"message": success_message}
 
 @router.post("/refresh", response_model=Token)
 async def refresh_token(

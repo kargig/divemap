@@ -99,6 +99,8 @@ class User(Base):
     turnstile_verified_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when Turnstile was verified
     buddy_visibility = Column(String(20), default='public', nullable=False)  # Control whether user can be added as buddy ('public' or 'private')
     last_notification_check = Column(DateTime(timezone=True), nullable=True)  # Track when user last checked notifications
+    email_verified = Column(Boolean, default=False, nullable=False)  # Email verification status
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when email was verified
 
     # Relationships
     site_ratings = relationship("SiteRating", back_populates="user", cascade="all, delete-orphan")
@@ -114,6 +116,7 @@ class User(Base):
     buddy_dives = relationship("Dive", secondary="dive_buddies", back_populates="buddies")
     notification_preferences = relationship("NotificationPreference", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+    email_verification_tokens = relationship("EmailVerificationToken", back_populates="user", cascade="all, delete-orphan")
 
 class DiveSite(Base):
     __tablename__ = "dive_sites"
@@ -734,4 +737,25 @@ class ApiKey(Base):
         sa.Index('idx_api_key_hash', 'key_hash'),
         sa.Index('idx_api_key_active', 'is_active'),
         sa.Index('idx_api_key_expires', 'expires_at'),
+    )
+
+
+class EmailVerificationToken(Base):
+    """Email verification tokens for user email validation."""
+    __tablename__ = "email_verification_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token = Column(String(255), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relationships
+    user = relationship("User", back_populates="email_verification_tokens")
+
+    __table_args__ = (
+        sa.Index('idx_email_verification_token', 'token'),
+        sa.Index('idx_email_verification_user', 'user_id'),
+        sa.Index('idx_email_verification_expires', 'expires_at'),
     )

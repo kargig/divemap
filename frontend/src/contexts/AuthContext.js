@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
-import api from '../api';
+import api, { extractErrorMessage } from '../api';
 import googleAuth from '../utils/googleAuth';
 import { isTurnstileEnabled } from '../utils/turnstileConfig';
 
@@ -172,9 +172,16 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
+      const errorDetail =
+        error?.response?.data?.detail || error?.message || 'Invalid username or password';
+      const statusCode = error?.response?.status;
+
       return {
         success: false,
-        error: error?.response?.data?.detail || error?.message || 'Invalid username or password',
+        error: errorDetail,
+        statusCode: statusCode,
+        requiresEmailVerification:
+          statusCode === 403 && errorDetail?.toLowerCase().includes('verify your email'),
       };
     }
   };
@@ -222,7 +229,14 @@ export const AuthProvider = ({ children }) => {
 
       const response = await api.post('/api/v1/auth/register', requestData);
 
-      const { access_token, expires_in } = response.data;
+      const { access_token, expires_in, message } = response.data;
+
+      // If access_token is null, email verification is required
+      if (!access_token) {
+        // Don't show toast - user will be redirected to check-email page
+        // Return true to indicate successful registration
+        return true;
+      }
 
       localStorage.setItem('access_token', access_token);
       // Note: refresh_token is now set as an HTTP-only cookie by the backend
@@ -234,11 +248,11 @@ export const AuthProvider = ({ children }) => {
       // scheduleTokenRenewal(expires_in);
 
       await fetchUser();
-      toast.success('Registration successful!');
+      toast.success(message || 'Registration successful!');
       return true;
     } catch (error) {
       console.error('Registration error:', error);
-      const message = error.response?.data?.detail || 'Registration failed';
+      const message = extractErrorMessage(error) || 'Registration failed';
       toast.error(message);
       return false;
     }

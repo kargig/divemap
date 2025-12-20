@@ -44,6 +44,7 @@ class UserResponse(UserBase):
     id: int
     name: Optional[str] = None
     enabled: bool
+    email_verified: bool = False
     is_admin: bool
     is_moderator: bool
     number_of_dives: int = 0
@@ -67,10 +68,14 @@ class Token(BaseModel):
     expires_in: int
 
 class RegistrationResponse(BaseModel):
-    access_token: str
+    access_token: Optional[str]
     token_type: str
     expires_in: int
     message: str
+
+class ResendVerificationRequest(BaseModel):
+    """Request to resend email verification."""
+    email: EmailStr = Field(..., description="Email address to resend verification")
 
 class TokenData(BaseModel):
     username: Optional[str] = None
@@ -102,9 +107,11 @@ class UserListResponse(BaseModel):
     is_admin: bool
     is_moderator: bool
     enabled: bool
+    email_verified: bool
+    email_verified_at: Optional[datetime] = None
     created_at: datetime
 
-    @validator('created_at', pre=True)
+    @validator('created_at', 'email_verified_at', pre=True)
     def normalize_datetime_to_utc(cls, v):
         return normalize_datetime_to_utc(cls, v)
 

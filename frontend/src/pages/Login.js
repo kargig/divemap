@@ -3,12 +3,14 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 
+import api from '../api';
 import Logo from '../components/Logo';
 import Turnstile from '../components/Turnstile';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import googleAuth from '../utils/googleAuth';
 import { isTurnstileEnabled, getTurnstileConfig } from '../utils/turnstileConfig';
+import { formatDateForError } from '../utils/dateFormatting';
 
 const Login = () => {
   // Set page title
@@ -23,6 +25,8 @@ const Login = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState(null);
   const [turnstileError, setTurnstileError] = useState(false);
+  const [showResendVerification, setShowResendVerification] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
 
   const { login: authLogin, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -122,7 +126,14 @@ const Login = () => {
       if (success) {
         navigate('/');
       } else {
-        toast.error(error || 'Invalid username or password');
+        // Check if error is due to unverified email
+        if (error?.requiresEmailVerification) {
+          toast.error(error.error || 'Please verify your email address before logging in.');
+          // Show resend verification option
+          setShowResendVerification(true);
+        } else {
+          toast.error(error?.error || error || 'Invalid username or password');
+        }
       }
     } catch (error) {
       toast.error('Login failed. Please try again.');
@@ -229,6 +240,62 @@ const Login = () => {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
+
+          {/* Resend Verification Email */}
+          {showResendVerification && (
+            <div className='mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md'>
+              <p className='text-sm text-yellow-800 mb-2'>
+                Your email address hasn't been verified yet. Check your inbox for the verification
+                link.
+              </p>
+              <button
+                type='button'
+                onClick={async () => {
+                  setResendingVerification(true);
+                  try {
+                    await api.post('/api/v1/auth/resend-verification', {
+                      email: formData.username.includes('@') ? formData.username : null,
+                    });
+                    toast.success(
+                      'If your email is not verified, a verification email has been sent.'
+                    );
+                    setShowResendVerification(false);
+                  } catch (error) {
+                    // Handle rate limit error (429)
+                    if (error.response?.status === 429) {
+                      const errorData = error.response?.data;
+                      const resetAt = errorData?.reset_at_iso || errorData?.reset_at;
+                      let message = errorData?.message || 'You have reached the maximum number of verification email requests.';
+                      
+                      if (resetAt) {
+                        const formattedDate = formatDateForError(resetAt);
+                        if (formattedDate) {
+                          message = `Rate limit exceeded. You can request a new verification email after ${formattedDate}.`;
+                        }
+                      }
+                      
+                      toast.error(message, { duration: 6000 });
+                    } else {
+                      toast.success(
+                        'If your email is not verified, a verification email has been sent.'
+                      );
+                    }
+                  } finally {
+                    setResendingVerification(false);
+                  }
+                }}
+                disabled={resendingVerification || !formData.username.includes('@')}
+                className='text-sm text-yellow-800 underline hover:text-yellow-900 disabled:opacity-50'
+              >
+                {resendingVerification ? 'Sending...' : 'Resend verification email'}
+              </button>
+              {!formData.username.includes('@') && (
+                <p className='text-xs text-yellow-700 mt-2'>
+                  Please enter your email address above to resend verification.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Google Sign-In Button */}
           {process.env.REACT_APP_GOOGLE_CLIENT_ID &&

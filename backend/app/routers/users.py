@@ -122,6 +122,10 @@ async def delete_user(
             detail="Cannot delete your own account"
         )
 
+    # Delete related email verification tokens first to avoid foreign key issues
+    from app.models import EmailVerificationToken
+    db.query(EmailVerificationToken).filter(EmailVerificationToken.user_id == db_user.id).delete()
+
     db.delete(db_user)
     db.commit()
 
