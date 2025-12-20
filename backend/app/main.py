@@ -5,6 +5,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from fastapi.responses import JSONResponse
+from datetime import datetime, timedelta, timezone
 import os
 import logging
 import time
@@ -88,7 +90,66 @@ app = FastAPI(
 
 # Add rate limiter to app state
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Custom rate limit exception handler with reset time information
+async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    """
+    Custom rate limit handler that includes reset time information.
+    For general rate limits, calculates reset time based on the limit string.
+    For "3/day" limit, reset time is 24 hours from now.
+    """
+    # Try to extract limit information from the exception
+    limit_detail = str(exc.detail) if hasattr(exc, 'detail') else "rate limit exceeded"
+    
+    # Calculate reset time (default to 1 minute for most limits, 24 hours for daily limits)
+    # This is a best-effort calculation - slowapi doesn't expose the exact reset time
+    reset_time = datetime.now(timezone.utc) + timedelta(minutes=1)
+    
+    # Check if this is a daily limit (contains "day" or "/d")
+    if "day" in limit_detail.lower() or "/d" in limit_detail.lower():
+        reset_time = datetime.now(timezone.utc) + timedelta(days=1)
+    
+    reset_timestamp = int(reset_time.timestamp())
+    now = datetime.now(timezone.utc)
+    retry_after_seconds = int((reset_time - now).total_seconds())
+    
+    # Special handling for resend verification endpoint
+    if "/resend-verification" in str(request.url.path):
+        from app.routers.auth import RESEND_VERIFICATION_RATE_LIMIT
+        response = JSONResponse(
+            status_code=429,
+            content={
+                "detail": "Too many requests. You have exceeded the rate limit for resending verification emails.",
+                "error": "rate_limit_exceeded",
+                "limit": f"{RESEND_VERIFICATION_RATE_LIMIT} requests per day",
+                "reset_at": reset_timestamp,
+                "reset_at_iso": reset_time.isoformat(),
+                "message": f"You have reached the maximum number of verification email requests ({RESEND_VERIFICATION_RATE_LIMIT} per day). Please try again after {reset_time.strftime('%Y-%m-%d %H:%M:%S UTC')}."
+            },
+            headers={
+                "X-RateLimit-Limit": str(RESEND_VERIFICATION_RATE_LIMIT),
+                "X-RateLimit-Remaining": "0",
+                "X-RateLimit-Reset": str(reset_timestamp),
+                "Retry-After": str(retry_after_seconds)
+            }
+        )
+    else:
+        # General rate limit response
+        response = JSONResponse(
+            status_code=429,
+            content={
+                "detail": "Rate limit exceeded. Please try again later.",
+                "error": "rate_limit_exceeded",
+                "message": limit_detail
+            },
+            headers={
+                "X-RateLimit-Reset": str(reset_timestamp),
+                "Retry-After": str(retry_after_seconds)
+            }
+        )
+    return response
+
+app.add_exception_handler(RateLimitExceeded, custom_rate_limit_handler)
 
 # Configure CORS with more restrictive settings
 # Get allowed origins from environment variable or use defaults

@@ -1,0 +1,13 @@
+Verify your email address - {{ site_name }}
+
+Thank you for registering with {{ site_name }}! To complete your registration and activate your account, please verify your email address by clicking the link below.
+
+{{ verification_link }}
+
+This link will expire in {{ expires_in_hours }} hours.
+
+If you didn't create an account with {{ site_name }}, you can safely ignore this email.
+
+---
+© {{ current_year }} {{ site_name }}. All rights reserved.
+

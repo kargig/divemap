@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models import User
 from app.auth import create_access_token, get_password_hash
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 from app.auth import ACCESS_TOKEN_EXPIRE_MINUTES
 import re
 from sqlalchemy.exc import IntegrityError
@@ -108,6 +108,10 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
         # Update name if not set and we have one from Google
         if not existing_user.name and google_user_info.get('name'):
             existing_user.name = google_user_info.get('name')
+        # Set email as verified (Google already verifies emails)
+        if not existing_user.email_verified:
+            existing_user.email_verified = True
+            existing_user.email_verified_at = datetime.now(timezone.utc)
         db.commit()
         return existing_user
 
@@ -137,6 +141,8 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
         google_id=google_id,
         avatar_url=picture_url,
         enabled=True,  # Google users are enabled by default
+        email_verified=True,  # Google already verifies emails
+        email_verified_at=datetime.now(timezone.utc),  # Set verification timestamp
         is_admin=False,
         is_moderator=False
     )

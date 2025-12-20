@@ -1,5 +1,5 @@
 import pytest
-from datetime import date
+from datetime import date, datetime, timezone
 import asyncio
 import os
 from fastapi.testclient import TestClient
@@ -123,7 +123,9 @@ def test_user(db_session):
         is_admin=False,
         is_moderator=False,
         enabled=True,
-        buddy_visibility="public"
+        buddy_visibility="public",
+        email_verified=True,  # Set verified for tests that need login
+        email_verified_at=datetime.now(timezone.utc)
     )
     db_session.add(user)
     db_session.commit()
@@ -140,7 +142,9 @@ def test_admin_user(db_session):
         is_admin=True,
         is_moderator=False,
         enabled=True,
-        buddy_visibility="public"
+        buddy_visibility="public",
+        email_verified=True,  # Set verified for tests that need login
+        email_verified_at=datetime.now(timezone.utc)
     )
     db_session.add(admin)
     db_session.commit()
@@ -156,7 +160,9 @@ def test_moderator_user(db_session):
         password_hash="$2b$12$Qf4ceC4ETacht.pNDme/H.nTnGtc7bNpWDZD2R39K.1Nh32oH7cfy",  # "password"
         is_admin=False,
         is_moderator=True,
-        enabled=True
+        enabled=True,
+        email_verified=True,  # Set verified for tests that need login
+        email_verified_at=datetime.now(timezone.utc)
     )
     db_session.add(moderator)
     db_session.commit()
@@ -173,7 +179,9 @@ def test_user_other(db_session):
         is_admin=False,
         is_moderator=False,
         enabled=True,
-        buddy_visibility="public"
+        buddy_visibility="public",
+        email_verified=True,  # Set verified for tests that need login
+        email_verified_at=datetime.now(timezone.utc)
     )
     db_session.add(user)
     db_session.commit()
