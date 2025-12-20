@@ -26,6 +26,10 @@ from app.utils import (
     is_diving_center_reviews_enabled
 )
 from app.limiter import limiter, skip_rate_limit_for_admin
+from app.services.notification_service import NotificationService
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -983,7 +987,6 @@ async def create_diving_center(
 
     # Notify users about new diving center
     try:
-        from app.services.notification_service import NotificationService
         notification_service = NotificationService()
         await notification_service.notify_users_for_new_diving_center(db_diving_center.id, db)
     except Exception as e:
@@ -1855,6 +1858,19 @@ async def claim_diving_center_ownership(
 
     db.commit()
     db.refresh(diving_center)
+
+    # Notify admins about diving center ownership claim
+    try:
+        notification_service = NotificationService()
+        await notification_service.notify_admins_for_diving_center_claim(
+            diving_center_id=diving_center_id,
+            user_id=current_user.id,
+            claim_reason=claim.reason,
+            db=db
+        )
+    except Exception as e:
+        # Log error but don't fail claim if notification fails
+        logger.warning(f"Failed to send admin notifications for diving center claim {diving_center_id}: {e}")
 
     return {
         "message": "Ownership claim submitted successfully. Waiting for admin approval.",
