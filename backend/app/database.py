@@ -39,7 +39,7 @@ else:
             "autocommit": True,    # Enable autocommit for faster connections
             "charset": "utf8mb4",  # Set charset for better compatibility
             "use_unicode": True,   # Use unicode for better compatibility
-            "init_command": "SET SESSION wait_timeout=28800",  # Set session timeout
+            "init_command": "SET SESSION time_zone='+00:00', wait_timeout=28800",  # Set timezone to UTC and session timeout
         },
         echo=False  # Set to True for SQL query logging
     )

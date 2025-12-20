@@ -1,11 +1,29 @@
 from pydantic import BaseModel, Field, EmailStr, validator
 from typing import Optional, List, Union, Literal
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timezone
 import re
 import enum
 
 # Valid difficulty codes
 DifficultyCode = Optional[Literal['OPEN_WATER', 'ADVANCED_OPEN_WATER', 'DEEP_NITROX', 'TECHNICAL_DIVING']]
+
+
+def normalize_datetime_to_utc(cls, v):
+    """
+    Pydantic validator to normalize datetime fields to UTC timezone-aware datetimes.
+    Can be used as a validator for any datetime field in any schema.
+    """
+    if v is None:
+        return v
+    if isinstance(v, datetime):
+        # If naive datetime, assume it's UTC (from database with timezone=True)
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        # If timezone-aware, convert to UTC
+        elif v.tzinfo != timezone.utc:
+            return v.astimezone(timezone.utc)
+        return v
+    return v
 
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
@@ -31,6 +49,10 @@ class UserResponse(UserBase):
     number_of_dives: int = 0
     created_at: datetime
     updated_at: datetime
+
+    @validator('created_at', 'updated_at', pre=True)
+    def normalize_datetime_to_utc(cls, v):
+        return normalize_datetime_to_utc(cls, v)
 
     class Config:
         from_attributes = True
@@ -81,6 +103,10 @@ class UserListResponse(BaseModel):
     is_moderator: bool
     enabled: bool
     created_at: datetime
+
+    @validator('created_at', pre=True)
+    def normalize_datetime_to_utc(cls, v):
+        return normalize_datetime_to_utc(cls, v)
 
     class Config:
         from_attributes = True
@@ -135,6 +161,10 @@ class DiveSiteAliasResponse(DiveSiteAliasBase):
     dive_site_id: int
     created_at: datetime
 
+    @validator('created_at', pre=True)
+    def normalize_datetime_to_utc(cls, v):
+        return normalize_datetime_to_utc(cls, v)
+
     class Config:
         from_attributes = True
 
@@ -155,6 +185,10 @@ class DiveSiteResponse(DiveSiteBase):
     shore_direction_method: Optional[str] = None  # Method used: 'osm_coastline', 'manual', 'ai', etc.
     shore_direction_distance_m: Optional[float] = None  # Distance to coastline in meters
 
+    @validator('created_at', 'updated_at', pre=True)
+    def normalize_datetime_to_utc(cls, v):
+        return normalize_datetime_to_utc(cls, v)
+
     class Config:
         from_attributes = True
 
@@ -168,6 +202,10 @@ class SiteRatingResponse(BaseModel):
     user_id: int
     score: float
     created_at: datetime
+
+    @validator('created_at', pre=True)
+    def normalize_datetime_to_utc(cls, v):
+        return normalize_datetime_to_utc(cls, v)
 
     class Config:
         from_attributes = True
@@ -189,6 +227,10 @@ class SiteCommentResponse(BaseModel):
     updated_at: datetime
     user_diving_certification: Optional[str] = None
     user_number_of_dives: Optional[int] = None
+
+    @validator('created_at', 'updated_at', pre=True)
+    def normalize_datetime_to_utc(cls, v):
+        return normalize_datetime_to_utc(cls, v)
 
     class Config:
         from_attributes = True
@@ -634,6 +676,10 @@ class DiveResponse(DiveBase):
     tags: List[dict] = []
     buddies: List[UserPublicInfo] = []  # List of buddy users
     user_username: Optional[str] = None  # For public dives
+
+    @validator('created_at', 'updated_at', pre=True)
+    def normalize_datetime_to_utc(cls, v):
+        return normalize_datetime_to_utc(cls, v)
 
     class Config:
         from_attributes = True
@@ -1125,8 +1171,26 @@ class NotificationResponse(BaseModel):
     email_sent_at: Optional[datetime] = None
     created_at: datetime
 
+    @validator('created_at', 'read_at', 'email_sent_at', pre=True)
+    def normalize_datetime_to_utc(cls, v):
+        """Normalize datetime fields to UTC timezone-aware datetimes."""
+        if v is None:
+            return v
+        if isinstance(v, datetime):
+            # If naive datetime, assume it's UTC (from database with timezone=True)
+            if v.tzinfo is None:
+                return v.replace(tzinfo=timezone.utc)
+            # If timezone-aware, convert to UTC
+            elif v.tzinfo != timezone.utc:
+                return v.astimezone(timezone.utc)
+            return v
+        return v
+
     class Config:
         from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v
+        }
 
 
 class NotificationPreferenceResponse(BaseModel):
@@ -1140,6 +1204,10 @@ class NotificationPreferenceResponse(BaseModel):
     area_filter: Optional[dict] = None
     created_at: datetime
     updated_at: datetime
+
+    @validator('created_at', 'updated_at', pre=True)
+    def normalize_datetime_to_utc(cls, v):
+        return normalize_datetime_to_utc(cls, v)
 
     class Config:
         from_attributes = True

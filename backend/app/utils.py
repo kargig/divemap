@@ -1,6 +1,7 @@
 from fastapi import Request
 from typing import Optional
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 import json
 
 
@@ -522,4 +523,17 @@ def create_default_notification_preferences(user_id: int, db: Session) -> list:
         for pref in created_preferences:
             db.refresh(pref)
     
-    return created_preferences 
+    return created_preferences
+
+
+def utcnow() -> datetime:
+    """
+    Get current UTC datetime as timezone-aware datetime object.
+    
+    This is the recommended way to get UTC time in Python 3.9+.
+    Replaces deprecated datetime.utcnow() which returns naive datetime.
+    
+    Returns:
+        datetime: Current UTC time as timezone-aware datetime
+    """
+    return datetime.now(timezone.utc) 
