@@ -8,9 +8,9 @@ import Logo from '../components/Logo';
 import Turnstile from '../components/Turnstile';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { formatDateForError } from '../utils/dateFormatting';
 import googleAuth from '../utils/googleAuth';
 import { isTurnstileEnabled, getTurnstileConfig } from '../utils/turnstileConfig';
-import { formatDateForError } from '../utils/dateFormatting';
 
 const Login = () => {
   // Set page title
@@ -265,15 +265,17 @@ const Login = () => {
                     if (error.response?.status === 429) {
                       const errorData = error.response?.data;
                       const resetAt = errorData?.reset_at_iso || errorData?.reset_at;
-                      let message = errorData?.message || 'You have reached the maximum number of verification email requests.';
-                      
+                      let message =
+                        errorData?.message ||
+                        'You have reached the maximum number of verification email requests.';
+
                       if (resetAt) {
                         const formattedDate = formatDateForError(resetAt);
                         if (formattedDate) {
                           message = `Rate limit exceeded. You can request a new verification email after ${formattedDate}.`;
                         }
                       }
-                      
+
                       toast.error(message, { duration: 6000 });
                     } else {
                       toast.success(

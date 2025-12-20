@@ -26,10 +26,12 @@ from app.services.ses_service import SESService
 try:
     from app.models import EmailConfig
     from sqlalchemy.orm import Session
+    from app.services.unsubscribe_token_service import unsubscribe_token_service
     DB_AVAILABLE = True
 except ImportError:
     EmailConfig = None
     Session = None
+    unsubscribe_token_service = None
     DB_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
@@ -90,7 +92,10 @@ class EmailService:
         notification: Dict[str, Any],
         template_name: str,
         from_email: Optional[str] = None,
-        from_name: Optional[str] = None
+        from_name: Optional[str] = None,
+        user_id: Optional[int] = None,
+        db: Optional[Session] = None,
+        unsubscribe_token: Optional[str] = None
     ) -> bool:
         """
         Send notification email using template.
@@ -101,6 +106,8 @@ class EmailService:
             template_name: Name of template to use (without extension)
             from_email: Sender email (optional, uses SES default)
             from_name: Sender name (optional, uses SES default)
+            user_id: User ID (optional, required for unsubscribe links)
+            db: Database session (optional, required for unsubscribe links)
         
         Returns:
             True if email was sent successfully, False otherwise
@@ -113,6 +120,39 @@ class EmailService:
             'site_url': os.getenv('FRONTEND_URL', 'https://divemap.com'),
             'current_year': datetime.now().year
         }
+        
+        # Add unsubscribe links if:
+        # 1. unsubscribe_token is provided directly (Lambda path), OR
+        # 2. user_id and db are provided (backend path)
+        # Do NOT add unsubscribe links to admin_alert or email_verification templates
+        if template_name not in ['admin_alert', 'email_verification']:
+            token_to_use = None
+            
+            if unsubscribe_token:
+                # Use token provided directly (from Lambda API call)
+                token_to_use = unsubscribe_token
+            elif user_id and db:
+                # Generate token from database (backend direct path)
+                try:
+                    unsubscribe_token_obj = unsubscribe_token_service.get_or_create_unsubscribe_token(user_id, db)
+                    token_to_use = unsubscribe_token_obj.token
+                except Exception as e:
+                    logger.warning(f"Failed to generate unsubscribe token for user {user_id}: {e}")
+                    # Continue without unsubscribe links if token generation fails
+            
+            if token_to_use:
+                category = notification.get('category', '')
+                base_url = os.getenv('FRONTEND_URL', 'https://divemap.com').rstrip('/')
+                
+                # Category-specific unsubscribe URL
+                unsubscribe_url = f"{base_url}/api/v1/unsubscribe?token={token_to_use}&category={category}"
+                # Global unsubscribe URL
+                unsubscribe_all_url = f"{base_url}/api/v1/unsubscribe/all?token={token_to_use}"
+                
+                context['unsubscribe_url'] = unsubscribe_url
+                context['unsubscribe_all_url'] = unsubscribe_all_url
+                context['unsubscribe_token'] = token_to_use
+                context['category'] = category
         
         # Render HTML template
         html_body = self._render_template(template_name, context, 'html')
@@ -145,7 +185,10 @@ class EmailService:
         notifications: list[Dict[str, Any]],
         frequency: str,
         from_email: Optional[str] = None,
-        from_name: Optional[str] = None
+        from_name: Optional[str] = None,
+        user_id: Optional[int] = None,
+        db: Optional[Session] = None,
+        unsubscribe_token: Optional[str] = None
     ) -> bool:
         """
         Send digest email with multiple notifications.
@@ -156,6 +199,8 @@ class EmailService:
             frequency: 'daily_digest' or 'weekly_digest'
             from_email: Sender email (optional)
             from_name: Sender name (optional)
+            user_id: User ID (optional, required for unsubscribe links)
+            db: Database session (optional, required for unsubscribe links)
         
         Returns:
             True if email was sent successfully, False otherwise
@@ -170,6 +215,38 @@ class EmailService:
             'site_url': os.getenv('FRONTEND_URL', 'https://divemap.com'),
             'current_year': datetime.now().year
         }
+        
+        # Add unsubscribe links if:
+        # 1. unsubscribe_token is provided directly (Lambda path), OR
+        # 2. user_id and db are provided (backend path)
+        token_to_use = None
+        
+        if unsubscribe_token:
+            # Use token provided directly (from Lambda API call)
+            token_to_use = unsubscribe_token
+        elif user_id and db:
+            # Generate token from database (backend direct path)
+            try:
+                unsubscribe_token_obj = unsubscribe_token_service.get_or_create_unsubscribe_token(user_id, db)
+                token_to_use = unsubscribe_token_obj.token
+            except Exception as e:
+                logger.warning(f"Failed to generate unsubscribe token for user {user_id}: {e}")
+                # Continue without unsubscribe links if token generation fails
+        
+        if token_to_use:
+            base_url = os.getenv('FRONTEND_URL', 'https://divemap.com').rstrip('/')
+            
+            # For digest emails, use a generic category or the first notification's category
+            category = notifications[0].get('category', '') if notifications else ''
+            # Category-specific unsubscribe URL
+            unsubscribe_url = f"{base_url}/api/v1/unsubscribe?token={token_to_use}&category={category}"
+            # Global unsubscribe URL
+            unsubscribe_all_url = f"{base_url}/api/v1/unsubscribe/all?token={token_to_use}"
+            
+            context['unsubscribe_url'] = unsubscribe_url
+            context['unsubscribe_all_url'] = unsubscribe_all_url
+            context['unsubscribe_token'] = token_to_use
+            context['category'] = category
         
         # Render HTML template
         html_body = self._render_template(frequency, context, 'html')

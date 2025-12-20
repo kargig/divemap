@@ -10,6 +10,12 @@ View dive trip: {{ site_url }}{{ notification.link_url }}
 
 ---
 You're receiving this email because you have notifications enabled for new dive trips.
+
+{% if unsubscribe_url and unsubscribe_all_url %}
+Unsubscribe from dive trip emails: {{ unsubscribe_url }}
+Unsubscribe from all emails: {{ unsubscribe_all_url }}
+
+{% endif %}
 Manage preferences: {{ site_url }}/profile/notifications
 
 © {{ current_year }} {{ site_name }}. All rights reserved.

@@ -72,6 +72,12 @@
                             <p style="margin: 0 0 12px 0; color: #64748b; font-size: 13px;">
                                 You're receiving this email because you have notifications enabled for new dive trips.
                             </p>
+                            {% if unsubscribe_url and unsubscribe_all_url %}
+                            <p style="margin: 0 0 12px 0; color: #64748b; font-size: 12px;">
+                                <a href="{{ unsubscribe_url }}" style="color: #64748b; text-decoration: underline;">Unsubscribe from dive trip emails</a> | 
+                                <a href="{{ unsubscribe_all_url }}" style="color: #64748b; text-decoration: underline;">Unsubscribe from all emails</a>
+                            </p>
+                            {% endif %}
                             <p style="margin: 0 0 20px 0;">
                                 <a href="{{ site_url }}/profile/notifications" style="display: inline-block; color: #2d6b8a; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: 2px solid #2d6b8a; border-radius: 6px;">
                                     Manage Preferences

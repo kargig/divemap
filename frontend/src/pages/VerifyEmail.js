@@ -95,15 +95,17 @@ const VerifyEmail = () => {
       if (error.response?.status === 429) {
         const errorData = error.response?.data;
         const resetAt = errorData?.reset_at_iso || errorData?.reset_at;
-        let message = errorData?.message || 'You have reached the maximum number of verification email requests.';
-        
+        let message =
+          errorData?.message ||
+          'You have reached the maximum number of verification email requests.';
+
         if (resetAt) {
           const formattedDate = formatDateForError(resetAt);
           if (formattedDate) {
             message = `Rate limit exceeded. You can request a new verification email after ${formattedDate}.`;
           }
         }
-        
+
         toast.error(message, { duration: 6000 });
         setShowResendForm(false);
         setResendEmail('');
@@ -193,7 +195,7 @@ const VerifyEmail = () => {
               </div>
               <h3 className='mt-4 text-lg font-medium text-gray-900'>Verification Failed</h3>
               <p className='mt-2 text-sm text-gray-600'>{errorMessage}</p>
-              
+
               {!showResendForm ? (
                 <div className='mt-6 space-y-3'>
                   <button
