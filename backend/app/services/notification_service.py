@@ -5,10 +5,11 @@ Core service for creating and managing notifications.
 Handles user preference matching, area filtering, and email queuing via SQS.
 """
 
+import os
 import math
 import logging
 from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 
@@ -17,6 +18,7 @@ from app.models import (
 )
 from app.services.sqs_service import SQSService
 from app.services.email_service import EmailService
+from app.services.unsubscribe_token_service import unsubscribe_token_service
 
 logger = logging.getLogger(__name__)
 
@@ -241,23 +243,77 @@ class NotificationService:
             
             # Get user
             user = db.query(User).filter(User.id == preference.user_id).first()
-            if user and user.enabled:
-                users_to_notify.append(user)
-            elif not user:
+            if not user:
                 logger.warning(f"Preference {preference.id} references non-existent user_id={preference.user_id}")
-            elif not user.enabled:
+                continue
+            if not user.enabled:
                 logger.debug(f"User {preference.user_id} is disabled, skipping notification")
+                continue
+            # Check global email opt-out (skip email notifications, but still create website notifications)
+            if preference.enable_email and self.check_email_opted_out(user.id, db):
+                logger.debug(f"User {preference.user_id} has global email opt-out, skipping email notification")
+                # Still add user for website notifications if enabled
+                if preference.enable_website:
+                    users_to_notify.append(user)
+                continue
+            users_to_notify.append(user)
         
         logger.debug(f"Returning {len(users_to_notify)} users to notify for category '{category}'")
         return users_to_notify
+    
+    def check_email_opted_out(self, user_id: int, db: Session) -> bool:
+        """
+        Check if user has globally opted out of email notifications.
+        
+        Args:
+            user_id: User ID to check
+            db: Database session
+            
+        Returns:
+            True if user has opted out, False otherwise
+        """
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return False
+        return user.email_notifications_opted_out
+    
+    def get_unsubscribe_token_for_user(self, user_id: int, db: Session):
+        """
+        Get user's unsubscribe token (creates if doesn't exist).
+        
+        Args:
+            user_id: User ID
+            db: Database session
+            
+        Returns:
+            UnsubscribeToken object
+        """
+        return unsubscribe_token_service.get_or_create_unsubscribe_token(user_id, db)
     
     def _queue_email_notification(
         self,
         notification: Notification,
         user: User,
-        template_name: str
+        template_name: str,
+        db: Session = None
     ) -> bool:
-        """Queue email notification via SQS."""
+        """
+        Queue email notification via SQS, or send directly if SQS is unavailable.
+        
+        In production: Emails are queued to SQS and processed by Lambda.
+        In development: If SQS is unavailable, emails are sent directly.
+        
+        Args:
+            notification: Notification object
+            user: User object
+            template_name: Email template name
+            db: Database session (optional, for opt-out check and token generation)
+        """
+        # Check global opt-out before queuing (if db session provided)
+        if db and self.check_email_opted_out(user.id, db):
+            logger.debug(f"User {user.id} has global email opt-out, skipping email queue")
+            return False
+        
         notification_data = {
             'title': notification.title,
             'message': notification.message,
@@ -265,11 +321,60 @@ class NotificationService:
             'category': notification.category
         }
         
-        return self.sqs_service.send_email_task(
-            notification_id=notification.id,
-            user_email=user.email,
-            notification_data=notification_data
-        )
+        # Get unsubscribe token if needed (exclude admin alerts and email verification)
+        unsubscribe_token = None
+        if db and template_name not in ['admin_alert', 'email_verification']:
+            try:
+                token_obj = self.get_unsubscribe_token_for_user(user.id, db)
+                unsubscribe_token = token_obj.token if token_obj else None
+            except Exception as e:
+                logger.warning(f"Failed to get unsubscribe token for user {user.id}: {e}")
+                # Continue without token - email will still be sent
+        
+        # Check if we should force direct email sending (e.g., local development)
+        # This prevents using production SQS queue when testing locally
+        force_direct_email = os.getenv('FORCE_DIRECT_EMAIL', 'false').lower() == 'true'
+        
+        # Try to queue to SQS first (production path), unless forced to send directly
+        sqs_success = False
+        if not force_direct_email:
+            sqs_success = self.sqs_service.send_email_task(
+                notification_id=notification.id,
+                user_email=user.email,
+                user_id=user.id,
+                notification_data=notification_data,
+                unsubscribe_token=unsubscribe_token
+            )
+        else:
+            logger.info(f"FORCE_DIRECT_EMAIL enabled, skipping SQS queue for notification {notification.id}")
+        
+        # If SQS is not available or forced to send directly (e.g., local development), send email directly
+        if not sqs_success:
+            logger.info(f"SQS unavailable, sending email directly for notification {notification.id}")
+            # Send email directly via EmailService (development fallback)
+            email_success = self.email_service.send_notification_email(
+                user_email=user.email,
+                notification=notification_data,
+                template_name=template_name,
+                user_id=user.id,
+                db=db,
+                unsubscribe_token=unsubscribe_token
+            )
+            
+            if email_success and db:
+                # Mark email as sent in database
+                try:
+                    notification.email_sent = True
+                    notification.email_sent_at = datetime.now(timezone.utc)
+                    db.commit()
+                    logger.info(f"Email sent directly and marked as sent for notification {notification.id}")
+                except Exception as e:
+                    logger.warning(f"Failed to update email_sent status for notification {notification.id}: {e}")
+                    db.rollback()
+            
+            return email_success
+        
+        return sqs_success
     
     async def notify_users_for_new_dive_site(self, dive_site_id: int, db: Session) -> int:
         """
@@ -336,7 +441,7 @@ class NotificationService:
                 
                 # Queue email if enabled and frequency is immediate
                 if preference.enable_email and preference.frequency == 'immediate':
-                    self._queue_email_notification(notification, user, 'new_dive_site')
+                    self._queue_email_notification(notification, user, 'new_dive_site', db)
         
         logger.info(f"Created {notification_count} notifications for dive site {dive_site_id}")
         return notification_count
@@ -391,7 +496,7 @@ class NotificationService:
             if notification:
                 notification_count += 1
                 if preference.enable_email and preference.frequency == 'immediate':
-                    self._queue_email_notification(notification, user, 'new_dive')
+                    self._queue_email_notification(notification, user, 'new_dive', db)
         
         return notification_count
     
@@ -451,7 +556,7 @@ class NotificationService:
             if notification:
                 notification_count += 1
                 if preference.enable_email and preference.frequency == 'immediate':
-                    self._queue_email_notification(notification, user, 'new_diving_center')
+                    self._queue_email_notification(notification, user, 'new_diving_center', db)
         
         return notification_count
     
@@ -510,7 +615,7 @@ class NotificationService:
             if notification:
                 notification_count += 1
                 if preference.enable_email and preference.frequency == 'immediate':
-                    self._queue_email_notification(notification, user, 'new_dive_trip')
+                    self._queue_email_notification(notification, user, 'new_dive_trip', db)
         
         return notification_count
     
@@ -635,7 +740,7 @@ class NotificationService:
                 
                 # Queue email if enabled and frequency is immediate
                 if preference and preference.enable_email and preference.frequency == 'immediate':
-                    self._queue_email_notification(notification, admin, 'admin_alert')
+                    self._queue_email_notification(notification, admin, 'admin_alert', db)
                 elif not preference:
                     # If no preference exists, check if admin wants email notifications
                     # Default is website only, but we can still queue if they have email enabled elsewhere
@@ -714,7 +819,7 @@ class NotificationService:
                 
                 # Queue email if enabled and frequency is immediate
                 if preference and preference.enable_email and preference.frequency == 'immediate':
-                    self._queue_email_notification(notification, admin, 'admin_alert')
+                    self._queue_email_notification(notification, admin, 'admin_alert', db)
                 elif not preference:
                     # If no preference exists, check if admin wants email notifications
                     # Default is website only, but we can still queue if they have email enabled elsewhere

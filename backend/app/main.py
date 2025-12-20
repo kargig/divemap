@@ -324,6 +324,10 @@ def load_routers():
     app.include_router(settings.router, prefix="/api/v1/settings", tags=["Settings"])
     app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
     
+    # Import unsubscribe router
+    from app.routers import unsubscribe
+    app.include_router(unsubscribe.router, prefix="/api/v1", tags=["Unsubscribe"])
+    
     # Moved to lazy loading:
     # - dive_sites (already implemented)
     # - newsletters (heavy AI/ML dependencies)

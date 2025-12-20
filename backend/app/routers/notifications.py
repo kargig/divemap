@@ -473,6 +473,13 @@ def create_notification_preference(
             detail=f"Preference for category '{preference.category}' already exists"
         )
     
+    # Check global opt-out before enabling email notifications
+    if preference.enable_email and current_user.email_notifications_opted_out:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot enable email notifications: you have globally opted out of all email notifications. Please clear your global opt-out first."
+        )
+    
     # Create new preference
     new_preference = NotificationPreference(
         user_id=current_user.id,
@@ -518,6 +525,14 @@ def update_notification_preference(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Preference for category '{category}' not found"
         )
+    
+    # Check global opt-out before enabling email notifications
+    if preference_update.enable_email is not None and preference_update.enable_email:
+        if current_user.email_notifications_opted_out:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot enable email notifications: you have globally opted out of all email notifications. Please clear your global opt-out first."
+            )
     
     # Update fields
     if preference_update.enable_website is not None:
@@ -627,7 +642,9 @@ def test_email_config(
         notification=test_notification,
         template_name='test_email',
         from_email=from_email,
-        from_name=from_name
+        from_name=from_name,
+        user_id=current_user.id,
+        db=db
     )
     
     if success:
@@ -675,7 +692,8 @@ def test_email_queue(
     queued = notification_service._queue_email_notification(
         notification=notification,
         user=user,
-        template_name='admin_alert'
+        template_name='admin_alert',
+        db=db
     )
     
     if not queued:

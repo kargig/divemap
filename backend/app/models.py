@@ -101,6 +101,8 @@ class User(Base):
     last_notification_check = Column(DateTime(timezone=True), nullable=True)  # Track when user last checked notifications
     email_verified = Column(Boolean, default=False, nullable=False)  # Email verification status
     email_verified_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when email was verified
+    email_notifications_opted_out = Column(Boolean, default=False, nullable=False)  # Global email opt-out flag
+    email_opt_out_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when user opted out of all emails
 
     # Relationships
     site_ratings = relationship("SiteRating", back_populates="user", cascade="all, delete-orphan")
@@ -117,6 +119,7 @@ class User(Base):
     notification_preferences = relationship("NotificationPreference", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     email_verification_tokens = relationship("EmailVerificationToken", back_populates="user", cascade="all, delete-orphan")
+    unsubscribe_token = relationship("UnsubscribeToken", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 class DiveSite(Base):
     __tablename__ = "dive_sites"
@@ -758,4 +761,26 @@ class EmailVerificationToken(Base):
         sa.Index('idx_email_verification_token', 'token'),
         sa.Index('idx_email_verification_user', 'user_id'),
         sa.Index('idx_email_verification_expires', 'expires_at'),
+    )
+
+
+class UnsubscribeToken(Base):
+    """Unsubscribe tokens for email notification opt-out (one token per user, reusable)."""
+    __tablename__ = "unsubscribe_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    token = Column(String(255), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    last_used_at = Column(DateTime(timezone=True), nullable=True)  # Track last usage (token is reusable)
+    previous_preferences = Column(sa.JSON, nullable=True)  # Store previous preference state before unsubscribe (for restoration)
+
+    # Relationships
+    user = relationship("User", back_populates="unsubscribe_token")
+
+    __table_args__ = (
+        sa.Index('idx_unsubscribe_token', 'token'),
+        sa.Index('idx_unsubscribe_user', 'user_id'),
+        sa.Index('idx_unsubscribe_expires', 'expires_at'),
     )

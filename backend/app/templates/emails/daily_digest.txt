@@ -17,6 +17,12 @@ View details: {{ site_url }}{{ notification.link_url }}
 View all notifications: {{ site_url }}/notifications
 
 You're receiving this daily digest because you have digest notifications enabled.
+
+{% if unsubscribe_url and unsubscribe_all_url %}
+Unsubscribe from digest emails: {{ unsubscribe_url }}
+Unsubscribe from all emails: {{ unsubscribe_all_url }}
+
+{% endif %}
 Manage preferences: {{ site_url }}/profile/notifications
 
 © {{ current_year }} {{ site_name }}. All rights reserved.
