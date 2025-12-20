@@ -16,6 +16,7 @@ import logging
 from app.database import get_db
 from app.models import User, Notification, NotificationPreference, EmailConfig
 from app.auth import get_current_active_user, get_current_admin_user
+from app.utils import utcnow
 from fastapi.security import APIKeyHeader
 from app.schemas import (
     NotificationResponse,
@@ -32,6 +33,31 @@ from app.services.notification_service import NotificationService
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _serialize_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
+    """
+    Serialize datetime to ISO string, ensuring it's in UTC.
+    
+    Args:
+        dt: Datetime object (may be naive or timezone-aware)
+    
+    Returns:
+        ISO format string with UTC timezone, or None if dt is None
+    """
+    if dt is None:
+        return None
+    
+    from datetime import timezone
+    
+    # If naive datetime, assume it's UTC (from database with timezone=True)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    # Convert to UTC if not already
+    elif dt.tzinfo != timezone.utc:
+        dt = dt.astimezone(timezone.utc)
+    
+    return dt.isoformat()
 
 # API Key authentication for internal service calls (Lambda)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -62,7 +88,7 @@ def verify_api_key(api_key: str = Depends(api_key_header), db: Session = Depends
         ).all()
         
         # Check expiration
-        now = datetime.utcnow()
+        now = utcnow()
         for key_record in active_keys:
             # Check if expired
             if key_record.expires_at and key_record.expires_at < now:
@@ -200,9 +226,18 @@ def get_notifications(
                 item = n.model_dump()
             else:
                 item = n.dict()
-            # Ensure datetime fields are serializable
+            # Ensure datetime fields are serializable with timezone info (UTC)
             for key, value in item.items():
                 if isinstance(value, datetime):
+                    # Ensure timezone-aware datetimes - if naive, assume UTC
+                    if value.tzinfo is None:
+                        # If naive datetime (shouldn't happen with timezone=True, but handle gracefully)
+                        from datetime import timezone
+                        value = value.replace(tzinfo=timezone.utc)
+                    # Convert to UTC if not already (normalize to UTC)
+                    if value.tzinfo != timezone.utc:
+                        value = value.astimezone(timezone.utc)
+                    # Serialize as ISO string with UTC timezone indicator
                     item[key] = value.isoformat()
             content.append(item)
         except Exception as e:
@@ -218,10 +253,10 @@ def get_notifications(
                 "entity_type": n.entity_type,
                 "entity_id": n.entity_id,
                 "is_read": n.is_read,
-                "read_at": n.read_at.isoformat() if n.read_at else None,
+                "read_at": _serialize_datetime_utc(n.read_at),
                 "email_sent": n.email_sent,
-                "email_sent_at": n.email_sent_at.isoformat() if n.email_sent_at else None,
-                "created_at": n.created_at.isoformat() if n.created_at else None
+                "email_sent_at": _serialize_datetime_utc(n.email_sent_at),
+                "created_at": _serialize_datetime_utc(n.created_at)
             }
             content.append(item)
     
@@ -311,7 +346,7 @@ def mark_notification_read(
     
     if not notification.is_read:
         notification.is_read = True
-        notification.read_at = datetime.utcnow()
+        notification.read_at = utcnow()
         db.commit()
         db.refresh(notification)
     
@@ -346,11 +381,11 @@ def mark_all_read(
         Notification.is_read == False
     ).update({
         'is_read': True,
-        'read_at': datetime.utcnow()
+        'read_at': utcnow()
     })
     
     # Update last_notification_check
-    current_user.last_notification_check = datetime.utcnow()
+    current_user.last_notification_check = utcnow()
     db.commit()
     
     return {"message": f"Marked {updated} notifications as read", "updated_count": updated}
@@ -362,7 +397,7 @@ def update_last_check(
     current_user: User = Depends(get_current_active_user)
 ):
     """Update user's last_notification_check timestamp."""
-    current_user.last_notification_check = datetime.utcnow()
+    current_user.last_notification_check = utcnow()
     db.commit()
     
     return {"message": "Last notification check updated", "timestamp": current_user.last_notification_check.isoformat()}
@@ -765,8 +800,8 @@ def get_notification_for_lambda(
         "entity_type": notification.entity_type,
         "entity_id": notification.entity_id,
         "email_sent": notification.email_sent,
-        "email_sent_at": notification.email_sent_at.isoformat() if notification.email_sent_at else None,
-        "created_at": notification.created_at.isoformat()
+        "email_sent_at": _serialize_datetime_utc(notification.email_sent_at),
+        "created_at": _serialize_datetime_utc(notification.created_at)
     }
 
 
@@ -792,7 +827,7 @@ def mark_email_sent(
         return {"status": "already_sent", "notification_id": notification_id}
     
     notification.email_sent = True
-    notification.email_sent_at = datetime.utcnow()
+    notification.email_sent_at = utcnow()
     db.commit()
     db.refresh(notification)
     
@@ -800,7 +835,7 @@ def mark_email_sent(
     return {
         "status": "success",
         "notification_id": notification_id,
-        "email_sent_at": notification.email_sent_at.isoformat()
+        "email_sent_at": _serialize_datetime_utc(notification.email_sent_at)
     }
 
 

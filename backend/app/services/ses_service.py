@@ -29,8 +29,9 @@ class SESService:
         """Initialize SES service with credential checking."""
         self.ses_available = self._check_ses_credentials() and BOTO3_AVAILABLE
         self.ses_client = self._create_ses_client() if self.ses_available else None
-        self.from_email = os.getenv('AWS_SES_FROM_EMAIL', 'noreply@divemap.com')
-        self.from_name = os.getenv('AWS_SES_FROM_NAME', 'Divemap')
+        # Support both naming conventions (AWS_SES_* and SES_*)
+        self.from_email = os.getenv('AWS_SES_FROM_EMAIL') or os.getenv('SES_FROM_EMAIL', 'noreply@divemap.com')
+        self.from_name = os.getenv('AWS_SES_FROM_NAME') or os.getenv('SES_FROM_NAME', 'Divemap')
         
         if self.ses_available:
             logger.info("SES service initialized successfully")
@@ -38,7 +39,19 @@ class SESService:
             logger.warning("SES service unavailable - email notifications will not be sent")
     
     def _check_ses_credentials(self) -> bool:
-        """Check if all required SES environment variables are present."""
+        """
+        Check if SES credentials are available.
+        
+        In Lambda, IAM role credentials are used automatically.
+        Outside Lambda, explicit credentials are required.
+        """
+        # Check if running in Lambda (IAM role credentials available)
+        if os.getenv('AWS_LAMBDA_FUNCTION_NAME'):
+            # Lambda automatically uses IAM role credentials
+            # Just need region (AWS_REGION is set by Lambda automatically)
+            return True
+        
+        # Outside Lambda, require explicit credentials
         required_vars = [
             'AWS_ACCESS_KEY_ID',
             'AWS_SECRET_ACCESS_KEY',
@@ -47,14 +60,33 @@ class SESService:
         return all(os.getenv(var) for var in required_vars)
     
     def _create_ses_client(self):
-        """Create SES client."""
+        """Create SES client with appropriate credential handling."""
         try:
-            return boto3.client(
-                'ses',
-                aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-                aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
-                region_name=os.getenv('AWS_REGION', 'us-east-1')
-            )
+            # Get region (Lambda sets AWS_REGION automatically)
+            region = os.getenv('AWS_REGION', 'us-east-1')
+            
+            # Check if running in Lambda
+            if os.getenv('AWS_LAMBDA_FUNCTION_NAME'):
+                # In Lambda: Use IAM role credentials (boto3 does this automatically)
+                # Don't pass explicit credentials - let boto3 use IAM role
+                logger.info(f"Creating SES client in Lambda environment using IAM role (region: {region})")
+                return boto3.client('ses', region_name=region)
+            else:
+                # Outside Lambda: Use explicit credentials from environment
+                access_key = os.getenv('AWS_ACCESS_KEY_ID')
+                secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+                
+                if not access_key or not secret_key:
+                    logger.error("AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY required outside Lambda")
+                    return None
+                
+                logger.info(f"Creating SES client with explicit credentials (region: {region})")
+                return boto3.client(
+                    'ses',
+                    aws_access_key_id=access_key,
+                    aws_secret_access_key=secret_key,
+                    region_name=region
+                )
         except Exception as e:
             logger.error(f"Failed to create SES client: {e}")
             return None
