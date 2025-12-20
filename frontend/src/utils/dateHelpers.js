@@ -37,15 +37,16 @@ export const formatDateShort = dateString => {
 
 /**
  * Format a date string to a relative format (e.g., "2 days ago")
- * @param {string|Date} dateString - The date to format
+ * @param {string|Date} dateString - The date to format (should be UTC ISO string)
  * @returns {string} Relative date string
  */
 export const formatDateRelative = dateString => {
   if (!dateString) return 'Date TBD';
 
+  // JavaScript Date automatically handles UTC ISO strings and converts to browser timezone
   const date = new Date(dateString);
   const now = new Date();
-  const diffInMs = now - date;
+  const diffInMs = now.getTime() - date.getTime();
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
   if (diffInDays === 0) {
@@ -64,6 +65,45 @@ export const formatDateRelative = dateString => {
     const years = Math.floor(diffInDays / 365);
     return `${years} year${years > 1 ? 's' : ''} ago`;
   }
+};
+
+/**
+ * Format a date string to a relative time format (e.g., "2h ago", "5m ago", "Just now")
+ * Handles UTC timestamps and displays in browser's local timezone
+ * @param {string|Date} dateString - The date to format (should be UTC ISO string)
+ * @returns {string} Relative time string
+ */
+export const formatTimeAgo = dateString => {
+  if (!dateString) return 'Unknown';
+
+  // JavaScript Date automatically parses UTC ISO strings and converts to browser timezone
+  const date = new Date(dateString);
+
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    console.error('Invalid date string:', dateString);
+    return 'Invalid date';
+  }
+
+  // Get current time and calculate difference in milliseconds
+  // Both dates are converted to milliseconds since epoch, which is timezone-independent
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+
+  // Handle edge case: if date is in the future (shouldn't happen)
+  if (diffMs < 0) return 'Just now';
+
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  // For longer periods, show localized date
+  return date.toLocaleDateString();
 };
 
 /**

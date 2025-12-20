@@ -2,10 +2,19 @@
 
 # Docker-based test script that exactly replicates GitHub Actions environment
 # This uses Docker containers to match the GitHub Actions environment precisely
+#
+# Usage:
+#   ./docker-test-github-actions.sh                    # Run all tests
+#   ./docker-test-github-actions.sh tests/test_file.py # Run specific test file
+#   ./docker-test-github-actions.sh tests/test_file.py::TestClass::test_method # Run specific test
 
 set -e  # Exit on any error
 
+# Get test path from command line argument, default to all tests
+TEST_PATH="${1:-tests/}"
+
 echo "🚀 Starting Docker-based GitHub Actions test environment..."
+echo "📝 Test path: ${TEST_PATH}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -135,6 +144,7 @@ docker run --rm \
     --name divemap-test-runner \
     --network divemap-test-network \
     -v "$(pwd)/.pytest_cache:/app/.pytest_cache" \
+    -e TEST_PATH="${TEST_PATH}" \
     divemap-test-backend \
     bash -c "
         # Create virtual environment (like GitHub Actions)
@@ -164,7 +174,7 @@ docker run --rm \
         
         # Run tests with exact GitHub Actions command
         echo 'Running tests...'
-        python -m pytest tests/ -v --cov=app --cov-report=term-missing -x --maxfail=5 --tb=short
+        python -m pytest \${TEST_PATH} -v --cov=app --cov-report=term-missing -x --maxfail=5 --tb=short
     "
 
 # Check exit code
