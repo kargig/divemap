@@ -24,6 +24,7 @@ from app.limiter import limiter, skip_rate_limit_for_admin
 from app.turnstile_service import TurnstileService
 from app.services.email_verification_service import email_verification_service
 from app.services.email_service import EmailService
+from app.services.notification_service import NotificationService
 from app.utils import get_client_ip
 
 # Constants
@@ -119,6 +120,9 @@ async def register(
     except Exception as e:
         # Log error but don't fail registration if email sending fails
         logger.error(f"Failed to send verification email for user {db_user.id}: {e}")
+
+    # Note: Admin notifications for regular registrations are sent AFTER email verification
+    # See /verify-email endpoint for admin notification after verification
 
     # Check if email verification is required before login
     email_verification_required = os.getenv("EMAIL_VERIFICATION_REQUIRED", "true").lower() == "true"
@@ -247,6 +251,15 @@ async def google_login(
         user = get_or_create_google_user(db, google_user_info)
         
         if user:
+            # Notify admins about new user registration
+            # The notification service will check if notifications were already sent to prevent duplicates
+            try:
+                notification_service = NotificationService()
+                await notification_service.notify_admins_for_user_registration(user.id, db)
+            except Exception as e:
+                # Log error but don't fail login if notification fails
+                logger.warning(f"Failed to send admin notifications for Google user {user.id}: {e}")
+            
             # Create token pair
             token_data = token_service.create_token_pair(user, request, db)
             
@@ -336,6 +349,16 @@ async def verify_email(
     
     # Verify token
     user = email_verification_service.verify_token(token, db)
+    
+    # If email was successfully verified, notify admins about new user registration
+    # The notification service will check if notifications were already sent to prevent duplicates
+    if user and user.email_verified:
+        try:
+            notification_service = NotificationService()
+            await notification_service.notify_admins_for_user_registration(user.id, db)
+        except Exception as e:
+            # Log error but don't fail verification if notification fails
+            logger.warning(f"Failed to send admin notifications for verified user {user.id}: {e}")
     
     if format == "json":
         # Return JSON response for API calls
