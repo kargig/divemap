@@ -20,6 +20,11 @@ from app.services.email_service import EmailService
 
 logger = logging.getLogger(__name__)
 
+# Constants for admin notification URLs
+ADMIN_USERS_URL = "/admin/users"
+ADMIN_OWNERSHIP_REQUESTS_URL = "/admin/ownership-requests"
+ADMIN_ALERTS_CATEGORY = 'admin_alerts'
+
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
@@ -507,4 +512,214 @@ class NotificationService:
                 if preference.enable_email and preference.frequency == 'immediate':
                     self._queue_email_notification(notification, user, 'new_dive_trip')
         
+        return notification_count
+    
+    def _get_admins_to_notify(self, db: Session) -> List[User]:
+        """
+        Get list of admin users who should receive admin alerts.
+        
+        Returns admins who have admin_alerts preferences enabled,
+        or all enabled admins if no preferences exist.
+        
+        Args:
+            db: Database session
+            
+        Returns:
+            List of User objects (admins)
+        """
+        # Get all admin users who have admin_alerts preference enabled
+        admin_preferences = db.query(NotificationPreference).filter(
+            NotificationPreference.category == ADMIN_ALERTS_CATEGORY,
+            or_(
+                NotificationPreference.enable_website == True,
+                NotificationPreference.enable_email == True
+            )
+        ).all()
+        
+        # Get admin users from preferences
+        admin_ids = {pref.user_id for pref in admin_preferences}
+        
+        # Query admins - if we have preferences, filter by those user IDs, otherwise get all admins
+        if admin_ids:
+            admins = db.query(User).filter(
+                User.id.in_(admin_ids) if admin_ids else False,
+                User.is_admin == True,
+                User.enabled == True
+            ).all()
+        else:
+            # If no admins have preferences, notify all admins anyway (they should have default preferences)
+            admins = db.query(User).filter(
+                User.is_admin == True,
+                User.enabled == True
+            ).all()
+        
+        return admins
+    
+    def _get_admin_preferences_map(self, admin_ids: List[int], db: Session) -> Dict[int, NotificationPreference]:
+        """
+        Get admin notification preferences in bulk to avoid N+1 queries.
+        
+        Args:
+            admin_ids: List of admin user IDs
+            db: Database session
+            
+        Returns:
+            Dictionary mapping admin user_id to NotificationPreference
+        """
+        if not admin_ids:
+            return {}
+        
+        preferences = db.query(NotificationPreference).filter(
+            NotificationPreference.user_id.in_(admin_ids),
+            NotificationPreference.category == ADMIN_ALERTS_CATEGORY
+        ).all()
+        
+        return {pref.user_id: pref for pref in preferences}
+    
+    async def notify_admins_for_user_registration(self, user_id: int, db: Session) -> int:
+        """
+        Notify all admin users about a new user registration.
+        
+        Args:
+            user_id: ID of the newly registered user
+            db: Database session
+        
+        Returns:
+            Number of admin notifications created
+        """
+        # Get the newly registered user
+        new_user = db.query(User).filter(User.id == user_id).first()
+        if not new_user:
+            logger.error(f"User {user_id} not found")
+            return 0
+        
+        # Check if we've already sent notifications for this user registration
+        # (to prevent duplicate notifications if this function is called multiple times)
+        existing_notification = db.query(Notification).filter(
+            Notification.entity_type == 'user',
+            Notification.entity_id == user_id,
+            Notification.category == ADMIN_ALERTS_CATEGORY
+        ).first()
+        
+        if existing_notification:
+            logger.debug(f"Admin notifications already sent for user registration {user_id}, skipping")
+            return 0
+        
+        # Get admins to notify (using helper method)
+        admins = self._get_admins_to_notify(db)
+        
+        # Load preferences in bulk to avoid N+1 queries
+        admin_ids = [admin.id for admin in admins]
+        preferences_map = self._get_admin_preferences_map(admin_ids, db)
+        
+        notification_count = 0
+        
+        for admin in admins:
+            # Create notification
+            notification = self.create_notification(
+                user_id=admin.id,
+                category=ADMIN_ALERTS_CATEGORY,
+                title=f"New User Registration: {new_user.username}",
+                message=f"A new user '{new_user.username}' ({new_user.email}) has registered and requires review.",
+                link_url=ADMIN_USERS_URL,
+                entity_type='user',
+                entity_id=user_id,
+                db=db
+            )
+            
+            if notification:
+                notification_count += 1
+                
+                # Get admin's preference from the map (already loaded)
+                preference = preferences_map.get(admin.id)
+                
+                # Queue email if enabled and frequency is immediate
+                if preference and preference.enable_email and preference.frequency == 'immediate':
+                    self._queue_email_notification(notification, admin, 'admin_alert')
+                elif not preference:
+                    # If no preference exists, check if admin wants email notifications
+                    # Default is website only, but we can still queue if they have email enabled elsewhere
+                    # For now, only queue if they explicitly have admin_alerts preference with email enabled
+                    pass
+        
+        logger.info(f"Created {notification_count} admin notifications for user registration {user_id}")
+        return notification_count
+    
+    async def notify_admins_for_diving_center_claim(
+        self,
+        diving_center_id: int,
+        user_id: int,
+        claim_reason: Optional[str],
+        db: Session
+    ) -> int:
+        """
+        Notify all admin users about a diving center ownership claim.
+        
+        Args:
+            diving_center_id: ID of the diving center being claimed
+            user_id: ID of the user claiming ownership
+            claim_reason: Optional reason provided by the user
+            db: Database session
+        
+        Returns:
+            Number of admin notifications created
+        """
+        # Get the diving center
+        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        if not diving_center:
+            logger.error(f"Diving center {diving_center_id} not found")
+            return 0
+        
+        # Get the user making the claim
+        claiming_user = db.query(User).filter(User.id == user_id).first()
+        if not claiming_user:
+            logger.error(f"User {user_id} not found")
+            return 0
+        
+        # Get admins to notify (using helper method)
+        admins = self._get_admins_to_notify(db)
+        
+        # Load preferences in bulk to avoid N+1 queries
+        admin_ids = [admin.id for admin in admins]
+        preferences_map = self._get_admin_preferences_map(admin_ids, db)
+        
+        notification_count = 0
+        
+        # Build message with claim reason if provided
+        message = (
+            f"User '{claiming_user.username}' ({claiming_user.email}) has claimed ownership of "
+            f"diving center '{diving_center.name}' (ID: {diving_center_id})."
+        )
+        if claim_reason:
+            message += f" Reason: '{claim_reason}'."
+        
+        for admin in admins:
+            # Create notification
+            notification = self.create_notification(
+                user_id=admin.id,
+                category=ADMIN_ALERTS_CATEGORY,
+                title=f"Diving Center Ownership Claim: {diving_center.name}",
+                message=message,
+                link_url=ADMIN_OWNERSHIP_REQUESTS_URL,
+                entity_type='diving_center',
+                entity_id=diving_center_id,
+                db=db
+            )
+            
+            if notification:
+                notification_count += 1
+                
+                # Get admin's preference from the map (already loaded)
+                preference = preferences_map.get(admin.id)
+                
+                # Queue email if enabled and frequency is immediate
+                if preference and preference.enable_email and preference.frequency == 'immediate':
+                    self._queue_email_notification(notification, admin, 'admin_alert')
+                elif not preference:
+                    # If no preference exists, check if admin wants email notifications
+                    # Default is website only, but we can still queue if they have email enabled elsewhere
+                    # For now, only queue if they explicitly have admin_alerts preference with email enabled
+                    pass
+        
+        logger.info(f"Created {notification_count} admin notifications for diving center claim {diving_center_id}")
         return notification_count

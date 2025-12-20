@@ -162,6 +162,15 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
             logger = logging.getLogger(__name__)
             logger.warning(f"Failed to create default notification preferences for Google user {new_user.id}: {e}")
         
+        # Notify admins about new Google OAuth user registration
+        # Google users are auto-verified, so notify immediately
+        # The notification service will check if notifications were already sent to prevent duplicates
+        # Note: This is called from a sync context, but we're in an async endpoint
+        # The notification will be handled by the async endpoint that calls this function
+        # For now, we'll skip notification here and let the endpoint handle it
+        # This avoids event loop conflicts
+        pass
+        
         return new_user
     except IntegrityError as e:
         db.rollback()
