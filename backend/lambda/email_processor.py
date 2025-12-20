@@ -131,7 +131,13 @@ def call_backend_api(endpoint: str, method: str = "GET", data: Optional[Dict] = 
         return None
 
 
-def process_email_notification(notification_id: int, user_email: str, notification_data: Dict[str, Any]) -> bool:
+def process_email_notification(
+    notification_id: int,
+    user_email: str,
+    notification_data: Dict[str, Any],
+    user_id: Optional[int] = None,
+    unsubscribe_token: Optional[str] = None
+) -> bool:
     """
     Process a single email notification task.
     
@@ -139,6 +145,8 @@ def process_email_notification(notification_id: int, user_email: str, notificati
         notification_id: ID of the notification record
         user_email: Recipient email address
         notification_data: Notification data dict (title, message, link_url, category)
+        user_id: Optional user ID (from SQS message, avoids API call)
+        unsubscribe_token: Optional unsubscribe token (from SQS message, avoids API call)
     
     Returns:
         True if email was sent successfully, False otherwise
@@ -177,7 +185,17 @@ def process_email_notification(notification_id: int, user_email: str, notificati
         }
         template_name = template_map.get(notification_data.get('category', ''), 'notification')
         
-        # Send email
+        # Get user_id and unsubscribe_token from function parameters (from SQS message) or notification
+        # Tokens are now included in SQS messages, eliminating the need for Lambda to call the backend API
+        final_user_id = user_id or notification_data.get('user_id') or notification.get('user_id')
+        final_unsubscribe_token = unsubscribe_token or notification_data.get('unsubscribe_token')
+        
+        if final_unsubscribe_token:
+            logger.debug(f"Using unsubscribe token from SQS message for user {final_user_id}")
+        elif final_user_id and template_name not in ['admin_alert', 'email_verification']:
+            logger.warning(f"No unsubscribe token found in SQS message for user {final_user_id} - email will be sent without unsubscribe links")
+        
+        # Send email with unsubscribe token (if available)
         success = email_service.send_notification_email(
             user_email=user_email,
             notification={
@@ -186,7 +204,10 @@ def process_email_notification(notification_id: int, user_email: str, notificati
                 'link_url': notification_data.get('link_url', notification.get('link_url')),
                 'category': notification_data.get('category', notification.get('category', ''))
             },
-            template_name=template_name
+            template_name=template_name,
+            user_id=final_user_id,
+            db=None,  # Lambda doesn't have database access
+            unsubscribe_token=final_unsubscribe_token  # Token from SQS message or API fallback
         )
         
         if success:
@@ -246,6 +267,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 notification_id = body.get('notification_id')
                 user_email = body.get('user_email')
                 notification_data = body.get('notification')
+                user_id = body.get('user_id')  # Optional: from SQS message
+                unsubscribe_token = body.get('unsubscribe_token')  # Optional: from SQS message
                 
                 if not all([notification_id, user_email, notification_data]):
                     logger.error(f"Invalid message format: {body}")
@@ -256,7 +279,13 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 # If process_email_notification raises an exception (e.g., 5xx errors),
                 # we need to re-raise it so SQS will redeliver the message for retry
                 try:
-                    if process_email_notification(notification_id, user_email, notification_data):
+                    if process_email_notification(
+                        notification_id,
+                        user_email,
+                        notification_data,
+                        user_id=user_id,
+                        unsubscribe_token=unsubscribe_token
+                    ):
                         success_count += 1
                     else:
                         failure_count += 1

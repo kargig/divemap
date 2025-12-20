@@ -50,8 +50,10 @@ import Notifications from './pages/Notifications';
 import Privacy from './pages/Privacy';
 import Profile from './pages/Profile';
 import Register from './pages/Register';
+import Resubscribe from './pages/Resubscribe';
 import RouteDetail from './pages/RouteDetail';
 import TripDetail from './pages/TripDetail';
+import Unsubscribe from './pages/Unsubscribe';
 import UserProfile from './pages/UserProfile';
 import VerifyEmail from './pages/VerifyEmail';
 
@@ -157,6 +159,8 @@ function App() {
                   <Route path='/register' element={<Register />} />
                   <Route path='/verify-email' element={<VerifyEmail />} />
                   <Route path='/check-email' element={<CheckYourEmail />} />
+                  <Route path='/unsubscribe' element={<Unsubscribe />} />
+                  <Route path='/resubscribe' element={<Resubscribe />} />
                   <Route path='/users/:username' element={<UserProfile />} />
                   <Route path='/dive-sites' element={<DiveSites />} />
                   <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />

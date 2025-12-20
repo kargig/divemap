@@ -57,7 +57,15 @@ class SQSService:
             logger.error(f"Failed to create SQS client: {e}")
             return None
     
-    def send_email_task(self, notification_id: int, user_email: str, notification_data: Dict[str, Any], delay_seconds: int = 0) -> bool:
+    def send_email_task(
+        self,
+        notification_id: int,
+        user_email: str,
+        notification_data: Dict[str, Any],
+        delay_seconds: int = 0,
+        user_id: Optional[int] = None,
+        unsubscribe_token: Optional[str] = None
+    ) -> bool:
         """
         Send email notification task to SQS queue.
         
@@ -66,6 +74,8 @@ class SQSService:
             user_email: Recipient email address
             notification_data: Notification data (title, message, link_url, etc.)
             delay_seconds: Optional delay before processing (0-900 seconds)
+            user_id: Optional user ID (for unsubscribe token lookup in Lambda)
+            unsubscribe_token: Optional unsubscribe token (to avoid Lambda API call)
         
         Returns:
             True if message was sent successfully, False otherwise
@@ -80,6 +90,13 @@ class SQSService:
                 'user_email': user_email,
                 'notification': notification_data
             }
+            
+            # Include user_id and unsubscribe_token if provided
+            # This allows Lambda to skip the API call to fetch the token
+            if user_id is not None:
+                message_body['user_id'] = user_id
+            if unsubscribe_token:
+                message_body['unsubscribe_token'] = unsubscribe_token
             
             response = self.sqs_client.send_message(
                 QueueUrl=self.queue_url,
@@ -102,7 +119,12 @@ class SQSService:
         Send multiple email notification tasks to SQS queue in batch.
         
         Args:
-            tasks: List of task dictionaries, each with 'notification_id', 'user_email', 'notification'
+            tasks: List of task dictionaries, each with:
+                - 'notification_id': ID of the notification record
+                - 'user_email': Recipient email address
+                - 'notification': Notification data dict
+                - 'user_id': Optional user ID (for unsubscribe token lookup in Lambda)
+                - 'unsubscribe_token': Optional unsubscribe token (to avoid Lambda API call)
             delay_seconds: Optional delay before processing (0-900 seconds)
         
         Returns:
@@ -125,13 +147,21 @@ class SQSService:
             try:
                 entries = []
                 for idx, task in enumerate(batch):
+                    message_body = {
+                        'notification_id': task['notification_id'],
+                        'user_email': task['user_email'],
+                        'notification': task['notification']
+                    }
+                    
+                    # Include user_id and unsubscribe_token if provided
+                    if 'user_id' in task and task['user_id'] is not None:
+                        message_body['user_id'] = task['user_id']
+                    if 'unsubscribe_token' in task and task['unsubscribe_token']:
+                        message_body['unsubscribe_token'] = task['unsubscribe_token']
+                    
                     entries.append({
                         'Id': str(i + idx),
-                        'MessageBody': json.dumps({
-                            'notification_id': task['notification_id'],
-                            'user_email': task['user_email'],
-                            'notification': task['notification']
-                        }),
+                        'MessageBody': json.dumps(message_body),
                         'DelaySeconds': min(delay_seconds, 900)
                     })
                 
