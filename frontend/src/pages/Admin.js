@@ -159,19 +159,49 @@ const Admin = () => {
         </div>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
           <div
-            onClick={() => navigate('/admin/system-overview')}
+            onClick={() => navigate('/admin/system-metrics')}
             onKeyDown={event => {
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
-                navigate('/admin/system-overview');
+                navigate('/admin/system-metrics');
               }
             }}
             role='button'
             tabIndex={0}
             className='bg-white p-4 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors'
           >
-            <h4 className='font-medium text-gray-900 mb-2'>System Overview</h4>
-            <p className='text-sm text-gray-600'>View platform statistics and system health</p>
+            <h4 className='font-medium text-gray-900 mb-2'>System Metrics</h4>
+            <p className='text-sm text-gray-600'>View system health, storage, and usage metrics</p>
+          </div>
+          <div
+            onClick={() => navigate('/admin/general-statistics')}
+            onKeyDown={event => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                navigate('/admin/general-statistics');
+              }
+            }}
+            role='button'
+            tabIndex={0}
+            className='bg-white p-4 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors'
+          >
+            <h4 className='font-medium text-gray-900 mb-2'>General Statistics</h4>
+            <p className='text-sm text-gray-600'>View platform stats and notification analytics</p>
+          </div>
+          <div
+            onClick={() => navigate('/admin/growth-visualizations')}
+            onKeyDown={event => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                navigate('/admin/growth-visualizations');
+              }
+            }}
+            role='button'
+            tabIndex={0}
+            className='bg-white p-4 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors'
+          >
+            <h4 className='font-medium text-gray-900 mb-2'>Growth Visualizations</h4>
+            <p className='text-sm text-gray-600'>Track content growth over time</p>
           </div>
           <div
             onClick={() => navigate('/admin/recent-activity')}

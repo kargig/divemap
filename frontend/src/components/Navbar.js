@@ -24,6 +24,7 @@ import {
   Shield,
   Code,
   Bell,
+  BarChart3,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -377,12 +378,28 @@ const Navbar = () => {
                           Ownership Requests
                         </Link>
                         <Link
-                          to='/admin/system-overview'
+                          to='/admin/system-metrics'
                           className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
                           onClick={() => setShowAdminDropdown(false)}
                         >
                           <Activity className='h-4 w-4 mr-2' />
-                          System Overview
+                          System Metrics
+                        </Link>
+                        <Link
+                          to='/admin/general-statistics'
+                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <BarChart3 className='h-4 w-4 mr-2' />
+                          General Statistics
+                        </Link>
+                        <Link
+                          to='/admin/growth-visualizations'
+                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
+                          onClick={() => setShowAdminDropdown(false)}
+                        >
+                          <BarChart3 className='h-4 w-4 mr-2' />
+                          Growth Visualizations
                         </Link>
                         <Link
                           to='/admin/recent-activity'
@@ -690,12 +707,28 @@ const Navbar = () => {
                                   <span>Ownership Requests</span>
                                 </Link>
                                 <Link
-                                  to='/admin/system-overview'
+                                  to='/admin/system-metrics'
                                   className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
                                   onClick={closeMobileMenu}
                                 >
                                   <Activity className='h-4 w-4 mr-3' />
-                                  <span>System Overview</span>
+                                  <span>System Metrics</span>
+                                </Link>
+                                <Link
+                                  to='/admin/general-statistics'
+                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                  onClick={closeMobileMenu}
+                                >
+                                  <BarChart3 className='h-4 w-4 mr-3' />
+                                  <span>General Statistics</span>
+                                </Link>
+                                <Link
+                                  to='/admin/growth-visualizations'
+                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                  onClick={closeMobileMenu}
+                                >
+                                  <BarChart3 className='h-4 w-4 mr-3' />
+                                  <span>Growth Visualizations</span>
                                 </Link>
                                 <Link
                                   to='/admin/recent-activity'

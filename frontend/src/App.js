@@ -15,10 +15,13 @@ import AdminDiveSiteAliases from './pages/AdminDiveSiteAliases';
 import AdminDiveSites from './pages/AdminDiveSites';
 import AdminDivingCenters from './pages/AdminDivingCenters';
 import AdminDivingOrganizations from './pages/AdminDivingOrganizations';
+import AdminGeneralStatistics from './pages/AdminGeneralStatistics';
+import AdminGrowthVisualizations from './pages/AdminGrowthVisualizations';
 import AdminNewsletters from './pages/AdminNewsletters';
 import AdminNotificationPreferences from './pages/AdminNotificationPreferences';
 import AdminOwnershipRequests from './pages/AdminOwnershipRequests';
 import AdminRecentActivity from './pages/AdminRecentActivity';
+import AdminSystemMetrics from './pages/AdminSystemMetrics';
 import AdminSystemOverview from './pages/AdminSystemOverview';
 import AdminTags from './pages/AdminTags';
 import AdminUsers from './pages/AdminUsers';
@@ -376,6 +379,30 @@ function App() {
                     element={
                       <ProtectedRoute requireAdmin={true}>
                         <AdminSystemOverview />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/admin/system-metrics'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminSystemMetrics />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/admin/general-statistics'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminGeneralStatistics />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/admin/growth-visualizations'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminGrowthVisualizations />
                       </ProtectedRoute>
                     }
                   />

@@ -596,7 +596,27 @@ export const getSystemHealth = async () => {
 };
 
 export const getStorageHealth = async () => {
-  const response = await api.get('/api/v1/dives/storage/health');
+  const response = await api.get('/api/v1/admin/system/storage/health');
+  return response.data;
+};
+
+export const getSystemMetrics = async () => {
+  const response = await api.get('/api/v1/admin/system/metrics');
+  return response.data;
+};
+
+export const getGeneralStatistics = async () => {
+  const response = await api.get('/api/v1/admin/system/statistics');
+  return response.data;
+};
+
+export const getNotificationAnalytics = async () => {
+  const response = await api.get('/api/v1/admin/system/notifications/analytics');
+  return response.data;
+};
+
+export const getGrowthData = async (period = 'month') => {
+  const response = await api.get(`/api/v1/admin/system/growth?period=${period}`);
   return response.data;
 };
 

@@ -64,3 +64,4 @@ def downgrade() -> None:
     
     # Drop column
     op.drop_column('wind_data_cache', 'last_accessed_at')
+

@@ -1,10 +1,15 @@
 import pytest
 from fastapi import status
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, MagicMock
 import psutil
 
-from app.models import User, DiveSite, DivingCenter, Dive, SiteRating, CenterRating, SiteComment, CenterComment, SiteMedia, DiveMedia, AvailableTag, DivingOrganization, UserCertification, ParsedDiveTrip, Newsletter
+from app.models import (
+    User, DiveSite, DivingCenter, Dive, SiteRating, CenterRating,
+    SiteComment, CenterComment, SiteMedia, DiveMedia, AvailableTag,
+    DivingOrganization, UserCertification, ParsedDiveTrip, Newsletter,
+    Notification, NotificationPreference, DiveRoute
+)
 
 
 class TestSystemOverview:
@@ -744,3 +749,479 @@ class TestClientIPInfo:
         
         assert connection["method"] == "GET"
         assert "client-ip" in connection["url"]
+
+
+class TestSystemMetrics:
+    """Test system metrics endpoint."""
+
+    def test_get_system_metrics_admin_success(self, client, admin_headers):
+        """Test getting system metrics as admin."""
+        with patch('psutil.cpu_percent', return_value=30.0), \
+             patch('psutil.virtual_memory') as mock_memory, \
+             patch('psutil.disk_usage') as mock_disk:
+            
+            mock_memory.return_value.percent = 50.0
+            mock_memory.return_value.total = 16 * 1024**3  # 16 GB
+            mock_memory.return_value.available = 8 * 1024**3  # 8 GB
+            
+            mock_disk.return_value.percent = 60.0
+            mock_disk.return_value.total = 500 * 1024**3  # 500 GB
+            mock_disk.return_value.free = 200 * 1024**3  # 200 GB
+            
+            response = client.get("/api/v1/admin/system/metrics", headers=admin_headers)
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            
+            assert "status" in data
+            assert "database" in data
+            assert "resources" in data
+            assert "services" in data
+            assert "timestamp" in data
+            
+            # Check that it returns system health data
+            assert data["status"] in ["healthy", "warning", "critical"]
+            assert data["database"]["healthy"] == True
+
+    def test_get_system_metrics_unauthorized(self, client):
+        """Test getting system metrics without authentication."""
+        response = client.get("/api/v1/admin/system/metrics")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_system_metrics_regular_user_forbidden(self, client, auth_headers):
+        """Test getting system metrics as regular user."""
+        response = client.get("/api/v1/admin/system/metrics", headers=auth_headers)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+class TestGeneralStatistics:
+    """Test general statistics endpoint."""
+
+    def test_get_general_statistics_admin_success(self, client, admin_headers, db_session):
+        """Test getting general statistics as admin."""
+        # Create test data
+        test_user = User(
+            username="testuser_stats",
+            email="test_stats@example.com",
+            password_hash="hashed_password",
+            enabled=True,
+            email_verified=True
+        )
+        db_session.add(test_user)
+        db_session.flush()
+        
+        dive_site = DiveSite(
+            name="Test Site",
+            country="USA",
+            created_at=datetime.now(timezone.utc) - timedelta(days=5)
+        )
+        db_session.add(dive_site)
+        db_session.flush()
+        
+        diving_center = DivingCenter(
+            name="Test Center",
+            country="USA",
+            created_at=datetime.now(timezone.utc) - timedelta(days=3)
+        )
+        db_session.add(diving_center)
+        db_session.flush()
+        
+        dive = Dive(
+            name="Test Dive",
+            user_id=test_user.id,
+            dive_date=datetime.now(timezone.utc).date(),
+            difficulty_id=2,
+            created_at=datetime.now(timezone.utc) - timedelta(days=2)
+        )
+        db_session.add(dive)
+        
+        organization = DivingOrganization(name="PADI", acronym="PADI")
+        db_session.add(organization)
+        db_session.flush()
+        
+        certification = UserCertification(
+            user_id=test_user.id,
+            diving_organization_id=organization.id,
+            certification_level="Open Water"
+        )
+        db_session.add(certification)
+        
+        tag = AvailableTag(name="Test Tag")
+        db_session.add(tag)
+        
+        newsletter = Newsletter(content="Test newsletter")
+        db_session.add(newsletter)
+        
+        db_session.commit()
+        
+        response = client.get("/api/v1/admin/system/statistics", headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Check main sections
+        assert "platform_stats" in data
+        assert "notification_analytics" in data
+        assert "last_updated" in data
+        
+        # Check platform_stats structure
+        platform_stats = data["platform_stats"]
+        assert "users" in platform_stats
+        assert "content" in platform_stats
+        assert "geographic" in platform_stats
+        
+        # Check user statistics
+        users = platform_stats["users"]
+        assert "total" in users
+        assert "active_30d" in users
+        assert "active_7d" in users
+        assert "new_7d" in users
+        assert "new_30d" in users
+        assert "growth_rate" in users
+        assert "email_verified" in users
+        assert "email_opted_out" in users
+        assert "certifications" in users
+        
+        # Check email_verified structure
+        email_verified = users["email_verified"]
+        assert "count" in email_verified
+        assert "percentage" in email_verified
+        
+        # Check certifications structure
+        certifications = users["certifications"]
+        assert "total" in certifications
+        assert "by_organization" in certifications
+        
+        # Check content statistics
+        content = platform_stats["content"]
+        assert content["dive_sites"] >= 1
+        assert content["diving_centers"] >= 1
+        assert content["dives"] >= 1
+        assert "dive_routes" in content
+        assert "dive_trips" in content
+        
+        # Check geographic distribution
+        geographic = platform_stats["geographic"]
+        assert "dive_sites_by_country" in geographic
+        assert "diving_centers_by_country" in geographic
+
+    def test_get_general_statistics_unauthorized(self, client):
+        """Test getting general statistics without authentication."""
+        response = client.get("/api/v1/admin/system/statistics")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_general_statistics_regular_user_forbidden(self, client, auth_headers):
+        """Test getting general statistics as regular user."""
+        response = client.get("/api/v1/admin/system/statistics", headers=auth_headers)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+class TestGrowthData:
+    """Test growth data endpoint."""
+
+    def test_get_growth_data_default_period(self, client, admin_headers, db_session):
+        """Test getting growth data with default period (3months)."""
+        # Create test data at different times
+        now = datetime.now(timezone.utc)
+        
+        # Create dive sites at different times
+        for i in range(5):
+            site = DiveSite(
+                name=f"Site {i}",
+                created_at=now - timedelta(days=30 * i)
+            )
+            db_session.add(site)
+        
+        # Create diving centers
+        for i in range(3):
+            center = DivingCenter(
+                name=f"Center {i}",
+                created_at=now - timedelta(days=20 * i)
+            )
+            db_session.add(center)
+        
+        # Create dives
+        test_user = User(
+            username="testuser",
+            email="test@example.com",
+            password_hash="hashed_password",
+            enabled=True
+        )
+        db_session.add(test_user)
+        db_session.flush()
+        
+        for i in range(4):
+            dive = Dive(
+                name=f"Dive {i}",
+                user_id=test_user.id,
+                dive_date=(now - timedelta(days=15 * i)).date(),
+                difficulty_id=2,
+                created_at=now - timedelta(days=15 * i)
+            )
+            db_session.add(dive)
+        
+        db_session.commit()
+        
+        response = client.get("/api/v1/admin/system/growth", headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        assert "period" in data
+        assert data["period"] == "3months"
+        assert "growth_data" in data
+        assert "growth_rates" in data
+        assert "start_date" in data
+        assert "end_date" in data
+        
+        growth_data = data["growth_data"]
+        assert "dive_sites" in growth_data
+        assert "diving_centers" in growth_data
+        assert "dives" in growth_data
+        assert "dive_routes" in growth_data
+        assert "dive_trips" in growth_data
+        
+        # Check that data points have date and count
+        assert len(growth_data["dive_sites"]) > 0
+        assert "date" in growth_data["dive_sites"][0]
+        assert "count" in growth_data["dive_sites"][0]
+        
+        # Check growth rates
+        growth_rates = data["growth_rates"]
+        assert "dive_sites" in growth_rates
+        assert "diving_centers" in growth_rates
+        assert "dives" in growth_rates
+        assert "dive_routes" in growth_rates
+        assert "dive_trips" in growth_rates
+
+    def test_get_growth_data_week_period(self, client, admin_headers, db_session):
+        """Test getting growth data with week period."""
+        response = client.get("/api/v1/admin/system/growth?period=week", headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        assert data["period"] == "week"
+        assert len(data["growth_data"]["dive_sites"]) <= 8  # Should be daily for week
+
+    def test_get_growth_data_month_period(self, client, admin_headers, db_session):
+        """Test getting growth data with month period."""
+        response = client.get("/api/v1/admin/system/growth?period=month", headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        assert data["period"] == "month"
+        assert len(data["growth_data"]["dive_sites"]) <= 31  # Should be daily for month
+
+    def test_get_growth_data_6months_period(self, client, admin_headers, db_session):
+        """Test getting growth data with 6months period."""
+        response = client.get("/api/v1/admin/system/growth?period=6months", headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        assert data["period"] == "6months"
+        # Should use weekly intervals for 6months
+        assert len(data["growth_data"]["dive_sites"]) > 0
+
+    def test_get_growth_data_year_period(self, client, admin_headers, db_session):
+        """Test getting growth data with year period."""
+        response = client.get("/api/v1/admin/system/growth?period=year", headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        assert data["period"] == "year"
+        # Should use weekly intervals for year
+        assert len(data["growth_data"]["dive_sites"]) > 0
+
+    def test_get_growth_data_invalid_period(self, client, admin_headers):
+        """Test getting growth data with invalid period."""
+        response = client.get("/api/v1/admin/system/growth?period=invalid", headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_get_growth_data_unauthorized(self, client):
+        """Test getting growth data without authentication."""
+        response = client.get("/api/v1/admin/system/growth")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_growth_data_regular_user_forbidden(self, client, auth_headers):
+        """Test getting growth data as regular user."""
+        response = client.get("/api/v1/admin/system/growth", headers=auth_headers)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_growth_data_with_dive_routes(self, client, admin_headers, db_session):
+        """Test growth data includes dive routes (excluding soft-deleted)."""
+        now = datetime.now(timezone.utc)
+        test_user = User(
+            username="testuser",
+            email="test@example.com",
+            password_hash="hashed_password",
+            enabled=True
+        )
+        db_session.add(test_user)
+        db_session.flush()
+        
+        # Create dive site for routes
+        dive_site = DiveSite(name="Test Site")
+        db_session.add(dive_site)
+        db_session.flush()
+        
+        # Create active route
+        active_route = DiveRoute(
+            name="Active Route",
+            dive_site_id=dive_site.id,
+            created_by=test_user.id,
+            route_type="scuba",
+            route_data={"type": "FeatureCollection", "features": []},
+            created_at=now - timedelta(days=10)
+        )
+        db_session.add(active_route)
+        
+        # Create soft-deleted route (should not be counted)
+        deleted_route = DiveRoute(
+            name="Deleted Route",
+            dive_site_id=dive_site.id,
+            created_by=test_user.id,
+            route_type="scuba",
+            route_data={"type": "FeatureCollection", "features": []},
+            created_at=now - timedelta(days=5),
+            deleted_at=now - timedelta(days=2)
+        )
+        db_session.add(deleted_route)
+        
+        db_session.commit()
+        
+        response = client.get("/api/v1/admin/system/growth?period=month", headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Check that dive_routes data exists
+        assert len(data["growth_data"]["dive_routes"]) > 0
+        # Last data point should only count active routes
+        last_count = data["growth_data"]["dive_routes"][-1]["count"]
+        assert last_count >= 1  # At least the active route
+
+
+class TestNotificationAnalytics:
+    """Test notification analytics endpoint."""
+
+    def test_get_notification_analytics_admin_success(self, client, admin_headers, db_session):
+        """Test getting notification analytics as admin."""
+        # Create test user
+        test_user = User(
+            username="testuser",
+            email="test@example.com",
+            password_hash="hashed_password",
+            enabled=True
+        )
+        db_session.add(test_user)
+        db_session.flush()
+        
+        now = datetime.now(timezone.utc)
+        
+        # Create notifications
+        notification1 = Notification(
+            user_id=test_user.id,
+            category="new_dive_sites",
+            title="New Dive Site",
+            message="A new dive site was created",
+            is_read=True,
+            email_sent=True,
+            email_sent_at=now - timedelta(hours=2),
+            created_at=now - timedelta(hours=3)
+        )
+        db_session.add(notification1)
+        
+        notification2 = Notification(
+            user_id=test_user.id,
+            category="new_dive_sites",
+            title="Another Dive Site",
+            message="Another new dive site",
+            is_read=False,
+            email_sent=False,
+            created_at=now - timedelta(hours=1)
+        )
+        db_session.add(notification2)
+        
+        notification3 = Notification(
+            user_id=test_user.id,
+            category="new_dives",
+            title="New Dive",
+            message="A new dive was logged",
+            is_read=True,
+            email_sent=True,
+            email_sent_at=now - timedelta(days=2),
+            created_at=now - timedelta(days=2)
+        )
+        db_session.add(notification3)
+        
+        db_session.commit()
+        
+        response = client.get("/api/v1/admin/system/notifications/analytics", headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Check main sections
+        assert "in_app" in data
+        assert "email_delivery" in data
+        assert "by_category" in data
+        assert "time_stats" in data
+        assert "timestamp" in data
+        
+        # Check in-app statistics
+        in_app = data["in_app"]
+        assert "total" in in_app
+        assert "read" in in_app
+        assert "unread" in in_app
+        assert "read_rate" in in_app
+        assert in_app["total"] >= 3
+        assert in_app["read"] >= 2
+        assert in_app["unread"] >= 1
+        
+        # Check email delivery statistics
+        email_delivery = data["email_delivery"]
+        assert "total_sent" in email_delivery
+        assert "sent_directly_to_ses" in email_delivery
+        assert "queued_to_sqs" in email_delivery
+        assert "delivery_rate" in email_delivery
+        assert email_delivery["total_sent"] >= 2
+        
+        # Check category breakdown
+        assert len(data["by_category"]) > 0
+        categories = {cat["category"]: cat for cat in data["by_category"]}
+        assert "new_dive_sites" in categories
+        assert "new_dives" in categories
+        
+        # Check time stats
+        time_stats = data["time_stats"]
+        assert "last_24h" in time_stats
+        assert "last_7d" in time_stats
+        assert "last_30d" in time_stats
+
+    def test_get_notification_analytics_empty(self, client, admin_headers):
+        """Test getting notification analytics with no notifications."""
+        response = client.get("/api/v1/admin/system/notifications/analytics", headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        assert data["in_app"]["total"] == 0
+        assert data["in_app"]["read"] == 0
+        assert data["in_app"]["unread"] == 0
+        assert data["email_delivery"]["total_sent"] == 0
+
+    def test_get_notification_analytics_unauthorized(self, client):
+        """Test getting notification analytics without authentication."""
+        response = client.get("/api/v1/admin/system/notifications/analytics")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_notification_analytics_regular_user_forbidden(self, client, auth_headers):
+        """Test getting notification analytics as regular user."""
+        response = client.get("/api/v1/admin/system/notifications/analytics", headers=auth_headers)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
