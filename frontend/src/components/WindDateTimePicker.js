@@ -1,4 +1,4 @@
-import { Play, Pause, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactSlider from 'react-slider';
@@ -282,14 +282,17 @@ const WindDateTimePicker = ({
               type='button'
               onClick={handlePlayPause}
               disabled={disabled}
-              className='flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors flex-shrink-0 shadow-sm'
+              className='flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors flex-shrink-0 shadow-sm text-xs sm:text-sm font-bold'
               title={isPlaying ? 'Pause' : 'Play (3-hour increments)'}
               aria-label={isPlaying ? 'Pause animation' : 'Play animation'}
             >
               {isPlaying ? (
-                <Pause className='w-3 h-3 sm:w-3.5 sm:h-3.5' fill='currentColor' />
+                <span className='flex items-center justify-center'>
+                  <span className='mr-0.5'>▮</span>
+                  <span>▮</span>
+                </span>
               ) : (
-                <Play className='w-3 h-3 sm:w-3.5 sm:h-3.5 ml-0.5' fill='currentColor' />
+                <span className='ml-0.5'>▶</span>
               )}
             </button>
             <button
@@ -389,16 +392,16 @@ const WindDateTimePicker = ({
 
             {/* Date/time display integrated into thumb - like windy.com */}
             <div
-              className='absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20'
+              className='absolute bottom-1/2 transform -translate-x-1/2 translate-y-1/2 pointer-events-none z-20'
               style={{ left: `${(sliderValue / totalHours) * 100}%` }}
             >
-              <div className='bg-orange-500 text-white text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded shadow-lg whitespace-nowrap -mt-8 sm:-mt-9'>
+              <div className='bg-orange-500 text-white text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded shadow-lg whitespace-nowrap mt-8 sm:mt-9 relative'>
+                <div className='absolute -top-1.5 left-1/2 transform -translate-x-1/2'>
+                  <div className='border-[3px] border-transparent border-b-orange-500'></div>
+                </div>
                 <div className='font-medium'>
                   {formatDateLabel(currentDateTime)}{' '}
                   {String(currentDateTime.getHours()).padStart(2, '0')}:00
-                </div>
-                <div className='absolute top-full left-1/2 transform -translate-x-1/2'>
-                  <div className='border-[3px] border-transparent border-t-orange-500'></div>
                 </div>
               </div>
             </div>

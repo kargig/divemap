@@ -52,6 +52,85 @@ const MapZoomTracker = ({ onZoomChange, onClusteringChange }) => {
   return null;
 };
 
+// Custom Popup wrapper that prevents closing during auto-pan
+const StablePopup = ({ children, maxWidth, ...props }) => {
+  const map = useMap();
+  const openTimeRef = useRef(null);
+  const isAutoPanningRef = useRef(false);
+  const currentPopupRef = useRef(null);
+
+  useEffect(() => {
+    if (!map) return;
+
+    // Track when popup opens
+    const handlePopupOpen = e => {
+      currentPopupRef.current = e.popup;
+      openTimeRef.current = Date.now();
+      isAutoPanningRef.current = true;
+      // Reset auto-panning flag after auto-pan completes
+      setTimeout(() => {
+        isAutoPanningRef.current = false;
+      }, 1000);
+    };
+
+    // Prevent popup from closing during auto-pan
+    const handlePopupClose = e => {
+      if (e.popup === currentPopupRef.current) {
+        const timeSinceOpen = Date.now() - (openTimeRef.current || 0);
+        // Prevent closing if popup was just opened (within 1.5 seconds) and map is auto-panning
+        if (timeSinceOpen < 1500 && isAutoPanningRef.current) {
+          // Reopen the popup
+          setTimeout(() => {
+            if (currentPopupRef.current && !currentPopupRef.current.isOpen()) {
+              currentPopupRef.current.openOn(map);
+            }
+          }, 50);
+          return;
+        }
+        currentPopupRef.current = null;
+      }
+    };
+
+    // Track map movement (auto-pan)
+    const handleMoveStart = () => {
+      if (openTimeRef.current && Date.now() - openTimeRef.current < 1500) {
+        isAutoPanningRef.current = true;
+      }
+    };
+
+    const handleMoveEnd = () => {
+      // Give a small delay after move ends before allowing popup to close
+      setTimeout(() => {
+        isAutoPanningRef.current = false;
+      }, 300);
+    };
+
+    map.on('popupopen', handlePopupOpen);
+    map.on('popupclose', handlePopupClose);
+    map.on('movestart', handleMoveStart);
+    map.on('moveend', handleMoveEnd);
+
+    return () => {
+      map.off('popupopen', handlePopupOpen);
+      map.off('popupclose', handlePopupClose);
+      map.off('movestart', handleMoveStart);
+      map.off('moveend', handleMoveEnd);
+    };
+  }, [map]);
+
+  return (
+    <Popup
+      maxWidth={maxWidth}
+      autoPanPadding={[50, 50]}
+      autoPanPaddingTopLeft={[50, 50]}
+      autoPanPaddingBottomRight={[50, 50]}
+      {...props}
+    >
+      {children}
+    </Popup>
+  );
+};
+
 // Helper component to fit map to bounds
 const FitBounds = ({ bounds }) => {
   const map = useMap();
@@ -640,28 +719,28 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
 
             return (
               <Marker key={site.id} position={site.position} icon={createDiveSiteIcon(suitability)}>
-                <Popup>
-                  <div className='p-2'>
-                    <h3 className='font-semibold text-gray-900 mb-1'>
+                <StablePopup maxWidth={240}>
+                  <div className='p-2 sm:p-3 max-h-[calc(100vh-160px)] overflow-y-auto'>
+                    <h3 className='font-semibold text-gray-900 mb-1 text-sm sm:text-base'>
                       {site.name || `Dive Site #${site.id}`}
                     </h3>
                     {site.description && (
-                      <p className='text-sm text-gray-600 mb-2 line-clamp-2'>
+                      <p className='text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2 max-w-[200px] sm:max-w-none'>
                         {renderTextWithLinks(site.description)}
                       </p>
                     )}
                     {(site.difficulty_code || site.average_rating) && (
-                      <div className='flex items-center justify-between mb-2'>
+                      <div className='flex items-center justify-between mb-1.5 sm:mb-2'>
                         {site.difficulty_code && (
                           <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(site.difficulty_code)}`}
+                            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium rounded-full ${getDifficultyColorClasses(site.difficulty_code)}`}
                           >
                             {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
                           </span>
                         )}
                         {site.average_rating && (
                           <div className='flex items-center'>
-                            <span className='text-sm text-gray-700'>
+                            <span className='text-xs sm:text-sm text-gray-700'>
                               {site.average_rating.toFixed(1)}
                             </span>
                           </div>
@@ -669,12 +748,14 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
                       </div>
                     )}
                     {recommendation && (
-                      <div className='border-t border-gray-200 pt-2 mt-2'>
-                        <h4 className='font-semibold text-sm mb-2'>Wind Conditions</h4>
-                        <div className='space-y-1.5'>
+                      <div className='border-t border-gray-200 pt-1.5 sm:pt-2 mt-1.5 sm:mt-2'>
+                        <h4 className='font-semibold text-xs sm:text-sm mb-1 sm:mb-2'>
+                          Wind Conditions
+                        </h4>
+                        <div className='space-y-1 sm:space-y-1.5'>
                           <div className='flex items-center gap-2'>
                             <span
-                              className='px-2 py-1 text-xs font-medium rounded-full'
+                              className='px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium rounded-full'
                               style={{
                                 backgroundColor: `${getSuitabilityColor(recommendation.suitability || 'unknown')}20`,
                                 color: getSuitabilityColor(recommendation.suitability || 'unknown'),
@@ -684,7 +765,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
                               {getSuitabilityLabel(recommendation.suitability || 'unknown')}
                             </span>
                           </div>
-                          <div className='text-xs text-gray-600 space-y-0.5'>
+                          <div className='text-[10px] sm:text-xs text-gray-600 space-y-0.5'>
                             {recommendation.wind_data?.wind_speed && (
                               <div>
                                 <strong>Speed:</strong>{' '}
@@ -707,14 +788,13 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
                             )}
                           </div>
                           {recommendation.reasoning && (
-                            <div className='text-xs text-gray-700 mt-1 italic'>
+                            <div className='hidden md:block text-xs text-gray-700 mt-1 italic'>
                               {recommendation.reasoning}
                             </div>
                           )}
                           {(recommendation.suitability || 'unknown') === 'unknown' && (
-                            <div className='text-xs text-amber-600 mt-1 font-medium'>
-                              ⚠️ Warning: Shore direction unknown - cannot determine direction-based
-                              suitability
+                            <div className='text-[10px] sm:text-xs text-amber-600 mt-0.5 sm:mt-1 font-medium'>
+                              ⚠️ Warning: Shore direction unknown
                             </div>
                           )}
                         </div>
@@ -723,12 +803,12 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
                     <Link
                       to={`/dive-sites/${site.id}`}
                       state={{ from: window.location.pathname + window.location.search }}
-                      className='block w-full text-center px-3 py-2 bg-blue-600 text-white !text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm mt-2'
+                      className='block w-full text-center px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600 text-white !text-white text-xs sm:text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm mt-1.5 sm:mt-2'
                     >
                       View Details
                     </Link>
                   </div>
-                </Popup>
+                </StablePopup>
               </Marker>
             );
           })
