@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr, validator
-from typing import Optional, List, Union, Literal
+from typing import Optional, List, Union, Literal, Dict
 from datetime import datetime, date, time, timezone
 import re
 import enum
@@ -1004,6 +1004,73 @@ class PlatformStatsResponse(BaseModel):
     media: dict
     trips: dict
     timestamp: str
+
+# Notification Analytics Schemas
+class InAppNotificationStats(BaseModel):
+    total: int
+    read: int
+    unread: int
+    read_rate: float
+    by_category: Dict[str, Dict[str, int]]
+
+class EmailDeliveryStats(BaseModel):
+    total_sent: int
+    sent_directly_to_ses: int
+    queued_to_sqs: int
+    delivery_rate: float
+    avg_delivery_time_seconds: Optional[float] = None
+
+class NotificationCategoryStats(BaseModel):
+    category: str
+    total_notifications: int
+    in_app_sent: int
+    email_sent: int
+    email_delivery_rate: float
+
+class NotificationTimeStats(BaseModel):
+    last_24h: Dict[str, int]
+    last_7d: Dict[str, int]
+    last_30d: Dict[str, int]
+
+class NotificationAnalyticsResponse(BaseModel):
+    in_app: InAppNotificationStats
+    email_delivery: EmailDeliveryStats
+    by_category: List[NotificationCategoryStats]
+    time_stats: NotificationTimeStats
+    timestamp: str
+
+
+class GrowthDataPoint(BaseModel):
+    """Single data point in growth chart"""
+    date: str
+    count: int
+
+
+class GrowthDataResponse(BaseModel):
+    """Growth data for all entity types"""
+    dive_sites: List[GrowthDataPoint]
+    diving_centers: List[GrowthDataPoint]
+    dives: List[GrowthDataPoint]
+    dive_routes: List[GrowthDataPoint]
+    dive_trips: List[GrowthDataPoint]
+
+
+class GrowthRatesResponse(BaseModel):
+    """Growth rates for all entity types"""
+    dive_sites: float
+    diving_centers: float
+    dives: float
+    dive_routes: float
+    dive_trips: float
+
+
+class GrowthResponse(BaseModel):
+    """Response for growth data endpoint"""
+    period: str
+    growth_data: GrowthDataResponse
+    growth_rates: GrowthRatesResponse
+    start_date: str
+    end_date: str
 
 
 # Dive Route Schemas
