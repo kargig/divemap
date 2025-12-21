@@ -205,6 +205,69 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
     };
   }, [map]);
 
+  // Prevent popups from closing during auto-pan
+  useEffect(() => {
+    if (!map) return;
+    const openTimeRef = { current: null };
+    const isAutoPanningRef = { current: false };
+    const currentPopupRef = { current: null };
+
+    // Track when popup opens
+    const handlePopupOpen = e => {
+      currentPopupRef.current = e.popup;
+      openTimeRef.current = Date.now();
+      isAutoPanningRef.current = true;
+      // Reset auto-panning flag after auto-pan completes
+      setTimeout(() => {
+        isAutoPanningRef.current = false;
+      }, 1000);
+    };
+
+    // Prevent popup from closing during auto-pan
+    const handlePopupClose = e => {
+      if (e.popup === currentPopupRef.current) {
+        const timeSinceOpen = Date.now() - (openTimeRef.current || 0);
+        // Prevent closing if popup was just opened (within 1.5 seconds) and map is auto-panning
+        if (timeSinceOpen < 1500 && isAutoPanningRef.current) {
+          // Reopen the popup
+          setTimeout(() => {
+            if (currentPopupRef.current && !currentPopupRef.current.isOpen()) {
+              currentPopupRef.current.openOn(map);
+            }
+          }, 50);
+          return;
+        }
+        currentPopupRef.current = null;
+      }
+    };
+
+    // Track map movement (auto-pan)
+    const handleMoveStart = () => {
+      if (openTimeRef.current && Date.now() - openTimeRef.current < 1500) {
+        isAutoPanningRef.current = true;
+      }
+    };
+
+    const handleMoveEnd = () => {
+      // Give a small delay after move ends before allowing popup to close
+      setTimeout(() => {
+        isAutoPanningRef.current = false;
+      }, 300);
+    };
+
+    map.on('popupopen', handlePopupOpen);
+    map.on('popupclose', handlePopupClose);
+    map.on('movestart', handleMoveStart);
+    map.on('moveend', handleMoveEnd);
+
+    return () => {
+      map.off('popupopen', handlePopupOpen);
+      map.off('popupclose', handlePopupClose);
+      map.off('movestart', handleMoveStart);
+      map.off('moveend', handleMoveEnd);
+    };
+  }, [map]);
+
   // Create cluster group
   useEffect(() => {
     if (!map) return;
@@ -282,8 +345,8 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
 
           // Add popup with clickable title
           const popupContent = `
-          <div class="p-2">
-            <h3 class="font-semibold text-lg mb-2">
+          <div class="p-2 max-h-[calc(100vh-160px)] overflow-y-auto">
+            <h3 class="font-semibold text-sm sm:text-lg mb-1 sm:mb-2">
               <a href="/${
                 marker.entityType === 'dive_site'
                   ? 'dive-sites'
@@ -300,7 +363,7 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                 ${marker.entityType === 'dive_trip' ? `Trip #${marker.data.id}` : ''}
               </a>
             </h3>
-            <p class="text-sm text-gray-600">
+            <p class="text-xs sm:text-sm text-gray-600 max-w-[200px] sm:max-w-none">
               ${marker.entityType === 'dive_site' && marker.data.description ? trimWithMore(marker.data.description, 150, `/dive-sites/${marker.data.id}`) : ''}
               ${marker.entityType === 'diving_center' ? trimWithMore(marker.data.description || '', 150, `/diving-centers/${marker.data.id}`) : ''}
               ${marker.entityType === 'dive' ? `Dive at ${marker.data.dive_site?.name || 'Unknown Site'}` : ''}
@@ -355,21 +418,21 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                               const directionFormatted = formatWindDirection(windDirection);
 
                               return `
-                        <div class="border-t border-gray-200 pt-2 mt-2">
-                          <h4 class="font-semibold text-sm mb-2">Wind Conditions</h4>
-                          <div class="space-y-1.5">
+                        <div class="border-t border-gray-200 pt-1.5 sm:pt-2 mt-1.5 sm:mt-2">
+                          <h4 class="font-semibold text-xs sm:text-sm mb-1 sm:mb-2">Wind Conditions</h4>
+                          <div class="space-y-1 sm:space-y-1.5">
                             <div class="flex items-center gap-2">
-                              <span class="px-2 py-1 text-xs font-medium rounded-full" style="background-color: ${suitabilityColor}20; color: ${suitabilityColor}; border: 1px solid ${suitabilityColor}40;">
+                              <span class="px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium rounded-full" style="background-color: ${suitabilityColor}20; color: ${suitabilityColor}; border: 1px solid ${suitabilityColor}40;">
                                 ${suitabilityLabel}
                               </span>
                             </div>
-                            <div class="text-xs text-gray-600 space-y-0.5">
+                            <div class="text-[10px] sm:text-xs text-gray-600 space-y-0.5">
                               <div><strong>Speed:</strong> ${speedFormatted.ms} m/s (${speedFormatted.knots} knots)</div>
                               <div><strong>Direction:</strong> ${directionFormatted.full}</div>
                               ${windGusts ? `<div><strong>Gusts:</strong> ${formatWindSpeed(windGusts).ms} m/s (${formatWindSpeed(windGusts).knots} knots)</div>` : ''}
                             </div>
-                            ${rec.reasoning ? `<div class="text-xs text-gray-700 mt-1 italic">${rec.reasoning}</div>` : ''}
-                            ${suitability === 'unknown' ? `<div class="text-xs text-amber-600 mt-1 font-medium">⚠️ Warning: Shore direction unknown - cannot determine direction-based suitability</div>` : ''}
+                            ${rec.reasoning ? `<div class="hidden md:block text-xs text-gray-700 mt-1 italic">${rec.reasoning}</div>` : ''}
+                            ${suitability === 'unknown' ? `<div class="text-[10px] sm:text-xs text-amber-600 mt-0.5 sm:mt-1 font-medium">⚠️ Warning: Shore direction unknown</div>` : ''}
                           </div>
                         </div>
                       `;
@@ -387,7 +450,12 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
           </div>
         `;
 
-          leafletMarker.bindPopup(popupContent);
+          leafletMarker.bindPopup(popupContent, {
+            maxWidth: 240,
+            autoPanPadding: [50, 50],
+            autoPanPaddingTopLeft: [50, 50],
+            autoPanPaddingBottomRight: [50, 50],
+          });
           return leafletMarker;
         } catch (error) {
           console.warn('Error creating marker:', error, marker);

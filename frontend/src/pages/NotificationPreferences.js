@@ -132,7 +132,7 @@ const NotificationPreferencesPage = () => {
       </div>
 
       <div className='bg-white rounded-lg shadow-md p-6'>
-        <div className='space-y-6'>
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
           {categories.map(category => {
             const preference = getPreference(category.value);
             // Only use preference values if preference exists, otherwise show as not configured
