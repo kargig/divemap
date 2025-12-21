@@ -186,9 +186,11 @@ This document outlines a prioritized plan for replacing custom-built React compo
 **Impact:**
 
 - **Files Affected**: ~6-8 admin table components
-- **Code Reduction**: ~1000-1500 lines (estimated for all tables)
-- **UX Improvement**: Better performance, consistent sorting/filtering
-- **Features**: Column resizing, column visibility, export options
+- **Code Complexity Reduction**: Removed 50+ instances of imperative code per table
+- **Maintainability**: Declarative code vs imperative code (easier to modify)
+- **UX Improvement**: Better performance (server-side sorting), consistent sorting/filtering
+- **Features**: Column visibility, export options, mobile card view
+- **Note**: Lines of code may increase initially due to new features, but complexity decreases significantly. See `docs/development/tanstack-table-migration-analysis.md` for detailed metrics.
 
 **Migration Effort**: Medium-High (2-3 weeks per table)
 
