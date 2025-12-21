@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
@@ -22,7 +22,15 @@ export const useNotificationContext = () => {
 export const NotificationProvider = ({ children }) => {
   const { user } = useAuth();
   const [newNotifications, setNewNotifications] = useState([]);
-  const [hasCheckedOnLogin, setHasCheckedOnLogin] = useState(false);
+  // Use sessionStorage to persist across page refreshes in the same session
+  const [hasCheckedOnLogin, setHasCheckedOnLogin] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.sessionStorage.getItem('notifications_checked') === 'true';
+    }
+    return false;
+  });
+  // Use ref to prevent multiple toasts even if effect runs multiple times (React StrictMode)
+  const toastShownRef = useRef(false);
 
   // Fetch unread count with polling
   const { data: unreadCountData } = useQuery(['notifications', 'unread-count'], getUnreadCount, {
@@ -34,26 +42,47 @@ export const NotificationProvider = ({ children }) => {
 
   const unreadCount = unreadCountData?.unread_count || 0;
 
-  // Fetch new notifications on login
+  // Fetch new notifications on login (only once per session)
   useEffect(() => {
-    if (user && !hasCheckedOnLogin) {
+    let isMounted = true;
+
+    if (user && !hasCheckedOnLogin && !toastShownRef.current) {
       const fetchNewNotifications = async () => {
         try {
           const notifications = await getNewSinceLastCheck();
-          if (notifications && notifications.length > 0) {
+          if (isMounted && notifications && notifications.length > 0) {
             setNewNotifications(notifications);
-            // Show toast notification
-            toast.success(
-              `You have ${notifications.length} new notification${notifications.length > 1 ? 's' : ''}`,
-              {
-                duration: 5000,
+            // Show toast notification only once (use ref to prevent duplicates)
+            if (!toastShownRef.current) {
+              toastShownRef.current = true;
+              toast.success(
+                `You have ${notifications.length} new notification${notifications.length > 1 ? 's' : ''}`,
+                {
+                  duration: 5000,
+                }
+              );
+              // Update last check immediately to prevent showing toast again on refresh
+              try {
+                await updateLastCheck();
+              } catch (updateError) {
+                console.error('Error updating last check:', updateError);
               }
-            );
+            }
           }
-          setHasCheckedOnLogin(true);
+          if (isMounted) {
+            setHasCheckedOnLogin(true);
+            if (typeof window !== 'undefined') {
+              window.sessionStorage.setItem('notifications_checked', 'true');
+            }
+          }
         } catch (error) {
           console.error('Error fetching new notifications:', error);
-          setHasCheckedOnLogin(true);
+          if (isMounted) {
+            setHasCheckedOnLogin(true);
+            if (typeof window !== 'undefined') {
+              window.sessionStorage.setItem('notifications_checked', 'true');
+            }
+          }
         }
       };
 
@@ -62,7 +91,15 @@ export const NotificationProvider = ({ children }) => {
       // Reset when user logs out
       setHasCheckedOnLogin(false);
       setNewNotifications([]);
+      toastShownRef.current = false;
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem('notifications_checked');
+      }
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, hasCheckedOnLogin]);
 
   // Update last check when user views notifications page
