@@ -14,6 +14,7 @@ full access to all dives regardless of ownership.
 
 from fastapi import Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_
 from typing import List, Optional
 from datetime import date, time, datetime
 import json
@@ -36,6 +37,7 @@ def get_all_dives_count_admin(
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
+    search: Optional[str] = Query(None, description="Unified search across dive name, user username, dive site name, and dive information"),
     difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
     exclude_unspecified_difficulty: bool = Query(False, description="Exclude dives with unspecified difficulty"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
@@ -79,14 +81,34 @@ def get_all_dives_count_admin(
             )
         )
 
+    # Apply unified search across multiple fields (case-insensitive)
+    if search:
+        # Sanitize search input to prevent injection
+        sanitized_search = search.strip()[:200]
+        
+        # Ensure DiveSite is joined (it might already be joined if dive_site_name filter is used)
+        dive_site_joined = dive_site_name is not None
+        if not dive_site_joined:
+            query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
+        
+        # Search across dive name, user username, dive site name, and dive information
+        query = query.filter(
+            or_(
+                Dive.name.ilike(f"%{sanitized_search}%"),
+                User.username.ilike(f"%{sanitized_search}%"),
+                DiveSite.name.ilike(f"%{sanitized_search}%"),
+                Dive.dive_information.ilike(f"%{sanitized_search}%")
+            )
+        )
+
     if difficulty_code:
         difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
         if difficulty_id:
             query = query.filter(Dive.difficulty_id == difficulty_id)
         elif exclude_unspecified_difficulty:
             query = query.filter(False)
-    elif exclude_unspecified_difficulty:
-        query = query.filter(Dive.difficulty_id.isnot(None))
+        elif exclude_unspecified_difficulty:
+            query = query.filter(Dive.difficulty_id.isnot(None))
 
     if suit_type:
         query = query.filter(Dive.suit_type == suit_type)
@@ -150,6 +172,7 @@ def get_all_dives_admin(
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
+    search: Optional[str] = Query(None, description="Unified search across dive name, user username, dive site name, and dive information"),
     difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
     exclude_unspecified_difficulty: bool = Query(False, description="Exclude dives with unspecified difficulty"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie)$"),
@@ -162,6 +185,8 @@ def get_all_dives_admin(
     start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
+    sort_by: Optional[str] = Query(None, description="Sort field (id, dive_date, max_depth, duration, user_rating, visibility_rating, view_count, created_at, updated_at)"),
+    sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0)
 ):
@@ -207,14 +232,35 @@ def get_all_dives_admin(
             )
         )
 
+    # Apply unified search across multiple fields (case-insensitive)
+    if search:
+        # Sanitize search input to prevent injection
+        sanitized_search = search.strip()[:200]
+        
+        # Ensure DiveSite is joined (it might already be joined if dive_site_name filter is used)
+        # Check if DiveSite is already joined by checking if dive_site_name filter was used
+        dive_site_joined = dive_site_name is not None
+        if not dive_site_joined:
+            query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
+        
+        # Search across dive name, user username, dive site name, and dive information
+        query = query.filter(
+            or_(
+                Dive.name.ilike(f"%{sanitized_search}%"),
+                User.username.ilike(f"%{sanitized_search}%"),
+                DiveSite.name.ilike(f"%{sanitized_search}%"),
+                Dive.dive_information.ilike(f"%{sanitized_search}%")
+            )
+        )
+
     if difficulty_code:
         difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
         if difficulty_id:
             query = query.filter(Dive.difficulty_id == difficulty_id)
         elif exclude_unspecified_difficulty:
             query = query.filter(False)
-    elif exclude_unspecified_difficulty:
-        query = query.filter(Dive.difficulty_id.isnot(None))
+        elif exclude_unspecified_difficulty:
+            query = query.filter(Dive.difficulty_id.isnot(None))
 
     if suit_type:
         query = query.filter(Dive.suit_type == suit_type)
@@ -268,8 +314,54 @@ def get_all_dives_admin(
                 detail="Invalid tag_ids format"
             )
 
-    # Order by dive date (newest first)
-    query = query.order_by(Dive.dive_date.desc(), Dive.dive_time.desc())
+    # Apply sorting
+    if sort_by:
+        valid_sort_fields = {
+            'id', 'dive_date', 'max_depth', 'duration', 'user_rating',
+            'visibility_rating', 'view_count', 'created_at', 'updated_at'
+        }
+        if sort_by not in valid_sort_fields:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}"
+            )
+
+        if sort_order not in ['asc', 'desc']:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="sort_order must be 'asc' or 'desc'"
+            )
+
+        # Map sort fields to database columns
+        if sort_by == 'id':
+            sort_field = Dive.id
+        elif sort_by == 'dive_date':
+            sort_field = Dive.dive_date
+        elif sort_by == 'max_depth':
+            sort_field = Dive.max_depth
+        elif sort_by == 'duration':
+            sort_field = Dive.duration
+        elif sort_by == 'user_rating':
+            sort_field = Dive.user_rating
+        elif sort_by == 'visibility_rating':
+            sort_field = Dive.visibility_rating
+        elif sort_by == 'view_count':
+            sort_field = Dive.view_count
+        elif sort_by == 'created_at':
+            sort_field = Dive.created_at
+        elif sort_by == 'updated_at':
+            sort_field = Dive.updated_at
+
+        if sort_order == 'desc':
+            query = query.order_by(sort_field.desc())
+        else:
+            query = query.order_by(sort_field.asc())
+    else:
+        # Default sorting by dive date (newest first)
+        query = query.order_by(Dive.dive_date.desc(), Dive.dive_time.desc())
+
+    # Get total count before pagination
+    total_count = query.count()
 
     # Apply pagination
     dives = query.offset(offset).limit(limit).all()
@@ -342,7 +434,22 @@ def get_all_dives_admin(
         }
         dive_list.append(dive_dict)
 
-    return dive_list
+    # Calculate pagination info
+    total_pages = (total_count + limit - 1) // limit
+    has_next_page = offset + limit < total_count
+    has_prev_page = offset > 0
+
+    # Return response with pagination headers
+    from fastapi.responses import JSONResponse
+    response = JSONResponse(content=dive_list)
+    response.headers["X-Total-Count"] = str(total_count)
+    response.headers["X-Total-Pages"] = str(total_pages)
+    response.headers["X-Current-Page"] = str((offset // limit) + 1)
+    response.headers["X-Page-Size"] = str(limit)
+    response.headers["X-Has-Next-Page"] = str(has_next_page).lower()
+    response.headers["X-Has-Prev-Page"] = str(has_prev_page).lower()
+
+    return response
 
 
 @router.put("/admin/dives/{dive_id}", response_model=DiveResponse)
