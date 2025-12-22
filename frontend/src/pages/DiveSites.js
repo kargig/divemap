@@ -864,82 +864,102 @@ const DiveSites = () => {
                             >
                               {/* Difficulty badge with icon - clickable */}
                               {site.difficulty_code ? (
-                                <button
-                                  type='button'
-                                  onClick={e => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    handleFilterChange('difficulty_code', site.difficulty_code);
-                                  }}
-                                  className={`inline-flex items-center rounded-full font-medium flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${getDifficultyColorClasses(site.difficulty_code)} ${
-                                    compactLayout
-                                      ? 'px-2 py-0.5 text-[11px]'
-                                      : 'px-3 py-1 text-xs sm:text-sm'
-                                  }`}
-                                  title={`Filter by ${site.difficulty_label || getDifficultyLabel(site.difficulty_code)}`}
-                                >
-                                  <Award
-                                    className={`hidden sm:inline-block flex-shrink-0 ${compactLayout ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-1.5'}`}
-                                  />
-                                  {site.difficulty_label ||
-                                    getDifficultyLabel(site.difficulty_code)}
-                                </button>
+                                <div className='flex items-center gap-1.5 sm:gap-2'>
+                                  <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
+                                    Difficulty:
+                                  </span>
+                                  <button
+                                    type='button'
+                                    onClick={e => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleFilterChange('difficulty_code', site.difficulty_code);
+                                    }}
+                                    className={`inline-flex items-center rounded-full font-medium flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${getDifficultyColorClasses(site.difficulty_code)} ${
+                                      compactLayout
+                                        ? 'px-2 py-0.5 text-[11px]'
+                                        : 'px-3 py-1 text-xs sm:text-sm'
+                                    }`}
+                                    title={`Filter by ${site.difficulty_label || getDifficultyLabel(site.difficulty_code)}`}
+                                  >
+                                    <Award
+                                      className={`hidden sm:inline-block flex-shrink-0 ${compactLayout ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-1.5'}`}
+                                    />
+                                    {site.difficulty_label ||
+                                      getDifficultyLabel(site.difficulty_code)}
+                                  </button>
+                                </div>
                               ) : (
-                                <span
-                                  className={`inline-flex items-center rounded-full font-medium flex-shrink-0 ${getDifficultyColorClasses(site.difficulty_code)} ${
-                                    compactLayout
-                                      ? 'px-2 py-0.5 text-[11px]'
-                                      : 'px-3 py-1 text-xs sm:text-sm'
-                                  }`}
-                                >
-                                  <Award
-                                    className={`hidden sm:inline-block flex-shrink-0 ${compactLayout ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-1.5'}`}
-                                  />
-                                  {site.difficulty_label ||
-                                    getDifficultyLabel(site.difficulty_code)}
-                                </span>
+                                <div className='flex items-center gap-1.5 sm:gap-2'>
+                                  <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
+                                    Difficulty:
+                                  </span>
+                                  <span
+                                    className={`inline-flex items-center rounded-full font-medium flex-shrink-0 ${getDifficultyColorClasses(site.difficulty_code)} ${
+                                      compactLayout
+                                        ? 'px-2 py-0.5 text-[11px]'
+                                        : 'px-3 py-1 text-xs sm:text-sm'
+                                    }`}
+                                  >
+                                    <Award
+                                      className={`hidden sm:inline-block flex-shrink-0 ${compactLayout ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-1.5'}`}
+                                    />
+                                    {site.difficulty_label ||
+                                      getDifficultyLabel(site.difficulty_code)}
+                                  </span>
+                                </div>
                               )}
 
                               {/* Rating with star - more spacious on desktop */}
                               {site.average_rating !== undefined &&
                                 site.average_rating !== null && (
-                                  <div
-                                    className={`flex items-center bg-yellow-50 rounded-full flex-shrink-0 border border-yellow-200 shadow-sm ${
-                                      compactLayout
-                                        ? 'gap-1 px-2 py-0.5'
-                                        : 'gap-2 px-3 py-1.5 sm:px-4 sm:py-2'
-                                    }`}
-                                  >
-                                    <Star
-                                      className={`text-yellow-500 fill-current flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                                    />
-                                    <span
-                                      className={`font-semibold text-yellow-800 ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
-                                    >
-                                      {Number(site.average_rating).toFixed(1)}/10
+                                  <div className='flex items-center gap-1.5 sm:gap-2'>
+                                    <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
+                                      Rating:
                                     </span>
+                                    <div
+                                      className={`flex items-center bg-yellow-50 rounded-full flex-shrink-0 border border-yellow-200 shadow-sm ${
+                                        compactLayout
+                                          ? 'gap-1 px-2 py-0.5'
+                                          : 'gap-2 px-3 py-1.5 sm:px-4 sm:py-2'
+                                      }`}
+                                    >
+                                      <Star
+                                        className={`text-yellow-500 fill-current flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
+                                      />
+                                      <span
+                                        className={`font-semibold text-yellow-800 ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
+                                      >
+                                        {Number(site.average_rating).toFixed(1)}/10
+                                      </span>
+                                    </div>
                                   </div>
                                 )}
 
-                              {/* Review count with icon - more spacious on desktop */}
-                              {site.total_ratings !== undefined &&
-                                site.total_ratings !== null &&
-                                site.total_ratings > 0 && (
-                                  <div
-                                    className={`flex items-center bg-blue-50 rounded-full flex-shrink-0 border border-blue-200 ${
-                                      compactLayout
-                                        ? 'gap-1 px-2 py-0.5'
-                                        : 'gap-2 px-3 py-1.5 sm:px-4 sm:py-2'
-                                    }`}
-                                  >
-                                    <MessageCircle
-                                      className={`text-blue-600 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                                    />
-                                    <span
-                                      className={`font-semibold text-blue-800 ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
-                                    >
-                                      {site.total_ratings}
+                              {/* Comment count with icon - more spacious on desktop */}
+                              {site.comment_count !== undefined &&
+                                site.comment_count !== null &&
+                                site.comment_count > 0 && (
+                                  <div className='flex items-center gap-1.5 sm:gap-2'>
+                                    <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
+                                      Comments:
                                     </span>
+                                    <div
+                                      className={`flex items-center bg-blue-50 rounded-full flex-shrink-0 border border-blue-200 ${
+                                        compactLayout
+                                          ? 'gap-1 px-2 py-0.5'
+                                          : 'gap-2 px-3 py-1.5 sm:px-4 sm:py-2'
+                                      }`}
+                                    >
+                                      <MessageCircle
+                                        className={`text-blue-600 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
+                                      />
+                                      <span
+                                        className={`font-semibold text-blue-800 ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
+                                      >
+                                        {site.comment_count}
+                                      </span>
+                                    </div>
                                   </div>
                                 )}
                             </div>
@@ -953,6 +973,9 @@ const DiveSites = () => {
                                 <div
                                   className={`flex items-center text-gray-700 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5 sm:gap-2'}`}
                                 >
+                                  <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
+                                    Max Depth:
+                                  </span>
                                   <TrendingUp
                                     className={`text-gray-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
                                   />
@@ -969,6 +992,9 @@ const DiveSites = () => {
                                 <div
                                   className={`flex items-center text-gray-600 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5 sm:gap-2'}`}
                                 >
+                                  <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
+                                    Created by:
+                                  </span>
                                   <User
                                     className={`text-gray-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
                                   />
@@ -1122,7 +1148,12 @@ const DiveSites = () => {
 
                       {/* Tags */}
                       {site.tags && site.tags.length > 0 && (
-                        <div className={`flex flex-wrap ${compactLayout ? 'gap-1.5' : 'gap-2'}`}>
+                        <div
+                          className={`flex flex-wrap items-center ${compactLayout ? 'gap-1.5' : 'gap-2'}`}
+                        >
+                          <span className='hidden lg:inline-block text-xs text-gray-600 font-medium mr-1'>
+                            Tags:
+                          </span>
                           {site.tags.slice(0, compactLayout ? 4 : 5).map((tag, index) => {
                             const tagName = tag.name || tag;
                             const tagId = tag.id || tag;
@@ -1261,47 +1292,62 @@ const DiveSites = () => {
                         >
                           {/* Difficulty badge with icon - clickable */}
                           {site.difficulty_code ? (
-                            <button
-                              type='button'
-                              onClick={e => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleFilterChange('difficulty_code', site.difficulty_code);
-                              }}
-                              className={`inline-flex items-center rounded-full font-medium flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${getDifficultyColorClasses(site.difficulty_code)} ${
-                                compactLayout ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'
-                              }`}
-                              title={`Filter by ${site.difficulty_label || getDifficultyLabel(site.difficulty_code)}`}
-                            >
-                              <Award className='hidden sm:inline-block w-3.5 h-3.5 mr-1.5 flex-shrink-0' />
-                              {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
-                            </button>
+                            <div className='flex items-center gap-1.5'>
+                              <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
+                                Difficulty:
+                              </span>
+                              <button
+                                type='button'
+                                onClick={e => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleFilterChange('difficulty_code', site.difficulty_code);
+                                }}
+                                className={`inline-flex items-center rounded-full font-medium flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${getDifficultyColorClasses(site.difficulty_code)} ${
+                                  compactLayout ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'
+                                }`}
+                                title={`Filter by ${site.difficulty_label || getDifficultyLabel(site.difficulty_code)}`}
+                              >
+                                <Award className='hidden sm:inline-block w-3.5 h-3.5 mr-1.5 flex-shrink-0' />
+                                {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
+                              </button>
+                            </div>
                           ) : (
-                            <span
-                              className={`inline-flex items-center rounded-full font-medium flex-shrink-0 ${getDifficultyColorClasses(site.difficulty_code)} ${
-                                compactLayout ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'
-                              }`}
-                            >
-                              <Award className='hidden sm:inline-block w-3.5 h-3.5 mr-1.5 flex-shrink-0' />
-                              {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
-                            </span>
+                            <div className='flex items-center gap-1.5'>
+                              <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
+                                Difficulty:
+                              </span>
+                              <span
+                                className={`inline-flex items-center rounded-full font-medium flex-shrink-0 ${getDifficultyColorClasses(site.difficulty_code)} ${
+                                  compactLayout ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'
+                                }`}
+                              >
+                                <Award className='hidden sm:inline-block w-3.5 h-3.5 mr-1.5 flex-shrink-0' />
+                                {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
+                              </span>
+                            </div>
                           )}
 
                           {/* Rating - enhanced */}
                           {site.average_rating !== undefined && site.average_rating !== null && (
-                            <div
-                              className={`flex items-center bg-yellow-50 rounded-full flex-shrink-0 border border-yellow-200 shadow-sm ${
-                                compactLayout ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-3 py-1'
-                              }`}
-                            >
-                              <Star
-                                className={`text-yellow-500 fill-current ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
-                              />
-                              <span
-                                className={`font-semibold text-yellow-800 ${compactLayout ? 'text-[11px]' : 'text-xs'}`}
-                              >
-                                {Number(site.average_rating).toFixed(1)}/10
+                            <div className='flex items-center gap-1.5'>
+                              <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
+                                Rating:
                               </span>
+                              <div
+                                className={`flex items-center bg-yellow-50 rounded-full flex-shrink-0 border border-yellow-200 shadow-sm ${
+                                  compactLayout ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-3 py-1'
+                                }`}
+                              >
+                                <Star
+                                  className={`text-yellow-500 fill-current ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
+                                />
+                                <span
+                                  className={`font-semibold text-yellow-800 ${compactLayout ? 'text-[11px]' : 'text-xs'}`}
+                                >
+                                  {Number(site.average_rating).toFixed(1)}/10
+                                </span>
+                              </div>
                             </div>
                           )}
 
@@ -1310,6 +1356,9 @@ const DiveSites = () => {
                             <div
                               className={`flex items-center text-gray-700 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5'}`}
                             >
+                              <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
+                                Max Depth:
+                              </span>
                               <TrendingUp
                                 className={`text-gray-500 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
                               />
@@ -1321,21 +1370,26 @@ const DiveSites = () => {
                             </div>
                           )}
 
-                          {/* Review count with icon - enhanced */}
-                          {site.total_ratings !== undefined &&
-                            site.total_ratings !== null &&
-                            site.total_ratings > 0 && (
-                              <div
-                                className={`flex items-center bg-blue-50 rounded-full flex-shrink-0 border border-blue-200 ${compactLayout ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-2.5 py-1'}`}
-                              >
-                                <MessageCircle
-                                  className={`text-blue-600 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
-                                />
-                                <span
-                                  className={`font-semibold text-blue-800 ${compactLayout ? 'text-[11px]' : 'text-xs'}`}
-                                >
-                                  {site.total_ratings}
+                          {/* Comment count with icon - enhanced */}
+                          {site.comment_count !== undefined &&
+                            site.comment_count !== null &&
+                            site.comment_count > 0 && (
+                              <div className='flex items-center gap-1.5'>
+                                <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
+                                  Comments:
                                 </span>
+                                <div
+                                  className={`flex items-center bg-blue-50 rounded-full flex-shrink-0 border border-blue-200 ${compactLayout ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-2.5 py-1'}`}
+                                >
+                                  <MessageCircle
+                                    className={`text-blue-600 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
+                                  />
+                                  <span
+                                    className={`font-semibold text-blue-800 ${compactLayout ? 'text-[11px]' : 'text-xs'}`}
+                                  >
+                                    {site.comment_count}
+                                  </span>
+                                </div>
                               </div>
                             )}
 
@@ -1344,6 +1398,9 @@ const DiveSites = () => {
                             <div
                               className={`flex items-center text-gray-600 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5'}`}
                             >
+                              <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
+                                Created by:
+                              </span>
                               <User
                                 className={`text-gray-500 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
                               />
@@ -1433,8 +1490,11 @@ const DiveSites = () => {
                         {site.tags && site.tags.length > 0 && (
                           <div className={compactLayout ? 'mb-3' : 'mb-4'}>
                             <div
-                              className={`flex flex-wrap ${compactLayout ? 'gap-1.5' : 'gap-2'}`}
+                              className={`flex flex-wrap items-center ${compactLayout ? 'gap-1.5' : 'gap-2'}`}
                             >
+                              <span className='hidden lg:inline-block text-xs text-gray-600 font-medium mr-1'>
+                                Tags:
+                              </span>
                               {site.tags.slice(0, compactLayout ? 4 : 5).map((tag, index) => {
                                 const tagName = tag.name || tag;
                                 const tagId = tag.id || tag;
