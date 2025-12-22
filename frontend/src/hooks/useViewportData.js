@@ -235,15 +235,7 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
 
           // Add datetime_str if specified (for wind suitability filtering with time slider)
           if (windDateTimeParam) {
-            console.log('[useViewportData] Adding datetime_str to API call:', windDateTimeParam);
             diveSitesParams.append('datetime_str', windDateTimeParam);
-          } else {
-            console.log('[useViewportData] No windDateTime provided, not adding datetime_str');
-          }
-
-          // Log filters to see if wind_suitability is set
-          if (filters.wind_suitability) {
-            console.log('[useViewportData] wind_suitability filter:', filters.wind_suitability);
           }
 
           // Add filters

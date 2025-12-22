@@ -52,7 +52,6 @@ export const AuthProvider = ({ children }) => {
       // If we have a token but no user data, try to fetch user
       // This handles the case where backend was down and came back
       if (token && !user) {
-        console.log('Backend recovered, fetching user data...');
         fetchUser();
       }
     };

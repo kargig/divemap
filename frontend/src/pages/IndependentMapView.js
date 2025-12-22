@@ -441,11 +441,6 @@ const IndependentMapView = () => {
     performanceMetrics: hookPerformanceMetrics,
   } = useViewportData(viewport, filters, selectedEntityType, windDateTime);
 
-  // Debug logging for windDateTime
-  useEffect(() => {
-    console.log('[IndependentMapView] windDateTime state:', windDateTime);
-  }, [windDateTime]);
-
   // Update performance metrics when data changes
   useEffect(() => {
     if (hookPerformanceMetrics) {
