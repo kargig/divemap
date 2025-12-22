@@ -750,7 +750,7 @@ const DivingCenters = () => {
                                   state={{
                                     from: window.location.pathname + window.location.search,
                                   }}
-                                  className='hover:text-blue-600 transition-colors block truncate'
+                                  className='text-blue-600 hover:text-blue-800 transition-colors block truncate'
                                 >
                                   {center.name}
                                 </Link>
@@ -799,7 +799,7 @@ const DivingCenters = () => {
                                   }
                                   target='_blank'
                                   rel='noopener noreferrer'
-                                  className='truncate hover:text-blue-600 transition-colors min-w-0'
+                                  className='truncate text-blue-600 hover:text-blue-800 transition-colors min-w-0'
                                 >
                                   {center.website.replace(/^https?:\/\//, '')}
                                 </a>
@@ -911,7 +911,7 @@ const DivingCenters = () => {
                                   state={{
                                     from: window.location.pathname + window.location.search,
                                   }}
-                                  className='hover:text-blue-600 transition-colors hover:underline block'
+                                  className='text-blue-600 hover:text-blue-800 transition-colors hover:underline block'
                                 >
                                   {center.name}
                                 </Link>

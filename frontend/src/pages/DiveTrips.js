@@ -966,7 +966,7 @@ const DiveTrips = () => {
                                   state={{
                                     from: window.location.pathname + window.location.search,
                                   }}
-                                  className='hover:text-blue-600 transition-colors'
+                                  className='text-blue-600 hover:text-blue-800 transition-colors'
                                 >
                                   {generateTripName(trip)}
                                 </Link>
@@ -1331,7 +1331,7 @@ const DiveTrips = () => {
                           <Link
                             to={`/dive-trips/${trip.id}`}
                             state={{ from: window.location.pathname + window.location.search }}
-                            className='hover:text-blue-600 transition-colors'
+                            className='text-blue-600 hover:text-blue-800 transition-colors'
                           >
                             {generateTripName(trip)}
                           </Link>
