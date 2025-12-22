@@ -488,27 +488,35 @@ const Navbar = () => {
 
               {/* Mobile Menu */}
               <div
-                className='fixed top-16 left-0 right-0 bg-blue-700 border-t border-blue-500 max-h-[calc(100vh-4rem)] overflow-y-auto'
+                className='fixed top-0 left-0 right-0 bg-blue-700 max-h-screen overflow-y-auto'
                 style={{
                   zIndex: 99999,
                   position: 'fixed',
-                  top: '4rem',
+                  top: 0,
                   left: 0,
                   right: 0,
                   backgroundColor: '#1e40af',
-                  borderTop: '1px solid #3b82f6',
-                  maxHeight: 'calc(100vh - 4rem)',
+                  maxHeight: '100vh',
                   overflowY: 'auto',
                 }}
               >
                 <div className='px-2 pt-2 pb-3 space-y-1 mobile-menu-container'>
-                  {/* Mobile Search Bar */}
-                  <div className='px-2 mb-3'>
+                  {/* Mobile Search Bar with Close Button */}
+                  <div className='px-2 mb-3 flex items-center gap-2 relative'>
                     <GlobalSearchBar
-                      className='w-full'
+                      className='flex-1'
                       inputClassName='bg-white text-gray-900'
                       placeholder='Search dives, sites, centers...'
                     />
+                    <button
+                      onClick={closeMobileMenu}
+                      className='flex items-center justify-center w-11 h-11 text-white hover:text-blue-200 hover:bg-blue-800 rounded-lg transition-colors flex-shrink-0 bg-blue-600 border-2 border-white/50 shadow-xl relative'
+                      aria-label='Close menu'
+                      title='Close menu'
+                      style={{ zIndex: 100 }}
+                    >
+                      <X className='h-7 w-7 stroke-[3]' stroke='white' fill='none' />
+                    </button>
                   </div>
 
                   <Link
@@ -598,6 +606,14 @@ const Navbar = () => {
                         >
                           <Code className='h-4 w-4 mr-3' />
                           <span>API</span>
+                        </Link>
+                        <Link
+                          to='/changelog'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <FileText className='h-4 w-4 mr-3' />
+                          <span>Changelog</span>
                         </Link>
                         <Link
                           to='/help'

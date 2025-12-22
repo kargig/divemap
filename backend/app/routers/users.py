@@ -22,11 +22,114 @@ router = APIRouter()
 @router.get("/admin/users", response_model=List[UserListResponse])
 async def list_all_users(
     current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    search: Optional[str] = Query(None, max_length=200, description="Unified search across username and email"),
+    is_admin: Optional[bool] = Query(None, description="Filter by admin role"),
+    enabled: Optional[bool] = Query(None, description="Filter by enabled status"),
+    email_verified: Optional[bool] = Query(None, description="Filter by email verified status"),
+    sort_by: Optional[str] = Query(None, description="Sort field (id, username, email, created_at, is_admin, enabled, email_verified)"),
+    sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)")
 ):
-    """List all users (admin only)"""
-    users = db.query(User).all()
-    return users
+    """List all users (admin only) with pagination, sorting, search, and filters"""
+    # Validate page_size
+    valid_page_sizes = [25, 50, 100, 1000]
+    if page_size not in valid_page_sizes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"page_size must be one of: {', '.join(map(str, valid_page_sizes))}"
+        )
+
+    # Build query
+    query = db.query(User)
+
+    # Apply search filter
+    if search:
+        search_term = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                User.username.ilike(search_term),
+                User.email.ilike(search_term)
+            )
+        )
+
+    # Apply filters
+    if is_admin is not None:
+        query = query.filter(User.is_admin == is_admin)
+    
+    if enabled is not None:
+        query = query.filter(User.enabled == enabled)
+    
+    if email_verified is not None:
+        query = query.filter(User.email_verified == email_verified)
+
+    # Apply sorting
+    if sort_by:
+        valid_sort_fields = {'id', 'username', 'email', 'created_at', 'is_admin', 'enabled', 'email_verified'}
+        if sort_by not in valid_sort_fields:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}"
+            )
+
+        if sort_order not in ['asc', 'desc']:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="sort_order must be 'asc' or 'desc'"
+            )
+
+        # Map sort fields to database columns
+        if sort_by == 'id':
+            sort_field = User.id
+        elif sort_by == 'username':
+            sort_field = func.lower(User.username)
+        elif sort_by == 'email':
+            sort_field = func.lower(User.email)
+        elif sort_by == 'created_at':
+            sort_field = User.created_at
+        elif sort_by == 'is_admin':
+            sort_field = User.is_admin
+        elif sort_by == 'enabled':
+            sort_field = User.enabled
+        elif sort_by == 'email_verified':
+            sort_field = User.email_verified
+
+        if sort_order == 'desc':
+            query = query.order_by(sort_field.desc())
+        else:
+            query = query.order_by(sort_field.asc())
+    else:
+        # Default sorting by id
+        query = query.order_by(User.id.asc())
+
+    # Get total count before pagination
+    total_count = query.count()
+
+    # Calculate pagination
+    offset = (page - 1) * page_size
+    total_pages = (total_count + page_size - 1) // page_size
+    has_next_page = page < total_pages
+    has_prev_page = page > 1
+
+    # Apply pagination
+    users = query.offset(offset).limit(page_size).all()
+
+    # Convert SQLAlchemy User objects to Pydantic models, then to JSON-serializable dicts
+    from fastapi.encoders import jsonable_encoder
+    user_list = [jsonable_encoder(UserListResponse.model_validate(user)) for user in users]
+
+    # Return response with pagination headers
+    from fastapi.responses import JSONResponse
+    response = JSONResponse(content=user_list)
+    response.headers["X-Total-Count"] = str(total_count)
+    response.headers["X-Total-Pages"] = str(total_pages)
+    response.headers["X-Current-Page"] = str(page)
+    response.headers["X-Page-Size"] = str(page_size)
+    response.headers["X-Has-Next-Page"] = str(has_next_page).lower()
+    response.headers["X-Has-Prev-Page"] = str(has_prev_page).lower()
+
+    return response
 
 @router.post("/admin/users", response_model=UserListResponse)
 async def create_user(

@@ -1302,6 +1302,447 @@ class TestDivesFuzzySearch:
         # Note: Dives endpoint doesn't have max_length validation like other endpoints
 
 
+class TestAdminDivesSearch:
+    """Test search functionality for admin dives endpoints."""
+
+    def test_admin_dives_search_by_dive_name(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test searching dives by dive name."""
+        # Create dive with specific name
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Amazing Coral Reef Dive",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Search by dive name
+        response = client.get("/api/v1/dives/admin/dives?search=Amazing", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 1
+        assert any(d["name"] == "Amazing Coral Reef Dive" for d in data)
+
+    def test_admin_dives_search_by_username(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test searching dives by user username."""
+        # Create dive for specific user
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Test Dive",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Search by username
+        response = client.get(f"/api/v1/dives/admin/dives?search={test_user.username}", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 1
+        assert any(d["user_username"] == test_user.username for d in data)
+
+    def test_admin_dives_search_by_dive_site_name(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test searching dives by dive site name."""
+        # Create dive at specific site
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Test Dive",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Search by dive site name
+        response = client.get(f"/api/v1/dives/admin/dives?search={test_dive_site.name}", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 1
+        assert any(d["dive_site"]["name"] == test_dive_site.name for d in data)
+
+    def test_admin_dives_search_by_dive_information(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test searching dives by dive information field."""
+        # Create dive with specific information
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Test Dive",
+            dive_information="Saw a beautiful sea turtle and colorful fish",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Search by dive information
+        response = client.get("/api/v1/dives/admin/dives?search=sea turtle", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 1
+        assert any("sea turtle" in d["dive_information"].lower() for d in data)
+
+    def test_admin_dives_search_case_insensitive(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test that search is case-insensitive."""
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Amazing Dive",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Test uppercase search
+        response_upper = client.get("/api/v1/dives/admin/dives?search=AMAZING", headers=admin_headers)
+        assert response_upper.status_code == status.HTTP_200_OK
+
+        # Test lowercase search
+        response_lower = client.get("/api/v1/dives/admin/dives?search=amazing", headers=admin_headers)
+        assert response_lower.status_code == status.HTTP_200_OK
+
+        # Test mixed case search
+        response_mixed = client.get("/api/v1/dives/admin/dives?search=AmAzInG", headers=admin_headers)
+        assert response_mixed.status_code == status.HTTP_200_OK
+
+        # All should return the same results
+        assert len(response_upper.json()) == len(response_lower.json())
+        assert len(response_lower.json()) == len(response_mixed.json())
+
+    def test_admin_dives_search_partial_match(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test that search matches partial strings."""
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Beautiful Coral Reef Exploration",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Search with partial match
+        response = client.get("/api/v1/dives/admin/dives?search=Coral", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 1
+        assert any("Coral" in d["name"] for d in data)
+
+    def test_admin_dives_search_multiple_fields(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test that search can match across multiple fields."""
+        # Create multiple dives matching different fields
+        dive1 = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Test Dive",
+            dive_information="Amazing experience",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        dive2 = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Amazing Dive",
+            dive_date=date(2025, 1, 16),
+            is_private=False
+        )
+        db_session.add_all([dive1, dive2])
+        db_session.commit()
+
+        # Search should match both dives
+        response = client.get("/api/v1/dives/admin/dives?search=Amazing", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 2
+
+    def test_admin_dives_search_with_user_filter(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test search combined with user_id filter."""
+        # Create another user for testing
+        from app.models import User
+        test_user2 = User(
+            username="testuser2",
+            email="testuser2@example.com",
+            password_hash="hashed_password",
+            is_admin=False,
+            enabled=True
+        )
+        db_session.add(test_user2)
+        db_session.commit()
+
+        # Create dives for different users
+        dive1 = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Amazing Dive",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        dive2 = Dive(
+            user_id=test_user2.id,
+            dive_site_id=test_dive_site.id,
+            name="Amazing Dive",
+            dive_date=date(2025, 1, 16),
+            is_private=False
+        )
+        db_session.add_all([dive1, dive2])
+        db_session.commit()
+
+        # Search with user filter
+        response = client.get(
+            f"/api/v1/dives/admin/dives?search=Amazing&user_id={test_user.id}",
+            headers=admin_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 1
+        assert all(d["user_id"] == test_user.id for d in data)
+
+    def test_admin_dives_search_with_dive_site_name_filter(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test search when dive_site_name filter is also used (tests JOIN logic)."""
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Amazing Dive",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Search with dive_site_name filter (DiveSite already joined)
+        response = client.get(
+            f"/api/v1/dives/admin/dives?search=Amazing&dive_site_name={test_dive_site.name}",
+            headers=admin_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 1
+
+    def test_admin_dives_search_with_date_filter(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test search combined with date range filter."""
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Amazing Dive",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Search with date filter
+        response = client.get(
+            "/api/v1/dives/admin/dives?search=Amazing&start_date=2025-01-01&end_date=2025-01-31",
+            headers=admin_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 1
+
+    def test_admin_dives_search_with_pagination(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test search with pagination parameters."""
+        # Create multiple matching dives
+        for i in range(5):
+            dive = Dive(
+                user_id=test_user.id,
+                dive_site_id=test_dive_site.id,
+                name=f"Amazing Dive {i}",
+                dive_date=date(2025, 1, 15 + i),
+                is_private=False
+            )
+            db_session.add(dive)
+        db_session.commit()
+
+        # Search with pagination
+        response = client.get(
+            "/api/v1/dives/admin/dives?search=Amazing&limit=2&offset=0",
+            headers=admin_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) <= 2
+
+        # Check pagination headers
+        assert "X-Total-Count" in response.headers
+        total_count = int(response.headers["X-Total-Count"])
+        assert total_count >= 5
+
+    def test_admin_dives_count_search(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test search functionality with count endpoint."""
+        # Create matching and non-matching dives
+        dive1 = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Amazing Dive",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        dive2 = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Regular Dive",
+            dive_date=date(2025, 1, 16),
+            is_private=False
+        )
+        db_session.add_all([dive1, dive2])
+        db_session.commit()
+
+        # Count with search
+        response = client.get("/api/v1/dives/admin/dives/count?search=Amazing", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["total"] >= 1
+
+        # Count without search (should be higher)
+        response_all = client.get("/api/v1/dives/admin/dives/count", headers=admin_headers)
+        assert response_all.status_code == status.HTTP_200_OK
+        assert response_all.json()["total"] >= data["total"]
+
+    def test_admin_dives_search_empty_string(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test that empty search string returns all results."""
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Test Dive",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Empty search should return all results
+        response = client.get("/api/v1/dives/admin/dives?search=", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 1
+
+    def test_admin_dives_search_long_string_truncation(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test that search string is truncated to 200 characters."""
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Test Dive",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Very long search string (over 200 chars)
+        long_search = "a" * 300
+        response = client.get(f"/api/v1/dives/admin/dives?search={long_search}", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK  # Should not error, just truncate
+
+    def test_admin_dives_search_whitespace_stripping(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test that search string whitespace is stripped."""
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Amazing Dive",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Search with leading/trailing whitespace
+        response = client.get("/api/v1/dives/admin/dives?search=  Amazing  ", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 1
+
+    def test_admin_dives_search_special_characters(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test search with special characters (SQL injection prevention)."""
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Test Dive",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Search with SQL injection attempt
+        malicious_search = "'; DROP TABLE dives; --"
+        response = client.get(f"/api/v1/dives/admin/dives?search={malicious_search}", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK  # Should handle gracefully, not crash
+        # Verify table still exists by making another request
+        response2 = client.get("/api/v1/dives/admin/dives", headers=admin_headers)
+        assert response2.status_code == status.HTTP_200_OK
+
+    def test_admin_dives_search_no_results(self, client, admin_headers, db_session):
+        """Test search that returns no results."""
+        response = client.get("/api/v1/dives/admin/dives?search=NonexistentDiveName12345", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) == 0
+
+    def test_admin_dives_search_with_sorting(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test search combined with sorting."""
+        # Create multiple matching dives
+        for i in range(3):
+            dive = Dive(
+                user_id=test_user.id,
+                dive_site_id=test_dive_site.id,
+                name=f"Amazing Dive {i}",
+                dive_date=date(2025, 1, 15 + i),
+                is_private=False
+            )
+            db_session.add(dive)
+        db_session.commit()
+
+        # Search with sorting
+        response = client.get(
+            "/api/v1/dives/admin/dives?search=Amazing&sort_by=dive_date&sort_order=asc",
+            headers=admin_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 3
+        # Verify sorting
+        dates = [d["dive_date"] for d in data]
+        assert dates == sorted(dates)
+
+    def test_admin_dives_search_end_to_end(self, client, admin_headers, db_session, test_user, test_dive_site):
+        """Test complete search flow with multiple filters, pagination, and sorting."""
+        # Create test data
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Amazing Coral Reef Dive",
+            dive_information="Saw beautiful fish",
+            dive_date=date(2025, 1, 15),
+            max_depth=Decimal("18.5"),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Complex query with search, filters, pagination, sorting
+        response = client.get(
+            f"/api/v1/dives/admin/dives?"
+            f"search=Amazing&"
+            f"user_id={test_user.id}&"
+            f"min_depth=10&"
+            f"max_depth=30&"
+            f"sort_by=dive_date&"
+            f"sort_order=desc&"
+            f"limit=10&"
+            f"offset=0",
+            headers=admin_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 1
+        assert all("Amazing" in d["name"] for d in data)
+
+
 class TestDivesUnifiedScoring:
     """Test the unified scoring algorithm for dives."""
 

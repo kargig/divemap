@@ -27,7 +27,7 @@ import UnifiedMapFilters from '../components/UnifiedMapFilters';
 import WindDateTimePicker from '../components/WindDateTimePicker';
 import WindOverlayToggle from '../components/WindOverlayToggle';
 import usePageTitle from '../hooks/usePageTitle';
-import { useResponsive } from '../hooks/useResponsive';
+import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { useViewportData } from '../hooks/useViewportData';
 
 const IndependentMapView = () => {
@@ -36,6 +36,7 @@ const IndependentMapView = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isMobile } = useResponsive();
+  const { navbarVisible } = useResponsiveScroll();
 
   // Viewport state for map
   const [viewport, setViewport] = useState({
@@ -672,7 +673,7 @@ const IndependentMapView = () => {
 
   return (
     <div
-      className={`${isFullscreen ? 'h-screen' : 'h-[calc(100vh-4rem)]'} bg-gray-50 overflow-hidden flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
+      className={`${isFullscreen ? 'h-screen' : navbarVisible ? 'h-[calc(100vh-4rem)]' : 'h-screen'} bg-gray-50 overflow-hidden flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''} transition-all duration-300`}
     >
       {/* Header */}
       <div

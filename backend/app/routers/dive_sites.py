@@ -1035,6 +1035,9 @@ async def get_dive_sites(
     offset = (page - 1) * page_size
     total_pages = (total_count + page_size - 1) // page_size
 
+    # Initialize match_types at function level (used later for response headers)
+    match_types = {}
+
     # Handle average_rating sorting before pagination
     if sort_by == 'average_rating':
         # Get all dive sites with their average ratings for proper sorting
@@ -1074,9 +1077,6 @@ async def get_dive_sites(
         # Update total count for pagination
         total_count = len(all_dive_sites)
     else:
-        # Initialize match_types at function level
-        match_types = {}
-        
         # Get dive sites with pagination for other sort fields
         dive_sites = query.offset(offset).limit(page_size).all()
         
