@@ -9,12 +9,16 @@ import {
   Calendar,
   User,
   MapPin,
+  Download,
+  Columns,
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useSearchParams } from 'react-router-dom';
 
 import api from '../api';
+import AdminDivesTable from '../components/tables/AdminDivesTable';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
@@ -25,6 +29,18 @@ const AdminDives = () => {
 
   // Set page title
   usePageTitle('Divemap - Admin - Dives');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Update URL when pagination changes
+  const updateURL = useCallback(
+    newPagination => {
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set('page', (newPagination.pageIndex + 1).toString());
+      newSearchParams.set('page_size', newPagination.pageSize.toString());
+      setSearchParams(newSearchParams);
+    },
+    [searchParams, setSearchParams]
+  );
 
   // Dive management state
   const [showEditDiveModal, setShowEditDiveModal] = useState(false);
@@ -45,10 +61,28 @@ const AdminDives = () => {
     is_private: false,
     dive_site_id: '',
   });
-  const [selectedItems, setSelectedItems] = useState(new Set());
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-  const [searchTerm, setSearchTerm] = useState('');
+  // TanStack Table state
+  const [sorting, setSorting] = useState([]);
+  const [pagination, setPagination] = useState({
+    pageIndex: parseInt(searchParams.get('page')) - 1 || 0,
+    pageSize: parseInt(searchParams.get('page_size')) || 50,
+  });
+  const [rowSelection, setRowSelection] = useState({});
+  const [columnVisibility, setColumnVisibility] = useState({
+    id: true,
+    select: true,
+    dive: true,
+    user: true,
+    dive_site: true,
+    date: true,
+    rating: true,
+    privacy: true,
+    views: true,
+    actions: true,
+  });
+  const [searchInput, setSearchInput] = useState('');
   const [filters, setFilters] = useState({
+    search: '',
     user_id: '',
     dive_site_id: '',
     dive_site_name: '',
@@ -79,18 +113,82 @@ const AdminDives = () => {
     }
   );
 
-  // Fetch dives data
+  // Map frontend column IDs to backend API sort field names
+  const mapColumnIdToSortField = columnId => {
+    const fieldMapping = {
+      id: 'id',
+      dive_date: 'dive_date',
+      max_depth: 'max_depth',
+      duration: 'duration',
+      user_rating: 'user_rating',
+      visibility_rating: 'visibility_rating',
+      view_count: 'view_count',
+      created_at: 'created_at',
+      updated_at: 'updated_at',
+    };
+    return fieldMapping[columnId] || null;
+  };
+
+  // Get sort parameters for API
+  const getSortParams = () => {
+    if (sorting.length === 0) return {};
+    const sort = sorting[0];
+    const sortField = mapColumnIdToSortField(sort.id);
+    if (!sortField) return {}; // Skip sorting if field not supported
+    return {
+      sort_by: sortField,
+      sort_order: sort.desc ? 'desc' : 'asc',
+    };
+  };
+
+  // Debounced search
+  const debouncedSearch = useMemo(
+    () =>
+      (() => {
+        let timeoutId;
+        return searchValue => {
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => {
+            setFilters(prev => ({ ...prev, search: searchValue }));
+            setPagination(prev => {
+              const newPagination = { ...prev, pageIndex: 0 };
+              updateURL(newPagination);
+              return newPagination;
+            });
+          }, 500);
+        };
+      })(),
+    [updateURL]
+  );
+
+  // Sync searchInput with filters.search when filters change externally (e.g., clear filters)
+  useEffect(() => {
+    setSearchInput(filters.search);
+  }, [filters.search]);
+
+  // Fetch dives data with pagination and sorting
   const { data: dives, isLoading } = useQuery(
-    ['admin-dives', filters],
+    ['admin-dives', filters, pagination, sorting],
     () => {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value) params.append(key, value);
       });
+
+      // Add sorting
+      const sortParams = getSortParams();
+      if (sortParams.sort_by) {
+        params.append('sort_by', sortParams.sort_by);
+        params.append('sort_order', sortParams.sort_order);
+      }
+      // Add pagination
+      params.append('limit', pagination.pageSize.toString());
+      params.append('offset', (pagination.pageIndex * pagination.pageSize).toString());
       return api.get(`/api/v1/dives/admin/dives?${params.toString()}`);
     },
     {
       select: response => response.data,
+      keepPreviousData: true,
     }
   );
 
@@ -142,7 +240,7 @@ const AdminDives = () => {
       onSuccess: () => {
         queryClient.invalidateQueries(['admin-dives']);
         toast.success('Selected dives deleted successfully!');
-        setSelectedItems(new Set());
+        setRowSelection({});
       },
       onError: _error => {
         toast.error('Failed to delete some dives');
@@ -150,32 +248,15 @@ const AdminDives = () => {
     }
   );
 
-  const handleSelectAll = checked => {
-    if (checked) {
-      setSelectedItems(new Set(dives?.map(dive => dive.id) || []));
-    } else {
-      setSelectedItems(new Set());
-    }
-  };
-
-  const handleSelectItem = (id, checked) => {
-    const newSelected = new Set(selectedItems);
-    if (checked) {
-      newSelected.add(id);
-    } else {
-      newSelected.delete(id);
-    }
-    setSelectedItems(newSelected);
-  };
-
   const handleMassDelete = () => {
-    if (selectedItems.size === 0) {
+    const selectedIds = Object.keys(rowSelection);
+    if (selectedIds.length === 0) {
       toast.error('Please select dives to delete');
       return;
     }
 
-    if (window.confirm(`Are you sure you want to delete ${selectedItems.size} dive(s)?`)) {
-      massDeleteMutation.mutate(Array.from(selectedItems));
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} dive(s)?`)) {
+      massDeleteMutation.mutate(selectedIds.map(id => parseInt(id)));
     }
   };
 
@@ -247,10 +328,14 @@ const AdminDives = () => {
       ...prev,
       [key]: value,
     }));
+    const newPagination = { ...pagination, pageIndex: 0 };
+    updateURL(newPagination);
+    setPagination(newPagination);
   };
 
   const clearFilters = () => {
     setFilters({
+      search: '',
       user_id: '',
       dive_site_id: '',
       dive_site_name: '',
@@ -265,86 +350,232 @@ const AdminDives = () => {
       start_date: '',
       end_date: '',
     });
+    setSearchInput('');
+    const newPagination = { ...pagination, pageIndex: 0 };
+    updateURL(newPagination);
+    setPagination(newPagination);
   };
 
-  // Sorting helpers (ID only for now)
-  const handleSort = key => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
+  // Define columns
+  const columns = useMemo(
+    () => [
+      {
+        id: 'id',
+        accessorKey: 'id',
+        header: 'ID',
+        enableSorting: true,
+        size: 80,
+      },
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <input
+            type='checkbox'
+            checked={table.getIsAllRowsSelected()}
+            onChange={e => {
+              if (e.target.checked) {
+                const newSelection = {};
+                dives?.forEach(dive => {
+                  newSelection[dive.id] = true;
+                });
+                setRowSelection(newSelection);
+              } else {
+                setRowSelection({});
+              }
+            }}
+            className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+          />
+        ),
+        cell: ({ row }) => {
+          const dive = row.original;
+          return (
+            <input
+              type='checkbox'
+              checked={rowSelection[dive.id] || false}
+              onChange={e => {
+                setRowSelection(prev => ({
+                  ...prev,
+                  [dive.id]: e.target.checked,
+                }));
+              }}
+              className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+            />
+          );
+        },
+        enableSorting: false,
+        size: 50,
+      },
+      {
+        id: 'dive',
+        accessorKey: 'name',
+        header: 'Dive',
+        cell: ({ row }) => {
+          const dive = row.original;
+          return (
+            <div className='flex items-center'>
+              <Anchor className='h-5 w-5 text-blue-600 mr-2' />
+              <div>
+                <div className='text-sm font-medium text-gray-900'>{dive.name}</div>
+                <div className='text-sm text-gray-500'>
+                  {dive.max_depth && `${dive.max_depth}m`}
+                  {dive.duration && ` • ${dive.duration}min`}
+                </div>
+              </div>
+            </div>
+          );
+        },
+        enableSorting: true,
+        size: 200,
+      },
+      {
+        id: 'user',
+        accessorKey: 'user_username',
+        header: 'User',
+        cell: ({ row }) => {
+          const dive = row.original;
+          return (
+            <div className='flex items-center'>
+              <User className='h-4 w-4 text-gray-400 mr-2' />
+              <span className='text-sm text-gray-900'>{dive.user_username}</span>
+            </div>
+          );
+        },
+        enableSorting: true,
+        size: 150,
+      },
+      {
+        id: 'dive_site',
+        accessorKey: 'dive_site.name',
+        header: 'Dive Site',
+        cell: ({ row }) => {
+          const dive = row.original;
+          return dive.dive_site ? (
+            <div className='flex items-center'>
+              <MapPin className='h-4 w-4 text-gray-400 mr-2' />
+              <span className='text-sm text-gray-900'>{dive.dive_site.name}</span>
+            </div>
+          ) : (
+            <span className='text-sm text-gray-500'>No dive site</span>
+          );
+        },
+        enableSorting: false,
+        size: 180,
+      },
+      {
+        id: 'date',
+        accessorKey: 'dive_date',
+        header: 'Date',
+        cell: ({ row }) => {
+          const dive = row.original;
+          return (
+            <div className='flex items-center'>
+              <Calendar className='h-4 w-4 text-gray-400 mr-2' />
+              <span className='text-sm text-gray-900'>{dive.dive_date}</span>
+            </div>
+          );
+        },
+        enableSorting: true,
+        size: 120,
+      },
+      {
+        id: 'rating',
+        accessorKey: 'user_rating',
+        header: 'Rating',
+        cell: ({ row }) => {
+          const dive = row.original;
+          return (
+            <span className='text-sm text-gray-900'>
+              {dive.user_rating ? `${dive.user_rating}/10` : 'N/A'}
+            </span>
+          );
+        },
+        enableSorting: true,
+        size: 100,
+      },
+      {
+        id: 'privacy',
+        accessorKey: 'is_private',
+        header: 'Privacy',
+        cell: ({ row }) => {
+          const dive = row.original;
+          return (
+            <span
+              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                dive.is_private ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+              }`}
+            >
+              {dive.is_private ? 'Private' : 'Public'}
+            </span>
+          );
+        },
+        enableSorting: true,
+        size: 100,
+      },
+      {
+        id: 'views',
+        accessorKey: 'view_count',
+        header: 'Views',
+        cell: ({ row }) => {
+          const dive = row.original;
+          return <span className='text-sm text-gray-900'>{dive.view_count || 0}</span>;
+        },
+        enableSorting: true,
+        size: 80,
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => {
+          const dive = row.original;
+          return (
+            <div className='flex items-center space-x-2'>
+              <button
+                onClick={() => handleEditDive(dive)}
+                className='text-blue-600 hover:text-blue-900'
+              >
+                <Edit className='h-4 w-4' />
+              </button>
+              <button
+                onClick={() => handleDeleteDive(dive)}
+                className='text-red-600 hover:text-red-900'
+              >
+                <Trash2 className='h-4 w-4' />
+              </button>
+            </div>
+          );
+        },
+        enableSorting: false,
+        size: 100,
+      },
+    ],
+    [rowSelection, dives]
+  );
 
-  const getSortIcon = key => {
-    if (sortConfig.key !== key) {
-      return <span className='ml-1 text-gray-400'>▲</span>;
-    }
-    return sortConfig.direction === 'asc' ? (
-      <span className='ml-1 text-blue-600'>▲</span>
-    ) : (
-      <span className='ml-1 text-blue-600'>▼</span>
-    );
-  };
-
-  const filteredDives =
-    dives?.filter(dive => {
-      // Apply search term filter
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        const matchesSearch =
-          dive.name?.toLowerCase().includes(searchLower) ||
-          dive.user_username?.toLowerCase().includes(searchLower) ||
-          dive.dive_site?.name?.toLowerCase().includes(searchLower);
-
-        if (!matchesSearch) return false;
-      }
-
-      // Apply dive site name filter
-      if (filters.dive_site_name) {
-        const diveSiteNameLower = filters.dive_site_name.toLowerCase();
-        if (!dive.dive_site?.name?.toLowerCase().includes(diveSiteNameLower)) {
-          return false;
-        }
-      }
-
-      // Apply difficulty filter
-      if (filters.difficulty_code) {
-        if (dive.difficulty_code !== filters.difficulty_code) {
-          return false;
-        }
-      }
-
-      return true;
-    }) || [];
-
-  const sortedDives = useMemo(() => {
-    if (!filteredDives) return [];
-    if (!sortConfig.key) return filteredDives;
-    const sorted = [...filteredDives].sort((a, b) => {
-      let aValue = a[sortConfig.key];
-      let bValue = b[sortConfig.key];
-
-      if (aValue === null || aValue === undefined) aValue = '';
-      if (bValue === null || bValue === undefined) bValue = '';
-
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-
-      aValue = String(aValue).toLowerCase();
-      bValue = String(bValue).toLowerCase();
-
-      if (aValue < bValue) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
-      }
-      return 0;
+  // Handle pagination change
+  const handlePaginationChange = updater => {
+    setPagination(prev => {
+      const newPagination = typeof updater === 'function' ? updater(prev) : updater;
+      updateURL(newPagination);
+      return newPagination;
     });
-    return sorted;
-  }, [filteredDives, sortConfig]);
+  };
+
+  // Calculate pagination info
+  const paginationInfo = useMemo(() => {
+    const count = totalCount || 0;
+    const pageCount = Math.ceil(count / pagination.pageSize);
+    return { pageCount, totalCount: count };
+  }, [totalCount, pagination.pageSize]);
+
+  // Update pagination with pageCount
+  const paginationWithCount = useMemo(
+    () => ({
+      ...pagination,
+      pageCount: paginationInfo.pageCount,
+      totalCount: paginationInfo.totalCount,
+    }),
+    [pagination, paginationInfo]
+  );
 
   if (!user?.is_admin) {
     return (
@@ -355,7 +586,7 @@ const AdminDives = () => {
   }
 
   return (
-    <div className='max-w-7xl mx-auto p-6'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-4 sm:p-6'>
       <div className='mb-8'>
         <div className='flex items-center justify-between'>
           <div>
@@ -366,7 +597,7 @@ const AdminDives = () => {
             )}
           </div>
           <div className='flex items-center space-x-4'>
-            {selectedItems.size > 0 && (
+            {Object.keys(rowSelection).length > 0 && (
               <button
                 onClick={handleMassDelete}
                 disabled={massDeleteMutation.isLoading}
@@ -377,7 +608,7 @@ const AdminDives = () => {
                 ) : (
                   <Trash2 className='h-4 w-4' />
                 )}
-                <span>Delete Selected ({selectedItems.size})</span>
+                <span>Delete Selected ({Object.keys(rowSelection).length})</span>
               </button>
             )}
           </div>
@@ -385,7 +616,7 @@ const AdminDives = () => {
       </div>
 
       {/* Filters */}
-      <div className='mb-6 bg-gray-50 p-4 rounded-lg'>
+      <div className='mb-4 sm:mb-6 bg-gray-50 p-3 sm:p-4 rounded-lg'>
         <div className='flex items-center justify-between mb-4'>
           <h3 className='text-lg font-semibold'>Filters</h3>
           <button onClick={clearFilters} className='text-sm text-gray-600 hover:text-gray-800'>
@@ -494,173 +725,294 @@ const AdminDives = () => {
       </div>
 
       {/* Search */}
-      <div className='mb-6'>
+      <div className='mb-4 sm:mb-6'>
         <div className='relative'>
           <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5' />
           <input
             type='text'
-            placeholder='Search dives by name, user, or dive site...'
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            placeholder='Search dives by name, user, dive site, or notes...'
+            value={searchInput}
+            onChange={e => {
+              const value = e.target.value;
+              setSearchInput(value); // Update input immediately for visual feedback
+              debouncedSearch(value); // Debounce the filter update
+            }}
             className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
           />
+          {searchInput && (
+            <button
+              onClick={() => {
+                setSearchInput('');
+                setFilters(prev => ({ ...prev, search: '' }));
+                const newPagination = { ...pagination, pageIndex: 0 };
+                updateURL(newPagination);
+                setPagination(newPagination);
+              }}
+              className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+            >
+              <X className='h-4 w-4' />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Table Toolbar */}
+      <div className='mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3'>
+        {/* Column Visibility Toggle */}
+        <div className='relative'>
+          <button
+            className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700 w-full sm:w-auto'
+            onClick={e => {
+              e.stopPropagation();
+              const menu = document.getElementById('column-visibility-menu');
+              if (menu) {
+                menu.classList.toggle('hidden');
+              }
+            }}
+          >
+            <Columns className='h-4 w-4' />
+            Columns
+          </button>
+          <div
+            id='column-visibility-menu'
+            className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50'
+            onClick={e => e.stopPropagation()}
+          >
+            <div className='p-2'>
+              <div className='text-xs font-semibold text-gray-500 uppercase mb-2 px-2'>
+                Toggle Columns
+              </div>
+              {columns
+                .filter(col => {
+                  const colId = col.id || col.accessorKey;
+                  return colId !== 'select' && colId !== 'actions';
+                })
+                .map(column => {
+                  const columnId = column.id || column.accessorKey;
+                  const isVisible = columnVisibility[columnId] !== false;
+                  return (
+                    <label
+                      key={columnId}
+                      className='flex items-center px-2 py-1.5 hover:bg-gray-50 cursor-pointer rounded'
+                    >
+                      <input
+                        type='checkbox'
+                        checked={isVisible}
+                        onChange={e => {
+                          setColumnVisibility(prev => ({
+                            ...prev,
+                            [columnId]: e.target.checked,
+                          }));
+                        }}
+                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                      />
+                      <span className='text-sm text-gray-700'>
+                        {typeof column.header === 'string'
+                          ? column.header
+                          : columnId.charAt(0).toUpperCase() + columnId.slice(1).replace(/_/g, ' ')}
+                      </span>
+                    </label>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+
+        {/* Export Buttons */}
+        <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
+          <button
+            onClick={async () => {
+              try {
+                toast.loading('Exporting current page...', { id: 'export-toast' });
+                const headers = [
+                  'ID',
+                  'Name',
+                  'User',
+                  'Dive Site',
+                  'Date',
+                  'Rating',
+                  'Privacy',
+                  'Views',
+                ];
+                // Use dives from API (already filtered and sorted server-side)
+                const rows = (dives || []).map(dive => [
+                  dive.id,
+                  dive.name || '',
+                  dive.user_username || '',
+                  dive.dive_site?.name || 'No dive site',
+                  dive.dive_date || '',
+                  dive.user_rating ? `${dive.user_rating}/10` : 'N/A',
+                  dive.is_private ? 'Private' : 'Public',
+                  dive.view_count || 0,
+                ]);
+
+                const csvContent = [
+                  headers.join(','),
+                  ...rows.map(row =>
+                    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+                  ),
+                ].join('\n');
+
+                // eslint-disable-next-line no-undef
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                // eslint-disable-next-line no-undef
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute(
+                  'download',
+                  `dives-page-${pagination.pageIndex + 1}-${new Date().toISOString().split('T')[0]}.csv`
+                );
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                toast.success(`Exported ${rows.length} dives to CSV`, { id: 'export-toast' });
+              } catch (error) {
+                toast.error('Failed to export CSV', { id: 'export-toast' });
+              }
+            }}
+            className='flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium w-full sm:w-auto'
+          >
+            <Download className='h-4 w-4' />
+            <span className='hidden sm:inline'>Export Page</span>
+            <span className='sm:hidden'>Export Page</span>
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const count = totalCount || 0;
+                if (count === 0) {
+                  toast.error('No dives to export');
+                  return;
+                }
+
+                if (
+                  !window.confirm(
+                    `This will export all ${count.toLocaleString()} dives. This may take a moment. Continue?`
+                  )
+                ) {
+                  return;
+                }
+
+                toast.loading(`Exporting all ${count.toLocaleString()} dives...`, {
+                  id: 'export-all-toast',
+                });
+
+                // Fetch all dives using limit=1000 (max allowed)
+                const allDives = [];
+                let offset = 0;
+                const limit = 1000;
+                let hasMore = true;
+
+                // Get sort parameters
+                const sortParams = getSortParams();
+
+                while (hasMore) {
+                  const params = new URLSearchParams();
+                  params.append('limit', limit.toString());
+                  params.append('offset', offset.toString());
+
+                  // Add filters
+                  Object.entries(filters).forEach(([key, value]) => {
+                    if (value) params.append(key, value);
+                  });
+
+                  // Add sorting
+                  if (sortParams.sort_by) {
+                    params.append('sort_by', sortParams.sort_by);
+                    params.append('sort_order', sortParams.sort_order);
+                  }
+
+                  const response = await api.get(`/api/v1/dives/admin/dives?${params.toString()}`);
+                  const pageData = response.data;
+
+                  if (pageData && pageData.length > 0) {
+                    allDives.push(...pageData);
+                    offset += limit;
+                    hasMore = pageData.length === limit;
+                  } else {
+                    hasMore = false;
+                  }
+                }
+
+                // Export to CSV
+                const headers = [
+                  'ID',
+                  'Name',
+                  'User',
+                  'Dive Site',
+                  'Date',
+                  'Rating',
+                  'Privacy',
+                  'Views',
+                ];
+                const rows = allDives.map(dive => [
+                  dive.id,
+                  dive.name || '',
+                  dive.user_username || '',
+                  dive.dive_site?.name || 'No dive site',
+                  dive.dive_date || '',
+                  dive.user_rating ? `${dive.user_rating}/10` : 'N/A',
+                  dive.is_private ? 'Private' : 'Public',
+                  dive.view_count || 0,
+                ]);
+
+                const csvContent = [
+                  headers.join(','),
+                  ...rows.map(row =>
+                    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+                  ),
+                ].join('\n');
+
+                // eslint-disable-next-line no-undef
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                // eslint-disable-next-line no-undef
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute(
+                  'download',
+                  `dives-all-${count}-${new Date().toISOString().split('T')[0]}.csv`
+                );
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                toast.success(`Exported all ${allDives.length.toLocaleString()} dives to CSV`, {
+                  id: 'export-all-toast',
+                });
+              } catch (error) {
+                console.error('Export error:', error);
+                toast.error('Failed to export all dives. Please try again.', {
+                  id: 'export-all-toast',
+                });
+              }
+            }}
+            className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium w-full sm:w-auto'
+          >
+            <Download className='h-4 w-4' />
+            <span>Export All</span>
+          </button>
         </div>
       </div>
 
       {/* Dives Table */}
-      <div className='bg-white shadow-md rounded-lg overflow-hidden'>
-        <div className='overflow-x-auto'>
-          <table className='min-w-full divide-y divide-gray-200'>
-            <thead className='bg-gray-50'>
-              <tr>
-                <th
-                  className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100'
-                  onClick={() => handleSort('id')}
-                >
-                  <div className='flex items-center'>
-                    ID
-                    {getSortIcon('id')}
-                  </div>
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  <input
-                    type='checkbox'
-                    checked={selectedItems.size === (dives?.length || 0) && selectedItems.size > 0}
-                    onChange={e => handleSelectAll(e.target.checked)}
-                    className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                  />
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Dive
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  User
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Dive Site
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Date
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Rating
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Privacy
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Views
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className='bg-white divide-y divide-gray-200'>
-              {isLoading ? (
-                <tr>
-                  <td colSpan='9' className='px-6 py-4 text-center'>
-                    <Loader className='h-6 w-6 animate-spin mx-auto' />
-                  </td>
-                </tr>
-              ) : filteredDives.length === 0 ? (
-                <tr>
-                  <td colSpan='9' className='px-6 py-4 text-center text-gray-500'>
-                    No dives found
-                  </td>
-                </tr>
-              ) : (
-                sortedDives.map(dive => (
-                  <tr key={dive.id} className='hover:bg-gray-50'>
-                    <td className='px-4 py-4 whitespace-nowrap text-sm text-gray-900'>{dive.id}</td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <input
-                        type='checkbox'
-                        checked={selectedItems.has(dive.id)}
-                        onChange={e => handleSelectItem(dive.id, e.target.checked)}
-                        className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                      />
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='flex items-center'>
-                        <Anchor className='h-5 w-5 text-blue-600 mr-2' />
-                        <div>
-                          <div className='text-sm font-medium text-gray-900'>{dive.name}</div>
-                          <div className='text-sm text-gray-500'>
-                            {dive.max_depth && `${dive.max_depth}m`}
-                            {dive.duration && ` • ${dive.duration}min`}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='flex items-center'>
-                        <User className='h-4 w-4 text-gray-400 mr-2' />
-                        <span className='text-sm text-gray-900'>{dive.user_username}</span>
-                      </div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      {dive.dive_site ? (
-                        <div className='flex items-center'>
-                          <MapPin className='h-4 w-4 text-gray-400 mr-2' />
-                          <span className='text-sm text-gray-900'>{dive.dive_site.name}</span>
-                        </div>
-                      ) : (
-                        <span className='text-sm text-gray-500'>No dive site</span>
-                      )}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='flex items-center'>
-                        <Calendar className='h-4 w-4 text-gray-400 mr-2' />
-                        <span className='text-sm text-gray-900'>{dive.dive_date}</span>
-                      </div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='flex items-center'>
-                        <span className='text-sm text-gray-900'>
-                          {dive.user_rating ? `${dive.user_rating}/10` : 'N/A'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          dive.is_private
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}
-                      >
-                        {dive.is_private ? 'Private' : 'Public'}
-                      </span>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='flex items-center'>
-                        <span className='text-sm text-gray-900'>{dive.view_count || 0}</span>
-                      </div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
-                      <div className='flex items-center space-x-2'>
-                        <button
-                          onClick={() => handleEditDive(dive)}
-                          className='text-blue-600 hover:text-blue-900'
-                        >
-                          <Edit className='h-4 w-4' />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteDive(dive)}
-                          className='text-red-600 hover:text-red-900'
-                        >
-                          <Trash2 className='h-4 w-4' />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <AdminDivesTable
+        data={dives || []}
+        columns={columns}
+        pagination={paginationWithCount}
+        onPaginationChange={handlePaginationChange}
+        sorting={sorting}
+        onSortingChange={setSorting}
+        rowSelection={rowSelection}
+        onRowSelectionChange={setRowSelection}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={setColumnVisibility}
+        onEdit={handleEditDive}
+        onDelete={handleDeleteDive}
+        isLoading={isLoading}
+      />
 
       {/* Edit Dive Modal */}
       {showEditDiveModal && (
