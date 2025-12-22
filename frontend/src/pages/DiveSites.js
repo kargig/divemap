@@ -12,6 +12,14 @@ import {
   Globe,
   List,
   Grid,
+  MessageSquare,
+  User,
+  Fish,
+  Shield,
+  Navigation,
+  Award,
+  MessageCircle,
+  Route,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
@@ -28,6 +36,7 @@ import MatchTypeBadge from '../components/MatchTypeBadge';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
+import { useCompactLayout } from '../hooks/useCompactLayout';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
@@ -56,11 +65,8 @@ const DiveSites = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [quickFilters, setQuickFilters] = useState([]);
 
-  // Thumbnails feature removed
-  const [compactLayout, setCompactLayout] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('compact_layout') !== 'false'; // Default to true (compact)
-  });
+  // Compact layout state management
+  const { compactLayout, handleDisplayOptionChange } = useCompactLayout();
 
   // Mobile optimization styles
   const mobileStyles = {
@@ -134,7 +140,14 @@ const DiveSites = () => {
   // Debounced URL update for search inputs
   const debouncedUpdateURL = useCallback(
     debounce((newFilters, newPagination, newViewMode) => {
+      const currentParams = new URLSearchParams(window.location.search);
       const newSearchParams = new URLSearchParams();
+
+      // Preserve compact_layout parameter
+      const compactLayoutParam = currentParams.get('compact_layout');
+      if (compactLayoutParam === 'true') {
+        newSearchParams.set('compact_layout', 'true');
+      }
 
       // Preserve current view mode if not explicitly changing it
       if (newViewMode) {
@@ -144,6 +157,14 @@ const DiveSites = () => {
           newSearchParams.set('view', 'grid');
         }
         // List view is default, so no need to set it
+      } else {
+        // Preserve existing view mode if not changing
+        const currentView = currentParams.get('view');
+        if (currentView === 'map') {
+          newSearchParams.set('view', 'map');
+        } else if (currentView === 'grid' && !isMobile) {
+          newSearchParams.set('view', 'grid');
+        }
       }
 
       if (newFilters.search_query && newFilters.search_query.trim()) {
@@ -200,7 +221,14 @@ const DiveSites = () => {
   // Immediate URL update for non-search filters (difficulty, ratings, tags, pagination)
   const immediateUpdateURL = useCallback(
     (newFilters, newPagination, newViewMode) => {
+      const currentParams = new URLSearchParams(window.location.search);
       const newSearchParams = new URLSearchParams();
+
+      // Preserve compact_layout parameter
+      const compactLayoutParam = currentParams.get('compact_layout');
+      if (compactLayoutParam === 'true') {
+        newSearchParams.set('compact_layout', 'true');
+      }
 
       // Preserve current view mode if not explicitly changing it
       if (newViewMode) {
@@ -210,6 +238,14 @@ const DiveSites = () => {
           newSearchParams.set('view', 'grid');
         }
         // List view is default, so no need to set it
+      } else {
+        // Preserve existing view mode if not changing
+        const currentView = currentParams.get('view');
+        if (currentView === 'map') {
+          newSearchParams.set('view', 'map');
+        } else if (currentView === 'grid' && !isMobile) {
+          newSearchParams.set('view', 'grid');
+        }
       }
 
       if (newFilters.search_query && newFilters.search_query.trim()) {
@@ -487,22 +523,6 @@ const DiveSites = () => {
     navigate(`?${urlParams.toString()}`, { replace: true });
   };
 
-  const handleDisplayOptionChange = option => {
-    if (option === 'compact') {
-      const newCompactLayout = !compactLayout;
-      setCompactLayout(newCompactLayout);
-
-      // Update URL
-      const urlParams = new URLSearchParams(window.location.search);
-      if (!newCompactLayout) {
-        urlParams.set('compact_layout', 'false');
-      } else {
-        urlParams.delete('compact_layout');
-      }
-      navigate(`?${urlParams.toString()}`, { replace: true });
-    }
-  };
-
   const handleQuickFilter = filterType => {
     // Toggle the filter in the quickFilters array
     setQuickFilters(prev => {
@@ -588,7 +608,7 @@ const DiveSites = () => {
   return (
     <div className='min-h-screen bg-gray-50'>
       {/* Mobile-First Responsive Container */}
-      <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
         {/* Hero Section */}
         <HeroSection
           title='Dive Sites'
@@ -774,13 +794,13 @@ const DiveSites = () => {
               {viewMode === 'list' && diveSites?.results && (
                 <div
                   data-testid='dive-sites-list'
-                  className={`space-y-2 sm:space-y-3 ${compactLayout ? 'view-mode-compact' : ''}`}
+                  className={`space-y-3 sm:space-y-4 ${compactLayout ? 'view-mode-compact' : ''}`}
                 >
                   {diveSites.results.map(site => (
                     <div
                       key={site.id}
                       className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow relative ${
-                        compactLayout ? 'p-2 sm:p-3' : 'p-3 sm:p-4'
+                        compactLayout ? 'p-3 sm:p-4' : 'p-4 sm:p-5'
                       }`}
                     >
                       <div className='flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2'>
@@ -795,53 +815,291 @@ const DiveSites = () => {
                         </Link>
 
                         <div className='flex-1 min-w-0'>
+                          {/* Title and match badge row */}
                           <div className='flex items-start gap-2 mb-2'>
-                            {/* Thumbnail removed */}
-                            <div className='min-w-0 flex-1'>
-                              <div className='flex flex-col gap-0'>
-                                <h3
-                                  className={`font-semibold text-gray-900 truncate ${compactLayout ? 'text-sm' : 'text-lg'} sm:mb-0 -mb-2 leading-tight sm:leading-normal`}
+                            <h3
+                              className={`font-semibold text-gray-900 line-clamp-2 flex-1 min-w-0 ${compactLayout ? 'text-base' : 'text-xl'}`}
+                            >
+                              <Link
+                                to={`/dive-sites/${site.id}`}
+                                state={{
+                                  from: window.location.pathname + window.location.search,
+                                }}
+                                className='text-blue-600 hover:text-blue-800 transition-colors block'
+                                title={site.name}
+                              >
+                                {site.name}
+                              </Link>
+                            </h3>
+                            {/* Route badge - similar to dives (only show if route_count field exists) */}
+                            {site.route_count !== undefined &&
+                              site.route_count !== null &&
+                              site.route_count > 0 && (
+                                <div
+                                  className='flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium flex-shrink-0'
+                                  title={`This dive site has ${site.route_count} route${site.route_count > 1 ? 's' : ''}`}
                                 >
-                                  <Link
-                                    to={`/dive-sites/${site.id}`}
-                                    state={{
-                                      from: window.location.pathname + window.location.search,
-                                    }}
-                                    className='text-blue-600 hover:text-blue-800 transition-colors block truncate'
-                                    title={site.name}
-                                  >
-                                    {site.name}
-                                  </Link>
-                                </h3>
-                                {/* Mobile: Country/Region as subtitle */}
-                                {(site.country || site.region) && (
-                                  <span
-                                    className={`text-gray-600 ${compactLayout ? 'text-xs' : 'text-sm'} sm:hidden -mt-3 leading-tight`}
-                                  >
-                                    {[site.country, site.region].filter(Boolean).join(', ')}
-                                  </span>
-                                )}
-                                {/* Desktop: Country/Region in original position */}
-                                <div className='hidden sm:flex sm:flex-row sm:items-center gap-1 sm:gap-2'>
-                                  {/* Match Type Badge - Show when we have match type information */}
-                                  {matchTypes[site.id] && (
-                                    <MatchTypeBadge
-                                      matchType={matchTypes[site.id].type}
-                                      score={matchTypes[site.id].score}
-                                      className='flex-shrink-0'
-                                    />
-                                  )}
-                                  {(site.country || site.region) && (
-                                    <span
-                                      className={`text-gray-600 flex-shrink-0 ${compactLayout ? 'text-xs' : 'text-sm'}`}
-                                    >
-                                      {[site.country, site.region].filter(Boolean).join(', ')}
-                                    </span>
-                                  )}
+                                  <Route
+                                    className={`${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5'}`}
+                                  />
+                                  Route{site.route_count > 1 ? 's' : ''}
                                 </div>
+                              )}
+                            {/* Match Type Badge */}
+                            {matchTypes[site.id] && (
+                              <div className='flex-shrink-0'>
+                                <MatchTypeBadge
+                                  matchType={matchTypes[site.id].type}
+                                  score={matchTypes[site.id].score}
+                                />
                               </div>
-                            </div>
+                            )}
                           </div>
+
+                          {/* Stats and Geographic info row - matching diving-centers layout */}
+                          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-2'>
+                            {/* Stats section - difficulty, rating, comments */}
+                            <div
+                              className={`flex flex-wrap items-center ${compactLayout ? 'gap-2' : 'gap-2 sm:gap-3'}`}
+                            >
+                              {/* Difficulty badge with icon - clickable */}
+                              {site.difficulty_code ? (
+                                <button
+                                  type='button'
+                                  onClick={e => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleFilterChange('difficulty_code', site.difficulty_code);
+                                  }}
+                                  className={`inline-flex items-center rounded-full font-medium flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${getDifficultyColorClasses(site.difficulty_code)} ${
+                                    compactLayout
+                                      ? 'px-2 py-0.5 text-[11px]'
+                                      : 'px-3 py-1 text-xs sm:text-sm'
+                                  }`}
+                                  title={`Filter by ${site.difficulty_label || getDifficultyLabel(site.difficulty_code)}`}
+                                >
+                                  <Award
+                                    className={`hidden sm:inline-block flex-shrink-0 ${compactLayout ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-1.5'}`}
+                                  />
+                                  {site.difficulty_label ||
+                                    getDifficultyLabel(site.difficulty_code)}
+                                </button>
+                              ) : (
+                                <span
+                                  className={`inline-flex items-center rounded-full font-medium flex-shrink-0 ${getDifficultyColorClasses(site.difficulty_code)} ${
+                                    compactLayout
+                                      ? 'px-2 py-0.5 text-[11px]'
+                                      : 'px-3 py-1 text-xs sm:text-sm'
+                                  }`}
+                                >
+                                  <Award
+                                    className={`hidden sm:inline-block flex-shrink-0 ${compactLayout ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-1.5'}`}
+                                  />
+                                  {site.difficulty_label ||
+                                    getDifficultyLabel(site.difficulty_code)}
+                                </span>
+                              )}
+
+                              {/* Rating with star - more spacious on desktop */}
+                              {site.average_rating !== undefined &&
+                                site.average_rating !== null && (
+                                  <div
+                                    className={`flex items-center bg-yellow-50 rounded-full flex-shrink-0 border border-yellow-200 shadow-sm ${
+                                      compactLayout
+                                        ? 'gap-1 px-2 py-0.5'
+                                        : 'gap-2 px-3 py-1.5 sm:px-4 sm:py-2'
+                                    }`}
+                                  >
+                                    <Star
+                                      className={`text-yellow-500 fill-current flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
+                                    />
+                                    <span
+                                      className={`font-semibold text-yellow-800 ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
+                                    >
+                                      {Number(site.average_rating).toFixed(1)}/10
+                                    </span>
+                                  </div>
+                                )}
+
+                              {/* Review count with icon - more spacious on desktop */}
+                              {site.total_ratings !== undefined &&
+                                site.total_ratings !== null &&
+                                site.total_ratings > 0 && (
+                                  <div
+                                    className={`flex items-center bg-blue-50 rounded-full flex-shrink-0 border border-blue-200 ${
+                                      compactLayout
+                                        ? 'gap-1 px-2 py-0.5'
+                                        : 'gap-2 px-3 py-1.5 sm:px-4 sm:py-2'
+                                    }`}
+                                  >
+                                    <MessageCircle
+                                      className={`text-blue-600 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
+                                    />
+                                    <span
+                                      className={`font-semibold text-blue-800 ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
+                                    >
+                                      {site.total_ratings}
+                                    </span>
+                                  </div>
+                                )}
+                            </div>
+
+                            {/* Additional stats - depth, creator */}
+                            <div
+                              className={`flex flex-wrap items-center ${compactLayout ? 'gap-2' : 'gap-2 sm:gap-3'}`}
+                            >
+                              {/* Max depth */}
+                              {site.max_depth !== undefined && site.max_depth !== null && (
+                                <div
+                                  className={`flex items-center text-gray-700 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5 sm:gap-2'}`}
+                                >
+                                  <TrendingUp
+                                    className={`text-gray-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
+                                  />
+                                  <span
+                                    className={`font-medium ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
+                                  >
+                                    {site.max_depth}m
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Creator */}
+                              {site.created_by_username && (
+                                <div
+                                  className={`flex items-center text-gray-600 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5 sm:gap-2'}`}
+                                >
+                                  <User
+                                    className={`text-gray-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
+                                  />
+                                  <span
+                                    className={`truncate ${compactLayout ? 'text-[11px] max-w-[80px] sm:max-w-[100px]' : 'text-xs sm:text-sm max-w-[100px] sm:max-w-[160px]'}`}
+                                    title={site.created_by_username}
+                                  >
+                                    {site.created_by_username}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Geographic fields - positioned on right like diving-centers */}
+                            {(site.country || site.region) && (
+                              <div className='flex items-center gap-1.5 flex-wrap sm:flex-nowrap justify-end lg:justify-start'>
+                                {site.country && (
+                                  <button
+                                    type='button'
+                                    onClick={e => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleFilterChange('country', site.country);
+                                    }}
+                                    className={`flex items-center bg-blue-50 rounded-full hover:bg-blue-100 transition-colors flex-shrink-0 ${
+                                      compactLayout
+                                        ? 'gap-1 px-2 py-0.5'
+                                        : 'gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5'
+                                    }`}
+                                    title={`Filter by country: ${site.country}`}
+                                  >
+                                    <Globe
+                                      className={`text-blue-600 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5 sm:w-4 sm:h-4'}`}
+                                    />
+                                    <span
+                                      className={`font-medium text-blue-700 ${compactLayout ? 'text-[10px]' : 'text-xs sm:text-sm'}`}
+                                    >
+                                      {site.country}
+                                    </span>
+                                  </button>
+                                )}
+                                {site.region && (
+                                  <button
+                                    type='button'
+                                    onClick={e => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleFilterChange('region', site.region);
+                                    }}
+                                    className={`flex items-center bg-green-50 rounded-full hover:bg-green-100 transition-colors flex-shrink-0 ${
+                                      compactLayout
+                                        ? 'gap-1 px-2 py-0.5'
+                                        : 'gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5'
+                                    }`}
+                                    title={`Filter by region: ${site.region}`}
+                                  >
+                                    <MapPin
+                                      className={`text-green-600 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5 sm:w-4 sm:h-4'}`}
+                                    />
+                                    <span
+                                      className={`font-medium text-green-700 ${compactLayout ? 'text-[10px]' : 'text-xs sm:text-sm'}`}
+                                    >
+                                      {site.region}
+                                    </span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Additional info row - marine life, access, safety */}
+                          {(site.marine_life ||
+                            site.access_instructions ||
+                            site.safety_information) && (
+                            <div
+                              className={`flex flex-wrap items-center ${compactLayout ? 'gap-1.5 mb-2' : 'gap-2 sm:gap-3 mb-2'}`}
+                            >
+                              {/* Marine life indicator */}
+                              {site.marine_life && (
+                                <div
+                                  className={`flex items-center text-gray-600 flex-shrink-0 bg-blue-50 rounded-full ${compactLayout ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5'}`}
+                                  title={site.marine_life}
+                                >
+                                  <Fish
+                                    className={`text-blue-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
+                                  />
+                                  <span
+                                    className={`truncate ${compactLayout ? 'text-[10px] max-w-[80px] sm:max-w-[120px]' : 'text-xs sm:text-sm max-w-[120px] sm:max-w-[200px]'}`}
+                                  >
+                                    {site.marine_life.length > (compactLayout ? 15 : 30)
+                                      ? `${site.marine_life.substring(0, compactLayout ? 15 : 30)}...`
+                                      : site.marine_life}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Access indicator */}
+                              {site.access_instructions && (
+                                <div
+                                  className={`flex items-center text-gray-600 flex-shrink-0 bg-green-50 rounded-full ${compactLayout ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5'}`}
+                                  title={site.access_instructions}
+                                >
+                                  <Navigation
+                                    className={`text-green-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
+                                  />
+                                  <span
+                                    className={compactLayout ? 'text-[10px]' : 'text-xs sm:text-sm'}
+                                  >
+                                    Access info
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Safety indicator */}
+                              {site.safety_information && (
+                                <div
+                                  className={`flex items-center text-gray-600 flex-shrink-0 bg-orange-50 rounded-full ${compactLayout ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5'}`}
+                                  title={site.safety_information}
+                                >
+                                  <Shield
+                                    className={`text-orange-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
+                                  />
+                                  <span
+                                    className={compactLayout ? 'text-[10px]' : 'text-xs sm:text-sm'}
+                                  >
+                                    Safety
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         {/* Desktop: View button in original position */}
                         <Link
@@ -854,41 +1112,18 @@ const DiveSites = () => {
                         </Link>
                       </div>
 
-                      <div className='flex flex-wrap items-center gap-2 sm:gap-4 mb-2'>
-                        <div className='flex items-center gap-1'>
-                          <span
-                            className={`inline-flex items-center px-2 py-1 sm:py-0.5 rounded-full text-[11px] font-medium ${getDifficultyColorClasses(site.difficulty_code)}`}
-                          >
-                            {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
-                          </span>
-                        </div>
-                        {site.max_depth !== undefined && site.max_depth !== null && (
-                          <div className='flex items-center gap-1'>
-                            <TrendingUp className='w-3 h-3 text-gray-400' />
-                            <span className='text-[11px] text-gray-600'>{site.max_depth}m</span>
-                          </div>
-                        )}
-                        {site.average_rating !== undefined && site.average_rating !== null && (
-                          <div className='flex items-center gap-1'>
-                            <Star className='w-3 h-3 text-yellow-400' />
-                            <span className='text-[11px] text-gray-600'>
-                              {Number(site.average_rating).toFixed(1)}/10
-                            </span>
-                          </div>
-                        )}
-                        {/* Geo coordinates removed for mobile view */}
-                      </div>
-
                       {site.description && (
-                        <p className='text-gray-700 text-xs mb-2 line-clamp-2'>
+                        <p
+                          className={`text-gray-700 line-clamp-2 leading-relaxed ${compactLayout ? 'text-xs mb-2' : 'text-sm mb-3'}`}
+                        >
                           {renderTextWithLinks(site.description)}
                         </p>
                       )}
 
                       {/* Tags */}
                       {site.tags && site.tags.length > 0 && (
-                        <div className='flex flex-wrap gap-1'>
-                          {site.tags.slice(0, 3).map((tag, index) => {
+                        <div className={`flex flex-wrap ${compactLayout ? 'gap-1.5' : 'gap-2'}`}>
+                          {site.tags.slice(0, compactLayout ? 4 : 5).map((tag, index) => {
                             const tagName = tag.name || tag;
                             const tagId = tag.id || tag;
                             return (
@@ -903,16 +1138,22 @@ const DiveSites = () => {
                                     : [...currentTagIds, tagId];
                                   handleFilterChange('tag_ids', newTagIds);
                                 }}
-                                className={`inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium rounded cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tagName)}`}
+                                className={`inline-flex items-center font-medium rounded-full cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tagName)} ${
+                                  compactLayout ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs'
+                                }`}
                                 title={`Filter by ${tagName}`}
                               >
                                 {tagName}
                               </button>
                             );
                           })}
-                          {site.tags.length > 3 && (
-                            <span className='inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium bg-gray-100 text-gray-600 rounded'>
-                              +{site.tags.length - 3}
+                          {site.tags.length > (compactLayout ? 4 : 5) && (
+                            <span
+                              className={`inline-flex items-center font-medium bg-gray-100 text-gray-600 rounded-full ${
+                                compactLayout ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs'
+                              }`}
+                            >
+                              +{site.tags.length - (compactLayout ? 4 : 5)}
                             </span>
                           )}
                         </div>
@@ -931,70 +1172,244 @@ const DiveSites = () => {
                     <div
                       key={site.id}
                       className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
-                        compactLayout ? 'p-3' : 'p-4'
+                        compactLayout ? 'p-4' : 'p-5'
                       }`}
                     >
                       {/* Thumbnail removed */}
 
                       <div className='p-3'>
-                        <div className='flex items-center gap-3 mb-2'>
+                        {/* Title and match badge row */}
+                        <div className='flex items-start gap-2 mb-2'>
                           <h3
-                            className={`font-semibold text-gray-900 truncate flex-1 ${compactLayout ? 'text-sm' : 'text-lg'}`}
+                            className={`font-semibold text-gray-900 line-clamp-2 flex-1 min-w-0 ${compactLayout ? 'text-base' : 'text-xl'}`}
                           >
                             <Link
                               to={`/dive-sites/${site.id}`}
                               state={{ from: window.location.pathname + window.location.search }}
-                              className='hover:text-blue-600 transition-colors block truncate'
+                              className='text-blue-600 hover:text-blue-800 transition-colors block'
                               title={site.name}
                             >
                               {site.name}
                             </Link>
                           </h3>
-                          {/* Match Type Badge - Show when we have match type information */}
+                          {/* Match Type Badge */}
                           {matchTypes[site.id] && (
-                            <MatchTypeBadge
-                              matchType={matchTypes[site.id].type}
-                              score={matchTypes[site.id].score}
-                              className='flex-shrink-0'
-                            />
-                          )}
-                          {(site.country || site.region) && (
-                            <span
-                              className={`text-gray-600 flex-shrink-0 ${compactLayout ? 'text-xs' : 'text-sm'}`}
-                            >
-                              {[site.country, site.region].filter(Boolean).join(', ')}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className='mb-2'>
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${getDifficultyColorClasses(site.difficulty_code)}`}
-                          >
-                            {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
-                          </span>
-                        </div>
-
-                        <div className='grid grid-cols-2 gap-2 mb-2'>
-                          {site.max_depth !== undefined && site.max_depth !== null && (
-                            <div className='flex items-center gap-2'>
-                              <TrendingUp className='w-4 h-4 text-gray-400' />
-                              <span className='text-sm text-gray-600'>{site.max_depth}m</span>
+                            <div className='flex-shrink-0'>
+                              <MatchTypeBadge
+                                matchType={matchTypes[site.id].type}
+                                score={matchTypes[site.id].score}
+                              />
                             </div>
                           )}
+                        </div>
+
+                        {/* Geographic fields - separate row below title, matching diving-centers */}
+                        {(site.country || site.region) && (
+                          <div className='flex items-center gap-1.5 flex-wrap sm:flex-nowrap mb-2'>
+                            {site.country && (
+                              <button
+                                type='button'
+                                onClick={e => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleFilterChange('country', site.country);
+                                }}
+                                className={`flex items-center bg-blue-50 rounded-full hover:bg-blue-100 transition-colors flex-shrink-0 ${
+                                  compactLayout ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-2.5 py-1'
+                                }`}
+                                title={`Filter by country: ${site.country}`}
+                              >
+                                <Globe
+                                  className={`text-blue-600 ${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5'}`}
+                                />
+                                <span
+                                  className={`font-medium text-blue-700 ${compactLayout ? 'text-[10px]' : 'text-xs'}`}
+                                >
+                                  {site.country}
+                                </span>
+                              </button>
+                            )}
+                            {site.region && (
+                              <button
+                                type='button'
+                                onClick={e => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleFilterChange('region', site.region);
+                                }}
+                                className={`flex items-center bg-green-50 rounded-full hover:bg-green-100 transition-colors flex-shrink-0 ${
+                                  compactLayout ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-2.5 py-1'
+                                }`}
+                                title={`Filter by region: ${site.region}`}
+                              >
+                                <MapPin
+                                  className={`text-green-600 ${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5'}`}
+                                />
+                                <span
+                                  className={`font-medium text-green-700 ${compactLayout ? 'text-[10px]' : 'text-xs'}`}
+                                >
+                                  {site.region}
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Horizontal stats row - improved spacing with icons */}
+                        <div
+                          className={`flex flex-wrap items-center ${compactLayout ? 'gap-2 mb-2' : 'gap-2.5 sm:gap-3 mb-3'}`}
+                        >
+                          {/* Difficulty badge with icon - clickable */}
+                          {site.difficulty_code ? (
+                            <button
+                              type='button'
+                              onClick={e => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleFilterChange('difficulty_code', site.difficulty_code);
+                              }}
+                              className={`inline-flex items-center rounded-full font-medium flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${getDifficultyColorClasses(site.difficulty_code)} ${
+                                compactLayout ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'
+                              }`}
+                              title={`Filter by ${site.difficulty_label || getDifficultyLabel(site.difficulty_code)}`}
+                            >
+                              <Award className='hidden sm:inline-block w-3.5 h-3.5 mr-1.5 flex-shrink-0' />
+                              {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
+                            </button>
+                          ) : (
+                            <span
+                              className={`inline-flex items-center rounded-full font-medium flex-shrink-0 ${getDifficultyColorClasses(site.difficulty_code)} ${
+                                compactLayout ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'
+                              }`}
+                            >
+                              <Award className='hidden sm:inline-block w-3.5 h-3.5 mr-1.5 flex-shrink-0' />
+                              {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
+                            </span>
+                          )}
+
+                          {/* Rating - enhanced */}
                           {site.average_rating !== undefined && site.average_rating !== null && (
-                            <div className='flex items-center gap-2'>
-                              <Star className='w-4 h-4 text-yellow-400' />
-                              <span className='text-sm text-gray-600'>
+                            <div
+                              className={`flex items-center bg-yellow-50 rounded-full flex-shrink-0 border border-yellow-200 shadow-sm ${
+                                compactLayout ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-3 py-1'
+                              }`}
+                            >
+                              <Star
+                                className={`text-yellow-500 fill-current ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
+                              />
+                              <span
+                                className={`font-semibold text-yellow-800 ${compactLayout ? 'text-[11px]' : 'text-xs'}`}
+                              >
                                 {Number(site.average_rating).toFixed(1)}/10
                               </span>
                             </div>
                           )}
-                          {/* Geo coordinates removed for grid view */}
+
+                          {/* Max depth */}
+                          {site.max_depth !== undefined && site.max_depth !== null && (
+                            <div
+                              className={`flex items-center text-gray-700 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5'}`}
+                            >
+                              <TrendingUp
+                                className={`text-gray-500 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
+                              />
+                              <span
+                                className={`font-medium ${compactLayout ? 'text-[11px]' : 'text-xs'}`}
+                              >
+                                {site.max_depth}m
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Review count with icon - enhanced */}
+                          {site.total_ratings !== undefined &&
+                            site.total_ratings !== null &&
+                            site.total_ratings > 0 && (
+                              <div
+                                className={`flex items-center bg-blue-50 rounded-full flex-shrink-0 border border-blue-200 ${compactLayout ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-2.5 py-1'}`}
+                              >
+                                <MessageCircle
+                                  className={`text-blue-600 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
+                                />
+                                <span
+                                  className={`font-semibold text-blue-800 ${compactLayout ? 'text-[11px]' : 'text-xs'}`}
+                                >
+                                  {site.total_ratings}
+                                </span>
+                              </div>
+                            )}
+
+                          {/* Creator */}
+                          {site.created_by_username && (
+                            <div
+                              className={`flex items-center text-gray-600 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5'}`}
+                            >
+                              <User
+                                className={`text-gray-500 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
+                              />
+                              <span
+                                className={`truncate ${compactLayout ? 'text-[11px] max-w-[80px]' : 'text-xs max-w-[100px]'}`}
+                                title={site.created_by_username}
+                              >
+                                {site.created_by_username}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Marine life */}
+                          {site.marine_life && (
+                            <div
+                              className={`flex items-center text-gray-600 flex-shrink-0 bg-blue-50 rounded-full ${compactLayout ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-2 py-1'}`}
+                              title={site.marine_life}
+                            >
+                              <Fish
+                                className={`text-blue-500 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
+                              />
+                              <span
+                                className={`truncate ${compactLayout ? 'text-[10px] max-w-[80px]' : 'text-xs max-w-[120px]'}`}
+                              >
+                                {site.marine_life.length > (compactLayout ? 15 : 20)
+                                  ? `${site.marine_life.substring(0, compactLayout ? 15 : 20)}...`
+                                  : site.marine_life}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Access */}
+                          {site.access_instructions && (
+                            <div
+                              className={`flex items-center text-gray-600 flex-shrink-0 bg-green-50 rounded-full ${compactLayout ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-2 py-1'}`}
+                              title={site.access_instructions}
+                            >
+                              <Navigation
+                                className={`text-green-500 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
+                              />
+                              <span className={compactLayout ? 'text-[10px]' : 'text-xs'}>
+                                Access
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Safety */}
+                          {site.safety_information && (
+                            <div
+                              className={`flex items-center text-gray-600 flex-shrink-0 bg-orange-50 rounded-full ${compactLayout ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-2 py-1'}`}
+                              title={site.safety_information}
+                            >
+                              <Shield
+                                className={`text-orange-500 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
+                              />
+                              <span className={compactLayout ? 'text-[10px]' : 'text-xs'}>
+                                Safety
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {site.description && (
-                          <p className='text-gray-700 text-xs mb-2 line-clamp-2'>
+                          <p
+                            className={`text-gray-700 line-clamp-2 leading-relaxed ${compactLayout ? 'text-xs mb-2' : 'text-sm mb-3'}`}
+                          >
                             {site.description.split(/(https?:\/\/[^\s]+)/).map((part, index) => {
                               if (part.match(/^https?:\/\//)) {
                                 return (
@@ -1016,9 +1431,11 @@ const DiveSites = () => {
 
                         {/* Tags */}
                         {site.tags && site.tags.length > 0 && (
-                          <div className='mb-4'>
-                            <div className='flex flex-wrap gap-2'>
-                              {site.tags.slice(0, 3).map((tag, index) => {
+                          <div className={compactLayout ? 'mb-3' : 'mb-4'}>
+                            <div
+                              className={`flex flex-wrap ${compactLayout ? 'gap-1.5' : 'gap-2'}`}
+                            >
+                              {site.tags.slice(0, compactLayout ? 4 : 5).map((tag, index) => {
                                 const tagName = tag.name || tag;
                                 const tagId = tag.id || tag;
                                 return (
@@ -1033,16 +1450,26 @@ const DiveSites = () => {
                                         : [...currentTagIds, tagId];
                                       handleFilterChange('tag_ids', newTagIds);
                                     }}
-                                    className='inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full cursor-pointer hover:opacity-80 transition-opacity'
+                                    className={`inline-flex items-center font-medium rounded-full cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tagName)} ${
+                                      compactLayout
+                                        ? 'px-2 py-0.5 text-[11px]'
+                                        : 'px-2.5 py-1 text-xs'
+                                    }`}
                                     title={`Filter by ${tagName}`}
                                   >
                                     {tagName}
                                   </button>
                                 );
                               })}
-                              {site.tags.length > 3 && (
-                                <span className='inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full'>
-                                  +{site.tags.length - 3} more
+                              {site.tags.length > (compactLayout ? 4 : 5) && (
+                                <span
+                                  className={`inline-flex items-center font-medium bg-gray-100 text-gray-600 rounded-full ${
+                                    compactLayout
+                                      ? 'px-2 py-0.5 text-[11px]'
+                                      : 'px-2.5 py-1 text-xs'
+                                  }`}
+                                >
+                                  +{site.tags.length - (compactLayout ? 4 : 5)} more
                                 </span>
                               )}
                             </div>

@@ -594,7 +594,7 @@ const ResponsiveFilterBar = ({
                     <input
                       type='checkbox'
                       checked={compactLayout}
-                      onChange={e => onDisplayOptionChange('compactLayout', e.target.checked)}
+                      onChange={() => onDisplayOptionChange('compact')}
                       className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
                     />
                     Compact
@@ -1404,7 +1404,7 @@ ResponsiveFilterBar.propTypes = {
   ),
   onSortChange: PropTypes.func,
   onReset: PropTypes.func,
-  viewMode: PropTypes.oneOf(['list', 'map']),
+  viewMode: PropTypes.oneOf(['list', 'grid', 'map']),
   onViewModeChange: PropTypes.func,
   compactLayout: PropTypes.bool,
   onDisplayOptionChange: PropTypes.func,

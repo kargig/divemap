@@ -29,6 +29,7 @@ import MaskedEmail from '../components/MaskedEmail';
 import MatchTypeBadge from '../components/MatchTypeBadge';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
+import { useCompactLayout } from '../hooks/useCompactLayout';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { useSetting } from '../hooks/useSettings';
@@ -64,11 +65,8 @@ const DivingCenters = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get('view') || 'list';
   });
-  // Thumbnails feature removed
-  const [compactLayout, setCompactLayout] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('compact_layout') !== 'false'; // Default to true (compact)
-  });
+  // Compact layout state management
+  const { compactLayout, handleDisplayOptionChange } = useCompactLayout();
 
   // Filter visibility state
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -456,22 +454,6 @@ const DivingCenters = () => {
     navigate(`?${urlParams.toString()}`, { replace: true });
   };
 
-  const handleDisplayOptionChange = option => {
-    if (option === 'compact') {
-      const newCompactLayout = !compactLayout;
-      setCompactLayout(newCompactLayout);
-
-      // Update URL
-      const urlParams = new URLSearchParams(window.location.search);
-      if (!newCompactLayout) {
-        urlParams.set('compact_layout', 'false');
-      } else {
-        urlParams.delete('compact_layout');
-      }
-      navigate(`?${urlParams.toString()}`, { replace: true });
-    }
-  };
-
   const handleQuickFilter = filterType => {
     // Toggle the quick filter - if it's already active, deactivate it
     if (quickFilter === filterType) {
@@ -521,7 +503,7 @@ const DivingCenters = () => {
   return (
     <div className='min-h-screen bg-gray-50'>
       {/* Mobile-First Responsive Container */}
-      <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
         {/* Hero Section */}
         <HeroSection
           title='Diving Centers'
@@ -776,7 +758,7 @@ const DivingCenters = () => {
                           </div>
 
                           {/* Contact and location info row */}
-                          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-2'>
+                          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-2'>
                             {/* Email */}
                             {center.email && (
                               <div className='flex items-center gap-1 text-xs text-gray-600'>
@@ -808,41 +790,45 @@ const DivingCenters = () => {
 
                             {/* Coordinates removed to save space */}
 
-                            {/* Geographic fields (clickable badges) */}
-                            {center.country && (
-                              <button
-                                type='button'
-                                onClick={() => applyFilterTag('country', center.country)}
-                                className='flex items-center gap-1 text-[10px] text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded'
-                                title={`Filter by country: ${center.country}`}
-                              >
-                                <Globe className='w-3 h-3 text-blue-600' />
-                                <span className='truncate'>{center.country}</span>
-                              </button>
-                            )}
+                            {/* Geographic fields (clickable badges) - now in a single flex container */}
+                            {(center.country || center.region || center.city) && (
+                              <div className='flex items-center gap-1.5 flex-wrap sm:flex-nowrap'>
+                                {center.country && (
+                                  <button
+                                    type='button'
+                                    onClick={() => applyFilterTag('country', center.country)}
+                                    className='flex items-center gap-1 text-[10px] text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded flex-shrink-0'
+                                    title={`Filter by country: ${center.country}`}
+                                  >
+                                    <Globe className='w-3 h-3 text-blue-600' />
+                                    <span className='truncate'>{center.country}</span>
+                                  </button>
+                                )}
 
-                            {center.region && (
-                              <button
-                                type='button'
-                                onClick={() => applyFilterTag('region', center.region)}
-                                className='flex items-center gap-1 text-[10px] text-green-700 bg-green-50 hover:bg-green-100 px-2 py-1 rounded'
-                                title={`Filter by region: ${center.region}`}
-                              >
-                                <MapPin className='w-3 h-3 text-green-600' />
-                                <span className='truncate'>{center.region}</span>
-                              </button>
-                            )}
+                                {center.region && (
+                                  <button
+                                    type='button'
+                                    onClick={() => applyFilterTag('region', center.region)}
+                                    className='flex items-center gap-1 text-[10px] text-green-700 bg-green-50 hover:bg-green-100 px-2 py-1 rounded flex-shrink-0'
+                                    title={`Filter by region: ${center.region}`}
+                                  >
+                                    <MapPin className='w-3 h-3 text-green-600' />
+                                    <span className='truncate'>{center.region}</span>
+                                  </button>
+                                )}
 
-                            {center.city && (
-                              <button
-                                type='button'
-                                onClick={() => applyFilterTag('city', center.city)}
-                                className='flex items-center gap-1 text-[10px] text-purple-700 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded'
-                                title={`Filter by city: ${center.city}`}
-                              >
-                                <Building className='w-3 h-3 text-purple-600' />
-                                <span className='truncate'>{center.city}</span>
-                              </button>
+                                {center.city && (
+                                  <button
+                                    type='button'
+                                    onClick={() => applyFilterTag('city', center.city)}
+                                    className='flex items-center gap-1 text-[10px] text-purple-700 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded flex-shrink-0'
+                                    title={`Filter by city: ${center.city}`}
+                                  >
+                                    <Building className='w-3 h-3 text-purple-600' />
+                                    <span className='truncate'>{center.city}</span>
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </div>
 
@@ -945,12 +931,12 @@ const DivingCenters = () => {
 
                         {/* Geographic fields */}
                         {(center.country || center.region || center.city) && (
-                          <div className='flex flex-wrap gap-2 mb-4'>
+                          <div className='flex items-center gap-1.5 flex-wrap sm:flex-nowrap mb-4'>
                             {center.country && (
                               <button
                                 type='button'
                                 onClick={() => applyFilterTag('country', center.country)}
-                                className='flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-full hover:bg-blue-100'
+                                className='flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-full hover:bg-blue-100 flex-shrink-0'
                                 title={`Filter by country: ${center.country}`}
                               >
                                 <Globe className='w-3 h-3 text-blue-600' />
@@ -963,7 +949,7 @@ const DivingCenters = () => {
                               <button
                                 type='button'
                                 onClick={() => applyFilterTag('region', center.region)}
-                                className='flex items-center gap-1 bg-green-50 px-2 py-1 rounded-full hover:bg-green-100'
+                                className='flex items-center gap-1 bg-green-50 px-2 py-1 rounded-full hover:bg-green-100 flex-shrink-0'
                                 title={`Filter by region: ${center.region}`}
                               >
                                 <MapPin className='w-3 h-3 text-green-600' />
@@ -976,7 +962,7 @@ const DivingCenters = () => {
                               <button
                                 type='button'
                                 onClick={() => applyFilterTag('city', center.city)}
-                                className='flex items-center gap-1 bg-purple-50 px-2 py-1 rounded-full hover:bg-purple-100'
+                                className='flex items-center gap-1 bg-purple-50 px-2 py-1 rounded-full hover:bg-purple-100 flex-shrink-0'
                                 title={`Filter by city: ${center.city}`}
                               >
                                 <Building className='w-3 h-3 text-purple-600' />

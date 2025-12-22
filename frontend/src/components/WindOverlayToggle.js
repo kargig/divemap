@@ -7,7 +7,13 @@ import React, { useState, useEffect } from 'react';
  * Toggle button to enable/disable wind overlay with zoom level restrictions
  * Only enabled at zoom levels 12-18
  */
-const WindOverlayToggle = ({ isOverlayEnabled, onToggle, zoomLevel, isLoading, disabled }) => {
+const WindOverlayToggle = ({
+  isOverlayEnabled,
+  onToggle,
+  zoomLevel,
+  isLoading = false,
+  disabled = false,
+}) => {
   const [isHovered, setIsHovered] = useState(false);
 
   // Auto-disable when zoom drops below 12
@@ -119,11 +125,6 @@ WindOverlayToggle.propTypes = {
   zoomLevel: PropTypes.number.isRequired,
   isLoading: PropTypes.bool,
   disabled: PropTypes.bool,
-};
-
-WindOverlayToggle.defaultProps = {
-  isLoading: false,
-  disabled: false,
 };
 
 export default WindOverlayToggle;

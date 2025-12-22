@@ -745,7 +745,7 @@ DivingCentersResponsiveFilterBar.propTypes = {
   onSortChange: PropTypes.func,
   onSortApply: PropTypes.func,
   onReset: PropTypes.func,
-  viewMode: PropTypes.oneOf(['list', 'map']),
+  viewMode: PropTypes.oneOf(['list', 'grid', 'map']),
   onViewModeChange: PropTypes.func,
   compactLayout: PropTypes.bool,
   onDisplayOptionChange: PropTypes.func,
