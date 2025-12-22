@@ -1116,7 +1116,7 @@ const Dives = () => {
                                   state={{
                                     from: window.location.pathname + window.location.search,
                                   }}
-                                  className='hover:text-blue-600 transition-colors whitespace-normal break-words'
+                                  className='text-blue-600 hover:text-blue-800 transition-colors whitespace-normal break-words'
                                 >
                                   {dive.name || `Dive #${dive.id}`}
                                 </Link>

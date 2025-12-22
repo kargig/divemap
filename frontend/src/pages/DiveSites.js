@@ -807,7 +807,7 @@ const DiveSites = () => {
                                     state={{
                                       from: window.location.pathname + window.location.search,
                                     }}
-                                    className='hover:text-blue-600 transition-colors block truncate'
+                                    className='text-blue-600 hover:text-blue-800 transition-colors block truncate'
                                     title={site.name}
                                   >
                                     {site.name}

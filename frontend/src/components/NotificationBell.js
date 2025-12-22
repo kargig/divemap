@@ -1,13 +1,15 @@
-import { Bell } from 'lucide-react';
+import { Bell, Check } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { getNotifications } from '../api';
-import { useNotificationContext } from '../contexts/NotificationContext';
+import { useNotificationContext, useNotifications } from '../contexts/NotificationContext';
 
 const NotificationBell = () => {
   const { unreadCount } = useNotificationContext();
+  const { markRead } = useNotifications();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
@@ -21,6 +23,14 @@ const NotificationBell = () => {
       staleTime: 0,
     }
   );
+
+  const handleMarkRead = (e, notificationId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    markRead(notificationId);
+    // Invalidate recent notifications query to refresh the dropdown
+    queryClient.invalidateQueries(['notifications', 'recent']);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -75,7 +85,7 @@ const NotificationBell = () => {
               <Link
                 to='/notifications'
                 onClick={() => setShowDropdown(false)}
-                className='text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors cursor-pointer'
+                className='text-lg font-semibold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer underline-offset-2 hover:underline'
               >
                 Notifications
               </Link>
@@ -88,29 +98,47 @@ const NotificationBell = () => {
           <div className='divide-y divide-gray-200'>
             {recentNotifications.length > 0 ? (
               recentNotifications.map(notification => (
-                <Link
+                <div
                   key={notification.id}
-                  to={notification.link_url || '/notifications'}
-                  onClick={() => setShowDropdown(false)}
-                  className={`block p-4 hover:bg-gray-50 transition-colors ${
+                  className={`group relative p-4 hover:bg-gray-50 transition-colors ${
                     !notification.is_read ? 'bg-blue-50' : ''
                   }`}
                 >
                   <div className='flex items-start justify-between'>
-                    <div className='flex-1'>
-                      <h4 className='text-sm font-medium text-gray-900'>{notification.title}</h4>
-                      <p className='text-sm text-gray-600 mt-1 line-clamp-2'>
-                        {notification.message}
-                      </p>
-                      <p className='text-xs text-gray-400 mt-2'>
-                        {new Date(notification.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
+                    <Link
+                      to={notification.link_url || '/notifications'}
+                      onClick={() => setShowDropdown(false)}
+                      className='flex-1'
+                    >
+                      <div className='flex items-start'>
+                        <div className='flex-1'>
+                          <h4 className='text-sm font-medium text-gray-900'>
+                            {notification.title}
+                          </h4>
+                          <p className='text-sm text-gray-600 mt-1 line-clamp-2'>
+                            {notification.message}
+                          </p>
+                          <p className='text-xs text-gray-400 mt-2'>
+                            {new Date(notification.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        {!notification.is_read && (
+                          <div className='ml-2 h-2 w-2 bg-blue-500 rounded-full flex-shrink-0 mt-1' />
+                        )}
+                      </div>
+                    </Link>
                     {!notification.is_read && (
-                      <div className='ml-2 h-2 w-2 bg-blue-500 rounded-full flex-shrink-0 mt-1' />
+                      <button
+                        onClick={e => handleMarkRead(e, notification.id)}
+                        className='ml-2 p-1.5 text-gray-400 hover:text-green-600 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0'
+                        aria-label='Mark as read'
+                        title='Mark as read'
+                      >
+                        <Check className='h-4 w-4' />
+                      </button>
                     )}
                   </div>
-                </Link>
+                </div>
               ))
             ) : (
               <div className='p-8 text-center text-gray-500'>
