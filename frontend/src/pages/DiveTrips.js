@@ -33,6 +33,7 @@ import HeroSection from '../components/HeroSection';
 import RateLimitError from '../components/RateLimitError';
 import StickyFilterBar from '../components/StickyFilterBar';
 import { useAuth } from '../contexts/AuthContext';
+import { useCompactLayout } from '../hooks/useCompactLayout';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
@@ -68,11 +69,9 @@ const DiveTrips = () => {
     const viewMode = params.get('view');
     return viewMode === 'map' ? 'map' : viewMode === 'grid' ? 'grid' : 'list';
   });
-  // Thumbnails feature removed
-  const [compactLayout, setCompactLayout] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('compact_layout') !== 'false'; // Default to true (compact)
-  });
+
+  // Compact layout state management (default: false/non-compact)
+  const { compactLayout, handleDisplayOptionChange } = useCompactLayout();
 
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -153,22 +152,6 @@ const DiveTrips = () => {
 
     // Update URL without triggering a page reload
     navigate(`?${urlParams.toString()}`, { replace: true });
-  };
-
-  const handleDisplayOptionChange = option => {
-    if (option === 'compact') {
-      const newCompactLayout = !compactLayout;
-      setCompactLayout(newCompactLayout);
-
-      // Update URL
-      const urlParams = new URLSearchParams(window.location.search);
-      if (!newCompactLayout) {
-        urlParams.set('compact_layout', 'false');
-      } else {
-        urlParams.delete('compact_layout');
-      }
-      navigate(`?${urlParams.toString()}`, { replace: true });
-    }
   };
 
   const handleViewModeChange = newViewMode => {
@@ -636,7 +619,7 @@ const DiveTrips = () => {
   // Show loading state while checking authentication
   if (loading) {
     return (
-      <div className='max-w-6xl mx-auto p-3 sm:p-6'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-3 sm:p-6'>
         <div className='flex items-center justify-center min-h-64'>
           <div className='text-center'>
             <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
@@ -650,7 +633,7 @@ const DiveTrips = () => {
   return (
     <div className='min-h-screen bg-gray-50'>
       {/* Mobile-First Responsive Container */}
-      <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
         {/* Hero Section */}
         <HeroSection
           title='Dive Trips'

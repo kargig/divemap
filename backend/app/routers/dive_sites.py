@@ -1125,18 +1125,24 @@ async def get_dive_sites(
             # Initialize empty match_types if no fuzzy search was performed
             match_types = {}
 
-    # Calculate average ratings and get tags/aliases (only when needed)
+    # Calculate average ratings, route counts, and get tags/aliases (only when needed)
     result = []
     for site in dive_sites:
         # Only calculate average_rating for basic and full detail levels
         avg_rating = None
         total_ratings = 0
+        route_count = 0
         if detail_level in ['basic', 'full']:
             avg_rating = db.query(func.avg(SiteRating.score)).filter(
                 SiteRating.dive_site_id == site.id
             ).scalar()
             total_ratings = db.query(func.count(SiteRating.id)).filter(
                 SiteRating.dive_site_id == site.id
+            ).scalar()
+            # Calculate route count (only non-deleted routes)
+            route_count = db.query(func.count(DiveRoute.id)).filter(
+                DiveRoute.dive_site_id == site.id,
+                DiveRoute.deleted_at.is_(None)
             ).scalar()
 
         # Get tags and aliases only for full detail level
@@ -1221,6 +1227,7 @@ async def get_dive_sites(
                 "updated_at": site.updated_at.isoformat() if site.updated_at else None,
                 "average_rating": float(avg_rating) if avg_rating else None,
                 "total_ratings": total_ratings,
+                "route_count": route_count,
                 "created_by": site.created_by,
                 "created_by_username": creator_username,
                 "tags": tags_dict,
