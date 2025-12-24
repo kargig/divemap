@@ -1,5 +1,6 @@
 import { Save, ArrowLeft, Plus, X, ChevronDown, Image, Video, FileText, Link } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient, useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
@@ -17,31 +18,51 @@ import RouteSelection from '../components/RouteSelection';
 import UserSearchInput from '../components/UserSearchInput';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
+import { createDiveSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 const CreateDive = () => {
   // Set page title
   usePageTitle('Divemap - Create Dive');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({
-    dive_site_id: '',
-    diving_center_id: '',
-    selected_route_id: '',
-    name: '',
-    is_private: false,
-    dive_information: '',
-    max_depth: '',
-    average_depth: '',
-    gas_bottles_used: '',
-    suit_type: '',
-    difficulty_code: '',
-    visibility_rating: '',
-    user_rating: '',
-    dive_date: new Date().toISOString().split('T')[0],
-    dive_time: '',
-    duration: '',
-    selectedTags: [],
+
+  // React Hook Form setup
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+    setError,
+  } = useForm({
+    resolver: createResolver(createDiveSchema),
+    mode: 'onChange', // Validate on change to provide real-time feedback
+    reValidateMode: 'onChange', // Re-validate on change even after submission
+    defaultValues: {
+      dive_site_id: '',
+      diving_center_id: '',
+      selected_route_id: '',
+      name: '',
+      is_private: false,
+      dive_information: '',
+      max_depth: '',
+      average_depth: '',
+      gas_bottles_used: '',
+      suit_type: '',
+      difficulty_code: '',
+      visibility_rating: '',
+      user_rating: '',
+      dive_date: new Date().toISOString().split('T')[0],
+      dive_time: '',
+      duration: '',
+    },
   });
+
+  // Watch dive_site_id for dependent field clearing
+  const diveSiteId = watch('dive_site_id');
+
+  // Keep separate state for tags, media, buddies, and search dropdowns
+  const [selectedTags, setSelectedTags] = useState([]);
 
   const [newTag, setNewTag] = useState('');
   const [diveSiteSearch, setDiveSiteSearch] = useState('');
@@ -55,7 +76,6 @@ const CreateDive = () => {
   const [isDivingCenterDropdownOpen, setIsDivingCenterDropdownOpen] = useState(false);
   const divingCenterDropdownRef = useRef(null);
   const [mediaUrls, setMediaUrls] = useState([]);
-  const [fieldErrors, setFieldErrors] = useState({});
   const [selectedBuddies, setSelectedBuddies] = useState([]);
 
   // Fetch diving centers for dropdown
@@ -118,90 +138,65 @@ const CreateDive = () => {
     };
   }, []);
 
+  // Watch diving_center_id for search display
+  const divingCenterId = watch('diving_center_id');
+
   // Initialize diving center search when diving centers load
   useEffect(() => {
-    if (Array.isArray(divingCenters) && divingCenters.length > 0 && formData.diving_center_id) {
+    if (Array.isArray(divingCenters) && divingCenters.length > 0 && divingCenterId) {
       const selectedCenter = divingCenters.find(
-        center => center.id.toString() === formData.diving_center_id
+        center => center.id.toString() === divingCenterId.toString()
       );
       if (selectedCenter) {
         setDivingCenterSearch(selectedCenter.name);
       }
     }
-  }, [divingCenters, formData.diving_center_id]);
+  }, [divingCenters, divingCenterId]);
 
   // Create dive mutation
   const createDiveMutation = useMutation(createDive, {
     onSuccess: () => {
-      setFieldErrors({});
       toast.success('Dive logged successfully!');
       queryClient.invalidateQueries(['dives']);
       navigate('/dives');
     },
     onError: error => {
-      // Extract field-specific errors
-      const errors = extractFieldErrors(error);
-      setFieldErrors(errors);
+      // Extract field-specific errors and set them in React Hook Form
+      const fieldErrors = extractFieldErrors(error);
+      Object.keys(fieldErrors).forEach(field => {
+        setError(field, {
+          type: 'server',
+          message: fieldErrors[field]?.message || fieldErrors[field] || 'Invalid value',
+        });
+      });
 
       // Show general error message
       toast.error(extractErrorMessage(error) || 'Failed to log dive');
     },
   });
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-    // Clear error for this field when user starts typing
-    if (fieldErrors[field]) {
-      setFieldErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
-
   // Helper function to get error styling for a field
   const getFieldErrorClass = fieldName => {
-    return fieldErrors[fieldName]
+    return errors[fieldName]
       ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
       : 'border-gray-300 focus:ring-blue-500 focus:border-transparent';
   };
 
   const handleRouteSelect = routeId => {
-    setFormData(prev => ({
-      ...prev,
-      selected_route_id: routeId,
-    }));
-    // Clear error for this field
-    if (fieldErrors.selected_route_id) {
-      setFieldErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.selected_route_id;
-        return newErrors;
-      });
-    }
+    setValue('selected_route_id', routeId.toString(), { shouldValidate: true });
   };
 
   // Clear route selection when dive site changes
   useEffect(() => {
-    if (formData.dive_site_id) {
-      setFormData(prev => ({
-        ...prev,
-        selected_route_id: '',
-      }));
+    if (diveSiteId) {
+      setValue('selected_route_id', '');
     }
-  }, [formData.dive_site_id]);
+  }, [diveSiteId, setValue]);
 
   const handleTagToggle = tagId => {
-    setFormData(prev => ({
-      ...prev,
-      selectedTags: prev.selectedTags.includes(tagId)
-        ? prev.selectedTags.filter(id => id !== tagId)
-        : [...prev.selectedTags, tagId],
-    }));
+    setSelectedTags(prev =>
+      prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
+    );
   };
 
   const handleAddNewTag = () => {
@@ -258,7 +253,7 @@ const CreateDive = () => {
   //   : null;
 
   const handleDiveSiteSelect = (siteId, siteName) => {
-    handleInputChange('dive_site_id', siteId.toString());
+    setValue('dive_site_id', siteId.toString(), { shouldValidate: true });
     setDiveSiteSearch(siteName);
     setIsDiveSiteDropdownOpen(false);
     // Keep the selected site in search results
@@ -266,35 +261,19 @@ const CreateDive = () => {
     if (selectedSite) {
       setDiveSiteSearchResults([selectedSite]);
     }
-    // Clear error for this field
-    if (fieldErrors.dive_site_id) {
-      setFieldErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.dive_site_id;
-        return newErrors;
-      });
-    }
   };
 
   const handleDivingCenterSelect = (centerId, centerName) => {
-    handleInputChange('diving_center_id', centerId.toString());
+    setValue('diving_center_id', centerId.toString(), { shouldValidate: true });
     setDivingCenterSearch(centerName);
     setIsDivingCenterDropdownOpen(false);
-    // Clear error for this field
-    if (fieldErrors.diving_center_id) {
-      setFieldErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.diving_center_id;
-        return newErrors;
-      });
-    }
   };
 
   const handleDiveSiteSearchChange = value => {
     setDiveSiteSearch(value);
     setIsDiveSiteDropdownOpen(true);
     if (!value) {
-      handleInputChange('dive_site_id', '');
+      setValue('dive_site_id', '', { shouldValidate: true });
       // Reload initial "Attiki" results when search is cleared
       const loadInitialDiveSites = async () => {
         try {
@@ -346,7 +325,7 @@ const CreateDive = () => {
     setDivingCenterSearch(value);
     setIsDivingCenterDropdownOpen(true);
     if (!value) {
-      handleInputChange('diving_center_id', '');
+      setValue('diving_center_id', '', { shouldValidate: true });
     }
   };
 
@@ -395,66 +374,17 @@ const CreateDive = () => {
     setMediaUrls(prev => prev.map(item => (item.id === id ? { ...item, description } : item)));
   };
 
-  const handleSubmit = async e => {
-    e.preventDefault();
-
-    // Validate required fields
-    if (!formData.dive_date) {
-      toast.error('Dive date is required');
-      return;
-    }
-
+  const onSubmit = async data => {
+    // Data is already validated and transformed by Zod schema
+    // Transform dive_time format if provided
     const diveData = {
-      ...formData,
-      dive_site_id:
-        formData.dive_site_id && formData.dive_site_id !== ''
-          ? parseInt(formData.dive_site_id)
-          : null,
-      diving_center_id:
-        formData.diving_center_id && formData.diving_center_id !== ''
-          ? parseInt(formData.diving_center_id)
-          : null,
-      selected_route_id:
-        formData.selected_route_id && formData.selected_route_id !== ''
-          ? parseInt(formData.selected_route_id)
-          : null,
-      name: formData.name !== undefined ? formData.name : null,
-      is_private: formData.is_private || false,
-      max_depth:
-        formData.max_depth && formData.max_depth !== '' ? parseFloat(formData.max_depth) : null,
-      average_depth:
-        formData.average_depth && formData.average_depth !== ''
-          ? parseFloat(formData.average_depth)
-          : null,
-      visibility_rating:
-        formData.visibility_rating && formData.visibility_rating !== ''
-          ? parseInt(formData.visibility_rating)
-          : null,
-      user_rating:
-        formData.user_rating && formData.user_rating !== '' ? parseInt(formData.user_rating) : null,
-      duration: formData.duration && formData.duration !== '' ? parseInt(formData.duration) : null,
-      suit_type: formData.suit_type && formData.suit_type !== '' ? formData.suit_type : null,
-      difficulty_code:
-        formData.difficulty_code && formData.difficulty_code !== ''
-          ? formData.difficulty_code
-          : null,
-      dive_information:
-        formData.dive_information && formData.dive_information !== ''
-          ? formData.dive_information
-          : null,
-      gas_bottles_used:
-        formData.gas_bottles_used && formData.gas_bottles_used !== ''
-          ? formData.gas_bottles_used
-          : null,
-      dive_time:
-        formData.dive_time && formData.dive_time !== '' ? `${formData.dive_time}:00` : null,
+      ...data,
+      dive_time: data.dive_time && data.dive_time !== '' ? `${data.dive_time}:00` : null,
       buddies: selectedBuddies.length > 0 ? selectedBuddies.map(buddy => buddy.id) : [],
+      tags: selectedTags.length > 0 ? selectedTags : [],
     };
 
     try {
-      // Clear previous errors
-      setFieldErrors({});
-
       const createdDive = await createDiveMutation.mutateAsync(diveData);
 
       // Add media URLs
@@ -487,12 +417,8 @@ const CreateDive = () => {
       queryClient.invalidateQueries(['dives']);
       navigate('/dives');
     } catch (error) {
-      // Extract field-specific errors
-      const errors = extractFieldErrors(error);
-      setFieldErrors(errors);
-
-      // Show general error message
-      toast.error(extractErrorMessage(error) || 'Failed to log dive');
+      // Error handling is done in mutation onError callback
+      // which uses setError to set field-specific errors
     }
   };
 
@@ -505,7 +431,7 @@ const CreateDive = () => {
         <h1 className='text-3xl font-bold text-gray-900'>Log New Dive</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className='bg-white rounded-lg shadow p-6'>
+      <form onSubmit={handleSubmit(onSubmit)} className='bg-white rounded-lg shadow p-6'>
         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
           {/* Basic Information */}
           <div className='md:col-span-2'>
@@ -573,8 +499,8 @@ const CreateDive = () => {
                 )}
               </div>
             )}
-            {fieldErrors.dive_site_id && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.dive_site_id.message}</p>
+            {errors.dive_site_id && (
+              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.dive_site_id)}</p>
             )}
           </div>
 
@@ -635,20 +561,24 @@ const CreateDive = () => {
                 )}
               </div>
             )}
-            {fieldErrors.diving_center_id && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.diving_center_id.message}</p>
+            {errors.diving_center_id && (
+              <p className='mt-1 text-sm text-red-600'>
+                {getErrorMessage(errors.diving_center_id)}
+              </p>
             )}
           </div>
 
           {/* Route Selection */}
           <div>
             <RouteSelection
-              diveSiteId={formData.dive_site_id}
-              selectedRouteId={formData.selected_route_id}
+              diveSiteId={diveSiteId}
+              selectedRouteId={watch('selected_route_id')}
               onRouteSelect={handleRouteSelect}
             />
-            {fieldErrors.selected_route_id && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.selected_route_id.message}</p>
+            {errors.selected_route_id && (
+              <p className='mt-1 text-sm text-red-600'>
+                {getErrorMessage(errors.selected_route_id)}
+              </p>
             )}
           </div>
 
@@ -659,8 +589,7 @@ const CreateDive = () => {
             <input
               id='dive-name'
               type='text'
-              value={formData.name}
-              onChange={e => handleInputChange('name', e.target.value)}
+              {...register('name')}
               placeholder='Custom dive name or leave empty for automatic naming'
               className='w-full border border-gray-300 rounded-md px-3 py-2'
             />
@@ -675,8 +604,10 @@ const CreateDive = () => {
             </label>
             <select
               id='privacy-setting'
-              value={formData.is_private ? 'true' : 'false'}
-              onChange={e => handleInputChange('is_private', e.target.value === 'true')}
+              {...register('is_private', {
+                setValueAs: value => value === 'true' || value === true,
+              })}
+              defaultValue='false'
               className='w-full border border-gray-300 rounded-md px-3 py-2'
             >
               <option value='false'>Public (visible to everyone)</option>
@@ -691,13 +622,12 @@ const CreateDive = () => {
             <input
               id='dive-date'
               type='date'
-              value={formData.dive_date}
-              onChange={e => handleInputChange('dive_date', e.target.value)}
+              {...register('dive_date')}
               required
               className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_date')}`}
             />
-            {fieldErrors.dive_date && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.dive_date.message}</p>
+            {errors.dive_date && (
+              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.dive_date)}</p>
             )}
           </div>
 
@@ -708,12 +638,11 @@ const CreateDive = () => {
             <input
               id='dive-time'
               type='time'
-              value={formData.dive_time}
-              onChange={e => handleInputChange('dive_time', e.target.value)}
+              {...register('dive_time')}
               className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_time')}`}
             />
-            {fieldErrors.dive_time && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.dive_time.message}</p>
+            {errors.dive_time && (
+              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.dive_time)}</p>
             )}
           </div>
 
@@ -726,13 +655,12 @@ const CreateDive = () => {
               type='number'
               min='1'
               max='1440'
-              value={formData.duration}
-              onChange={e => handleInputChange('duration', e.target.value)}
+              {...register('duration')}
               className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('duration')}`}
               placeholder='60'
             />
-            {fieldErrors.duration && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.duration.message}</p>
+            {errors.duration && (
+              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.duration)}</p>
             )}
           </div>
 
@@ -751,13 +679,12 @@ const CreateDive = () => {
               min='0'
               max='1000'
               step='any'
-              value={formData.max_depth}
-              onChange={e => handleInputChange('max_depth', e.target.value)}
+              {...register('max_depth')}
               className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('max_depth')}`}
               placeholder='18.5'
             />
-            {fieldErrors.max_depth && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.max_depth.message}</p>
+            {errors.max_depth && (
+              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.max_depth)}</p>
             )}
           </div>
 
@@ -771,13 +698,12 @@ const CreateDive = () => {
               min='0'
               max='1000'
               step='any'
-              value={formData.average_depth}
-              onChange={e => handleInputChange('average_depth', e.target.value)}
+              {...register('average_depth')}
               className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('average_depth')}`}
               placeholder='12.0'
             />
-            {fieldErrors.average_depth && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.average_depth.message}</p>
+            {errors.average_depth && (
+              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.average_depth)}</p>
             )}
           </div>
 
@@ -790,8 +716,7 @@ const CreateDive = () => {
             </label>
             <select
               id='difficulty-level'
-              value={formData.difficulty_code || ''}
-              onChange={e => handleInputChange('difficulty_code', e.target.value)}
+              {...register('difficulty_code')}
               className='w-full border border-gray-300 rounded-md px-3 py-2'
             >
               {getDifficultyOptions().map(option => (
@@ -811,8 +736,7 @@ const CreateDive = () => {
             </label>
             <select
               id='suit-type'
-              value={formData.suit_type}
-              onChange={e => handleInputChange('suit_type', e.target.value)}
+              {...register('suit_type')}
               className='w-full border border-gray-300 rounded-md px-3 py-2'
             >
               <option value=''>Select suit type</option>
@@ -834,13 +758,14 @@ const CreateDive = () => {
               type='number'
               min='1'
               max='10'
-              value={formData.visibility_rating}
-              onChange={e => handleInputChange('visibility_rating', e.target.value)}
+              {...register('visibility_rating')}
               className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('visibility_rating')}`}
               placeholder='8'
             />
-            {fieldErrors.visibility_rating && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.visibility_rating.message}</p>
+            {errors.visibility_rating && (
+              <p className='mt-1 text-sm text-red-600'>
+                {getErrorMessage(errors.visibility_rating)}
+              </p>
             )}
           </div>
 
@@ -853,13 +778,12 @@ const CreateDive = () => {
               type='number'
               min='1'
               max='10'
-              value={formData.user_rating}
-              onChange={e => handleInputChange('user_rating', e.target.value)}
+              {...register('user_rating')}
               className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('user_rating')}`}
               placeholder='9'
             />
-            {fieldErrors.user_rating && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.user_rating.message}</p>
+            {errors.user_rating && (
+              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.user_rating)}</p>
             )}
           </div>
 
@@ -872,8 +796,7 @@ const CreateDive = () => {
             </label>
             <textarea
               id='gas-bottles-used'
-              value={formData.gas_bottles_used}
-              onChange={e => handleInputChange('gas_bottles_used', e.target.value)}
+              {...register('gas_bottles_used')}
               className='w-full border border-gray-300 rounded-md px-3 py-2'
               rows='2'
               placeholder='e.g., 12L aluminum tank, 200 bar'
@@ -889,8 +812,7 @@ const CreateDive = () => {
             </label>
             <textarea
               id='dive-information'
-              value={formData.dive_information}
-              onChange={e => handleInputChange('dive_information', e.target.value)}
+              {...register('dive_information')}
               className='w-full border border-gray-300 rounded-md px-3 py-2'
               rows='4'
               placeholder='Describe your dive experience, what you saw, conditions, etc.'
@@ -1120,7 +1042,7 @@ const CreateDive = () => {
                     type='button'
                     onClick={() => handleTagToggle(tag.id)}
                     className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                      formData.selectedTags.includes(tag.id)
+                      selectedTags.includes(tag.id)
                         ? 'bg-blue-100 text-blue-800 border border-blue-300'
                         : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
                     }`}

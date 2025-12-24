@@ -9,7 +9,7 @@ import Logo from '../components/Logo';
 import Turnstile from '../components/Turnstile';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { commonSchemas, createResolver } from '../utils/formHelpers';
+import { commonSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 import googleAuth from '../utils/googleAuth';
 import { isTurnstileEnabled, getTurnstileConfig } from '../utils/turnstileConfig';
 
@@ -59,18 +59,6 @@ const Register = () => {
 
   // Watch email for navigation after registration
   const email = watch('email');
-
-  // Helper function to safely extract error message
-  const getErrorMessage = error => {
-    if (!error) return null;
-    if (typeof error === 'string') return error;
-    if (error.message) return error.message;
-    if (error.msg) return error.msg;
-    if (Array.isArray(error) && error.length > 0) {
-      return getErrorMessage(error[0]);
-    }
-    return 'Invalid value';
-  };
 
   // Memoize Turnstile configuration to prevent infinite re-renders
   const turnstileConfig = useMemo(() => {

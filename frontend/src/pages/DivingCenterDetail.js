@@ -22,7 +22,7 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 
-import api, { claimDivingCenterOwnership, getParsedTrips } from '../api';
+import api, { claimDivingCenterOwnership, getParsedTrips, extractErrorMessage } from '../api';
 import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,14 +30,8 @@ import usePageTitle from '../hooks/usePageTitle';
 import { useSetting } from '../hooks/useSettings';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 
-// Helper function to safely extract error message
-const getErrorMessage = error => {
-  if (typeof error === 'string') return error;
-  if (error?.message) return error.message;
-  if (error?.response?.data?.detail) return error.response.data.detail;
-  if (error?.detail) return error.detail;
-  return 'An error occurred';
-};
+// Use extractErrorMessage from api.js
+const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
 
 const DivingCenterDetail = () => {
   const { id } = useParams();

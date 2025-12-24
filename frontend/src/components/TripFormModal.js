@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
-import { tripSchemas, createResolver } from '../utils/formHelpers';
+import { tripSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 const TripFormModal = ({
   trip,
@@ -81,27 +81,6 @@ const TripFormModal = ({
     control,
     name: 'dives',
   });
-
-  // Helper function to safely extract error message
-  const getErrorMessage = error => {
-    if (!error) return null;
-    if (typeof error === 'string') return error;
-    // Handle Zod error object structure
-    if (error.message) return error.message;
-    if (error.msg) return error.msg;
-    // If it's an object with type/loc/msg/input/ctx (Zod error), try to extract message
-    if (typeof error === 'object' && !Array.isArray(error)) {
-      // Check for common Zod error properties
-      if (error.message) return error.message;
-      if (error.msg) return error.msg;
-      // If it's a plain object without message, don't render it
-      return 'Invalid value';
-    }
-    if (Array.isArray(error) && error.length > 0) {
-      return getErrorMessage(error[0]);
-    }
-    return 'Invalid value';
-  };
 
   // Reset form when trip prop changes
   useEffect(() => {

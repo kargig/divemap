@@ -10,7 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
-import { commonSchemas, createResolver } from '../utils/formHelpers';
+import { commonSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 // Zod schema for dive site creation
 const diveSiteSchema = z.object({
@@ -88,18 +88,6 @@ const CreateDiveSite = () => {
   });
 
   const formData = watch();
-
-  // Helper function to safely extract error message
-  const getErrorMessage = error => {
-    if (!error) return null;
-    if (typeof error === 'string') return error;
-    if (error.message) return error.message;
-    if (error.msg) return error.msg;
-    if (Array.isArray(error) && error.length > 0) {
-      return getErrorMessage(error[0]);
-    }
-    return 'Invalid value';
-  };
 
   const createDiveSiteMutation = useMutation(data => api.post('/api/v1/dive-sites/', data), {
     onSuccess: () => {

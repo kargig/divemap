@@ -18,7 +18,7 @@ import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
-import api from '../api';
+import api, { extractErrorMessage } from '../api';
 import DivingCentersDesktopSearchBar from '../components/DivingCentersDesktopSearchBar';
 import DivingCentersMap from '../components/DivingCentersMap';
 import DivingCentersResponsiveFilterBar from '../components/DivingCentersResponsiveFilterBar';
@@ -37,14 +37,8 @@ import useSorting from '../hooks/useSorting';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
 
-// Helper function to safely extract error message
-const getErrorMessage = error => {
-  if (typeof error === 'string') return error;
-  if (error?.message) return error.message;
-  if (error?.response?.data?.detail) return error.response.data.detail;
-  if (error?.detail) return error.detail;
-  return 'An error occurred';
-};
+// Use extractErrorMessage from api.js
+const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
 
 const DivingCenters = () => {
   const { user } = useAuth();

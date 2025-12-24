@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { z } from 'zod';
 
 import { UI_COLORS } from '../utils/colorPalette';
-import { commonSchemas, createResolver } from '../utils/formHelpers';
+import { commonSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 // Zod schema for diving center form
 const divingCenterSchema = z.object({
@@ -87,18 +87,6 @@ const DivingCenterForm = ({
     mode: 'onChange',
     reValidateMode: 'onChange', // Re-validate on change even after submission
   });
-
-  // Helper function to safely extract error message
-  const getErrorMessage = error => {
-    if (!error) return null;
-    if (typeof error === 'string') return error;
-    if (error.message) return error.message;
-    if (error.msg) return error.msg;
-    if (Array.isArray(error) && error.length > 0) {
-      return getErrorMessage(error[0]);
-    }
-    return 'Invalid value';
-  };
 
   // Track if form has been initialized to prevent unnecessary resets
   const isInitializedRef = useRef(false);

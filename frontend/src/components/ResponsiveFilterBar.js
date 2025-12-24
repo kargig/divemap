@@ -303,9 +303,11 @@ const ResponsiveFilterBar = ({
               // Only clear if current value matches the previous filter value
               // AND it doesn't match what the user last typed
               // This prevents clearing when user is typing
-              if (prevUsernameRef.current && 
-                  prev === prevUsernameRef.current && 
-                  prev !== lastTypedOwnerSearchRef.current) {
+              if (
+                prevUsernameRef.current &&
+                prev === prevUsernameRef.current &&
+                prev !== lastTypedOwnerSearchRef.current
+              ) {
                 return '';
               }
               return prev;
@@ -314,7 +316,7 @@ const ResponsiveFilterBar = ({
           prevUsernameRef.current = filters.username;
         }
       }
-      
+
       // Only sync buddySearch from filters if user is not actively typing
       // AND the filter value actually changed (not just a re-render)
       if (!buddySearchInputRef.current) {
@@ -330,9 +332,11 @@ const ResponsiveFilterBar = ({
               // Only clear if current value matches the previous filter value
               // AND it doesn't match what the user last typed
               // This prevents clearing when user is typing
-              if (prevBuddyUsernameRef.current && 
-                  prev === prevBuddyUsernameRef.current && 
-                  prev !== lastTypedBuddySearchRef.current) {
+              if (
+                prevBuddyUsernameRef.current &&
+                prev === prevBuddyUsernameRef.current &&
+                prev !== lastTypedBuddySearchRef.current
+              ) {
                 return '';
               }
               return prev;
@@ -344,7 +348,6 @@ const ResponsiveFilterBar = ({
     }
     // Only depend on filters and pageType, NOT on ownerSearch/buddySearch state
     // This prevents the effect from running on every keystroke
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.username, filters.buddy_username, pageType]);
 
   // Cleanup timeouts on unmount

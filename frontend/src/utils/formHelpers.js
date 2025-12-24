@@ -302,9 +302,193 @@ export const tripSchemas = {
 };
 
 /**
+ * Create Dive form schema
+ */
+export const createDiveSchema = z.object({
+  // Required fields
+  dive_date: z.string().min(1, 'Dive date is required'),
+
+  // Optional ID fields (transform to number or null)
+  dive_site_id: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .transform(val => {
+      if (!val || val === '' || val === null) return null;
+      const num = typeof val === 'string' ? parseInt(val, 10) : val;
+      return isNaN(num) ? null : num;
+    }),
+
+  diving_center_id: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .transform(val => {
+      if (!val || val === '' || val === null) return null;
+      const num = typeof val === 'string' ? parseInt(val, 10) : val;
+      return isNaN(num) ? null : num;
+    }),
+
+  selected_route_id: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .transform(val => {
+      if (!val || val === '' || val === null) return null;
+      const num = typeof val === 'string' ? parseInt(val, 10) : val;
+      return isNaN(num) ? null : num;
+    }),
+
+  // Optional text fields
+  name: z.string().optional().nullable().or(z.literal('')),
+  dive_information: z.string().optional().nullable().or(z.literal('')),
+  gas_bottles_used: z.string().optional().nullable().or(z.literal('')),
+
+  // Boolean field
+  is_private: z.boolean().default(false),
+
+  // Optional time field
+  dive_time: z
+    .string()
+    .optional()
+    .nullable()
+    .refine(val => !val || val === '' || /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/.test(val), {
+      message: 'Please enter a valid time in HH:MM format',
+    })
+    .or(z.literal('')),
+
+  // Optional number fields with ranges
+  duration: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .refine(
+      val => {
+        if (!val || val === '' || val === null) return true;
+        const num = typeof val === 'string' ? parseInt(val, 10) : val;
+        return !isNaN(num) && num >= 1 && num <= 1440;
+      },
+      { message: 'Duration must be between 1 and 1440 minutes' }
+    )
+    .transform(val => {
+      if (!val || val === '' || val === null) return null;
+      return typeof val === 'string' ? parseInt(val, 10) : val;
+    }),
+
+  max_depth: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .refine(
+      val => {
+        if (!val || val === '' || val === null) return true;
+        const num = typeof val === 'string' ? parseFloat(val) : val;
+        return !isNaN(num) && num >= 0 && num <= 1000;
+      },
+      { message: 'Max depth must be between 0 and 1000 meters' }
+    )
+    .transform(val => {
+      if (!val || val === '' || val === null) return null;
+      return typeof val === 'string' ? parseFloat(val) : val;
+    }),
+
+  average_depth: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .refine(
+      val => {
+        if (!val || val === '' || val === null) return true;
+        const num = typeof val === 'string' ? parseFloat(val) : val;
+        return !isNaN(num) && num >= 0 && num <= 1000;
+      },
+      { message: 'Average depth must be between 0 and 1000 meters' }
+    )
+    .transform(val => {
+      if (!val || val === '' || val === null) return null;
+      return typeof val === 'string' ? parseFloat(val) : val;
+    }),
+
+  visibility_rating: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .refine(
+      val => {
+        if (!val || val === '' || val === null) return true;
+        const num = typeof val === 'string' ? parseInt(val, 10) : val;
+        return !isNaN(num) && num >= 1 && num <= 10;
+      },
+      { message: 'Visibility rating must be between 1 and 10' }
+    )
+    .transform(val => {
+      if (!val || val === '' || val === null) return null;
+      return typeof val === 'string' ? parseInt(val, 10) : val;
+    }),
+
+  user_rating: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .refine(
+      val => {
+        if (!val || val === '' || val === null) return true;
+        const num = typeof val === 'string' ? parseInt(val, 10) : val;
+        return !isNaN(num) && num >= 1 && num <= 10;
+      },
+      { message: 'User rating must be between 1 and 10' }
+    )
+    .transform(val => {
+      if (!val || val === '' || val === null) return null;
+      return typeof val === 'string' ? parseInt(val, 10) : val;
+    }),
+
+  // Enum fields
+  difficulty_code: z.preprocess(
+    val => (val === '' || val === null || val === undefined ? null : val),
+    z
+      .union([
+        z.enum(['OPEN_WATER', 'ADVANCED_OPEN_WATER', 'DEEP_NITROX', 'TECHNICAL_DIVING']),
+        z.null(),
+      ])
+      .optional()
+  ),
+
+  suit_type: z
+    .enum(['wet_suit', 'dry_suit', 'shortie', ''])
+    .optional()
+    .or(z.literal(''))
+    .nullable(),
+});
+
+/**
  * Helper to create resolver with Zod schema
  */
 export const createResolver = schema => zodResolver(schema);
+
+/**
+ * Helper to safely extract error message from React Hook Form/Zod errors
+ * Handles various error formats: string, object with message/msg, arrays, Zod errors
+ */
+export const getErrorMessage = error => {
+  if (!error) return null;
+  if (typeof error === 'string') return error;
+  // Handle Zod error object structure
+  if (error.message) return error.message;
+  if (error.msg) return error.msg;
+  // If it's an object with type/loc/msg/input/ctx (Zod error), try to extract message
+  if (typeof error === 'object' && !Array.isArray(error)) {
+    // Check for common Zod error properties
+    if (error.message) return error.message;
+    if (error.msg) return error.msg;
+    // If it's a plain object without message, don't render it
+    return 'Invalid value';
+  }
+  if (Array.isArray(error) && error.length > 0) {
+    return getErrorMessage(error[0]);
+  }
+  return 'Invalid value';
+};
 
 /**
  * Helper to extract field errors from API response
