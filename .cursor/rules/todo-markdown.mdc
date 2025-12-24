@@ -1,0 +1,33 @@
+---
+description: Markdown formatting standards for todo implementation workflow files
+globs: ["docs/development/work/**/*.md", "docs/development/done/**/*.md", "docs/development/todo.md", "**/*.md"]
+alwaysApply: false
+---
+
+# Markdown Writing Standards
+
+⚠️ All markdown content MUST follow these rules:
+
+## MD022 - Headings Must Be Surrounded by Blank Lines
+
+- Always add blank line before and after every heading
+- Never have headings directly adjacent to content
+
+## MD032 - Lists Must Be Surrounded by Blank Lines
+
+- Always add blank line before and after every list
+- Never have lists directly adjacent to content
+
+## Markdown Structure Requirements
+
+1. Headings: Blank lines above and below
+2. Lists: Blank lines above and below
+3. Code blocks: Blank lines above and below
+4. Blockquotes: Blank lines above and below
+5. Tables: Blank lines above and below
+
+## Enforcement
+
+- Violations will result in immediate correction
+- All markdown files must pass markdownlint validation
+- No exceptions to formatting rules
