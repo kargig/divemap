@@ -279,20 +279,33 @@ export const extractFieldErrors = error => {
 // Utility function to extract error message from API responses
 export const extractErrorMessage = error => {
   if (error.response?.data?.detail) {
-    // Handle Pydantic validation errors
-    if (Array.isArray(error.response.data.detail)) {
+    const detail = error.response.data.detail;
+    // Handle Pydantic validation errors (array of error objects)
+    if (Array.isArray(detail)) {
       // Extract the first validation error message with field name
-      const firstError = error.response.data.detail[0];
-      if (firstError.loc && Array.isArray(firstError.loc)) {
-        const fieldDisplayName = getFieldNameFromLoc(firstError.loc);
-        const errorMsg = firstError.msg || 'Validation error';
-        return `${fieldDisplayName}: ${errorMsg}`;
+      const firstError = detail[0];
+      if (firstError && typeof firstError === 'object') {
+        if (firstError.loc && Array.isArray(firstError.loc)) {
+          const fieldDisplayName = getFieldNameFromLoc(firstError.loc);
+          const errorMsg = firstError.msg || 'Validation error';
+          return `${fieldDisplayName}: ${errorMsg}`;
+        }
+        return firstError.msg || 'Validation error';
       }
-      return firstError.msg || 'Validation error';
-    } else {
-      // Handle simple string error messages
-      return error.response.data.detail;
+      return 'Validation error';
     }
+    // Handle simple string error messages
+    if (typeof detail === 'string') {
+      return detail;
+    }
+    // If detail is an object (not array, not string), try to extract message
+    if (typeof detail === 'object' && detail !== null) {
+      return detail.msg || detail.message || JSON.stringify(detail);
+    }
+  }
+  // Fallback to error message or generic error
+  if (error.message) {
+    return error.message;
   }
   return 'An error occurred';
 };
@@ -433,10 +446,10 @@ export const getDiveSites = async (params = {}) => {
   return response.data;
 };
 
-// User search API function for buddy selection
-export const searchUsers = async (query, limit = 25) => {
+// User search API function for buddy selection and filtering
+export const searchUsers = async (query, limit = 25, includeSelf = false) => {
   const response = await api.get('/api/v1/users/search', {
-    params: { query, limit },
+    params: { query, limit, include_self: includeSelf },
   });
   return response.data;
 };

@@ -107,8 +107,8 @@ def get_all_dives_count_admin(
             query = query.filter(Dive.difficulty_id == difficulty_id)
         elif exclude_unspecified_difficulty:
             query = query.filter(False)
-        elif exclude_unspecified_difficulty:
-            query = query.filter(Dive.difficulty_id.isnot(None))
+    elif exclude_unspecified_difficulty:
+        query = query.filter(Dive.difficulty_id.isnot(None))
 
     if suit_type:
         query = query.filter(Dive.suit_type == suit_type)
@@ -259,8 +259,8 @@ def get_all_dives_admin(
             query = query.filter(Dive.difficulty_id == difficulty_id)
         elif exclude_unspecified_difficulty:
             query = query.filter(False)
-        elif exclude_unspecified_difficulty:
-            query = query.filter(Dive.difficulty_id.isnot(None))
+    elif exclude_unspecified_difficulty:
+        query = query.filter(Dive.difficulty_id.isnot(None))
 
     if suit_type:
         query = query.filter(Dive.suit_type == suit_type)

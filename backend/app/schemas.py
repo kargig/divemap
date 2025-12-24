@@ -810,7 +810,7 @@ class ParsedDiveResponse(BaseModel):
         from_attributes = True
 
 class ParsedDiveCreate(BaseModel):
-    trip_id: int
+    trip_id: Optional[int] = None  # Optional when creating dives as part of a trip (backend sets it)
     dive_site_id: Optional[int] = None
     dive_number: int = Field(..., ge=1)
     dive_time: Optional[time] = None

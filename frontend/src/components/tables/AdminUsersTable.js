@@ -31,6 +31,7 @@ const AdminUsersTable = ({
     data,
     columns,
     pageCount: pagination.pageCount,
+    getRowId: row => row.id.toString(), // Use actual user ID for row selection
     state: {
       pagination: {
         pageIndex: pagination.pageIndex,

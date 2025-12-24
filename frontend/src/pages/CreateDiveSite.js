@@ -1,14 +1,55 @@
 import { ArrowLeft, Save, X } from 'lucide-react';
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
+import { z } from 'zod';
 
 import api, { extractErrorMessage } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
+import { commonSchemas, createResolver } from '../utils/formHelpers';
+
+// Zod schema for dive site creation
+const diveSiteSchema = z.object({
+  name: commonSchemas.diveSiteName,
+  description: z.string().optional().or(z.literal('')),
+  latitude: commonSchemas.latitude,
+  longitude: commonSchemas.longitude,
+  country: z.string().optional().or(z.literal('')),
+  region: z.string().optional().or(z.literal('')),
+  access_instructions: z.string().optional().or(z.literal('')),
+  difficulty_code: z.preprocess(
+    val => (val === '' || val === null || val === undefined ? null : val),
+    z
+      .union([
+        z.enum(['OPEN_WATER', 'ADVANCED_OPEN_WATER', 'DEEP_NITROX', 'TECHNICAL_DIVING']),
+        z.null(),
+      ])
+      .optional()
+  ),
+  marine_life: z.string().optional().or(z.literal('')),
+  safety_information: z.string().optional().or(z.literal('')),
+  max_depth: commonSchemas.maxDepth,
+  shore_direction: commonSchemas.shoreDirection,
+  shore_direction_confidence: z.string().optional().or(z.literal('')),
+  shore_direction_method: z.string().optional().or(z.literal('')),
+  shore_direction_distance_m: z
+    .string()
+    .optional()
+    .refine(
+      val => {
+        if (!val || val.trim() === '') return true; // Optional
+        const num = parseFloat(val);
+        return !isNaN(num) && num >= 0;
+      },
+      { message: 'Distance must be a positive number' }
+    )
+    .or(z.number().min(0).optional())
+    .or(z.literal('')),
+});
 
 const CreateDiveSite = () => {
   // Set page title
@@ -16,23 +57,49 @@ const CreateDiveSite = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    latitude: '',
-    longitude: '',
-    country: '',
-    region: '',
-    access_instructions: '',
-    difficulty_code: '',
-    marine_life: '',
-    safety_information: '',
-    max_depth: '',
-    shore_direction: '',
-    shore_direction_confidence: '',
-    shore_direction_method: '',
-    shore_direction_distance_m: '',
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+    trigger,
+  } = useForm({
+    resolver: createResolver(diveSiteSchema),
+    mode: 'onChange', // Validate on change to clear errors immediately
+    defaultValues: {
+      name: '',
+      description: '',
+      latitude: '',
+      longitude: '',
+      country: '',
+      region: '',
+      access_instructions: '',
+      difficulty_code: '',
+      marine_life: '',
+      safety_information: '',
+      max_depth: '',
+      shore_direction: '',
+      shore_direction_confidence: '',
+      shore_direction_method: '',
+      shore_direction_distance_m: '',
+    },
   });
+
+  const formData = watch();
+
+  // Helper function to safely extract error message
+  const getErrorMessage = error => {
+    if (!error) return null;
+    if (typeof error === 'string') return error;
+    if (error.message) return error.message;
+    if (error.msg) return error.msg;
+    if (Array.isArray(error) && error.length > 0) {
+      return getErrorMessage(error[0]);
+    }
+    return 'Invalid value';
+  };
 
   const createDiveSiteMutation = useMutation(data => api.post('/api/v1/dive-sites/', data), {
     onSuccess: () => {
@@ -52,80 +119,72 @@ const CreateDiveSite = () => {
     },
   });
 
-  const handleInputChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = e => {
-    e.preventDefault();
-
-    // Validate required fields
-    if (!formData.latitude || formData.latitude.trim() === '') {
-      toast.error('Latitude is required');
-      return;
-    }
-    if (!formData.longitude || formData.longitude.trim() === '') {
-      toast.error('Longitude is required');
-      return;
-    }
-
+  const onSubmit = data => {
     // Convert latitude/longitude to numbers
-    // Start with formData but exclude shore_direction fields (we'll add them conditionally)
     const {
       shore_direction,
       shore_direction_confidence,
       shore_direction_method,
       shore_direction_distance_m,
       ...baseData
-    } = formData;
+    } = data;
     const submitData = {
       ...baseData,
-      latitude: parseFloat(formData.latitude),
-      longitude: parseFloat(formData.longitude),
+      latitude: typeof data.latitude === 'string' ? parseFloat(data.latitude) : data.latitude,
+      longitude: typeof data.longitude === 'string' ? parseFloat(data.longitude) : data.longitude,
     };
 
     // Convert max_depth to number if provided, or set to null if empty
-    if (formData.max_depth && formData.max_depth.trim() !== '') {
-      submitData.max_depth = parseFloat(formData.max_depth);
+    if (
+      data.max_depth &&
+      (typeof data.max_depth === 'string' ? data.max_depth.trim() !== '' : true)
+    ) {
+      submitData.max_depth =
+        typeof data.max_depth === 'string' ? parseFloat(data.max_depth) : data.max_depth;
     } else {
       submitData.max_depth = null;
     }
 
-    // Convert difficulty_code: empty string becomes null, otherwise keep the code
-    if (formData.difficulty_code && formData.difficulty_code.trim() !== '') {
-      submitData.difficulty_code = formData.difficulty_code;
+    // Convert difficulty_code: null or empty string becomes null, otherwise keep the code
+    // Note: Schema already transforms empty strings to null, but we handle both cases for safety
+    if (data.difficulty_code && data.difficulty_code !== null && data.difficulty_code !== '') {
+      submitData.difficulty_code = data.difficulty_code;
     } else {
       submitData.difficulty_code = null;
     }
 
     // Handle shore_direction: only include if provided, otherwise omit from create
     // This allows creating without shore_direction (backend will auto-detect if coordinates are provided)
-    if (formData.shore_direction && formData.shore_direction.trim() !== '') {
-      submitData.shore_direction = parseFloat(formData.shore_direction);
+    if (
+      data.shore_direction &&
+      (typeof data.shore_direction === 'string' ? data.shore_direction.trim() !== '' : true)
+    ) {
+      submitData.shore_direction =
+        typeof data.shore_direction === 'string'
+          ? parseFloat(data.shore_direction)
+          : data.shore_direction;
 
       // Include other shore_direction fields if shore_direction is set
-      if (
-        formData.shore_direction_confidence &&
-        formData.shore_direction_confidence.trim() !== ''
-      ) {
-        submitData.shore_direction_confidence = formData.shore_direction_confidence;
+      if (data.shore_direction_confidence && data.shore_direction_confidence.trim() !== '') {
+        submitData.shore_direction_confidence = data.shore_direction_confidence;
       } else {
         submitData.shore_direction_confidence = null;
       }
-      if (formData.shore_direction_method && formData.shore_direction_method.trim() !== '') {
-        submitData.shore_direction_method = formData.shore_direction_method;
+      if (data.shore_direction_method && data.shore_direction_method.trim() !== '') {
+        submitData.shore_direction_method = data.shore_direction_method;
       } else {
         submitData.shore_direction_method = null;
       }
       if (
-        formData.shore_direction_distance_m &&
-        formData.shore_direction_distance_m.trim() !== ''
+        data.shore_direction_distance_m &&
+        (typeof data.shore_direction_distance_m === 'string'
+          ? data.shore_direction_distance_m.trim() !== ''
+          : true)
       ) {
-        submitData.shore_direction_distance_m = parseFloat(formData.shore_direction_distance_m);
+        submitData.shore_direction_distance_m =
+          typeof data.shore_direction_distance_m === 'string'
+            ? parseFloat(data.shore_direction_distance_m)
+            : data.shore_direction_distance_m;
       } else {
         submitData.shore_direction_distance_m = null;
       }
@@ -146,7 +205,9 @@ const CreateDiveSite = () => {
   };
 
   const suggestLocation = async () => {
-    if (!formData.latitude || !formData.longitude) {
+    const lat = formData.latitude;
+    const lng = formData.longitude;
+    if (!lat || !lng) {
       toast.error('Please enter latitude and longitude first');
       return;
     }
@@ -154,19 +215,16 @@ const CreateDiveSite = () => {
     try {
       const response = await api.get('/api/v1/dive-sites/reverse-geocode', {
         params: {
-          latitude: parseFloat(formData.latitude),
-          longitude: parseFloat(formData.longitude),
+          latitude: typeof lat === 'string' ? parseFloat(lat) : lat,
+          longitude: typeof lng === 'string' ? parseFloat(lng) : lng,
         },
         timeout: 30000, // 30 second timeout
       });
 
       const { country, region } = response.data;
 
-      setFormData(prev => ({
-        ...prev,
-        country: country || '',
-        region: region || '',
-      }));
+      setValue('country', country || '');
+      setValue('region', region || '');
 
       if (country || region) {
         toast.success('Location suggestions applied!');
@@ -233,7 +291,7 @@ const CreateDiveSite = () => {
           <h1 className='text-2xl font-bold text-gray-900'>Create New Dive Site</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className='space-y-6'>
+        <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
           {/* Basic Information */}
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div>
@@ -246,13 +304,15 @@ const CreateDiveSite = () => {
               <input
                 id='dive-site-name'
                 type='text'
-                name='name'
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                {...register('name')}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.name ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder='Enter dive site name'
               />
+              {errors.name && (
+                <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.name)}</p>
+              )}
             </div>
 
             <div>
@@ -264,9 +324,7 @@ const CreateDiveSite = () => {
               </label>
               <select
                 id='difficulty-level'
-                name='difficulty_code'
-                value={formData.difficulty_code || ''}
-                onChange={handleInputChange}
+                {...register('difficulty_code')}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
               >
                 {getDifficultyOptions().map(option => (
@@ -290,13 +348,16 @@ const CreateDiveSite = () => {
             </label>
             <textarea
               id='dive-site-description'
-              name='description'
-              value={formData.description}
-              onChange={handleInputChange}
+              {...register('description')}
               rows={3}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.description ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder='Enter dive site description'
             />
+            {errors.description && (
+              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.description)}</p>
+            )}
           </div>
 
           {/* Location Information */}
@@ -309,13 +370,15 @@ const CreateDiveSite = () => {
                 id='latitude'
                 type='number'
                 step='any'
-                name='latitude'
-                value={formData.latitude}
-                onChange={handleInputChange}
-                required
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                {...register('latitude')}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.latitude ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder='e.g., -16.5'
               />
+              {errors.latitude && (
+                <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.latitude)}</p>
+              )}
             </div>
 
             <div>
@@ -326,13 +389,15 @@ const CreateDiveSite = () => {
                 id='longitude'
                 type='number'
                 step='any'
-                name='longitude'
-                value={formData.longitude}
-                onChange={handleInputChange}
-                required
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                {...register('longitude')}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.longitude ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder='e.g., 145.67'
               />
+              {errors.longitude && (
+                <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.longitude)}</p>
+              )}
             </div>
           </div>
 
@@ -365,12 +430,15 @@ const CreateDiveSite = () => {
               <input
                 id='country'
                 type='text'
-                name='country'
-                value={formData.country}
-                onChange={handleInputChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                {...register('country')}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.country ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder='e.g., Australia'
               />
+              {errors.country && (
+                <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.country)}</p>
+              )}
             </div>
 
             <div>
@@ -380,12 +448,15 @@ const CreateDiveSite = () => {
               <input
                 id='region'
                 type='text'
-                name='region'
-                value={formData.region}
-                onChange={handleInputChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                {...register('region')}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.region ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder='e.g., Queensland'
               />
+              {errors.region && (
+                <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.region)}</p>
+              )}
             </div>
           </div>
 
@@ -403,12 +474,15 @@ const CreateDiveSite = () => {
               step='0.01'
               min='0'
               max='360'
-              name='shore_direction'
-              value={formData.shore_direction}
-              onChange={handleInputChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              {...register('shore_direction')}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.shore_direction ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder='Auto-detected from coordinates (or enter manually)'
             />
+            {errors.shore_direction && (
+              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.shore_direction)}</p>
+            )}
             <p className='mt-1 text-xs text-gray-500'>
               Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South, 270° = West.
               If left empty, shore direction will be auto-detected from coordinates when the dive
@@ -417,8 +491,6 @@ const CreateDiveSite = () => {
           </div>
 
           {/* Dive Information */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'></div>
-
           <div>
             <label htmlFor='max-depth' className='block text-sm font-medium text-gray-700 mb-2'>
               Maximum Depth (meters)
@@ -429,12 +501,15 @@ const CreateDiveSite = () => {
               min='0'
               max='1000'
               step='any'
-              name='max_depth'
-              value={formData.max_depth}
-              onChange={handleInputChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              {...register('max_depth')}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.max_depth ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder='e.g., 25.5'
             />
+            {errors.max_depth && (
+              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.max_depth)}</p>
+            )}
           </div>
 
           <div>
@@ -446,13 +521,18 @@ const CreateDiveSite = () => {
             </label>
             <textarea
               id='access-instructions'
-              name='access_instructions'
-              value={formData.access_instructions}
-              onChange={handleInputChange}
+              {...register('access_instructions')}
               rows={3}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.access_instructions ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder='How to access this dive site'
             />
+            {errors.access_instructions && (
+              <p className='mt-1 text-sm text-red-600'>
+                {getErrorMessage(errors.access_instructions)}
+              </p>
+            )}
           </div>
 
           <div>
@@ -461,13 +541,16 @@ const CreateDiveSite = () => {
             </label>
             <textarea
               id='marine-life'
-              name='marine_life'
-              value={formData.marine_life}
-              onChange={handleInputChange}
+              {...register('marine_life')}
               rows={3}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.marine_life ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder='Marine life commonly found at this site'
             />
+            {errors.marine_life && (
+              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.marine_life)}</p>
+            )}
           </div>
 
           <div>
@@ -479,13 +562,18 @@ const CreateDiveSite = () => {
             </label>
             <textarea
               id='safety-information'
-              name='safety_information'
-              value={formData.safety_information}
-              onChange={handleInputChange}
+              {...register('safety_information')}
               rows={3}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.safety_information ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder='Important safety considerations'
             />
+            {errors.safety_information && (
+              <p className='mt-1 text-sm text-red-600'>
+                {getErrorMessage(errors.safety_information)}
+              </p>
+            )}
           </div>
 
           {/* Form Actions */}

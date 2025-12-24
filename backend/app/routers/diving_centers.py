@@ -622,10 +622,23 @@ async def get_diving_centers(
     sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
+    detail_level: Optional[str] = Query('full', description="Data detail level: 'minimal' (id, name only), 'basic' (id, name, country, region, city), 'full' (all fields)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
     """Get diving centers with filtering and pagination."""
+    # Validate detail_level parameter
+    if detail_level is not None:
+        valid_detail_levels = ['minimal', 'basic', 'full']
+        if detail_level.lower() not in valid_detail_levels:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"detail_level must be one of: {', '.join(valid_detail_levels)}"
+            )
+        detail_level = detail_level.lower()
+    else:
+        detail_level = 'full'
+    
     # Check if reviews are enabled
     reviews_enabled = is_diving_center_reviews_enabled(db)
     
@@ -905,36 +918,54 @@ async def get_diving_centers(
         avg_rating = center_data[1]  # avg_rating from subquery
         total_ratings = center_data[2]  # total_ratings from subquery
 
-        # Get owner username if exists
-        owner_username = None
-        if center.owner_id:
-            owner = db.query(User).filter(User.id == center.owner_id).first()
-            owner_username = owner.username if owner else None
+        # Build center_dict based on detail_level
+        if detail_level == 'minimal':
+            # Minimal: only id and name
+            center_dict = {
+                "id": center.id,
+                "name": center.name,
+            }
+        elif detail_level == 'basic':
+            # Basic: id, name, country, region, city
+            center_dict = {
+                "id": center.id,
+                "name": center.name,
+                "country": center.country,
+                "region": center.region,
+                "city": center.city,
+            }
+        else:
+            # Full: all fields
+            # Get owner username if exists
+            owner_username = None
+            if center.owner_id:
+                owner = db.query(User).filter(User.id == center.owner_id).first()
+                owner_username = owner.username if owner else None
 
-        center_dict = {
-            "id": center.id,
-            "name": center.name,
-            "description": center.description,
-            "email": center.email,
-            "phone": center.phone,
-            "website": center.website,
-            "latitude": float(center.latitude) if center.latitude else None,
-            "longitude": float(center.longitude) if center.longitude else None,
-            "country": center.country,
-            "region": center.region,
-            "city": center.city,
-            "created_at": center.created_at.isoformat() if center.created_at else None,
-            "updated_at": center.updated_at.isoformat() if center.updated_at else None,
-            "average_rating": float(avg_rating) if reviews_enabled and avg_rating else None,
-            "total_ratings": (total_ratings or 0) if reviews_enabled else 0,
-            "owner_id": center.owner_id,
-            "ownership_status": center.ownership_status.value if center.ownership_status else None,
-            "owner_username": owner_username
-        }
+            center_dict = {
+                "id": center.id,
+                "name": center.name,
+                "description": center.description,
+                "email": center.email,
+                "phone": center.phone,
+                "website": center.website,
+                "latitude": float(center.latitude) if center.latitude else None,
+                "longitude": float(center.longitude) if center.longitude else None,
+                "country": center.country,
+                "region": center.region,
+                "city": center.city,
+                "created_at": center.created_at.isoformat() if center.created_at else None,
+                "updated_at": center.updated_at.isoformat() if center.updated_at else None,
+                "average_rating": float(avg_rating) if reviews_enabled and avg_rating else None,
+                "total_ratings": (total_ratings or 0) if reviews_enabled else 0,
+                "owner_id": center.owner_id,
+                "ownership_status": center.ownership_status.value if center.ownership_status else None,
+                "owner_username": owner_username
+            }
 
-        # Only include view_count for admin users
-        if current_user and current_user.is_admin:
-            center_dict["view_count"] = center.view_count
+            # Only include view_count for admin users
+            if current_user and current_user.is_admin:
+                center_dict["view_count"] = center.view_count
 
         result.append(center_dict)
 

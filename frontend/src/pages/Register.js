@@ -1,35 +1,76 @@
 import { Eye, EyeOff } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
+import { z } from 'zod';
 
 import Logo from '../components/Logo';
 import Turnstile from '../components/Turnstile';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { commonSchemas, createResolver } from '../utils/formHelpers';
 import googleAuth from '../utils/googleAuth';
 import { isTurnstileEnabled, getTurnstileConfig } from '../utils/turnstileConfig';
+
+// Zod schema for registration form with password matching
+const registerSchema = z
+  .object({
+    username: commonSchemas.username,
+    email: commonSchemas.email,
+    password: commonSchemas.password,
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 
 const Register = () => {
   // Set page title
   usePageTitle('Divemap - Register');
 
-  const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [errors, setErrors] = useState({});
   const [turnstileToken, setTurnstileToken] = useState(null);
   const [turnstileError, setTurnstileError] = useState(false);
 
   const { register: authRegister, loginWithGoogle, user } = useAuth();
   const navigate = useNavigate();
+
+  // React Hook Form setup
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    setValue,
+  } = useForm({
+    resolver: createResolver(registerSchema),
+    defaultValues: {
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
+
+  // Watch email for navigation after registration
+  const email = watch('email');
+
+  // Helper function to safely extract error message
+  const getErrorMessage = error => {
+    if (!error) return null;
+    if (typeof error === 'string') return error;
+    if (error.message) return error.message;
+    if (error.msg) return error.msg;
+    if (Array.isArray(error) && error.length > 0) {
+      return getErrorMessage(error[0]);
+    }
+    return 'Invalid value';
+  };
 
   // Memoize Turnstile configuration to prevent infinite re-renders
   const turnstileConfig = useMemo(() => {
@@ -67,6 +108,8 @@ const Register = () => {
   const handleTurnstileVerify = token => {
     setTurnstileToken(token);
     setTurnstileError(false);
+    // Update form value for validation (though Turnstile is handled separately)
+    setValue('turnstile_token', token, { shouldValidate: false });
   };
 
   const handleTurnstileExpire = () => {
@@ -100,65 +143,18 @@ const Register = () => {
     initializeGoogleSignIn();
   }, [handleGoogleSuccess, handleGoogleError]);
 
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (formData.username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters long';
-    }
-
-    if (!formData.email.includes('@')) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters long';
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
+  const onSubmit = async data => {
     // Only require Turnstile verification if it's enabled
     if (turnstileConfig.isEnabled && !turnstileToken) {
-      newErrors.turnstile = 'Please complete the verification';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = e => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-
-    // Clear error when user starts typing
-    if (errors[e.target.name]) {
-      setErrors({
-        ...errors,
-        [e.target.name]: '',
-      });
-    }
-  };
-
-  const handleSubmit = async e => {
-    e.preventDefault();
-
-    if (!validateForm()) {
+      setTurnstileError(true);
+      toast.error('Please complete the verification');
       return;
     }
 
     setLoading(true);
 
     try {
-      const success = await authRegister(
-        formData.username,
-        formData.email,
-        formData.password,
-        turnstileToken
-      );
+      const success = await authRegister(data.username, data.email, data.password, turnstileToken);
       if (success) {
         // Check if user was logged in by checking auth context user state
         // If user object exists, they were logged in (email verification not required)
@@ -169,7 +165,7 @@ const Register = () => {
             navigate('/');
           } else {
             // Email verification required - redirect to check email page with email
-            navigate('/check-email', { state: { email: formData.email } });
+            navigate('/check-email', { state: { email: data.email } });
           }
         }, 200); // Small delay to allow auth context to update
       }
@@ -197,7 +193,7 @@ const Register = () => {
             </Link>
           </p>
         </div>
-        <form className='mt-8 space-y-6' onSubmit={handleSubmit}>
+        <form className='mt-8 space-y-6' onSubmit={handleSubmit(onSubmit)}>
           <div className='space-y-4'>
             <div>
               <label htmlFor='username' className='block text-sm font-medium text-gray-700'>
@@ -205,17 +201,16 @@ const Register = () => {
               </label>
               <input
                 id='username'
-                name='username'
                 type='text'
-                required
                 className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
                   errors.username ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder='Enter your username'
-                value={formData.username}
-                onChange={handleChange}
+                {...register('username')}
               />
-              {errors.username && <p className='mt-1 text-sm text-red-600'>{errors.username}</p>}
+              {errors.username && (
+                <p className='mt-1 text-sm text-red-600'>{errors.username.message}</p>
+              )}
             </div>
 
             <div>
@@ -224,17 +219,14 @@ const Register = () => {
               </label>
               <input
                 id='email'
-                name='email'
                 type='email'
-                required
                 className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
                   errors.email ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder='Enter your email'
-                value={formData.email}
-                onChange={handleChange}
+                {...register('email')}
               />
-              {errors.email && <p className='mt-1 text-sm text-red-600'>{errors.email}</p>}
+              {errors.email && <p className='mt-1 text-sm text-red-600'>{errors.email.message}</p>}
             </div>
 
             <div>
@@ -244,15 +236,12 @@ const Register = () => {
               <div className='relative'>
                 <input
                   id='password'
-                  name='password'
                   type={showPassword ? 'text' : 'password'}
-                  required
-                  className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                  className={`mt-1 appearance-none relative block w-full px-3 py-2 pr-10 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
                     errors.password ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder='Enter your password'
-                  value={formData.password}
-                  onChange={handleChange}
+                  {...register('password')}
                 />
                 <button
                   type='button'
@@ -266,7 +255,9 @@ const Register = () => {
                   )}
                 </button>
               </div>
-              {errors.password && <p className='mt-1 text-sm text-red-600'>{errors.password}</p>}
+              {errors.password && (
+                <p className='mt-1 text-sm text-red-600'>{errors.password.message}</p>
+              )}
             </div>
 
             <div>
@@ -276,15 +267,12 @@ const Register = () => {
               <div className='relative'>
                 <input
                   id='confirmPassword'
-                  name='confirmPassword'
                   type={showConfirmPassword ? 'text' : 'password'}
-                  required
-                  className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                  className={`mt-1 appearance-none relative block w-full px-3 py-2 pr-10 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
                     errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder='Confirm your password'
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
+                  {...register('confirmPassword')}
                 />
                 <button
                   type='button'
@@ -299,7 +287,7 @@ const Register = () => {
                 </button>
               </div>
               {errors.confirmPassword && (
-                <p className='mt-1 text-sm text-red-600'>{errors.confirmPassword}</p>
+                <p className='mt-1 text-sm text-red-600'>{errors.confirmPassword.message}</p>
               )}
             </div>
           </div>
@@ -316,9 +304,6 @@ const Register = () => {
                 size='normal'
                 className='flex justify-center'
               />
-              {errors.turnstile && (
-                <p className='text-sm text-red-600 text-center'>{errors.turnstile}</p>
-              )}
               {turnstileError && (
                 <p className='text-sm text-red-600 text-center'>
                   Verification failed. Please try again.
