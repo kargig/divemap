@@ -220,10 +220,15 @@ const EditDive = () => {
 
   // Clear route selection when dive site changes
   useEffect(() => {
-    if (diveSiteId) {
+    // Only clear if the user has changed the dive site from the original one
+    // We check if dive data is loaded and compare current ID with original ID
+    const isInitialDiveSite =
+      dive?.dive_site_id && diveSiteId.toString() === dive.dive_site_id.toString();
+
+    if (diveSiteId && !isInitialDiveSite) {
       setValue('selected_route_id', '');
     }
-  }, [diveSiteId, setValue]);
+  }, [diveSiteId, setValue, dive]);
 
   // Fetch initial dive sites with "Attiki" on component mount
   useEffect(() => {

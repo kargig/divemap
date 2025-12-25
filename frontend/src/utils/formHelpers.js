@@ -160,8 +160,92 @@ export const commonSchemas = {
       },
       { message: 'Shore direction must be between 0 and 360 degrees' }
     )
-    .or(z.number().min(0).max(360).optional()),
+    .or(z.number().min(0).max(360).optional())
+    .or(z.literal('')),
+  distance: z
+    .string()
+    .optional()
+    .refine(
+      val => {
+        if (!val || val.trim() === '') return true; // Optional
+        const num = parseFloat(val);
+        return !isNaN(num) && num >= 0;
+      },
+      { message: 'Distance must be a positive number' }
+    )
+    .or(z.number().min(0).optional())
+    .or(z.literal('')),
 };
+
+/**
+ * Dive site schema for creation and editing
+ */
+export const diveSiteSchema = z.object({
+  name: commonSchemas.diveSiteName,
+  description: z.string().min(1, 'Description is required').or(z.literal('')),
+  latitude: commonSchemas.latitude,
+  longitude: commonSchemas.longitude,
+  country: commonSchemas.country,
+  region: commonSchemas.region,
+  access_instructions: z.string().optional().or(z.literal('')),
+  difficulty_code: z.preprocess(
+    val => (val === '' || val === null || val === undefined ? null : val),
+    z
+      .union([
+        z.enum(['OPEN_WATER', 'ADVANCED_OPEN_WATER', 'DEEP_NITROX', 'TECHNICAL_DIVING']),
+        z.null(),
+      ])
+      .optional()
+  ),
+  marine_life: z.string().optional().or(z.literal('')),
+  safety_information: z.string().optional().or(z.literal('')),
+  max_depth: commonSchemas.maxDepth,
+  shore_direction: commonSchemas.shoreDirection,
+  shore_direction_confidence: z.string().optional().or(z.literal('')),
+  shore_direction_method: z.string().optional().or(z.literal('')),
+  shore_direction_distance_m: commonSchemas.distance,
+});
+
+/**
+ * Profile/User schema
+ */
+export const profileSchema = z.object({
+  username: commonSchemas.username,
+  name: z.string().optional().or(z.literal('')),
+  email: commonSchemas.email,
+  number_of_dives: z.preprocess(
+    val => {
+      if (val === '' || val === null || val === undefined) return 0;
+      return typeof val === 'string' ? parseInt(val, 10) : val;
+    },
+    z.number().min(0, 'Number of dives cannot be negative')
+  ),
+  buddy_visibility: z.enum(['public', 'private']).default('public'),
+});
+
+/**
+ * Certification schema
+ */
+export const certificationSchema = z.object({
+  diving_organization_id: z.union([z.string(), z.number()]).refine(val => val !== '', {
+    message: 'Please select an organization',
+  }),
+  certification_level: z.string().min(1, 'Certification level is required'),
+});
+
+/**
+ * Change password schema
+ */
+export const changePasswordSchema = z
+  .object({
+    current_password: z.string().min(1, 'Current password is required'),
+    new_password: commonSchemas.password,
+    confirm_password: z.string().min(1, 'Please confirm your new password'),
+  })
+  .refine(data => data.new_password === data.confirm_password, {
+    message: "Passwords don't match",
+    path: ['confirm_password'],
+  });
 
 /**
  * Individual dive schema (for use in trip dives array)

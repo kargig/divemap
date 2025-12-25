@@ -10,46 +10,12 @@ import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
-import { commonSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
-
-// Zod schema for dive site creation
-const diveSiteSchema = z.object({
-  name: commonSchemas.diveSiteName,
-  description: z.string().optional().or(z.literal('')),
-  latitude: commonSchemas.latitude,
-  longitude: commonSchemas.longitude,
-  country: z.string().optional().or(z.literal('')),
-  region: z.string().optional().or(z.literal('')),
-  access_instructions: z.string().optional().or(z.literal('')),
-  difficulty_code: z.preprocess(
-    val => (val === '' || val === null || val === undefined ? null : val),
-    z
-      .union([
-        z.enum(['OPEN_WATER', 'ADVANCED_OPEN_WATER', 'DEEP_NITROX', 'TECHNICAL_DIVING']),
-        z.null(),
-      ])
-      .optional()
-  ),
-  marine_life: z.string().optional().or(z.literal('')),
-  safety_information: z.string().optional().or(z.literal('')),
-  max_depth: commonSchemas.maxDepth,
-  shore_direction: commonSchemas.shoreDirection,
-  shore_direction_confidence: z.string().optional().or(z.literal('')),
-  shore_direction_method: z.string().optional().or(z.literal('')),
-  shore_direction_distance_m: z
-    .string()
-    .optional()
-    .refine(
-      val => {
-        if (!val || val.trim() === '') return true; // Optional
-        const num = parseFloat(val);
-        return !isNaN(num) && num >= 0;
-      },
-      { message: 'Distance must be a positive number' }
-    )
-    .or(z.number().min(0).optional())
-    .or(z.literal('')),
-});
+import {
+  commonSchemas,
+  diveSiteSchema,
+  createResolver,
+  getErrorMessage,
+} from '../utils/formHelpers';
 
 const CreateDiveSite = () => {
   // Set page title

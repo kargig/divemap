@@ -1,5 +1,6 @@
 import { ArrowLeft, Save, Trash2, Upload, X, Tag, Building, Plus, Edit } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -10,9 +11,7 @@ import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
-
-// Use extractErrorMessage from api.js
-const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
+import { diveSiteSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 const EditDiveSite = () => {
   // Set page title
@@ -22,23 +21,38 @@ const EditDiveSite = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    latitude: '',
-    longitude: '',
-    country: '',
-    region: '',
-    access_instructions: '',
-    difficulty_code: '',
-    marine_life: '',
-    safety_information: '',
-    max_depth: '',
-    shore_direction: '',
-    shore_direction_confidence: '',
-    shore_direction_method: '',
-    shore_direction_distance_m: '',
+  // React Hook Form setup
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+    reset,
+    setError,
+  } = useForm({
+    resolver: createResolver(diveSiteSchema),
+    mode: 'onChange',
+    defaultValues: {
+      name: '',
+      description: '',
+      latitude: '',
+      longitude: '',
+      country: '',
+      region: '',
+      access_instructions: '',
+      difficulty_code: '',
+      marine_life: '',
+      safety_information: '',
+      max_depth: '',
+      shore_direction: '',
+      shore_direction_confidence: '',
+      shore_direction_method: '',
+      shore_direction_distance_m: '',
+    },
   });
+
+  const formData = watch();
 
   const [newMedia, setNewMedia] = useState({
     url: '',
@@ -81,7 +95,7 @@ const EditDiveSite = () => {
   } = useQuery(['dive-site', id], () => api.get(`/api/v1/dive-sites/${id}`).then(res => res.data), {
     enabled: !!id && canEdit,
     onSuccess: data => {
-      setFormData({
+      reset({
         name: data.name || '',
         description: data.description || '',
         latitude: data.latitude?.toString() || '',
@@ -337,7 +351,17 @@ const EditDiveSite = () => {
   // Update mutation
   const updateMutation = useMutation(data => api.put(`/api/v1/dive-sites/${id}`, data), {
     onError: error => {
-      toast.error(getErrorMessage(error));
+      if (error?.response?.data?.detail && typeof error.response.data.detail === 'object') {
+        const fieldErrors = error.response.data.detail;
+        Object.keys(fieldErrors).forEach(field => {
+          setError(field, {
+            type: 'server',
+            message: Array.isArray(fieldErrors[field]) ? fieldErrors[field][0] : fieldErrors[field],
+          });
+        });
+      } else {
+        toast.error(getErrorMessage(error));
+      }
     },
   });
 
@@ -370,14 +394,6 @@ const EditDiveSite = () => {
       },
     }
   );
-
-  const handleInputChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
 
   // Aliases handlers
   const handleAddAlias = e => {
@@ -433,11 +449,8 @@ const EditDiveSite = () => {
 
       const { country, region } = response.data;
 
-      setFormData(prev => ({
-        ...prev,
-        country: country || '',
-        region: region || '',
-      }));
+      setValue('country', country || '');
+      setValue('region', region || '');
 
       if (country || region) {
         toast.success('Location suggestions applied!');
@@ -481,13 +494,10 @@ const EditDiveSite = () => {
 
       const { shore_direction, confidence, method, distance_to_coastline_m } = response.data;
 
-      setFormData(prev => ({
-        ...prev,
-        shore_direction: shore_direction?.toString() || '',
-        shore_direction_confidence: confidence || '',
-        shore_direction_method: method || '',
-        shore_direction_distance_m: distance_to_coastline_m?.toString() || '',
-      }));
+      setValue('shore_direction', shore_direction?.toString() || '');
+      setValue('shore_direction_confidence', confidence || '');
+      setValue('shore_direction_method', method || '');
+      setValue('shore_direction_distance_m', distance_to_coastline_m?.toString() || '');
 
       toast.success(
         `Shore direction detected: ${shore_direction?.toFixed(1)}° (${confidence || 'unknown'} confidence)`
@@ -504,70 +514,49 @@ const EditDiveSite = () => {
     }
   };
 
-  const handleSubmit = e => {
-    e.preventDefault();
-
+  const onSubmit = data => {
     // Prepare the update data
     const updateData = {
-      ...formData,
-      latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-      longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+      ...data,
+      latitude: data.latitude ? parseFloat(data.latitude) : null,
+      longitude: data.longitude ? parseFloat(data.longitude) : null,
     };
 
-    // Ensure latitude and longitude are not empty
-    if (!formData.latitude || formData.latitude.trim() === '') {
-      toast.error('Latitude is required');
-      return;
-    }
-    if (!formData.longitude || formData.longitude.trim() === '') {
-      toast.error('Longitude is required');
-      return;
-    }
-
     // Convert max_depth to number if provided, or set to null if empty
-    if (formData.max_depth && formData.max_depth.trim() !== '') {
-      updateData.max_depth = parseFloat(formData.max_depth);
+    if (data.max_depth && data.max_depth.trim() !== '') {
+      updateData.max_depth = parseFloat(data.max_depth);
     } else {
       updateData.max_depth = null;
     }
 
     // Convert difficulty_code: empty string becomes null, otherwise keep the code
-    if (formData.difficulty_code && formData.difficulty_code.trim() !== '') {
-      updateData.difficulty_code = formData.difficulty_code;
+    if (data.difficulty_code && data.difficulty_code.trim() !== '') {
+      updateData.difficulty_code = data.difficulty_code;
     } else {
       updateData.difficulty_code = null;
     }
 
     // Handle shore_direction: only include if provided, otherwise explicitly remove from update
-    // This allows saving without shore_direction (backend will keep existing value or auto-detect)
-    if (formData.shore_direction && formData.shore_direction.trim() !== '') {
-      updateData.shore_direction = parseFloat(formData.shore_direction);
+    if (data.shore_direction && data.shore_direction.trim() !== '') {
+      updateData.shore_direction = parseFloat(data.shore_direction);
 
-      // Include other shore_direction fields if shore_direction is set
-      if (
-        formData.shore_direction_confidence &&
-        formData.shore_direction_confidence.trim() !== ''
-      ) {
-        updateData.shore_direction_confidence = formData.shore_direction_confidence;
+      if (data.shore_direction_confidence && data.shore_direction_confidence.trim() !== '') {
+        updateData.shore_direction_confidence = data.shore_direction_confidence;
       } else {
         updateData.shore_direction_confidence = null;
       }
-      if (formData.shore_direction_method && formData.shore_direction_method.trim() !== '') {
-        updateData.shore_direction_method = formData.shore_direction_method;
+      if (data.shore_direction_method && data.shore_direction_method.trim() !== '') {
+        updateData.shore_direction_method = data.shore_direction_method;
       } else {
         updateData.shore_direction_method = null;
       }
-      if (
-        formData.shore_direction_distance_m &&
-        formData.shore_direction_distance_m.trim() !== ''
-      ) {
-        updateData.shore_direction_distance_m = parseFloat(formData.shore_direction_distance_m);
+      if (data.shore_direction_distance_m && data.shore_direction_distance_m.trim() !== '') {
+        updateData.shore_direction_distance_m = parseFloat(data.shore_direction_distance_m);
       } else {
         updateData.shore_direction_distance_m = null;
       }
     } else {
       // If shore_direction is empty, explicitly remove all shore_direction fields from update
-      // This allows the backend to keep existing values or auto-detect if needed
       delete updateData.shore_direction;
       delete updateData.shore_direction_confidence;
       delete updateData.shore_direction_method;
@@ -702,7 +691,7 @@ const EditDiveSite = () => {
           </div>
 
           {/* Main Dive Site Form */}
-          <form onSubmit={handleSubmit} className='space-y-6'>
+          <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
             {/* Basic Information */}
             <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
               <div>
@@ -715,12 +704,14 @@ const EditDiveSite = () => {
                 <input
                   id='dive-site-name'
                   type='text'
-                  name='name'
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  {...register('name')}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.name ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 />
+                {errors.name && (
+                  <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.name)}</p>
+                )}
               </div>
 
               <div>
@@ -732,9 +723,7 @@ const EditDiveSite = () => {
                 </label>
                 <select
                   id='difficulty-level'
-                  name='difficulty_code'
-                  value={formData.difficulty_code || ''}
-                  onChange={handleInputChange}
+                  {...register('difficulty_code')}
                   className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                 >
                   {getDifficultyOptions().map(option => (
@@ -897,13 +886,15 @@ const EditDiveSite = () => {
               </label>
               <textarea
                 id='dive-site-description'
-                name='description'
-                value={formData.description}
-                onChange={handleInputChange}
-                required
+                {...register('description')}
                 rows={4}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.description ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
+              {errors.description && (
+                <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.description)}</p>
+              )}
             </div>
 
             {/* Location */}
@@ -916,12 +907,14 @@ const EditDiveSite = () => {
                   id='latitude'
                   type='number'
                   step='any'
-                  name='latitude'
-                  value={formData.latitude}
-                  onChange={handleInputChange}
-                  required
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  {...register('latitude')}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.latitude ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 />
+                {errors.latitude && (
+                  <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.latitude)}</p>
+                )}
               </div>
 
               <div>
@@ -932,12 +925,14 @@ const EditDiveSite = () => {
                   id='longitude'
                   type='number'
                   step='any'
-                  name='longitude'
-                  value={formData.longitude}
-                  onChange={handleInputChange}
-                  required
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  {...register('longitude')}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.longitude ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 />
+                {errors.longitude && (
+                  <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.longitude)}</p>
+                )}
               </div>
             </div>
 
@@ -950,9 +945,7 @@ const EditDiveSite = () => {
                 <input
                   id='country'
                   type='text'
-                  name='country'
-                  value={formData.country}
-                  onChange={handleInputChange}
+                  {...register('country')}
                   className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                   placeholder='e.g., Australia'
                 />
@@ -965,9 +958,7 @@ const EditDiveSite = () => {
                 <input
                   id='region'
                   type='text'
-                  name='region'
-                  value={formData.region}
-                  onChange={handleInputChange}
+                  {...register('region')}
                   className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                   placeholder='e.g., Queensland'
                 />
@@ -1009,10 +1000,10 @@ const EditDiveSite = () => {
                   step='0.01'
                   min='0'
                   max='360'
-                  name='shore_direction'
-                  value={formData.shore_direction}
-                  onChange={handleInputChange}
-                  className='flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  {...register('shore_direction')}
+                  className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.shore_direction ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder='Enter shore direction in degrees (0-360)'
                 />
                 <button
@@ -1032,6 +1023,11 @@ const EditDiveSite = () => {
                   🔍 Re-detect from Coordinates
                 </button>
               </div>
+              {errors.shore_direction && (
+                <p className='mt-1 text-sm text-red-600'>
+                  {getErrorMessage(errors.shore_direction)}
+                </p>
+              )}
               <p className='mt-1 text-xs text-gray-500'>
                 Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South, 270° =
                 West.
@@ -1070,12 +1066,15 @@ const EditDiveSite = () => {
                 min='0'
                 max='1000'
                 step='any'
-                name='max_depth'
-                value={formData.max_depth}
-                onChange={handleInputChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                {...register('max_depth')}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.max_depth ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder='e.g., 25.5'
               />
+              {errors.max_depth && (
+                <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.max_depth)}</p>
+              )}
             </div>
 
             <div>
@@ -1087,9 +1086,7 @@ const EditDiveSite = () => {
               </label>
               <textarea
                 id='access_instructions'
-                name='access_instructions'
-                value={formData.access_instructions}
-                onChange={handleInputChange}
+                {...register('access_instructions')}
                 rows={3}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
               />
@@ -1101,9 +1098,7 @@ const EditDiveSite = () => {
               </label>
               <textarea
                 id='marine_life'
-                name='marine_life'
-                value={formData.marine_life}
-                onChange={handleInputChange}
+                {...register('marine_life')}
                 rows={3}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                 placeholder='Describe the marine life you might encounter...'
@@ -1119,9 +1114,7 @@ const EditDiveSite = () => {
               </label>
               <textarea
                 id='safety_information'
-                name='safety_information'
-                value={formData.safety_information}
-                onChange={handleInputChange}
+                {...register('safety_information')}
                 rows={3}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                 placeholder='Important safety considerations...'

@@ -1,7 +1,7 @@
 ---
 description: Git commit rules, workflow standards, and branch management for the Divemap project
 globs: ["**/*"]
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Git Commit Rules
