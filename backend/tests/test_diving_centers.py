@@ -985,8 +985,8 @@ class TestDivingCenters:
         assert test_diving_center.ownership_status == OwnershipStatus.unclaimed
         assert test_diving_center.owner_id is None
 
-    def test_revoke_diving_center_ownership_not_approved(self, client, test_diving_center, admin_headers, db_session):
-        """Test revocation fails when diving center is not approved."""
+    def test_revoke_diving_center_ownership_claimed(self, client, test_diving_center, admin_headers, db_session):
+        """Test revocation succeeds when diving center is claimed (pending approval)."""
         from app.models import OwnershipStatus
         
         # Set diving center as claimed (not approved)
@@ -995,7 +995,31 @@ class TestDivingCenters:
         
         response = client.post(
             f"/api/v1/diving-centers/{test_diving_center.id}/revoke-ownership",
-            json={"approved": False, "reason": "Testing"},
+            json={"reason": "Testing cleanup"},
+            headers=admin_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "has been revoked" in data["message"]
+        
+        # Verify database changes
+        db_session.refresh(test_diving_center)
+        assert test_diving_center.ownership_status == OwnershipStatus.unclaimed
+        assert test_diving_center.owner_id is None
+
+    def test_revoke_diving_center_ownership_fails_when_unclaimed(self, client, test_diving_center, admin_headers, db_session):
+        """Test revocation fails when diving center is already unclaimed."""
+        from app.models import OwnershipStatus
+        
+        # Set diving center as unclaimed
+        test_diving_center.ownership_status = OwnershipStatus.unclaimed
+        test_diving_center.owner_id = None
+        db_session.commit()
+        
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/revoke-ownership",
+            json={"reason": "Testing"},
             headers=admin_headers
         )
         

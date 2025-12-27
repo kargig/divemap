@@ -11,8 +11,6 @@ maintainability and clarity.
 - **`core-essentials.mdc`** - Core universal rules referenced by other rules
 - **`project-standards.mdc`** - Core project standards, Docker management, and environment requirements
 - **`git-standards.mdc`** - Git commit rules, workflow standards, and branch management
-- **`git-standards-quickref.mdc`** - ⚠️ DISABLED (redundant - use git-standards.mdc)
-- **`project-standards-quickref.mdc`** - ⚠️ DISABLED (redundant - use project-standards.mdc)
 - **`testing-standards.mdc`** - Testing requirements and environment setup
 - **`documentation-standards.mdc`** - Documentation standards and templates
 - **`documentation-management.mdc`** - Rules for managing documentation files (prevent pollution)
@@ -155,12 +153,6 @@ These rules **auto-attach** based on file patterns:
 - **documentation-standards.mdc** - Only for `docs/**/*` and `.md` files
 - **backend/.cursor/rules/migrations.mdc** - Only for migration/model files
 - **frontend/.cursor/rules/code-quality.mdc** - Only for frontend files
-
-### Disabled Files (NOT USED)
-- **git-standards-quickref.mdc** - Disabled (redundant - use git-standards.mdc instead)
-- **project-standards-quickref.mdc** - Disabled (redundant - use project-standards.mdc instead)
-
-**Why disabled?** They had `globs: ["**/*"]` which would load for ALL files, duplicating the main rules. They're now set to `globs: []` so they never load.
 
 ## How Rules Load for Different File Types
 

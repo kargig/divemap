@@ -507,6 +507,24 @@ const onSubmit = async data => {
   - Multiple small forms on one page can each use their own `useForm` hook independent of each other
   - Critical fields (username, email) should be disabled in UI and protected in backend API schemas
 
+## Phase 5: Cleanup & Standardization (Post-Migration)
+
+To fully realize the maintainability goals, the following cleanup task is required:
+
+### Refactor to use `FormField.js`
+The reusable `FormField` component exists but is not yet used in the migrated forms.
+
+**Task**: Replace manual label/input/error rendering with `<FormField>` wrapper in:
+- [x] Login.js
+- [x] Register.js
+- [x] CreateDive.js
+- [x] EditDive.js
+- [x] CreateDiveSite.js
+- [x] EditDiveSite.js
+- [x] DivingCenterForm.js
+- [x] Profile.js
+- [x] AdminDives.js
+
 ---
 
 ## Migration Checklist Template
@@ -1035,8 +1053,8 @@ const diveData = {
 
 ---
 
-**Last Updated**: December 25, 2025  
-**Status**: Phase 1, Phase 2, Phase 3, and Phase 4 Completed - Migration Complete
+**Last Updated**: December 27, 2025  
+**Status**: Phase 1, Phase 2, Phase 3, Phase 4 and Phase 5 Completed - Migration & Cleanup Complete
 **Progress**: 
 - ✅ Phase 1: Foundation (Login, Register) - **COMPLETED**
 - ✅ Phase 2.1: CreateDiveSite - **COMPLETED**
@@ -1047,6 +1065,7 @@ const diveData = {
 - ✅ Phase 3.3: EditDiveSite - **COMPLETED**
 - ✅ Phase 3.4: EditDivingCenter - **COMPLETED**
 - ✅ Phase 4: Admin & Profile Forms - **COMPLETED**
+- ✅ Phase 5: Cleanup & Standardization - **COMPLETED**
 
 **Completed Forms**:
 - ✅ Login.js
@@ -1068,5 +1087,6 @@ const diveData = {
 - ✅ Fixed time format handling (HH:MM ↔ HH:MM:SS conversion)
 - ✅ Fixed tag field name (`tags` vs `tag_ids`) for backend compatibility
 
-**Next Steps**: All planned forms have been migrated. Proceed to testing and verification.
-
+**Next Steps**: 
+1. **Refactor**: Update all forms to use the reusable `FormField` component for UI consistency (see `react-libraries-migration-plan.md` "Cleanup Tasks").
+2. **Verify**: Proceed to testing and verification.

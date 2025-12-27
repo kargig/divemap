@@ -13,12 +13,13 @@ import {
   Building2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
 
 import api, { getDivingCenters } from '../api';
+import { FormField } from '../components/forms/FormField';
 import MaskedEmail from '../components/MaskedEmail';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -40,12 +41,7 @@ const Profile = () => {
   const [editingCertification, setEditingCertification] = useState(null);
 
   // Profile Form
-  const {
-    register: registerProfile,
-    handleSubmit: handleSubmitProfile,
-    formState: { errors: profileErrors },
-    reset: resetProfile,
-  } = useForm({
+  const profileMethods = useForm({
     resolver: createResolver(profileSchema),
     mode: 'onChange',
     defaultValues: {
@@ -56,6 +52,13 @@ const Profile = () => {
       buddy_visibility: user?.buddy_visibility || 'public',
     },
   });
+
+  const {
+    register: registerProfile,
+    handleSubmit: handleSubmitProfile,
+    formState: { errors: profileErrors },
+    reset: resetProfile,
+  } = profileMethods;
 
   // Sync profile form when user data loads/changes
   useEffect(() => {
@@ -71,27 +74,31 @@ const Profile = () => {
   }, [user, resetProfile]);
 
   // Certification Form
+  const certMethods = useForm({
+    resolver: createResolver(certificationSchema),
+    mode: 'onChange',
+  });
+
   const {
     register: registerCert,
     handleSubmit: handleSubmitCert,
     formState: { errors: certErrors },
     reset: resetCert,
     setValue: setValueCert,
-  } = useForm({
-    resolver: createResolver(certificationSchema),
+  } = certMethods;
+
+  // Password Form
+  const passwordMethods = useForm({
+    resolver: createResolver(changePasswordSchema),
     mode: 'onChange',
   });
 
-  // Password Form
   const {
     register: registerPassword,
     handleSubmit: handleSubmitPassword,
     formState: { errors: passwordErrors },
     reset: resetPassword,
-  } = useForm({
-    resolver: createResolver(changePasswordSchema),
-    mode: 'onChange',
-  });
+  } = passwordMethods;
 
   // Mutations
   const updateProfileMutation = useMutation(data => api.put('/api/v1/users/me', data), {
@@ -296,120 +303,117 @@ const Profile = () => {
             </div>
 
             {isEditing ? (
-              <form onSubmit={handleSubmitProfile(onProfileSubmit)} className='space-y-4'>
-                <div>
-                  <label
-                    htmlFor='username'
-                    className='block text-sm font-medium text-gray-700 mb-2'
-                  >
-                    Username
-                  </label>
-                  <input
-                    id='username'
-                    type='text'
-                    {...registerProfile('username')}
-                    disabled
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-100 text-gray-500 cursor-not-allowed ${
-                      profileErrors.username ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  <p className='mt-1 text-xs text-gray-500'>Username cannot be changed</p>
-                  {profileErrors.username && (
-                    <p className='mt-1 text-sm text-red-600'>
-                      {getErrorMessage(profileErrors.username)}
-                    </p>
-                  )}
-                </div>
+              <FormProvider {...profileMethods}>
+                <form onSubmit={handleSubmitProfile(onProfileSubmit)} className='space-y-4'>
+                  <div>
+                    <FormField name='username' label='Username'>
+                      {({ register, name }) => (
+                        <>
+                          <input
+                            id='username'
+                            type='text'
+                            {...register(name)}
+                            disabled
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-100 text-gray-500 cursor-not-allowed ${
+                              profileErrors.username ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                          />
+                          <p className='mt-1 text-xs text-gray-500'>Username cannot be changed</p>
+                        </>
+                      )}
+                    </FormField>
+                  </div>
 
-                <div>
-                  <label htmlFor='name' className='block text-sm font-medium text-gray-700 mb-2'>
-                    Full Name
-                  </label>
-                  <input
-                    id='name'
-                    type='text'
-                    {...registerProfile('name')}
-                    placeholder='Enter your full name'
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-                  />
-                </div>
+                  <div>
+                    <FormField name='name' label='Full Name'>
+                      {({ register, name }) => (
+                        <input
+                          id='name'
+                          type='text'
+                          {...register(name)}
+                          placeholder='Enter your full name'
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-                <div>
-                  <label htmlFor='email' className='block text-sm font-medium text-gray-700 mb-2'>
-                    Email
-                  </label>
-                  <input
-                    id='email'
-                    type='email'
-                    {...registerProfile('email')}
-                    disabled
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-100 text-gray-500 cursor-not-allowed ${
-                      profileErrors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  <p className='mt-1 text-xs text-gray-500'>Email cannot be changed</p>
-                  {profileErrors.email && (
-                    <p className='mt-1 text-sm text-red-600'>
-                      {getErrorMessage(profileErrors.email)}
-                    </p>
-                  )}
-                </div>
+                  <div>
+                    <FormField name='email' label='Email'>
+                      {({ register, name }) => (
+                        <>
+                          <input
+                            id='email'
+                            type='email'
+                            {...register(name)}
+                            disabled
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-100 text-gray-500 cursor-not-allowed ${
+                              profileErrors.email ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                          />
+                          <p className='mt-1 text-xs text-gray-500'>Email cannot be changed</p>
+                        </>
+                      )}
+                    </FormField>
+                  </div>
 
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Number of Dives
-                  </label>
-                  <input
-                    type='number'
-                    {...registerProfile('number_of_dives')}
-                    min='0'
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                      profileErrors.number_of_dives ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {profileErrors.number_of_dives && (
-                    <p className='mt-1 text-sm text-red-600'>
-                      {getErrorMessage(profileErrors.number_of_dives)}
-                    </p>
-                  )}
-                </div>
+                  <div>
+                    <FormField name='number_of_dives' label='Number of Dives'>
+                      {({ register, name }) => (
+                        <input
+                          type='number'
+                          {...register(name)}
+                          min='0'
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                            profileErrors.number_of_dives ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Buddy Visibility
-                  </label>
-                  <select
-                    {...registerProfile('buddy_visibility')}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-                  >
-                    <option value='public'>Public - Others can add me as a dive buddy</option>
-                    <option value='private'>Private - Hide me from buddy search</option>
-                  </select>
-                  <p className='mt-1 text-xs text-gray-500'>
-                    Control whether other users can find and add you as a dive buddy
-                  </p>
-                </div>
+                  <div>
+                    <FormField name='buddy_visibility' label='Buddy Visibility'>
+                      {({ register, name }) => (
+                        <>
+                          <select
+                            {...register(name)}
+                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+                          >
+                            <option value='public'>
+                              Public - Others can add me as a dive buddy
+                            </option>
+                            <option value='private'>Private - Hide me from buddy search</option>
+                          </select>
+                          <p className='mt-1 text-xs text-gray-500'>
+                            Control whether other users can find and add you as a dive buddy
+                          </p>
+                        </>
+                      )}
+                    </FormField>
+                  </div>
 
-                <div className='flex justify-end space-x-3'>
-                  <button
-                    type='button'
-                    onClick={() => {
-                      resetProfile();
-                      setIsEditing(false);
-                    }}
-                    className='px-4 py-2 text-gray-600 hover:text-gray-700'
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type='submit'
-                    disabled={updateProfileMutation.isLoading}
-                    className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-                  >
-                    {updateProfileMutation.isLoading ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              </form>
+                  <div className='flex justify-end space-x-3'>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        resetProfile();
+                        setIsEditing(false);
+                      }}
+                      className='px-4 py-2 text-gray-600 hover:text-gray-700'
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type='submit'
+                      disabled={updateProfileMutation.isLoading}
+                      className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+                    >
+                      {updateProfileMutation.isLoading ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              </FormProvider>
             ) : (
               <div className='space-y-4'>
                 <div className='flex items-center'>
@@ -527,155 +531,147 @@ const Profile = () => {
             </div>
 
             {isAddingCertification && (
-              <form
-                onSubmit={handleSubmitCert(onCertSubmit)}
-                className='mb-6 p-4 border border-gray-200 rounded-lg'
-              >
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                      Diving Organization
-                    </label>
-                    <select
-                      {...registerCert('diving_organization_id')}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                        certErrors.diving_organization_id ? 'border-red-500' : 'border-gray-300'
-                      }`}
+              <FormProvider {...certMethods}>
+                <form
+                  onSubmit={handleSubmitCert(onCertSubmit)}
+                  className='mb-6 p-4 border border-gray-200 rounded-lg'
+                >
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <div>
+                      <FormField name='diving_organization_id' label='Diving Organization'>
+                        {({ register, name }) => (
+                          <select
+                            {...register(name)}
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                              certErrors.diving_organization_id
+                                ? 'border-red-500'
+                                : 'border-gray-300'
+                            }`}
+                          >
+                            <option value=''>Select Organization</option>
+                            {organizations.map(org => (
+                              <option key={org.id} value={org.id}>
+                                {org.acronym} - {org.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </FormField>
+                    </div>
+
+                    <div>
+                      <FormField name='certification_level' label='Certification Level'>
+                        {({ register, name }) => (
+                          <input
+                            type='text'
+                            {...register(name)}
+                            placeholder='e.g., Open Water Diver, Advanced, Divemaster'
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                              certErrors.certification_level ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                          />
+                        )}
+                      </FormField>
+                    </div>
+                  </div>
+
+                  <div className='flex justify-end space-x-3 mt-4'>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setIsAddingCertification(false);
+                        resetCert();
+                      }}
+                      className='px-4 py-2 text-gray-600 hover:text-gray-700'
                     >
-                      <option value=''>Select Organization</option>
-                      {organizations.map(org => (
-                        <option key={org.id} value={org.id}>
-                          {org.acronym} - {org.name}
-                        </option>
-                      ))}
-                    </select>
-                    {certErrors.diving_organization_id && (
-                      <p className='mt-1 text-sm text-red-600'>
-                        {getErrorMessage(certErrors.diving_organization_id)}
-                      </p>
-                    )}
+                      Cancel
+                    </button>
+                    <button
+                      type='submit'
+                      disabled={addCertMutation.isLoading}
+                      className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+                    >
+                      {addCertMutation.isLoading ? 'Adding...' : 'Add Certification'}
+                    </button>
                   </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                      Certification Level
-                    </label>
-                    <input
-                      type='text'
-                      {...registerCert('certification_level')}
-                      placeholder='e.g., Open Water Diver, Advanced, Divemaster'
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                        certErrors.certification_level ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {certErrors.certification_level && (
-                      <p className='mt-1 text-sm text-red-600'>
-                        {getErrorMessage(certErrors.certification_level)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className='flex justify-end space-x-3 mt-4'>
-                  <button
-                    type='button'
-                    onClick={() => {
-                      setIsAddingCertification(false);
-                      resetCert();
-                    }}
-                    className='px-4 py-2 text-gray-600 hover:text-gray-700'
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type='submit'
-                    disabled={addCertMutation.isLoading}
-                    className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-                  >
-                    {addCertMutation.isLoading ? 'Adding...' : 'Add Certification'}
-                  </button>
-                </div>
-              </form>
+                </form>
+              </FormProvider>
             )}
 
             {editingCertification && (
-              <form
-                onSubmit={handleSubmitCert(onCertSubmit)}
-                className='mb-6 p-4 border border-gray-200 rounded-lg'
-              >
-                <div className='flex items-center justify-between mb-4'>
-                  <h3 className='text-lg font-medium'>Edit Certification</h3>
-                  <button
-                    type='button'
-                    onClick={cancelCertificationEdit}
-                    className='text-gray-500 hover:text-gray-700'
-                  >
-                    <X className='h-5 w-5' />
-                  </button>
-                </div>
-
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                      Diving Organization
-                    </label>
-                    <select
-                      {...registerCert('diving_organization_id')}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                        certErrors.diving_organization_id ? 'border-red-500' : 'border-gray-300'
-                      }`}
+              <FormProvider {...certMethods}>
+                <form
+                  onSubmit={handleSubmitCert(onCertSubmit)}
+                  className='mb-6 p-4 border border-gray-200 rounded-lg'
+                >
+                  <div className='flex items-center justify-between mb-4'>
+                    <h3 className='text-lg font-medium'>Edit Certification</h3>
+                    <button
+                      type='button'
+                      onClick={cancelCertificationEdit}
+                      className='text-gray-500 hover:text-gray-700'
                     >
-                      <option value=''>Select Organization</option>
-                      {organizations.map(org => (
-                        <option key={org.id} value={org.id}>
-                          {org.acronym} - {org.name}
-                        </option>
-                      ))}
-                    </select>
-                    {certErrors.diving_organization_id && (
-                      <p className='mt-1 text-sm text-red-600'>
-                        {getErrorMessage(certErrors.diving_organization_id)}
-                      </p>
-                    )}
+                      <X className='h-5 w-5' />
+                    </button>
                   </div>
 
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                      Certification Level
-                    </label>
-                    <input
-                      type='text'
-                      {...registerCert('certification_level')}
-                      placeholder='e.g., Open Water Diver, Advanced, Divemaster'
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                        certErrors.certification_level ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {certErrors.certification_level && (
-                      <p className='mt-1 text-sm text-red-600'>
-                        {getErrorMessage(certErrors.certification_level)}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <div>
+                      <FormField name='diving_organization_id' label='Diving Organization'>
+                        {({ register, name }) => (
+                          <select
+                            {...register(name)}
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                              certErrors.diving_organization_id
+                                ? 'border-red-500'
+                                : 'border-gray-300'
+                            }`}
+                          >
+                            <option value=''>Select Organization</option>
+                            {organizations.map(org => (
+                              <option key={org.id} value={org.id}>
+                                {org.acronym} - {org.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </FormField>
+                    </div>
 
-                <div className='flex justify-end space-x-3 mt-4'>
-                  <button
-                    type='button'
-                    onClick={cancelCertificationEdit}
-                    className='px-4 py-2 text-gray-600 hover:text-gray-700'
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type='submit'
-                    disabled={updateCertMutation.isLoading}
-                    className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-                  >
-                    {updateCertMutation.isLoading ? 'Updating...' : 'Update Certification'}
-                  </button>
-                </div>
-              </form>
+                    <div>
+                      <FormField name='certification_level' label='Certification Level'>
+                        {({ register, name }) => (
+                          <input
+                            type='text'
+                            {...register(name)}
+                            placeholder='e.g., Open Water Diver, Advanced, Divemaster'
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                              certErrors.certification_level ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                          />
+                        )}
+                      </FormField>
+                    </div>
+                  </div>
+
+                  <div className='flex justify-end space-x-3 mt-4'>
+                    <button
+                      type='button'
+                      onClick={cancelCertificationEdit}
+                      className='px-4 py-2 text-gray-600 hover:text-gray-700'
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type='submit'
+                      disabled={updateCertMutation.isLoading}
+                      className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+                    >
+                      {updateCertMutation.isLoading ? 'Updating...' : 'Update Certification'}
+                    </button>
+                  </div>
+                </form>
+              </FormProvider>
             )}
 
             {certifications.length === 0 ? (
@@ -766,81 +762,71 @@ const Profile = () => {
             </div>
 
             {isChangingPassword ? (
-              <form onSubmit={handleSubmitPassword(onPasswordSubmit)} className='space-y-4'>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Current Password
-                  </label>
-                  <input
-                    type='password'
-                    {...registerPassword('current_password')}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                      passwordErrors.current_password ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {passwordErrors.current_password && (
-                    <p className='mt-1 text-sm text-red-600'>
-                      {getErrorMessage(passwordErrors.current_password)}
-                    </p>
-                  )}
-                </div>
+              <FormProvider {...passwordMethods}>
+                <form onSubmit={handleSubmitPassword(onPasswordSubmit)} className='space-y-4'>
+                  <div>
+                    <FormField name='current_password' label='Current Password'>
+                      {({ register, name }) => (
+                        <input
+                          type='password'
+                          {...register(name)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                            passwordErrors.current_password ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    New Password
-                  </label>
-                  <input
-                    type='password'
-                    {...registerPassword('new_password')}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                      passwordErrors.new_password ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {passwordErrors.new_password && (
-                    <p className='mt-1 text-sm text-red-600'>
-                      {getErrorMessage(passwordErrors.new_password)}
-                    </p>
-                  )}
-                </div>
+                  <div>
+                    <FormField name='new_password' label='New Password'>
+                      {({ register, name }) => (
+                        <input
+                          type='password'
+                          {...register(name)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                            passwordErrors.new_password ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Confirm New Password
-                  </label>
-                  <input
-                    type='password'
-                    {...registerPassword('confirm_password')}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                      passwordErrors.confirm_password ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {passwordErrors.confirm_password && (
-                    <p className='mt-1 text-sm text-red-600'>
-                      {getErrorMessage(passwordErrors.confirm_password)}
-                    </p>
-                  )}
-                </div>
+                  <div>
+                    <FormField name='confirm_password' label='Confirm New Password'>
+                      {({ register, name }) => (
+                        <input
+                          type='password'
+                          {...register(name)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                            passwordErrors.confirm_password ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-                <div className='flex justify-end space-x-3'>
-                  <button
-                    type='button'
-                    onClick={() => {
-                      setIsChangingPassword(false);
-                      resetPassword();
-                    }}
-                    className='px-4 py-2 text-gray-600 hover:text-gray-700'
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type='submit'
-                    disabled={changePasswordMutation.isLoading}
-                    className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-                  >
-                    {changePasswordMutation.isLoading ? 'Changing...' : 'Change Password'}
-                  </button>
-                </div>
-              </form>
+                  <div className='flex justify-end space-x-3'>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setIsChangingPassword(false);
+                        resetPassword();
+                      }}
+                      className='px-4 py-2 text-gray-600 hover:text-gray-700'
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type='submit'
+                      disabled={changePasswordMutation.isLoading}
+                      className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+                    >
+                      {changePasswordMutation.isLoading ? 'Changing...' : 'Change Password'}
+                    </button>
+                  </div>
+                </form>
+              </FormProvider>
             ) : (
               <div className='flex items-center'>
                 <Lock className='h-5 w-5 text-gray-400 mr-3' />

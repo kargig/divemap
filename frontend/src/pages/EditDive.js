@@ -1,6 +1,6 @@
 import { Save, ArrowLeft, Plus, X, ChevronDown, Image, Video, FileText, Link } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -15,6 +15,7 @@ import {
   extractErrorMessage,
   extractFieldErrors,
 } from '../api';
+import { FormField } from '../components/forms/FormField';
 import RouteSelection from '../components/RouteSelection';
 import UserSearchInput from '../components/UserSearchInput';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,15 +33,7 @@ const EditDive = () => {
   const { user, loading: authLoading } = useAuth();
 
   // React Hook Form setup
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-    setError,
-    reset,
-  } = useForm({
+  const methods = useForm({
     resolver: createResolver(createDiveSchema),
     mode: 'onChange', // Validate on change to provide real-time feedback
     reValidateMode: 'onChange', // Re-validate on change even after submission
@@ -63,6 +56,16 @@ const EditDive = () => {
       duration: '',
     },
   });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+    setError,
+    reset,
+  } = methods;
 
   // Watch dive_site_id for dependent field clearing
   const diveSiteId = watch('dive_site_id');
@@ -570,619 +573,620 @@ const EditDive = () => {
         <h1 className='text-3xl font-bold text-gray-900'>Edit Dive</h1>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className='bg-white rounded-lg shadow p-6'>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-          {/* Basic Information */}
-          <div className='md:col-span-2'>
-            <h2 className='text-xl font-semibold mb-4'>Basic Information</h2>
-          </div>
-
-          <div className='relative' ref={diveSiteDropdownRef}>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Dive Site (Optional)
-            </label>
-            <div className='relative'>
-              <input
-                type='text'
-                value={diveSiteSearch}
-                onChange={e => handleDiveSiteSearchChange(e.target.value)}
-                onFocus={() => setIsDiveSiteDropdownOpen(true)}
-                onKeyDown={handleDiveSiteKeyDown}
-                placeholder='Search for a dive site...'
-                className='w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-              />
-              <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
-                <ChevronDown
-                  size={16}
-                  className={`text-gray-400 transition-transform ${isDiveSiteDropdownOpen ? 'rotate-180' : ''}`}
-                />
-              </div>
+      <FormProvider {...methods}>
+        <form onSubmit={handleSubmit(onSubmit)} className='bg-white rounded-lg shadow p-6'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            {/* Basic Information */}
+            <div className='md:col-span-2'>
+              <h2 className='text-xl font-semibold mb-4'>Basic Information</h2>
             </div>
 
-            {/* Dropdown */}
-            {isDiveSiteDropdownOpen && (
-              <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
-                {diveSiteSearchLoading ? (
-                  <div className='px-3 py-2 text-gray-500 text-sm'>Searching...</div>
-                ) : diveSiteSearchError ? (
-                  <div className='px-3 py-2 text-red-500 text-sm'>{diveSiteSearchError}</div>
-                ) : filteredDiveSites.length > 0 ? (
-                  filteredDiveSites.map(site => (
-                    <div
-                      key={site.id}
-                      onClick={() => handleDiveSiteSelect(site.id, site.name)}
-                      className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
-                    >
-                      <div className='font-medium text-gray-900'>{site.name}</div>
-                      {site.country && <div className='text-sm text-gray-500'>{site.country}</div>}
+            <FormField name='dive_site_id' label='Dive Site (Optional)'>
+              {() => (
+                <div className='relative' ref={diveSiteDropdownRef}>
+                  <div className='relative'>
+                    <input
+                      type='text'
+                      value={diveSiteSearch}
+                      onChange={e => handleDiveSiteSearchChange(e.target.value)}
+                      onFocus={() => setIsDiveSiteDropdownOpen(true)}
+                      onKeyDown={handleDiveSiteKeyDown}
+                      placeholder='Search for a dive site...'
+                      className='w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                    />
+                    <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
+                      <ChevronDown
+                        size={16}
+                        className={`text-gray-400 transition-transform ${isDiveSiteDropdownOpen ? 'rotate-180' : ''}`}
+                      />
                     </div>
-                  ))
-                ) : (
-                  <div className='px-3 py-2 text-gray-500 text-sm'>No dive sites found</div>
-                )}
-              </div>
-            )}
-            {errors.dive_site_id && (
-              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.dive_site_id)}</p>
-            )}
-          </div>
+                  </div>
 
-          <div className='relative' ref={divingCenterDropdownRef}>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Diving Center (Optional)
-            </label>
-            <div className='relative'>
-              <input
-                type='text'
-                value={divingCenterSearch}
-                onChange={e => handleDivingCenterSearchChange(e.target.value)}
-                onFocus={() => setIsDivingCenterDropdownOpen(true)}
-                onKeyDown={handleDivingCenterKeyDown}
-                placeholder='Search for a diving center...'
-                className='w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-              />
-              <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
-                <ChevronDown
-                  size={16}
-                  className={`text-gray-400 transition-transform ${isDivingCenterDropdownOpen ? 'rotate-180' : ''}`}
-                />
-              </div>
-            </div>
+                  {/* Dropdown */}
+                  {isDiveSiteDropdownOpen && (
+                    <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                      {diveSiteSearchLoading ? (
+                        <div className='px-3 py-2 text-gray-500 text-sm'>Searching...</div>
+                      ) : diveSiteSearchError ? (
+                        <div className='px-3 py-2 text-red-500 text-sm'>{diveSiteSearchError}</div>
+                      ) : filteredDiveSites.length > 0 ? (
+                        filteredDiveSites.map(site => (
+                          <div
+                            key={site.id}
+                            onClick={() => handleDiveSiteSelect(site.id, site.name)}
+                            className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                          >
+                            <div className='font-medium text-gray-900'>{site.name}</div>
+                            {site.country && (
+                              <div className='text-sm text-gray-500'>{site.country}</div>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className='px-3 py-2 text-gray-500 text-sm'>No dive sites found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </FormField>
 
-            {/* Dropdown */}
-            {isDivingCenterDropdownOpen && (
-              <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
-                {filteredDivingCenters.length > 0 ? (
-                  filteredDivingCenters.map(center => (
-                    <div
-                      key={center.id}
-                      onClick={() => handleDivingCenterSelect(center.id, center.name)}
-                      className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
-                    >
-                      <div className='font-medium text-gray-900'>{center.name}</div>
-                      {center.description && (
-                        <div className='text-sm text-gray-500'>
-                          {center.description.substring(0, 50)}...
+            <FormField name='diving_center_id' label='Diving Center (Optional)'>
+              {() => (
+                <div className='relative' ref={divingCenterDropdownRef}>
+                  <div className='relative'>
+                    <input
+                      type='text'
+                      value={divingCenterSearch}
+                      onChange={e => handleDivingCenterSearchChange(e.target.value)}
+                      onFocus={() => setIsDivingCenterDropdownOpen(true)}
+                      onKeyDown={handleDivingCenterKeyDown}
+                      placeholder='Search for a diving center...'
+                      className='w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                    />
+                    <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
+                      <ChevronDown
+                        size={16}
+                        className={`text-gray-400 transition-transform ${isDivingCenterDropdownOpen ? 'rotate-180' : ''}`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Dropdown */}
+                  {isDivingCenterDropdownOpen && (
+                    <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                      {filteredDivingCenters.length > 0 ? (
+                        filteredDivingCenters.map(center => (
+                          <div
+                            key={center.id}
+                            onClick={() => handleDivingCenterSelect(center.id, center.name)}
+                            className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                          >
+                            <div className='font-medium text-gray-900'>{center.name}</div>
+                            {center.description && (
+                              <div className='text-sm text-gray-500'>
+                                {center.description.substring(0, 50)}...
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className='px-3 py-2 text-gray-500 text-sm'>
+                          No diving centers found
                         </div>
                       )}
                     </div>
-                  ))
-                ) : (
-                  <div className='px-3 py-2 text-gray-500 text-sm'>No diving centers found</div>
+                  )}
+                </div>
+              )}
+            </FormField>
+
+            {/* Route Selection */}
+            <FormField name='selected_route_id' label='Selected Route'>
+              {() => (
+                <RouteSelection
+                  diveSiteId={diveSiteId}
+                  selectedRouteId={watch('selected_route_id')}
+                  onRouteSelect={handleRouteSelect}
+                />
+              )}
+            </FormField>
+
+            <div>
+              <FormField name='name' label='Dive Name (Optional)'>
+                {({ register, name }) => (
+                  <input
+                    type='text'
+                    {...register(name)}
+                    placeholder='Custom dive name or leave empty for automatic naming'
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='is_private' label='Privacy Setting'>
+                {({ register, name }) => (
+                  <select
+                    {...register(name, { valueAsBoolean: true })}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                  >
+                    <option value='false'>Public (visible to everyone)</option>
+                    <option value='true'>Private (visible only to you)</option>
+                  </select>
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='dive_date' label='Dive Date' required>
+                {({ register, name }) => (
+                  <input
+                    type='date'
+                    {...register(name)}
+                    required
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='dive_time' label='Dive Time (Optional)'>
+                {({ register, name }) => (
+                  <input
+                    type='time'
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='duration' label='Duration (minutes)'>
+                {({ register, name }) => (
+                  <input
+                    type='number'
+                    min='1'
+                    max='1440'
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                    placeholder='60'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            {/* Dive Details */}
+            <div className='md:col-span-2'>
+              <h2 className='text-xl font-semibold mb-4'>Dive Details</h2>
+            </div>
+
+            <div>
+              <FormField name='max_depth' label='Max Depth (meters)'>
+                {({ register, name }) => (
+                  <input
+                    type='number'
+                    min='0'
+                    max='1000'
+                    step='any'
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                    placeholder='18.5'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='average_depth' label='Average Depth (meters)'>
+                {({ register, name }) => (
+                  <input
+                    type='number'
+                    min='0'
+                    max='1000'
+                    step='any'
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                    placeholder='12.0'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='difficulty_code' label='Difficulty Level'>
+                {({ register, name }) => (
+                  <select
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                  >
+                    {getDifficultyOptions().map(option => (
+                      <option
+                        key={option.value === null ? 'null' : option.value}
+                        value={option.value === null ? '' : option.value}
+                      >
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='suit_type' label='Suit Type'>
+                {({ register, name }) => (
+                  <select
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                  >
+                    <option value=''>Select suit type</option>
+                    <option value='wet_suit'>Wet Suit</option>
+                    <option value='dry_suit'>Dry Suit</option>
+                    <option value='shortie'>Shortie</option>
+                  </select>
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='visibility_rating' label='Visibility Rating (1-10)'>
+                {({ register, name }) => (
+                  <input
+                    type='number'
+                    min='1'
+                    max='10'
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                    placeholder='8'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='user_rating' label='Your Rating (1-10)'>
+                {({ register, name }) => (
+                  <input
+                    type='number'
+                    min='1'
+                    max='10'
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                    placeholder='9'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div className='md:col-span-2'>
+              <FormField name='gas_bottles_used' label='Gas Bottles Used'>
+                {({ register, name }) => (
+                  <textarea
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                    rows='2'
+                    placeholder='e.g., 12L aluminum tank, 200 bar'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div className='md:col-span-2'>
+              <FormField name='dive_information' label='Dive Information'>
+                {({ register, name }) => (
+                  <textarea
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                    rows='4'
+                    placeholder='Describe your dive experience, what you saw, conditions, etc.'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            {/* Media */}
+            <div className='md:col-span-2'>
+              <h2 className='text-xl font-semibold mb-4'>Media</h2>
+              <div className='space-y-4'>
+                {/* URL Upload */}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Add Media URLs
+                  </label>
+                  <div className='flex items-center gap-4'>
+                    <button
+                      type='button'
+                      onClick={() => setShowMediaForm(true)}
+                      className='flex items-center gap-2 px-4 py-2 text-white rounded-md'
+                      style={{ backgroundColor: UI_COLORS.success }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                      onMouseLeave={e =>
+                        (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                      }
+                    >
+                      <Link size={16} />
+                      Add Media URL
+                    </button>
+                  </div>
+
+                  {/* Media Form */}
+                  {showMediaForm && (
+                    <div className='mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50'>
+                      <div className='space-y-3'>
+                        <div>
+                          <label className='block text-sm font-medium text-gray-700 mb-1'>
+                            Media URL *
+                          </label>
+                          <input
+                            type='url'
+                            value={newMediaUrl}
+                            onChange={e => setNewMediaUrl(e.target.value)}
+                            placeholder='https://example.com/media'
+                            className='w-full border border-gray-300 rounded-md px-3 py-2'
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className='block text-sm font-medium text-gray-700 mb-1'>
+                            Media Type
+                          </label>
+                          <select
+                            value={newMediaType}
+                            onChange={e => setNewMediaType(e.target.value)}
+                            className='w-full border border-gray-300 rounded-md px-3 py-2'
+                          >
+                            <option value='external_link'>External Link</option>
+                            <option value='photo'>Photo</option>
+                            <option value='video'>Video</option>
+                            <option value='dive_plan'>Dive Plan</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className='block text-sm font-medium text-gray-700 mb-1'>
+                            Description (Optional)
+                          </label>
+                          <textarea
+                            value={newMediaDescription}
+                            onChange={e => setNewMediaDescription(e.target.value)}
+                            placeholder='Describe this media...'
+                            className='w-full border border-gray-300 rounded-md px-3 py-2'
+                            rows='2'
+                          />
+                        </div>
+
+                        <div className='flex gap-2'>
+                          <button
+                            type='button'
+                            onClick={handleUrlAdd}
+                            disabled={!newMediaUrl.trim()}
+                            className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
+                            style={{ backgroundColor: UI_COLORS.success }}
+                            onMouseEnter={e =>
+                              !e.currentTarget.disabled &&
+                              (e.currentTarget.style.backgroundColor = '#007a5c')
+                            }
+                            onMouseLeave={e =>
+                              !e.currentTarget.disabled &&
+                              (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                            }
+                          >
+                            Add Media
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => {
+                              setShowMediaForm(false);
+                              setNewMediaUrl('');
+                              setNewMediaType('external_link');
+                              setNewMediaDescription('');
+                            }}
+                            className='px-4 py-2 text-white rounded-md'
+                            style={{ backgroundColor: UI_COLORS.neutral }}
+                            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                            onMouseLeave={e =>
+                              (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                            }
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Media Preview */}
+                {mediaUrls.length > 0 && (
+                  <div className='space-y-3'>
+                    <h3 className='text-lg font-medium text-gray-900'>Media Preview</h3>
+
+                    {mediaUrls.map(media => (
+                      <div
+                        key={media.id}
+                        className='flex items-start gap-3 p-3 border border-gray-200 rounded-lg'
+                      >
+                        <div className='flex-shrink-0'>
+                          {media.type === 'photo' ? (
+                            <Image size={24} className='text-blue-600' />
+                          ) : media.type === 'video' ? (
+                            <Video size={24} className='text-purple-600' />
+                          ) : media.type === 'dive_plan' ? (
+                            <FileText size={24} className='text-green-600' />
+                          ) : (
+                            <Link size={24} className='text-orange-600' />
+                          )}
+                        </div>
+                        <div className='flex-1 min-w-0'>
+                          <div className='flex items-center justify-between mb-2'>
+                            <span className='text-sm font-medium text-gray-900 truncate'>
+                              {media.url}
+                            </span>
+                            <button
+                              type='button'
+                              onClick={() => handleMediaRemove(media.id)}
+                              className='text-red-600 hover:text-red-800'
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                          <div className='text-xs text-gray-500 mb-2'>Type: {media.type}</div>
+                          <input
+                            type='text'
+                            placeholder='Add description (optional)'
+                            value={media.description}
+                            onChange={e => handleMediaDescriptionChange(media.id, e.target.value)}
+                            className='w-full text-sm border border-gray-300 rounded px-2 py-1'
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-            )}
-            {errors.diving_center_id && (
-              <p className='mt-1 text-sm text-red-600'>
-                {getErrorMessage(errors.diving_center_id)}
-              </p>
-            )}
-          </div>
+            </div>
 
-          {/* Route Selection */}
-          <div>
-            <RouteSelection
-              diveSiteId={diveSiteId}
-              selectedRouteId={watch('selected_route_id')}
-              onRouteSelect={handleRouteSelect}
-            />
-            {errors.selected_route_id && (
-              <p className='mt-1 text-sm text-red-600'>
-                {getErrorMessage(errors.selected_route_id)}
-              </p>
-            )}
-          </div>
+            {/* Buddies */}
+            <div className='md:col-span-2'>
+              <h2 className='text-xl font-semibold mb-4'>Buddies</h2>
+              <div className='space-y-4'>
+                <UserSearchInput
+                  onSelect={handleBuddySelect}
+                  excludeUserIds={selectedBuddies.map(buddy => buddy.id)}
+                  placeholder='Search for users to add as buddies...'
+                  label='Add Dive Buddies (Optional)'
+                />
 
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Dive Name (Optional)
-            </label>
-            <input
-              type='text'
-              {...register('name')}
-              placeholder='Custom dive name or leave empty for automatic naming'
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-            />
-          </div>
+                {/* Selected Buddies */}
+                {selectedBuddies.length > 0 && (
+                  <div className='mt-4'>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Selected Buddies
+                    </label>
+                    <div className='flex flex-wrap gap-2'>
+                      {selectedBuddies.map(buddy => (
+                        <div
+                          key={buddy.id}
+                          className='flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-full border border-blue-300'
+                        >
+                          {buddy.avatar_url ? (
+                            <img
+                              src={buddy.avatar_url}
+                              alt={buddy.username}
+                              className='w-6 h-6 rounded-full object-cover'
+                            />
+                          ) : (
+                            <div className='w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center'>
+                              <span className='text-xs font-medium text-blue-800'>
+                                {buddy.username.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <span className='text-sm font-medium'>{buddy.username}</span>
+                          {buddy.name && (
+                            <span className='text-xs text-blue-600'>({buddy.name})</span>
+                          )}
+                          <button
+                            type='button'
+                            onClick={() => handleBuddyRemove(buddy.id)}
+                            className='ml-1 text-blue-600 hover:text-blue-800'
+                            aria-label={`Remove ${buddy.username}`}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Privacy Setting</label>
-            <select
-              {...register('is_private', { valueAsBoolean: true })}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-            >
-              <option value='false'>Public (visible to everyone)</option>
-              <option value='true'>Private (visible only to you)</option>
-            </select>
-          </div>
+            {/* Tags */}
+            <div className='md:col-span-2'>
+              <h2 className='text-xl font-semibold mb-4'>Tags</h2>
+              <div className='space-y-4'>
+                <div className='flex flex-wrap gap-2'>
+                  {availableTags.map(tag => (
+                    <button
+                      key={tag.id}
+                      type='button'
+                      onClick={() => handleTagToggle(tag.id)}
+                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                        selectedTags.includes(tag.id)
+                          ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                          : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+                      }`}
+                    >
+                      {tag.name}
+                    </button>
+                  ))}
+                </div>
 
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Dive Date *</label>
-            <input
-              type='date'
-              {...register('dive_date')}
-              required
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-            />
-            {errors.dive_date && (
-              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.dive_date)}</p>
-            )}
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Dive Time (Optional)
-            </label>
-            <input
-              type='time'
-              {...register('dive_time')}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-            />
-            {errors.dive_time && (
-              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.dive_time)}</p>
-            )}
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Duration (minutes)
-            </label>
-            <input
-              type='number'
-              min='1'
-              max='1440'
-              {...register('duration')}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-              placeholder='60'
-            />
-            {errors.duration && (
-              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.duration)}</p>
-            )}
-          </div>
-
-          {/* Dive Details */}
-          <div className='md:col-span-2'>
-            <h2 className='text-xl font-semibold mb-4'>Dive Details</h2>
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Max Depth (meters)
-            </label>
-            <input
-              type='number'
-              min='0'
-              max='1000'
-              step='any'
-              {...register('max_depth')}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-              placeholder='18.5'
-            />
-            {errors.max_depth && (
-              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.max_depth)}</p>
-            )}
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Average Depth (meters)
-            </label>
-            <input
-              type='number'
-              min='0'
-              max='1000'
-              step='any'
-              {...register('average_depth')}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-              placeholder='12.0'
-            />
-            {errors.average_depth && (
-              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.average_depth)}</p>
-            )}
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Difficulty Level</label>
-            <select
-              {...register('difficulty_code')}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-            >
-              {getDifficultyOptions().map(option => (
-                <option
-                  key={option.value === null ? 'null' : option.value}
-                  value={option.value === null ? '' : option.value}
-                >
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Suit Type</label>
-            <select
-              {...register('suit_type')}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-            >
-              <option value=''>Select suit type</option>
-              <option value='wet_suit'>Wet Suit</option>
-              <option value='dry_suit'>Dry Suit</option>
-              <option value='shortie'>Shortie</option>
-            </select>
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Visibility Rating (1-10)
-            </label>
-            <input
-              type='number'
-              min='1'
-              max='10'
-              {...register('visibility_rating')}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-              placeholder='8'
-            />
-            {errors.visibility_rating && (
-              <p className='mt-1 text-sm text-red-600'>
-                {getErrorMessage(errors.visibility_rating)}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Your Rating (1-10)
-            </label>
-            <input
-              type='number'
-              min='1'
-              max='10'
-              {...register('user_rating')}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-              placeholder='9'
-            />
-            {errors.user_rating && (
-              <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.user_rating)}</p>
-            )}
-          </div>
-
-          <div className='md:col-span-2'>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Gas Bottles Used</label>
-            <textarea
-              {...register('gas_bottles_used')}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-              rows='2'
-              placeholder='e.g., 12L aluminum tank, 200 bar'
-            />
-          </div>
-
-          <div className='md:col-span-2'>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Dive Information</label>
-            <textarea
-              {...register('dive_information')}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-              rows='4'
-              placeholder='Describe your dive experience, what you saw, conditions, etc.'
-            />
-          </div>
-
-          {/* Media */}
-          <div className='md:col-span-2'>
-            <h2 className='text-xl font-semibold mb-4'>Media</h2>
-            <div className='space-y-4'>
-              {/* URL Upload */}
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Add Media URLs
-                </label>
-                <div className='flex items-center gap-4'>
+                <div className='flex gap-2'>
+                  <input
+                    type='text'
+                    value={newTag}
+                    onChange={e => setNewTag(e.target.value)}
+                    placeholder='Add new tag...'
+                    className='flex-1 border border-gray-300 rounded-md px-3 py-2'
+                  />
                   <button
                     type='button'
-                    onClick={() => setShowMediaForm(true)}
-                    className='flex items-center gap-2 px-4 py-2 text-white rounded-md'
+                    onClick={handleAddNewTag}
+                    className='px-4 py-2 text-white rounded-md flex items-center gap-2'
                     style={{ backgroundColor: UI_COLORS.success }}
                     onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
                     onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
                   >
-                    <Link size={16} />
-                    Add Media URL
+                    <Plus size={16} />
+                    Add
                   </button>
                 </div>
-
-                {/* Media Form */}
-                {showMediaForm && (
-                  <div className='mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50'>
-                    <div className='space-y-3'>
-                      <div>
-                        <label className='block text-sm font-medium text-gray-700 mb-1'>
-                          Media URL *
-                        </label>
-                        <input
-                          type='url'
-                          value={newMediaUrl}
-                          onChange={e => setNewMediaUrl(e.target.value)}
-                          placeholder='https://example.com/media'
-                          className='w-full border border-gray-300 rounded-md px-3 py-2'
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className='block text-sm font-medium text-gray-700 mb-1'>
-                          Media Type
-                        </label>
-                        <select
-                          value={newMediaType}
-                          onChange={e => setNewMediaType(e.target.value)}
-                          className='w-full border border-gray-300 rounded-md px-3 py-2'
-                        >
-                          <option value='external_link'>External Link</option>
-                          <option value='photo'>Photo</option>
-                          <option value='video'>Video</option>
-                          <option value='dive_plan'>Dive Plan</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className='block text-sm font-medium text-gray-700 mb-1'>
-                          Description (Optional)
-                        </label>
-                        <textarea
-                          value={newMediaDescription}
-                          onChange={e => setNewMediaDescription(e.target.value)}
-                          placeholder='Describe this media...'
-                          className='w-full border border-gray-300 rounded-md px-3 py-2'
-                          rows='2'
-                        />
-                      </div>
-
-                      <div className='flex gap-2'>
-                        <button
-                          type='button'
-                          onClick={handleUrlAdd}
-                          disabled={!newMediaUrl.trim()}
-                          className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
-                          style={{ backgroundColor: UI_COLORS.success }}
-                          onMouseEnter={e =>
-                            !e.currentTarget.disabled &&
-                            (e.currentTarget.style.backgroundColor = '#007a5c')
-                          }
-                          onMouseLeave={e =>
-                            !e.currentTarget.disabled &&
-                            (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                          }
-                        >
-                          Add Media
-                        </button>
-                        <button
-                          type='button'
-                          onClick={() => {
-                            setShowMediaForm(false);
-                            setNewMediaUrl('');
-                            setNewMediaType('external_link');
-                            setNewMediaDescription('');
-                          }}
-                          className='px-4 py-2 text-white rounded-md'
-                          style={{ backgroundColor: UI_COLORS.neutral }}
-                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-                          onMouseLeave={e =>
-                            (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
-                          }
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
+            </div>
+          </div>
 
-              {/* Media Preview */}
-              {mediaUrls.length > 0 && (
-                <div className='space-y-3'>
-                  <h3 className='text-lg font-medium text-gray-900'>Media Preview</h3>
-
-                  {mediaUrls.map(media => (
-                    <div
-                      key={media.id}
-                      className='flex items-start gap-3 p-3 border border-gray-200 rounded-lg'
-                    >
-                      <div className='flex-shrink-0'>
-                        {media.type === 'photo' ? (
-                          <Image size={24} className='text-blue-600' />
-                        ) : media.type === 'video' ? (
-                          <Video size={24} className='text-purple-600' />
-                        ) : media.type === 'dive_plan' ? (
-                          <FileText size={24} className='text-green-600' />
-                        ) : (
-                          <Link size={24} className='text-orange-600' />
-                        )}
-                      </div>
-                      <div className='flex-1 min-w-0'>
-                        <div className='flex items-center justify-between mb-2'>
-                          <span className='text-sm font-medium text-gray-900 truncate'>
-                            {media.url}
-                          </span>
-                          <button
-                            type='button'
-                            onClick={() => handleMediaRemove(media.id)}
-                            className='text-red-600 hover:text-red-800'
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                        <div className='text-xs text-gray-500 mb-2'>Type: {media.type}</div>
-                        <input
-                          type='text'
-                          placeholder='Add description (optional)'
-                          value={media.description}
-                          onChange={e => handleMediaDescriptionChange(media.id, e.target.value)}
-                          className='w-full text-sm border border-gray-300 rounded px-2 py-1'
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* Submit Button */}
+          <div className='mt-8 flex justify-end gap-4'>
+            <button
+              type='button'
+              onClick={() => navigate(`/dives/${id}`)}
+              className='px-6 py-2 text-white rounded-md'
+              style={{ backgroundColor: UI_COLORS.neutral }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)}
+            >
+              Cancel
+            </button>
+            <button
+              type='submit'
+              disabled={updateDiveMutation.isLoading}
+              className='px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
+              style={{ backgroundColor: UI_COLORS.primary }}
+              onMouseEnter={e =>
+                !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#005a8a')
+              }
+              onMouseLeave={e =>
+                !e.currentTarget.disabled &&
+                (e.currentTarget.style.backgroundColor = UI_COLORS.primary)
+              }
+            >
+              {updateDiveMutation.isLoading ? (
+                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+              ) : (
+                <Save size={16} />
               )}
-            </div>
+              Update Dive
+            </button>
           </div>
-
-          {/* Buddies */}
-          <div className='md:col-span-2'>
-            <h2 className='text-xl font-semibold mb-4'>Buddies</h2>
-            <div className='space-y-4'>
-              <UserSearchInput
-                onSelect={handleBuddySelect}
-                excludeUserIds={selectedBuddies.map(buddy => buddy.id)}
-                placeholder='Search for users to add as buddies...'
-                label='Add Dive Buddies (Optional)'
-              />
-
-              {/* Selected Buddies */}
-              {selectedBuddies.length > 0 && (
-                <div className='mt-4'>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Selected Buddies
-                  </label>
-                  <div className='flex flex-wrap gap-2'>
-                    {selectedBuddies.map(buddy => (
-                      <div
-                        key={buddy.id}
-                        className='flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-full border border-blue-300'
-                      >
-                        {buddy.avatar_url ? (
-                          <img
-                            src={buddy.avatar_url}
-                            alt={buddy.username}
-                            className='w-6 h-6 rounded-full object-cover'
-                          />
-                        ) : (
-                          <div className='w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center'>
-                            <span className='text-xs font-medium text-blue-800'>
-                              {buddy.username.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                        )}
-                        <span className='text-sm font-medium'>{buddy.username}</span>
-                        {buddy.name && (
-                          <span className='text-xs text-blue-600'>({buddy.name})</span>
-                        )}
-                        <button
-                          type='button'
-                          onClick={() => handleBuddyRemove(buddy.id)}
-                          className='ml-1 text-blue-600 hover:text-blue-800'
-                          aria-label={`Remove ${buddy.username}`}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div className='md:col-span-2'>
-            <h2 className='text-xl font-semibold mb-4'>Tags</h2>
-            <div className='space-y-4'>
-              <div className='flex flex-wrap gap-2'>
-                {availableTags.map(tag => (
-                  <button
-                    key={tag.id}
-                    type='button'
-                    onClick={() => handleTagToggle(tag.id)}
-                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                      selectedTags.includes(tag.id)
-                        ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                        : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
-                    }`}
-                  >
-                    {tag.name}
-                  </button>
-                ))}
-              </div>
-
-              <div className='flex gap-2'>
-                <input
-                  type='text'
-                  value={newTag}
-                  onChange={e => setNewTag(e.target.value)}
-                  placeholder='Add new tag...'
-                  className='flex-1 border border-gray-300 rounded-md px-3 py-2'
-                />
-                <button
-                  type='button'
-                  onClick={handleAddNewTag}
-                  className='px-4 py-2 text-white rounded-md flex items-center gap-2'
-                  style={{ backgroundColor: UI_COLORS.success }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
-                >
-                  <Plus size={16} />
-                  Add
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Submit Button */}
-        <div className='mt-8 flex justify-end gap-4'>
-          <button
-            type='button'
-            onClick={() => navigate(`/dives/${id}`)}
-            className='px-6 py-2 text-white rounded-md'
-            style={{ backgroundColor: UI_COLORS.neutral }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)}
-          >
-            Cancel
-          </button>
-          <button
-            type='submit'
-            disabled={updateDiveMutation.isLoading}
-            className='px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
-            style={{ backgroundColor: UI_COLORS.primary }}
-            onMouseEnter={e =>
-              !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#005a8a')
-            }
-            onMouseLeave={e =>
-              !e.currentTarget.disabled &&
-              (e.currentTarget.style.backgroundColor = UI_COLORS.primary)
-            }
-          >
-            {updateDiveMutation.isLoading ? (
-              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
-            ) : (
-              <Save size={16} />
-            )}
-            Update Dive
-          </button>
-        </div>
-      </form>
+        </form>
+      </FormProvider>
     </div>
   );
 };
