@@ -2,8 +2,12 @@
 
 ## Overview
 
-Create a comprehensive pull request description based on the changes in this
-branch and format it as proper markdown for use in a GitHub PR description.
+Create a comprehensive pull request description based on the
+changes in this branch and format it as proper markdown for use in
+a GitHub PR description. Study all commits, there might be
+multiple, in this branch that don't exist in main: `git log
+main..HEAD --oneline` Write the PR title and description in a file
+called: PR-description.txt
 
 ## Steps
 

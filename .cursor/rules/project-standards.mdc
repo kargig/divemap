@@ -33,7 +33,6 @@ docker exec divemap_frontend npm run build
 docker-compose up -d          # Start services
 docker-compose down            # Stop services
 docker exec divemap_frontend npm install package_name
-docker exec divemap_backend python -m pytest
 docker restart divemap_frontend
 ```
 

@@ -156,31 +156,31 @@ Created `frontend/src/components/forms/FormField.js` (reusable form field wrappe
      - Tags and buddies handled separately (not in React Hook Form)
      - Backend expects `tags` field (not `tag_ids`) for tag updates
 
-10. **EditDiveSite.js**
+10. **EditDiveSite.js** ✅ **COMPLETED**
     - Large form with many fields
     - Tag management
     - Media management
     - Aliases management
     - Diving center associations
     - **Complexity**: High
-    - **Estimated Time**: 10-12 hours
+    - **Status**: Migrated successfully
 
-11. **EditDivingCenter.js**
+11. **EditDivingCenter.js** ✅ **COMPLETED**
     - Similar to CreateDivingCenter but with pre-populated data
     - **Complexity**: Medium-High
-    - **Estimated Time**: 6-8 hours
+    - **Status**: Migrated successfully
 
 ### Admin Forms (Lower Priority)
 
-12. **AdminDives.js** (inline edit form)
+12. **AdminDives.js** (inline edit form) ✅ **COMPLETED**
     - Modal form for editing dives
     - **Complexity**: Medium
-    - **Estimated Time**: 4-5 hours
+    - **Status**: Migrated successfully
 
-13. **Profile.js** (if it has forms)
-    - User profile editing
+13. **Profile.js** ✅ **COMPLETED**
+    - User profile editing, Change Password, Certifications
     - **Complexity**: Medium
-    - **Estimated Time**: 4-6 hours
+    - **Status**: Migrated successfully
 
 ---
 

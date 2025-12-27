@@ -25,6 +25,12 @@ export GOOGLE_CLIENT_ID="dummy-client-id-for-testing"
 python -m pytest tests/ -v
 ```
 
+If you run tests this way you can safely ignore tests containing
+failures like: `sqlite3.OperationalError: no such function: POINT`
+
+If you get such errors, use backend/docker-test-github-actions.sh
+to run tests.
+
 ## Backend: CI-like (Isolated Docker)
 
 ```bash

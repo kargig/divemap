@@ -771,6 +771,10 @@ class DivingCenterOwnershipResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class DivingCenterOwnershipRevocation(BaseModel):
+    """Schema for revoking diving center ownership."""
+    reason: Optional[str] = Field(None, max_length=1000)
+
 class DivingCenterOwnershipApproval(BaseModel):
     approved: bool
     reason: Optional[str] = Field(None, max_length=1000)

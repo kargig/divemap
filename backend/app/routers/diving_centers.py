@@ -1,5 +1,5 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from typing import List, Optional, Union, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Body
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
 import difflib
@@ -14,7 +14,8 @@ from app.schemas import (
     CenterCommentCreate, CenterCommentUpdate, CenterCommentResponse,
     CenterDiveSiteCreate, GearRentalCostCreate,
     DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse,
-    DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval, OwnershipRequestHistoryResponse
+    DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval, OwnershipRequestHistoryResponse,
+    DivingCenterOwnershipRevocation
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, is_admin_or_moderator, get_current_user
 from app.models import OwnershipStatus
@@ -2007,11 +2008,22 @@ async def assign_diving_center_owner(
 @router.post("/{diving_center_id}/revoke-ownership")
 async def revoke_diving_center_ownership(
     diving_center_id: int,
-    revocation: DivingCenterOwnershipApproval,
+    revocation: Union[DivingCenterOwnershipRevocation, str, Dict[str, Any]] = Body(...),
     current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     """Revoke ownership of a diving center (admin only)"""
+    # Handle both object and string inputs from frontend
+    reason = "Ownership revocation by admin"
+    if isinstance(revocation, str):
+        reason = revocation
+    elif isinstance(revocation, DivingCenterOwnershipRevocation):
+        reason = revocation.reason or reason
+    elif isinstance(revocation, dict):
+        reason = revocation.get("reason", reason)
+    elif hasattr(revocation, "reason"):
+        reason = revocation.reason or reason
+
     # Check if diving center exists
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not diving_center:
@@ -2019,10 +2031,15 @@ async def revoke_diving_center_ownership(
 
     # Check if diving center has an approved owner
     if diving_center.ownership_status != OwnershipStatus.approved:
-        raise HTTPException(
-            status_code=400,
-            detail="Cannot revoke ownership: diving center does not have an approved owner"
-        )
+        # Check if it was claimed but not yet approved
+        if diving_center.ownership_status == OwnershipStatus.claimed:
+             # Just reset it to unclaimed
+             pass
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot revoke ownership: diving center status is {diving_center.ownership_status}"
+            )
 
     # Get current owner info for the response
     current_owner_username = None
@@ -2030,18 +2047,19 @@ async def revoke_diving_center_ownership(
         owner = db.query(User).filter(User.id == diving_center.owner_id).first()
         current_owner_username = owner.username if owner else None
 
-    # Create a new ownership request record for the revocation
-    revocation_request = OwnershipRequest(
-        diving_center_id=diving_center_id,
-        user_id=diving_center.owner_id,
-        request_status=OwnershipStatus.denied,  # Use denied status for revoked ownership
-        request_date=func.now(),
-        processed_date=func.now(),
-        processed_by=current_user.id,
-        reason=revocation.reason,
-        notes="Ownership revocation by admin"
-    )
-    db.add(revocation_request)
+    # Create a new ownership request record for the revocation if there was an owner
+    if diving_center.owner_id:
+        revocation_request = OwnershipRequest(
+            diving_center_id=diving_center_id,
+            user_id=diving_center.owner_id,
+            request_status=OwnershipStatus.denied,  # Use denied status for revoked ownership
+            request_date=func.now(),
+            processed_date=func.now(),
+            processed_by=current_user.id,
+            reason=reason,
+            notes="Ownership revocation by admin"
+        )
+        db.add(revocation_request)
 
     # Revoke ownership
     diving_center.ownership_status = OwnershipStatus.unclaimed
@@ -2055,5 +2073,5 @@ async def revoke_diving_center_ownership(
         "diving_center_id": diving_center_id,
         "previous_owner": current_owner_username,
         "status": "unclaimed",
-        "reason": revocation.reason
+        "reason": reason
     }
