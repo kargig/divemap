@@ -18,7 +18,7 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
 
-import api, { getDivingCenters } from '../api';
+import api, { getDivingCenters, getUserPublicProfile } from '../api';
 import { FormField } from '../components/forms/FormField';
 import MaskedEmail from '../components/MaskedEmail';
 import { useAuth } from '../contexts/AuthContext';
@@ -197,19 +197,14 @@ const Profile = () => {
 
   // Fetch user statistics
   const { data: userStats } = useQuery(
-    ['user-stats'],
+    ['user-stats', user?.username],
     async () => {
-      const [divesResponse, diveSitesResponse] = await Promise.all([
-        api.get('/api/v1/dives/count?my_dives=true'),
-        api.get('/api/v1/dive-sites/count?my_dive_sites=true'),
-      ]);
-      return {
-        divesCreated: divesResponse.data.total,
-        diveSitesCreated: diveSitesResponse.data.total,
-      };
+      if (!user?.username) return null;
+      const profile = await getUserPublicProfile(user.username);
+      return profile.stats;
     },
     {
-      enabled: !!user,
+      enabled: !!user?.username,
       staleTime: 5 * 60 * 1000, // 5 minutes
     }
   );
@@ -446,7 +441,16 @@ const Profile = () => {
                   <Activity className='h-5 w-5 text-gray-400 mr-3' />
                   <div>
                     <span className='text-sm text-gray-500'>Number of Dives</span>
-                    <p className='text-gray-900'>{user.number_of_dives || 0}</p>
+                    <p className='text-gray-900 font-medium'>
+                      Total:{' '}
+                      {(user?.number_of_dives || 0) +
+                        (userStats?.dives_created || 0) +
+                        (userStats?.buddy_dives_count || 0)}
+                    </p>
+                    <p className='text-xs text-gray-500 mt-0.5'>
+                      [{user?.number_of_dives || 0} (From Profile) + {userStats?.dives_created || 0}{' '}
+                      (Created) + {userStats?.buddy_dives_count || 0} (Participated)]
+                    </p>
                   </div>
                 </div>
 
@@ -845,11 +849,30 @@ const Profile = () => {
           <div className='bg-white p-6 rounded-lg shadow-md'>
             <h3 className='text-lg font-semibold text-gray-900 mb-4'>Account Stats</h3>
             <div className='space-y-3'>
+              <div className='flex justify-between items-center font-bold border-b pb-2 mb-2'>
+                <span className='text-gray-900'>Total Dives</span>
+                <span className='text-gray-900'>
+                  {(user?.number_of_dives || 0) +
+                    (userStats?.dives_created || 0) +
+                    (userStats?.buddy_dives_count || 0)}
+                </span>
+              </div>
+              <div className='flex justify-between items-center'>
+                <span className='text-gray-600'>Dives from Profile</span>
+                <span className='font-medium'>{user?.number_of_dives || 0}</span>
+              </div>
               <div className='flex justify-between items-center'>
                 <span className='text-gray-600'>Dives Created</span>
-                <Link to='/dives' className='font-medium text-blue-600 hover:text-blue-800'>
-                  {userStats?.divesCreated || 0}
+                <Link
+                  to='/dives?my_dives=true'
+                  className='font-medium text-blue-600 hover:text-blue-800'
+                >
+                  {userStats?.dives_created || 0}
                 </Link>
+              </div>
+              <div className='flex justify-between items-center'>
+                <span className='text-gray-600'>Dives Participated</span>
+                <span className='font-medium'>{userStats?.buddy_dives_count || 0}</span>
               </div>
               <div className='flex justify-between items-center'>
                 <span className='text-gray-600'>Dive Sites Created</span>
@@ -857,16 +880,16 @@ const Profile = () => {
                   to='/dive-sites?my_dive_sites=true'
                   className='font-medium text-blue-600 hover:text-blue-800'
                 >
-                  {userStats?.diveSitesCreated || 0}
+                  {userStats?.dive_sites_created || 0}
                 </Link>
               </div>
               <div className='flex justify-between'>
                 <span className='text-gray-600'>Dive Sites Rated</span>
-                <span className='font-medium'>0</span>
+                <span className='font-medium'>{userStats?.dive_sites_rated || 0}</span>
               </div>
               <div className='flex justify-between'>
                 <span className='text-gray-600'>Comments Posted</span>
-                <span className='font-medium'>0</span>
+                <span className='font-medium'>{userStats?.comments_posted || 0}</span>
               </div>
               <div className='flex justify-between'>
                 <span className='text-gray-600'>Certifications</span>
