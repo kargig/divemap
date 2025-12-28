@@ -25,6 +25,7 @@ async def list_all_users(
     db: Session = Depends(get_db),
     search: Optional[str] = Query(None, max_length=200, description="Unified search across username and email"),
     is_admin: Optional[bool] = Query(None, description="Filter by admin role"),
+    is_moderator: Optional[bool] = Query(None, description="Filter by moderator role"),
     enabled: Optional[bool] = Query(None, description="Filter by enabled status"),
     email_verified: Optional[bool] = Query(None, description="Filter by email verified status"),
     sort_by: Optional[str] = Query(None, description="Sort field (id, username, email, created_at, is_admin, enabled, email_verified)"),
@@ -57,6 +58,9 @@ async def list_all_users(
     # Apply filters
     if is_admin is not None:
         query = query.filter(User.is_admin == is_admin)
+    
+    if is_moderator is not None:
+        query = query.filter(User.is_moderator == is_moderator)
     
     if enabled is not None:
         query = query.filter(User.enabled == enabled)

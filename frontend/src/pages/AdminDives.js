@@ -18,6 +18,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import AdminDivesTable from '../components/tables/AdminDivesTable';
+import Combobox from '../components/ui/Combobox';
+import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
@@ -62,11 +64,14 @@ const AdminDives = () => {
     actions: true,
   });
   const [searchInput, setSearchInput] = useState('');
+  const [diveSiteSearchTerm, setDiveSiteSearchTerm] = useState('');
+  const [diveSiteSearchResults, setDiveSiteSearchResults] = useState([]);
+  const [isDiveSiteLoading, setIsDiveSiteLoading] = useState(false);
+  const [selectedDiveSite, setSelectedDiveSite] = useState(null);
   const [filters, setFilters] = useState({
     search: '',
     user_id: '',
     dive_site_id: '',
-    dive_site_name: '',
     difficulty_code: '',
     suit_type: '',
     min_depth: '',
@@ -173,14 +178,28 @@ const AdminDives = () => {
     }
   );
 
-  // Fetch dive sites for dropdown
-  const { data: diveSites } = useQuery(
-    ['dive-sites'],
-    () => api.get('/api/v1/dive-sites/?limit=100'),
-    {
-      select: response => response.data,
-    }
-  );
+  // Fetch dive sites for combobox (async)
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (diveSiteSearchTerm.trim().length >= 2) {
+        setIsDiveSiteLoading(true);
+        try {
+          const response = await api.get('/api/v1/dive-sites/', {
+            params: { search: diveSiteSearchTerm, limit: 20 },
+          });
+          setDiveSiteSearchResults(response.data);
+        } catch (error) {
+          console.error('Failed to search dive sites:', error);
+        } finally {
+          setIsDiveSiteLoading(false);
+        }
+      } else {
+        setDiveSiteSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [diveSiteSearchTerm]);
 
   // Fetch users for dropdown
   const { data: users } = useQuery(['admin-users'], () => api.get('/api/v1/users/admin/users'), {
@@ -249,7 +268,6 @@ const AdminDives = () => {
       search: '',
       user_id: '',
       dive_site_id: '',
-      dive_site_name: '',
       difficulty_code: '',
       suit_type: '',
       min_depth: '',
@@ -262,6 +280,9 @@ const AdminDives = () => {
       end_date: '',
     });
     setSearchInput('');
+    setDiveSiteSearchTerm('');
+    setDiveSiteSearchResults([]);
+    setSelectedDiveSite(null);
     const newPagination = { ...pagination, pageIndex: 0 };
     updateURL(newPagination);
     setPagination(newPagination);
@@ -533,103 +554,77 @@ const AdminDives = () => {
           </button>
         </div>
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-          <div>
-            <label htmlFor='user-filter' className='block text-sm font-medium text-gray-700 mb-1'>
-              User
-            </label>
-            <select
-              id='user-filter'
-              value={filters.user_id}
-              onChange={e => handleFilterChange('user_id', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-              <option value=''>All Users</option>
-              {users?.map(user => (
-                <option key={user.id} value={user.id}>
-                  {user.username}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label
-              htmlFor='dive-site-filter'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Dive Site
-            </label>
-            <select
-              id='dive-site-filter'
-              value={filters.dive_site_id}
-              onChange={e => handleFilterChange('dive_site_id', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-              <option value=''>All Dive Sites</option>
-              {diveSites?.map(site => (
-                <option key={site.id} value={site.id}>
-                  {site.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label
-              htmlFor='dive-site-name-filter'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Dive Site Name (Search)
-            </label>
-            <input
-              id='dive-site-name-filter'
-              type='text'
-              placeholder='Search dive site names...'
-              value={filters.dive_site_name}
-              onChange={e => handleFilterChange('dive_site_name', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-            />
-          </div>
-          <div>
-            <label
-              htmlFor='difficulty-filter'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Difficulty
-            </label>
-            <select
-              id='difficulty-filter'
-              value={filters.difficulty_code || ''}
-              onChange={e => handleFilterChange('difficulty_code', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-              <option value=''>All Difficulties</option>
-              {getDifficultyOptions()
+          <Select
+            id='user-filter'
+            label='User'
+            value={filters.user_id || 'all'}
+            onValueChange={value => handleFilterChange('user_id', value === 'all' ? '' : value)}
+            options={[
+              { value: 'all', label: 'All Users' },
+              ...(users?.map(u => ({ value: u.id.toString(), label: u.username })) || []),
+            ]}
+          />
+          <Combobox
+            id='dive-site-filter'
+            label='Dive Site'
+            placeholder='Search dive site...'
+            searchPlaceholder='Type to filter...'
+            value={filters.dive_site_id}
+            onValueChange={value => {
+              const selected = diveSiteSearchResults.find(s => s.id.toString() === value);
+              setSelectedDiveSite(selected || null);
+              handleFilterChange('dive_site_id', value);
+            }}
+            onSearchChange={setDiveSiteSearchTerm}
+            searchTerm={diveSiteSearchTerm}
+            isLoading={isDiveSiteLoading}
+            options={useMemo(() => {
+              const opts = diveSiteSearchResults.map(s => ({
+                value: s.id.toString(),
+                label: s.name,
+              }));
+              // Ensure currently selected site is in options so label shows
+              if (
+                filters.dive_site_id &&
+                selectedDiveSite &&
+                !opts.some(o => o.value === filters.dive_site_id)
+              ) {
+                opts.unshift({ value: filters.dive_site_id, label: selectedDiveSite.name });
+              }
+              return opts;
+            }, [diveSiteSearchResults, filters.dive_site_id, selectedDiveSite])}
+            emptyMessage={
+              diveSiteSearchTerm.length >= 2
+                ? `No sites found matching "${diveSiteSearchTerm}"`
+                : 'Type at least 2 characters to search...'
+            }
+          />
+          <Select
+            id='difficulty-filter'
+            label='Difficulty'
+            value={filters.difficulty_code || 'all'}
+            onValueChange={value =>
+              handleFilterChange('difficulty_code', value === 'all' ? '' : value)
+            }
+            options={[
+              { value: 'all', label: 'All Difficulties' },
+              ...getDifficultyOptions()
                 .filter(option => option.value !== null)
-                .map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-            </select>
-          </div>
-          <div>
-            <label
-              htmlFor='suit-type-filter'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Suit Type
-            </label>
-            <select
-              id='suit-type-filter'
-              value={filters.suit_type}
-              onChange={e => handleFilterChange('suit_type', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-              <option value=''>All Suit Types</option>
-              <option value='wet_suit'>Wet Suit</option>
-              <option value='dry_suit'>Dry Suit</option>
-              <option value='shortie'>Shortie</option>
-            </select>
-          </div>
+                .map(opt => ({ value: opt.value, label: opt.label })),
+            ]}
+          />
+          <Select
+            id='suit-type-filter'
+            label='Suit Type'
+            value={filters.suit_type || 'all'}
+            onValueChange={value => handleFilterChange('suit_type', value === 'all' ? '' : value)}
+            options={[
+              { value: 'all', label: 'All Suit Types' },
+              { value: 'wet_suit', label: 'Wet Suit' },
+              { value: 'dry_suit', label: 'Dry Suit' },
+              { value: 'shortie', label: 'Shortie' },
+            ]}
+          />
           <div>
             <label
               htmlFor='min-rating-filter'
