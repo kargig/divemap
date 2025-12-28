@@ -507,6 +507,22 @@ const AdminDives = () => {
     [pagination, paginationInfo]
   );
 
+  const diveSiteOptions = useMemo(() => {
+    const opts = diveSiteSearchResults.map(s => ({
+      value: s.id.toString(),
+      label: s.name,
+    }));
+    // Ensure currently selected site is in options so label shows
+    if (
+      filters.dive_site_id &&
+      selectedDiveSite &&
+      !opts.some(o => o.value === filters.dive_site_id)
+    ) {
+      opts.unshift({ value: filters.dive_site_id, label: selectedDiveSite.name });
+    }
+    return opts;
+  }, [diveSiteSearchResults, filters.dive_site_id, selectedDiveSite]);
+
   if (!user?.is_admin) {
     return (
       <div className='text-center py-12'>
@@ -578,21 +594,7 @@ const AdminDives = () => {
             onSearchChange={setDiveSiteSearchTerm}
             searchTerm={diveSiteSearchTerm}
             isLoading={isDiveSiteLoading}
-            options={useMemo(() => {
-              const opts = diveSiteSearchResults.map(s => ({
-                value: s.id.toString(),
-                label: s.name,
-              }));
-              // Ensure currently selected site is in options so label shows
-              if (
-                filters.dive_site_id &&
-                selectedDiveSite &&
-                !opts.some(o => o.value === filters.dive_site_id)
-              ) {
-                opts.unshift({ value: filters.dive_site_id, label: selectedDiveSite.name });
-              }
-              return opts;
-            }, [diveSiteSearchResults, filters.dive_site_id, selectedDiveSite])}
+            options={diveSiteOptions}
             emptyMessage={
               diveSiteSearchTerm.length >= 2
                 ? `No sites found matching "${diveSiteSearchTerm}"`

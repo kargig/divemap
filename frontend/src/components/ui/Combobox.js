@@ -104,6 +104,7 @@ const Combobox = ({
             disabled={disabled}
             role='combobox'
             aria-expanded={open}
+            aria-controls={`${id}-content`}
             className={`
               flex h-10 w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm 
               ring-offset-background focus:outline-none focus:ring-2 
@@ -127,6 +128,7 @@ const Combobox = ({
         </PopoverPrimitive.Trigger>
         <PopoverPrimitive.Portal>
           <PopoverPrimitive.Content
+            id={`${id}-content`}
             className='z-[100] w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-md border border-gray-200 bg-white p-0 text-gray-950 shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
             align='start'
             sideOffset={4}
