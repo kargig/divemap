@@ -1,4 +1,4 @@
-import { X, Copy, Check, Mail, Share2 } from 'lucide-react';
+import { Copy, Check, Mail, Share2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 
@@ -10,6 +10,7 @@ import {
 } from '../utils/shareUtils';
 
 import { TwitterIcon, FacebookIcon, WhatsAppIcon, ViberIcon, RedditIcon } from './SocialMediaIcons';
+import Modal from './ui/Modal';
 
 /**
  * ShareModal Component
@@ -107,8 +108,6 @@ const ShareModal = ({ isOpen, onClose, entityType, entityData, additionalParams 
     }
   };
 
-  if (!isOpen) return null;
-
   // Check if native share is available (mobile devices)
   const hasNativeShare = typeof navigator !== 'undefined' && navigator.share;
 
@@ -173,104 +172,95 @@ const ShareModal = ({ isOpen, onClose, entityType, entityData, additionalParams 
   };
 
   return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
-      <div className='bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto'>
-        {/* Header */}
-        <div className='flex items-center justify-between mb-4'>
-          <h3 className='text-lg font-semibold text-gray-900'>Share {getEntityTypeLabel()}</h3>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Share ${getEntityTypeLabel()}`}
+      className='max-w-md w-full max-h-[90vh] overflow-y-auto'
+    >
+      {/* Preview Section */}
+      {shareContent.title && (
+        <div className='mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200'>
+          <div className='text-sm font-medium text-gray-900 mb-1'>{shareContent.title}</div>
+          {shareContent.description && (
+            <div className='text-xs text-gray-600 line-clamp-2 mt-1'>
+              {shareContent.description}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* URL Copy Section */}
+      <div className='mb-4'>
+        <p className='text-sm text-gray-600 mb-2'>Share URL:</p>
+        <div className='flex items-center gap-2'>
+          <input
+            type='text'
+            value={shareUrl}
+            readOnly
+            className='flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
+            onClick={e => e.target.select()}
+          />
           <button
-            onClick={onClose}
-            className='text-gray-400 hover:text-gray-600 transition-colors'
-            aria-label='Close share modal'
+            onClick={handleCopyToClipboard}
+            className={`px-3 py-2 text-sm rounded-lg transition-colors flex items-center gap-1 ${
+              copySuccess
+                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
+            aria-label='Copy URL to clipboard'
           >
-            <X className='w-5 h-5' />
+            {copySuccess ? (
+              <>
+                <Check className='w-4 h-4' />
+                <span>Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy className='w-4 h-4' />
+                <span>Copy</span>
+              </>
+            )}
           </button>
         </div>
+      </div>
 
-        {/* Preview Section */}
-        {shareContent.title && (
-          <div className='mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200'>
-            <div className='text-sm font-medium text-gray-900 mb-1'>{shareContent.title}</div>
-            {shareContent.description && (
-              <div className='text-xs text-gray-600 line-clamp-2 mt-1'>
-                {shareContent.description}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* URL Copy Section */}
+      {/* Native Share Button (Mobile) */}
+      {hasNativeShare && (
         <div className='mb-4'>
-          <p className='text-sm text-gray-600 mb-2'>Share URL:</p>
-          <div className='flex items-center gap-2'>
-            <input
-              type='text'
-              value={shareUrl}
-              readOnly
-              className='flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
-              onClick={e => e.target.select()}
-            />
-            <button
-              onClick={handleCopyToClipboard}
-              className={`px-3 py-2 text-sm rounded-lg transition-colors flex items-center gap-1 ${
-                copySuccess
-                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-              }`}
-              aria-label='Copy URL to clipboard'
-            >
-              {copySuccess ? (
-                <>
-                  <Check className='w-4 h-4' />
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className='w-4 h-4' />
-                  <span>Copy</span>
-                </>
-              )}
-            </button>
-          </div>
+          <button
+            onClick={handleNativeShare}
+            className='w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 font-medium'
+          >
+            <Share2 className='w-5 h-5' />
+            <span>Share via System Share</span>
+          </button>
         </div>
+      )}
 
-        {/* Native Share Button (Mobile) */}
-        {hasNativeShare && (
-          <div className='mb-4'>
+      {/* Social Media Platforms */}
+      <div className='mb-4'>
+        <p className='text-sm text-gray-600 mb-3'>Share via:</p>
+        <div className='grid grid-cols-3 gap-2'>
+          {platforms.map(platform => (
             <button
-              onClick={handleNativeShare}
-              className='w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 font-medium'
+              key={platform.id}
+              onClick={platform.action}
+              className={`${platform.color} text-white rounded-lg p-3 transition-colors flex flex-col items-center justify-center gap-1 min-h-[80px]`}
+              aria-label={`Share to ${platform.name}`}
             >
-              <Share2 className='w-5 h-5' />
-              <span>Share via System Share</span>
+              <div className='flex items-center justify-center'>{platform.icon}</div>
+              <span className='text-xs font-medium'>{platform.name}</span>
             </button>
-          </div>
-        )}
-
-        {/* Social Media Platforms */}
-        <div className='mb-4'>
-          <p className='text-sm text-gray-600 mb-3'>Share via:</p>
-          <div className='grid grid-cols-3 gap-2'>
-            {platforms.map(platform => (
-              <button
-                key={platform.id}
-                onClick={platform.action}
-                className={`${platform.color} text-white rounded-lg p-3 transition-colors flex flex-col items-center justify-center gap-1 min-h-[80px]`}
-                aria-label={`Share to ${platform.name}`}
-              >
-                <div className='flex items-center justify-center'>{platform.icon}</div>
-                <span className='text-xs font-medium'>{platform.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Footer Info */}
-        <div className='text-xs text-gray-500 text-center pt-2 border-t border-gray-200'>
-          Share this {getEntityTypeLabel().toLowerCase()} and invite others to explore it!
+          ))}
         </div>
       </div>
-    </div>
+
+      {/* Footer Info */}
+      <div className='text-xs text-gray-500 text-center pt-2 border-t border-gray-200'>
+        Share this {getEntityTypeLabel().toLowerCase()} and invite others to explore it!
+      </div>
+    </Modal>
   );
 };
 

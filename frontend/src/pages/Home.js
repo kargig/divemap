@@ -124,7 +124,7 @@ const Home = () => {
   );
 
   return (
-    <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 relative'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 relative'>
       {/* Background Logo Watermark */}
       <BackgroundLogo opacity={0.02} size='xlarge' />
 

@@ -263,7 +263,7 @@ const DiveSiteDetail = () => {
   }
 
   return (
-    <div className='max-w-7xl mx-auto px-4 sm:px-6'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       {/* Header */}
       <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6'>
         <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4'>
