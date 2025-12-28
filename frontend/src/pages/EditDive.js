@@ -15,6 +15,7 @@ import {
   extractErrorMessage,
   extractFieldErrors,
 } from '../api';
+import DivingCenterSearchableDropdown from '../components/DivingCenterSearchableDropdown';
 import { FormField } from '../components/forms/FormField';
 import RouteSelection from '../components/RouteSelection';
 import UserSearchInput from '../components/UserSearchInput';
@@ -80,9 +81,6 @@ const EditDive = () => {
   const [diveSiteSearchLoading, setDiveSiteSearchLoading] = useState(false);
   const [diveSiteSearchError, setDiveSiteSearchError] = useState(null);
   const diveSiteSearchTimeoutRef = useRef(null);
-  const [divingCenterSearch, setDivingCenterSearch] = useState('');
-  const [isDivingCenterDropdownOpen, setIsDivingCenterDropdownOpen] = useState(false);
-  const divingCenterDropdownRef = useRef(null);
   const [mediaUrls, setMediaUrls] = useState([]);
   const [showMediaForm, setShowMediaForm] = useState(false);
   const [newMediaUrl, setNewMediaUrl] = useState('');
@@ -132,11 +130,9 @@ const EditDive = () => {
         setSelectedTags([]);
       }
 
-      // Load existing buddies
-      if (data.buddies && Array.isArray(data.buddies)) {
-        setSelectedBuddies(data.buddies);
-      } else {
-        setSelectedBuddies([]);
+      // Set dive site search name
+      if (data.dive_site) {
+        setDiveSiteSearch(data.dive_site.name);
       }
     },
     onError: error => {
@@ -151,77 +147,14 @@ const EditDive = () => {
 
   // Note: Dive sites are now loaded dynamically via search, not statically
 
-  // Fetch diving centers for dropdown
   const { data: divingCenters = [] } = useQuery(['diving-centers'], () =>
     getDivingCenters({ page_size: 100 })
   );
 
-  // Fetch available tags
-  const { data: availableTags = [] } = useQuery(['available-tags'], () => getAvailableTags());
-
-  // Handle clicking outside dropdown
-  useEffect(() => {
-    const handleClickOutside = event => {
-      if (diveSiteDropdownRef.current && !diveSiteDropdownRef.current.contains(event.target)) {
-        setIsDiveSiteDropdownOpen(false);
-      }
-      if (
-        divingCenterDropdownRef.current &&
-        !divingCenterDropdownRef.current.contains(event.target)
-      ) {
-        setIsDivingCenterDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // Initialize dive site search when dive data loads
-  useEffect(() => {
-    if (dive && dive.dive_site) {
-      // Use dive site name directly from API response
-      setDiveSiteSearch(dive.dive_site.name);
-      // Also add the current dive site to search results so it's available for selection
-      setDiveSiteSearchResults([dive.dive_site]);
-    }
-  }, [dive]);
-
-  // Initialize diving center search when diving centers load
-  const divingCenterId = watch('diving_center_id');
-  useEffect(() => {
-    if (Array.isArray(divingCenters) && divingCenters.length > 0 && divingCenterId) {
-      const selectedCenter = divingCenters.find(
-        center => center.id.toString() === divingCenterId.toString()
-      );
-      if (selectedCenter) {
-        setDivingCenterSearch(selectedCenter.name);
-      }
-    }
-  }, [divingCenters, divingCenterId]);
-
-  // Initialize diving center search when dive data loads
-  useEffect(() => {
-    if (dive && dive.diving_center) {
-      // Use diving center name directly from API response
-      setDivingCenterSearch(dive.diving_center.name);
-    } else if (
-      dive &&
-      dive.diving_center_id &&
-      Array.isArray(divingCenters) &&
-      divingCenters.length > 0
-    ) {
-      // Fallback: search in divingCenters array if diving_center object is not available
-      const selectedCenter = divingCenters.find(center => center.id === dive.diving_center_id);
-      if (selectedCenter) {
-        setDivingCenterSearch(selectedCenter.name);
-      }
-    }
-  }, [dive, divingCenters]);
+  const { data: availableTags = [] } = useQuery(['tags'], getAvailableTags);
 
   // Clear route selection when dive site changes
+
   useEffect(() => {
     // Only clear if the user has changed the dive site from the original one
     // We check if dive data is loaded and compare current ID with original ID
@@ -355,22 +288,10 @@ const EditDive = () => {
   const filteredDiveSites = diveSiteSearchResults;
 
   // Filter diving centers based on search input
-  const filteredDivingCenters = divingCenterSearch
-    ? divingCenters.filter(center =>
-        center.name.toLowerCase().includes(divingCenterSearch.toLowerCase())
-      )
-    : [];
-
   const handleDiveSiteSelect = (siteId, siteName) => {
     setValue('dive_site_id', siteId.toString(), { shouldValidate: true });
     setDiveSiteSearch(siteName);
     setIsDiveSiteDropdownOpen(false);
-  };
-
-  const handleDivingCenterSelect = (centerId, centerName) => {
-    setValue('diving_center_id', centerId.toString(), { shouldValidate: true });
-    setDivingCenterSearch(centerName);
-    setIsDivingCenterDropdownOpen(false);
   };
 
   const handleDiveSiteSearchChange = value => {
@@ -425,23 +346,9 @@ const EditDive = () => {
     }, 500);
   };
 
-  const handleDivingCenterSearchChange = value => {
-    setDivingCenterSearch(value);
-    setIsDivingCenterDropdownOpen(true);
-    if (!value) {
-      setValue('diving_center_id', '', { shouldValidate: true });
-    }
-  };
-
   const handleDiveSiteKeyDown = e => {
     if (e.key === 'Escape') {
       setIsDiveSiteDropdownOpen(false);
-    }
-  };
-
-  const handleDivingCenterKeyDown = e => {
-    if (e.key === 'Escape') {
-      setIsDivingCenterDropdownOpen(false);
     }
   };
 
@@ -562,7 +469,7 @@ const EditDive = () => {
   }
 
   return (
-    <div className='max-w-4xl mx-auto'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       <div className='flex items-center gap-4 mb-6'>
         <button
           onClick={() => navigate(`/dives/${id}`)}
@@ -631,55 +538,16 @@ const EditDive = () => {
               )}
             </FormField>
 
-            <FormField name='diving_center_id' label='Diving Center (Optional)'>
-              {() => (
-                <div className='relative' ref={divingCenterDropdownRef}>
-                  <div className='relative'>
-                    <input
-                      type='text'
-                      value={divingCenterSearch}
-                      onChange={e => handleDivingCenterSearchChange(e.target.value)}
-                      onFocus={() => setIsDivingCenterDropdownOpen(true)}
-                      onKeyDown={handleDivingCenterKeyDown}
-                      placeholder='Search for a diving center...'
-                      className='w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                    />
-                    <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <ChevronDown
-                        size={16}
-                        className={`text-gray-400 transition-transform ${isDivingCenterDropdownOpen ? 'rotate-180' : ''}`}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Dropdown */}
-                  {isDivingCenterDropdownOpen && (
-                    <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
-                      {filteredDivingCenters.length > 0 ? (
-                        filteredDivingCenters.map(center => (
-                          <div
-                            key={center.id}
-                            onClick={() => handleDivingCenterSelect(center.id, center.name)}
-                            className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
-                          >
-                            <div className='font-medium text-gray-900'>{center.name}</div>
-                            {center.description && (
-                              <div className='text-sm text-gray-500'>
-                                {center.description.substring(0, 50)}...
-                              </div>
-                            )}
-                          </div>
-                        ))
-                      ) : (
-                        <div className='px-3 py-2 text-gray-500 text-sm'>
-                          No diving centers found
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </FormField>
+            <DivingCenterSearchableDropdown
+              divingCenters={divingCenters}
+              selectedId={watch('diving_center_id')}
+              onSelect={id =>
+                setValue('diving_center_id', id ? id.toString() : '', { shouldValidate: true })
+              }
+              error={errors.diving_center_id ? getErrorMessage(errors.diving_center_id) : null}
+              label='Diving Center (Optional)'
+              id='diving-center-search'
+            />
 
             {/* Route Selection */}
             <FormField name='selected_route_id' label='Selected Route'>

@@ -630,6 +630,68 @@ const AdminDives = () => {
               <option value='shortie'>Shortie</option>
             </select>
           </div>
+          <div>
+            <label
+              htmlFor='min-rating-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Min Rating
+            </label>
+            <input
+              id='min-rating-filter'
+              type='number'
+              min='0'
+              max='10'
+              step='1'
+              placeholder='0'
+              value={filters.min_rating}
+              onChange={e => handleFilterChange('min_rating', e.target.value)}
+              onKeyDown={e => {
+                if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
+                  e.preventDefault();
+                }
+              }}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10)
+                  ? 'border-red-500 ring-1 ring-red-500'
+                  : 'border-gray-300'
+              }`}
+            />
+            {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) && (
+              <p className='text-red-500 text-xs mt-1'>Rating must be 0-10</p>
+            )}
+          </div>
+          <div>
+            <label
+              htmlFor='max-rating-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Max Rating
+            </label>
+            <input
+              id='max-rating-filter'
+              type='number'
+              min='0'
+              max='10'
+              step='1'
+              placeholder='10'
+              value={filters.max_rating}
+              onChange={e => handleFilterChange('max_rating', e.target.value)}
+              onKeyDown={e => {
+                if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
+                  e.preventDefault();
+                }
+              }}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                filters.max_rating && (filters.max_rating < 0 || filters.max_rating > 10)
+                  ? 'border-red-500 ring-1 ring-red-500'
+                  : 'border-gray-300'
+              }`}
+            />
+            {filters.max_rating && (filters.max_rating < 0 || filters.max_rating > 10) && (
+              <p className='text-red-500 text-xs mt-1'>Rating must be 0-10</p>
+            )}
+          </div>
         </div>
       </div>
 

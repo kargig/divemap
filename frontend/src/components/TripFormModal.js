@@ -6,6 +6,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { tripSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 
+import DivingCenterSearchableDropdown from './DivingCenterSearchableDropdown';
 import Modal from './ui/Modal';
 
 const TripFormModal = ({
@@ -73,6 +74,7 @@ const TripFormModal = ({
     reset,
     getValues,
     setValue,
+    watch,
   } = useForm({
     resolver: createResolver(tripSchemas.trip),
     mode: 'onChange',
@@ -138,31 +140,13 @@ const TripFormModal = ({
       {/* Trip Details */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
         <div>
-          <label
-            htmlFor='trip-diving-center'
-            className='block text-sm font-medium text-gray-700 mb-1'
-          >
-            Diving Center
-          </label>
-          <select
+          <DivingCenterSearchableDropdown
+            divingCenters={divingCenters}
+            selectedId={watch('diving_center_id')}
+            onSelect={id => setValue('diving_center_id', id, { shouldValidate: true })}
+            error={errors.diving_center_id ? getErrorMessage(errors.diving_center_id) : null}
             id='trip-diving-center'
-            {...register('diving_center_id', {
-              setValueAs: val => (val === '' || val === null ? null : Number(val)),
-            })}
-            className={`w-full p-2 border rounded-md ${
-              errors.diving_center_id ? 'border-red-500' : ''
-            }`}
-          >
-            <option value=''>Select diving center</option>
-            {divingCenters.map(center => (
-              <option key={center.id} value={center.id}>
-                {center.name}
-              </option>
-            ))}
-          </select>
-          {errors.diving_center_id && (
-            <p className='text-red-500 text-sm mt-1'>{getErrorMessage(errors.diving_center_id)}</p>
-          )}
+          />
         </div>
 
         <div>

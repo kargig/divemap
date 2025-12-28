@@ -295,6 +295,7 @@ def get_dives_count(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
+    username: Optional[str] = Query(None, description="Filter by username (partial match)"),
     my_dives: Optional[bool] = Query(None, description="Filter to show only current user's dives"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
@@ -305,8 +306,8 @@ def get_dives_count(
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
     min_visibility: Optional[int] = Query(None, ge=1, le=10),
     max_visibility: Optional[int] = Query(None, ge=1, le=10),
-    min_rating: Optional[int] = Query(None, ge=1, le=10),
-    max_rating: Optional[int] = Query(None, ge=1, le=10),
+    min_rating: Optional[float] = Query(None, ge=1, le=10),
+    max_rating: Optional[float] = Query(None, ge=1, le=10),
     start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
@@ -319,6 +320,10 @@ def get_dives_count(
     # Filter by user if specified
     if user_id:
         query = query.filter(Dive.user_id == user_id)
+    # Filter by username (partial match)
+    elif username:
+        sanitized_username = username.strip()
+        query = query.filter(User.username.ilike(f"%{sanitized_username}%"))
     elif my_dives:
         # Filter to show only current user's dives
         if not current_user:
@@ -463,8 +468,8 @@ def get_dives(
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
     min_visibility: Optional[int] = Query(None, ge=1, le=10),
     max_visibility: Optional[int] = Query(None, ge=1, le=10),
-    min_rating: Optional[int] = Query(None, ge=1, le=10),
-    max_rating: Optional[int] = Query(None, ge=1, le=10),
+    min_rating: Optional[float] = Query(None, ge=1, le=10),
+    max_rating: Optional[float] = Query(None, ge=1, le=10),
     start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
