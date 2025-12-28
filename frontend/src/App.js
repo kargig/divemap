@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 
 import EmailVerificationBanner from './components/EmailVerificationBanner';
 import Navbar from './components/Navbar';
+import ReportIssueButton from './components/ReportIssueButton';
 import { SessionManager } from './components/SessionManager';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -425,6 +426,7 @@ function App() {
                   />
                   <Route path='/dive-trips/:id' element={<TripDetail />} />
                 </Routes>
+                <ReportIssueButton />
               </main>
               <Toaster
                 position='top-right'
