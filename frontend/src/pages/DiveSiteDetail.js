@@ -17,7 +17,7 @@ import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useParams, useLocation, Link as RouterLink } from 'react-router-dom';
 
-import api from '../api';
+import api, { extractErrorMessage } from '../api';
 import DiveSiteRoutes from '../components/DiveSiteRoutes';
 import MaskedEmail from '../components/MaskedEmail';
 import MiniMap from '../components/MiniMap';
@@ -32,14 +32,8 @@ import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
-// Helper function to safely extract error message
-const getErrorMessage = error => {
-  if (typeof error === 'string') return error;
-  if (error?.message) return error.message;
-  if (error?.response?.data?.detail) return error.response.data.detail;
-  if (error?.detail) return error.detail;
-  return 'An error occurred';
-};
+// Use extractErrorMessage from api.js
+const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
 
 const DiveSiteDetail = () => {
   const { id } = useParams();

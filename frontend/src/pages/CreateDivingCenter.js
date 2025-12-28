@@ -4,29 +4,13 @@ import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient, useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
-import api from '../api';
+import api, { extractErrorMessage } from '../api';
 import DivingCenterForm from '../components/DivingCenterForm';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 
-// Extract a readable message from FastAPI/axios error payloads
-const getErrorMessage = error => {
-  if (!error) return 'Failed to create diving center';
-  if (typeof error === 'string') return error;
-  const detail = error?.response?.data?.detail ?? error?.response?.data ?? error?.message;
-  if (!detail) return 'Failed to create diving center';
-  if (typeof detail === 'string') return detail;
-  try {
-    if (Array.isArray(detail) && detail.length > 0) {
-      const first = detail[0];
-      if (first?.msg) return first.msg;
-      return JSON.stringify(detail);
-    }
-    return JSON.stringify(detail);
-  } catch {
-    return 'Failed to create diving center';
-  }
-};
+// Use extractErrorMessage from api.js with custom default message
+const getErrorMessage = error => extractErrorMessage(error, 'Failed to create diving center');
 
 const CreateDivingCenter = () => {
   // Set page title

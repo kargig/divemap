@@ -29,7 +29,7 @@ import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
-import api, { deleteDive, getDiveSites } from '../api';
+import api, { deleteDive, getDiveSites, getDiveSite } from '../api';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import DivesMap from '../components/DivesMap';
 import ErrorPage from '../components/ErrorPage';
@@ -452,23 +452,32 @@ const Dives = () => {
     queryClient.invalidateQueries(['dives']);
   }, [sortBy, sortOrder, queryClient]);
 
-  // Fetch available tags for filtering
+  // Fetch available tags for filtering - only when filters are shown
   const { data: availableTags } = useQuery(
     ['available-tags'],
     () => api.get('/api/v1/tags/').then(res => res.data),
     {
       staleTime: 5 * 60 * 1000, // 5 minutes
+      enabled: showFilters, // Only fetch when filters are shown
     }
   );
 
-  // Fetch dive sites for filtering
-  const { data: diveSites = [] } = useQuery(
-    ['dive-sites-for-filter'],
-    () => getDiveSites({ page_size: 1000 }),
+  // Fetch dive site for filter initialization - only if there's a dive_site_id in URL params
+  // Since dive site filter is now searchable via API, we don't need to fetch all sites upfront
+  // Only fetch the specific site if it's in the URL to initialize the search input
+  const diveSiteIdFromURL = searchParams.get('dive_site_id');
+  const { data: selectedDiveSite } = useQuery(
+    ['dive-site-for-filter', diveSiteIdFromURL],
+    () => getDiveSite(diveSiteIdFromURL),
     {
       staleTime: 10 * 60 * 1000, // 10 minutes
+      enabled: Boolean(diveSiteIdFromURL) && showFilters, // Only fetch when filters are shown AND there's a dive_site_id in URL
+      retry: false, // Don't retry if site doesn't exist
     }
   );
+
+  // Convert single dive site to array format expected by ResponsiveFilterBar
+  const diveSites = selectedDiveSite ? [selectedDiveSite] : [];
 
   // Fetch total count
   const { data: totalCountResponse } = useQuery(
@@ -557,7 +566,9 @@ const Dives = () => {
 
       if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
       if (debouncedSearchTerms.search) params.append('search', debouncedSearchTerms.search);
-      if (filters.username) params.append('username', filters.username);
+      if (filters.username && filters.username.trim()) {
+        params.append('username', filters.username.trim());
+      }
       if (filters.buddy_username && filters.buddy_username.trim()) {
         params.append('buddy_username', filters.buddy_username.trim());
       }
@@ -703,7 +714,10 @@ const Dives = () => {
       ...prev,
       [name]: value,
     }));
-    // Don't reset pagination or trigger search on every change - only when Search button is clicked
+    // Reset pagination to page 1 when filters change (except for pagination-related filters)
+    if (name !== 'page' && name !== 'per_page') {
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }
   };
 
   const clearFilters = () => {

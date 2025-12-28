@@ -1,5 +1,6 @@
 import { Save, ArrowLeft, Plus, X, ChevronDown, Image, Video, FileText, Link } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient, useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
@@ -13,35 +14,58 @@ import {
   addDiveMedia,
   getDivingCenters,
 } from '../api';
+import { FormField } from '../components/forms/FormField';
 import RouteSelection from '../components/RouteSelection';
 import UserSearchInput from '../components/UserSearchInput';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
+import { createDiveSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 const CreateDive = () => {
   // Set page title
   usePageTitle('Divemap - Create Dive');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({
-    dive_site_id: '',
-    diving_center_id: '',
-    selected_route_id: '',
-    name: '',
-    is_private: false,
-    dive_information: '',
-    max_depth: '',
-    average_depth: '',
-    gas_bottles_used: '',
-    suit_type: '',
-    difficulty_code: '',
-    visibility_rating: '',
-    user_rating: '',
-    dive_date: new Date().toISOString().split('T')[0],
-    dive_time: '',
-    duration: '',
-    selectedTags: [],
+
+  // React Hook Form setup
+  const methods = useForm({
+    resolver: createResolver(createDiveSchema),
+    mode: 'onChange', // Validate on change to provide real-time feedback
+    reValidateMode: 'onChange', // Re-validate on change even after submission
+    defaultValues: {
+      dive_site_id: '',
+      diving_center_id: '',
+      selected_route_id: '',
+      name: '',
+      is_private: false,
+      dive_information: '',
+      max_depth: '',
+      average_depth: '',
+      gas_bottles_used: '',
+      suit_type: '',
+      difficulty_code: '',
+      visibility_rating: '',
+      user_rating: '',
+      dive_date: new Date().toISOString().split('T')[0],
+      dive_time: '',
+      duration: '',
+    },
   });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+    setError,
+  } = methods;
+
+  // Watch dive_site_id for dependent field clearing
+  const diveSiteId = watch('dive_site_id');
+
+  // Keep separate state for tags, media, buddies, and search dropdowns
+  const [selectedTags, setSelectedTags] = useState([]);
 
   const [newTag, setNewTag] = useState('');
   const [diveSiteSearch, setDiveSiteSearch] = useState('');
@@ -55,7 +79,6 @@ const CreateDive = () => {
   const [isDivingCenterDropdownOpen, setIsDivingCenterDropdownOpen] = useState(false);
   const divingCenterDropdownRef = useRef(null);
   const [mediaUrls, setMediaUrls] = useState([]);
-  const [fieldErrors, setFieldErrors] = useState({});
   const [selectedBuddies, setSelectedBuddies] = useState([]);
 
   // Fetch diving centers for dropdown
@@ -118,90 +141,65 @@ const CreateDive = () => {
     };
   }, []);
 
+  // Watch diving_center_id for search display
+  const divingCenterId = watch('diving_center_id');
+
   // Initialize diving center search when diving centers load
   useEffect(() => {
-    if (Array.isArray(divingCenters) && divingCenters.length > 0 && formData.diving_center_id) {
+    if (Array.isArray(divingCenters) && divingCenters.length > 0 && divingCenterId) {
       const selectedCenter = divingCenters.find(
-        center => center.id.toString() === formData.diving_center_id
+        center => center.id.toString() === divingCenterId.toString()
       );
       if (selectedCenter) {
         setDivingCenterSearch(selectedCenter.name);
       }
     }
-  }, [divingCenters, formData.diving_center_id]);
+  }, [divingCenters, divingCenterId]);
 
   // Create dive mutation
   const createDiveMutation = useMutation(createDive, {
     onSuccess: () => {
-      setFieldErrors({});
       toast.success('Dive logged successfully!');
       queryClient.invalidateQueries(['dives']);
       navigate('/dives');
     },
     onError: error => {
-      // Extract field-specific errors
-      const errors = extractFieldErrors(error);
-      setFieldErrors(errors);
+      // Extract field-specific errors and set them in React Hook Form
+      const fieldErrors = extractFieldErrors(error);
+      Object.keys(fieldErrors).forEach(field => {
+        setError(field, {
+          type: 'server',
+          message: fieldErrors[field]?.message || fieldErrors[field] || 'Invalid value',
+        });
+      });
 
       // Show general error message
       toast.error(extractErrorMessage(error) || 'Failed to log dive');
     },
   });
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-    // Clear error for this field when user starts typing
-    if (fieldErrors[field]) {
-      setFieldErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
-
   // Helper function to get error styling for a field
   const getFieldErrorClass = fieldName => {
-    return fieldErrors[fieldName]
+    return errors[fieldName]
       ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
       : 'border-gray-300 focus:ring-blue-500 focus:border-transparent';
   };
 
   const handleRouteSelect = routeId => {
-    setFormData(prev => ({
-      ...prev,
-      selected_route_id: routeId,
-    }));
-    // Clear error for this field
-    if (fieldErrors.selected_route_id) {
-      setFieldErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.selected_route_id;
-        return newErrors;
-      });
-    }
+    setValue('selected_route_id', routeId.toString(), { shouldValidate: true });
   };
 
   // Clear route selection when dive site changes
   useEffect(() => {
-    if (formData.dive_site_id) {
-      setFormData(prev => ({
-        ...prev,
-        selected_route_id: '',
-      }));
+    if (diveSiteId) {
+      setValue('selected_route_id', '');
     }
-  }, [formData.dive_site_id]);
+  }, [diveSiteId, setValue]);
 
   const handleTagToggle = tagId => {
-    setFormData(prev => ({
-      ...prev,
-      selectedTags: prev.selectedTags.includes(tagId)
-        ? prev.selectedTags.filter(id => id !== tagId)
-        : [...prev.selectedTags, tagId],
-    }));
+    setSelectedTags(prev =>
+      prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
+    );
   };
 
   const handleAddNewTag = () => {
@@ -258,7 +256,7 @@ const CreateDive = () => {
   //   : null;
 
   const handleDiveSiteSelect = (siteId, siteName) => {
-    handleInputChange('dive_site_id', siteId.toString());
+    setValue('dive_site_id', siteId.toString(), { shouldValidate: true });
     setDiveSiteSearch(siteName);
     setIsDiveSiteDropdownOpen(false);
     // Keep the selected site in search results
@@ -266,35 +264,19 @@ const CreateDive = () => {
     if (selectedSite) {
       setDiveSiteSearchResults([selectedSite]);
     }
-    // Clear error for this field
-    if (fieldErrors.dive_site_id) {
-      setFieldErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.dive_site_id;
-        return newErrors;
-      });
-    }
   };
 
   const handleDivingCenterSelect = (centerId, centerName) => {
-    handleInputChange('diving_center_id', centerId.toString());
+    setValue('diving_center_id', centerId.toString(), { shouldValidate: true });
     setDivingCenterSearch(centerName);
     setIsDivingCenterDropdownOpen(false);
-    // Clear error for this field
-    if (fieldErrors.diving_center_id) {
-      setFieldErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.diving_center_id;
-        return newErrors;
-      });
-    }
   };
 
   const handleDiveSiteSearchChange = value => {
     setDiveSiteSearch(value);
     setIsDiveSiteDropdownOpen(true);
     if (!value) {
-      handleInputChange('dive_site_id', '');
+      setValue('dive_site_id', '', { shouldValidate: true });
       // Reload initial "Attiki" results when search is cleared
       const loadInitialDiveSites = async () => {
         try {
@@ -346,7 +328,7 @@ const CreateDive = () => {
     setDivingCenterSearch(value);
     setIsDivingCenterDropdownOpen(true);
     if (!value) {
-      handleInputChange('diving_center_id', '');
+      setValue('diving_center_id', '', { shouldValidate: true });
     }
   };
 
@@ -395,66 +377,17 @@ const CreateDive = () => {
     setMediaUrls(prev => prev.map(item => (item.id === id ? { ...item, description } : item)));
   };
 
-  const handleSubmit = async e => {
-    e.preventDefault();
-
-    // Validate required fields
-    if (!formData.dive_date) {
-      toast.error('Dive date is required');
-      return;
-    }
-
+  const onSubmit = async data => {
+    // Data is already validated and transformed by Zod schema
+    // Transform dive_time format if provided
     const diveData = {
-      ...formData,
-      dive_site_id:
-        formData.dive_site_id && formData.dive_site_id !== ''
-          ? parseInt(formData.dive_site_id)
-          : null,
-      diving_center_id:
-        formData.diving_center_id && formData.diving_center_id !== ''
-          ? parseInt(formData.diving_center_id)
-          : null,
-      selected_route_id:
-        formData.selected_route_id && formData.selected_route_id !== ''
-          ? parseInt(formData.selected_route_id)
-          : null,
-      name: formData.name !== undefined ? formData.name : null,
-      is_private: formData.is_private || false,
-      max_depth:
-        formData.max_depth && formData.max_depth !== '' ? parseFloat(formData.max_depth) : null,
-      average_depth:
-        formData.average_depth && formData.average_depth !== ''
-          ? parseFloat(formData.average_depth)
-          : null,
-      visibility_rating:
-        formData.visibility_rating && formData.visibility_rating !== ''
-          ? parseInt(formData.visibility_rating)
-          : null,
-      user_rating:
-        formData.user_rating && formData.user_rating !== '' ? parseInt(formData.user_rating) : null,
-      duration: formData.duration && formData.duration !== '' ? parseInt(formData.duration) : null,
-      suit_type: formData.suit_type && formData.suit_type !== '' ? formData.suit_type : null,
-      difficulty_code:
-        formData.difficulty_code && formData.difficulty_code !== ''
-          ? formData.difficulty_code
-          : null,
-      dive_information:
-        formData.dive_information && formData.dive_information !== ''
-          ? formData.dive_information
-          : null,
-      gas_bottles_used:
-        formData.gas_bottles_used && formData.gas_bottles_used !== ''
-          ? formData.gas_bottles_used
-          : null,
-      dive_time:
-        formData.dive_time && formData.dive_time !== '' ? `${formData.dive_time}:00` : null,
+      ...data,
+      dive_time: data.dive_time && data.dive_time !== '' ? `${data.dive_time}:00` : null,
       buddies: selectedBuddies.length > 0 ? selectedBuddies.map(buddy => buddy.id) : [],
+      tags: selectedTags.length > 0 ? selectedTags : [],
     };
 
     try {
-      // Clear previous errors
-      setFieldErrors({});
-
       const createdDive = await createDiveMutation.mutateAsync(diveData);
 
       // Add media URLs
@@ -487,12 +420,8 @@ const CreateDive = () => {
       queryClient.invalidateQueries(['dives']);
       navigate('/dives');
     } catch (error) {
-      // Extract field-specific errors
-      const errors = extractFieldErrors(error);
-      setFieldErrors(errors);
-
-      // Show general error message
-      toast.error(extractErrorMessage(error) || 'Failed to log dive');
+      // Error handling is done in mutation onError callback
+      // which uses setError to set field-specific errors
     }
   };
 
@@ -505,675 +434,649 @@ const CreateDive = () => {
         <h1 className='text-3xl font-bold text-gray-900'>Log New Dive</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className='bg-white rounded-lg shadow p-6'>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-          {/* Basic Information */}
-          <div className='md:col-span-2'>
-            <h2 className='text-xl font-semibold mb-4'>Basic Information</h2>
-          </div>
-
-          <div className='relative' ref={diveSiteDropdownRef}>
-            <label
-              htmlFor='dive-site-search'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Dive Site (Optional)
-            </label>
-            <div className='relative'>
-              <input
-                id='dive-site-search'
-                type='text'
-                value={diveSiteSearch}
-                onChange={e => handleDiveSiteSearchChange(e.target.value)}
-                onFocus={() => setIsDiveSiteDropdownOpen(true)}
-                onKeyDown={handleDiveSiteKeyDown}
-                placeholder='Search for a dive site...'
-                className={`w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_site_id')}`}
-              />
-              <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
-                <ChevronDown
-                  size={16}
-                  className={`text-gray-400 transition-transform ${isDiveSiteDropdownOpen ? 'rotate-180' : ''}`}
-                />
-              </div>
+      <FormProvider {...methods}>
+        <form onSubmit={handleSubmit(onSubmit)} className='bg-white rounded-lg shadow p-6'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            {/* Basic Information */}
+            <div className='md:col-span-2'>
+              <h2 className='text-xl font-semibold mb-4'>Basic Information</h2>
             </div>
 
-            {/* Dropdown */}
-            {isDiveSiteDropdownOpen && (
-              <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
-                {diveSiteSearchLoading ? (
-                  <div className='px-3 py-2 text-gray-500 text-sm'>Searching...</div>
-                ) : diveSiteSearchError ? (
-                  <div className='px-3 py-2 text-red-500 text-sm'>{diveSiteSearchError}</div>
-                ) : filteredDiveSites.length > 0 ? (
-                  filteredDiveSites.map(site => (
-                    <div
-                      key={site.id}
-                      onClick={() => handleDiveSiteSelect(site.id, site.name)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleDiveSiteSelect(site.id, site.name);
-                        }
-                      }}
-                      role='button'
-                      tabIndex={0}
-                      className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
-                    >
-                      <div className='font-medium text-gray-900'>{site.name}</div>
-                      {site.country && <div className='text-sm text-gray-500'>{site.country}</div>}
-                    </div>
-                  ))
-                ) : diveSiteSearch ? (
-                  <div className='px-3 py-2 text-gray-500 text-sm'>No dive sites found</div>
-                ) : (
-                  <div className='px-3 py-2 text-gray-500 text-sm'>
-                    Start typing to search dive sites
-                  </div>
-                )}
-              </div>
-            )}
-            {fieldErrors.dive_site_id && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.dive_site_id.message}</p>
-            )}
-          </div>
-
-          <div className='relative' ref={divingCenterDropdownRef}>
-            <label
-              htmlFor='diving-center-search'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Diving Center (Optional)
-            </label>
-            <div className='relative'>
-              <input
-                id='diving-center-search'
-                type='text'
-                value={divingCenterSearch}
-                onChange={e => handleDivingCenterSearchChange(e.target.value)}
-                onFocus={() => setIsDivingCenterDropdownOpen(true)}
-                onKeyDown={handleDivingCenterKeyDown}
-                placeholder='Search for a diving center...'
-                className={`w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 ${getFieldErrorClass('diving_center_id')}`}
-              />
-              <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
-                <ChevronDown
-                  size={16}
-                  className={`text-gray-400 transition-transform ${isDivingCenterDropdownOpen ? 'rotate-180' : ''}`}
+            <div className='relative' ref={diveSiteDropdownRef}>
+              <label
+                htmlFor='dive-site-search'
+                className='block text-sm font-medium text-gray-700 mb-2'
+              >
+                Dive Site (Optional)
+              </label>
+              <div className='relative'>
+                <input
+                  id='dive-site-search'
+                  type='text'
+                  value={diveSiteSearch}
+                  onChange={e => handleDiveSiteSearchChange(e.target.value)}
+                  onFocus={() => setIsDiveSiteDropdownOpen(true)}
+                  onKeyDown={handleDiveSiteKeyDown}
+                  placeholder='Search for a dive site...'
+                  className={`w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_site_id')}`}
                 />
-              </div>
-            </div>
-
-            {/* Dropdown */}
-            {isDivingCenterDropdownOpen && (
-              <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
-                {filteredDivingCenters.length > 0 ? (
-                  filteredDivingCenters.map(center => (
-                    <div
-                      key={center.id}
-                      onClick={() => handleDivingCenterSelect(center.id, center.name)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleDivingCenterSelect(center.id, center.name);
-                        }
-                      }}
-                      role='button'
-                      tabIndex={0}
-                      className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
-                    >
-                      <div className='font-medium text-gray-900'>{center.name}</div>
-                      {center.description && (
-                        <div className='text-sm text-gray-500'>
-                          {center.description.substring(0, 50)}...
-                        </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className='px-3 py-2 text-gray-500 text-sm'>No diving centers found</div>
-                )}
-              </div>
-            )}
-            {fieldErrors.diving_center_id && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.diving_center_id.message}</p>
-            )}
-          </div>
-
-          {/* Route Selection */}
-          <div>
-            <RouteSelection
-              diveSiteId={formData.dive_site_id}
-              selectedRouteId={formData.selected_route_id}
-              onRouteSelect={handleRouteSelect}
-            />
-            {fieldErrors.selected_route_id && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.selected_route_id.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor='dive-name' className='block text-sm font-medium text-gray-700 mb-2'>
-              Dive Name (Optional)
-            </label>
-            <input
-              id='dive-name'
-              type='text'
-              value={formData.name}
-              onChange={e => handleInputChange('name', e.target.value)}
-              placeholder='Custom dive name or leave empty for automatic naming'
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor='privacy-setting'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Privacy Setting
-            </label>
-            <select
-              id='privacy-setting'
-              value={formData.is_private ? 'true' : 'false'}
-              onChange={e => handleInputChange('is_private', e.target.value === 'true')}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-            >
-              <option value='false'>Public (visible to everyone)</option>
-              <option value='true'>Private (visible only to you)</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor='dive-date' className='block text-sm font-medium text-gray-700 mb-2'>
-              Dive Date *
-            </label>
-            <input
-              id='dive-date'
-              type='date'
-              value={formData.dive_date}
-              onChange={e => handleInputChange('dive_date', e.target.value)}
-              required
-              className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_date')}`}
-            />
-            {fieldErrors.dive_date && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.dive_date.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor='dive-time' className='block text-sm font-medium text-gray-700 mb-2'>
-              Dive Time (Optional)
-            </label>
-            <input
-              id='dive-time'
-              type='time'
-              value={formData.dive_time}
-              onChange={e => handleInputChange('dive_time', e.target.value)}
-              className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_time')}`}
-            />
-            {fieldErrors.dive_time && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.dive_time.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor='dive-duration' className='block text-sm font-medium text-gray-700 mb-2'>
-              Duration (minutes)
-            </label>
-            <input
-              id='dive-duration'
-              type='number'
-              min='1'
-              max='1440'
-              value={formData.duration}
-              onChange={e => handleInputChange('duration', e.target.value)}
-              className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('duration')}`}
-              placeholder='60'
-            />
-            {fieldErrors.duration && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.duration.message}</p>
-            )}
-          </div>
-
-          {/* Dive Details */}
-          <div className='md:col-span-2'>
-            <h2 className='text-xl font-semibold mb-4'>Dive Details</h2>
-          </div>
-
-          <div>
-            <label htmlFor='max-depth' className='block text-sm font-medium text-gray-700 mb-2'>
-              Max Depth (meters)
-            </label>
-            <input
-              id='max-depth'
-              type='number'
-              min='0'
-              max='1000'
-              step='any'
-              value={formData.max_depth}
-              onChange={e => handleInputChange('max_depth', e.target.value)}
-              className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('max_depth')}`}
-              placeholder='18.5'
-            />
-            {fieldErrors.max_depth && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.max_depth.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor='average-depth' className='block text-sm font-medium text-gray-700 mb-2'>
-              Average Depth (meters)
-            </label>
-            <input
-              id='average-depth'
-              type='number'
-              min='0'
-              max='1000'
-              step='any'
-              value={formData.average_depth}
-              onChange={e => handleInputChange('average_depth', e.target.value)}
-              className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('average_depth')}`}
-              placeholder='12.0'
-            />
-            {fieldErrors.average_depth && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.average_depth.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor='difficulty-level'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Difficulty Level
-            </label>
-            <select
-              id='difficulty-level'
-              value={formData.difficulty_code || ''}
-              onChange={e => handleInputChange('difficulty_code', e.target.value)}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-            >
-              {getDifficultyOptions().map(option => (
-                <option
-                  key={option.value === null ? 'null' : option.value}
-                  value={option.value === null ? '' : option.value}
-                >
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor='suit-type' className='block text-sm font-medium text-gray-700 mb-2'>
-              Suit Type
-            </label>
-            <select
-              id='suit-type'
-              value={formData.suit_type}
-              onChange={e => handleInputChange('suit_type', e.target.value)}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-            >
-              <option value=''>Select suit type</option>
-              <option value='wet_suit'>Wet Suit</option>
-              <option value='dry_suit'>Dry Suit</option>
-              <option value='shortie'>Shortie</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor='visibility-rating'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Visibility Rating (1-10)
-            </label>
-            <input
-              id='visibility-rating'
-              type='number'
-              min='1'
-              max='10'
-              value={formData.visibility_rating}
-              onChange={e => handleInputChange('visibility_rating', e.target.value)}
-              className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('visibility_rating')}`}
-              placeholder='8'
-            />
-            {fieldErrors.visibility_rating && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.visibility_rating.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor='user-rating' className='block text-sm font-medium text-gray-700 mb-2'>
-              Your Rating (1-10)
-            </label>
-            <input
-              id='user-rating'
-              type='number'
-              min='1'
-              max='10'
-              value={formData.user_rating}
-              onChange={e => handleInputChange('user_rating', e.target.value)}
-              className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('user_rating')}`}
-              placeholder='9'
-            />
-            {fieldErrors.user_rating && (
-              <p className='mt-1 text-sm text-red-600'>{fieldErrors.user_rating.message}</p>
-            )}
-          </div>
-
-          <div className='md:col-span-2'>
-            <label
-              htmlFor='gas-bottles-used'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Gas Bottles Used
-            </label>
-            <textarea
-              id='gas-bottles-used'
-              value={formData.gas_bottles_used}
-              onChange={e => handleInputChange('gas_bottles_used', e.target.value)}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-              rows='2'
-              placeholder='e.g., 12L aluminum tank, 200 bar'
-            />
-          </div>
-
-          <div className='md:col-span-2'>
-            <label
-              htmlFor='dive-information'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Dive Information
-            </label>
-            <textarea
-              id='dive-information'
-              value={formData.dive_information}
-              onChange={e => handleInputChange('dive_information', e.target.value)}
-              className='w-full border border-gray-300 rounded-md px-3 py-2'
-              rows='4'
-              placeholder='Describe your dive experience, what you saw, conditions, etc.'
-            />
-          </div>
-
-          {/* Media */}
-          <div className='md:col-span-2'>
-            <h2 className='text-xl font-semibold mb-4'>Media</h2>
-            <div className='space-y-4'>
-              {/* URL Upload */}
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Add Media URLs
-                </label>
-                <div className='flex items-center gap-4'>
-                  <button
-                    type='button'
-                    onClick={() => setShowMediaForm(true)}
-                    className='flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700'
-                  >
-                    <Link size={16} />
-                    Add Media URL
-                  </button>
+                <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
+                  <ChevronDown
+                    size={16}
+                    className={`text-gray-400 transition-transform ${isDiveSiteDropdownOpen ? 'rotate-180' : ''}`}
+                  />
                 </div>
-
-                {/* Media Form */}
-                {showMediaForm && (
-                  <div className='mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50'>
-                    <div className='space-y-3'>
-                      <div>
-                        <label
-                          htmlFor='media-url'
-                          className='block text-sm font-medium text-gray-700 mb-1'
-                        >
-                          Media URL *
-                        </label>
-                        <input
-                          id='media-url'
-                          type='url'
-                          value={newMediaUrl}
-                          onChange={e => setNewMediaUrl(e.target.value)}
-                          placeholder='https://example.com/media'
-                          className='w-full border border-gray-300 rounded-md px-3 py-2'
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor='media-type'
-                          className='block text-sm font-medium text-gray-700 mb-1'
-                        >
-                          Media Type
-                        </label>
-                        <select
-                          id='media-type'
-                          value={newMediaType}
-                          onChange={e => setNewMediaType(e.target.value)}
-                          className='w-full border border-gray-300 rounded-md px-3 py-2'
-                        >
-                          <option value='external_link'>External Link</option>
-                          <option value='photo'>Photo</option>
-                          <option value='video'>Video</option>
-                          <option value='dive_plan'>Dive Plan</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor='media-description'
-                          className='block text-sm font-medium text-gray-700 mb-1'
-                        >
-                          Description (Optional)
-                        </label>
-                        <textarea
-                          id='media-description'
-                          value={newMediaDescription}
-                          onChange={e => setNewMediaDescription(e.target.value)}
-                          placeholder='Describe this media...'
-                          className='w-full border border-gray-300 rounded-md px-3 py-2'
-                          rows='2'
-                        />
-                      </div>
-
-                      <div className='flex gap-2'>
-                        <button
-                          type='button'
-                          onClick={handleUrlAdd}
-                          disabled={!newMediaUrl.trim()}
-                          className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed'
-                        >
-                          Add Media
-                        </button>
-                        <button
-                          type='button'
-                          onClick={() => {
-                            setShowMediaForm(false);
-                            setNewMediaUrl('');
-                            setNewMediaType('external_link');
-                            setNewMediaDescription('');
-                          }}
-                          className='px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700'
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Media Preview */}
-              {mediaUrls.length > 0 && (
-                <div className='space-y-3'>
-                  <h3 className='text-lg font-medium text-gray-900'>Media Preview</h3>
-
-                  {mediaUrls.map(media => (
-                    <div
-                      key={media.id}
-                      className='flex items-start gap-3 p-3 border border-gray-200 rounded-lg'
-                    >
-                      <div className='flex-shrink-0'>
-                        {media.type === 'photo' ? (
-                          <Image size={24} className='text-blue-600' />
-                        ) : media.type === 'video' ? (
-                          <Video size={24} className='text-purple-600' />
-                        ) : media.type === 'dive_plan' ? (
-                          <FileText size={24} className='text-green-600' />
-                        ) : (
-                          <Link size={24} className='text-orange-600' />
+              {/* Dropdown */}
+              {isDiveSiteDropdownOpen && (
+                <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                  {diveSiteSearchLoading ? (
+                    <div className='px-3 py-2 text-gray-500 text-sm'>Searching...</div>
+                  ) : diveSiteSearchError ? (
+                    <div className='px-3 py-2 text-red-500 text-sm'>{diveSiteSearchError}</div>
+                  ) : filteredDiveSites.length > 0 ? (
+                    filteredDiveSites.map(site => (
+                      <div
+                        key={site.id}
+                        onClick={() => handleDiveSiteSelect(site.id, site.name)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleDiveSiteSelect(site.id, site.name);
+                          }
+                        }}
+                        role='button'
+                        tabIndex={0}
+                        className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                      >
+                        <div className='font-medium text-gray-900'>{site.name}</div>
+                        {site.country && (
+                          <div className='text-sm text-gray-500'>{site.country}</div>
                         )}
                       </div>
-                      <div className='flex-1 min-w-0'>
-                        <div className='flex items-center justify-between mb-2'>
-                          <span className='text-sm font-medium text-gray-900 truncate'>
-                            {media.url}
-                          </span>
-                          <button
-                            type='button'
-                            onClick={() => handleMediaRemove(media.id)}
-                            className='text-red-600 hover:text-red-800'
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                        <div className='text-xs text-gray-500 mb-2'>Type: {media.type}</div>
-                        <input
-                          type='text'
-                          placeholder='Add description (optional)'
-                          value={media.description}
-                          onChange={e => handleMediaDescriptionChange(media.id, e.target.value)}
-                          className='w-full text-sm border border-gray-300 rounded px-2 py-1'
-                        />
-                      </div>
+                    ))
+                  ) : diveSiteSearch ? (
+                    <div className='px-3 py-2 text-gray-500 text-sm'>No dive sites found</div>
+                  ) : (
+                    <div className='px-3 py-2 text-gray-500 text-sm'>
+                      Start typing to search dive sites
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
+              {errors.dive_site_id && (
+                <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.dive_site_id)}</p>
+              )}
             </div>
-          </div>
 
-          {/* Buddies */}
-          <div className='md:col-span-2'>
-            <h2 className='text-xl font-semibold mb-4'>Buddies</h2>
-            <div className='space-y-4'>
-              <UserSearchInput
-                onSelect={handleBuddySelect}
-                excludeUserIds={selectedBuddies.map(buddy => buddy.id)}
-                placeholder='Search for users to add as buddies...'
-                label='Add Dive Buddies (Optional)'
-              />
+            <div className='relative' ref={divingCenterDropdownRef}>
+              <label
+                htmlFor='diving-center-search'
+                className='block text-sm font-medium text-gray-700 mb-2'
+              >
+                Diving Center (Optional)
+              </label>
+              <div className='relative'>
+                <input
+                  id='diving-center-search'
+                  type='text'
+                  value={divingCenterSearch}
+                  onChange={e => handleDivingCenterSearchChange(e.target.value)}
+                  onFocus={() => setIsDivingCenterDropdownOpen(true)}
+                  onKeyDown={handleDivingCenterKeyDown}
+                  placeholder='Search for a diving center...'
+                  className={`w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 ${getFieldErrorClass('diving_center_id')}`}
+                />
+                <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
+                  <ChevronDown
+                    size={16}
+                    className={`text-gray-400 transition-transform ${isDivingCenterDropdownOpen ? 'rotate-180' : ''}`}
+                  />
+                </div>
+              </div>
 
-              {/* Selected Buddies */}
-              {selectedBuddies.length > 0 && (
-                <div className='mt-4'>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Selected Buddies
-                  </label>
-                  <div className='flex flex-wrap gap-2'>
-                    {selectedBuddies.map(buddy => (
+              {/* Dropdown */}
+              {isDivingCenterDropdownOpen && (
+                <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                  {filteredDivingCenters.length > 0 ? (
+                    filteredDivingCenters.map(center => (
                       <div
-                        key={buddy.id}
-                        className='flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-full border border-blue-300'
+                        key={center.id}
+                        onClick={() => handleDivingCenterSelect(center.id, center.name)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleDivingCenterSelect(center.id, center.name);
+                          }
+                        }}
+                        role='button'
+                        tabIndex={0}
+                        className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
                       >
-                        {buddy.avatar_url ? (
-                          <img
-                            src={buddy.avatar_url}
-                            alt={buddy.username}
-                            className='w-6 h-6 rounded-full object-cover'
-                          />
-                        ) : (
-                          <div className='w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center'>
-                            <span className='text-xs font-medium text-blue-800'>
-                              {buddy.username.charAt(0).toUpperCase()}
-                            </span>
+                        <div className='font-medium text-gray-900'>{center.name}</div>
+                        {center.description && (
+                          <div className='text-sm text-gray-500'>
+                            {center.description.substring(0, 50)}...
                           </div>
                         )}
-                        <span className='text-sm font-medium'>{buddy.username}</span>
-                        {buddy.name && (
-                          <span className='text-xs text-blue-600'>({buddy.name})</span>
-                        )}
-                        <button
-                          type='button'
-                          onClick={() => handleBuddyRemove(buddy.id)}
-                          className='ml-1 text-blue-600 hover:text-blue-800'
-                          aria-label={`Remove ${buddy.username}`}
-                        >
-                          <X size={14} />
-                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className='px-3 py-2 text-gray-500 text-sm'>No diving centers found</div>
+                  )}
+                </div>
+              )}
+              {errors.diving_center_id && (
+                <p className='mt-1 text-sm text-red-600'>
+                  {getErrorMessage(errors.diving_center_id)}
+                </p>
+              )}
+            </div>
+
+            {/* Route Selection */}
+            <div>
+              <RouteSelection
+                diveSiteId={diveSiteId}
+                selectedRouteId={watch('selected_route_id')}
+                onRouteSelect={handleRouteSelect}
+              />
+              {errors.selected_route_id && (
+                <p className='mt-1 text-sm text-red-600'>
+                  {getErrorMessage(errors.selected_route_id)}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <FormField name='name' label='Dive Name (Optional)'>
+                {({ register, name }) => (
+                  <input
+                    id='dive-name'
+                    type='text'
+                    {...register(name)}
+                    placeholder='Custom dive name or leave empty for automatic naming'
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='is_private' label='Privacy Setting'>
+                {({ register, name }) => (
+                  <select
+                    id='privacy-setting'
+                    {...register(name, {
+                      setValueAs: value => value === 'true' || value === true,
+                    })}
+                    defaultValue='false'
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                  >
+                    <option value='false'>Public (visible to everyone)</option>
+                    <option value='true'>Private (visible only to you)</option>
+                  </select>
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='dive_date' label='Dive Date' required>
+                {({ register, name }) => (
+                  <input
+                    id='dive-date'
+                    type='date'
+                    {...register(name)}
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_date')}`}
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='dive_time' label='Dive Time (Optional)'>
+                {({ register, name }) => (
+                  <input
+                    id='dive-time'
+                    type='time'
+                    {...register(name)}
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_time')}`}
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='duration' label='Duration (minutes)'>
+                {({ register, name }) => (
+                  <input
+                    id='dive-duration'
+                    type='number'
+                    min='1'
+                    max='1440'
+                    {...register(name)}
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('duration')}`}
+                    placeholder='60'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            {/* Dive Details */}
+            <div className='md:col-span-2'>
+              <h2 className='text-xl font-semibold mb-4'>Dive Details</h2>
+            </div>
+
+            <div>
+              <FormField name='max_depth' label='Max Depth (meters)'>
+                {({ register, name }) => (
+                  <input
+                    id='max-depth'
+                    type='number'
+                    min='0'
+                    max='1000'
+                    step='any'
+                    {...register(name)}
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('max_depth')}`}
+                    placeholder='18.5'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='average_depth' label='Average Depth (meters)'>
+                {({ register, name }) => (
+                  <input
+                    id='average-depth'
+                    type='number'
+                    min='0'
+                    max='1000'
+                    step='any'
+                    {...register(name)}
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('average_depth')}`}
+                    placeholder='12.0'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='difficulty_code' label='Difficulty Level'>
+                {({ register, name }) => (
+                  <select
+                    id='difficulty-level'
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                  >
+                    {getDifficultyOptions().map(option => (
+                      <option
+                        key={option.value === null ? 'null' : option.value}
+                        value={option.value === null ? '' : option.value}
+                      >
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='suit_type' label='Suit Type'>
+                {({ register, name }) => (
+                  <select
+                    id='suit-type'
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                  >
+                    <option value=''>Select suit type</option>
+                    <option value='wet_suit'>Wet Suit</option>
+                    <option value='dry_suit'>Dry Suit</option>
+                    <option value='shortie'>Shortie</option>
+                  </select>
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='visibility_rating' label='Visibility Rating (1-10)'>
+                {({ register, name }) => (
+                  <input
+                    id='visibility-rating'
+                    type='number'
+                    min='1'
+                    max='10'
+                    {...register(name)}
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('visibility_rating')}`}
+                    placeholder='8'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='user_rating' label='Your Rating (1-10)'>
+                {({ register, name }) => (
+                  <input
+                    id='user-rating'
+                    type='number'
+                    min='1'
+                    max='10'
+                    {...register(name)}
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('user_rating')}`}
+                    placeholder='9'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div className='md:col-span-2'>
+              <FormField name='gas_bottles_used' label='Gas Bottles Used'>
+                {({ register, name }) => (
+                  <textarea
+                    id='gas-bottles-used'
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                    rows='2'
+                    placeholder='e.g., 12L aluminum tank, 200 bar'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div className='md:col-span-2'>
+              <FormField name='dive_information' label='Dive Information'>
+                {({ register, name }) => (
+                  <textarea
+                    id='dive-information'
+                    {...register(name)}
+                    className='w-full border border-gray-300 rounded-md px-3 py-2'
+                    rows='4'
+                    placeholder='Describe your dive experience, what you saw, conditions, etc.'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            {/* Media */}
+            <div className='md:col-span-2'>
+              <h2 className='text-xl font-semibold mb-4'>Media</h2>
+              <div className='space-y-4'>
+                {/* URL Upload */}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Add Media URLs
+                  </label>
+                  <div className='flex items-center gap-4'>
+                    <button
+                      type='button'
+                      onClick={() => setShowMediaForm(true)}
+                      className='flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700'
+                    >
+                      <Link size={16} />
+                      Add Media URL
+                    </button>
+                  </div>
+
+                  {/* Media Form */}
+                  {showMediaForm && (
+                    <div className='mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50'>
+                      <div className='space-y-3'>
+                        <div>
+                          <label
+                            htmlFor='media-url'
+                            className='block text-sm font-medium text-gray-700 mb-1'
+                          >
+                            Media URL *
+                          </label>
+                          <input
+                            id='media-url'
+                            type='url'
+                            value={newMediaUrl}
+                            onChange={e => setNewMediaUrl(e.target.value)}
+                            placeholder='https://example.com/media'
+                            className='w-full border border-gray-300 rounded-md px-3 py-2'
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label
+                            htmlFor='media-type'
+                            className='block text-sm font-medium text-gray-700 mb-1'
+                          >
+                            Media Type
+                          </label>
+                          <select
+                            id='media-type'
+                            value={newMediaType}
+                            onChange={e => setNewMediaType(e.target.value)}
+                            className='w-full border border-gray-300 rounded-md px-3 py-2'
+                          >
+                            <option value='external_link'>External Link</option>
+                            <option value='photo'>Photo</option>
+                            <option value='video'>Video</option>
+                            <option value='dive_plan'>Dive Plan</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label
+                            htmlFor='media-description'
+                            className='block text-sm font-medium text-gray-700 mb-1'
+                          >
+                            Description (Optional)
+                          </label>
+                          <textarea
+                            id='media-description'
+                            value={newMediaDescription}
+                            onChange={e => setNewMediaDescription(e.target.value)}
+                            placeholder='Describe this media...'
+                            className='w-full border border-gray-300 rounded-md px-3 py-2'
+                            rows='2'
+                          />
+                        </div>
+
+                        <div className='flex gap-2'>
+                          <button
+                            type='button'
+                            onClick={handleUrlAdd}
+                            disabled={!newMediaUrl.trim()}
+                            className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                          >
+                            Add Media
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => {
+                              setShowMediaForm(false);
+                              setNewMediaUrl('');
+                              setNewMediaType('external_link');
+                              setNewMediaDescription('');
+                            }}
+                            className='px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700'
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Media Preview */}
+                {mediaUrls.length > 0 && (
+                  <div className='space-y-3'>
+                    <h3 className='text-lg font-medium text-gray-900'>Media Preview</h3>
+
+                    {mediaUrls.map(media => (
+                      <div
+                        key={media.id}
+                        className='flex items-start gap-3 p-3 border border-gray-200 rounded-lg'
+                      >
+                        <div className='flex-shrink-0'>
+                          {media.type === 'photo' ? (
+                            <Image size={24} className='text-blue-600' />
+                          ) : media.type === 'video' ? (
+                            <Video size={24} className='text-purple-600' />
+                          ) : media.type === 'dive_plan' ? (
+                            <FileText size={24} className='text-green-600' />
+                          ) : (
+                            <Link size={24} className='text-orange-600' />
+                          )}
+                        </div>
+                        <div className='flex-1 min-w-0'>
+                          <div className='flex items-center justify-between mb-2'>
+                            <span className='text-sm font-medium text-gray-900 truncate'>
+                              {media.url}
+                            </span>
+                            <button
+                              type='button'
+                              onClick={() => handleMediaRemove(media.id)}
+                              className='text-red-600 hover:text-red-800'
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                          <div className='text-xs text-gray-500 mb-2'>Type: {media.type}</div>
+                          <input
+                            type='text'
+                            placeholder='Add description (optional)'
+                            value={media.description}
+                            onChange={e => handleMediaDescriptionChange(media.id, e.target.value)}
+                            className='w-full text-sm border border-gray-300 rounded px-2 py-1'
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div className='md:col-span-2'>
-            <h2 className='text-xl font-semibold mb-4'>Tags</h2>
-            <div className='space-y-4'>
-              <div className='flex flex-wrap gap-2'>
-                {availableTags.map(tag => (
-                  <button
-                    key={tag.id}
-                    type='button'
-                    onClick={() => handleTagToggle(tag.id)}
-                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                      formData.selectedTags.includes(tag.id)
-                        ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                        : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
-                    }`}
-                  >
-                    {tag.name}
-                  </button>
-                ))}
+                )}
               </div>
+            </div>
 
-              <div className='flex gap-2'>
-                <input
-                  type='text'
-                  value={newTag}
-                  onChange={e => setNewTag(e.target.value)}
-                  placeholder='Add new tag...'
-                  className='flex-1 border border-gray-300 rounded-md px-3 py-2'
+            {/* Buddies */}
+            <div className='md:col-span-2'>
+              <h2 className='text-xl font-semibold mb-4'>Buddies</h2>
+              <div className='space-y-4'>
+                <UserSearchInput
+                  onSelect={handleBuddySelect}
+                  excludeUserIds={selectedBuddies.map(buddy => buddy.id)}
+                  placeholder='Search for users to add as buddies...'
+                  label='Add Dive Buddies (Optional)'
                 />
-                <button
-                  type='button'
-                  onClick={handleAddNewTag}
-                  className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2'
-                >
-                  <Plus size={16} />
-                  Add
-                </button>
+
+                {/* Selected Buddies */}
+                {selectedBuddies.length > 0 && (
+                  <div className='mt-4'>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Selected Buddies
+                    </label>
+                    <div className='flex flex-wrap gap-2'>
+                      {selectedBuddies.map(buddy => (
+                        <div
+                          key={buddy.id}
+                          className='flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-full border border-blue-300'
+                        >
+                          {buddy.avatar_url ? (
+                            <img
+                              src={buddy.avatar_url}
+                              alt={buddy.username}
+                              className='w-6 h-6 rounded-full object-cover'
+                            />
+                          ) : (
+                            <div className='w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center'>
+                              <span className='text-xs font-medium text-blue-800'>
+                                {buddy.username.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <span className='text-sm font-medium'>{buddy.username}</span>
+                          {buddy.name && (
+                            <span className='text-xs text-blue-600'>({buddy.name})</span>
+                          )}
+                          <button
+                            type='button'
+                            onClick={() => handleBuddyRemove(buddy.id)}
+                            className='ml-1 text-blue-600 hover:text-blue-800'
+                            aria-label={`Remove ${buddy.username}`}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Tags */}
+            <div className='md:col-span-2'>
+              <h2 className='text-xl font-semibold mb-4'>Tags</h2>
+              <div className='space-y-4'>
+                <div className='flex flex-wrap gap-2'>
+                  {availableTags.map(tag => (
+                    <button
+                      key={tag.id}
+                      type='button'
+                      onClick={() => handleTagToggle(tag.id)}
+                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                        selectedTags.includes(tag.id)
+                          ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                          : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+                      }`}
+                    >
+                      {tag.name}
+                    </button>
+                  ))}
+                </div>
+
+                <div className='flex gap-2'>
+                  <input
+                    type='text'
+                    value={newTag}
+                    onChange={e => setNewTag(e.target.value)}
+                    placeholder='Add new tag...'
+                    className='flex-1 border border-gray-300 rounded-md px-3 py-2'
+                  />
+                  <button
+                    type='button'
+                    onClick={handleAddNewTag}
+                    className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2'
+                  >
+                    <Plus size={16} />
+                    Add
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Submit Button */}
-        <div className='mt-8 flex justify-end gap-4'>
-          <button
-            type='button'
-            onClick={() => navigate('/dives')}
-            className='px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50'
-          >
-            Cancel
-          </button>
-          <button
-            type='submit'
-            disabled={createDiveMutation.isLoading}
-            className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
-          >
-            {createDiveMutation.isLoading ? (
-              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
-            ) : (
-              <Save size={16} />
-            )}
-            Log Dive
-          </button>
-        </div>
-      </form>
+          {/* Submit Button */}
+          <div className='mt-8 flex justify-end gap-4'>
+            <button
+              type='button'
+              onClick={() => navigate('/dives')}
+              className='px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50'
+            >
+              Cancel
+            </button>
+            <button
+              type='submit'
+              disabled={createDiveMutation.isLoading}
+              className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
+            >
+              {createDiveMutation.isLoading ? (
+                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+              ) : (
+                <Save size={16} />
+              )}
+              Log Dive
+            </button>
+          </div>
+        </form>
+      </FormProvider>
     </div>
   );
 };

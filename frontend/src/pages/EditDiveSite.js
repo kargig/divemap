@@ -1,24 +1,18 @@
 import { ArrowLeft, Save, Trash2, Upload, X, Tag, Building, Plus, Edit } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import api, { getNearbyDivingCenters, searchDivingCenters } from '../api';
+import api, { getNearbyDivingCenters, searchDivingCenters, extractErrorMessage } from '../api';
+import { FormField } from '../components/forms/FormField';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
-
-// Helper function to safely extract error message
-const getErrorMessage = error => {
-  if (typeof error === 'string') return error;
-  if (error?.message) return error.message;
-  if (error?.response?.data?.detail) return error.response.data.detail;
-  if (error?.detail) return error.detail;
-  return 'An error occurred';
-};
+import { diveSiteSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 const EditDiveSite = () => {
   // Set page title
@@ -28,23 +22,40 @@ const EditDiveSite = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    latitude: '',
-    longitude: '',
-    country: '',
-    region: '',
-    access_instructions: '',
-    difficulty_code: '',
-    marine_life: '',
-    safety_information: '',
-    max_depth: '',
-    shore_direction: '',
-    shore_direction_confidence: '',
-    shore_direction_method: '',
-    shore_direction_distance_m: '',
+  // React Hook Form setup
+  const methods = useForm({
+    resolver: createResolver(diveSiteSchema),
+    mode: 'onChange',
+    defaultValues: {
+      name: '',
+      description: '',
+      latitude: '',
+      longitude: '',
+      country: '',
+      region: '',
+      access_instructions: '',
+      difficulty_code: '',
+      marine_life: '',
+      safety_information: '',
+      max_depth: '',
+      shore_direction: '',
+      shore_direction_confidence: '',
+      shore_direction_method: '',
+      shore_direction_distance_m: '',
+    },
   });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+    reset,
+    setError,
+  } = methods;
+
+  const formData = watch();
 
   const [newMedia, setNewMedia] = useState({
     url: '',
@@ -87,7 +98,7 @@ const EditDiveSite = () => {
   } = useQuery(['dive-site', id], () => api.get(`/api/v1/dive-sites/${id}`).then(res => res.data), {
     enabled: !!id && canEdit,
     onSuccess: data => {
-      setFormData({
+      reset({
         name: data.name || '',
         description: data.description || '',
         latitude: data.latitude?.toString() || '',
@@ -343,7 +354,17 @@ const EditDiveSite = () => {
   // Update mutation
   const updateMutation = useMutation(data => api.put(`/api/v1/dive-sites/${id}`, data), {
     onError: error => {
-      toast.error(getErrorMessage(error));
+      if (error?.response?.data?.detail && typeof error.response.data.detail === 'object') {
+        const fieldErrors = error.response.data.detail;
+        Object.keys(fieldErrors).forEach(field => {
+          setError(field, {
+            type: 'server',
+            message: Array.isArray(fieldErrors[field]) ? fieldErrors[field][0] : fieldErrors[field],
+          });
+        });
+      } else {
+        toast.error(getErrorMessage(error));
+      }
     },
   });
 
@@ -376,14 +397,6 @@ const EditDiveSite = () => {
       },
     }
   );
-
-  const handleInputChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
 
   // Aliases handlers
   const handleAddAlias = e => {
@@ -439,11 +452,8 @@ const EditDiveSite = () => {
 
       const { country, region } = response.data;
 
-      setFormData(prev => ({
-        ...prev,
-        country: country || '',
-        region: region || '',
-      }));
+      setValue('country', country || '');
+      setValue('region', region || '');
 
       if (country || region) {
         toast.success('Location suggestions applied!');
@@ -487,13 +497,10 @@ const EditDiveSite = () => {
 
       const { shore_direction, confidence, method, distance_to_coastline_m } = response.data;
 
-      setFormData(prev => ({
-        ...prev,
-        shore_direction: shore_direction?.toString() || '',
-        shore_direction_confidence: confidence || '',
-        shore_direction_method: method || '',
-        shore_direction_distance_m: distance_to_coastline_m?.toString() || '',
-      }));
+      setValue('shore_direction', shore_direction?.toString() || '');
+      setValue('shore_direction_confidence', confidence || '');
+      setValue('shore_direction_method', method || '');
+      setValue('shore_direction_distance_m', distance_to_coastline_m?.toString() || '');
 
       toast.success(
         `Shore direction detected: ${shore_direction?.toFixed(1)}° (${confidence || 'unknown'} confidence)`
@@ -510,70 +517,49 @@ const EditDiveSite = () => {
     }
   };
 
-  const handleSubmit = e => {
-    e.preventDefault();
-
+  const onSubmit = data => {
     // Prepare the update data
     const updateData = {
-      ...formData,
-      latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-      longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+      ...data,
+      latitude: data.latitude ? parseFloat(data.latitude) : null,
+      longitude: data.longitude ? parseFloat(data.longitude) : null,
     };
 
-    // Ensure latitude and longitude are not empty
-    if (!formData.latitude || formData.latitude.trim() === '') {
-      toast.error('Latitude is required');
-      return;
-    }
-    if (!formData.longitude || formData.longitude.trim() === '') {
-      toast.error('Longitude is required');
-      return;
-    }
-
     // Convert max_depth to number if provided, or set to null if empty
-    if (formData.max_depth && formData.max_depth.trim() !== '') {
-      updateData.max_depth = parseFloat(formData.max_depth);
+    if (data.max_depth && data.max_depth.trim() !== '') {
+      updateData.max_depth = parseFloat(data.max_depth);
     } else {
       updateData.max_depth = null;
     }
 
     // Convert difficulty_code: empty string becomes null, otherwise keep the code
-    if (formData.difficulty_code && formData.difficulty_code.trim() !== '') {
-      updateData.difficulty_code = formData.difficulty_code;
+    if (data.difficulty_code && data.difficulty_code.trim() !== '') {
+      updateData.difficulty_code = data.difficulty_code;
     } else {
       updateData.difficulty_code = null;
     }
 
     // Handle shore_direction: only include if provided, otherwise explicitly remove from update
-    // This allows saving without shore_direction (backend will keep existing value or auto-detect)
-    if (formData.shore_direction && formData.shore_direction.trim() !== '') {
-      updateData.shore_direction = parseFloat(formData.shore_direction);
+    if (data.shore_direction && data.shore_direction.trim() !== '') {
+      updateData.shore_direction = parseFloat(data.shore_direction);
 
-      // Include other shore_direction fields if shore_direction is set
-      if (
-        formData.shore_direction_confidence &&
-        formData.shore_direction_confidence.trim() !== ''
-      ) {
-        updateData.shore_direction_confidence = formData.shore_direction_confidence;
+      if (data.shore_direction_confidence && data.shore_direction_confidence.trim() !== '') {
+        updateData.shore_direction_confidence = data.shore_direction_confidence;
       } else {
         updateData.shore_direction_confidence = null;
       }
-      if (formData.shore_direction_method && formData.shore_direction_method.trim() !== '') {
-        updateData.shore_direction_method = formData.shore_direction_method;
+      if (data.shore_direction_method && data.shore_direction_method.trim() !== '') {
+        updateData.shore_direction_method = data.shore_direction_method;
       } else {
         updateData.shore_direction_method = null;
       }
-      if (
-        formData.shore_direction_distance_m &&
-        formData.shore_direction_distance_m.trim() !== ''
-      ) {
-        updateData.shore_direction_distance_m = parseFloat(formData.shore_direction_distance_m);
+      if (data.shore_direction_distance_m && data.shore_direction_distance_m.trim() !== '') {
+        updateData.shore_direction_distance_m = parseFloat(data.shore_direction_distance_m);
       } else {
         updateData.shore_direction_distance_m = null;
       }
     } else {
       // If shore_direction is empty, explicitly remove all shore_direction fields from update
-      // This allows the backend to keep existing values or auto-detect if needed
       delete updateData.shore_direction;
       delete updateData.shore_direction_confidence;
       delete updateData.shore_direction_method;
@@ -708,325 +694,275 @@ const EditDiveSite = () => {
           </div>
 
           {/* Main Dive Site Form */}
-          <form onSubmit={handleSubmit} className='space-y-6'>
-            {/* Basic Information */}
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-              <div>
-                <label
-                  htmlFor='dive-site-name'
-                  className='block text-sm font-medium text-gray-700 mb-2'
-                >
-                  Name *
-                </label>
-                <input
-                  id='dive-site-name'
-                  type='text'
-                  name='name'
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor='difficulty-level'
-                  className='block text-sm font-medium text-gray-700 mb-2'
-                >
-                  Difficulty Level
-                </label>
-                <select
-                  id='difficulty-level'
-                  name='difficulty_code'
-                  value={formData.difficulty_code || ''}
-                  onChange={handleInputChange}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                >
-                  {getDifficultyOptions().map(option => (
-                    <option
-                      key={option.value === null ? 'null' : option.value}
-                      value={option.value === null ? '' : option.value}
-                    >
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Add Alias Section */}
-            <div className='border-t pt-6 mb-6'>
-              <div className='flex items-center justify-between mb-4'>
-                <h3 className='text-lg font-semibold text-gray-900'>Aliases</h3>
-                <button
-                  type='button'
-                  onClick={() => setShowAliasForm(!showAliasForm)}
-                  className='flex items-center px-4 py-2 text-white rounded-md'
-                  style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
-                >
-                  <Plus className='w-4 h-4 mr-2' />
-                  Add Alias
-                </button>
-              </div>
-
-              {/* Add Alias Form */}
-              {showAliasForm && (
-                <div className='bg-gray-50 p-4 rounded-md mb-4'>
-                  <div className='space-y-4'>
-                    <div>
-                      <label
-                        htmlFor='new_alias_name'
-                        className='block text-sm font-medium text-gray-700 mb-1'
-                      >
-                        Alias Name *
-                      </label>
+          <FormProvider {...methods}>
+            <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
+              {/* Basic Information */}
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                <div>
+                  <FormField name='name' label='Name' required>
+                    {({ register, name }) => (
                       <input
-                        id='new_alias_name'
+                        id='dive-site-name'
                         type='text'
-                        value={newAlias.alias}
-                        onChange={e => setNewAlias({ ...newAlias, alias: e.target.value })}
-                        required
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        {...register(name)}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.name ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
-                    </div>
-                    <div className='flex space-x-2'>
-                      <button
-                        type='button'
-                        onClick={handleAddAlias}
-                        disabled={addAliasMutation.isLoading}
-                        className='px-4 py-2 text-white rounded-md disabled:opacity-50'
-                        style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                        onMouseEnter={e =>
-                          !e.currentTarget.disabled &&
-                          (e.currentTarget.style.backgroundColor = '#007a5c')
-                        }
-                        onMouseLeave={e =>
-                          !e.currentTarget.disabled &&
-                          (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                        }
+                    )}
+                  </FormField>
+                </div>
+
+                <div>
+                  <FormField name='difficulty_code' label='Difficulty Level'>
+                    {({ register, name }) => (
+                      <select
+                        id='difficulty-level'
+                        {...register(name)}
+                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                       >
-                        {addAliasMutation.isLoading ? 'Adding...' : 'Add Alias'}
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => setShowAliasForm(false)}
-                        className='px-4 py-2 text-white rounded-md'
-                        style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-                        onMouseLeave={e =>
-                          (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
-                        }
-                      >
-                        Cancel
-                      </button>
+                        {getDifficultyOptions().map(option => (
+                          <option
+                            key={option.value === null ? 'null' : option.value}
+                            value={option.value === null ? '' : option.value}
+                          >
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </FormField>
+                </div>
+              </div>
+
+              {/* Add Alias Section */}
+              <div className='border-t pt-6 mb-6'>
+                <div className='flex items-center justify-between mb-4'>
+                  <h3 className='text-lg font-semibold text-gray-900'>Aliases</h3>
+                  <button
+                    type='button'
+                    onClick={() => setShowAliasForm(!showAliasForm)}
+                    className='flex items-center px-4 py-2 text-white rounded-md'
+                    style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                  >
+                    <Plus className='w-4 h-4 mr-2' />
+                    Add Alias
+                  </button>
+                </div>
+
+                {/* Add Alias Form */}
+                {showAliasForm && (
+                  <div className='bg-gray-50 p-4 rounded-md mb-4'>
+                    <div className='space-y-4'>
+                      <div>
+                        <label
+                          htmlFor='new_alias_name'
+                          className='block text-sm font-medium text-gray-700 mb-1'
+                        >
+                          Alias Name *
+                        </label>
+                        <input
+                          id='new_alias_name'
+                          type='text'
+                          value={newAlias.alias}
+                          onChange={e => setNewAlias({ ...newAlias, alias: e.target.value })}
+                          required
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        />
+                      </div>
+                      <div className='flex space-x-2'>
+                        <button
+                          type='button'
+                          onClick={handleAddAlias}
+                          disabled={addAliasMutation.isLoading}
+                          className='px-4 py-2 text-white rounded-md disabled:opacity-50'
+                          style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                          onMouseEnter={e =>
+                            !e.currentTarget.disabled &&
+                            (e.currentTarget.style.backgroundColor = '#007a5c')
+                          }
+                          onMouseLeave={e =>
+                            !e.currentTarget.disabled &&
+                            (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                          }
+                        >
+                          {addAliasMutation.isLoading ? 'Adding...' : 'Add Alias'}
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => setShowAliasForm(false)}
+                          className='px-4 py-2 text-white rounded-md'
+                          style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
+                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                          onMouseLeave={e =>
+                            (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                          }
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* Aliases List */}
-              <div className='space-y-2'>
-                {Array.isArray(aliases) && aliases.length > 0 ? (
-                  aliases.map(alias => (
-                    <div
-                      key={alias.id}
-                      className='flex items-center justify-between p-3 bg-gray-50 rounded-md'
-                    >
-                      {editingAlias?.id === alias.id ? (
-                        <div className='flex-1 flex items-center space-x-2'>
-                          <input
-                            type='text'
-                            value={editingAlias.alias}
-                            onChange={e =>
-                              setEditingAlias({ ...editingAlias, alias: e.target.value })
-                            }
-                            className='flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                          />
-                          <button
-                            type='button'
-                            onClick={handleUpdateAlias}
-                            disabled={updateAliasMutation.isLoading}
-                            className='text-green-600 hover:text-green-800 disabled:opacity-50'
-                            title='Save changes'
-                          >
-                            <Save className='w-4 h-4' />
-                          </button>
-                          <button
-                            type='button'
-                            onClick={handleCancelEdit}
-                            className='text-gray-600 hover:text-gray-800'
-                            title='Cancel edit'
-                          >
-                            <X className='w-4 h-4' />
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className='flex items-center space-x-2'>
-                            <span className='font-medium'>{alias.alias}</span>
-                          </div>
-                          <div className='flex space-x-2'>
-                            <button
-                              onClick={() => handleEditAlias(alias)}
-                              className='text-blue-600 hover:text-blue-800'
-                              title='Edit alias'
-                            >
-                              <Edit className='w-4 h-4' />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteAlias(alias)}
-                              className='text-red-600 hover:text-red-800'
-                              title='Delete alias'
-                            >
-                              <Trash2 className='w-4 h-4' />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p className='text-gray-500 text-sm'>No aliases found for this dive site.</p>
                 )}
-              </div>
-            </div>
 
-            <div>
-              <label
-                htmlFor='dive-site-description'
-                className='block text-sm font-medium text-gray-700 mb-2'
-              >
-                Description *
-              </label>
-              <textarea
-                id='dive-site-description'
-                name='description'
-                value={formData.description}
-                onChange={handleInputChange}
-                required
-                rows={4}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              />
-            </div>
-
-            {/* Location */}
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-              <div>
-                <label htmlFor='latitude' className='block text-sm font-medium text-gray-700 mb-2'>
-                  Latitude *
-                </label>
-                <input
-                  id='latitude'
-                  type='number'
-                  step='any'
-                  name='latitude'
-                  value={formData.latitude}
-                  onChange={handleInputChange}
-                  required
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
-
-              <div>
-                <label htmlFor='longitude' className='block text-sm font-medium text-gray-700 mb-2'>
-                  Longitude *
-                </label>
-                <input
-                  id='longitude'
-                  type='number'
-                  step='any'
-                  name='longitude'
-                  value={formData.longitude}
-                  onChange={handleInputChange}
-                  required
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
-            </div>
-
-            {/* Country and Region Information */}
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-              <div>
-                <label htmlFor='country' className='block text-sm font-medium text-gray-700 mb-2'>
-                  Country
-                </label>
-                <input
-                  id='country'
-                  type='text'
-                  name='country'
-                  value={formData.country}
-                  onChange={handleInputChange}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='e.g., Australia'
-                />
+                {/* Aliases List */}
+                <div className='space-y-2'>
+                  {Array.isArray(aliases) && aliases.length > 0 ? (
+                    aliases.map(alias => (
+                      <div
+                        key={alias.id}
+                        className='flex items-center justify-between p-3 bg-gray-50 rounded-md'
+                      >
+                        {editingAlias?.id === alias.id ? (
+                          <div className='flex-1 flex items-center space-x-2'>
+                            <input
+                              type='text'
+                              value={editingAlias.alias}
+                              onChange={e =>
+                                setEditingAlias({ ...editingAlias, alias: e.target.value })
+                              }
+                              className='flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                            />
+                            <button
+                              type='button'
+                              onClick={handleUpdateAlias}
+                              disabled={updateAliasMutation.isLoading}
+                              className='text-green-600 hover:text-green-800 disabled:opacity-50'
+                              title='Save changes'
+                            >
+                              <Save className='w-4 h-4' />
+                            </button>
+                            <button
+                              type='button'
+                              onClick={handleCancelEdit}
+                              className='text-gray-600 hover:text-gray-800'
+                              title='Cancel edit'
+                            >
+                              <X className='w-4 h-4' />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className='flex items-center space-x-2'>
+                              <span className='font-medium'>{alias.alias}</span>
+                            </div>
+                            <div className='flex space-x-2'>
+                              <button
+                                onClick={() => handleEditAlias(alias)}
+                                className='text-blue-600 hover:text-blue-800'
+                                title='Edit alias'
+                              >
+                                <Edit className='w-4 h-4' />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteAlias(alias)}
+                                className='text-red-600 hover:text-red-800'
+                                title='Delete alias'
+                              >
+                                <Trash2 className='w-4 h-4' />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className='text-gray-500 text-sm'>No aliases found for this dive site.</p>
+                  )}
+                </div>
               </div>
 
               <div>
-                <label htmlFor='region' className='block text-sm font-medium text-gray-700 mb-2'>
-                  Region
-                </label>
-                <input
-                  id='region'
-                  type='text'
-                  name='region'
-                  value={formData.region}
-                  onChange={handleInputChange}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='e.g., Queensland'
-                />
+                <FormField name='description' label='Description' required>
+                  {({ register, name }) => (
+                    <textarea
+                      id='dive-site-description'
+                      {...register(name)}
+                      rows={4}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.description ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    />
+                  )}
+                </FormField>
               </div>
-            </div>
 
-            {/* Location Suggestion Button */}
-            <div className='flex justify-center'>
-              <button
-                type='button'
-                onClick={suggestLocation}
-                disabled={!formData.latitude || !formData.longitude}
-                className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
-                style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                onMouseEnter={e =>
-                  !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')
-                }
-                onMouseLeave={e =>
-                  !e.currentTarget.disabled &&
-                  (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                }
-              >
-                🗺️ Suggest Country & Region from Coordinates
-              </button>
-            </div>
+              {/* Location */}
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+                <div>
+                  <FormField name='latitude' label='Latitude' required>
+                    {({ register, name }) => (
+                      <input
+                        id='latitude'
+                        type='number'
+                        step='any'
+                        {...register(name)}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.latitude ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                    )}
+                  </FormField>
+                </div>
 
-            {/* Shore Direction Information */}
-            <div>
-              <label
-                htmlFor='shore_direction'
-                className='block text-sm font-medium text-gray-700 mb-2'
-              >
-                Shore Direction (degrees)
-              </label>
-              <div className='flex gap-2'>
-                <input
-                  id='shore_direction'
-                  type='number'
-                  step='0.01'
-                  min='0'
-                  max='360'
-                  name='shore_direction'
-                  value={formData.shore_direction}
-                  onChange={handleInputChange}
-                  className='flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='Enter shore direction in degrees (0-360)'
-                />
+                <div>
+                  <FormField name='longitude' label='Longitude' required>
+                    {({ register, name }) => (
+                      <input
+                        id='longitude'
+                        type='number'
+                        step='any'
+                        {...register(name)}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.longitude ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                    )}
+                  </FormField>
+                </div>
+              </div>
+
+              {/* Country and Region Information */}
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                <div>
+                  <FormField name='country' label='Country'>
+                    {({ register, name }) => (
+                      <input
+                        id='country'
+                        type='text'
+                        {...register(name)}
+                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        placeholder='e.g., Australia'
+                      />
+                    )}
+                  </FormField>
+                </div>
+
+                <div>
+                  <FormField name='region' label='Region'>
+                    {({ register, name }) => (
+                      <input
+                        id='region'
+                        type='text'
+                        {...register(name)}
+                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        placeholder='e.g., Queensland'
+                      />
+                    )}
+                  </FormField>
+                </div>
+              </div>
+
+              {/* Location Suggestion Button */}
+              <div className='flex justify-center'>
                 <button
                   type='button'
-                  onClick={detectShoreDirection}
+                  onClick={suggestLocation}
                   disabled={!formData.latitude || !formData.longitude}
-                  className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap'
-                  style={{ backgroundColor: UI_COLORS.success }}
+                  className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
+                  style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
                   onMouseEnter={e =>
                     !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')
                   }
@@ -1035,188 +971,33 @@ const EditDiveSite = () => {
                     (e.currentTarget.style.backgroundColor = UI_COLORS.success)
                   }
                 >
-                  🔍 Re-detect from Coordinates
-                </button>
-              </div>
-              <p className='mt-1 text-xs text-gray-500'>
-                Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South, 270° =
-                West.
-              </p>
-              {formData.shore_direction_confidence && (
-                <div className='mt-2 text-xs text-gray-600'>
-                  <span className='font-medium'>Confidence:</span>{' '}
-                  {formData.shore_direction_confidence}
-                  {formData.shore_direction_method && (
-                    <>
-                      {' • '}
-                      <span className='font-medium'>Method:</span> {formData.shore_direction_method}
-                    </>
-                  )}
-                  {formData.shore_direction_distance_m && (
-                    <>
-                      {' • '}
-                      <span className='font-medium'>Distance:</span>{' '}
-                      {parseFloat(formData.shore_direction_distance_m).toFixed(1)}m
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Additional Information */}
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'></div>
-
-            <div>
-              <label htmlFor='max_depth' className='block text-sm font-medium text-gray-700 mb-2'>
-                Maximum Depth (meters)
-              </label>
-              <input
-                id='max_depth'
-                type='number'
-                min='0'
-                max='1000'
-                step='any'
-                name='max_depth'
-                value={formData.max_depth}
-                onChange={handleInputChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='e.g., 25.5'
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor='access_instructions'
-                className='block text-sm font-medium text-gray-700 mb-2'
-              >
-                Access Instructions
-              </label>
-              <textarea
-                id='access_instructions'
-                name='access_instructions'
-                value={formData.access_instructions}
-                onChange={handleInputChange}
-                rows={3}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              />
-            </div>
-
-            <div>
-              <label htmlFor='marine_life' className='block text-sm font-medium text-gray-700 mb-2'>
-                Marine Life
-              </label>
-              <textarea
-                id='marine_life'
-                name='marine_life'
-                value={formData.marine_life}
-                onChange={handleInputChange}
-                rows={3}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='Describe the marine life you might encounter...'
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor='safety_information'
-                className='block text-sm font-medium text-gray-700 mb-2'
-              >
-                Safety Information
-              </label>
-              <textarea
-                id='safety_information'
-                name='safety_information'
-                value={formData.safety_information}
-                onChange={handleInputChange}
-                rows={3}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='Important safety considerations...'
-              />
-            </div>
-
-            {/* Media Management */}
-            <div className='border-t pt-6'>
-              <div className='flex items-center justify-between mb-4'>
-                <h3 className='text-lg font-semibold text-gray-900'>Media</h3>
-                <button
-                  type='button'
-                  onClick={() => setIsAddingMedia(!isAddingMedia)}
-                  className='flex items-center px-4 py-2 text-white rounded-md'
-                  style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
-                >
-                  <Upload className='w-4 h-4 mr-2' />
-                  Add Media
+                  🗺️ Suggest Country & Region from Coordinates
                 </button>
               </div>
 
-              {/* Add Media Form */}
-              {isAddingMedia && (
-                <div className='bg-gray-50 p-4 rounded-md mb-4'>
-                  <div className='space-y-4'>
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                      <div>
-                        <label
-                          htmlFor='media_type'
-                          className='block text-sm font-medium text-gray-700 mb-1'
-                        >
-                          Media Type
-                        </label>
-                        <select
-                          id='media_type'
-                          value={newMedia.media_type}
-                          onChange={e =>
-                            setNewMedia(prev => ({ ...prev, media_type: e.target.value }))
-                          }
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        >
-                          <option value='photo'>Photo</option>
-                          <option value='video'>Video</option>
-                        </select>
-                      </div>
-                      <div className='md:col-span-2'>
-                        <label
-                          htmlFor='media_url'
-                          className='block text-sm font-medium text-gray-700 mb-1'
-                        >
-                          URL *
-                        </label>
-                        <input
-                          id='media_url'
-                          type='url'
-                          value={newMedia.url}
-                          onChange={e => setNewMedia(prev => ({ ...prev, url: e.target.value }))}
-                          required
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                          placeholder='https://example.com/image.jpg'
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label
-                        htmlFor='media_description'
-                        className='block text-sm font-medium text-gray-700 mb-1'
-                      >
-                        Description
-                      </label>
+              {/* Shore Direction Information */}
+              <div>
+                <FormField name='shore_direction' label='Shore Direction (degrees)'>
+                  {({ register, name }) => (
+                    <div className='flex gap-2'>
                       <input
-                        id='media_description'
-                        type='text'
-                        value={newMedia.description}
-                        onChange={e =>
-                          setNewMedia(prev => ({ ...prev, description: e.target.value }))
-                        }
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        id='shore_direction'
+                        type='number'
+                        step='0.01'
+                        min='0'
+                        max='360'
+                        {...register(name)}
+                        className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.shore_direction ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder='Enter shore direction in degrees (0-360)'
                       />
-                    </div>
-                    <div className='flex space-x-2'>
                       <button
                         type='button'
-                        onClick={handleAddMedia}
-                        disabled={addMediaMutation.isLoading}
-                        className='px-4 py-2 text-white rounded-md disabled:opacity-50'
-                        style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                        onClick={detectShoreDirection}
+                        disabled={!formData.latitude || !formData.longitude}
+                        className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap'
+                        style={{ backgroundColor: UI_COLORS.success }}
                         onMouseEnter={e =>
                           !e.currentTarget.disabled &&
                           (e.currentTarget.style.backgroundColor = '#007a5c')
@@ -1226,247 +1007,434 @@ const EditDiveSite = () => {
                           (e.currentTarget.style.backgroundColor = UI_COLORS.success)
                         }
                       >
-                        {addMediaMutation.isLoading ? 'Adding...' : 'Add Media'}
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => setIsAddingMedia(false)}
-                        className='px-4 py-2 text-white rounded-md'
-                        style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-                        onMouseLeave={e =>
-                          (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
-                        }
-                      >
-                        Cancel
+                        🔍 Re-detect from Coordinates
                       </button>
                     </div>
+                  )}
+                </FormField>
+                <p className='mt-1 text-xs text-gray-500'>
+                  Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South, 270° =
+                  West.
+                </p>
+                {formData.shore_direction_confidence && (
+                  <div className='mt-2 text-xs text-gray-600'>
+                    <span className='font-medium'>Confidence:</span>{' '}
+                    {formData.shore_direction_confidence}
+                    {formData.shore_direction_method && (
+                      <>
+                        {' • '}
+                        <span className='font-medium'>Method:</span>{' '}
+                        {formData.shore_direction_method}
+                      </>
+                    )}
+                    {formData.shore_direction_distance_m && (
+                      <>
+                        {' • '}
+                        <span className='font-medium'>Distance:</span>{' '}
+                        {parseFloat(formData.shore_direction_distance_m).toFixed(1)}m
+                      </>
+                    )}
                   </div>
+                )}
+              </div>
+
+              {/* Additional Information */}
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'></div>
+
+              <div>
+                <FormField name='max_depth' label='Maximum Depth (meters)'>
+                  {({ register, name }) => (
+                    <input
+                      id='max_depth'
+                      type='number'
+                      min='0'
+                      max='1000'
+                      step='any'
+                      {...register(name)}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.max_depth ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder='e.g., 25.5'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='access_instructions' label='Access Instructions'>
+                  {({ register, name }) => (
+                    <textarea
+                      id='access_instructions'
+                      {...register(name)}
+                      rows={3}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='marine_life' label='Marine Life'>
+                  {({ register, name }) => (
+                    <textarea
+                      id='marine_life'
+                      {...register(name)}
+                      rows={3}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                      placeholder='Describe the marine life you might encounter...'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='safety_information' label='Safety Information'>
+                  {({ register, name }) => (
+                    <textarea
+                      id='safety_information'
+                      {...register(name)}
+                      rows={3}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                      placeholder='Important safety considerations...'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              {/* Media Management */}
+              <div className='border-t pt-6'>
+                <div className='flex items-center justify-between mb-4'>
+                  <h3 className='text-lg font-semibold text-gray-900'>Media</h3>
+                  <button
+                    type='button'
+                    onClick={() => setIsAddingMedia(!isAddingMedia)}
+                    className='flex items-center px-4 py-2 text-white rounded-md'
+                    style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                  >
+                    <Upload className='w-4 h-4 mr-2' />
+                    Add Media
+                  </button>
                 </div>
-              )}
 
-              {/* Media List */}
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                {mediaLoading && (
-                  <div className='col-span-full text-center py-4'>
-                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
-                    <p className='text-gray-600 mt-2'>Loading media...</p>
-                  </div>
-                )}
-                {mediaError && (
-                  <div className='col-span-full text-center py-4'>
-                    <p className='text-red-600'>Failed to load media</p>
-                  </div>
-                )}
-                {!mediaLoading && !mediaError && Array.isArray(media) && media.length === 0 && (
-                  <div className='col-span-full text-center py-4'>
-                    <p className='text-gray-500'>No media added yet.</p>
-                  </div>
-                )}
-                {!mediaLoading &&
-                  !mediaError &&
-                  Array.isArray(media) &&
-                  media.map(item => (
-                    <div key={item.id} className='border rounded-lg p-4'>
-                      <div className='flex items-center justify-between mb-2'>
-                        <span className='text-sm font-medium text-gray-700 capitalize'>
-                          {item.media_type}
-                        </span>
-                        <button
-                          onClick={() => handleDeleteMedia(item.id)}
-                          className='text-red-600 hover:text-red-800'
-                          title='Delete media'
-                        >
-                          <Trash2 className='w-4 h-4' />
-                        </button>
-                      </div>
-                      <div className='space-y-2'>
-                        <a
-                          href={item.url}
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className='text-blue-600 hover:text-blue-800 text-sm break-all'
-                        >
-                          {item.url}
-                        </a>
-                        {item.description && (
-                          <p className='text-sm text-gray-600'>{item.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-
-            {/* Tags Management */}
-            <div className='border-t pt-6'>
-              <div className='flex items-center justify-between mb-4'>
-                <h3 className='text-lg font-semibold text-gray-900'>Tags</h3>
-                <button
-                  type='button'
-                  onClick={() => setShowTagForm(!showTagForm)}
-                  className='flex items-center px-4 py-2 text-white rounded-md'
-                  style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
-                >
-                  <Tag className='w-4 h-4 mr-2' />
-                  Add Tag
-                </button>
-              </div>
-
-              {/* Add Tag Form */}
-              {showTagForm && (
-                <div className='bg-gray-50 p-4 rounded-md mb-4'>
-                  <div className='space-y-4'>
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                      <div>
-                        <label
-                          htmlFor='new_tag_name'
-                          className='block text-sm font-medium text-gray-700 mb-1'
-                        >
-                          Tag Name *
-                        </label>
-                        <input
-                          id='new_tag_name'
-                          type='text'
-                          value={newTagName}
-                          onChange={e => setNewTagName(e.target.value)}
-                          required
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        />
+                {/* Add Media Form */}
+                {isAddingMedia && (
+                  <div className='bg-gray-50 p-4 rounded-md mb-4'>
+                    <div className='space-y-4'>
+                      <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                        <div>
+                          <label
+                            htmlFor='media_type'
+                            className='block text-sm font-medium text-gray-700 mb-1'
+                          >
+                            Media Type
+                          </label>
+                          <select
+                            id='media_type'
+                            value={newMedia.media_type}
+                            onChange={e =>
+                              setNewMedia(prev => ({ ...prev, media_type: e.target.value }))
+                            }
+                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          >
+                            <option value='photo'>Photo</option>
+                            <option value='video'>Video</option>
+                          </select>
+                        </div>
+                        <div className='md:col-span-2'>
+                          <label
+                            htmlFor='media_url'
+                            className='block text-sm font-medium text-gray-700 mb-1'
+                          >
+                            URL *
+                          </label>
+                          <input
+                            id='media_url'
+                            type='url'
+                            value={newMedia.url}
+                            onChange={e => setNewMedia(prev => ({ ...prev, url: e.target.value }))}
+                            required
+                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                            placeholder='https://example.com/image.jpg'
+                          />
+                        </div>
                       </div>
                       <div>
                         <label
-                          htmlFor='new_tag_description'
+                          htmlFor='media_description'
                           className='block text-sm font-medium text-gray-700 mb-1'
                         >
                           Description
                         </label>
                         <input
-                          id='new_tag_description'
+                          id='media_description'
                           type='text'
-                          value={newTagDescription}
-                          onChange={e => setNewTagDescription(e.target.value)}
+                          value={newMedia.description}
+                          onChange={e =>
+                            setNewMedia(prev => ({ ...prev, description: e.target.value }))
+                          }
                           className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                         />
                       </div>
-                    </div>
-                    <div className='flex space-x-2'>
-                      <button
-                        type='button'
-                        onClick={() => {
-                          createTagMutation.mutate({
-                            name: newTagName,
-                            description: newTagDescription,
-                          });
-                        }}
-                        disabled={createTagMutation.isLoading}
-                        className='px-4 py-2 text-white rounded-md disabled:opacity-50'
-                        style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                        onMouseEnter={e =>
-                          !e.currentTarget.disabled &&
-                          (e.currentTarget.style.backgroundColor = '#007a5c')
-                        }
-                        onMouseLeave={e =>
-                          !e.currentTarget.disabled &&
-                          (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                        }
-                      >
-                        {createTagMutation.isLoading ? 'Adding...' : 'Add Tag'}
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => setShowTagForm(false)}
-                        className='px-4 py-2 text-white rounded-md'
-                        style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-                        onMouseLeave={e =>
-                          (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
-                        }
-                      >
-                        Cancel
-                      </button>
+                      <div className='flex space-x-2'>
+                        <button
+                          type='button'
+                          onClick={handleAddMedia}
+                          disabled={addMediaMutation.isLoading}
+                          className='px-4 py-2 text-white rounded-md disabled:opacity-50'
+                          style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                          onMouseEnter={e =>
+                            !e.currentTarget.disabled &&
+                            (e.currentTarget.style.backgroundColor = '#007a5c')
+                          }
+                          onMouseLeave={e =>
+                            !e.currentTarget.disabled &&
+                            (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                          }
+                        >
+                          {addMediaMutation.isLoading ? 'Adding...' : 'Add Media'}
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => setIsAddingMedia(false)}
+                          className='px-4 py-2 text-white rounded-md'
+                          style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
+                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                          onMouseLeave={e =>
+                            (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                          }
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Available Tags */}
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <h4 className='text-md font-semibold text-gray-800'>Select Tags</h4>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
-                  {Array.isArray(availableTags) &&
-                    availableTags.map(tag => (
-                      <label key={tag.id} className='flex items-center space-x-2 cursor-pointer'>
-                        <input
-                          type='checkbox'
-                          checked={selectedTags.includes(tag.id)}
-                          onChange={e => {
-                            if (e.target.checked) {
-                              setSelectedTags(prev => [...prev, tag.id]);
-                            } else {
-                              setSelectedTags(prev => prev.filter(id => id !== tag.id));
-                            }
-                          }}
-                          className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                        />
-                        <span className='text-sm font-medium text-gray-700'>{tag.name}</span>
-                      </label>
+                {/* Media List */}
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                  {mediaLoading && (
+                    <div className='col-span-full text-center py-4'>
+                      <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
+                      <p className='text-gray-600 mt-2'>Loading media...</p>
+                    </div>
+                  )}
+                  {mediaError && (
+                    <div className='col-span-full text-center py-4'>
+                      <p className='text-red-600'>Failed to load media</p>
+                    </div>
+                  )}
+                  {!mediaLoading && !mediaError && Array.isArray(media) && media.length === 0 && (
+                    <div className='col-span-full text-center py-4'>
+                      <p className='text-gray-500'>No media added yet.</p>
+                    </div>
+                  )}
+                  {!mediaLoading &&
+                    !mediaError &&
+                    Array.isArray(media) &&
+                    media.map(item => (
+                      <div key={item.id} className='border rounded-lg p-4'>
+                        <div className='flex items-center justify-between mb-2'>
+                          <span className='text-sm font-medium text-gray-700 capitalize'>
+                            {item.media_type}
+                          </span>
+                          <button
+                            onClick={() => handleDeleteMedia(item.id)}
+                            className='text-red-600 hover:text-red-800'
+                            title='Delete media'
+                          >
+                            <Trash2 className='w-4 h-4' />
+                          </button>
+                        </div>
+                        <div className='space-y-2'>
+                          <a
+                            href={item.url}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='text-blue-600 hover:text-blue-800 text-sm break-all'
+                          >
+                            {item.url}
+                          </a>
+                          {item.description && (
+                            <p className='text-sm text-gray-600'>{item.description}</p>
+                          )}
+                        </div>
+                      </div>
                     ))}
                 </div>
               </div>
 
-              {/* Selected Tags Summary */}
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <h4 className='text-md font-semibold text-gray-800'>
-                  Selected Tags ({selectedTags.length})
-                </h4>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
-                  {selectedTags.length > 0 ? (
-                    selectedTags.map(tagId => {
-                      const tag = availableTags.find(t => t.id === tagId);
-                      return tag ? (
-                        <span
-                          key={tagId}
-                          className='px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium'
+              {/* Tags Management */}
+              <div className='border-t pt-6'>
+                <div className='flex items-center justify-between mb-4'>
+                  <h3 className='text-lg font-semibold text-gray-900'>Tags</h3>
+                  <button
+                    type='button'
+                    onClick={() => setShowTagForm(!showTagForm)}
+                    className='flex items-center px-4 py-2 text-white rounded-md'
+                    style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                  >
+                    <Tag className='w-4 h-4 mr-2' />
+                    Add Tag
+                  </button>
+                </div>
+
+                {/* Add Tag Form */}
+                {showTagForm && (
+                  <div className='bg-gray-50 p-4 rounded-md mb-4'>
+                    <div className='space-y-4'>
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        <div>
+                          <label
+                            htmlFor='new_tag_name'
+                            className='block text-sm font-medium text-gray-700 mb-1'
+                          >
+                            Tag Name *
+                          </label>
+                          <input
+                            id='new_tag_name'
+                            type='text'
+                            value={newTagName}
+                            onChange={e => setNewTagName(e.target.value)}
+                            required
+                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor='new_tag_description'
+                            className='block text-sm font-medium text-gray-700 mb-1'
+                          >
+                            Description
+                          </label>
+                          <input
+                            id='new_tag_description'
+                            type='text'
+                            value={newTagDescription}
+                            onChange={e => setNewTagDescription(e.target.value)}
+                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          />
+                        </div>
+                      </div>
+                      <div className='flex space-x-2'>
+                        <button
+                          type='button'
+                          onClick={() => {
+                            createTagMutation.mutate({
+                              name: newTagName,
+                              description: newTagDescription,
+                            });
+                          }}
+                          disabled={createTagMutation.isLoading}
+                          className='px-4 py-2 text-white rounded-md disabled:opacity-50'
+                          style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                          onMouseEnter={e =>
+                            !e.currentTarget.disabled &&
+                            (e.currentTarget.style.backgroundColor = '#007a5c')
+                          }
+                          onMouseLeave={e =>
+                            !e.currentTarget.disabled &&
+                            (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                          }
                         >
-                          {tag.name}
-                        </span>
-                      ) : null;
-                    })
-                  ) : (
-                    <p className='text-gray-500 text-sm'>No tags selected</p>
-                  )}
+                          {createTagMutation.isLoading ? 'Adding...' : 'Add Tag'}
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => setShowTagForm(false)}
+                          className='px-4 py-2 text-white rounded-md'
+                          style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
+                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                          onMouseLeave={e =>
+                            (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                          }
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Available Tags */}
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <h4 className='text-md font-semibold text-gray-800'>Select Tags</h4>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
+                    {Array.isArray(availableTags) &&
+                      availableTags.map(tag => (
+                        <label key={tag.id} className='flex items-center space-x-2 cursor-pointer'>
+                          <input
+                            type='checkbox'
+                            checked={selectedTags.includes(tag.id)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedTags(prev => [...prev, tag.id]);
+                              } else {
+                                setSelectedTags(prev => prev.filter(id => id !== tag.id));
+                              }
+                            }}
+                            className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                          />
+                          <span className='text-sm font-medium text-gray-700'>{tag.name}</span>
+                        </label>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Selected Tags Summary */}
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <h4 className='text-md font-semibold text-gray-800'>
+                    Selected Tags ({selectedTags.length})
+                  </h4>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
+                    {selectedTags.length > 0 ? (
+                      selectedTags.map(tagId => {
+                        const tag = availableTags.find(t => t.id === tagId);
+                        return tag ? (
+                          <span
+                            key={tagId}
+                            className='px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium'
+                          >
+                            {tag.name}
+                          </span>
+                        ) : null;
+                      })
+                    ) : (
+                      <p className='text-gray-500 text-sm'>No tags selected</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Submit Button */}
-            <div className='flex justify-end space-x-4 pt-6 border-t'>
-              <button
-                type='button'
-                onClick={() => navigate(`/dive-sites/${id}`)}
-                className='px-6 py-2 text-white rounded-md'
-                style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)}
-              >
-                Cancel
-              </button>
-              <button
-                type='submit'
-                disabled={updateMutation.isLoading}
-                className='flex items-center px-6 py-2 text-white rounded-md disabled:opacity-50'
-                style={{ backgroundColor: UI_COLORS.primary, color: 'white' }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#005a8a')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.primary)}
-              >
-                <Save className='w-4 h-4 mr-2' />
-                {updateMutation.isLoading ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </form>
+              {/* Submit Button */}
+              <div className='flex justify-end space-x-4 pt-6 border-t'>
+                <button
+                  type='button'
+                  onClick={() => navigate(`/dive-sites/${id}`)}
+                  className='px-6 py-2 text-white rounded-md'
+                  style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type='submit'
+                  disabled={updateMutation.isLoading}
+                  className='flex items-center px-6 py-2 text-white rounded-md disabled:opacity-50'
+                  style={{ backgroundColor: UI_COLORS.primary, color: 'white' }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#005a8a')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.primary)}
+                >
+                  <Save className='w-4 h-4 mr-2' />
+                  {updateMutation.isLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </FormProvider>
 
           {/* Diving Centers Management - Outside Main Form */}
           <div className='border-t pt-6 mt-6'>
