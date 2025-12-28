@@ -1,13 +1,14 @@
 import { Plus, X } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { tripSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 import DivingCenterSearchableDropdown from './DivingCenterSearchableDropdown';
 import Modal from './ui/Modal';
+import Select from './ui/Select';
 
 const TripFormModal = ({
   trip,
@@ -218,25 +219,24 @@ const TripFormModal = ({
           )}
         </div>
 
-        <div>
-          <label htmlFor='trip-currency' className='block text-sm font-medium text-gray-700 mb-1'>
-            Currency
-          </label>
-          <select
-            id='trip-currency'
-            {...register('trip_currency')}
-            className={`w-full p-2 border rounded-md ${
-              errors.trip_currency ? 'border-red-500' : ''
-            }`}
-          >
-            <option value='EUR'>EUR</option>
-            <option value='USD'>USD</option>
-            <option value='GBP'>GBP</option>
-          </select>
-          {errors.trip_currency && (
-            <p className='text-red-500 text-sm mt-1'>{getErrorMessage(errors.trip_currency)}</p>
+        <Controller
+          name='trip_currency'
+          control={control}
+          render={({ field }) => (
+            <Select
+              id='trip-currency'
+              label='Currency'
+              value={field.value}
+              onValueChange={field.onChange}
+              error={errors.trip_currency ? getErrorMessage(errors.trip_currency) : null}
+              options={[
+                { value: 'EUR', label: 'EUR' },
+                { value: 'USD', label: 'USD' },
+                { value: 'GBP', label: 'GBP' },
+              ]}
+            />
           )}
-        </div>
+        />
 
         <div>
           <label
@@ -284,56 +284,47 @@ const TripFormModal = ({
           )}
         </div>
 
-        <div>
-          <label htmlFor='trip-status' className='block text-sm font-medium text-gray-700 mb-1'>
-            Trip Status
-          </label>
-          <select
-            id='trip-status'
-            {...register('trip_status')}
-            className={`w-full p-2 border rounded-md ${errors.trip_status ? 'border-red-500' : ''}`}
-          >
-            <option value='scheduled'>Scheduled</option>
-            <option value='confirmed'>Confirmed</option>
-            <option value='cancelled'>Cancelled</option>
-            <option value='completed'>Completed</option>
-          </select>
-          {errors.trip_status && (
-            <p className='text-red-500 text-sm mt-1'>{getErrorMessage(errors.trip_status)}</p>
+        <Controller
+          name='trip_status'
+          control={control}
+          render={({ field }) => (
+            <Select
+              id='trip-status'
+              label='Trip Status'
+              value={field.value}
+              onValueChange={field.onChange}
+              error={errors.trip_status ? getErrorMessage(errors.trip_status) : null}
+              options={[
+                { value: 'scheduled', label: 'Scheduled' },
+                { value: 'confirmed', label: 'Confirmed' },
+                { value: 'cancelled', label: 'Cancelled' },
+                { value: 'completed', label: 'Completed' },
+              ]}
+            />
           )}
-        </div>
+        />
 
-        <div>
-          <label
-            htmlFor='trip-difficulty-code'
-            className='block text-sm font-medium text-gray-700 mb-1'
-          >
-            Trip Difficulty
-          </label>
-          <select
-            id='trip-difficulty-code'
-            {...register('trip_difficulty_code', {
-              setValueAs: val => (val === '' || val === null ? null : val),
-            })}
-            className={`w-full p-2 border rounded-md ${
-              errors.trip_difficulty_code ? 'border-red-500' : ''
-            }`}
-          >
-            {getDifficultyOptions().map(option => (
-              <option
-                key={option.value === null ? 'null' : option.value}
-                value={option.value === null ? '' : option.value}
-              >
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {errors.trip_difficulty_code && (
-            <p className='text-red-500 text-sm mt-1'>
-              {getErrorMessage(errors.trip_difficulty_code)}
-            </p>
+        <Controller
+          name='trip_difficulty_code'
+          control={control}
+          render={({ field }) => (
+            <Select
+              id='trip-difficulty-code'
+              label='Trip Difficulty'
+              value={field.value || 'all'}
+              onValueChange={value => field.onChange(value === 'all' ? null : value)}
+              error={
+                errors.trip_difficulty_code ? getErrorMessage(errors.trip_difficulty_code) : null
+              }
+              options={[
+                { value: 'all', label: 'Unspecified' },
+                ...getDifficultyOptions()
+                  .filter(opt => opt.value !== null)
+                  .map(opt => ({ value: opt.value, label: opt.label })),
+              ]}
+            />
           )}
-        </div>
+        />
       </div>
 
       <div>
@@ -416,35 +407,30 @@ const TripFormModal = ({
                   value: index + 1,
                 })}
               />
-              <div>
-                <label
-                  htmlFor={`dive-site-${index}`}
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Dive Site
-                </label>
-                <select
-                  id={`dive-site-${index}`}
-                  {...register(`dives.${index}.dive_site_id`, {
-                    setValueAs: val => (val === '' || val === null ? null : Number(val)),
-                  })}
-                  className={`w-full p-2 border rounded-md ${
-                    errors.dives?.[index]?.dive_site_id ? 'border-red-500' : ''
-                  }`}
-                >
-                  <option value=''>Select dive site</option>
-                  {allDiveSites.map(site => (
-                    <option key={site.id} value={site.id}>
-                      {site.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.dives?.[index]?.dive_site_id && (
-                  <p className='text-red-500 text-sm mt-1'>
-                    {getErrorMessage(errors.dives?.[index]?.dive_site_id)}
-                  </p>
+              <Controller
+                name={`dives.${index}.dive_site_id`}
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    id={`dive-site-${index}`}
+                    label='Dive Site'
+                    value={field.value ? field.value.toString() : 'all'}
+                    onValueChange={value => field.onChange(value === 'all' ? null : Number(value))}
+                    error={
+                      errors.dives?.[index]?.dive_site_id
+                        ? getErrorMessage(errors.dives?.[index]?.dive_site_id)
+                        : null
+                    }
+                    options={[
+                      { value: 'all', label: 'Select dive site' },
+                      ...allDiveSites.map(site => ({
+                        value: site.id.toString(),
+                        label: site.name,
+                      })),
+                    ]}
+                  />
                 )}
-              </div>
+              />
 
               <div>
                 <label

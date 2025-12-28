@@ -28,6 +28,7 @@ import { getDifficultyOptions, getDifficultyLabel } from '../utils/difficultyHel
 import { getTagColor } from '../utils/tagHelpers';
 
 import Modal from './ui/Modal';
+import Select from './ui/Select';
 
 const ResponsiveFilterBar = ({
   showFilters = false,
@@ -1051,20 +1052,14 @@ const ResponsiveFilterBar = ({
           <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
             {/* Sorting Controls */}
             <div className='flex items-center gap-3'>
-              <div className='flex items-center gap-2'>
-                <label className='text-sm font-medium text-gray-700'>Sort by:</label>
-                <select
-                  value={sortBy}
-                  onChange={e => onSortChange(e.target.value, sortOrder)}
-                  className='px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-                >
-                  {sortOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                id='desktop-sort-by'
+                label='Sort by:'
+                className='flex-row items-center gap-2'
+                value={sortBy}
+                onValueChange={value => onSortChange(value, sortOrder)}
+                options={sortOptions.map(opt => ({ value: opt.value, label: opt.label }))}
+              />
 
               <div className='flex items-center gap-1'>
                 <button
@@ -1160,23 +1155,20 @@ const ResponsiveFilterBar = ({
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                 {/* Difficulty Level Filter */}
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Difficulty Level
-                  </label>
-                  <select
-                    value={filters.difficulty_code || ''}
-                    onChange={e => onFilterChange('difficulty_code', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
-                  >
-                    <option value=''>All Levels</option>
-                    {getDifficultyOptions()
-                      .filter(option => option.value !== null)
-                      .map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                  </select>
+                  <Select
+                    id='desktop-difficulty-filter'
+                    label='Difficulty Level'
+                    value={filters.difficulty_code || 'all'}
+                    onValueChange={value =>
+                      onFilterChange('difficulty_code', value === 'all' ? '' : value)
+                    }
+                    options={[
+                      { value: 'all', label: 'All Levels' },
+                      ...getDifficultyOptions()
+                        .filter(opt => opt.value !== null)
+                        .map(opt => ({ value: opt.value, label: opt.label })),
+                    ]}
+                  />
                   <label className='flex items-center mt-2'>
                     <input
                       type='checkbox'
@@ -1938,26 +1930,20 @@ const ResponsiveFilterBar = ({
               {/* Difficulty Level Filter */}
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-3'>
-                  Difficulty Level
-                </label>
-
-                <select
-                  value={filters.difficulty_code || ''}
-                  onChange={e => onFilterChange('difficulty_code', e.target.value)}
-                  className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
-                >
-                  <option value=''>All Levels</option>
-
-                  {getDifficultyOptions()
-                    .filter(option => option.value !== null)
-
-                    .map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                </select>
+                <Select
+                  id='mobile-difficulty-filter'
+                  label='Difficulty Level'
+                  value={filters.difficulty_code || 'all'}
+                  onValueChange={value =>
+                    onFilterChange('difficulty_code', value === 'all' ? '' : value)
+                  }
+                  options={[
+                    { value: 'all', label: 'All Levels' },
+                    ...getDifficultyOptions()
+                      .filter(opt => opt.value !== null)
+                      .map(opt => ({ value: opt.value, label: opt.label })),
+                  ]}
+                />
 
                 <label className='flex items-center mt-2'>
                   <input
@@ -2565,24 +2551,19 @@ const ResponsiveFilterBar = ({
             <div className='p-4 space-y-6 pb-4'>
               {/* Sort Field Selection - Compact Dropdown */}
 
-              <div>
-                <h4 className='text-sm font-medium text-gray-700 mb-3'>Sort Field</h4>
-
-                <select
-                  value={pendingSortBy || ''}
-                  onChange={e => handleSortFieldChange(e.target.value)}
-                  className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
-                >
-                  <option value=''>Select sort field</option>
-
-                  {sortOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label} (
-                      {option.defaultOrder === 'asc' ? 'Low to High' : 'High to Low'})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                id='mobile-sort-by'
+                label='Sort Field'
+                value={pendingSortBy || 'all'}
+                onValueChange={value => handleSortFieldChange(value === 'all' ? '' : value)}
+                options={[
+                  { value: 'all', label: 'Select sort field' },
+                  ...sortOptions.map(opt => ({
+                    value: opt.value,
+                    label: `${opt.label} (${opt.defaultOrder === 'asc' ? 'Low to High' : 'High to Low'})`,
+                  })),
+                ]}
+              />
 
               {/* Sort Order - Compact Toggle */}
 
