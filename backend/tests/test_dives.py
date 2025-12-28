@@ -1150,6 +1150,46 @@ class TestDives:
         assert response.headers["x-total-count"] == "2"
         assert response.headers["x-total-pages"] == "1"
 
+    def test_get_dives_with_decimal_rating(self, client, auth_headers, db_session, test_user, test_dive_site):
+        """Test getting dives with decimal rating filters."""
+        # Create a dive with rating 8
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Rating 8 Dive",
+            dive_date=date(2025, 1, 15),
+            user_rating=8,
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Test decimal filter - should work now without 422
+        response = client.get("/api/v1/dives/?min_rating=7.5", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) >= 1
+        assert any(d["user_rating"] == 8 for d in data)
+
+    def test_get_dives_count_with_username(self, client, auth_headers, db_session, test_user, test_dive_site):
+        """Test getting dives count with username filter."""
+        # Create a dive for the test user
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="User Dive",
+            dive_date=date(2025, 1, 15),
+            is_private=False
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        # Test count with username
+        response = client.get(f"/api/v1/dives/count?username={test_user.username}", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["total"] >= 1
+
 
 class TestDivesFuzzySearch:
     """Test the fuzzy search functionality in dives endpoint."""

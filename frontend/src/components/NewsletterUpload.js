@@ -6,6 +6,8 @@ import { useMutation, useQueryClient } from 'react-query';
 
 import { uploadNewsletter, parseNewsletterText, extractErrorMessage } from '../api';
 
+import DivingCenterSearchableDropdown from './DivingCenterSearchableDropdown';
+
 const NewsletterUpload = ({ divingCenters = [], onSuccess }) => {
   const queryClient = useQueryClient();
 
@@ -153,25 +155,13 @@ const NewsletterUpload = ({ divingCenters = [], onSuccess }) => {
 
         <div className='space-y-4'>
           <div>
-            <label
-              htmlFor='diving-center-select'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Diving Center (Optional)
-            </label>
-            <select
+            <DivingCenterSearchableDropdown
+              divingCenters={divingCenters}
+              selectedId={selectedDivingCenterId}
+              onSelect={id => setSelectedDivingCenterId(id ? id.toString() : '')}
+              label='Diving Center (Optional)'
               id='diving-center-select'
-              value={selectedDivingCenterId}
-              onChange={e => setSelectedDivingCenterId(e.target.value)}
-              className='w-full p-2 border border-gray-300 rounded-md text-sm'
-            >
-              <option value=''>Select diving center (optional)</option>
-              {divingCenters.map(center => (
-                <option key={center.id} value={center.id}>
-                  {center.name}
-                </option>
-              ))}
-            </select>
+            />
             <p className='text-xs text-gray-500 mt-1'>
               Select the diving center organizing this trip. If not selected, the system will try to
               extract it from the text.

@@ -490,6 +490,20 @@ export const getDiveSites = async (params = {}) => {
   return response.data;
 };
 
+export const getUniqueCountries = async (search = '') => {
+  const params = search ? { search } : {};
+  const response = await api.get('/api/v1/dive-sites/countries', { params });
+  return response.data;
+};
+
+export const getUniqueRegions = async (country = '', search = '') => {
+  const params = {};
+  if (country) params.country = country;
+  if (search) params.search = search;
+  const response = await api.get('/api/v1/dive-sites/regions', { params });
+  return response.data;
+};
+
 // User search API function for buddy selection and filtering
 export const searchUsers = async (query, limit = 25, includeSelf = false) => {
   const response = await api.get('/api/v1/users/search', {
