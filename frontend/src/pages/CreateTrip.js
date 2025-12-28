@@ -4,7 +4,13 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 
-import { createParsedTrip, getDiveSites, getDivingCenters, getDiveSite } from '../api';
+import {
+  createParsedTrip,
+  getDiveSites,
+  getDivingCenters,
+  getDiveSite,
+  extractErrorMessage,
+} from '../api';
 import NewsletterUpload from '../components/NewsletterUpload';
 import TripFormModal from '../components/TripFormModal';
 import { useAuth } from '../contexts/AuthContext';
@@ -112,8 +118,7 @@ const CreateTrip = () => {
       }
     },
     onError: error => {
-      const errorMessage =
-        error.response?.data?.detail || error.message || 'Failed to create dive trip';
+      const errorMessage = extractErrorMessage(error) || 'Failed to create dive trip';
       toast.error(errorMessage);
     },
   });

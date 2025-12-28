@@ -22,10 +22,14 @@ class TestUsers:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_update_current_user_success(self, client, auth_headers, test_user):
-        """Test updating current user profile successfully."""
+        """Test updating current user profile successfully.
+        
+        Note: username and email cannot be updated by regular users.
+        """
         update_data = {
-            "username": "updateduser",
-            "email": "updated@example.com"
+            "name": "Updated Name",
+            "username": "should_be_ignored",
+            "email": "should_be_ignored@example.com"
         }
 
         response = client.put("/api/v1/users/me",
@@ -33,12 +37,14 @@ class TestUsers:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["username"] == "updateduser"
-        assert data["email"] == "updated@example.com"
+        assert data["name"] == "Updated Name"
+        # Username and email should remain unchanged
+        assert data["username"] == test_user.username
+        assert data["email"] == test_user.email
 
     def test_update_current_user_unauthorized(self, client):
         """Test updating current user profile without authentication."""
-        update_data = {"username": "updateduser"}
+        update_data = {"name": "updatedname"}
 
         response = client.put("/api/v1/users/me", json=update_data)
 
@@ -47,8 +53,8 @@ class TestUsers:
     def test_update_current_user_invalid_data(self, client, auth_headers):
         """Test updating current user with invalid data."""
         update_data = {
-            "username": "a",  # Too short
-            "email": "invalid-email"
+            "name": "",  # Too short (min_length=1)
+            "password": "short"  # Too short (min_length=8)
         }
 
         response = client.put("/api/v1/users/me",
@@ -58,14 +64,14 @@ class TestUsers:
 
     def test_update_current_user_partial(self, client, auth_headers, test_user):
         """Test updating current user with partial data."""
-        update_data = {"username": "partialupdate"}
+        update_data = {"name": "partialupdate"}
 
         response = client.put("/api/v1/users/me",
                             json=update_data, headers=auth_headers)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["username"] == "partialupdate"
+        assert data["name"] == "partialupdate"
         assert data["email"] == test_user.email  # Should remain unchanged
 
     def test_update_current_user_name(self, client, auth_headers, test_user):

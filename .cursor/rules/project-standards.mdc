@@ -6,112 +6,47 @@ alwaysApply: true
 
 # Divemap Project Standards
 
-## Environment Management
+See core-essentials.mdc for universal Docker/env rules.
 
-### Docker Container Management
-- **ALWAYS use docker to manage containers**
-- **NEVER start services directly on the system**
-- **ALWAYS use the following container names:**
-  - `divemap_db` - MySQL database
-  - `divemap_backend` - Python FastAPI backend
-  - `divemap_frontend` - React frontend
-- **ALWAYS use docker exec to run commands inside containers IF needed**
-- **NEVER run frontend or backend commands outside of containers**
-- **ALWAYS use `docker logs` for container logging (NEVER use `docker-compose logs`)**
-- **ALWAYS use `docker logs --since` flag for efficient log filtering when debugging**
+## Docker Container Management
+- Use docker to manage containers
+- Never start services directly on system
+- Use `docker logs --since` for efficient log filtering
 
-### Virtual Environment Requirements
-- **NEVER install Python packages in the system Python**
-- **ALWAYS use docker containers named divemap_db, divemap_frontend, divemap_backend to execute commands**
-- **NEVER try to start frontend, backend or database on the system**
-- **NEVER run npm, node, or any frontend commands on the system**
-- **ALWAYS use virtual environments for Python development**
-- **ALWAYS activate the virtual environment before installing packages**
-- **NEVER install npm packages globally**
-- **ALWAYS use project-specific node_modules**
-
-### Python Development
+## Python Development
 ```bash
-# ✅ CORRECT - Always use virtual environment
 cd backend
 source divemap_venv/bin/activate
 export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
 pip install package_name
-
-# ❌ WRONG - Never install in system Python
-pip install package_name  # This is forbidden
 ```
 
-### Node.js Development
+## Node.js Development
 ```bash
-# ✅ CORRECT - Use Docker containers for frontend development
 docker exec divemap_frontend npm install package_name
 docker exec divemap_frontend npm start
 docker exec divemap_frontend npm run build
-docker exec divemap_frontend npm run lint:fix
-
-# ❌ WRONG - Never run npm/node on the system
-npm install package_name  # This is forbidden
-npm start  # This is forbidden
-npm run build  # This is forbidden
-npm test  # This is forbidden
 ```
 
-## Docker Commands for Development
+## Docker Commands
 ```bash
-# Start all services
-docker-compose up -d
-
-# Stop all services
-docker-compose down
-
-# Run commands in containers
+docker-compose up -d          # Start services
+docker-compose down            # Stop services
 docker exec divemap_frontend npm install package_name
-docker exec divemap_backend python -m pytest
-docker exec divemap_db mysql -u root -p
-
-# Restart specific service
 docker restart divemap_frontend
-docker restart divemap_backend
-docker restart divemap_db
 ```
 
-## Docker Logging Best Practices
+## Docker Logging
 ```bash
-# ✅ CORRECT - ALWAYS use docker logs for specific containers
-# View all logs for a container:
-docker logs divemap_frontend
-docker logs divemap_backend
-docker logs divemap_db
-
-# View recent logs with --since flag (especially useful for debugging):
 docker logs divemap_frontend --since 5m | tail -20
-docker logs divemap_backend --since 10m | tail -20
-docker logs divemap_db --since 1h | tail -20
-
-# Filter logs for specific errors:
-docker logs divemap_frontend --since 10m | grep -i "error\|warning"
-docker logs divemap_backend --since 10m | grep -i "exception\|error"
-
-# ❌ WRONG - NEVER use docker-compose logs
-# docker-compose logs divemap_frontend  # This is forbidden
-# docker-compose logs divemap_backend   # This is forbidden
-# docker-compose logs divemap_db        # This is forbidden
+docker logs divemap_backend --since 10m | grep -i "error\|warning"
 ```
 
 ## Credentials
-You will find credentials for various users in `local_testme` file. Use them when necessary.
+Credentials in `local_testme` file. Use when necessary.
 
-## Security Requirements
-
-### Package Installation
+## Security
 - Never install packages globally
-- Always verify package sources
-- Use pinned versions in requirements.txt
-- Regularly update dependencies
-
-### Environment Variables
 - Never commit secrets to git
 - Use .env files for local development
-- Use environment variables in production
-- Validate environment configuration
+- Use pinned versions in requirements.txt

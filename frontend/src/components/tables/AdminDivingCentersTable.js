@@ -31,6 +31,7 @@ const AdminDivingCentersTable = ({
     data,
     columns,
     pageCount: pagination.pageCount,
+    getRowId: row => row.id.toString(), // Use actual diving center ID for row selection
     state: {
       pagination: {
         pageIndex: pagination.pageIndex,

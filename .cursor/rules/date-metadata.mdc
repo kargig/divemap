@@ -1,7 +1,7 @@
 ---
 description: Date metadata rules for documentation files, changelogs, and version tracking
 globs: ["**/*.md", "**/changelog*", "**/CHANGELOG*"]
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Date Metadata Rules

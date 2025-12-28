@@ -8,66 +8,42 @@ alwaysApply: false
 
 ## Documentation Standards
 
-- **ALWAYS use consistent markdown formatting**
-- **ALWAYS include table of contents for files > 100 lines**
-- **ALWAYS include clear problem statements**
-- **ALWAYS provide step-by-step solutions**
-- **ALWAYS document all affected files**
-- **ALWAYS include troubleshooting sections**
+- Use consistent markdown formatting
+- Include TOC for files > 100 lines
+- Include clear problem statements, step-by-step solutions
+- Document all affected files, include troubleshooting
 
 ## Documentation Organization
 
-- **NEVER create documentation outside the docs/ directory**
-- **ALWAYS organize documentation by category (getting-started, development, deployment, security, maintenance)**
-- **ALWAYS update the main docs/README.md index when adding new documentation**
-- **ALWAYS use existing file names if the changes fit their titles**
-- **ONLY use new file names if the content and context is VERY different from existing files**
+- Never create docs outside docs/ directory
+- Organize by category (getting-started, development, deployment, security, maintenance)
+- Update docs/README.md index when adding new docs
+- Use existing file names if changes fit titles
+- Only use new file names if content/context is very different
 
 ## Documentation Workflow
 
-- **ALWAYS test documentation procedures before committing**
-- **ALWAYS include code examples and screenshots where appropriate**
-- **ALWAYS verify links and references**
-- **ALWAYS update related documentation when making changes**
+- Test procedures before committing
+- Include code examples/screenshots where appropriate
+- Verify links and references
+- Update related docs when making changes
 
 ## Documentation Templates
 
 ```markdown
 # [Title]
 
-Brief description of what this document covers.
+Brief description.
 
 ## Table of Contents
-
 1. [Section 1](#section-1)
 2. [Section 2](#section-2)
-3. [Section 3](#section-3)
 
 ## Section 1
-
-Content with clear explanations and examples.
-
-### Subsection
-
-Detailed information with code examples:
-
-```bash
-# Example command
-command --option value
-```
-
-## Section 2
-
-More content with proper formatting.
+Content with examples.
 
 ## Troubleshooting
-
 Common issues and solutions.
-
-## Related Documentation
-
-- [Link to related doc 1](./related-doc-1.md)
-- [Link to related doc 2](./related-doc-2.md)
 ```
 
 ## Documentation Quality Checklist

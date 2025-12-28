@@ -1,0 +1,152 @@
+---
+description: Core workflow for implementing items from docs/development/todo.md with work isolation and completion tracking
+globs: ["docs/development/todo.md", "docs/development/work/**/*", "docs/development/done/**/*"]
+alwaysApply: false
+---
+
+# Todo Implementation Program
+
+Structured workflow for implementing items from docs/development/todo.md. Work isolation in docs/development/work/, completion tracking in docs/development/done/. Enables concurrent work.
+
+## Overall Guidance
+
+⚠️ Follow all steps in the workflow! Do not miss executing any steps!
+
+⚠️ When refactoring: define goal -> code change -> test -> if testing doesn't satisfy goal, repeat. Use logs/playwright mcp/screenshots. If stuck, web research.
+
+Never mark checkbox items as done when they are not fully completed or fixed!
+
+**NEVER COMMIT OR PUSH:** Agent must NEVER run git commit or git push commands. Only the USER commits/pushes changes.
+
+## Git Workflow Requirements
+
+### Mandatory Git Commits After Each Phase
+
+⚠️ After completing each phase, request a git commit with comprehensive description.
+
+- **Phase 1 (SELECT)**: Commit after task selection and work folder initialization
+- **Phase 2 (REFINE)**: Commit after refining description, success criteria, and implementation plan
+- **Phase 3 (IMPLEMENT)**: Commit after completing implementation and testing
+- **Phase 4 (REVIEW)**: Commit after review and validation
+- **Phase 5 (COMPLETE)**: Final commit before marking task as complete
+
+### Commit Message Format
+
+```bash
+git commit -m "Phase N: [action] [task-name]
+
+- [List changes]
+- [List files/modifications]
+
+Phase: [PHASE] | Status: [STATUS]"
+```
+
+### Mandatory Branch Checking Before Phase 1
+
+⚠️ Before starting Phase 1, check and manage git branches.
+
+1. Run `git branch --show-current`
+2. If on `main`/`master`: Create new feature branch `feature/[task-name-kebab-case]`
+3. If on feature branch: Ask user if continue or create new
+4. Document branch name in task.md under **Branch:** field
+
+## State Management
+
+⚠️ Task completion requires ALL success criteria met.
+
+- Never mark [x] unless absolutely, verifiably complete
+- If any part fails, keep [ ] incomplete
+- "Implemented" ≠ "Working" - only mark complete when verified
+- When in doubt, keep unchecked [ ]
+
+## Work Structure
+
+**docs/development/work/[task-name]/task.md** - Active work:
+
+```markdown
+# [Todo title]
+
+**Status:** Refining -> In Progress -> Review -> Done
+**Started:** [timestamp]
+**Agent PID:** [echo $PPID]
+**Branch:** [feature/task-name-kebab-case]
+
+## Description
+[Refined description]
+
+## Success Criteria
+- [ ] Functional: [requirement]
+- [ ] Quality: [lint/tests pass]
+- [ ] User validation: [acceptance criteria]
+
+## Implementation Plan
+- [ ] Code change (src/file.ts:45-93)
+- [ ] Automated test: ...
+- [ ] User test: ...
+
+## Review
+- [ ] Bug that needs fixing
+- [ ] Code that needs cleanup
+
+## Notes
+[Findings during implementation]
+```
+
+## Workflow
+
+### Phase 0: SETUP
+
+1. **Check git branches**: `git branch --show-current`, create feature branch if needed
+2. **Read todos**: Read spec/todo.md in full
+3. **Read project description**: Read spec/project-description.md, create if missing
+4. **Check existing tasks**: Run task detection script, handle resume/reset/ignore/new
+
+### Phase 1: SELECT
+
+1. Present numbered one-line summaries of todos
+2. Get user selection (number)
+3. Initialize work folder:
+   - Generate task folder: `date +%Y-%m-%d-%H-%M-%S` + brief-title
+   - Get agent PID: `echo $PPID`
+   - Create docs/development/work/[task-folder-name]/task.md
+   - Remove selected todo from spec/todo.md
+4. Request Phase 1 git commit
+
+### Phase 2: REFINE
+
+1. **Refine Description**: Use parallel agents to understand current functionality
+2. **Define Success Criteria**: Functional, quality, user validation, documentation
+3. **Define Implementation Plan**: Code changes, automated tests, user tests
+4. **Final confirmation**: Present full task.md, update if confirmed
+5. Request Phase 2 git commit
+
+### Phase 3: IMPLEMENT
+
+1. Update task.md: Set Status "In Progress", add Started timestamp
+2. Execute implementation plan:
+   - Work through checkboxes
+   - Only mark [x] if FULLY WORKING and VERIFIED
+   - Add new steps if discovered
+   - Capture findings in Notes
+3. Run checks: Lint, Format, Compile/Build/Typecheck, then automated tests
+4. Present user test steps
+5. User runs tests, fix issues if needed
+6. Update project description if structure/features changed
+7. Request Phase 3 git commit
+
+### Phase 4: REVIEW
+
+1. **Critical self-assessment**: Analyze for bugs, edge cases, code quality
+   - Use Playwright MCP for web testing if applicable
+   - Add findings to Review section
+   - Fix issues found
+2. **Validation**: Run all checks/tests, verify ALL success criteria met
+3. Request Phase 4 git commit
+
+### Phase 5: COMPLETE
+
+1. Wait for user review approval
+2. Verify ALL success criteria checkboxes marked complete
+3. Update status to Done, move task.md to docs/development/done/
+4. Request Phase 5 git commit
+5. Ask if continue with next todo

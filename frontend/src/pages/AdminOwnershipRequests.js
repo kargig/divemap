@@ -415,7 +415,7 @@ const AdminOwnershipRequests = () => {
   // Revoke mutation
   const revokeMutation = useMutation({
     mutationFn: async ({ divingCenterId, reason }) => {
-      return revokeDivingCenterOwnership(divingCenterId, reason);
+      return revokeDivingCenterOwnership(divingCenterId, { reason });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ownership-requests'] });

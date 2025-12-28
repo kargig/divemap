@@ -1,0 +1,54 @@
+---
+description: Rules for managing documentation files to prevent unnecessary file creation and pollution
+globs: ["**/*.md", "**/*.txt", "docs/**/*"]
+alwaysApply: false
+---
+
+# Documentation Management Rules
+
+⚠️ **CRITICAL: Prevent document pollution**
+
+## Core Principle
+
+**NEVER create new documentation files** unless absolutely necessary. **ALWAYS reuse existing documents** for related content.
+
+## Rules
+
+1. **Single Document Per Topic**
+   - Use one document per topic/area
+   - Update existing documents instead of creating new ones
+   - Append new phases/sections to existing documents
+
+2. **Before Creating New Document**
+   - Check if similar document exists
+   - Check if content fits existing document
+   - Check if it's a continuation/update of existing work
+   - **If yes → Update existing document, don't create new**
+
+3. **Document Consolidation**
+   - Merge related documents into single comprehensive document
+   - Use sections/phases within one document
+   - Update status/completion within same document
+
+4. **Examples of Document Pollution (DON'T DO)**
+   - Creating `PHASE1_COMPLETE.md`, `PHASE2_COMPLETE.md`, etc. → Use single `docs/development/cursor-rules-optimization.md`
+   - Creating `ANALYSIS.md`, `SUMMARY.md`, `PLAN.md` for same topic → Use single document
+   - Creating multiple status documents → Use single tracking document
+
+5. **Examples of Good Practice (DO THIS)**
+   - Update `docs/development/cursor-rules-optimization.md` with new phases/sections
+   - Use single document with multiple sections for related work
+   - Append updates to existing documents with clear section headers
+
+## Enforcement
+
+- **VIOLATIONS WILL RESULT IN IMMEDIATE CONSOLIDATION**
+- **All related documentation must be in single document**
+- **No exceptions to this rule**
+
+## When New Document is Acceptable
+
+Only create new document if:
+- Content is completely unrelated to existing documents
+- Document serves different purpose/audience
+- Document is user-facing (not internal tracking)

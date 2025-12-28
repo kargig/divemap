@@ -13,15 +13,18 @@ import {
   Columns,
 } from 'lucide-react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useSearchParams } from 'react-router-dom';
 
 import api from '../api';
+import { FormField } from '../components/forms/FormField';
 import AdminDivesTable from '../components/tables/AdminDivesTable';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
+import { createDiveSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 const AdminDives = () => {
   const { user } = useAuth();
@@ -30,6 +33,38 @@ const AdminDives = () => {
   // Set page title
   usePageTitle('Divemap - Admin - Dives');
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // React Hook Form setup
+  const methods = useForm({
+    resolver: createResolver(createDiveSchema),
+    mode: 'onChange',
+    defaultValues: {
+      name: '',
+      dive_information: '',
+      max_depth: '',
+      average_depth: '',
+      gas_bottles_used: '',
+      suit_type: '',
+      difficulty_code: '',
+      visibility_rating: '',
+      user_rating: '',
+      dive_date: '',
+      dive_time: '',
+      duration: '',
+      is_private: false,
+      dive_site_id: '',
+      diving_center_id: '', // Added to match schema
+      selected_route_id: '', // Added to match schema
+    },
+  });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setValue,
+  } = methods;
 
   // Update URL when pagination changes
   const updateURL = useCallback(
@@ -45,22 +80,7 @@ const AdminDives = () => {
   // Dive management state
   const [showEditDiveModal, setShowEditDiveModal] = useState(false);
   const [editingDive, setEditingDive] = useState(null);
-  const [diveForm, setDiveForm] = useState({
-    name: '',
-    dive_information: '',
-    max_depth: '',
-    average_depth: '',
-    gas_bottles_used: '',
-    suit_type: '',
-    difficulty_code: '',
-    visibility_rating: '',
-    user_rating: '',
-    dive_date: '',
-    dive_time: '',
-    duration: '',
-    is_private: false,
-    dive_site_id: '',
-  });
+
   // TanStack Table state
   const [sorting, setSorting] = useState([]);
   const [pagination, setPagination] = useState({
@@ -215,7 +235,7 @@ const AdminDives = () => {
         toast.success('Dive updated successfully!');
         setShowEditDiveModal(false);
         setEditingDive(null);
-        resetDiveForm();
+        reset();
       },
       onError: _error => {
         toast.error('Failed to update dive');
@@ -262,34 +282,32 @@ const AdminDives = () => {
 
   const handleEditDive = dive => {
     setEditingDive(dive);
-    setDiveForm({
+    reset({
       name: dive.name || '',
       dive_information: dive.dive_information || '',
-      max_depth: dive.max_depth?.toString() || '',
-      average_depth: dive.average_depth?.toString() || '',
+      max_depth: dive.max_depth ? dive.max_depth.toString() : '',
+      average_depth: dive.average_depth ? dive.average_depth.toString() : '',
       gas_bottles_used: dive.gas_bottles_used || '',
       suit_type: dive.suit_type || '',
       difficulty_code: dive.difficulty_code || '',
-      visibility_rating: dive.visibility_rating?.toString() || '',
-      user_rating: dive.user_rating?.toString() || '',
+      visibility_rating: dive.visibility_rating ? dive.visibility_rating.toString() : '',
+      user_rating: dive.user_rating ? dive.user_rating.toString() : '',
       dive_date: dive.dive_date || '',
-      dive_time: dive.dive_time || '',
-      duration: dive.duration?.toString() || '',
+      dive_time: dive.dive_time ? dive.dive_time.substring(0, 5) : '', // HH:MM
+      duration: dive.duration ? dive.duration.toString() : '',
       is_private: dive.is_private || false,
-      dive_site_id: dive.dive_site_id?.toString() || '',
+      dive_site_id: dive.dive_site_id ? dive.dive_site_id.toString() : '',
+      diving_center_id: dive.diving_center_id ? dive.diving_center_id.toString() : '',
+      selected_route_id: dive.selected_route_id ? dive.selected_route_id.toString() : '',
     });
     setShowEditDiveModal(true);
   };
 
-  const handleUpdateDive = () => {
+  const onUpdateSubmit = data => {
     const updateData = {
-      ...diveForm,
-      max_depth: diveForm.max_depth ? parseFloat(diveForm.max_depth) : null,
-      average_depth: diveForm.average_depth ? parseFloat(diveForm.average_depth) : null,
-      visibility_rating: diveForm.visibility_rating ? parseInt(diveForm.visibility_rating) : null,
-      user_rating: diveForm.user_rating ? parseInt(diveForm.user_rating) : null,
-      duration: diveForm.duration ? parseInt(diveForm.duration) : null,
-      dive_site_id: diveForm.dive_site_id ? parseInt(diveForm.dive_site_id) : null,
+      ...data,
+      dive_time: data.dive_time && data.dive_time !== '' ? `${data.dive_time}:00` : null,
+      // Zod schema handles number conversions and nulls
     };
 
     updateDiveMutation.mutate({
@@ -302,25 +320,6 @@ const AdminDives = () => {
     if (window.confirm(`Are you sure you want to delete dive "${dive.name}"?`)) {
       deleteDiveMutation.mutate(dive.id);
     }
-  };
-
-  const resetDiveForm = () => {
-    setDiveForm({
-      name: '',
-      dive_information: '',
-      max_depth: '',
-      average_depth: '',
-      gas_bottles_used: '',
-      suit_type: '',
-      difficulty_code: '',
-      visibility_rating: '',
-      user_rating: '',
-      dive_date: '',
-      dive_time: '',
-      duration: '',
-      is_private: false,
-      dive_site_id: '',
-    });
   };
 
   const handleFilterChange = (key, value) => {
@@ -1028,243 +1027,227 @@ const AdminDives = () => {
               </button>
             </div>
 
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <div>
-                <label
-                  htmlFor='edit-dive-name'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Name
-                </label>
-                <input
-                  id='edit-dive-name'
-                  type='text'
-                  value={diveForm.name}
-                  onChange={e => setDiveForm({ ...diveForm, name: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
+            <FormProvider {...methods}>
+              <form onSubmit={handleSubmit(onUpdateSubmit)}>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div>
+                    <FormField name='name' label='Name'>
+                      {({ register, name }) => (
+                        <input
+                          id='edit-dive-name'
+                          type='text'
+                          {...register(name)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            errors.name ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-              <div>
-                <label
-                  htmlFor='edit-dive-site'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Dive Site
-                </label>
-                <select
-                  id='edit-dive-site'
-                  value={diveForm.dive_site_id}
-                  onChange={e => setDiveForm({ ...diveForm, dive_site_id: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                >
-                  <option value=''>No dive site</option>
-                  {diveSites?.map(site => (
-                    <option key={site.id} value={site.id}>
-                      {site.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div>
+                    <FormField name='dive_site_id' label='Dive Site'>
+                      {({ register, name }) => (
+                        <select
+                          id='edit-dive-site'
+                          {...register(name)}
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        >
+                          <option value=''>No dive site</option>
+                          {diveSites?.map(site => (
+                            <option key={site.id} value={site.id}>
+                              {site.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </FormField>
+                  </div>
 
-              <div>
-                <label
-                  htmlFor='edit-dive-date'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Date
-                </label>
-                <input
-                  id='edit-dive-date'
-                  type='date'
-                  value={diveForm.dive_date}
-                  onChange={e => setDiveForm({ ...diveForm, dive_date: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
+                  <div>
+                    <FormField name='dive_date' label='Date'>
+                      {({ register, name }) => (
+                        <input
+                          id='edit-dive-date'
+                          type='date'
+                          {...register(name)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            errors.dive_date ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-              <div>
-                <label
-                  htmlFor='edit-dive-time'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Time
-                </label>
-                <input
-                  id='edit-dive-time'
-                  type='time'
-                  value={diveForm.dive_time}
-                  onChange={e => setDiveForm({ ...diveForm, dive_time: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
+                  <div>
+                    <FormField name='dive_time' label='Time'>
+                      {({ register, name }) => (
+                        <input
+                          id='edit-dive-time'
+                          type='time'
+                          {...register(name)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            errors.dive_time ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-              <div>
-                <label
-                  htmlFor='edit-max-depth'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Max Depth (m)
-                </label>
-                <input
-                  id='edit-max-depth'
-                  type='number'
-                  step='any'
-                  value={diveForm.max_depth}
-                  onChange={e => setDiveForm({ ...diveForm, max_depth: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
+                  <div>
+                    <FormField name='max_depth' label='Max Depth (m)'>
+                      {({ register, name }) => (
+                        <input
+                          id='edit-max-depth'
+                          type='number'
+                          step='any'
+                          {...register(name)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            errors.max_depth ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-              <div>
-                <label
-                  htmlFor='edit-duration'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Duration (min)
-                </label>
-                <input
-                  id='edit-duration'
-                  type='number'
-                  value={diveForm.duration}
-                  onChange={e => setDiveForm({ ...diveForm, duration: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
+                  <div>
+                    <FormField name='duration' label='Duration (min)'>
+                      {({ register, name }) => (
+                        <input
+                          id='edit-duration'
+                          type='number'
+                          {...register(name)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            errors.duration ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-              <div>
-                <label
-                  htmlFor='edit-difficulty'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Difficulty
-                </label>
-                <select
-                  id='edit-difficulty'
-                  value={diveForm.difficulty_code || ''}
-                  onChange={e =>
-                    setDiveForm({
-                      ...diveForm,
-                      difficulty_code: e.target.value || null,
-                    })
-                  }
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                >
-                  <option value=''>Select difficulty</option>
-                  {getDifficultyOptions().map(option => (
-                    <option key={option.value} value={option.value || ''}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div>
+                    <FormField name='difficulty_code' label='Difficulty'>
+                      {({ register, name }) => (
+                        <select
+                          id='edit-difficulty'
+                          {...register(name)}
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        >
+                          <option value=''>Select difficulty</option>
+                          {getDifficultyOptions().map(option => (
+                            <option key={option.value} value={option.value || ''}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </FormField>
+                  </div>
 
-              <div>
-                <label
-                  htmlFor='edit-suit-type'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Suit Type
-                </label>
-                <select
-                  id='edit-suit-type'
-                  value={diveForm.suit_type}
-                  onChange={e => setDiveForm({ ...diveForm, suit_type: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                >
-                  <option value=''>Select suit type</option>
-                  <option value='wet_suit'>Wet Suit</option>
-                  <option value='dry_suit'>Dry Suit</option>
-                  <option value='shortie'>Shortie</option>
-                </select>
-              </div>
+                  <div>
+                    <FormField name='suit_type' label='Suit Type'>
+                      {({ register, name }) => (
+                        <select
+                          id='edit-suit-type'
+                          {...register(name)}
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        >
+                          <option value=''>Select suit type</option>
+                          <option value='wet_suit'>Wet Suit</option>
+                          <option value='dry_suit'>Dry Suit</option>
+                          <option value='shortie'>Shortie</option>
+                        </select>
+                      )}
+                    </FormField>
+                  </div>
 
-              <div>
-                <label
-                  htmlFor='edit-user-rating'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  User Rating (1-10)
-                </label>
-                <input
-                  id='edit-user-rating'
-                  type='number'
-                  min='1'
-                  max='10'
-                  value={diveForm.user_rating}
-                  onChange={e => setDiveForm({ ...diveForm, user_rating: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
+                  <div>
+                    <FormField name='user_rating' label='User Rating (1-10)'>
+                      {({ register, name }) => (
+                        <input
+                          id='edit-user-rating'
+                          type='number'
+                          min='1'
+                          max='10'
+                          {...register(name)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            errors.user_rating ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-              <div>
-                <label
-                  htmlFor='edit-visibility-rating'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Visibility Rating (1-10)
-                </label>
-                <input
-                  id='edit-visibility-rating'
-                  type='number'
-                  min='1'
-                  max='10'
-                  value={diveForm.visibility_rating}
-                  onChange={e => setDiveForm({ ...diveForm, visibility_rating: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
+                  <div>
+                    <FormField name='visibility_rating' label='Visibility Rating (1-10)'>
+                      {({ register, name }) => (
+                        <input
+                          id='edit-visibility-rating'
+                          type='number'
+                          min='1'
+                          max='10'
+                          {...register(name)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            errors.visibility_rating ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-              <div className='md:col-span-2'>
-                <label
-                  htmlFor='edit-dive-info'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Dive Information
-                </label>
-                <textarea
-                  id='edit-dive-info'
-                  value={diveForm.dive_information}
-                  onChange={e => setDiveForm({ ...diveForm, dive_information: e.target.value })}
-                  rows='3'
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
+                  <div className='md:col-span-2'>
+                    <FormField name='dive_information' label='Dive Information'>
+                      {({ register, name }) => (
+                        <textarea
+                          id='edit-dive-info'
+                          {...register(name)}
+                          rows='3'
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-              <div className='md:col-span-2'>
-                <label htmlFor='edit-is-private' className='flex items-center'>
-                  <input
-                    id='edit-is-private'
-                    type='checkbox'
-                    checked={diveForm.is_private}
-                    onChange={e => setDiveForm({ ...diveForm, is_private: e.target.checked })}
-                    className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2'
-                  />
-                  <span className='text-sm font-medium text-gray-700'>Private dive</span>
-                </label>
-              </div>
-            </div>
+                  <div className='md:col-span-2'>
+                    <FormField name='is_private' label='Privacy'>
+                      {({ register, name }) => (
+                        <label htmlFor='edit-is-private' className='flex items-center'>
+                          <input
+                            id='edit-is-private'
+                            type='checkbox'
+                            {...register(name)}
+                            className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2'
+                          />
+                          <span className='text-sm font-medium text-gray-700'>Private dive</span>
+                        </label>
+                      )}
+                    </FormField>
+                  </div>
+                </div>
 
-            <div className='flex justify-end space-x-3 mt-6'>
-              <button
-                onClick={() => setShowEditDiveModal(false)}
-                className='px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50'
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleUpdateDive}
-                disabled={updateDiveMutation.isLoading}
-                className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2'
-              >
-                {updateDiveMutation.isLoading ? (
-                  <Loader className='h-4 w-4 animate-spin' />
-                ) : (
-                  <Save className='h-4 w-4' />
-                )}
-                <span>Update Dive</span>
-              </button>
-            </div>
+                <div className='flex justify-end space-x-3 mt-6'>
+                  <button
+                    type='button'
+                    onClick={() => setShowEditDiveModal(false)}
+                    className='px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50'
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type='submit'
+                    disabled={updateDiveMutation.isLoading}
+                    className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2'
+                  >
+                    {updateDiveMutation.isLoading ? (
+                      <Loader className='h-4 w-4 animate-spin' />
+                    ) : (
+                      <Save className='h-4 w-4' />
+                    )}
+                    <span>Update Dive</span>
+                  </button>
+                </div>
+              </form>
+            </FormProvider>
           </div>
         </div>
       )}

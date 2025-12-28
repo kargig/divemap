@@ -12,30 +12,30 @@ This document outlines a prioritized plan for replacing custom-built React compo
 
 ---
 
-## Priority 1: Form Management & Validation (HIGHEST IMPACT)
+## Priority 1: Form Management & Validation (HIGHEST IMPACT) ✅ COMPLETED
 
 ### **Library: React Hook Form + Zod**
 
+**Status**: ✅ **COMPLETED** - All planned forms migrated to RHF + Zod
+**Implementation Date**: December 27, 2025
+
 **Current State:**
-- Manual form state management with `useState` in multiple components
-- Custom validation logic scattered across components (Register.js, CreateDive.js, EditDive.js, DivingCenterForm.js, etc.)
-- Manual error handling and field-level error states
-- No type-safe validation
+- ✅ Manual form state (`useState`) replaced with `useForm` across all core forms.
+- ✅ Custom validation logic consolidated into centralized Zod schemas in `formHelpers.js`.
+- ✅ Standardized error handling using `formHelpers.getErrorMessage` and `api.extractErrorMessage`.
+- ✅ UI consistency achieved via the reusable `FormField.js` component.
 
 **Why This First:**
 - Forms are everywhere (dives, dive sites, diving centers, trips, user registration)
-- Reduces code by ~60-70% per form
-- Built-in validation with excellent TypeScript support
+- Reduces boilerplate and consolidates validation rules.
 - Better performance (uncontrolled components)
 - Automatic error handling and display
 
 **Impact:**
-- **Files Affected**: ~15-20 form components
-- **Code Reduction**: ~2000-3000 lines
-- **UX Improvement**: Consistent validation, better error messages
-- **Maintainability**: Single source of truth for validation rules
-
-**Migration Effort**: Medium (2-3 weeks)
+- **Files Affected**: 15+ form components
+- **Maintainability**: High. Single source of truth for validation rules.
+- **UX Improvement**: Consistent validation, better error messages, improved mobile keyboard support.
+- **Note on Code Reduction**: While the architectural goals were met, the initial migration resulted in a net line *increase* due to library boilerplate and lingering complex UI logic (search/dropdowns). Achieving the projected ~3,000-line reduction requires the **"Advanced UI Refactoring"** pass.
 
 ---
 
@@ -380,6 +380,45 @@ Instead of individual libraries, consider:
 - **React Aria Components** - Adobe's accessible component library
 - **Mantine Form** - If using Mantine ecosystem
 
+## Advanced UI Refactoring: Achieving Code Reduction Goals
+
+While initial migrations have standardized form state management, meeting the 60-70% code reduction goals requires further refactoring of complex UI logic and auxiliary state.
+
+### 1. Library-based Searchable Dropdowns
+**Why**: Almost every form (Dives, Dive Sites, Diving Centers) re-implements complex searchable dropdowns using manual `useEffect`, `useRef`, and `useState` hooks. This logic accounts for ~200 lines per form and is prone to z-index, focus, and keyboard navigation bugs.
+**What it offers**: Standardization using a library like **Radix UI Combobox** or **Downshift**.
+**Benefits**:
+- **Accessibility**: Full ARIA support for screen readers.
+- **Consistency**: Unified behavior for entity selection across the app.
+- **Reliability**: Eliminates custom z-index and click-outside logic.
+**Impact**: Estimated reduction of **150-200 lines per form**.
+
+### 2. Externalize Social & Security Logic
+**Why**: Pages like `Login.js` and `Register.js` are bloated with technical configuration for Google Auth, Cloudflare Turnstile, and complex email verification error handling.
+**What it offers**: Custom hooks (e.g., `useGoogleAuth`, `useTurnstileVerification`) that encapsulate third-party setup.
+**Benefits**:
+- **Separation of Concerns**: Page components focus solely on the form UI and submission.
+- **Reusability**: Security widgets can be easily added to other protected actions.
+- **Testability**: Logic can be tested in isolation from the UI.
+**Impact**: Estimated reduction of **100-150 lines** in core page components.
+
+### 3. Standardize Complex State Managers (Media & Tags)
+**Why**: `CreateDive.js` and `EditDiveSite.js` manage lists of Media (URLs/descriptions) and Tags (selection/creation) using similar but duplicated manual state logic.
+**What it offers**: Reusable Form Components or Specialized Hooks for "Media Gallery Manager" and "Tag Picker".
+**Benefits**:
+- **Consolidated Fixes**: UI improvements or bug fixes apply everywhere simultaneously.
+- **Developer Speed**: Adding media/tags to new entity types becomes a single-line implementation.
+**Impact**: Centralizes ~300 lines of logic, reducing total component complexity.
+
+### 4. Eliminate Dead Code & Redundant Helpers
+**Why**: Legacy helper functions (e.g., `_getDifficultyColor`, `_getSuitTypeColor`) and unused imports were left behind during the rapid migration to library-based state management.
+**What it offers**: A focused cleanup pass using static analysis.
+**Benefits**:
+- **Cleaner Reviews**: No more "noise" in diffs.
+- **Performance**: Minor bundle size improvements.
+- **Clarity**: Easier for new developers to understand the modern patterns.
+**Impact**: Improves long-term maintainability and code clarity.
+
 ---
 
 ## Migration Strategy
@@ -395,7 +434,6 @@ Instead of individual libraries, consider:
 6. **Autocomplete** - Improve search components
 
 ### Phase 3: Optimization (Weeks 9-12)
-
 1. **Data Tables** - Admin table improvements
 2. **Tabs & Accordion** - Content organization
 3. **Loading States** - Better loading UX
@@ -452,7 +490,6 @@ When choosing between libraries, consider:
 
 ---
 
-**Last Updated**: December 22, 2025
+**Last Updated**: December 27, 2025
 
-**Next Review**: After Phase 1 completion
-
+**Next Review**: January 2026 (after Advanced UI Refactoring pass)

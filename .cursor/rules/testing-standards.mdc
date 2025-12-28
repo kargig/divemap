@@ -1,18 +1,18 @@
 ---
 description: Testing requirements and standards for backend and frontend development in the Divemap project
-globs: ["**/*"]
+globs: ["**/*", "backend/**/*", "frontend/**/*", "**/*.{py,js,jsx,ts,tsx}"]
 alwaysApply: true
 ---
 
-# Testing Standards (Cursor)
+# Testing Standards
 
-These rules summarize `docs/development/testing.md` for quick reference.
+See `docs/development/testing.md` for details.
 
 ## Critical Rules
 
-- **NEVER run tests inside the `divemap_backend` container.** It connects to the live MySQL and teardown will drop tables leading to data loss. DO NOT DO THAT.
-- **NEVER use system Python for backend tests.** Use the project venv.
-- **ALWAYS follow `docs/development/testing.md` for details.**
+⚠️ **NEVER run tests inside `divemap_backend` container** - Connects to live MySQL, teardown drops tables (data loss).
+
+⚠️ **NEVER use system Python** - Use project venv.
 
 ## Backend: Quick (Host Venv)
 
@@ -24,6 +24,12 @@ export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/
 export GOOGLE_CLIENT_ID="dummy-client-id-for-testing"
 python -m pytest tests/ -v
 ```
+
+If you run tests this way you can safely ignore tests containing
+failures like: `sqlite3.OperationalError: no such function: POINT`
+
+If you get such errors, use backend/docker-test-github-actions.sh
+to run tests.
 
 ## Backend: CI-like (Isolated Docker)
 

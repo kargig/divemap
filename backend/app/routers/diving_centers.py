@@ -1,5 +1,5 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from typing import List, Optional, Union, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Body
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
 import difflib
@@ -14,7 +14,8 @@ from app.schemas import (
     CenterCommentCreate, CenterCommentUpdate, CenterCommentResponse,
     CenterDiveSiteCreate, GearRentalCostCreate,
     DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse,
-    DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval, OwnershipRequestHistoryResponse
+    DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval, OwnershipRequestHistoryResponse,
+    DivingCenterOwnershipRevocation
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, is_admin_or_moderator, get_current_user
 from app.models import OwnershipStatus
@@ -622,10 +623,23 @@ async def get_diving_centers(
     sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
+    detail_level: Optional[str] = Query('full', description="Data detail level: 'minimal' (id, name only), 'basic' (id, name, country, region, city), 'full' (all fields)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
     """Get diving centers with filtering and pagination."""
+    # Validate detail_level parameter
+    if detail_level is not None:
+        valid_detail_levels = ['minimal', 'basic', 'full']
+        if detail_level.lower() not in valid_detail_levels:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"detail_level must be one of: {', '.join(valid_detail_levels)}"
+            )
+        detail_level = detail_level.lower()
+    else:
+        detail_level = 'full'
+    
     # Check if reviews are enabled
     reviews_enabled = is_diving_center_reviews_enabled(db)
     
@@ -905,36 +919,54 @@ async def get_diving_centers(
         avg_rating = center_data[1]  # avg_rating from subquery
         total_ratings = center_data[2]  # total_ratings from subquery
 
-        # Get owner username if exists
-        owner_username = None
-        if center.owner_id:
-            owner = db.query(User).filter(User.id == center.owner_id).first()
-            owner_username = owner.username if owner else None
+        # Build center_dict based on detail_level
+        if detail_level == 'minimal':
+            # Minimal: only id and name
+            center_dict = {
+                "id": center.id,
+                "name": center.name,
+            }
+        elif detail_level == 'basic':
+            # Basic: id, name, country, region, city
+            center_dict = {
+                "id": center.id,
+                "name": center.name,
+                "country": center.country,
+                "region": center.region,
+                "city": center.city,
+            }
+        else:
+            # Full: all fields
+            # Get owner username if exists
+            owner_username = None
+            if center.owner_id:
+                owner = db.query(User).filter(User.id == center.owner_id).first()
+                owner_username = owner.username if owner else None
 
-        center_dict = {
-            "id": center.id,
-            "name": center.name,
-            "description": center.description,
-            "email": center.email,
-            "phone": center.phone,
-            "website": center.website,
-            "latitude": float(center.latitude) if center.latitude else None,
-            "longitude": float(center.longitude) if center.longitude else None,
-            "country": center.country,
-            "region": center.region,
-            "city": center.city,
-            "created_at": center.created_at.isoformat() if center.created_at else None,
-            "updated_at": center.updated_at.isoformat() if center.updated_at else None,
-            "average_rating": float(avg_rating) if reviews_enabled and avg_rating else None,
-            "total_ratings": (total_ratings or 0) if reviews_enabled else 0,
-            "owner_id": center.owner_id,
-            "ownership_status": center.ownership_status.value if center.ownership_status else None,
-            "owner_username": owner_username
-        }
+            center_dict = {
+                "id": center.id,
+                "name": center.name,
+                "description": center.description,
+                "email": center.email,
+                "phone": center.phone,
+                "website": center.website,
+                "latitude": float(center.latitude) if center.latitude else None,
+                "longitude": float(center.longitude) if center.longitude else None,
+                "country": center.country,
+                "region": center.region,
+                "city": center.city,
+                "created_at": center.created_at.isoformat() if center.created_at else None,
+                "updated_at": center.updated_at.isoformat() if center.updated_at else None,
+                "average_rating": float(avg_rating) if reviews_enabled and avg_rating else None,
+                "total_ratings": (total_ratings or 0) if reviews_enabled else 0,
+                "owner_id": center.owner_id,
+                "ownership_status": center.ownership_status.value if center.ownership_status else None,
+                "owner_username": owner_username
+            }
 
-        # Only include view_count for admin users
-        if current_user and current_user.is_admin:
-            center_dict["view_count"] = center.view_count
+            # Only include view_count for admin users
+            if current_user and current_user.is_admin:
+                center_dict["view_count"] = center.view_count
 
         result.append(center_dict)
 
@@ -1976,11 +2008,22 @@ async def assign_diving_center_owner(
 @router.post("/{diving_center_id}/revoke-ownership")
 async def revoke_diving_center_ownership(
     diving_center_id: int,
-    revocation: DivingCenterOwnershipApproval,
+    revocation: Union[DivingCenterOwnershipRevocation, str, Dict[str, Any]] = Body(...),
     current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
     """Revoke ownership of a diving center (admin only)"""
+    # Handle both object and string inputs from frontend
+    reason = "Ownership revocation by admin"
+    if isinstance(revocation, str):
+        reason = revocation
+    elif isinstance(revocation, DivingCenterOwnershipRevocation):
+        reason = revocation.reason or reason
+    elif isinstance(revocation, dict):
+        reason = revocation.get("reason", reason)
+    elif hasattr(revocation, "reason"):
+        reason = revocation.reason or reason
+
     # Check if diving center exists
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not diving_center:
@@ -1988,10 +2031,15 @@ async def revoke_diving_center_ownership(
 
     # Check if diving center has an approved owner
     if diving_center.ownership_status != OwnershipStatus.approved:
-        raise HTTPException(
-            status_code=400,
-            detail="Cannot revoke ownership: diving center does not have an approved owner"
-        )
+        # Check if it was claimed but not yet approved
+        if diving_center.ownership_status == OwnershipStatus.claimed:
+             # Just reset it to unclaimed
+             pass
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot revoke ownership: diving center status is {diving_center.ownership_status}"
+            )
 
     # Get current owner info for the response
     current_owner_username = None
@@ -1999,18 +2047,19 @@ async def revoke_diving_center_ownership(
         owner = db.query(User).filter(User.id == diving_center.owner_id).first()
         current_owner_username = owner.username if owner else None
 
-    # Create a new ownership request record for the revocation
-    revocation_request = OwnershipRequest(
-        diving_center_id=diving_center_id,
-        user_id=diving_center.owner_id,
-        request_status=OwnershipStatus.denied,  # Use denied status for revoked ownership
-        request_date=func.now(),
-        processed_date=func.now(),
-        processed_by=current_user.id,
-        reason=revocation.reason,
-        notes="Ownership revocation by admin"
-    )
-    db.add(revocation_request)
+    # Create a new ownership request record for the revocation if there was an owner
+    if diving_center.owner_id:
+        revocation_request = OwnershipRequest(
+            diving_center_id=diving_center_id,
+            user_id=diving_center.owner_id,
+            request_status=OwnershipStatus.denied,  # Use denied status for revoked ownership
+            request_date=func.now(),
+            processed_date=func.now(),
+            processed_by=current_user.id,
+            reason=reason,
+            notes="Ownership revocation by admin"
+        )
+        db.add(revocation_request)
 
     # Revoke ownership
     diving_center.ownership_status = OwnershipStatus.unclaimed
@@ -2024,5 +2073,5 @@ async def revoke_diving_center_ownership(
         "diving_center_id": diving_center_id,
         "previous_owner": current_owner_username,
         "status": "unclaimed",
-        "reason": revocation.reason
+        "reason": reason
     }

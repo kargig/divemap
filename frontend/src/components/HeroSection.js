@@ -62,9 +62,9 @@ const HeroSection = ({
         {/* Desktop Layout */}
         <section className='hidden md:flex'>
           <div
-            className={`${logoBackground ? 'relative overflow-hidden' : backgroundClasses[background]} ${sizeClasses[size]} ${
+            className={`${logoBackground ? 'relative overflow-hidden' : backgroundClasses[background]} py-4 px-8 ${
               centered ? 'text-center' : ''
-            } flex items-center justify-center min-h-[400px] w-full`}
+            } flex items-center justify-center min-h-[220px] w-full`}
           >
             {logoBackground && (
               <div className='absolute inset-0 flex items-center justify-center opacity-8 bg-white'>
@@ -114,7 +114,7 @@ const HeroSection = ({
 
             {/* Bottom Section - Buttons */}
             {children && (
-              <div className='absolute bottom-8 left-1/2 transform -translate-x-1/2 w-full max-w-5xl px-4'>
+              <div className='absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-5xl px-4 pb-4'>
                 <div className='flex flex-col sm:flex-row flex-wrap gap-3 justify-center'>
                   {children}
                 </div>

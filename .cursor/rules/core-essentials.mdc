@@ -1,0 +1,33 @@
+---
+description: Core essential rules referenced by other rule files to avoid duplication
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Core Essentials
+
+⚠️ Universal rules that apply to all work.
+
+## Git Commit Rules
+
+- **NEVER commit automatically** - Only when user explicitly requests
+- **ALWAYS ask permission** before committing
+- Commit messages: 7 rules (see git-standards.mdc)
+
+## Environment Rules
+
+- **NEVER install packages** in system Python/npm
+- **ALWAYS use venv** for Python, **Docker** for frontend
+- **NEVER run npm/node** on system (use Docker containers)
+
+## Code Quality
+
+- No trailing whitespace
+- Linting checks must pass
+- Consistent formatting required
+
+## Docker Rules
+
+- Container names: `divemap_db`, `divemap_backend`, `divemap_frontend`
+- Use `docker logs` (never `docker-compose logs`)
+- Use `docker logs --since` for filtering

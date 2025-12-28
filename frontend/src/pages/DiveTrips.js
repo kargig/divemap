@@ -19,10 +19,12 @@ import {
   DollarSign,
   Star,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Compass,
   Plus,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
@@ -31,11 +33,12 @@ import DesktopSearchBar from '../components/DesktopSearchBar';
 import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import RateLimitError from '../components/RateLimitError';
-import StickyFilterBar from '../components/StickyFilterBar';
+import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
+import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
@@ -85,11 +88,12 @@ const DiveTrips = () => {
     difficulty_code: '',
     exclude_unspecified_difficulty: false,
     search_query: '',
+    country: '',
+    region: '',
   });
-  const [sortOptions, setSortOptions] = useState({
-    sort_by: 'trip_date',
-    sort_order: 'desc',
-  });
+  // Initialize sorting
+  const { sortBy, sortOrder, handleSortChange, resetSorting, getSortParams } =
+    useSorting('dive-trips');
 
   // Get sort options based on user permissions
   const getAvailableSortOptions = () => {
@@ -138,37 +142,9 @@ const DiveTrips = () => {
     }
   };
 
-  // Helper function to change view mode and update URL
+  // Helper function to change view mode and update URL (kept for backward compatibility)
   const changeViewMode = mode => {
-    setViewMode(mode);
-
-    // Update URL with new view mode
-    const urlParams = new URLSearchParams(window.location.search);
-    if (mode === 'list') {
-      urlParams.delete('view'); // Default view, no need for parameter
-    } else {
-      urlParams.set('view', mode);
-    }
-
-    // Update URL without triggering a page reload
-    navigate(`?${urlParams.toString()}`, { replace: true });
-  };
-
-  const handleViewModeChange = newViewMode => {
-    setViewMode(newViewMode);
-
-    // Update URL with new view mode
-    const urlParams = new URLSearchParams(window.location.search);
-    if (newViewMode === 'map') {
-      urlParams.set('view', 'map');
-    } else if (newViewMode === 'grid') {
-      urlParams.set('view', 'grid');
-    } else {
-      urlParams.delete('view'); // Default to list view
-    }
-
-    // Update URL without triggering a page reload
-    navigate(`?${urlParams.toString()}`, { replace: true });
+    handleViewModeChange(mode);
   };
 
   // Get user location on component mount (only for authenticated users)
@@ -277,13 +253,22 @@ const DiveTrips = () => {
     }
   };
 
-  // Query for parsed trips
+  // Pagination state - match Dives page structure
+  const [pagination, setPagination] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      page: parseInt(params.get('page')) || 1,
+      per_page: parseInt(params.get('per_page') || params.get('page_size')) || 25,
+    };
+  });
+
+  // Query for parsed trips with pagination
   const {
     data: trips,
     isLoading,
     error,
   } = useQuery(
-    ['parsedTrips', filters, sortOptions, userLocation],
+    ['parsedTrips', filters, sortBy, sortOrder, userLocation, pagination],
     () => {
       // Route search terms intelligently (only for authenticated users)
       const { search_query, location_query } = user
@@ -305,15 +290,18 @@ const DiveTrips = () => {
         }
       });
 
-      // Add sorting parameters
+      // Add sorting parameters and pagination
+      const sortParams = getSortParams();
       const params = {
         ...validFilters,
-        sort_by: sortOptions.sort_by,
-        sort_order: sortOptions.sort_order,
+        sort_by: sortParams.sort_by || 'trip_date',
+        sort_order: sortParams.sort_order || 'desc',
+        skip: (pagination.page - 1) * pagination.per_page,
+        limit: pagination.per_page,
       };
 
       // Add user location for distance sorting
-      if (sortOptions.sort_by === 'distance' && userLocation.latitude && userLocation.longitude) {
+      if (sortParams.sort_by === 'distance' && userLocation.latitude && userLocation.longitude) {
         params.user_lat = userLocation.latitude;
         params.user_lon = userLocation.longitude;
       }
@@ -329,39 +317,60 @@ const DiveTrips = () => {
   const pageTitle = 'Divemap - Dive Trips';
   usePageTitle(pageTitle);
 
-  // Query for diving centers and dive sites for filters
-  const { data: divingCentersData, error: divingCentersError } = useQuery(
-    ['diving-centers'],
-    () => getDivingCenters({ page_size: 100 }),
+  // Fetch diving centers and dive sites for filters - use detail_level='basic' to minimize data transfer
+  // Only fetch when filters are shown to avoid unnecessary requests
+  const {
+    data: divingCentersData,
+    error: divingCentersError,
+    isLoading: isLoadingCenters,
+  } = useQuery(
+    ['diving-centers-filter'],
+    () => getDivingCenters({ page_size: 50, detail_level: 'basic' }),
     {
       staleTime: 300000, // 5 minutes
+      enabled: showFilters, // Only fetch when filters are shown
     }
   );
 
-  const { data: diveSitesData, error: diveSitesError } = useQuery(
-    ['dive-sites'],
-    () => getDiveSites({ page_size: 100 }),
+  const {
+    data: diveSitesData,
+    error: diveSitesError,
+    isLoading: isLoadingSites,
+  } = useQuery(
+    ['dive-sites-filter'],
+    () => getDiveSites({ page_size: 50, detail_level: 'basic' }),
     {
       staleTime: 300000, // 5 minutes
+      enabled: showFilters, // Only fetch when filters are shown
     }
   );
 
-  // Fetch all trips (without filters) to get the list of centers/sites that have trips
-  const { data: allTripsData } = useQuery(
-    ['parsedTrips-all'],
-    () => {
-      // Fetch trips with minimal filtering to get all centers/sites that have trips
-      return getParsedTrips({
-        sort_by: 'trip_date',
-        sort_order: 'desc',
-        limit: 1000, // Get enough to cover all unique centers/sites
-      });
-    },
-    {
-      staleTime: 300000, // 5 minutes
-      enabled: !!user, // Only fetch if user is logged in
-    }
-  );
+  // Extract unique diving center and dive site IDs from current trips for filter dropdowns
+  const uniqueCenterIds = useMemo(() => {
+    if (!trips || !Array.isArray(trips)) return new Set();
+    const ids = new Set();
+    trips.forEach(trip => {
+      if (trip.diving_center_id) {
+        ids.add(trip.diving_center_id);
+      }
+    });
+    return ids;
+  }, [trips]);
+
+  const uniqueSiteIds = useMemo(() => {
+    if (!trips || !Array.isArray(trips)) return new Set();
+    const ids = new Set();
+    trips.forEach(trip => {
+      if (trip.dives && Array.isArray(trip.dives)) {
+        trip.dives.forEach(dive => {
+          if (dive.dive_site_id) {
+            ids.add(dive.dive_site_id);
+          }
+        });
+      }
+    });
+    return ids;
+  }, [trips]);
 
   // Ensure we always have arrays for the filter data
   // Handle different possible response structures from the API
@@ -383,40 +392,21 @@ const DiveTrips = () => {
   })();
 
   // Filter to only show diving centers that have trips
-  // Use allTripsData (unfiltered) to build the list, so filters don't affect dropdown options
-  const divingCenters = (() => {
-    const tripsToCheck = allTripsData || trips || [];
-    if (!Array.isArray(tripsToCheck) || tripsToCheck.length === 0) return [];
-    const centerIds = new Set();
-    tripsToCheck.forEach(trip => {
-      if (trip.diving_center_id) {
-        centerIds.add(trip.diving_center_id);
-      }
-    });
-    return allDivingCenters.filter(center => centerIds.has(center.id));
-  })();
+  const divingCenters = useMemo(() => {
+    if (!allDivingCenters || allDivingCenters.length === 0) return [];
+    return allDivingCenters.filter(center => uniqueCenterIds.has(center.id));
+  }, [allDivingCenters, uniqueCenterIds]);
 
   // Filter to only show dive sites that have trips
-  // Use allTripsData (unfiltered) to build the list, so filters don't affect dropdown options
-  const diveSites = (() => {
-    const tripsToCheck = allTripsData || trips || [];
-    if (!Array.isArray(tripsToCheck) || tripsToCheck.length === 0) return [];
-    const siteIds = new Set();
-    tripsToCheck.forEach(trip => {
-      if (trip.dives && Array.isArray(trip.dives)) {
-        trip.dives.forEach(dive => {
-          if (dive.dive_site_id) {
-            siteIds.add(dive.dive_site_id);
-          }
-        });
-      }
-      // Also check legacy single dive_site_id
-      if (trip.dive_site_id) {
-        siteIds.add(trip.dive_site_id);
-      }
-    });
-    return allDiveSites.filter(site => siteIds.has(site.id));
-  })();
+  const diveSites = useMemo(() => {
+    if (!allDiveSites || allDiveSites.length === 0) return [];
+    return allDiveSites.filter(site => uniqueSiteIds.has(site.id));
+  }, [allDiveSites, uniqueSiteIds]);
+
+  // Reset to page 1 when filters or sort options change
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, [filters, sortBy, sortOrder]);
 
   // Show toast notifications for rate limiting errors
   useEffect(() => {
@@ -470,6 +460,8 @@ const DiveTrips = () => {
       ...prev,
       [key]: value,
     }));
+    // Reset to page 1 when filters change
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const clearFilters = () => {
@@ -484,7 +476,36 @@ const DiveTrips = () => {
       difficulty_code: '',
       exclude_unspecified_difficulty: false,
       search_query: '',
+      country: '',
+      region: '',
     });
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handlePageChange = newPage => {
+    setPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handlePageSizeChange = newPageSize => {
+    setPagination(prev => ({ ...prev, page: 1, per_page: newPageSize }));
+  };
+
+  const toggleFilters = () => {
+    setShowFilters(!showFilters);
+  };
+
+  const handleViewModeChange = newViewMode => {
+    setViewMode(newViewMode);
+    // Update URL with new view mode
+    const urlParams = new URLSearchParams(window.location.search);
+    if (newViewMode === 'map') {
+      urlParams.set('view', 'map');
+    } else if (newViewMode === 'grid') {
+      urlParams.set('view', 'grid');
+    } else {
+      urlParams.delete('view');
+    }
+    navigate(`?${urlParams.toString()}`, { replace: true });
   };
 
   // Helper function to get dive site rating
@@ -783,7 +804,7 @@ const DiveTrips = () => {
         )}
 
         {/* Filter Data Loading State */}
-        {(!divingCentersData || !diveSitesData) && (
+        {showFilters && (isLoadingCenters || isLoadingSites) && (
           <div className='mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4'>
             <div className='flex items-center'>
               <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-2'></div>
@@ -795,19 +816,51 @@ const DiveTrips = () => {
           </div>
         )}
 
+        {/* Responsive Filter Bar */}
+        {(!isMobile || searchBarVisible) && (
+          <ResponsiveFilterBar
+            showFilters={showFilters}
+            onToggleFilters={toggleFilters}
+            onClearFilters={clearFilters}
+            activeFiltersCount={getActiveFiltersCount()}
+            filters={{
+              ...filters,
+              availableDivingCenters: allDivingCenters || [],
+              availableDiveSites: allDiveSites || [],
+            }}
+            onFilterChange={handleFilterChange}
+            variant='sticky'
+            showQuickFilters={true}
+            showAdvancedToggle={true}
+            searchQuery={filters.search_query}
+            onSearchChange={value => handleFilterChange('search_query', value)}
+            onSearchSubmit={() => {}}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            sortOptions={getAvailableSortOptions()}
+            onSortChange={handleSortChange}
+            onReset={resetSorting}
+            viewMode={viewMode}
+            onViewModeChange={handleViewModeChange}
+            compactLayout={compactLayout}
+            onDisplayOptionChange={handleDisplayOptionChange}
+            pageType='dive-trips'
+            user={user}
+          />
+        )}
+
         {/* Distance Sorting Warning */}
-        {sortOptions.sort_by === 'distance' &&
-          (!userLocation.latitude || !userLocation.longitude) && (
-            <div className='mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200'>
-              <div className='flex items-center text-sm text-yellow-700'>
-                <AlertTriangle className='h-4 w-4 mr-2 flex-shrink-0' />
-                <span>
-                  <strong>Distance sorting selected but no location set.</strong> Please set your
-                  location coordinates above to enable distance-based sorting.
-                </span>
-              </div>
+        {sortBy === 'distance' && (!userLocation.latitude || !userLocation.longitude) && (
+          <div className='mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200'>
+            <div className='flex items-center text-sm text-yellow-700'>
+              <AlertTriangle className='h-4 w-4 mr-2 flex-shrink-0' />
+              <span>
+                <strong>Distance sorting selected but no location set.</strong> Please set your
+                location coordinates above to enable distance-based sorting.
+              </span>
             </div>
-          )}
+          </div>
+        )}
 
         {/* Content */}
         {isLoading && (
@@ -1420,6 +1473,67 @@ const DiveTrips = () => {
               </div>
             )}
           </>
+        )}
+
+        {/* Pagination Controls - Match Dives page style */}
+        {sortedTrips && sortedTrips.length > 0 && !isLoading && !error && viewMode !== 'map' && (
+          <div className='mb-6 sm:mb-8'>
+            <div className='bg-white rounded-lg shadow-md p-4 sm:p-6'>
+              <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
+                {/* Pagination Controls */}
+                <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
+                  {/* Page Size Selection */}
+                  <div className='flex items-center gap-2'>
+                    <label className='text-sm font-medium text-gray-700'>Show:</label>
+                    <select
+                      value={pagination.per_page}
+                      onChange={e => handlePageSizeChange(parseInt(e.target.value))}
+                      className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+                    >
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    <span className='text-sm text-gray-600'>per page</span>
+                  </div>
+
+                  {/* Pagination Info */}
+                  <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
+                    Showing {Math.max(1, (pagination.page - 1) * pagination.per_page + 1)} to{' '}
+                    {(pagination.page - 1) * pagination.per_page + sortedTrips.length} of{' '}
+                    {sortedTrips.length === pagination.per_page
+                      ? `${(pagination.page - 1) * pagination.per_page + sortedTrips.length}+`
+                      : (pagination.page - 1) * pagination.per_page + sortedTrips.length}{' '}
+                    trips
+                  </div>
+
+                  {/* Pagination Navigation */}
+                  <div className='flex items-center gap-2'>
+                    <button
+                      onClick={() => handlePageChange(pagination.page - 1)}
+                      disabled={pagination.page <= 1}
+                      className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+                    >
+                      <ChevronLeft className='h-4 w-4' />
+                    </button>
+
+                    <span className='text-xs sm:text-sm text-gray-700'>
+                      Page {pagination.page}
+                      {sortedTrips.length === pagination.per_page && '+'}
+                    </span>
+
+                    <button
+                      onClick={() => handlePageChange(pagination.page + 1)}
+                      disabled={sortedTrips.length < pagination.per_page}
+                      className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+                    >
+                      <ChevronRight className='h-4 w-4' />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

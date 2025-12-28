@@ -10,7 +10,7 @@ import requests
 import math
 from app.database import get_db
 from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, ParsedDive, DifficultyLevel, get_difficulty_id_by_code
-from app.auth import get_current_user, get_current_user_optional, is_admin_or_moderator
+from app.auth import get_current_user, get_current_user_optional, is_admin_or_moderator, can_manage_diving_center
 from app.schemas import ParsedDiveTripResponse, NewsletterUploadResponse, NewsletterResponse, NewsletterUpdateRequest, NewsletterDeleteRequest, NewsletterDeleteResponse, ParsedDiveTripCreate, ParsedDiveTripUpdate, ParsedDiveResponse, NewsletterParseTextRequest
 import logging
 import openai
@@ -1320,6 +1320,8 @@ async def get_parsed_trips(
     exclude_unspecified_difficulty: bool = Query(False, description="Exclude trips with unspecified difficulty"),
     search_query: Optional[str] = None,
     location_query: Optional[str] = None,
+    country: Optional[str] = Query(None, description="Filter by country (searches in dive sites and diving centers)"),
+    region: Optional[str] = Query(None, description="Filter by region (searches in dive sites and diving centers)"),
     sort_by: Optional[str] = "trip_date",
     sort_order: Optional[str] = "desc",
     user_lat: Optional[float] = None,
@@ -1345,8 +1347,12 @@ async def get_parsed_trips(
     
     Distance sorting requires user_lat and user_lon coordinates.
     """
-    # Eager load difficulty relationship for efficient access
-    query = db.query(ParsedDiveTrip).options(joinedload(ParsedDiveTrip.difficulty))
+    # Eager load all relationships to avoid N+1 queries
+    query = db.query(ParsedDiveTrip).options(
+        joinedload(ParsedDiveTrip.difficulty),
+        joinedload(ParsedDiveTrip.diving_center),
+        joinedload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
+    )
 
     # Date filtering
     if start_date:
@@ -1421,6 +1427,30 @@ async def get_parsed_trips(
                 ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.region.ilike(location_term))),
                 ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.address.ilike(location_term))),
                 ParsedDiveTrip.diving_center.has(DivingCenter.name.ilike(location_term))
+            )
+        )
+
+    # Country filtering
+    if country and country.strip():
+        country_term = f"%{country.strip()}%"
+        query = query.filter(
+            or_(
+                # Filter by dive site country
+                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.country.ilike(country_term))),
+                # Filter by diving center country
+                ParsedDiveTrip.diving_center.has(DivingCenter.country.ilike(country_term))
+            )
+        )
+
+    # Region filtering
+    if region and region.strip():
+        region_term = f"%{region.strip()}%"
+        query = query.filter(
+            or_(
+                # Filter by dive site region
+                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.region.ilike(region_term))),
+                # Filter by diving center region
+                ParsedDiveTrip.diving_center.has(DivingCenter.region.ilike(region_term))
             )
         )
 
@@ -1520,16 +1550,11 @@ async def get_parsed_trips(
                 'score': result['score']
             }
         
-        # Re-query with the enhanced results to get proper pagination
-        if len(trips) > len(query.all()):
-            # We have more results now, need to get all enhanced results
-            enhanced_query = db.query(ParsedDiveTrip).filter(
-                ParsedDiveTrip.id.in_([trip.id for trip in trips])
-            )
-            
-            # Re-apply the same logic for all filters and sorting
-            # This is a simplified approach - in production you might want to optimize this
-            trips = enhanced_query.all()
+        # Re-query with the enhanced results to get proper pagination with eager loading
+        # Note: trips already have relationships loaded from the main query, so we can skip re-querying
+        # Just ensure we respect pagination limits
+        if len(trips) > limit:
+            trips = trips[:limit]
 
     # Process trips and add distance information if needed
     trip_data = []
@@ -1964,16 +1989,40 @@ async def reparse_newsletter(
 @router.post("/trips", response_model=ParsedDiveTripResponse)
 async def create_parsed_trip(
     trip_data: ParsedDiveTripCreate,
-    current_user: User = Depends(is_admin_or_moderator),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can create dive trips")
     """
     Create a new parsed dive trip manually.
+    Admins and moderators can create trips for any diving center.
+    Owners can create trips only for their own approved diving centers.
     """
-    if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can create trips")
+    # Check permissions first: admins/moderators can create trips, regular users cannot
+    if not (current_user.is_admin or current_user.is_moderator):
+        # Check if user owns any approved diving centers
+        from app.models import OwnershipStatus
+        owned_centers = db.query(DivingCenter).filter(
+            and_(
+                DivingCenter.owner_id == current_user.id,
+                DivingCenter.ownership_status == OwnershipStatus.approved
+            )
+        ).count()
+        
+        if owned_centers == 0:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions"
+            )
+    
+    # Check if diving_center_id is provided (required for all users)
+    if not trip_data.diving_center_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="diving_center_id is required"
+        )
+    
+    # Verify user can manage this diving center (admin/moderator can manage any, owners only their own)
+    await can_manage_diving_center(trip_data.diving_center_id, current_user, db)
 
     # Validate and convert difficulty_code if provided
     trip_difficulty_id = None
