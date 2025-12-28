@@ -272,7 +272,7 @@ const Profile = () => {
   }
 
   return (
-    <div className='max-w-4xl mx-auto'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       <div className='mb-8'>
         <h1 className='text-3xl font-bold text-gray-900 mb-2'>Profile</h1>
         <p className='text-gray-600'>Manage your account settings and diving information</p>

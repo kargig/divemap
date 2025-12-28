@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import Modal from '../components/ui/Modal';
 import usePageTitle from '../hooks/usePageTitle';
 
 const Help = () => {
@@ -850,39 +851,30 @@ const Help = () => {
       </div>
 
       {/* Full-size image modal */}
-      {modalImage && (
-        <div
-          className='fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4'
-          role='dialog'
-          aria-modal='true'
-          aria-label='Full-size image viewer'
-        >
+      <Modal
+        isOpen={!!modalImage}
+        onClose={closeModal}
+        className='max-w-7xl w-auto p-0 bg-transparent shadow-none border-none'
+        overlayClassName='bg-opacity-75'
+        showCloseButton={false}
+      >
+        <div className='relative'>
           <button
-            className='absolute inset-0 w-full h-full bg-transparent'
             onClick={closeModal}
-            onKeyDown={e => {
-              if (e.key === 'Escape') {
-                closeModal();
-              }
-            }}
-            aria-label='Close modal'
-          />
-          <div className='relative max-w-7xl max-h-full'>
-            <button
-              onClick={closeModal}
-              className='absolute top-4 right-4 z-[10000] bg-black bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2 transition-colors'
-              aria-label='Close full-size image'
-            >
-              <X className='h-6 w-6' />
-            </button>
+            className='absolute top-2 right-2 z-10 bg-black bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2 transition-colors'
+            aria-label='Close full-size image'
+          >
+            <X className='h-6 w-6' />
+          </button>
+          {modalImage && (
             <img
               src={modalImage}
               alt={modalAlt}
-              className='max-w-full max-h-full object-contain rounded-lg shadow-2xl'
+              className='max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl mx-auto'
             />
-          </div>
+          )}
         </div>
-      )}
+      </Modal>
     </div>
   );
 };

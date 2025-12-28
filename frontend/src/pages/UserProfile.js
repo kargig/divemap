@@ -116,7 +116,7 @@ const UserProfile = () => {
   };
 
   return (
-    <div className='max-w-4xl mx-auto px-4 py-8'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       {/* Header */}
       <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
         <div className='flex items-center space-x-6'>

@@ -6,6 +6,8 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { tripSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 
+import Modal from './ui/Modal';
+
 const TripFormModal = ({
   trip,
   onSubmit,
@@ -556,19 +558,14 @@ const TripFormModal = ({
   // Render as modal if isModal is true, otherwise render as standalone form
   if (isModal) {
     return (
-      <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-        <div className='bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto'>
-          <div className='flex justify-between items-center mb-4'>
-            <h3 className='text-lg font-semibold'>{title || 'Dive Trip'}</h3>
-            {onCancel && (
-              <button onClick={onCancel} className='text-gray-500 hover:text-gray-700'>
-                ×
-              </button>
-            )}
-          </div>
-          {formContent}
-        </div>
-      </div>
+      <Modal
+        isOpen={true}
+        onClose={onCancel}
+        title={title || 'Dive Trip'}
+        className='max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto'
+      >
+        {formContent}
+      </Modal>
     );
   }
 

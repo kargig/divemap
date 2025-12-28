@@ -1,4 +1,4 @@
-import { Play, ExternalLink } from 'lucide-react';
+import { Play } from 'lucide-react';
 import React, { useState } from 'react';
 
 import {
@@ -7,6 +7,8 @@ import {
   getYouTubeThumbnailUrl,
   getYouTubeWatchUrl,
 } from '../utils/youtubeHelpers';
+
+import Modal from './ui/Modal';
 
 /**
  * YouTube video preview component that shows thumbnail with play button
@@ -68,30 +70,26 @@ const YouTubePreview = ({ url, description, className = '', onPlay, openInNewTab
       </div>
 
       {/* Modal for embedded video */}
-      {isModalOpen && (
-        <div className='fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4'>
-          <div className='bg-white rounded-lg max-w-4xl w-full max-h-full'>
-            <div className='flex justify-between items-center p-4 border-b'>
-              <h3 className='text-lg font-semibold'>YouTube Video</h3>
-              <button onClick={handleModalClose} className='text-gray-500 hover:text-gray-700'>
-                <ExternalLink className='h-5 w-5' />
-              </button>
-            </div>
-            <div className='p-4'>
-              <div className='aspect-video'>
-                <iframe
-                  src={embedUrl}
-                  title='YouTube video'
-                  className='w-full h-full rounded'
-                  allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
-                  allowFullScreen
-                />
-              </div>
-              {description && <p className='mt-4 text-gray-600'>{description}</p>}
-            </div>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        title='YouTube Video'
+        className='max-w-4xl w-full max-h-full'
+        overlayClassName='bg-opacity-75'
+      >
+        <div className='p-0'>
+          <div className='aspect-video'>
+            <iframe
+              src={embedUrl}
+              title='YouTube video'
+              className='w-full h-full rounded'
+              allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+              allowFullScreen
+            />
           </div>
+          {description && <p className='mt-4 text-gray-600'>{description}</p>}
         </div>
-      )}
+      </Modal>
     </>
   );
 };

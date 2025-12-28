@@ -134,7 +134,7 @@ const TripDetail = () => {
     );
   }
   return (
-    <div className='max-w-6xl mx-auto'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       <TripHeader trip={trip} />
       {/* Tab Navigation */}
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 mb-6'>

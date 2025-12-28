@@ -6,6 +6,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import api from '../api';
 import AdminUsersTable from '../components/tables/AdminUsersTable';
+import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 
@@ -1024,258 +1025,242 @@ const AdminUsers = () => {
       />
 
       {/* Create User Modal */}
-      {showCreateUserModal && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-          <div className='bg-white rounded-lg p-6 w-full max-w-md'>
-            <div className='flex justify-between items-center mb-4'>
-              <h3 className='text-lg font-semibold text-gray-900'>Create New User</h3>
-              <button
-                onClick={() => {
-                  setShowCreateUserModal(false);
-                  resetUserForm();
-                }}
-                className='text-gray-400 hover:text-gray-600'
-              >
-                <X className='h-5 w-5' />
-              </button>
-            </div>
-            <div className='space-y-4'>
-              <div>
-                <label
-                  htmlFor='create-user-username'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Username *
-                </label>
-                <input
-                  id='create-user-username'
-                  type='text'
-                  value={userForm.username}
-                  onChange={e => setUserForm({ ...userForm, username: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='Enter username'
-                  maxLength={50}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor='create-user-email'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Email *
-                </label>
-                <input
-                  id='create-user-email'
-                  type='email'
-                  value={userForm.email}
-                  onChange={e => setUserForm({ ...userForm, email: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='Enter email'
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor='create-user-password'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Password *
-                </label>
-                <input
-                  id='create-user-password'
-                  type='password'
-                  value={userForm.password}
-                  onChange={e => setUserForm({ ...userForm, password: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='Enter password'
-                  minLength={6}
-                />
-              </div>
-              <div className='space-y-2'>
-                <label htmlFor='create-user-admin' className='flex items-center'>
-                  <input
-                    id='create-user-admin'
-                    type='checkbox'
-                    checked={userForm.is_admin}
-                    onChange={e => setUserForm({ ...userForm, is_admin: e.target.checked })}
-                    className='mr-2'
-                  />
-                  <span className='text-sm text-gray-700'>Admin privileges</span>
-                </label>
-                <label htmlFor='create-user-moderator' className='flex items-center'>
-                  <input
-                    id='create-user-moderator'
-                    type='checkbox'
-                    checked={userForm.is_moderator}
-                    onChange={e => setUserForm({ ...userForm, is_moderator: e.target.checked })}
-                    className='mr-2'
-                  />
-                  <span className='text-sm text-gray-700'>Moderator privileges</span>
-                </label>
-                <label htmlFor='create-user-enabled' className='flex items-center'>
-                  <input
-                    id='create-user-enabled'
-                    type='checkbox'
-                    checked={userForm.enabled}
-                    onChange={e => setUserForm({ ...userForm, enabled: e.target.checked })}
-                    className='mr-2'
-                  />
-                  <span className='text-sm text-gray-700'>Account enabled</span>
-                </label>
-              </div>
-            </div>
-            <div className='flex justify-end space-x-3 mt-6'>
-              <button
-                onClick={() => {
-                  setShowCreateUserModal(false);
-                  resetUserForm();
-                }}
-                className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateUser}
-                disabled={createUserMutation.isLoading}
-                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-              >
-                {createUserMutation.isLoading ? (
-                  <Loader className='h-4 w-4 mr-2 animate-spin' />
-                ) : (
-                  <Save className='h-4 w-4 mr-2' />
-                )}
-                Create User
-              </button>
-            </div>
+      <Modal
+        isOpen={showCreateUserModal}
+        onClose={() => {
+          setShowCreateUserModal(false);
+          resetUserForm();
+        }}
+        title='Create New User'
+        className='max-w-md'
+      >
+        <div className='space-y-4'>
+          <div>
+            <label
+              htmlFor='create-user-username'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Username *
+            </label>
+            <input
+              id='create-user-username'
+              type='text'
+              value={userForm.username}
+              onChange={e => setUserForm({ ...userForm, username: e.target.value })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              placeholder='Enter username'
+              maxLength={50}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor='create-user-email'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Email *
+            </label>
+            <input
+              id='create-user-email'
+              type='email'
+              value={userForm.email}
+              onChange={e => setUserForm({ ...userForm, email: e.target.value })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              placeholder='Enter email'
+            />
+          </div>
+          <div>
+            <label
+              htmlFor='create-user-password'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Password *
+            </label>
+            <input
+              id='create-user-password'
+              type='password'
+              value={userForm.password}
+              onChange={e => setUserForm({ ...userForm, password: e.target.value })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              placeholder='Enter password'
+              minLength={6}
+            />
+          </div>
+          <div className='space-y-2'>
+            <label htmlFor='create-user-admin' className='flex items-center'>
+              <input
+                id='create-user-admin'
+                type='checkbox'
+                checked={userForm.is_admin}
+                onChange={e => setUserForm({ ...userForm, is_admin: e.target.checked })}
+                className='mr-2'
+              />
+              <span className='text-sm text-gray-700'>Admin privileges</span>
+            </label>
+            <label htmlFor='create-user-moderator' className='flex items-center'>
+              <input
+                id='create-user-moderator'
+                type='checkbox'
+                checked={userForm.is_moderator}
+                onChange={e => setUserForm({ ...userForm, is_moderator: e.target.checked })}
+                className='mr-2'
+              />
+              <span className='text-sm text-gray-700'>Moderator privileges</span>
+            </label>
+            <label htmlFor='create-user-enabled' className='flex items-center'>
+              <input
+                id='create-user-enabled'
+                type='checkbox'
+                checked={userForm.enabled}
+                onChange={e => setUserForm({ ...userForm, enabled: e.target.checked })}
+                className='mr-2'
+              />
+              <span className='text-sm text-gray-700'>Account enabled</span>
+            </label>
           </div>
         </div>
-      )}
+        <div className='flex justify-end space-x-3 mt-6'>
+          <button
+            onClick={() => {
+              setShowCreateUserModal(false);
+              resetUserForm();
+            }}
+            className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleCreateUser}
+            disabled={createUserMutation.isLoading}
+            className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+          >
+            {createUserMutation.isLoading ? (
+              <Loader className='h-4 w-4 mr-2 animate-spin' />
+            ) : (
+              <Save className='h-4 w-4 mr-2' />
+            )}
+            Create User
+          </button>
+        </div>
+      </Modal>
 
       {/* Edit User Modal */}
-      {showEditUserModal && editingUser && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-          <div className='bg-white rounded-lg p-6 w-full max-w-md'>
-            <div className='flex justify-between items-center mb-4'>
-              <h3 className='text-lg font-semibold text-gray-900'>Edit User</h3>
-              <button
-                onClick={() => {
-                  setShowEditUserModal(false);
-                  resetUserForm();
-                }}
-                className='text-gray-400 hover:text-gray-600'
-              >
-                <X className='h-5 w-5' />
-              </button>
-            </div>
-            <div className='space-y-4'>
-              <div>
-                <label
-                  htmlFor='edit-user-username'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Username *
-                </label>
-                <input
-                  id='edit-user-username'
-                  type='text'
-                  value={userForm.username}
-                  onChange={e => setUserForm({ ...userForm, username: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='Enter username'
-                  maxLength={50}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor='edit-user-email'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Email *
-                </label>
-                <input
-                  id='edit-user-email'
-                  type='email'
-                  value={userForm.email}
-                  onChange={e => setUserForm({ ...userForm, email: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='Enter email'
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor='edit-user-password'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Password (leave blank to keep current)
-                </label>
-                <input
-                  id='edit-user-password'
-                  type='password'
-                  value={userForm.password}
-                  onChange={e => setUserForm({ ...userForm, password: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='Enter new password (optional)'
-                  minLength={6}
-                />
-              </div>
-              <div className='space-y-2'>
-                <label htmlFor='edit-user-admin' className='flex items-center'>
-                  <input
-                    id='edit-user-admin'
-                    type='checkbox'
-                    checked={userForm.is_admin}
-                    onChange={e => setUserForm({ ...userForm, is_admin: e.target.checked })}
-                    className='mr-2'
-                  />
-                  <span className='text-sm text-gray-700'>Admin privileges</span>
-                </label>
-                <label htmlFor='edit-user-moderator' className='flex items-center'>
-                  <input
-                    id='edit-user-moderator'
-                    type='checkbox'
-                    checked={userForm.is_moderator}
-                    onChange={e => setUserForm({ ...userForm, is_moderator: e.target.checked })}
-                    className='mr-2'
-                  />
-                  <span className='text-sm text-gray-700'>Moderator privileges</span>
-                </label>
-                <label htmlFor='edit-user-enabled' className='flex items-center'>
-                  <input
-                    id='edit-user-enabled'
-                    type='checkbox'
-                    checked={userForm.enabled}
-                    onChange={e => setUserForm({ ...userForm, enabled: e.target.checked })}
-                    className='mr-2'
-                  />
-                  <span className='text-sm text-gray-700'>Account enabled</span>
-                </label>
-              </div>
-            </div>
-            <div className='flex justify-end space-x-3 mt-6'>
-              <button
-                onClick={() => {
-                  setShowEditUserModal(false);
-                  resetUserForm();
-                }}
-                className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleUpdateUser}
-                disabled={updateUserMutation.isLoading}
-                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-              >
-                {updateUserMutation.isLoading ? (
-                  <Loader className='h-4 w-4 mr-2 animate-spin' />
-                ) : (
-                  <Save className='h-4 w-4 mr-2' />
-                )}
-                Update User
-              </button>
-            </div>
+      <Modal
+        isOpen={showEditUserModal && !!editingUser}
+        onClose={() => {
+          setShowEditUserModal(false);
+          resetUserForm();
+        }}
+        title='Edit User'
+        className='max-w-md'
+      >
+        <div className='space-y-4'>
+          <div>
+            <label
+              htmlFor='edit-user-username'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Username *
+            </label>
+            <input
+              id='edit-user-username'
+              type='text'
+              value={userForm.username}
+              onChange={e => setUserForm({ ...userForm, username: e.target.value })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              placeholder='Enter username'
+              maxLength={50}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor='edit-user-email'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Email *
+            </label>
+            <input
+              id='edit-user-email'
+              type='email'
+              value={userForm.email}
+              onChange={e => setUserForm({ ...userForm, email: e.target.value })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              placeholder='Enter email'
+            />
+          </div>
+          <div>
+            <label
+              htmlFor='edit-user-password'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Password (leave blank to keep current)
+            </label>
+            <input
+              id='edit-user-password'
+              type='password'
+              value={userForm.password}
+              onChange={e => setUserForm({ ...userForm, password: e.target.value })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              placeholder='Enter new password (optional)'
+              minLength={6}
+            />
+          </div>
+          <div className='space-y-2'>
+            <label htmlFor='edit-user-admin' className='flex items-center'>
+              <input
+                id='edit-user-admin'
+                type='checkbox'
+                checked={userForm.is_admin}
+                onChange={e => setUserForm({ ...userForm, is_admin: e.target.checked })}
+                className='mr-2'
+              />
+              <span className='text-sm text-gray-700'>Admin privileges</span>
+            </label>
+            <label htmlFor='edit-user-moderator' className='flex items-center'>
+              <input
+                id='edit-user-moderator'
+                type='checkbox'
+                checked={userForm.is_moderator}
+                onChange={e => setUserForm({ ...userForm, is_moderator: e.target.checked })}
+                className='mr-2'
+              />
+              <span className='text-sm text-gray-700'>Moderator privileges</span>
+            </label>
+            <label htmlFor='edit-user-enabled' className='flex items-center'>
+              <input
+                id='edit-user-enabled'
+                type='checkbox'
+                checked={userForm.enabled}
+                onChange={e => setUserForm({ ...userForm, enabled: e.target.checked })}
+                className='mr-2'
+              />
+              <span className='text-sm text-gray-700'>Account enabled</span>
+            </label>
           </div>
         </div>
-      )}
+        <div className='flex justify-end space-x-3 mt-6'>
+          <button
+            onClick={() => {
+              setShowEditUserModal(false);
+              resetUserForm();
+            }}
+            className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleUpdateUser}
+            disabled={updateUserMutation.isLoading}
+            className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+          >
+            {updateUserMutation.isLoading ? (
+              <Loader className='h-4 w-4 mr-2 animate-spin' />
+            ) : (
+              <Save className='h-4 w-4 mr-2' />
+            )}
+            Update User
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };

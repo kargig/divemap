@@ -1,9 +1,10 @@
-import { Trash2, Edit, Plus, X, Loader, Save } from 'lucide-react';
+import { Trash2, Edit, Plus, Loader, Save } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
 import api from '../api';
+import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 
@@ -314,160 +315,141 @@ const AdminTags = () => {
       )}
 
       {/* Create Tag Modal */}
-      {showCreateTagModal && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-          <div className='bg-white rounded-lg p-6 w-full max-w-md'>
-            <div className='flex justify-between items-center mb-4'>
-              <h3 className='text-lg font-semibold text-gray-900'>Create New Tag</h3>
-              <button
-                onClick={() => {
-                  setShowCreateTagModal(false);
-                  resetTagForm();
-                }}
-                className='text-gray-400 hover:text-gray-600'
-              >
-                <X className='h-5 w-5' />
-              </button>
-            </div>
-            <div className='space-y-4'>
-              <div>
-                <label
-                  htmlFor='create-tag-name'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Tag Name *
-                </label>
-                <input
-                  id='create-tag-name'
-                  type='text'
-                  value={tagForm.name}
-                  onChange={e => setTagForm({ ...tagForm, name: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='Enter tag name'
-                  maxLength={100}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor='create-tag-description'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Description
-                </label>
-                <textarea
-                  id='create-tag-description'
-                  value={tagForm.description}
-                  onChange={e => setTagForm({ ...tagForm, description: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='Enter tag description (optional)'
-                  rows={3}
-                />
-              </div>
-            </div>
-            <div className='flex justify-end space-x-3 mt-6'>
-              <button
-                onClick={() => {
-                  setShowCreateTagModal(false);
-                  resetTagForm();
-                }}
-                className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateTag}
-                disabled={createTagMutation.isLoading}
-                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-              >
-                {createTagMutation.isLoading ? (
-                  <Loader className='h-4 w-4 mr-2 animate-spin' />
-                ) : (
-                  <Save className='h-4 w-4 mr-2' />
-                )}
-                Create Tag
-              </button>
-            </div>
+      <Modal
+        isOpen={showCreateTagModal}
+        onClose={() => {
+          setShowCreateTagModal(false);
+          resetTagForm();
+        }}
+        title='Create New Tag'
+        className='max-w-md'
+      >
+        <div className='space-y-4'>
+          <div>
+            <label
+              htmlFor='create-tag-name'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Tag Name *
+            </label>
+            <input
+              id='create-tag-name'
+              type='text'
+              value={tagForm.name}
+              onChange={e => setTagForm({ ...tagForm, name: e.target.value })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              placeholder='Enter tag name'
+              maxLength={100}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor='create-tag-description'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Description
+            </label>
+            <textarea
+              id='create-tag-description'
+              value={tagForm.description}
+              onChange={e => setTagForm({ ...tagForm, description: e.target.value })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              placeholder='Enter tag description (optional)'
+              rows={3}
+            />
           </div>
         </div>
-      )}
+        <div className='flex justify-end space-x-3 mt-6'>
+          <button
+            onClick={() => {
+              setShowCreateTagModal(false);
+              resetTagForm();
+            }}
+            className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleCreateTag}
+            disabled={createTagMutation.isLoading}
+            className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+          >
+            {createTagMutation.isLoading ? (
+              <Loader className='h-4 w-4 mr-2 animate-spin' />
+            ) : (
+              <Save className='h-4 w-4 mr-2' />
+            )}
+            Create Tag
+          </button>
+        </div>
+      </Modal>
 
       {/* Edit Tag Modal */}
-      {showEditTagModal && editingTag && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-          <div className='bg-white rounded-lg p-6 w-full max-w-md'>
-            <div className='flex justify-between items-center mb-4'>
-              <h3 className='text-lg font-semibold text-gray-900'>Edit Tag</h3>
-              <button
-                onClick={() => {
-                  setShowEditTagModal(false);
-                  resetTagForm();
-                }}
-                className='text-gray-400 hover:text-gray-600'
-              >
-                <X className='h-5 w-5' />
-              </button>
-            </div>
-            <div className='space-y-4'>
-              <div>
-                <label
-                  htmlFor='edit-tag-name'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Tag Name *
-                </label>
-                <input
-                  id='edit-tag-name'
-                  type='text'
-                  value={tagForm.name}
-                  onChange={e => setTagForm({ ...tagForm, name: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='Enter tag name'
-                  maxLength={100}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor='edit-tag-description'
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Description
-                </label>
-                <textarea
-                  id='edit-tag-description'
-                  value={tagForm.description}
-                  onChange={e => setTagForm({ ...tagForm, description: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  placeholder='Enter tag description (optional)'
-                  rows={3}
-                />
-              </div>
-            </div>
-            <div className='flex justify-end space-x-3 mt-6'>
-              <button
-                onClick={() => {
-                  setShowEditTagModal(false);
-                  resetTagForm();
-                }}
-                className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleUpdateTag}
-                disabled={updateTagMutation.isLoading}
-                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-              >
-                {updateTagMutation.isLoading ? (
-                  <Loader className='h-4 w-4 mr-2 animate-spin' />
-                ) : (
-                  <Save className='h-4 w-4 mr-2' />
-                )}
-                Update Tag
-              </button>
-            </div>
+      <Modal
+        isOpen={showEditTagModal && !!editingTag}
+        onClose={() => {
+          setShowEditTagModal(false);
+          resetTagForm();
+        }}
+        title='Edit Tag'
+        className='max-w-md'
+      >
+        <div className='space-y-4'>
+          <div>
+            <label htmlFor='edit-tag-name' className='block text-sm font-medium text-gray-700 mb-1'>
+              Tag Name *
+            </label>
+            <input
+              id='edit-tag-name'
+              type='text'
+              value={tagForm.name}
+              onChange={e => setTagForm({ ...tagForm, name: e.target.value })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              placeholder='Enter tag name'
+              maxLength={100}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor='edit-tag-description'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Description
+            </label>
+            <textarea
+              id='edit-tag-description'
+              value={tagForm.description}
+              onChange={e => setTagForm({ ...tagForm, description: e.target.value })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              placeholder='Enter tag description (optional)'
+              rows={3}
+            />
           </div>
         </div>
-      )}
+        <div className='flex justify-end space-x-3 mt-6'>
+          <button
+            onClick={() => {
+              setShowEditTagModal(false);
+              resetTagForm();
+            }}
+            className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleUpdateTag}
+            disabled={updateTagMutation.isLoading}
+            className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+          >
+            {updateTagMutation.isLoading ? (
+              <Loader className='h-4 w-4 mr-2 animate-spin' />
+            ) : (
+              <Save className='h-4 w-4 mr-2' />
+            )}
+            Update Tag
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };

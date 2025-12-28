@@ -23,6 +23,7 @@ import api from '../api';
 import ErrorPage from '../components/ErrorPage';
 import LeafletMapView from '../components/LeafletMapView';
 import MapLayersPanel from '../components/MapLayersPanel';
+import Modal from '../components/ui/Modal';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
 import WindDateTimePicker from '../components/WindDateTimePicker';
 import WindOverlayToggle from '../components/WindOverlayToggle';
@@ -1068,59 +1069,50 @@ const IndependentMapView = () => {
         </div>
 
         {/* Share Modal */}
-        {showShareModal && (
-          <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-            <div className='bg-white rounded-lg p-6 max-w-md w-full mx-4'>
-              <div className='flex items-center justify-between mb-4'>
-                <h3 className='text-lg font-semibold text-gray-900'>Share Map View</h3>
-                <button
-                  onClick={() => setShowShareModal(false)}
-                  className='text-gray-400 hover:text-gray-600'
-                >
-                  <X className='w-5 h-5' />
-                </button>
-              </div>
-
-              <div className='mb-4'>
-                <p className='text-sm text-gray-600 mb-2'>
-                  Copy this URL to share the current map view with others:
-                </p>
-                <div className='flex items-center space-x-2'>
-                  <input
-                    type='text'
-                    value={shareUrl}
-                    readOnly
-                    className='flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50'
-                  />
-                  <button
-                    onClick={handleCopyToClipboard}
-                    className={`px-3 py-2 text-sm rounded-lg transition-colors ${
-                      copySuccess
-                        ? 'bg-green-100 text-green-600'
-                        : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
-                    }`}
-                  >
-                    {copySuccess ? (
-                      <>
-                        <Check className='w-4 h-4 inline mr-1' />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className='w-4 h-4 inline mr-1' />
-                        Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className='text-xs text-gray-500'>
-                This URL includes your current view, filters, and entity type selection.
-              </div>
+        <Modal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          title='Share Map View'
+          className='max-w-md w-full mx-4'
+        >
+          <div className='mb-4'>
+            <p className='text-sm text-gray-600 mb-2'>
+              Copy this URL to share the current map view with others:
+            </p>
+            <div className='flex items-center space-x-2'>
+              <input
+                type='text'
+                value={shareUrl}
+                readOnly
+                className='flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50'
+              />
+              <button
+                onClick={handleCopyToClipboard}
+                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                  copySuccess
+                    ? 'bg-green-100 text-green-600'
+                    : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                }`}
+              >
+                {copySuccess ? (
+                  <>
+                    <Check className='w-4 h-4 inline mr-1' />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className='w-4 h-4 inline mr-1' />
+                    Copy
+                  </>
+                )}
+              </button>
             </div>
           </div>
-        )}
+
+          <div className='text-xs text-gray-500'>
+            This URL includes your current view, filters, and entity type selection.
+          </div>
+        </Modal>
       </div>
     </div>
   );
