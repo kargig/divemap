@@ -87,6 +87,8 @@
     "postcss": "^8.4.31",
     "webpack-dev-server": "^4.15.1",
     "resolve-url-loader": "^5.0.0",
-    "eslint": "^9.33.0"
+    "eslint": "^9.33.0",
+    "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.5.5",
+    "rollup-plugin-terser": "npm:@rollup/plugin-terser@^0.4.4"
   }
 }
