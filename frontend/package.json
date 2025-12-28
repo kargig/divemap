@@ -49,8 +49,8 @@
   },
   "scripts": {
     "postinstall": "npx update-browserslist-db@latest || true",
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "DISABLE_ESLINT_PLUGIN=true react-scripts start",
+    "build": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
     "build:prod": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
     "build:with-compression": "npm run build && ./scripts/precompress-assets.sh",
     "test": "react-scripts test",
@@ -69,12 +69,6 @@
     "lint:check": "node scripts/lint-check.js",
     "eject": "react-scripts eject"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -92,6 +86,7 @@
     "svgo": "^3.0.2",
     "postcss": "^8.4.31",
     "webpack-dev-server": "^4.15.1",
-    "resolve-url-loader": "^5.0.0"
+    "resolve-url-loader": "^5.0.0",
+    "eslint": "^9.33.0"
   }
 }
