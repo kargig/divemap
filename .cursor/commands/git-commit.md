@@ -9,6 +9,7 @@ The user could then use this text file using: `git commit -F commit-message.txt`
 
 1. **Review changes**
     - Check the diff: `git diff --cached` (only take staged changes into account) not `git diff` (unstaged)
+    - Never `git add` more files yourself
     - Understand what changed and why
 2. **Ask for issue key (optional)**
     - Check the branch name for an issue key (Linear, Jira, GitHub issue, etc.)

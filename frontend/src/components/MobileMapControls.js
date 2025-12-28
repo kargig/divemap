@@ -17,6 +17,8 @@ import {
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 
+import Modal from './ui/Modal';
+
 const MobileMapControls = ({
   onToggleFilters,
   onToggleLayers,
@@ -66,20 +68,24 @@ const MobileMapControls = ({
 
   // Expanded view - full overlay
   return (
-    <div className='fixed inset-0 z-[200] bg-black bg-opacity-50 flex flex-col'>
-      <div className='bg-white w-full h-full flex flex-col'>
-        {/* Header */}
-        <div className='flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50'>
-          <h3 className='text-lg font-semibold text-gray-900'>Map Tools</h3>
-          <button
-            onClick={handleToggleExpanded}
-            className='p-2 rounded-lg hover:bg-gray-200 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center'
-            aria-label='Close tools'
-          >
-            <X className='h-5 w-5 text-gray-600' />
-          </button>
-        </div>
+    <>
+      <div className='fixed bottom-6 right-6 z-50'>
+        <button
+          onClick={handleToggleExpanded}
+          className='w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 flex items-center justify-center touch-manipulation'
+          aria-label='Toggle Map Tools'
+        >
+          <Wrench className='h-6 w-6' />
+        </button>
+      </div>
 
+      <Modal
+        isOpen={isExpanded}
+        onClose={handleToggleExpanded}
+        title='Map Tools'
+        className='w-full h-screen sm:h-auto sm:max-w-xl p-0 flex flex-col'
+        showCloseButton={true}
+      >
         {/* Tab Navigation */}
         <div className='flex border-b border-gray-200 bg-white'>
           <button
@@ -285,8 +291,8 @@ const MobileMapControls = ({
             Done
           </button>
         </div>
-      </div>
-    </div>
+      </Modal>
+    </>
   );
 };
 
