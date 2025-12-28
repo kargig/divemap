@@ -62,6 +62,7 @@
     "test:comprehensive": "node tests/run_comprehensive_tests.js",
     "test:all": "npm run test:nodejs20 && npm run test:mapview && npm run test:validation",
     "lint": "eslint src --max-warnings 0",
+    "lint:ci": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/**/*.{js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,json,css,md}\"",
