@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../api';
 import AdminUsersTable from '../components/tables/AdminUsersTable';
 import Modal from '../components/ui/Modal';
+import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 
@@ -41,6 +42,7 @@ const AdminUsers = () => {
   const [filters, setFilters] = useState({
     search: '',
     is_admin: '',
+    is_moderator: '',
     enabled: '',
     email_verified: '',
   });
@@ -140,6 +142,9 @@ const AdminUsers = () => {
       // Add filters
       if (filters.is_admin !== '') {
         params.append('is_admin', filters.is_admin === 'true' ? 'true' : 'false');
+      }
+      if (filters.is_moderator !== '') {
+        params.append('is_moderator', filters.is_moderator === 'true' ? 'true' : 'false');
       }
       if (filters.enabled !== '') {
         params.append('enabled', filters.enabled === 'true' ? 'true' : 'false');
@@ -580,6 +585,7 @@ const AdminUsers = () => {
     setFilters({
       search: '',
       is_admin: '',
+      is_moderator: '',
       enabled: '',
       email_verified: '',
     });
@@ -646,55 +652,55 @@ const AdminUsers = () => {
             Clear All
           </button>
         </div>
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
-          <div>
-            <label htmlFor='role-filter' className='block text-sm font-medium text-gray-700 mb-1'>
-              Role
-            </label>
-            <select
-              id='role-filter'
-              value={filters.is_admin}
-              onChange={e => handleFilterChange('is_admin', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
-            >
-              <option value=''>All Roles</option>
-              <option value='true'>Admin</option>
-              <option value='false'>User</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor='status-filter' className='block text-sm font-medium text-gray-700 mb-1'>
-              Status
-            </label>
-            <select
-              id='status-filter'
-              value={filters.enabled}
-              onChange={e => handleFilterChange('enabled', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
-            >
-              <option value=''>All Status</option>
-              <option value='true'>Enabled</option>
-              <option value='false'>Disabled</option>
-            </select>
-          </div>
-          <div>
-            <label
-              htmlFor='email-verified-filter'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Email Verified
-            </label>
-            <select
-              id='email-verified-filter'
-              value={filters.email_verified}
-              onChange={e => handleFilterChange('email_verified', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
-            >
-              <option value=''>All</option>
-              <option value='true'>Verified</option>
-              <option value='false'>Not Verified</option>
-            </select>
-          </div>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4'>
+          <Select
+            id='role-filter'
+            label='Admin Role'
+            value={filters.is_admin || 'all'}
+            onValueChange={value => handleFilterChange('is_admin', value === 'all' ? '' : value)}
+            options={[
+              { value: 'all', label: 'Any' },
+              { value: 'true', label: 'Admin' },
+              { value: 'false', label: 'Non-Admin' },
+            ]}
+          />
+          <Select
+            id='moderator-filter'
+            label='Moderator Role'
+            value={filters.is_moderator || 'all'}
+            onValueChange={value =>
+              handleFilterChange('is_moderator', value === 'all' ? '' : value)
+            }
+            options={[
+              { value: 'all', label: 'Any' },
+              { value: 'true', label: 'Moderator' },
+              { value: 'false', label: 'Non-Moderator' },
+            ]}
+          />
+          <Select
+            id='status-filter'
+            label='Status'
+            value={filters.enabled || 'all'}
+            onValueChange={value => handleFilterChange('enabled', value === 'all' ? '' : value)}
+            options={[
+              { value: 'all', label: 'Any' },
+              { value: 'true', label: 'Enabled' },
+              { value: 'false', label: 'Disabled' },
+            ]}
+          />
+          <Select
+            id='email-verified-filter'
+            label='Email Verified'
+            value={filters.email_verified || 'all'}
+            onValueChange={value =>
+              handleFilterChange('email_verified', value === 'all' ? '' : value)
+            }
+            options={[
+              { value: 'all', label: 'Any' },
+              { value: 'true', label: 'Verified' },
+              { value: 'false', label: 'Not Verified' },
+            ]}
+          />
         </div>
       </div>
 
@@ -882,6 +888,7 @@ const AdminUsers = () => {
                 const hasFilters =
                   filters.search ||
                   filters.is_admin !== '' ||
+                  filters.is_moderator !== '' ||
                   filters.enabled !== '' ||
                   filters.email_verified !== '';
                 if (
@@ -919,6 +926,12 @@ const AdminUsers = () => {
                   // Add filters
                   if (filters.is_admin !== '') {
                     params.append('is_admin', filters.is_admin === 'true' ? 'true' : 'false');
+                  }
+                  if (filters.is_moderator !== '') {
+                    params.append(
+                      'is_moderator',
+                      filters.is_moderator === 'true' ? 'true' : 'false'
+                    );
                   }
                   if (filters.enabled !== '') {
                     params.append('enabled', filters.enabled === 'true' ? 'true' : 'false');
