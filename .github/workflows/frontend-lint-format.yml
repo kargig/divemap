@@ -1,6 +1,8 @@
 name: Frontend Lint & Format
 
 on:
+  push:
+    branches: [main]
   pull_request:
     paths:
       - 'frontend/src/**/*.js'
@@ -10,6 +12,7 @@ on:
       - 'frontend/package-lock.json'
       - 'frontend/tailwind.config.js'
       - '.github/workflows/frontend-lint-format.yml'
+  workflow_dispatch:
 
 # Cancel in-progress runs for the same PR/branch when a new push occurs
 concurrency:
