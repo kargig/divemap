@@ -464,12 +464,12 @@ const DivingCenterDetail = () => {
             {center?.email && (
               <div className='flex items-center text-gray-600'>
                 <Mail className='h-5 w-5 mr-3 flex-shrink-0 text-gray-500' />
-                <div className='flex items-center gap-2 min-w-0'>
+                <div className='flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0'>
                   <MaskedEmail
                     email={center.email}
-                    className='text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium cursor-pointer'
+                    className='text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium cursor-pointer break-all'
                   />
-                  <span className='text-xs text-gray-400'>Click to reveal</span>
+                  <span className='text-xs text-gray-400 whitespace-nowrap'>Click to reveal</span>
                 </div>
               </div>
             )}
@@ -585,9 +585,9 @@ const DivingCenterDetail = () => {
                 {user && center.ownership_status === 'unclaimed' && (
                   <button
                     onClick={() => setShowOwnershipClaim(true)}
-                    className='px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center space-x-2'
+                    className='px-2 py-1 text-xs bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center space-x-1'
                   >
-                    <Crown className='h-4 w-4' />
+                    <Crown className='h-3 w-3' />
                     <span>Claim Ownership</span>
                   </button>
                 )}

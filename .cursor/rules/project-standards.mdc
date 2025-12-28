@@ -33,6 +33,8 @@ docker exec divemap_frontend npm run build
 docker-compose up -d          # Start services
 docker-compose down            # Stop services
 docker exec divemap_frontend npm install package_name
+
+# Restart specific service
 docker restart divemap_frontend
 ```
 
