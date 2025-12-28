@@ -16,7 +16,13 @@ import {
 import PropTypes from 'prop-types';
 import { useState, useEffect, useRef } from 'react';
 
-import { searchDivingCenters, getDiveSites, searchUsers } from '../api';
+import {
+  searchDivingCenters,
+  getDiveSites,
+  searchUsers,
+  getUniqueCountries,
+  getUniqueRegions,
+} from '../api';
 import { useResponsiveScroll } from '../hooks/useResponsive';
 import { getDifficultyOptions, getDifficultyLabel } from '../utils/difficultyHelpers';
 import { getTagColor } from '../utils/tagHelpers';
@@ -201,6 +207,22 @@ const ResponsiveFilterBar = ({
   };
 
   // Initialize dive site search when dive_site_id is set
+  useEffect(() => {
+    if (filters.country) {
+      setCountrySearch(filters.country);
+    } else {
+      setCountrySearch('');
+    }
+  }, [filters.country]);
+
+  useEffect(() => {
+    if (filters.region) {
+      setRegionSearch(filters.region);
+    } else {
+      setRegionSearch('');
+    }
+  }, [filters.region]);
+
   useEffect(() => {
     if (pageType === 'dives' && filters.availableDiveSites && filters.dive_site_id) {
       const selectedSite = filters.availableDiveSites.find(
@@ -597,27 +619,8 @@ const ResponsiveFilterBar = ({
     countrySearchTimeoutRef.current = setTimeout(async () => {
       try {
         setCountrySearchLoading(true);
-        // Search dive sites to get unique countries
-        const results = await getDiveSites({
-          search: value,
-          page_size: 100,
-          detail_level: 'basic',
-        });
-
-        let sites = [];
-        if (Array.isArray(results)) {
-          sites = results;
-        } else if (results && Array.isArray(results.items)) {
-          sites = results.items;
-        } else if (results && Array.isArray(results.data)) {
-          sites = results.data;
-        } else if (results && Array.isArray(results.results)) {
-          sites = results.results;
-        }
-
-        // Extract unique countries
-        const uniqueCountries = [...new Set(sites.map(site => site.country).filter(Boolean))];
-        setCountrySearchResults(uniqueCountries.map(country => ({ name: country })));
+        const results = await getUniqueCountries(value);
+        setCountrySearchResults(results.map(country => ({ name: country })));
       } catch (error) {
         console.error('Search countries failed', error);
         setCountrySearchResults([]);
@@ -644,27 +647,8 @@ const ResponsiveFilterBar = ({
     regionSearchTimeoutRef.current = setTimeout(async () => {
       try {
         setRegionSearchLoading(true);
-        // Search dive sites to get unique regions
-        const results = await getDiveSites({
-          search: value,
-          page_size: 100,
-          detail_level: 'basic',
-        });
-
-        let sites = [];
-        if (Array.isArray(results)) {
-          sites = results;
-        } else if (results && Array.isArray(results.items)) {
-          sites = results.items;
-        } else if (results && Array.isArray(results.data)) {
-          sites = results.data;
-        } else if (results && Array.isArray(results.results)) {
-          sites = results.results;
-        }
-
-        // Extract unique regions
-        const uniqueRegions = [...new Set(sites.map(site => site.region).filter(Boolean))];
-        setRegionSearchResults(uniqueRegions.map(region => ({ name: region })));
+        const results = await getUniqueRegions(filters.country, value);
+        setRegionSearchResults(results.map(region => ({ name: region })));
       } catch (error) {
         console.error('Search regions failed', error);
         setRegionSearchResults([]);
@@ -1216,12 +1200,24 @@ const ResponsiveFilterBar = ({
                       type='number'
                       min='0'
                       max='10'
-                      step='0.1'
-                      placeholder='Show sites rated ≥ this value'
+                      step='1'
+                      placeholder='Min rating (1-10)'
                       value={filters.min_rating || ''}
                       onChange={e => onFilterChange('min_rating', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                      onKeyDown={e => {
+                        if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
+                          e.preventDefault();
+                        }
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                        filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10)
+                          ? 'border-red-500 ring-1 ring-red-500'
+                          : 'border-gray-300'
+                      }`}
                     />
+                    {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) && (
+                      <p className='text-red-500 text-xs mt-1'>Rating must be between 0 and 10</p>
+                    )}
                   </div>
                 )}
 
@@ -2373,12 +2369,24 @@ const ResponsiveFilterBar = ({
                     type='number'
                     min='0'
                     max='10'
-                    step='0.1'
-                    placeholder='Show sites rated ≥ this value'
+                    step='1'
+                    placeholder='Min rating (1-10)'
                     value={filters.min_rating || ''}
                     onChange={e => onFilterChange('min_rating', e.target.value)}
-                    className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+                    onKeyDown={e => {
+                      if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
+                        e.preventDefault();
+                      }
+                    }}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px] ${
+                      filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10)
+                        ? 'border-red-500 ring-1 ring-red-500'
+                        : 'border-gray-300'
+                    }`}
                   />
+                  {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) && (
+                    <p className='text-red-500 text-sm mt-1'>Rating must be between 0 and 10</p>
+                  )}
                 </div>
               )}
 

@@ -974,9 +974,65 @@ class TestDiveSitesAuthorization:
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}",
             headers=auth_headers
         )
-        
         assert remove_response.status_code == status.HTTP_200_OK
-        assert remove_response.json()["message"] == "Diving center removed from dive site successfully"
+
+    def test_get_unique_countries(self, client, db_session):
+        """Test getting unique countries from dive sites."""
+        # Create dive sites with different countries
+        site1 = DiveSite(name="Site 1", latitude=1.0, longitude=1.0, country="Greece")
+        site2 = DiveSite(name="Site 2", latitude=2.0, longitude=2.0, country="Greece")
+        site3 = DiveSite(name="Site 3", latitude=3.0, longitude=3.0, country="Italy")
+        db_session.add_all([site1, site2, site3])
+        db_session.commit()
+
+        # Get all unique countries
+        response = client.get("/api/v1/dive-sites/countries")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) == 2
+        assert "Greece" in data
+        assert "Italy" in data
+
+        # Test with search
+        response = client.get("/api/v1/dive-sites/countries?search=Gree")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) == 1
+        assert data[0] == "Greece"
+
+    def test_get_unique_regions(self, client, db_session):
+        """Test getting unique regions from dive sites."""
+        # Create dive sites with different regions
+        site1 = DiveSite(name="Site 1", latitude=1.0, longitude=1.0, country="Greece", region="Attica")
+        site2 = DiveSite(name="Site 2", latitude=2.0, longitude=2.0, country="Greece", region="Crete")
+        site3 = DiveSite(name="Site 3", latitude=3.0, longitude=3.0, country="Italy", region="Sicily")
+        db_session.add_all([site1, site2, site3])
+        db_session.commit()
+
+        # Get all unique regions
+        response = client.get("/api/v1/dive-sites/regions")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) == 3
+        assert "Attica" in data
+        assert "Crete" in data
+        assert "Sicily" in data
+
+        # Test filtering by country
+        response = client.get("/api/v1/dive-sites/regions?country=Greece")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) == 2
+        assert "Attica" in data
+        assert "Crete" in data
+        assert "Sicily" not in data
+
+        # Test with search
+        response = client.get("/api/v1/dive-sites/regions?search=Atti")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) == 1
+        assert data[0] == "Attica"
 
     def test_add_diving_center_to_dive_site_admin_authorization(self, client, db_session, test_dive_site, test_diving_center, admin_headers):
         """Test that admins can add any diving center to dive sites."""

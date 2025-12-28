@@ -57,6 +57,23 @@ def db_engine():
     except Exception as e:
         print(f"Warning: Could not drop tables at session end: {e}")
 
+@pytest.fixture(scope="session", autouse=True)
+def populate_difficulty_levels(db_engine):
+    """Auto-populate difficulty levels once per session."""
+    from sqlalchemy import text
+    with db_engine.connect() as connection:
+        # Check if table is empty
+        result = connection.execute(text("SELECT count(*) FROM difficulty_levels")).scalar()
+        if result == 0:
+            connection.execute(text("""
+                INSERT INTO difficulty_levels (id, code, label, order_index) VALUES
+                (1, 'OPEN_WATER', 'Open Water', 1),
+                (2, 'ADVANCED_OPEN_WATER', 'Advanced Open Water', 2),
+                (3, 'DEEP_NITROX', 'Deep/Nitrox', 3),
+                (4, 'TECHNICAL_DIVING', 'Technical Diving', 4)
+            """))
+            connection.commit()
+
 @pytest.fixture(scope="function")
 def db_session(db_engine):
     """Create a fresh database session for each test."""
