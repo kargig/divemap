@@ -25,6 +25,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api';
 import MapLayersPanel from '../components/MapLayersPanel';
 import ShareButton from '../components/ShareButton';
+import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { CHART_COLORS, getRouteTypeColor } from '../utils/colorPalette';
@@ -814,76 +815,75 @@ const RouteDetail = () => {
       </div>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
-          <div className='bg-white rounded-lg p-6 max-w-md w-full'>
-            <div className='flex items-center mb-4'>
-              <AlertCircle className='w-6 h-6 text-red-600 mr-3' />
-              <h3 className='text-lg font-semibold text-gray-900'>Delete Route</h3>
-            </div>
-
-            <p className='text-gray-600 mb-6'>
-              Are you sure you want to hide this route? This action can be undone by restoring the
-              route later.
-            </p>
-
-            <div className='flex justify-end gap-3'>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className='px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors'
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteRoute}
-                disabled={deleteRouteMutation.isLoading}
-                className='px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-md transition-colors disabled:opacity-50 flex items-center'
-              >
-                {deleteRouteMutation.isLoading ? (
-                  <>
-                    <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                    Deleting...
-                  </>
-                ) : (
-                  'Hide Route'
-                )}
-              </button>
-            </div>
-          </div>
+      <Modal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        title='Delete Route'
+        className='max-w-md'
+      >
+        <div className='flex items-start mb-4'>
+          <AlertCircle className='w-6 h-6 text-red-600 mr-3 mt-0.5' />
+          <p className='text-gray-600'>
+            Are you sure you want to hide this route? This action can be undone by restoring the
+            route later.
+          </p>
         </div>
-      )}
+
+        <div className='flex justify-end gap-3'>
+          <button
+            onClick={() => setShowDeleteConfirm(false)}
+            className='px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors'
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDeleteRoute}
+            disabled={deleteRouteMutation.isLoading}
+            className='px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-md transition-colors disabled:opacity-50 flex items-center'
+          >
+            {deleteRouteMutation.isLoading ? (
+              <>
+                <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                Deleting...
+              </>
+            ) : (
+              'Hide Route'
+            )}
+          </button>
+        </div>
+      </Modal>
 
       {/* Export Modal */}
-      {showExportModal && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-          <div className='bg-white rounded-lg p-6 max-w-md w-full mx-4'>
-            <h3 className='text-lg font-semibold mb-4'>Export Route</h3>
-            <p className='text-gray-600 mb-4'>Choose a format to download your route:</p>
+      <Modal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title='Export Route'
+        className='max-w-md'
+      >
+        <p className='text-gray-600 mb-4'>Choose a format to download your route:</p>
 
-            <div className='space-y-2'>
-              {exportFormats.map(format => (
-                <button
-                  key={format.format}
-                  onClick={() => handleExportRoute(format.format)}
-                  className='w-full text-left p-3 border rounded hover:bg-gray-50 transition-colors'
-                >
-                  <div className='font-medium text-gray-900'>{format.name}</div>
-                  <div className='text-sm text-gray-600'>{format.description}</div>
-                </button>
-              ))}
-            </div>
-
-            <div className='flex justify-end mt-6'>
-              <button
-                onClick={() => setShowExportModal(false)}
-                className='px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors'
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+        <div className='space-y-2'>
+          {exportFormats.map(format => (
+            <button
+              key={format.format}
+              onClick={() => handleExportRoute(format.format)}
+              className='w-full text-left p-3 border rounded hover:bg-gray-50 transition-colors'
+            >
+              <div className='font-medium text-gray-900'>{format.name}</div>
+              <div className='text-sm text-gray-600'>{format.description}</div>
+            </button>
+          ))}
         </div>
-      )}
+
+        <div className='flex justify-end mt-6'>
+          <button
+            onClick={() => setShowExportModal(false)}
+            className='px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors'
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };

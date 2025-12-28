@@ -4,7 +4,6 @@ import {
   Search,
   X,
   Loader,
-  Save,
   Anchor,
   Calendar,
   User,
@@ -13,58 +12,24 @@ import {
   Columns,
 } from 'lucide-react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
-import { FormField } from '../components/forms/FormField';
 import AdminDivesTable from '../components/tables/AdminDivesTable';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
-import { createDiveSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 const AdminDives = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Set page title
   usePageTitle('Divemap - Admin - Dives');
   const [searchParams, setSearchParams] = useSearchParams();
-
-  // React Hook Form setup
-  const methods = useForm({
-    resolver: createResolver(createDiveSchema),
-    mode: 'onChange',
-    defaultValues: {
-      name: '',
-      dive_information: '',
-      max_depth: '',
-      average_depth: '',
-      gas_bottles_used: '',
-      suit_type: '',
-      difficulty_code: '',
-      visibility_rating: '',
-      user_rating: '',
-      dive_date: '',
-      dive_time: '',
-      duration: '',
-      is_private: false,
-      dive_site_id: '',
-      diving_center_id: '', // Added to match schema
-      selected_route_id: '', // Added to match schema
-    },
-  });
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-  } = methods;
 
   // Update URL when pagination changes
   const updateURL = useCallback(
@@ -76,10 +41,6 @@ const AdminDives = () => {
     },
     [searchParams, setSearchParams]
   );
-
-  // Dive management state
-  const [showEditDiveModal, setShowEditDiveModal] = useState(false);
-  const [editingDive, setEditingDive] = useState(null);
 
   // TanStack Table state
   const [sorting, setSorting] = useState([]);
@@ -226,23 +187,6 @@ const AdminDives = () => {
     select: response => response.data,
   });
 
-  // Dive mutations
-  const updateDiveMutation = useMutation(
-    ({ id, data }) => api.put(`/api/v1/dives/admin/dives/${id}`, data),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['admin-dives']);
-        toast.success('Dive updated successfully!');
-        setShowEditDiveModal(false);
-        setEditingDive(null);
-        reset();
-      },
-      onError: _error => {
-        toast.error('Failed to update dive');
-      },
-    }
-  );
-
   const deleteDiveMutation = useMutation(id => api.delete(`/api/v1/dives/admin/dives/${id}`), {
     onSuccess: () => {
       queryClient.invalidateQueries(['admin-dives']);
@@ -281,39 +225,7 @@ const AdminDives = () => {
   };
 
   const handleEditDive = dive => {
-    setEditingDive(dive);
-    reset({
-      name: dive.name || '',
-      dive_information: dive.dive_information || '',
-      max_depth: dive.max_depth ? dive.max_depth.toString() : '',
-      average_depth: dive.average_depth ? dive.average_depth.toString() : '',
-      gas_bottles_used: dive.gas_bottles_used || '',
-      suit_type: dive.suit_type || '',
-      difficulty_code: dive.difficulty_code || '',
-      visibility_rating: dive.visibility_rating ? dive.visibility_rating.toString() : '',
-      user_rating: dive.user_rating ? dive.user_rating.toString() : '',
-      dive_date: dive.dive_date || '',
-      dive_time: dive.dive_time ? dive.dive_time.substring(0, 5) : '', // HH:MM
-      duration: dive.duration ? dive.duration.toString() : '',
-      is_private: dive.is_private || false,
-      dive_site_id: dive.dive_site_id ? dive.dive_site_id.toString() : '',
-      diving_center_id: dive.diving_center_id ? dive.diving_center_id.toString() : '',
-      selected_route_id: dive.selected_route_id ? dive.selected_route_id.toString() : '',
-    });
-    setShowEditDiveModal(true);
-  };
-
-  const onUpdateSubmit = data => {
-    const updateData = {
-      ...data,
-      dive_time: data.dive_time && data.dive_time !== '' ? `${data.dive_time}:00` : null,
-      // Zod schema handles number conversions and nulls
-    };
-
-    updateDiveMutation.mutate({
-      id: editingDive.id,
-      data: updateData,
-    });
+    navigate(`/dives/${dive.id}/edit`);
   };
 
   const handleDeleteDive = dive => {
@@ -499,9 +411,7 @@ const AdminDives = () => {
           const dive = row.original;
           return (
             <span
-              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                dive.is_private ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-              }`}
+              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${dive.is_private ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}
             >
               {dive.is_private ? 'Private' : 'Public'}
             </span>
@@ -547,7 +457,7 @@ const AdminDives = () => {
         size: 100,
       },
     ],
-    [rowSelection, dives]
+    [rowSelection, dives, navigate]
   );
 
   // Handle pagination change
@@ -1012,245 +922,6 @@ const AdminDives = () => {
         onDelete={handleDeleteDive}
         isLoading={isLoading}
       />
-
-      {/* Edit Dive Modal */}
-      {showEditDiveModal && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-          <div className='bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto'>
-            <div className='flex items-center justify-between mb-4'>
-              <h2 className='text-xl font-semibold'>Edit Dive</h2>
-              <button
-                onClick={() => setShowEditDiveModal(false)}
-                className='text-gray-400 hover:text-gray-600'
-              >
-                <X className='h-6 w-6' />
-              </button>
-            </div>
-
-            <FormProvider {...methods}>
-              <form onSubmit={handleSubmit(onUpdateSubmit)}>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <div>
-                    <FormField name='name' label='Name'>
-                      {({ register, name }) => (
-                        <input
-                          id='edit-dive-name'
-                          type='text'
-                          {...register(name)}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.name ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div>
-                    <FormField name='dive_site_id' label='Dive Site'>
-                      {({ register, name }) => (
-                        <select
-                          id='edit-dive-site'
-                          {...register(name)}
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        >
-                          <option value=''>No dive site</option>
-                          {diveSites?.map(site => (
-                            <option key={site.id} value={site.id}>
-                              {site.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div>
-                    <FormField name='dive_date' label='Date'>
-                      {({ register, name }) => (
-                        <input
-                          id='edit-dive-date'
-                          type='date'
-                          {...register(name)}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.dive_date ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div>
-                    <FormField name='dive_time' label='Time'>
-                      {({ register, name }) => (
-                        <input
-                          id='edit-dive-time'
-                          type='time'
-                          {...register(name)}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.dive_time ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div>
-                    <FormField name='max_depth' label='Max Depth (m)'>
-                      {({ register, name }) => (
-                        <input
-                          id='edit-max-depth'
-                          type='number'
-                          step='any'
-                          {...register(name)}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.max_depth ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div>
-                    <FormField name='duration' label='Duration (min)'>
-                      {({ register, name }) => (
-                        <input
-                          id='edit-duration'
-                          type='number'
-                          {...register(name)}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.duration ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div>
-                    <FormField name='difficulty_code' label='Difficulty'>
-                      {({ register, name }) => (
-                        <select
-                          id='edit-difficulty'
-                          {...register(name)}
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        >
-                          <option value=''>Select difficulty</option>
-                          {getDifficultyOptions().map(option => (
-                            <option key={option.value} value={option.value || ''}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div>
-                    <FormField name='suit_type' label='Suit Type'>
-                      {({ register, name }) => (
-                        <select
-                          id='edit-suit-type'
-                          {...register(name)}
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        >
-                          <option value=''>Select suit type</option>
-                          <option value='wet_suit'>Wet Suit</option>
-                          <option value='dry_suit'>Dry Suit</option>
-                          <option value='shortie'>Shortie</option>
-                        </select>
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div>
-                    <FormField name='user_rating' label='User Rating (1-10)'>
-                      {({ register, name }) => (
-                        <input
-                          id='edit-user-rating'
-                          type='number'
-                          min='1'
-                          max='10'
-                          {...register(name)}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.user_rating ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div>
-                    <FormField name='visibility_rating' label='Visibility Rating (1-10)'>
-                      {({ register, name }) => (
-                        <input
-                          id='edit-visibility-rating'
-                          type='number'
-                          min='1'
-                          max='10'
-                          {...register(name)}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.visibility_rating ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div className='md:col-span-2'>
-                    <FormField name='dive_information' label='Dive Information'>
-                      {({ register, name }) => (
-                        <textarea
-                          id='edit-dive-info'
-                          {...register(name)}
-                          rows='3'
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        />
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div className='md:col-span-2'>
-                    <FormField name='is_private' label='Privacy'>
-                      {({ register, name }) => (
-                        <label htmlFor='edit-is-private' className='flex items-center'>
-                          <input
-                            id='edit-is-private'
-                            type='checkbox'
-                            {...register(name)}
-                            className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2'
-                          />
-                          <span className='text-sm font-medium text-gray-700'>Private dive</span>
-                        </label>
-                      )}
-                    </FormField>
-                  </div>
-                </div>
-
-                <div className='flex justify-end space-x-3 mt-6'>
-                  <button
-                    type='button'
-                    onClick={() => setShowEditDiveModal(false)}
-                    className='px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50'
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type='submit'
-                    disabled={updateDiveMutation.isLoading}
-                    className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2'
-                  >
-                    {updateDiveMutation.isLoading ? (
-                      <Loader className='h-4 w-4 animate-spin' />
-                    ) : (
-                      <Save className='h-4 w-4' />
-                    )}
-                    <span>Update Dive</span>
-                  </button>
-                </div>
-              </form>
-            </FormProvider>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

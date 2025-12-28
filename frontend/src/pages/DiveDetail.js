@@ -34,6 +34,7 @@ import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
 import DiveProfileModal from '../components/DiveProfileModal';
 import RateLimitError from '../components/RateLimitError';
 import ShareButton from '../components/ShareButton';
+import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getRouteTypeColor, getDrawingTypeColor } from '../utils/colorPalette';
@@ -1234,36 +1235,29 @@ const DiveDetail = () => {
       </div>
 
       {/* Media Modal */}
-      {selectedMedia && (
-        <div className='fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50'>
-          <div className='max-w-4xl max-h-full p-4'>
-            <div className='bg-white rounded-lg p-4'>
-              <div className='flex justify-between items-center mb-4'>
-                <h3 className='text-lg font-semibold'>{selectedMedia.title || 'Dive Media'}</h3>
-                <button
-                  onClick={() => setSelectedMedia(null)}
-                  className='text-gray-500 hover:text-gray-700'
-                >
-                  <EyeOff size={24} />
-                </button>
-              </div>
-              {selectedMedia.media_type === 'photo' && (
-                <img
-                  src={selectedMedia.url}
-                  alt={selectedMedia.description || 'Dive photo'}
-                  className='max-w-full max-h-96 object-contain'
-                />
-              )}
-              {selectedMedia.media_type === 'video' && (
-                <video src={selectedMedia.url} controls className='max-w-full max-h-96' />
-              )}
-              {selectedMedia.description && (
-                <p className='mt-4 text-gray-600'>{selectedMedia.description}</p>
-              )}
-            </div>
-          </div>
+      <Modal
+        isOpen={!!selectedMedia}
+        onClose={() => setSelectedMedia(null)}
+        title={selectedMedia?.title || 'Dive Media'}
+        className='max-w-4xl max-h-full p-4'
+        overlayClassName='bg-opacity-75'
+      >
+        <div className='flex flex-col items-center'>
+          {selectedMedia?.media_type === 'photo' && (
+            <img
+              src={selectedMedia.url}
+              alt={selectedMedia.description || 'Dive photo'}
+              className='max-w-full max-h-[70vh] object-contain'
+            />
+          )}
+          {selectedMedia?.media_type === 'video' && (
+            <video src={selectedMedia.url} controls className='max-w-full max-h-[70vh]' />
+          )}
+          {selectedMedia?.description && (
+            <p className='mt-4 text-gray-600 text-center w-full'>{selectedMedia.description}</p>
+          )}
         </div>
-      )}
+      </Modal>
 
       {/* Dive Profile Modal */}
       <DiveProfileModal

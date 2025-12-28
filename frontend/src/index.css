@@ -5,54 +5,54 @@
 /* Colorblind-Safe Tag Colors using Okabe-Ito Palette */
 @layer components {
   .tag-color-okabe-blue {
-    background-color: #E6F2FF;
-    color: #0072B2;
-    border: 1px solid #B3D9FF;
+    background-color: #e6f2ff;
+    color: #0072b2;
+    border: 1px solid #b3d9ff;
   }
 
   .tag-color-okabe-orange {
-    background-color: #FFF2E6;
-    color: #E69F00;
-    border: 1px solid #FFD9B3;
+    background-color: #fff2e6;
+    color: #e69f00;
+    border: 1px solid #ffd9b3;
   }
 
   .tag-color-okabe-green {
-    background-color: #E6F7F0;
-    color: #009E73;
-    border: 1px solid #B3E6D1;
+    background-color: #e6f7f0;
+    color: #009e73;
+    border: 1px solid #b3e6d1;
   }
 
   .tag-color-okabe-vermillion {
-    background-color: #FFE6E6;
-    color: #D55E00;
-    border: 1px solid #FFB3B3;
+    background-color: #ffe6e6;
+    color: #d55e00;
+    border: 1px solid #ffb3b3;
   }
 
   .tag-color-okabe-purple {
-    background-color: #F0E6F7;
-    color: #CC79A7;
-    border: 1px solid #D9B3E6;
+    background-color: #f0e6f7;
+    color: #cc79a7;
+    border: 1px solid #d9b3e6;
   }
 
   .tag-color-okabe-yellow {
-    background-color: #FFFCE6;
-    color: #F0E442;
-    border: 1px solid #FFF2B3;
+    background-color: #fffce6;
+    color: #f0e442;
+    border: 1px solid #fff2b3;
   }
 
   .tag-color-okabe-sky {
-    background-color: #E6F7FF;
-    color: #56B4E9;
-    border: 1px solid #B3E6FF;
+    background-color: #e6f7ff;
+    color: #56b4e9;
+    border: 1px solid #b3e6ff;
   }
 }
 
 /* CSS Custom Properties for Layout */
 :root {
   --navbar-height-desktop: 4rem; /* 64px - matches h-16 */
-  --navbar-height-mobile: 4rem;  /* 64px - matches h-16 */
+  --navbar-height-mobile: 4rem; /* 64px - matches h-16 */
   --sticky-offset-desktop: calc(var(--navbar-height-desktop) + 0px); /* No gap */
-  --sticky-offset-mobile: calc(var(--navbar-height-mobile) + 0px);  /* No gap */
+  --sticky-offset-mobile: calc(var(--navbar-height-mobile) + 0px); /* No gap */
 
   /* Safe area variables for modern mobile devices */
   --safe-area-top: env(safe-area-inset-top, 0px);
@@ -93,7 +93,9 @@ main.pt-16 {
   background-color: white !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 /* On mobile, make sticky-below-navbar span full viewport width */
@@ -208,7 +210,7 @@ main.pt-16 {
 }
 
 /* Force mobile menu to be above everything */
-div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
+div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
   z-index: 999999 !important;
   position: fixed !important;
   top: 4rem !important;
@@ -848,7 +850,6 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
     width: 4px;
   }
 }
-
 
 /* Mobile-friendly form elements */
 @media (max-width: 768px) {
@@ -1589,7 +1590,9 @@ div[class*="fixed top-16 left-0 right-0 bg-blue-700"] {
 
 .horizontal-slider .slider-thumb:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.3),
+    0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 /* Disabled state */
