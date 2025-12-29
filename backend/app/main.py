@@ -521,56 +521,59 @@ async def lazy_router_loading(request: Request, call_next):
     """Load routers lazily when first accessed"""
     path = request.url.path
     
+    # Check if we need to load all routers for documentation
+    is_docs = path in ["/docs", "/redoc", "/openapi.json"]
+    
     # Load dive-sites router
-    if path.startswith("/api/v1/dive-sites") and not hasattr(app, '_dive_sites_router_loaded'):
+    if (path.startswith("/api/v1/dive-sites") or is_docs) and not hasattr(app, '_dive_sites_router_loaded'):
         load_dive_sites_router()
     
     # Load newsletters router
-    elif path.startswith("/api/v1/newsletters") and not hasattr(app, '_newsletters_router_loaded'):
+    if (path.startswith("/api/v1/newsletters") or is_docs) and not hasattr(app, '_newsletters_router_loaded'):
         load_newsletters_router()
     
     # Load system router
-    elif path.startswith("/api/v1/admin/system") and not hasattr(app, '_system_router_loaded'):
+    if (path.startswith("/api/v1/admin/system") or is_docs) and not hasattr(app, '_system_router_loaded'):
         load_system_router()
     
     # Load privacy router
-    elif path.startswith("/api/v1/privacy") and not hasattr(app, '_privacy_router_loaded'):
+    if (path.startswith("/api/v1/privacy") or is_docs) and not hasattr(app, '_privacy_router_loaded'):
         load_privacy_router()
     
     # Load diving organizations router
-    elif path.startswith("/api/v1/diving-organizations") and not hasattr(app, '_diving_organizations_router_loaded'):
+    if (path.startswith("/api/v1/diving-organizations") or is_docs) and not hasattr(app, '_diving_organizations_router_loaded'):
         load_diving_organizations_router()
     
     # Load user certifications router
-    elif path.startswith("/api/v1/user-certifications") and not hasattr(app, '_user_certifications_router_loaded'):
+    if (path.startswith("/api/v1/user-certifications") or is_docs) and not hasattr(app, '_user_certifications_router_loaded'):
         load_user_certifications_router()
     
     # Load diving centers router
-    elif path.startswith("/api/v1/diving-centers") and not hasattr(app, '_diving_centers_router_loaded'):
+    if (path.startswith("/api/v1/diving-centers") or is_docs) and not hasattr(app, '_diving_centers_router_loaded'):
         load_diving_centers_router()
     
     # Load tags router
-    elif path.startswith("/api/v1/tags") and not hasattr(app, '_tags_router_loaded'):
+    if (path.startswith("/api/v1/tags") or is_docs) and not hasattr(app, '_tags_router_loaded'):
         load_tags_router()
     
     # Load dives router
-    elif path.startswith("/api/v1/dives") and not hasattr(app, '_dives_router_loaded'):
+    if (path.startswith("/api/v1/dives") or is_docs) and not hasattr(app, '_dives_router_loaded'):
         load_dives_router()
     
     # Load dive routes router
-    elif path.startswith("/api/v1/dive-routes") and not hasattr(app, '_dive_routes_router_loaded'):
+    if (path.startswith("/api/v1/dive-routes") or is_docs) and not hasattr(app, '_dive_routes_router_loaded'):
         load_dive_routes_router()
     
     # Load search router
-    elif path.startswith("/api/v1/search") and not hasattr(app, '_search_router_loaded'):
+    if (path.startswith("/api/v1/search") or is_docs) and not hasattr(app, '_search_router_loaded'):
         load_search_router()
     
     # Load share router
-    elif path.startswith("/api/v1/share") and not hasattr(app, '_share_router_loaded'):
+    if (path.startswith("/api/v1/share") or is_docs) and not hasattr(app, '_share_router_loaded'):
         load_share_router()
     
     # Load weather router
-    elif path.startswith("/api/v1/weather") and not hasattr(app, '_weather_router_loaded'):
+    if (path.startswith("/api/v1/weather") or is_docs) and not hasattr(app, '_weather_router_loaded'):
         load_weather_router()
     
     response = await call_next(request)
