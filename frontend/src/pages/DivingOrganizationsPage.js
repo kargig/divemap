@@ -51,7 +51,7 @@ const OrganizationLogo = ({ org }) => {
 
   if (org.logo_url && !imageError) {
     return (
-      <div className='h-12 w-12 rounded-full bg-white border border-gray-100 overflow-hidden flex-shrink-0'>
+      <div className='h-24 w-24 rounded-full bg-white border border-gray-100 overflow-hidden flex-shrink-0'>
         <img
           src={org.logo_url}
           alt={`${org.name} logo`}
@@ -63,7 +63,7 @@ const OrganizationLogo = ({ org }) => {
   }
 
   return (
-    <div className='h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm border border-blue-200 flex-shrink-0'>
+    <div className='h-24 w-24 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xl border border-blue-200 flex-shrink-0'>
       {org.acronym || org.name.substring(0, 2).toUpperCase()}
     </div>
   );
@@ -149,7 +149,7 @@ const DivingOrganizationsPage = () => {
   });
 
   return (
-    <div className='max-w-6xl mx-auto'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       <div className='bg-white shadow-sm rounded-lg overflow-hidden mb-8'>
         <div className='p-6 border-b border-gray-200'>
           <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>

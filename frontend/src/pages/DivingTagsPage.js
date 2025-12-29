@@ -4,6 +4,7 @@ import { useQuery } from 'react-query';
 
 import { getTagsWithCounts } from '../api';
 import usePageTitle from '../hooks/usePageTitle';
+import { getTagColor } from '../utils/tagHelpers';
 
 const DivingTagsPage = () => {
   usePageTitle('Divemap - Diving Tags');
@@ -20,7 +21,7 @@ const DivingTagsPage = () => {
   );
 
   return (
-    <div className='max-w-6xl mx-auto'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       <div className='bg-white shadow-sm rounded-lg overflow-hidden'>
         <div className='p-6 border-b border-gray-200'>
           <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
@@ -63,12 +64,20 @@ const DivingTagsPage = () => {
                   >
                     <div className='flex items-start justify-between'>
                       <div className='flex items-center'>
-                        <span className='inline-flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-600 mr-3'>
+                        <span
+                          className={`inline-flex items-center justify-center h-8 w-8 rounded-full mr-3 ${getTagColor(
+                            tag.name
+                          )}`}
+                        >
                           <Hash className='h-4 w-4' />
                         </span>
                         <h3 className='text-lg font-medium text-gray-900'>{tag.name}</h3>
                       </div>
-                      <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700'>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTagColor(
+                          tag.name
+                        )}`}
+                      >
                         {tag.dive_site_count} {tag.dive_site_count === 1 ? 'site' : 'sites'}
                       </span>
                     </div>
