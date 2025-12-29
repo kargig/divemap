@@ -68,11 +68,25 @@ node tests/run_frontend_tests.js
 
 ### Database Management
 Migrations are handled by Alembic.
-```bash
-# Create a new migration
-docker-compose exec backend python create_migration.py "Description"
 
-# Run migrations
+**Creating Migrations:**
+⚠️ **Naming Convention:** Migration files MUST be named sequentially, e.g., `0053_description_of_change.py`.
+⚠️ **Creation Method:** ALWAYS create migrations inside the backend container to ensure correct environment and dependencies. Do NOT use the host's `alembic` command directly if possible, or ensure correct environment variables. The `create_migration.py` helper script is deprecated or should be used with caution regarding file naming.
+
+**Recommended Workflow:**
+1.  **Generate Migration:**
+    ```bash
+    docker-compose exec backend alembic revision --autogenerate -m "description_of_change"
+    ```
+2.  **Rename File:** Locate the generated file in `backend/migrations/versions/` (it will have a random hash) and rename it to follow the sequential pattern (e.g., `0053_...`).
+3.  **Review:** Open the file and verify it ONLY contains the changes you intended. Remove unrelated auto-generated changes if any.
+4.  **Fix Permissions:** If created via Docker, the file might be owned by root. Change ownership to your user:
+    ```bash
+    sudo chown $USER:$USER backend/migrations/versions/0053_...
+    ```
+
+**Running Migrations:**
+```bash
 docker-compose exec backend python run_migrations.py
 ```
 

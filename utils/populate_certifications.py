@@ -52,6 +52,7 @@ def populate_db(data):
                     cert.max_depth = cert_data.get('max_depth')
                     cert.gases = cert_data.get('gases')
                     cert.tanks = cert_data.get('tanks')
+                    cert.deco_time_limit = cert_data.get('deco_time_limit')
                     cert.prerequisites = cert_data.get('prerequisites')
                 else:
                     # Create new
@@ -62,6 +63,7 @@ def populate_db(data):
                         max_depth=cert_data.get('max_depth'),
                         gases=cert_data.get('gases'),
                         tanks=cert_data.get('tanks'),
+                        deco_time_limit=cert_data.get('deco_time_limit'),
                         prerequisites=cert_data.get('prerequisites')
                     )
                     db.add(cert)

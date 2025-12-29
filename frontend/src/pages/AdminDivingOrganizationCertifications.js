@@ -28,6 +28,7 @@ const AdminDivingOrganizationCertifications = () => {
     max_depth: '',
     gases: '',
     tanks: '',
+    deco_time_limit: '',
     prerequisites: '',
   });
   const [searchTerm, setSearchTerm] = useState('');
@@ -117,6 +118,7 @@ const AdminDivingOrganizationCertifications = () => {
       max_depth: cert.max_depth || '',
       gases: cert.gases || '',
       tanks: cert.tanks || '',
+      deco_time_limit: cert.deco_time_limit || '',
       prerequisites: cert.prerequisites || '',
     });
     setShowEditCertModal(true);
@@ -139,6 +141,7 @@ const AdminDivingOrganizationCertifications = () => {
       max_depth: '',
       gases: '',
       tanks: '',
+      deco_time_limit: '',
       prerequisites: '',
     });
   };
@@ -243,6 +246,9 @@ const AdminDivingOrganizationCertifications = () => {
                   Tanks
                 </th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  Deco Limit
+                </th>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                   Prerequisites
                 </th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
@@ -280,6 +286,9 @@ const AdminDivingOrganizationCertifications = () => {
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
                       {cert.tanks || '-'}
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                      {cert.deco_time_limit || '-'}
                     </td>
                     <td
                       className='px-6 py-4 text-sm text-gray-900 max-w-xs truncate'
@@ -398,6 +407,22 @@ const AdminDivingOrganizationCertifications = () => {
                 onChange={e => setCertForm({ ...certForm, tanks: e.target.value })}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
                 placeholder='Single, Double, Sidemount'
+              />
+            </div>
+            <div>
+              <label
+                htmlFor='cert-deco-time-limit'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Deco Time Limit
+              </label>
+              <input
+                id='cert-deco-time-limit'
+                type='text'
+                value={certForm.deco_time_limit}
+                onChange={e => setCertForm({ ...certForm, deco_time_limit: e.target.value })}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                placeholder='15 minutes, Unlimited'
               />
             </div>
           </div>
@@ -538,6 +563,22 @@ const AdminDivingOrganizationCertifications = () => {
                 onChange={e => setCertForm({ ...certForm, tanks: e.target.value })}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
                 placeholder='Single, Double, Sidemount'
+              />
+            </div>
+            <div>
+              <label
+                htmlFor='edit-cert-deco-time-limit'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Deco Time Limit
+              </label>
+              <input
+                id='edit-cert-deco-time-limit'
+                type='text'
+                value={certForm.deco_time_limit}
+                onChange={e => setCertForm({ ...certForm, deco_time_limit: e.target.value })}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                placeholder='15 minutes, Unlimited'
               />
             </div>
           </div>

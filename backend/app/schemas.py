@@ -461,6 +461,7 @@ class CertificationLevelBase(BaseModel):
     max_depth: Optional[str] = None
     gases: Optional[str] = None
     tanks: Optional[str] = None
+    deco_time_limit: Optional[str] = None
     prerequisites: Optional[str] = None
 
 class CertificationLevelCreate(CertificationLevelBase):
@@ -472,6 +473,7 @@ class CertificationLevelUpdate(BaseModel):
     max_depth: Optional[str] = None
     gases: Optional[str] = None
     tanks: Optional[str] = None
+    deco_time_limit: Optional[str] = None
     prerequisites: Optional[str] = None
 
 class CertificationLevelResponse(CertificationLevelBase):
