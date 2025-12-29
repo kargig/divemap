@@ -15,6 +15,7 @@ import AdminDives from './pages/AdminDives';
 import AdminDiveSiteAliases from './pages/AdminDiveSiteAliases';
 import AdminDiveSites from './pages/AdminDiveSites';
 import AdminDivingCenters from './pages/AdminDivingCenters';
+import AdminDivingOrganizationCertifications from './pages/AdminDivingOrganizationCertifications';
 import AdminDivingOrganizations from './pages/AdminDivingOrganizations';
 import AdminGeneralStatistics from './pages/AdminGeneralStatistics';
 import AdminGrowthVisualizations from './pages/AdminGrowthVisualizations';
@@ -291,6 +292,14 @@ function App() {
                     element={
                       <ProtectedRoute requireAdmin={true}>
                         <AdminDivingOrganizations />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path='/admin/diving-organizations/:identifier/certifications'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminDivingOrganizationCertifications />
                       </ProtectedRoute>
                     }
                   />

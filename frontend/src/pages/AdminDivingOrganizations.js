@@ -1,7 +1,8 @@
-import { Trash2, Edit, Plus, Search, Loader, Save, Globe } from 'lucide-react';
+import { Trash2, Edit, Plus, Search, Loader, Save, Globe, Award } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import Modal from '../components/ui/Modal';
@@ -11,6 +12,7 @@ import usePageTitle from '../hooks/usePageTitle';
 const AdminDivingOrganizations = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Set page title
   usePageTitle('Divemap - Admin - Diving Organizations');
@@ -207,7 +209,7 @@ const AdminDivingOrganizations = () => {
   }
 
   return (
-    <div className='max-w-6xl mx-auto p-6'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-4 sm:p-6'>
       <div className='mb-8'>
         <h1 className='text-3xl font-bold text-gray-900'>Diving Organizations Management</h1>
         <p className='text-gray-600 mt-2'>
@@ -310,16 +312,16 @@ const AdminDivingOrganizations = () => {
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <div className='flex items-center'>
-                        <div className='flex-shrink-0 h-10 w-10'>
+                        <div className='flex-shrink-0 h-14 w-24 flex items-center justify-center bg-gray-50 rounded-md border border-gray-100 overflow-hidden'>
                           {org.logo_url ? (
                             <img
-                              className='h-10 w-10 rounded-full object-cover'
+                              className='max-h-full max-w-full object-contain p-1'
                               src={org.logo_url}
                               alt={org.name}
                             />
                           ) : (
-                            <div className='h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center'>
-                              <span className='text-gray-500 font-medium'>{org.acronym}</span>
+                            <div className='flex items-center justify-center'>
+                              <span className='text-gray-400 font-bold text-lg'>{org.acronym}</span>
                             </div>
                           )}
                         </div>
@@ -361,6 +363,17 @@ const AdminDivingOrganizations = () => {
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
                       <div className='flex items-center gap-2'>
+                        <button
+                          onClick={() =>
+                            navigate(
+                              `/admin/diving-organizations/${encodeURIComponent(org.name)}/certifications`
+                            )
+                          }
+                          className='text-indigo-600 hover:text-indigo-900 p-1 rounded'
+                          title='Manage Certifications'
+                        >
+                          <Award className='h-4 w-4' />
+                        </button>
                         <button
                           onClick={() => handleEditOrg(org)}
                           className='text-blue-600 hover:text-blue-900 p-1 rounded'
