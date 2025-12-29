@@ -230,7 +230,11 @@ export const certificationSchema = z.object({
   diving_organization_id: z.union([z.string(), z.number()]).refine(val => val !== '', {
     message: 'Please select an organization',
   }),
-  certification_level: z.string().min(1, 'Certification level is required'),
+  certification_level_id: z.union([z.string(), z.number()]).refine(val => val !== '', {
+    message: 'Certification level is required',
+  }),
+  // Optional legacy field if needed, but UI uses ID now
+  certification_level: z.string().optional(),
 });
 
 /**
