@@ -39,6 +39,7 @@ const Profile = () => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isAddingCertification, setIsAddingCertification] = useState(false);
   const [editingCertification, setEditingCertification] = useState(null);
+  const [availableLevels, setAvailableLevels] = useState([]);
 
   // Profile Form
   const profileMethods = useForm({
@@ -85,7 +86,24 @@ const Profile = () => {
     formState: { errors: certErrors },
     reset: resetCert,
     setValue: setValueCert,
+    watch: watchCert,
   } = certMethods;
+
+  const selectedOrgId = watchCert('diving_organization_id');
+
+  useEffect(() => {
+    if (selectedOrgId) {
+      api
+        .get(`/api/v1/diving-organizations/${selectedOrgId}/levels`)
+        .then(res => setAvailableLevels(res.data))
+        .catch(err => {
+          console.error('Failed to fetch levels', err);
+          setAvailableLevels([]);
+        });
+    } else {
+      setAvailableLevels([]);
+    }
+  }, [selectedOrgId]);
 
   // Password Form
   const passwordMethods = useForm({
@@ -255,7 +273,14 @@ const Profile = () => {
   const startEditCertification = certification => {
     setEditingCertification(certification);
     setValueCert('diving_organization_id', certification.diving_organization.id);
-    setValueCert('certification_level', certification.certification_level || '');
+    // Determine if we have a linked level ID or just text
+    if (certification.certification_level_link) {
+      setValueCert('certification_level_id', certification.certification_level_link.id);
+    } else {
+      // Fallback or handle appropriately if we want to allow editing text-only legacy certs
+      // ideally we push them to select a new one
+      setValueCert('certification_level_id', '');
+    }
   };
 
   const cancelCertificationEdit = () => {
@@ -564,17 +589,39 @@ const Profile = () => {
                     </div>
 
                     <div>
-                      <FormField name='certification_level' label='Certification Level'>
-                        {({ register, name }) => (
-                          <input
-                            type='text'
-                            {...register(name)}
-                            placeholder='e.g., Open Water Diver, Advanced, Divemaster'
-                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                              certErrors.certification_level ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                          />
-                        )}
+                      <FormField name='certification_level_id' label='Certification Level'>
+                        {({ register, name }) => {
+                          // Group levels by category
+                          const groupedLevels = availableLevels.reduce((acc, level) => {
+                            const category = level.category || 'General';
+                            if (!acc[category]) acc[category] = [];
+                            acc[category].push(level);
+                            return acc;
+                          }, {});
+
+                          return (
+                            <select
+                              {...register(name)}
+                              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                                certErrors.certification_level_id
+                                  ? 'border-red-500'
+                                  : 'border-gray-300'
+                              }`}
+                              disabled={!selectedOrgId}
+                            >
+                              <option value=''>Select Level</option>
+                              {Object.entries(groupedLevels).map(([category, levels]) => (
+                                <optgroup key={category} label={category}>
+                                  {levels.map(level => (
+                                    <option key={level.id} value={level.id}>
+                                      {level.name}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              ))}
+                            </select>
+                          );
+                        }}
                       </FormField>
                     </div>
                   </div>
@@ -643,17 +690,39 @@ const Profile = () => {
                     </div>
 
                     <div>
-                      <FormField name='certification_level' label='Certification Level'>
-                        {({ register, name }) => (
-                          <input
-                            type='text'
-                            {...register(name)}
-                            placeholder='e.g., Open Water Diver, Advanced, Divemaster'
-                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                              certErrors.certification_level ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                          />
-                        )}
+                      <FormField name='certification_level_id' label='Certification Level'>
+                        {({ register, name }) => {
+                          // Group levels by category
+                          const groupedLevels = availableLevels.reduce((acc, level) => {
+                            const category = level.category || 'General';
+                            if (!acc[category]) acc[category] = [];
+                            acc[category].push(level);
+                            return acc;
+                          }, {});
+
+                          return (
+                            <select
+                              {...register(name)}
+                              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                                certErrors.certification_level_id
+                                  ? 'border-red-500'
+                                  : 'border-gray-300'
+                              }`}
+                              disabled={!selectedOrgId}
+                            >
+                              <option value=''>Select Level</option>
+                              {Object.entries(groupedLevels).map(([category, levels]) => (
+                                <optgroup key={category} label={category}>
+                                  {levels.map(level => (
+                                    <option key={level.id} value={level.id}>
+                                      {level.name}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              ))}
+                            </select>
+                          );
+                        }}
                       </FormField>
                     </div>
                   </div>
@@ -714,6 +783,25 @@ const Profile = () => {
 
                         <div className='text-sm text-gray-600 space-y-1'>
                           <p>Organization: {cert.diving_organization.name}</p>
+                          {cert.certification_level_link && (
+                            <div className='mt-1 flex flex-wrap gap-2 text-xs'>
+                              {cert.certification_level_link.max_depth && (
+                                <span className='bg-blue-100 text-blue-800 px-2 py-0.5 rounded'>
+                                  Depth: {cert.certification_level_link.max_depth}
+                                </span>
+                              )}
+                              {cert.certification_level_link.gases && (
+                                <span className='bg-purple-100 text-purple-800 px-2 py-0.5 rounded'>
+                                  Gases: {cert.certification_level_link.gases}
+                                </span>
+                              )}
+                              {cert.certification_level_link.tanks && (
+                                <span className='bg-gray-100 text-gray-800 px-2 py-0.5 rounded border border-gray-300'>
+                                  Tanks: {cert.certification_level_link.tanks}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 

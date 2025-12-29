@@ -3,9 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import DivingOrganization
+from app.models import DivingOrganization, CertificationLevel
 from app.schemas import (
-    DivingOrganizationCreate, DivingOrganizationUpdate, DivingOrganizationResponse
+    DivingOrganizationCreate, DivingOrganizationUpdate, DivingOrganizationResponse,
+    CertificationLevelResponse
 )
 from app.auth import get_current_admin_user, get_current_user_optional, is_admin_or_moderator
 
@@ -31,6 +32,22 @@ async def get_diving_organization(
     if not organization:
         raise HTTPException(status_code=404, detail="Diving organization not found")
     return organization
+
+@router.get("/{organization_id}/levels", response_model=List[CertificationLevelResponse])
+async def get_organization_certification_levels(
+    organization_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get certification levels for a specific diving organization."""
+    # Check if organization exists
+    organization = db.query(DivingOrganization).filter(DivingOrganization.id == organization_id).first()
+    if not organization:
+        raise HTTPException(status_code=404, detail="Diving organization not found")
+    
+    levels = db.query(CertificationLevel).filter(
+        CertificationLevel.diving_organization_id == organization_id
+    ).all()
+    return levels
 
 @router.post("/", response_model=DivingOrganizationResponse)
 async def create_diving_organization(
