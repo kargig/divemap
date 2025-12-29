@@ -21,6 +21,7 @@ import { Link } from 'react-router-dom';
 import api, { getDivingCenters, getUserPublicProfile } from '../api';
 import { FormField } from '../components/forms/FormField';
 import MaskedEmail from '../components/MaskedEmail';
+import OrganizationLogo from '../components/OrganizationLogo';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import {
@@ -765,43 +766,46 @@ const Profile = () => {
                     }`}
                   >
                     <div className='flex items-start justify-between'>
-                      <div className='flex-1'>
-                        <div className='flex items-center space-x-2 mb-2'>
-                          <span className='font-medium text-gray-900'>
-                            {cert.diving_organization.acronym} - {cert.certification_level}
-                          </span>
-                          <span
-                            className={`px-2 py-1 text-xs rounded-full ${
-                              cert.is_active
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {cert.is_active ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
+                      <div className='flex items-start gap-3'>
+                        <OrganizationLogo org={cert.diving_organization} />
+                        <div className='flex-1'>
+                          <div className='flex items-center space-x-2 mb-2'>
+                            <span className='font-medium text-gray-900'>
+                              {cert.diving_organization.acronym} - {cert.certification_level}
+                            </span>
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${
+                                cert.is_active
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {cert.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
 
-                        <div className='text-sm text-gray-600 space-y-1'>
-                          <p>Organization: {cert.diving_organization.name}</p>
-                          {cert.certification_level_link && (
-                            <div className='mt-1 flex flex-wrap gap-2 text-xs'>
-                              {cert.certification_level_link.max_depth && (
-                                <span className='bg-blue-100 text-blue-800 px-2 py-0.5 rounded'>
-                                  Depth: {cert.certification_level_link.max_depth}
-                                </span>
-                              )}
-                              {cert.certification_level_link.gases && (
-                                <span className='bg-purple-100 text-purple-800 px-2 py-0.5 rounded'>
-                                  Gases: {cert.certification_level_link.gases}
-                                </span>
-                              )}
-                              {cert.certification_level_link.tanks && (
-                                <span className='bg-gray-100 text-gray-800 px-2 py-0.5 rounded border border-gray-300'>
-                                  Tanks: {cert.certification_level_link.tanks}
-                                </span>
-                              )}
-                            </div>
-                          )}
+                          <div className='text-sm text-gray-600 space-y-1'>
+                            <p>Organization: {cert.diving_organization.name}</p>
+                            {cert.certification_level_link && (
+                              <div className='mt-1 flex flex-wrap gap-2 text-xs'>
+                                {cert.certification_level_link.max_depth && (
+                                  <span className='bg-blue-100 text-blue-800 px-2 py-0.5 rounded'>
+                                    Depth: {cert.certification_level_link.max_depth}
+                                  </span>
+                                )}
+                                {cert.certification_level_link.gases && (
+                                  <span className='bg-purple-100 text-purple-800 px-2 py-0.5 rounded'>
+                                    Gases: {cert.certification_level_link.gases}
+                                  </span>
+                                )}
+                                {cert.certification_level_link.tanks && (
+                                  <span className='bg-gray-100 text-gray-800 px-2 py-0.5 rounded border border-gray-300'>
+                                    Tanks: {cert.certification_level_link.tanks}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
