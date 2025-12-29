@@ -1,17 +1,8 @@
 #!/bin/bash
-# Script to fix trailing whitespace in all relevant files
+# Script to fix trailing whitespace in all relevant files or a specific file
 # This script automatically removes trailing spaces and tabs
 
 set -e
-
-echo "🧹 Fixing trailing whitespace..."
-
-# Define file patterns to fix
-PYTHON_FILES=$(find . -name "*.py" -not -path "./venv/*" -not -path "./divemap_venv/*" -not -path "./htmlcov/*" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./backend/divemap_venv/*" -not -path "./frontend/node_modules/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
-JS_FILES=$(find . -name "*.js" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./htmlcov/*" -not -path "./frontend/node_modules/*" -not -path "./backend/divemap_venv/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
-JSX_FILES=$(find . -name "*.jsx" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./htmlcov/*" -not -path "./frontend/node_modules/*" -not -path "./backend/divemap_venv/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
-MD_FILES=$(find . -name "*.md" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./htmlcov/*" -not -path "./frontend/node_modules/*" -not -path "./backend/divemap_venv/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
-TXT_FILES=$(find . -name "*.txt" -not -path "./venv/*" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./htmlcov/*" -not -path "./frontend/node_modules/*" -not -path "./backend/divemap_venv/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
 
 # Function to fix trailing whitespace in files
 fix_whitespace() {
@@ -19,7 +10,9 @@ fix_whitespace() {
     local file_type="$2"
     
     if [ ! -z "$files" ]; then
-        echo "Fixing $file_type files..."
+        if [ "$file_type" != "Specified" ]; then
+            echo "Fixing $file_type files..."
+        fi
         for file in $files; do
             if [ -f "$file" ]; then
                 # Create a backup
@@ -33,15 +26,45 @@ fix_whitespace() {
                     echo "  ✅ Fixed: $file"
                     rm "$file.bak"
                 else
-                    echo "  ⏭️  No changes needed: $file"
+                    if [ "$file_type" == "Specified" ] || [ "$file_type" == "Single" ]; then
+                        echo "  ⏭️  No changes needed: $file"
+                    else
+                        # Optional: uncomment to see skipped files in batch mode
+                        # echo "  ⏭️  No changes needed: $file"
+                        :
+                    fi
                     rm "$file.bak"
                 fi
             fi
         done
     else
-        echo "No $file_type files found to fix."
+        if [ "$file_type" != "Specified" ]; then
+            echo "No $file_type files found to fix."
+        fi
     fi
 }
+
+# If a file argument is provided, only fix that file
+if [ ! -z "$1" ]; then
+    if [ -f "$1" ]; then
+        echo "🧹 Fixing trailing whitespace in $1..."
+        fix_whitespace "$1" "Specified"
+        echo "✅ Done."
+    else
+        echo "❌ Error: File $1 not found."
+        exit 1
+    fi
+    exit 0
+fi
+
+echo "🧹 Fixing trailing whitespace in project..."
+
+# Define file patterns to fix
+PYTHON_FILES=$(find . -name "*.py" -not -path "./venv/*" -not -path "./divemap_venv/*" -not -path "./htmlcov/*" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./backend/divemap_venv/*" -not -path "./frontend/node_modules/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
+JS_FILES=$(find . -name "*.js" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./htmlcov/*" -not -path "./frontend/node_modules/*" -not -path "./backend/divemap_venv/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
+JSX_FILES=$(find . -name "*.jsx" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./htmlcov/*" -not -path "./frontend/node_modules/*" -not -path "./backend/divemap_venv/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
+MD_FILES=$(find . -name "*.md" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./htmlcov/*" -not -path "./frontend/node_modules/*" -not -path "./backend/divemap_venv/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
+TXT_FILES=$(find . -name "*.txt" -not -path "./venv/*" -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./htmlcov/*" -not -path "./frontend/node_modules/*" -not -path "./backend/divemap_venv/*" -not -path "*/divemap_venv/*" 2>/dev/null || true)
 
 # Fix trailing whitespace in all file types
 if [ ! -z "$PYTHON_FILES" ]; then

@@ -74,80 +74,43 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
     - Verify any `require()` calls are converted to `import()`. Vite/Rollup requires ESM.
 
 ## Phase 4: Infrastructure & Build Script Updates (COMPLETED)
-
 **Goal:** Ensure the containerized environment and helper scripts build and run correctly.
 
-
-
 1.  **Build Scripts:**
-
     - **`scripts/build-with-static-assets.sh`:**
-
         - Change: `cp -r frontend/build/* nginx/frontend-build/` -> `cp -r frontend/dist/* nginx/frontend-build/`.
-
         - Update echo statements to reference `frontend/dist/`.
-
     - **`frontend/scripts/precompress-assets.sh`:**
-
         - Change all references of `build` directory to `dist`.
-
         - Ensure it correctly finds and compresses Vite-generated assets (Vite also uses content hashing).
 
-
-
 2.  **Dockerfile.dev:**
-
     - Update command from `npm start` to `npm run dev` (or aliased start).
-
     - Ensure `VITE_` env vars are passed if baked in (dev usually uses volume mounted .env).
 
-
-
 3.  **Dockerfile (Production):**
-
     - Update build command from `npm run build:prod` to `npm run build`.
-
     - **Environment Variables:** Rename `ARG REACT_APP_*` and `ENV REACT_APP_*` to `ARG VITE_*` and `ENV VITE_*`.
-
     - **Critical:** Change `COPY --from=build /app/build ./build` to `COPY --from=build /app/dist ./dist`.
-
     - Update `serve` command: `CMD ["serve", "-s", "dist", "-l", "8080"]`.
 
-
-
 4.  **docker-compose.yml & docker-compose.prod.yml:**
-
     - Verify volume mappings.
-
     - Ensure environment variables passed in `environment:` blocks use `VITE_` prefix where applicable.
 
-
-
 5.  **Nginx Configurations (`nginx/`):**
-
     - **dev.conf:** Ensure proxy passes to `http://frontend:3000` still work.
-
     - **prod.conf:** Vite assets are typically in `dist/assets/` (instead of `build/static/`). Verify `gzip_static` and `try_files` match the new structure.
-
     - **deploy.sh / Build Scripts:** Update any scripts checking for `build/` directory to check for `dist/`.
 
-
-
 6.  **Documentation Updates:**
-
     - **`docs/maintenance/README.md`:** Update all references of `npm run build` and `frontend/build` to `frontend/dist`.
-
     - **`docs/development/content-hashed-assets-plan.md`:**
-
         - Update asset path patterns from `static/js/` to `assets/`.
-
         - Update build directory references from `build/` to `dist/`.
-
         - Update Cloudflare rule examples to match Vite's structure.
 
-
-
-7.  **Fly.io Configuration (`fly.toml`):**
+7.  **Fly.io Configuration (`fly.toml`):
 
     - Check for build secrets or env vars.
 
@@ -156,22 +119,13 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
     - Update `[env]` section to rename `REACT_APP_` vars to `VITE_`.
 
 
-
 ## Phase 5: Testing Infrastructure (Vitest) (COMPLETED)
-
-
 
 **Goal:** Migrate the test suite from Jest to Vitest.
 
 
 
-
-
-
-
 1.  **Configuration:** Add `test` object to `vite.config.js`:
-
-
 
     ```javascript
 
@@ -231,13 +185,7 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 
 
-
-
 ## Phase 6: Verification & QA (COMPLETED)
-
-
-
-
 
 
 
@@ -247,21 +195,7 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 
 
-
-
-
-
-
-
-
-
-
-
 ### Verification Checklist
-
-
-
-
 
 
 
@@ -269,15 +203,7 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 
 
-
-
-
-
     - [x] `docker-compose up` starts successfully.
-
-
-
-
 
 
 
@@ -285,15 +211,7 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 
 
-
-
-
-
     - [x] Hot Module Replacement (HMR) works (edit a file, see instant update).
-
-
-
-
 
 
 
@@ -303,21 +221,7 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 
 
-
-
-
-
-
-
-
-
-
-
 2.  **Production Build:**
-
-
-
-
 
 
 
@@ -325,23 +229,11 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 
 
-
-
-
-
     - [x] `dist/` folder contains optimized assets.
 
 
 
-
-
-
-
     - [x] `serve -s dist` (local preview) loads the app correctly.
-
-
-
-
 
 
 
@@ -351,29 +243,11 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 
 
-
-
-
-
-
-
-
-
-
-
 3.  **Build Scripts:**
 
 
 
-
-
-
-
     - [x] `./scripts/build-with-static-assets.sh` completes and copies to `nginx/frontend-build/`.
-
-
-
-
 
 
 
@@ -383,21 +257,7 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 
 
-
-
-
-
-
-
-
-
-
-
 4.  **Testing:**
-
-
-
-
 
 
 
@@ -405,15 +265,7 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 
 
-
-
-
-
     - [x] Snapshot tests updated (if any).
-
-
-
-
 
 
 
@@ -423,21 +275,7 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 
 
-
-
-
-
-
-
-
-
-
-
 5.  **Docker & Deployment:**
-
-
-
-
 
 
 
@@ -445,15 +283,7 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 
 
-
-
-
-
     - [x] Nginx serves the `dist` index.html correctly.
-
-
-
-
 
 
 
@@ -463,57 +293,23 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 
 
-
-
-
-
-
-
-
-
-
-
 ## Phase 7: Rollback Plan
-
-
-
-
-
-
-
-
 
 
 
 If critical issues arise during deployment:
 
-
-
 1.  Revert the git branch.
 
-
-
 2.  Re-deploy the previous Docker tag.
-
-
 
 3.  Ensure `build/` artifact assumptions in any external CI/CD pipelines (like Fly.io or GitHub Actions) are reverted.
 
 
 
-
-
-
-
 ## Phase 8: External Service Updates (Cloudflare)
 
-
-
 **Goal:** Adjust Cloudflare Edge rules to match Vite's directory structure.
-
-
-
-
 
 
 
@@ -542,7 +338,3 @@ If critical issues arise during deployment:
 
 
     - After the first Vite deployment, perform a **Purge Everything** or a targeted purge of `index.html` and the old `/static/` directory to ensure no stale manifests are served.
-
-
-
-
