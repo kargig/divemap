@@ -75,7 +75,10 @@ const CertificationLevelsList = ({ organizationId, identifier }) => {
 
       <div className='space-y-4'>
         {categories.map(category => (
-          <div key={category} className='bg-white rounded border border-gray-200 shadow-sm overflow-hidden'>
+          <div
+            key={category}
+            className='bg-white rounded border border-gray-200 shadow-sm overflow-hidden'
+          >
             <button
               onClick={() => toggleCategory(category)}
               className='w-full px-4 py-3 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors focus:outline-none'
