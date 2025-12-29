@@ -6,7 +6,7 @@ This plan enables safe, fast, and cache-friendly deployments using content‑has
 
 ## Current State (as observed)
 
-- Frontend uses Create React App (`react-scripts build`) which emits hashed filenames under `frontend/build/static`.
+- Frontend uses Create React App (`react-scripts build`) which emits hashed filenames under `frontend/dist/static`.
 - Nginx `nginx/prod.conf` proxies `/` to the `frontend` upstream; immutable asset headers are commented out; gzip is enabled; upstream keepalive is present.
 - Cloudflare configuration is external to the repo.
 
@@ -23,7 +23,7 @@ This plan enables safe, fast, and cache-friendly deployments using content‑has
 
 1) Ensure content‑hashed assets (already provided by CRA)
 
-- `npm run build` produces files like `static/js/main.<hash>.js` and `static/css/main.<hash>.css`.
+- `npm run build` produces files like `assets/main.<hash>.js` and `assets/main.<hash>.css`.
 
 2) Add precompression step (recommended)
 
@@ -36,7 +36,7 @@ find build -type f \( -name "*.js" -o -name "*.css" -o -name "*.woff" -o -name "
 
 - This produces parallel files like `app.js.gz` and `app.js.br` next to originals.
 
-3) Deploy the `build/` directory to the Nginx container (Option A below) or ensure the frontend service serves the correct headers (Option B).
+3) Deploy the `dist/` directory to the Nginx container (Option A below) or ensure the frontend service serves the correct headers (Option B).
 
 ---
 
@@ -44,7 +44,7 @@ find build -type f \( -name "*.js" -o -name "*.css" -o -name "*.woff" -o -name "
 
 ### Option A (Recommended): Serve assets directly from Nginx
 
-- Copy `frontend/build/` into the Nginx image at `/usr/share/nginx/html` (or mount it).
+- Copy `frontend/dist/` into the Nginx image at `/usr/share/nginx/html` (or mount it).
 - Keep `/api/` proxied to the backend.
 - Add immutable caching for hashed assets and short TTL for HTML.
 - Enable serving of precompressed files.
@@ -149,8 +149,8 @@ Global settings (recommended):
 ```bash
 # Warm index.html and a couple of top assets
 curl --fail --silent --show-error --compressed https://your.domain/
-curl --fail --silent --show-error --compressed https://your.domain/static/js/main.*.js
-curl --fail --silent --show-error --compressed https://your.domain/static/css/main.*.css
+curl --fail --silent --show-error --compressed https://your.domain/assets/main.*.js
+curl --fail --silent --show-error --compressed https://your.domain/assets/main.*.css
 ```
 
 ---
@@ -167,11 +167,11 @@ curl --fail --silent --show-error --compressed https://your.domain/static/css/ma
 
 1) Frontend
 - Keep CRA build. Add precompression in CI after `npm run build` (optional but recommended).
-- Ensure `deploy.sh` (or CI) copies `build/` to Nginx image or artifact.
+- Ensure `deploy.sh` (or CI) copies `dist/` to Nginx image or artifact.
 
 2) Nginx
 - Adopt Option A if possible:
-  - Copy `build/` into `/usr/share/nginx/html` in the Nginx image.
+  - Copy `dist/` into `/usr/share/nginx/html` in the Nginx image.
   - Add the static and HTML locations with the headers above.
   - Enable `gzip_static on;` and `brotli_static on;` (if module present).
 
@@ -182,7 +182,7 @@ curl --fail --silent --show-error --compressed https://your.domain/static/css/ma
 4) Deploy and verify
 - Deploy, then verify headers:
 ```bash
-curl -I https://your.domain/static/js/main.<hash>.js | grep -i cache-control
+curl -I https://your.domain/assets/main.<hash>.js | grep -i cache-control
 curl -I https://your.domain/ | grep -i cache-control
 ```
 - Validate that Cloudflare cache HITs appear for assets after first fetch.
@@ -257,7 +257,7 @@ curl -I https://your.domain/ | grep -i cache-control
 
 ### Phase 1 — Plan & Prep
 
-- [x] Decide Nginx strategy: Option A (serve `build/` directly) - **CHOSEN**
+- [x] Decide Nginx strategy: Option A (serve `dist/` directly) - **CHOSEN**
 - [x] Confirm Nginx Brotli module availability: No Brotli, using `gzip_static` + Cloudflare Brotli - **CHOSEN**
 - [ ] Define Cloudflare Cache Rules (assets long‑lived, HTML short‑lived, API bypass).
 - [ ] Identify top endpoints and assets to warm post‑deploy.
@@ -267,12 +267,12 @@ curl -I https://your.domain/ | grep -i cache-control
 
 - [x] Ensure CRA build runs in CI/CD (already emits hashed filenames) - **COMPLETED**
 - [x] Add postbuild precompression step for `.js`, `.css`, `.woff`, `.woff2` (gzip only) - **COMPLETED**
-- [x] Publish `build/` as an artifact for Nginx image (Option A - **CHOSEN**) - **COMPLETED**
+- [x] Publish `dist/` as an artifact for Nginx image (Option A - **CHOSEN**) - **COMPLETED**
 - [x] Document build outputs (hashed filenames) and verify index.html references them - **COMPLETED**
 
 ### Phase 3 — Nginx Configuration & Image
 
-- [x] If Option A: copy `frontend/build/` into Nginx image under `/usr/share/nginx/html` - **CHOSEN**
+- [x] If Option A: copy `frontend/dist/` into Nginx image under `/usr/share/nginx/html` - **CHOSEN**
 - [x] Add static locations with immutable headers for assets (`max-age=31536000, immutable`) - **COMPLETED**
 - [x] Add short‑lived headers for HTML and SPA fallback (`/index.html`, `stale-while-revalidate=300`) - **COMPLETED**
 - [x] Enable `gzip_static on;` (no brotli - **CHOSEN**) - **COMPLETED**
@@ -417,7 +417,7 @@ curl -I https://your.domain/ | grep -i cache-control
 **Step 10: Test Configuration**
 ```bash
 # Test static asset caching
-curl -I https://your-domain.com/static/js/main.97fc5e21.js
+curl -I https://your-domain.com/assets/main.97fc5e21.js
 # Expected: CF-Cache-Status: HIT, Cache-Control: public, max-age=31536000, immutable
 
 # Test HTML caching

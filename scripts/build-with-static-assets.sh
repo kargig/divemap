@@ -30,11 +30,11 @@ mkdir -p nginx/frontend-build
 
 # Copy frontend build to nginx directory
 echo "📋 Copying frontend build to nginx directory..."
-cp -r frontend/build/* nginx/frontend-build/
+cp -r frontend/dist/* nginx/frontend-build/
 
 # Show build summary
 echo "✅ Build complete! Summary:"
-echo "  - Frontend build: frontend/build/"
+echo "  - Frontend build: frontend/dist/"
 echo "  - Nginx static assets: nginx/frontend-build/"
 echo "  - Precompressed files: $(find nginx/frontend-build -name "*.gz" | wc -l) .gz files"
 

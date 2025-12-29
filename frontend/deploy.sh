@@ -26,35 +26,35 @@ fi
 # Source the environment file to get environment variables
 export $(grep -v '^#' "$ENV_FILE" | xargs)
 
-# Check if REACT_APP_GOOGLE_CLIENT_ID is set
-if [ -z "$REACT_APP_GOOGLE_CLIENT_ID" ]; then
-    echo "Error: REACT_APP_GOOGLE_CLIENT_ID not found in .env file"
+# Check if VITE_GOOGLE_CLIENT_ID is set
+if [ -z "$VITE_GOOGLE_CLIENT_ID" ]; then
+    echo "Error: VITE_GOOGLE_CLIENT_ID not found in .env file"
     exit 1
 fi
 
-# Check if REACT_APP_API_URL is set
-if [ -z "$REACT_APP_API_URL" ]; then
-    echo "Error: REACT_APP_API_URL not found in .env file"
+# Check if VITE_API_URL is set
+if [ -z "$VITE_API_URL" ]; then
+    echo "Error: VITE_API_URL not found in .env file"
     exit 1
 fi
 
-# Check if REACT_APP_TURNSTILE_SITE_KEY is set (optional)
-if [ -n "$REACT_APP_TURNSTILE_SITE_KEY" ]; then
-    echo "Turnstile Site Key: ${REACT_APP_TURNSTILE_SITE_KEY:0:15}..."
-    TURNSTILE_BUILD_ARG="--build-arg REACT_APP_TURNSTILE_SITE_KEY=${REACT_APP_TURNSTILE_SITE_KEY}"
+# Check if VITE_TURNSTILE_SITE_KEY is set (optional)
+if [ -n "$VITE_TURNSTILE_SITE_KEY" ]; then
+    echo "Turnstile Site Key: ${VITE_TURNSTILE_SITE_KEY:0:15}..."
+    TURNSTILE_BUILD_ARG="--build-arg VITE_TURNSTILE_SITE_KEY=${VITE_TURNSTILE_SITE_KEY}"
 else
     echo "Turnstile Site Key: Not set (Turnstile will be disabled)"
     TURNSTILE_BUILD_ARG=""
 fi
 
 echo "Deploying frontend with configuration from $ENV_FILE file..."
-echo "Google Client ID: ${REACT_APP_GOOGLE_CLIENT_ID:0:20}..."
-echo "API URL: $REACT_APP_API_URL"
+echo "Google Client ID: ${VITE_GOOGLE_CLIENT_ID:0:20}..."
+echo "API URL: $VITE_API_URL"
 
 # Deploy with build arguments
 fly deploy -a divemap-frontend \
-  --build-arg REACT_APP_GOOGLE_CLIENT_ID="$REACT_APP_GOOGLE_CLIENT_ID" \
-  --build-arg REACT_APP_API_URL="$REACT_APP_API_URL" \
+  --build-arg VITE_GOOGLE_CLIENT_ID="$VITE_GOOGLE_CLIENT_ID" \
+  --build-arg VITE_API_URL="$VITE_API_URL" \
   $TURNSTILE_BUILD_ARG
 
 echo "Deployment completed successfully!"

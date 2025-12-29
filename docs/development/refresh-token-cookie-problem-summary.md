@@ -7,7 +7,7 @@ The refresh token cookie is not being accepted by the browser despite the backen
 
 ### Frontend
 - **URL**: `http://127.0.0.1`
-- **Environment**: `REACT_APP_API_URL=http://127.0.0.1:8000`
+- **Environment**: `VITE_API_URL=http://127.0.0.1:8000`
 
 ### Backend
 - **URL**: `http://127.0.0.1:8000`

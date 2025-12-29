@@ -197,7 +197,7 @@ function testBuildProcess() {
     // Test build process
     console.log('  Testing build process...');
     try {
-      execSync('npm run build:prod', { stdio: 'pipe' });
+      execSync('npm run build', { stdio: 'pipe' });
       console.log('  ✅ Build process passed');
     } catch (error) {
       console.log('  ❌ Build process failed');

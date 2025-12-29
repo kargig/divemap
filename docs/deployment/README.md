@@ -174,7 +174,7 @@ make help
 
 #### Prerequisites
 - Fly.io CLI installed and authenticated
-- Frontend `.env` file configured with `REACT_APP_GOOGLE_CLIENT_ID`
+- Frontend `.env` file configured with `VITE_GOOGLE_CLIENT_ID`
 - Backend environment variables configured
 
 ### 3. Docker Compose (Development)
@@ -236,7 +236,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_API_URL=http://localhost:8000
+      - VITE_API_URL=http://localhost:8000
     depends_on:
       - backend
 
@@ -379,7 +379,7 @@ primary_region = "iad"
 
 [env]
   NODE_ENV = "production"
-  REACT_APP_API_URL = "https://divemap-backend.fly.dev"
+  VITE_API_URL = "https://divemap-backend.fly.dev"
 
 [http_service]
   internal_port = 3000
@@ -607,8 +607,8 @@ environment:
 DEBUG=true
 DATABASE_URL=mysql+pymysql://divemap_user:divemap_password@localhost:3306/divemap
 LOG_LEVEL=DEBUG
-REACT_APP_API_URL=http://localhost:8000
-REACT_APP_ENVIRONMENT=development
+VITE_API_URL=http://localhost:8000
+VITE_ENVIRONMENT=development
 ```
 
 #### Production Environment
@@ -617,8 +617,8 @@ REACT_APP_ENVIRONMENT=development
 DEBUG=false
 DATABASE_URL=mysql+pymysql://prod_user:prod_password@prod-host:3306/divemap
 LOG_LEVEL=WARNING
-REACT_APP_API_URL=https://divemap-backend.fly.dev
-REACT_APP_ENVIRONMENT=production
+VITE_API_URL=https://divemap-backend.fly.dev
+VITE_ENVIRONMENT=production
 ```
 
 #### Environment File Setup
@@ -666,9 +666,9 @@ nano .env.production
 #### Development (`.env`)
 ```bash
 # Frontend
-REACT_APP_API_URL=http://localhost:8000
-REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id
-REACT_APP_ENVIRONMENT=development
+VITE_API_URL=http://localhost:8000
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
+VITE_ENVIRONMENT=development
 
 # Backend
 DATABASE_URL=mysql+pymysql://divemap_user:divemap_password@db:3306/divemap
@@ -680,9 +680,9 @@ ENVIRONMENT=development
 #### Production (`.env.production`)
 ```bash
 # Frontend
-REACT_APP_API_URL=https://divemap-backend.fly.dev
-REACT_APP_GOOGLE_CLIENT_ID=your_production_google_client_id
-REACT_APP_ENVIRONMENT=production
+VITE_API_URL=https://divemap-backend.fly.dev
+VITE_GOOGLE_CLIENT_ID=your_production_google_client_id
+VITE_ENVIRONMENT=production
 
 # Backend
 DATABASE_URL=mysql+pymysql://prod_user:prod_password@prod_host:3306/divemap

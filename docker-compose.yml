@@ -59,7 +59,7 @@ services:
     env_file:
       - "./frontend/.env"
     environment:
-      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost}
+      - VITE_API_URL=${VITE_API_URL:-http://localhost}
       - NODE_ENV=${NODE_ENV:-development}
     depends_on:
       - backend

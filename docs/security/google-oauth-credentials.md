@@ -150,7 +150,7 @@ This guide provides step-by-step instructions for generating `GOOGLE_CLIENT_ID` 
 2. **Add Google Client ID**
    Edit your `frontend/.env` file and add:
    ```
-   REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id_here
+   VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
    ```
 
 ## Step 6: Verify Database Schema
@@ -219,7 +219,7 @@ python run_migrations.py
    cd frontend
    cat .env
    ```
-   - Verify `REACT_APP_GOOGLE_CLIENT_ID` is set correctly
+   - Verify `VITE_GOOGLE_CLIENT_ID` is set correctly
    - Make sure it matches your Google Cloud Console Client ID exactly
 
 2. **Verify Google Cloud Console Configuration**
@@ -280,7 +280,7 @@ python run_migrations.py
    - Check that there are no trailing slashes causing mismatches
 
 3. **"Google Identity Services Not Loaded" Error**
-   - Check that `REACT_APP_GOOGLE_CLIENT_ID` is set in your frontend `.env` file
+   - Check that `VITE_GOOGLE_CLIENT_ID` is set in your frontend `.env` file
    - Verify the Google Identity script is loading in the browser
    - Check browser console for JavaScript errors
    - Note: The service is now called "Google Identity" rather than "Google Identity Services"
@@ -299,7 +299,7 @@ python run_migrations.py
 
 6. **"403 Error on Google Identity Services Button" Error**
    - This happens when the Google button fails to load
-   - **Solution 1**: Check that `REACT_APP_GOOGLE_CLIENT_ID` is set correctly in frontend `.env`
+   - **Solution 1**: Check that `VITE_GOOGLE_CLIENT_ID` is set correctly in frontend `.env`
    - **Solution 2**: Verify the Client ID matches exactly between frontend and backend
    - **Solution 3**: Check that the domain is authorized in Google Cloud Console
    - **Solution 4**: Clear browser cache and cookies
