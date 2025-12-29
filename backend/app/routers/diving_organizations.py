@@ -1,16 +1,30 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app.database import get_db
 from app.models import DivingOrganization, CertificationLevel
 from app.schemas import (
     DivingOrganizationCreate, DivingOrganizationUpdate, DivingOrganizationResponse,
-    CertificationLevelResponse
+    CertificationLevelResponse, CertificationLevelCreate, CertificationLevelUpdate
 )
 from app.auth import get_current_admin_user, get_current_user_optional, is_admin_or_moderator
 
 router = APIRouter()
+
+def get_org_by_id_or_name(db: Session, identifier: str) -> Optional[DivingOrganization]:
+    """Helper to find an organization by ID, name, or acronym."""
+    if identifier.isdigit():
+        return db.query(DivingOrganization).filter(DivingOrganization.id == int(identifier)).first()
+    
+    # Try case-insensitive match for name or acronym
+    return db.query(DivingOrganization).filter(
+        or_(
+            DivingOrganization.name == identifier,
+            DivingOrganization.acronym == identifier
+        )
+    ).first()
 
 @router.get("/", response_model=List[DivingOrganizationResponse])
 async def get_diving_organizations(
@@ -22,32 +36,106 @@ async def get_diving_organizations(
     organizations = db.query(DivingOrganization).offset(skip).limit(limit).all()
     return organizations
 
-@router.get("/{organization_id}", response_model=DivingOrganizationResponse)
+@router.get("/{identifier}", response_model=DivingOrganizationResponse)
 async def get_diving_organization(
-    organization_id: int,
+    identifier: str,
     db: Session = Depends(get_db)
 ):
-    """Get a specific diving organization by ID."""
-    organization = db.query(DivingOrganization).filter(DivingOrganization.id == organization_id).first()
+    """Get a specific diving organization by ID, name, or acronym."""
+    organization = get_org_by_id_or_name(db, identifier)
     if not organization:
         raise HTTPException(status_code=404, detail="Diving organization not found")
     return organization
 
-@router.get("/{organization_id}/levels", response_model=List[CertificationLevelResponse])
+@router.get("/{identifier}/levels", response_model=List[CertificationLevelResponse])
 async def get_organization_certification_levels(
-    organization_id: int,
+    identifier: str,
     db: Session = Depends(get_db)
 ):
-    """Get certification levels for a specific diving organization."""
-    # Check if organization exists
-    organization = db.query(DivingOrganization).filter(DivingOrganization.id == organization_id).first()
+    """Get certification levels for a specific diving organization (by ID or name)."""
+    organization = get_org_by_id_or_name(db, identifier)
     if not organization:
         raise HTTPException(status_code=404, detail="Diving organization not found")
     
     levels = db.query(CertificationLevel).filter(
-        CertificationLevel.diving_organization_id == organization_id
+        CertificationLevel.diving_organization_id == organization.id
     ).all()
     return levels
+
+@router.post("/{identifier}/levels", response_model=CertificationLevelResponse)
+async def create_certification_level(
+    identifier: str,
+    level_data: CertificationLevelCreate,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(is_admin_or_moderator)
+):
+    """Create a new certification level for an organization."""
+    organization = get_org_by_id_or_name(db, identifier)
+    if not organization:
+        raise HTTPException(status_code=404, detail="Diving organization not found")
+    
+    # Ensure the organization ID in the body matches the URL (or override it)
+    if level_data.diving_organization_id != organization.id:
+        level_data.diving_organization_id = organization.id
+
+    new_level = CertificationLevel(**level_data.dict())
+    db.add(new_level)
+    db.commit()
+    db.refresh(new_level)
+    return new_level
+
+@router.put("/{identifier}/levels/{level_id}", response_model=CertificationLevelResponse)
+async def update_certification_level(
+    identifier: str,
+    level_id: int,
+    level_data: CertificationLevelUpdate,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(is_admin_or_moderator)
+):
+    """Update a certification level."""
+    organization = get_org_by_id_or_name(db, identifier)
+    if not organization:
+        raise HTTPException(status_code=404, detail="Diving organization not found")
+
+    level = db.query(CertificationLevel).filter(
+        CertificationLevel.id == level_id,
+        CertificationLevel.diving_organization_id == organization.id
+    ).first()
+    
+    if not level:
+        raise HTTPException(status_code=404, detail="Certification level not found for this organization")
+
+    update_data = level_data.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(level, field, value)
+
+    db.commit()
+    db.refresh(level)
+    return level
+
+@router.delete("/{identifier}/levels/{level_id}")
+async def delete_certification_level(
+    identifier: str,
+    level_id: int,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(is_admin_or_moderator)
+):
+    """Delete a certification level."""
+    organization = get_org_by_id_or_name(db, identifier)
+    if not organization:
+        raise HTTPException(status_code=404, detail="Diving organization not found")
+
+    level = db.query(CertificationLevel).filter(
+        CertificationLevel.id == level_id,
+        CertificationLevel.diving_organization_id == organization.id
+    ).first()
+
+    if not level:
+        raise HTTPException(status_code=404, detail="Certification level not found for this organization")
+
+    db.delete(level)
+    db.commit()
+    return {"message": "Certification level deleted successfully"}
 
 @router.post("/", response_model=DivingOrganizationResponse)
 async def create_diving_organization(
