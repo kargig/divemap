@@ -523,6 +523,11 @@ export const getAvailableTags = async () => {
   return response.data;
 };
 
+export const getTagsWithCounts = async () => {
+  const response = await api.get('/api/v1/tags/with-counts');
+  return response.data;
+};
+
 export const createTag = async tagData => {
   const response = await api.post('/api/v1/tags/', tagData);
   return response.data;
@@ -535,6 +540,22 @@ export const updateTag = async (tagId, tagData) => {
 
 export const deleteTag = async tagId => {
   const response = await api.delete(`/api/v1/tags/${tagId}`);
+  return response.data;
+};
+
+// Diving Organizations API functions
+export const getDivingOrganizations = async (params = {}) => {
+  const response = await api.get('/api/v1/diving-organizations/', { params });
+  return response.data;
+};
+
+export const getDivingOrganization = async identifier => {
+  const response = await api.get(`/api/v1/diving-organizations/${identifier}`);
+  return response.data;
+};
+
+export const getDivingOrganizationLevels = async identifier => {
+  const response = await api.get(`/api/v1/diving-organizations/${identifier}/levels`);
   return response.data;
 };
 
@@ -656,11 +677,6 @@ export const confirmImportDives = async divesData => {
 };
 
 // System Overview API functions
-export const getSystemOverview = async () => {
-  const response = await api.get('/api/v1/admin/system/overview');
-  return response.data;
-};
-
 export const getSystemHealth = async () => {
   const response = await api.get('/api/v1/admin/system/health');
   return response.data;

@@ -24,7 +24,6 @@ import AdminNotificationPreferences from './pages/AdminNotificationPreferences';
 import AdminOwnershipRequests from './pages/AdminOwnershipRequests';
 import AdminRecentActivity from './pages/AdminRecentActivity';
 import AdminSystemMetrics from './pages/AdminSystemMetrics';
-import AdminSystemOverview from './pages/AdminSystemOverview';
 import AdminTags from './pages/AdminTags';
 import AdminUsers from './pages/AdminUsers';
 import API from './pages/API';
@@ -43,6 +42,8 @@ import DiveSites from './pages/DiveSites';
 import DiveTrips from './pages/DiveTrips';
 import DivingCenterDetail from './pages/DivingCenterDetail';
 import DivingCenters from './pages/DivingCenters';
+import DivingOrganizationsPage from './pages/DivingOrganizationsPage';
+import DivingTagsPage from './pages/DivingTagsPage';
 import EditDive from './pages/EditDive';
 import EditDiveSite from './pages/EditDiveSite';
 import EditDivingCenter from './pages/EditDivingCenter';
@@ -156,6 +157,11 @@ function App() {
                 <Routes>
                   <Route path='/' element={<Home />} />
                   <Route path='/about' element={<About />} />
+                  <Route path='/resources/tags' element={<DivingTagsPage />} />
+                  <Route
+                    path='/resources/diving-organizations'
+                    element={<DivingOrganizationsPage />}
+                  />
                   <Route path='/api-docs' element={<API />} />
                   <Route path='/changelog' element={<Changelog />} />
                   <Route path='/help' element={<Help />} />
@@ -381,14 +387,6 @@ function App() {
                     element={
                       <ProtectedRoute requireAdmin={true}>
                         <AdminNewsletters />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path='/admin/system-overview'
-                    element={
-                      <ProtectedRoute requireAdmin={true}>
-                        <AdminSystemOverview />
                       </ProtectedRoute>
                     }
                   />
