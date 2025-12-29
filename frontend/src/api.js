@@ -561,7 +561,6 @@ export const parseNewsletterText = async (content, divingCenterId = null, useOpe
   return response.data;
 };
 
-
 // Dive Trip API functions
 export const getParsedTrips = async (params = {}) => {
   // Only include parameters that have values
