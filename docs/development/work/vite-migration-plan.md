@@ -111,230 +111,82 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
         - Update Cloudflare rule examples to match Vite's structure.
 
 7.  **Fly.io Configuration (`fly.toml`):
-
     - Check for build secrets or env vars.
-
     - If `[build]` args are used, ensure they align with the new Dockerfile (rename `REACT_APP_` to `VITE_`).
-
     - Update `[env]` section to rename `REACT_APP_` vars to `VITE_`.
-
 
 ## Phase 5: Testing Infrastructure (Vitest) (COMPLETED)
 
 **Goal:** Migrate the test suite from Jest to Vitest.
 
-
-
 1.  **Configuration:** Add `test` object to `vite.config.js`:
-
     ```javascript
-
-
-
     test: {
-
-
-
       globals: true,
-
-
-
       environment: 'jsdom',
-
-
-
       setupFiles: './src/setupTests.js',
-
-
-
     }
-
-
-
     ```
-
-
 
 2.  **Setup File:** Update `src/setupTests.js` to import `@testing-library/jest-dom`.
 
-
-
 3.  **Mocking:**
-
-
-
     - Replace `jest.mock()` with `vi.mock()`.
-
-
-
     - Replace `jest.fn()` with `vi.fn()`.
-
-
-
     - Global search/replace `jest` -> `vi`.
-
-
 
 4.  **Script Update:** Set `"test": "vitest"` in `package.json`.
 
-
-
 5.  **Test Utility Fixes:** Update `frontend/tests/test_nodejs_20_upgrade.js` to use `npm run build` instead of `npm run build:prod`.
-
-
-
-
 
 ## Phase 6: Verification & QA (COMPLETED)
 
-
-
 **Goal:** Extensive validation before merging.
-
-
-
-
 
 ### Verification Checklist
 
-
-
 1.  **Local Development:**
-
-
-
     - [x] `docker-compose up` starts successfully.
-
-
-
     - [x] App loads on `localhost:80` (via Nginx) and `localhost:3000` (direct).
-
-
-
     - [x] Hot Module Replacement (HMR) works (edit a file, see instant update).
-
-
-
     - [x] Environment variables load correctly (check API URLs, feature flags).
 
-
-
-
-
 2.  **Production Build:**
-
-
-
     - [x] `npm run build` completes without errors.
-
-
-
     - [x] `dist/` folder contains optimized assets.
-
-
-
     - [x] `serve -s dist` (local preview) loads the app correctly.
-
-
-
     - [x] **Content Hashing:** Verify `dist/assets/` contains files with hashes (e.g., `index-D1234.js`).
 
-
-
-
-
 3.  **Build Scripts:**
-
-
-
     - [x] `./scripts/build-with-static-assets.sh` completes and copies to `nginx/frontend-build/`.
-
-
-
     - [x] `frontend/scripts/precompress-assets.sh` creates `.gz` files in `dist/`.
 
-
-
-
-
 4.  **Testing:**
-
-
-
     - [x] `npm run test` passes all unit tests.
-
-
-
     - [x] Snapshot tests updated (if any).
-
-
-
     - [x] E2E tests (Playwright/Cypress) pass against the Vite local server.
 
-
-
-
-
 5.  **Docker & Deployment:**
-
-
-
     - [x] Production Docker image builds successfully.
-
-
-
     - [x] Nginx serves the `dist` index.html correctly.
-
-
-
     - [x] React Router works (refreshing on a sub-route doesn't 404 - Nginx `try_files` check).
-
-
-
-
 
 ## Phase 7: Rollback Plan
 
-
-
 If critical issues arise during deployment:
-
 1.  Revert the git branch.
-
 2.  Re-deploy the previous Docker tag.
-
 3.  Ensure `build/` artifact assumptions in any external CI/CD pipelines (like Fly.io or GitHub Actions) are reverted.
-
-
 
 ## Phase 8: External Service Updates (Cloudflare)
 
 **Goal:** Adjust Cloudflare Edge rules to match Vite's directory structure.
-
-
-
 1.  **Cache Rules:**
-
-
-
     - **Static Assets:** Update the rule that previously matched `/static/*` (CRA) to match `/assets/*` (Vite).
-
-
-
     - **Extension Matching:** Ensure extension-based rules (e.g., `*.js`, `*.css`) still apply. Vite often produces more granular chunks than CRA; ensure the Edge TTL is appropriate for these.
 
-
-
 2.  **Environment Variables:**
-
-
-
     - If Cloudflare Pages or Workers are used for any part of the frontend, ensure the `REACT_APP_` -> `VITE_` renaming is applied there too.
 
-
-
 3.  **Purge Cache:**
-
-
-
     - After the first Vite deployment, perform a **Purge Everything** or a targeted purge of `index.html` and the old `/static/` directory to ensure no stale manifests are served.
