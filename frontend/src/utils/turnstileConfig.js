@@ -3,7 +3,7 @@
  * @returns {Object} Object containing isEnabled boolean and siteKey string
  */
 export const getTurnstileConfig = () => {
-  const siteKey = process.env.REACT_APP_TURNSTILE_SITE_KEY;
+  const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
   const isEnabled = Boolean(siteKey && siteKey.trim() && siteKey !== 'undefined');
 
   return {

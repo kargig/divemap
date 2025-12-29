@@ -312,7 +312,7 @@ GOOGLE_CLIENT_SECRET=your_client_secret
 ```javascript
 // Google Identity Services
 google.accounts.id.initialize({
-  client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+  client_id: process.env.VITE_GOOGLE_CLIENT_ID,
   callback: handleCredentialResponse
 });
 ```

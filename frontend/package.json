@@ -17,6 +17,7 @@
     "leaflet": "^1.9.4",
     "leaflet-draw": "^1.0.4",
     "leaflet.markercluster": "^1.5.3",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.539.0",
     "playwright": "^1.56.1",
     "postcss": "^8.4.31",
@@ -29,7 +30,6 @@
     "react-leaflet": "^4.2.1",
     "react-query": "^3.39.3",
     "react-router-dom": "^7.8.1",
-    "react-scripts": "^5.0.1",
     "react-slider": "^2.0.6",
     "recharts": "^3.2.1",
     "tailwindcss": "^3.4.17",
@@ -37,6 +37,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@types/lodash": "^4.17.21",
+    "@types/node": "^25.0.3",
+    "@vitejs/plugin-react": "^5.1.2",
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.29.1",
@@ -44,16 +49,20 @@
     "eslint-plugin-prettier": "^5.1.3",
     "eslint-plugin-react": "^7.34.0",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "jsdom": "^27.0.1",
     "prettier": "^3.2.5",
-    "puppeteer": "^24.15.0"
+    "puppeteer": "^24.15.0",
+    "vite": "^7.3.0",
+    "vite-plugin-svgr": "^4.5.0",
+    "vitest": "^3.2.4"
   },
   "scripts": {
     "postinstall": "npx update-browserslist-db@latest || true",
-    "start": "DISABLE_ESLINT_PLUGIN=true react-scripts start",
-    "build": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
-    "build:prod": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
+    "start": "vite",
+    "build": "vite build",
+    "build:prod": "vite build",
     "build:with-compression": "npm run build && ./scripts/precompress-assets.sh",
-    "test": "react-scripts test",
+    "test": "vitest",
     "test:e2e": "node tests/run_frontend_tests.js",
     "test:frontend": "node tests/test_frontend.js",
     "test:validation": "node tests/validate_frontend.js",
@@ -66,8 +75,7 @@
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/**/*.{js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,json,css,md}\"",
-    "lint:check": "node scripts/lint-check.js",
-    "eject": "react-scripts eject"
+    "lint:check": "node scripts/lint-check.js"
   },
   "browserslist": {
     "production": [

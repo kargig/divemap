@@ -10,7 +10,7 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 ---
 
-## Phase 1: Dependencies & Cleanup
+## Phase 1: Dependencies & Cleanup (COMPLETED)
 **Goal:** Replace CRA with Vite dependencies without breaking the project structure yet.
 
 1.  **Uninstall CRA:**
@@ -29,7 +29,7 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
     - Run `npm list` to ensure no conflicting peer dependencies.
     - Check for legacy global packages.
 
-## Phase 2: Configuration & Entry Point
+## Phase 2: Configuration & Entry Point (COMPLETED)
 **Goal:** Establish the Vite configuration and application entry point.
 
 1.  **Move Entry HTML:**
@@ -57,7 +57,7 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
     - **Build Config:** Output to `dist` (default) but ensure it's explicit.
     - **Resolve:** Setup alias `@` for `src` if currently used, or ensure relative paths resolve correctly.
 
-## Phase 3: Codebase Adaptation
+## Phase 3: Codebase Adaptation (COMPLETED)
 **Goal:** Update application code to work with Vite's ESM-based architecture.
 
 1.  **Environment Variables:**
@@ -73,7 +73,7 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 3.  **Dynamic Imports:**
     - Verify any `require()` calls are converted to `import()`. Vite/Rollup requires ESM.
 
-## Phase 4: Infrastructure & Build Script Updates
+## Phase 4: Infrastructure & Build Script Updates (COMPLETED)
 
 **Goal:** Ensure the containerized environment and helper scripts build and run correctly.
 
@@ -125,57 +125,29 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 5.  **Nginx Configurations (`nginx/`):**
 
-
-
     - **dev.conf:** Ensure proxy passes to `http://frontend:3000` still work.
 
-
-
     - **prod.conf:** Vite assets are typically in `dist/assets/` (instead of `build/static/`). Verify `gzip_static` and `try_files` match the new structure.
-
-
 
     - **deploy.sh / Build Scripts:** Update any scripts checking for `build/` directory to check for `dist/`.
 
 
 
-
-
-
-
 6.  **Documentation Updates:**
-
-
 
     - **`docs/maintenance/README.md`:** Update all references of `npm run build` and `frontend/build` to `frontend/dist`.
 
-
-
     - **`docs/development/content-hashed-assets-plan.md`:**
-
-
 
         - Update asset path patterns from `static/js/` to `assets/`.
 
-
-
         - Update build directory references from `build/` to `dist/`.
-
-
 
         - Update Cloudflare rule examples to match Vite's structure.
 
 
 
-
-
-
-
 7.  **Fly.io Configuration (`fly.toml`):**
-
-
-
-
 
     - Check for build secrets or env vars.
 
@@ -185,105 +157,331 @@ This document outlines the meticulous plan to migrate the Divemap frontend from 
 
 
 
-## Phase 5: Testing Infrastructure (Vitest)
+## Phase 5: Testing Infrastructure (Vitest) (COMPLETED)
+
+
 
 **Goal:** Migrate the test suite from Jest to Vitest.
 
 
 
+
+
+
+
 1.  **Configuration:** Add `test` object to `vite.config.js`:
+
+
 
     ```javascript
 
+
+
     test: {
+
+
 
       globals: true,
 
+
+
       environment: 'jsdom',
+
+
 
       setupFiles: './src/setupTests.js',
 
+
+
     }
+
+
 
     ```
 
+
+
 2.  **Setup File:** Update `src/setupTests.js` to import `@testing-library/jest-dom`.
+
+
 
 3.  **Mocking:**
 
+
+
     - Replace `jest.mock()` with `vi.mock()`.
+
+
 
     - Replace `jest.fn()` with `vi.fn()`.
 
+
+
     - Global search/replace `jest` -> `vi`.
 
+
+
 4.  **Script Update:** Set `"test": "vitest"` in `package.json`.
+
+
 
 5.  **Test Utility Fixes:** Update `frontend/tests/test_nodejs_20_upgrade.js` to use `npm run build` instead of `npm run build:prod`.
 
 
 
-## Phase 6: Verification & QA
+
+
+
+
+## Phase 6: Verification & QA (COMPLETED)
+
+
+
+
+
+
 
 **Goal:** Extensive validation before merging.
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 ### Verification Checklist
+
+
+
+
+
+
 
 1.  **Local Development:**
 
-    - [ ] `docker-compose up` starts successfully.
 
-    - [ ] App loads on `localhost:80` (via Nginx) and `localhost:3000` (direct).
 
-    - [ ] Hot Module Replacement (HMR) works (edit a file, see instant update).
 
-    - [ ] Environment variables load correctly (check API URLs, feature flags).
+
+
+
+    - [x] `docker-compose up` starts successfully.
+
+
+
+
+
+
+
+    - [x] App loads on `localhost:80` (via Nginx) and `localhost:3000` (direct).
+
+
+
+
+
+
+
+    - [x] Hot Module Replacement (HMR) works (edit a file, see instant update).
+
+
+
+
+
+
+
+    - [x] Environment variables load correctly (check API URLs, feature flags).
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 2.  **Production Build:**
 
-    - [ ] `npm run build` completes without errors.
 
-    - [ ] `dist/` folder contains optimized assets.
 
-    - [ ] `serve -s dist` (local preview) loads the app correctly.
 
-    - [ ] **Content Hashing:** Verify `dist/assets/` contains files with hashes (e.g., `index-D1234.js`).
+
+
+
+    - [x] `npm run build` completes without errors.
+
+
+
+
+
+
+
+    - [x] `dist/` folder contains optimized assets.
+
+
+
+
+
+
+
+    - [x] `serve -s dist` (local preview) loads the app correctly.
+
+
+
+
+
+
+
+    - [x] **Content Hashing:** Verify `dist/assets/` contains files with hashes (e.g., `index-D1234.js`).
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 3.  **Build Scripts:**
 
-    - [ ] `./scripts/build-with-static-assets.sh` completes and copies to `nginx/frontend-build/`.
 
-    - [ ] `frontend/scripts/precompress-assets.sh` creates `.gz` files in `dist/`.
+
+
+
+
+
+    - [x] `./scripts/build-with-static-assets.sh` completes and copies to `nginx/frontend-build/`.
+
+
+
+
+
+
+
+    - [x] `frontend/scripts/precompress-assets.sh` creates `.gz` files in `dist/`.
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 4.  **Testing:**
 
-    - [ ] `npm run test` passes all unit tests.
 
-    - [ ] Snapshot tests updated (if any).
 
-    - [ ] E2E tests (Playwright/Cypress) pass against the Vite local server.
+
+
+
+
+    - [x] `npm run test` passes all unit tests.
+
+
+
+
+
+
+
+    - [x] Snapshot tests updated (if any).
+
+
+
+
+
+
+
+    - [x] E2E tests (Playwright/Cypress) pass against the Vite local server.
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 5.  **Docker & Deployment:**
 
-    - [ ] Production Docker image builds successfully.
 
-    - [ ] Nginx serves the `dist` index.html correctly.
 
-    - [ ] React Router works (refreshing on a sub-route doesn't 404 - Nginx `try_files` check).
+
+
+
+
+    - [x] Production Docker image builds successfully.
+
+
+
+
+
+
+
+    - [x] Nginx serves the `dist` index.html correctly.
+
+
+
+
+
+
+
+    - [x] React Router works (refreshing on a sub-route doesn't 404 - Nginx `try_files` check).
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 ## Phase 7: Rollback Plan
+
+
+
+
+
+
+
+
 
 
 

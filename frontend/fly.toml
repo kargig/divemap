@@ -12,7 +12,7 @@ primary_region = 'fra'
   NODE_ENV = 'production'
 
 [processes]
-  app = 'npx serve -s build -l 8080'
+  app = 'npx serve -s dist -l 8080'
 
 [http_service]
   internal_port = 8080

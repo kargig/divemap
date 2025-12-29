@@ -3,7 +3,7 @@ class GoogleAuth {
   constructor() {
     this.google = null;
     this.isInitialized = false;
-    this.clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    this.clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   }
 
   // Initialize Google Identity Services

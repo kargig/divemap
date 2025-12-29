@@ -23,7 +23,7 @@ if (typeof window !== 'undefined') {
 
   if (isLocalhost) {
     // Development: backend on different port
-    const envUrl = process.env.REACT_APP_API_URL;
+    const envUrl = import.meta.env.VITE_API_URL;
     api.defaults.baseURL =
       envUrl && envUrl.trim() && envUrl.startsWith('http://localhost')
         ? envUrl
@@ -560,6 +560,7 @@ export const parseNewsletterText = async (content, divingCenterId = null, useOpe
   });
   return response.data;
 };
+
 
 // Dive Trip API functions
 export const getParsedTrips = async (params = {}) => {
