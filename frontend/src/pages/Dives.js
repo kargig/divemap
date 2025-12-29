@@ -1121,20 +1121,37 @@ const Dives = () => {
                               {dive.name || `Dive #${dive.id}`}
                             </Link>
                           </h3>
-                          {/* Dive site name/link */}
-                          {dive.dive_site_info && dive.dive_site_info.name && (
-                            <div className={`mt-1 ${compactLayout ? 'text-xs' : 'text-sm'}`}>
-                              <span className='text-gray-500'>at </span>
-                              <Link
-                                to={`/dive-sites/${dive.dive_site_info.id}`}
-                                onClick={e => e.stopPropagation()}
-                                className='text-blue-600 hover:text-blue-800 hover:underline font-medium'
-                                title={`View ${dive.dive_site_info.name}`}
-                              >
-                                {dive.dive_site_info.name}
-                              </Link>
-                            </div>
-                          )}
+                          {/* Dive site name and user */}
+                          <div
+                            className={`mt-1 ${compactLayout ? 'text-xs' : 'text-sm'} flex flex-wrap items-center gap-1`}
+                          >
+                            {dive.dive_site_info && dive.dive_site_info.name && (
+                              <>
+                                <span className='text-gray-500'>at </span>
+                                <Link
+                                  to={`/dive-sites/${dive.dive_site_info.id}`}
+                                  onClick={e => e.stopPropagation()}
+                                  className='text-blue-600 hover:text-blue-800 hover:underline font-medium'
+                                  title={`View ${dive.dive_site_info.name}`}
+                                >
+                                  {dive.dive_site_info.name}
+                                </Link>
+                              </>
+                            )}
+
+                            {dive.user_username && (
+                              <>
+                                <span className='text-gray-500 ml-1'>by </span>
+                                <Link
+                                  to={`/users/${dive.user_username}`}
+                                  className='text-blue-600 hover:text-blue-800 hover:underline font-medium'
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  {dive.user_username}
+                                </Link>
+                              </>
+                            )}
+                          </div>
                         </div>
                         {dive.selected_route_id && (
                           <div

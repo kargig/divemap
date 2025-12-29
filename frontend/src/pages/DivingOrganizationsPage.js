@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useQuery } from 'react-query';
 
 import { getDivingOrganizations, getDivingOrganizationLevels } from '../api';
+import OrganizationLogo from '../components/OrganizationLogo';
 import usePageTitle from '../hooks/usePageTitle';
 
 const CertificationLevelsList = ({ organizationId, identifier }) => {
@@ -46,29 +47,6 @@ const CertificationLevelsList = ({ organizationId, identifier }) => {
   );
 };
 
-const OrganizationLogo = ({ org }) => {
-  const [imageError, setImageError] = useState(false);
-
-  if (org.logo_url && !imageError) {
-    return (
-      <div className='h-24 w-24 rounded-full bg-white border border-gray-100 overflow-hidden flex-shrink-0'>
-        <img
-          src={org.logo_url}
-          alt={`${org.name} logo`}
-          className='h-full w-full object-contain'
-          onError={() => setImageError(true)}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className='h-24 w-24 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xl border border-blue-200 flex-shrink-0'>
-      {org.acronym || org.name.substring(0, 2).toUpperCase()}
-    </div>
-  );
-};
-
 const OrganizationCard = ({ org }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -77,7 +55,7 @@ const OrganizationCard = ({ org }) => {
       <div className='p-5 cursor-pointer' onClick={() => setIsExpanded(!isExpanded)}>
         <div className='flex justify-between items-start'>
           <div className='flex items-start space-x-3'>
-            <OrganizationLogo org={org} />
+            <OrganizationLogo org={org} size='h-24 w-24' textSize='text-xl' />
             <div>
               <h3 className='text-lg font-medium text-gray-900'>{org.name}</h3>
               {org.acronym && <p className='text-sm text-gray-500 font-medium'>{org.acronym}</p>}

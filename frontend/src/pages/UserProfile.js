@@ -13,6 +13,7 @@ import { useParams, Link } from 'react-router-dom';
 
 import { getUserPublicProfile } from '../api';
 import Avatar from '../components/Avatar';
+import OrganizationLogo from '../components/OrganizationLogo';
 import usePageTitle from '../hooks/usePageTitle';
 
 const UserProfile = () => {
@@ -155,30 +156,33 @@ const UserProfile = () => {
                     key={index}
                     className='flex items-start justify-between p-3 bg-gray-50 rounded-lg'
                   >
-                    <div>
-                      <div className='font-medium text-gray-900'>{cert.certification_level}</div>
-                      <div className='text-sm text-gray-600'>
-                        {cert.diving_organization.name} ({cert.diving_organization.acronym})
-                      </div>
-                      {cert.certification_level_link && (
-                        <div className='mt-2 flex flex-wrap gap-2 text-xs'>
-                          {cert.certification_level_link.max_depth && (
-                            <span className='bg-blue-100 text-blue-800 px-2 py-0.5 rounded'>
-                              Depth: {cert.certification_level_link.max_depth}
-                            </span>
-                          )}
-                          {cert.certification_level_link.gases && (
-                            <span className='bg-purple-100 text-purple-800 px-2 py-0.5 rounded'>
-                              Gases: {cert.certification_level_link.gases}
-                            </span>
-                          )}
-                          {cert.certification_level_link.tanks && (
-                            <span className='bg-gray-100 text-gray-800 px-2 py-0.5 rounded border border-gray-300'>
-                              Tanks: {cert.certification_level_link.tanks}
-                            </span>
-                          )}
+                    <div className='flex items-start gap-3'>
+                      <OrganizationLogo org={cert.diving_organization} />
+                      <div>
+                        <div className='font-medium text-gray-900'>{cert.certification_level}</div>
+                        <div className='text-sm text-gray-600'>
+                          {cert.diving_organization.name} ({cert.diving_organization.acronym})
                         </div>
-                      )}
+                        {cert.certification_level_link && (
+                          <div className='mt-2 flex flex-wrap gap-2 text-xs'>
+                            {cert.certification_level_link.max_depth && (
+                              <span className='bg-blue-100 text-blue-800 px-2 py-0.5 rounded'>
+                                Depth: {cert.certification_level_link.max_depth}
+                              </span>
+                            )}
+                            {cert.certification_level_link.gases && (
+                              <span className='bg-purple-100 text-purple-800 px-2 py-0.5 rounded'>
+                                Gases: {cert.certification_level_link.gases}
+                              </span>
+                            )}
+                            {cert.certification_level_link.tanks && (
+                              <span className='bg-gray-100 text-gray-800 px-2 py-0.5 rounded border border-gray-300'>
+                                Tanks: {cert.certification_level_link.tanks}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     {cert.is_active && (
                       <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
