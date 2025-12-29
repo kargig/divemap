@@ -334,6 +334,19 @@ export const addDiveMedia = async (diveId, mediaData) => {
   return response.data;
 };
 
+export const uploadDivePhoto = async (diveId, file, description = '', isPublic = true) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('description', description);
+  formData.append('is_public', isPublic);
+  const response = await api.post(`/api/v1/dives/${diveId}/media/upload-photo`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
 export const getDiveMedia = async diveId => {
   const response = await api.get(`/api/v1/dives/${diveId}/media`);
   return response.data;
@@ -341,6 +354,13 @@ export const getDiveMedia = async diveId => {
 
 export const deleteDiveMedia = async (diveId, mediaId) => {
   const response = await api.delete(`/api/v1/dives/${diveId}/media/${mediaId}`);
+  return response.data;
+};
+
+export const getFlickrOembed = async (flickrUrl) => {
+  const response = await api.get('/api/v1/dives/media/flickr-oembed', {
+    params: { url: flickrUrl }
+  });
   return response.data;
 };
 
@@ -759,5 +779,13 @@ export const deleteUserNotificationPreference = async (userId, category) => {
   const response = await api.delete(
     `/api/v1/notifications/admin/users/${userId}/preferences/${category}`
   );
+  return response.data;
+};
+
+export const updateDiveMedia = async (diveId, mediaId, description = null, isPublic = null) => {
+  const data = {};
+  if (description !== null) data.description = description;
+  if (isPublic !== null) data.is_public = isPublic;
+  const response = await api.patch(`/api/v1/dives/${diveId}/media/${mediaId}`, data);
   return response.data;
 };

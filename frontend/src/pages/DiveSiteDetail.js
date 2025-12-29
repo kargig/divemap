@@ -11,6 +11,8 @@ import {
   Pencil,
   Navigation,
   ExternalLink,
+  Lock,
+  Globe,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
@@ -19,6 +21,13 @@ import { useNavigate, useParams, useLocation, Link as RouterLink } from 'react-r
 
 import api from '../api';
 import DiveSiteRoutes from '../components/DiveSiteRoutes';
+import Lightbox from '../components/Lightbox/Lightbox';
+import Inline from 'yet-another-react-lightbox/plugins/inline';
+import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
+import ReactImage from '../components/Lightbox/ReactImage';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
+import Slideshow from "yet-another-react-lightbox/plugins/slideshow";
+import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import MaskedEmail from '../components/MaskedEmail';
 import MiniMap from '../components/MiniMap';
 import RateLimitError from '../components/RateLimitError';
@@ -31,6 +40,7 @@ import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficul
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
+import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 
 // Helper function to safely extract error message
 const getErrorMessage = error => {
@@ -53,6 +63,9 @@ const DiveSiteDetail = () => {
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [isMapMaximized, setIsMapMaximized] = useState(false);
   const [showNearbySites, setShowNearbySites] = useState(false);
+  const [activeMediaTab, setActiveMediaTab] = useState('photos');
+  const [activeContentTab, setActiveContentTab] = useState('description');
+  const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(new Map());
 
   // Handle route drawing button click with authentication check
   const handleDrawRouteClick = () => {
@@ -228,6 +241,110 @@ const DiveSiteDetail = () => {
     );
   };
 
+  // Separate public and private media
+  const publicMedia = media
+    ? media.filter(item => {
+        // Admin-uploaded site media (no user_id) is always public
+        if (!item.user_id) return true;
+        // Public dive media
+        if (item.is_public !== false) return true;
+        return false;
+      })
+    : [];
+  
+  const privateMedia = media
+    ? media.filter(item => {
+        // Only show private media if user is logged in and owns it
+        if (item.user_id && user && item.user_id === user.id && item.is_public === false) {
+          return true;
+        }
+        return false;
+      })
+    : [];
+
+  // Public media categories
+  const publicVideos = publicMedia.filter(item => isVideoUrl(item.url));
+  const publicPhotos = publicMedia.filter(item => !isVideoUrl(item.url));
+  
+  // Private media categories (only for owner)
+  const privateVideos = privateMedia.filter(item => isVideoUrl(item.url));
+  const privatePhotos = privateMedia.filter(item => !isVideoUrl(item.url));
+  
+  // Convert Flickr URLs to direct image URLs
+  useEffect(() => {
+    const convertFlickrUrls = async () => {
+      if (!media) return;
+
+      // Get all photos (public and private)
+      const allPhotos = media.filter(item => !isVideoUrl(item.url));
+      const flickrPhotos = allPhotos.filter(item => isFlickrUrl(item.url));
+      
+      if (flickrPhotos.length === 0) return;
+
+      const newConvertedUrls = new Map(convertedFlickrUrls);
+      let hasUpdates = false;
+
+      for (const photo of flickrPhotos) {
+        // Skip if already converted
+        if (newConvertedUrls.has(photo.url)) continue;
+
+        try {
+          const directUrl = await convertFlickrUrlToDirectImage(photo.url);
+          if (directUrl !== photo.url) {
+            newConvertedUrls.set(photo.url, directUrl);
+            hasUpdates = true;
+          }
+        } catch (error) {
+          console.warn('Failed to convert Flickr URL:', photo.url, error);
+        }
+      }
+
+      if (hasUpdates) {
+        setConvertedFlickrUrls(newConvertedUrls);
+      }
+    };
+
+    convertFlickrUrls();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [media]);
+
+  // Helper to get the URL (converted if Flickr, original otherwise)
+  const getImageUrl = (url) => {
+    return convertedFlickrUrls.get(url) || url;
+  };
+
+  // For backward compatibility, keep these for the main tabs
+  const videos = publicVideos;
+  const photos = publicPhotos;
+
+  const photoSlides = photos.map(item => ({
+    src: getImageUrl(item.url),
+    width: 1920,
+    height: 1080,
+    alt: item.description || 'Dive site photo',
+    description:  item.description || ''
+  }));
+  
+  const privatePhotoSlides = privatePhotos.map(item => ({
+    src: getImageUrl(item.url),
+    width: 1920,
+    height: 1080,
+    alt: item.description || 'Dive site photo',
+    description:  item.description || ''
+  }));
+
+  // Set initial content tab based on available content
+  useEffect(() => {
+    if (diveSite && media) {
+      // Default to description if available, otherwise media
+      if (diveSite.description) {
+        setActiveContentTab('description');
+      } else if (media && media.length > 0) {
+        setActiveContentTab('media');
+      }
+    }
+  }, [diveSite, media]);
+
   if (isLoading) {
     return (
       <div className='flex justify-center items-center h-64'>
@@ -399,17 +516,192 @@ const DiveSiteDetail = () => {
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8'>
         {/* Main Content */}
         <div className='lg:col-span-2 space-y-6'>
-          {/* Description */}
-          {diveSite.description && (
+          {/* Description & Media Gallery with Tabs */}
+          {(diveSite.description || (media && media.length > 0)) && (
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
-                Description
-              </h2>
-              <p className='text-gray-700 text-sm sm:text-base'>
-                {renderTextWithLinks(diveSite.description)}
-              </p>
+              {/* Main Tab Navigation */}
+              <div className='border-b border-gray-200 mb-4'>
+                <nav className='flex space-x-8'>
+                  {diveSite.description && (
+                    <button
+                      onClick={() => setActiveContentTab('description')}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        activeContentTab === 'description'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      Description
+                    </button>
+                  )}
+                  {media && media.length > 0 && (
+                    <button
+                      onClick={() => setActiveContentTab('media')}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        activeContentTab === 'media'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      Photos & Videos
+                    </button>
+                  )}
+                </nav>
+              </div>
+
+              {/* Tab Content */}
+              {activeContentTab === 'description' && diveSite.description && (
+                <div>
+                  <p className='text-gray-700 text-sm sm:text-base'>
+                    {renderTextWithLinks(diveSite.description)}
+                  </p>
+                </div>
+              )}
+
+              {activeContentTab === 'media' && media && media.length > 0 && (
+                <div>
+                  {/* Media Tab Navigation */}
+                  <div className='border-b border-gray-200 mb-4'>
+                    <nav className='flex space-x-8'>
+                      {photos.length > 0 && (
+                        <button
+                          onClick={() => setActiveMediaTab('photos')}
+                          className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                            activeMediaTab === 'photos'
+                              ? 'border-blue-500 text-blue-600'
+                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                          }`}
+                        >
+                          Photos ({photos.length})
+                        </button>
+                      )}
+                      {videos.length > 0 && (
+                        <button
+                          onClick={() => setActiveMediaTab('videos')}
+                          className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                            activeMediaTab === 'videos'
+                              ? 'border-blue-500 text-blue-600'
+                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                          }`}
+                        >
+                          <Video className='w-4 h-4' />
+                          <span>Videos ({videos.length})</span>
+                        </button>
+                      )}
+                      {user && (privatePhotos.length > 0 || privateVideos.length > 0) && (
+                        <button
+                          onClick={() => setActiveMediaTab('private')}
+                          className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                            activeMediaTab === 'private'
+                              ? 'border-orange-500 text-orange-600'
+                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                          }`}
+                        >
+                          <Lock className='w-4 h-4' />
+                          <span>
+                            Private ({privatePhotos.length + privateVideos.length})
+                          </span>
+                        </button>
+                      )}
+                    </nav>
+                  </div>
+
+                  {/* Media Tab Content */}
+                  {activeMediaTab === 'photos' && photos.length > 0 && (
+                    <div>
+                      <Lightbox
+                        open={false}
+                        close={() => {}}
+                        slides={photoSlides}
+                        plugins={[Captions, Slideshow, Fullscreen ,Thumbnails]}
+                        render={{ slide: ReactImage, thumbnail: ReactImage }}
+                        thumbnails={{ position: 'bottom' }}
+                      />
+                    </div>
+                  )}
+
+                  {activeMediaTab === 'videos' && videos.length > 0 && (
+                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
+                      {videos.map(item => (
+                        <div key={`video-${item.dive_id ? `dive-${item.dive_id}-` : 'site-'}${item.id}`} className='border rounded-lg overflow-hidden'>
+                          <div className='relative'>
+                            <YouTubePreview
+                              url={item.url}
+                              description={item.description}
+                              className='w-full'
+                              openInNewTab={true}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Private Media Tab Content */}
+                  {activeMediaTab === 'private' && user && (privatePhotos.length > 0 || privateVideos.length > 0) && (
+                    <div>
+                      <div className='mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg'>
+                        <div className='flex items-center gap-2 text-orange-800'>
+                          <Lock size={16} />
+                          <span className='text-sm font-medium'>
+                            Your private media from all dives at this site - only visible to you
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Private Photos */}
+                      {privatePhotos.length > 0 && (
+                        <div className='mb-6'>
+                          <h3 className='text-lg font-semibold text-gray-900 mb-3'>
+                            Private Photos ({privatePhotos.length})
+                          </h3>
+                          <Lightbox
+                            open={false}
+                            close={() => {}}
+                            slides={privatePhotoSlides}
+                            plugins={[Captions, Slideshow, Fullscreen ,Thumbnails]}
+                            render={{ slide: ReactImage, thumbnail: ReactImage }}
+                            thumbnails={{ position: 'bottom' }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Private Videos */}
+                      {privateVideos.length > 0 && (
+                        <div>
+                          <h3 className='text-lg font-semibold text-gray-900 mb-3'>
+                            Private Videos ({privateVideos.length})
+                          </h3>
+                          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
+                            {privateVideos.map(item => (
+                              <div
+                                key={`private-video-${item.dive_id ? `dive-${item.dive_id}-` : 'site-'}${item.id}`}
+                                className='border rounded-lg overflow-hidden'
+                              >
+                                <div className='relative'>
+                                  <YouTubePreview
+                                    url={item.url}
+                                    description={item.description}
+                                    className='w-full'
+                                    openInNewTab={true}
+                                  />
+                                  <div className='absolute top-2 right-2 flex items-center gap-1 bg-white/90 px-2 py-1 rounded text-xs'>
+                                    <Lock size={12} className='text-orange-600' />
+                                    <span className='text-orange-600 font-medium'>Private</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
+
 
           {/* Location */}
           {(diveSite.latitude && diveSite.longitude) || diveSite.address ? (
@@ -676,49 +968,6 @@ const DiveSiteDetail = () => {
             </div>
           )}
 
-          {/* Media Gallery */}
-          {media && media.length > 0 && (
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
-                Photos & Videos
-              </h2>
-              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
-                {media.map(item => (
-                  <div key={item.id} className='border rounded-lg overflow-hidden'>
-                    {isVideoUrl(item.url) ? (
-                      <YouTubePreview
-                        url={item.url}
-                        description={item.description}
-                        className='w-full'
-                        openInNewTab={true}
-                      />
-                    ) : (
-                      <div>
-                        <a
-                          href={item.url}
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className='block relative group'
-                        >
-                          <img
-                            src={item.url}
-                            alt={item.description || 'Dive site media'}
-                            className='w-full h-32 sm:h-48 object-cover group-hover:opacity-80 transition-opacity duration-200'
-                          />
-                          <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200'></div>
-                        </a>
-                        {item.description && (
-                          <div className='p-3'>
-                            <p className='text-sm text-gray-600'>{item.description}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Associated Diving Centers */}
           {divingCenters && divingCenters.length > 0 && (

@@ -10,6 +10,9 @@ import {
   getDiveSites,
   getAvailableTags,
   addDiveMedia,
+  uploadDivePhoto,
+  deleteDiveMedia,
+  updateDiveMedia,
   getDivingCenters,
 } from '../api';
 import RouteSelection from '../components/RouteSelection';
@@ -41,9 +44,12 @@ const EditDive = () => {
   const [mediaUrls, setMediaUrls] = useState([]);
   const [showMediaForm, setShowMediaForm] = useState(false);
   const [newMediaUrl, setNewMediaUrl] = useState('');
-  const [newMediaType, setNewMediaType] = useState('external_link');
+  const [newMediaType, setNewMediaType] = useState('video'); // Changed default to video since photos use file upload
   const [newMediaDescription, setNewMediaDescription] = useState('');
   const [selectedBuddies, setSelectedBuddies] = useState([]);
+  const [newMediaIsPublic, setNewMediaIsPublic] = useState(true);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Fetch dive data
   const {
@@ -413,19 +419,84 @@ const EditDive = () => {
         url: newMediaUrl.trim(),
         description: newMediaDescription.trim(),
         title: '',
+        is_public: newMediaIsPublic,
       };
       setMediaUrls(prev => [...prev, newMedia]);
 
       // Reset form
       setNewMediaUrl('');
-      setNewMediaType('external_link');
+      setNewMediaType('video');
       setNewMediaDescription('');
+      setNewMediaIsPublic(true);
       setShowMediaForm(false);
     }
   };
 
-  const handleMediaRemove = id => {
-    setMediaUrls(prev => prev.filter(item => item.id !== id));
+  const handlePhotoUpload = async (event) => {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+    
+    // Prevent multiple simultaneous uploads
+    if (uploadingPhotos) {
+      return;
+    }
+
+    setUploadingPhotos(true);
+    const uploadPromises = files.map(async (file) => {
+      try {
+        const uploadedMedia = await uploadDivePhoto(
+          id,
+          file,
+          newMediaDescription.trim(),
+          newMediaIsPublic
+        );
+        return {
+          id: uploadedMedia.id, // Use database ID for uploaded photos
+          type: 'photo',
+          url: uploadedMedia.url,
+          description: uploadedMedia.description || '',
+          title: '',
+          is_public: uploadedMedia.is_public,
+          uploaded: true, // Mark as already uploaded (indicates it's in database)
+        };
+      } catch (error) {
+        toast.error(`Failed to upload ${file.name}: ${error.response?.data?.detail || error.message}`);
+        return null;
+      }
+    });
+
+    const uploadedMedia = await Promise.all(uploadPromises);
+    const validMedia = uploadedMedia.filter(m => m !== null);
+    
+    if (validMedia.length > 0) {
+      setMediaUrls(prev => [...prev, ...validMedia]);
+      toast.success(`Successfully uploaded ${validMedia.length} photo(s)`);
+    }
+
+    // Reset form
+    setNewMediaDescription('');
+    setNewMediaIsPublic(true);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    setUploadingPhotos(false);
+  };
+
+  const handleMediaRemove = async (mediaItem) => {
+    // If this is an uploaded photo (has database ID), delete it from backend and R2
+    if (mediaItem.uploaded && typeof mediaItem.id === 'number') {
+      try {
+        await deleteDiveMedia(id, mediaItem.id);
+        toast.success('Photo deleted successfully');
+        queryClient.invalidateQueries(['dive', id]);
+      } catch (error) {
+        toast.error(error.response?.data?.detail || 'Failed to delete photo');
+        return; // Don't remove from UI if deletion failed
+      }
+    }
+    
+    // Remove from local state
+    setMediaUrls(prev => prev.filter(item => item.id !== mediaItem.id));
   };
 
   const handleMediaDescriptionChange = (id, description) => {
@@ -483,15 +554,28 @@ const EditDive = () => {
     try {
       await updateDiveMutation.mutateAsync({ diveId: id, diveData });
 
-      // Add media URLs
+      // Add media URLs (only for non-uploaded media, uploaded photos are already saved)
+      // Also update descriptions for already-uploaded photos
       const mediaPromises = [];
 
       for (const mediaUrl of mediaUrls) {
+        // If photo was already uploaded, update its description if changed
+        if (mediaUrl.uploaded && mediaUrl.id) {
+          mediaPromises.push(
+            updateDiveMedia(id, mediaUrl.id, mediaUrl.description || '', mediaUrl.is_public).catch(_error => {
+              toast.error(`Failed to update media description: ${mediaUrl.url}`);
+            })
+          );
+          continue;
+        }
+
+        // Add new media URLs
         const mediaData = {
           media_type: mediaUrl.type,
           url: mediaUrl.url,
           description: mediaUrl.description || '',
           title: mediaUrl.title || '',
+          is_public: mediaUrl.is_public !== undefined ? mediaUrl.is_public : true,
         };
 
         mediaPromises.push(
@@ -883,10 +967,82 @@ const EditDive = () => {
           <div className='md:col-span-2'>
             <h2 className='text-xl font-semibold mb-4'>Media</h2>
             <div className='space-y-4'>
-              {/* URL Upload */}
+              {/* Photo Upload */}
               <div>
                 <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Add Media URLs
+                  Upload Photos
+                </label>
+                <div className='space-y-3'>
+                  <div className='flex items-center gap-4'>
+                    <input
+                      ref={fileInputRef}
+                      type='file'
+                      accept='image/jpeg,image/jpg,image/png,image/gif,image/webp'
+                      multiple
+                      onChange={handlePhotoUpload}
+                      disabled={uploadingPhotos}
+                      className='hidden'
+                      id='photo-upload-input'
+                    />
+                    <button
+                      type='button'
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // Prevent multiple clicks
+                        if (uploadingPhotos || !fileInputRef.current) {
+                          return;
+                        }
+                        // Trigger file input click
+                        fileInputRef.current.click();
+                      }}
+                      disabled={uploadingPhotos}
+                      className={`flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                        uploadingPhotos ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <Image size={16} />
+                      {uploadingPhotos ? 'Uploading...' : 'Choose Photos'}
+                    </button>
+                    <span className='text-sm text-gray-500'>
+                      Select one or more photos from your computer
+                    </span>
+                  </div>
+                  
+                  <div className='flex items-center'>
+                    <input
+                      id='photo-is-public'
+                      type='checkbox'
+                      checked={newMediaIsPublic}
+                      onChange={e => setNewMediaIsPublic(e.target.checked)}
+                      className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                    />
+                    <label
+                      htmlFor='photo-is-public'
+                      className='ml-2 block text-sm text-gray-700'
+                    >
+                      Make photos public (visible on dive site)
+                    </label>
+                  </div>
+                  
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-1'>
+                      Description (Optional) - Applied to all selected photos
+                    </label>
+                    <textarea
+                      value={newMediaDescription}
+                      onChange={e => setNewMediaDescription(e.target.value)}
+                      placeholder='Describe these photos...'
+                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      rows='2'
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* URL Upload for Videos and External Links */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Add Media URLs (Videos & External Links)
                 </label>
                 <div className='flex items-center gap-4'>
                   <button
@@ -929,10 +1085,8 @@ const EditDive = () => {
                           onChange={e => setNewMediaType(e.target.value)}
                           className='w-full border border-gray-300 rounded-md px-3 py-2'
                         >
-                          <option value='external_link'>External Link</option>
-                          <option value='photo'>Photo</option>
                           <option value='video'>Video</option>
-                          <option value='dive_plan'>Dive Plan</option>
+                          <option value='photo'>Photo</option>
                         </select>
                       </div>
 
@@ -947,6 +1101,22 @@ const EditDive = () => {
                           className='w-full border border-gray-300 rounded-md px-3 py-2'
                           rows='2'
                         />
+                      </div>
+
+                      <div className='flex items-center'>
+                        <input
+                          id='media-is-public'
+                          type='checkbox'
+                          checked={newMediaIsPublic}
+                          onChange={e => setNewMediaIsPublic(e.target.checked)}
+                          className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                        />
+                        <label
+                          htmlFor='media-is-public'
+                          className='ml-2 block text-sm text-gray-700'
+                        >
+                          Make this media public (visible on dive site)
+                        </label>
                       </div>
 
                       <div className='flex gap-2'>
@@ -972,8 +1142,9 @@ const EditDive = () => {
                           onClick={() => {
                             setShowMediaForm(false);
                             setNewMediaUrl('');
-                            setNewMediaType('external_link');
+                            setNewMediaType('video');
                             setNewMediaDescription('');
+                            setNewMediaIsPublic(true);
                           }}
                           className='px-4 py-2 text-white rounded-md'
                           style={{ backgroundColor: UI_COLORS.neutral }}
@@ -1018,13 +1189,24 @@ const EditDive = () => {
                           </span>
                           <button
                             type='button'
-                            onClick={() => handleMediaRemove(media.id)}
+                            onClick={() => handleMediaRemove(media)}
                             className='text-red-600 hover:text-red-800'
                           >
                             <X size={16} />
                           </button>
                         </div>
-                        <div className='text-xs text-gray-500 mb-2'>Type: {media.type}</div>
+                        <div className='text-xs text-gray-500 mb-2'>
+                          Type: {media.type} •{' '}
+                          <span
+                            className={
+                              media.is_public !== false
+                                ? 'text-green-600 font-medium'
+                                : 'text-orange-600 font-medium'
+                            }
+                          >
+                            {media.is_public !== false ? 'Public' : 'Private'}
+                          </span>
+                        </div>
                         <input
                           type='text'
                           placeholder='Add description (optional)'

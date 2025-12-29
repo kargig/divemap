@@ -255,6 +255,11 @@ class SiteMediaResponse(BaseModel):
     url: str
     description: Optional[str] = None
     created_at: datetime
+    # Optional fields for dive media (when media comes from a dive)
+    dive_id: Optional[int] = None
+    is_public: Optional[bool] = None
+    user_id: Optional[int] = None
+    user_username: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -697,6 +702,11 @@ class DiveMediaCreate(BaseModel):
     description: Optional[str] = None
     title: Optional[str] = Field(None, max_length=255)  # For external links
     thumbnail_url: Optional[str] = Field(None, max_length=500)  # For external links
+    is_public: bool = Field(default=True, description="If true, media is visible on dive site. If false, only visible to owner.")
+
+class DiveMediaUpdate(BaseModel):
+    description: Optional[str] = None
+    is_public: Optional[bool] = None
 
 class DiveMediaResponse(BaseModel):
     id: int
@@ -706,6 +716,7 @@ class DiveMediaResponse(BaseModel):
     description: Optional[str] = None
     title: Optional[str] = None
     thumbnail_url: Optional[str] = None
+    is_public: bool
     created_at: datetime
 
 # Buddy Management Schemas

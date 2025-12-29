@@ -57,6 +57,10 @@ const CreateDive = () => {
   const [mediaUrls, setMediaUrls] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
   const [selectedBuddies, setSelectedBuddies] = useState([]);
+  const [newMediaIsPublic, setNewMediaIsPublic] = useState(true);
+
+  // Fetch dive sites for dropdown
+  const { data: diveSites = [] } = useQuery(['dive-sites'], () => getDiveSites({ page_size: 100 }));
 
   // Fetch diving centers for dropdown
   const { data: divingCenters = [] } = useQuery(['diving-centers'], () =>
@@ -376,6 +380,7 @@ const CreateDive = () => {
         url: newMediaUrl.trim(),
         description: newMediaDescription.trim(),
         title: '',
+        is_public: newMediaIsPublic,
       };
       setMediaUrls(prev => [...prev, newMedia]);
 
@@ -383,6 +388,7 @@ const CreateDive = () => {
       setNewMediaUrl('');
       setNewMediaType('external_link');
       setNewMediaDescription('');
+      setNewMediaIsPublic(true);
       setShowMediaForm(false);
     }
   };
@@ -466,6 +472,7 @@ const CreateDive = () => {
           url: mediaUrl.url,
           description: mediaUrl.description || '',
           title: mediaUrl.title || '',
+          is_public: mediaUrl.is_public !== undefined ? mediaUrl.is_public : true,
         };
 
         mediaPromises.push(
@@ -952,10 +959,8 @@ const CreateDive = () => {
                           onChange={e => setNewMediaType(e.target.value)}
                           className='w-full border border-gray-300 rounded-md px-3 py-2'
                         >
-                          <option value='external_link'>External Link</option>
                           <option value='photo'>Photo</option>
                           <option value='video'>Video</option>
-                          <option value='dive_plan'>Dive Plan</option>
                         </select>
                       </div>
 
@@ -976,6 +981,22 @@ const CreateDive = () => {
                         />
                       </div>
 
+                      <div className='flex items-center'>
+                        <input
+                          id='media-is-public'
+                          type='checkbox'
+                          checked={newMediaIsPublic}
+                          onChange={e => setNewMediaIsPublic(e.target.checked)}
+                          className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                        />
+                        <label
+                          htmlFor='media-is-public'
+                          className='ml-2 block text-sm text-gray-700'
+                        >
+                          Make this media public (visible on dive site)
+                        </label>
+                      </div>
+
                       <div className='flex gap-2'>
                         <button
                           type='button'
@@ -992,6 +1013,7 @@ const CreateDive = () => {
                             setNewMediaUrl('');
                             setNewMediaType('external_link');
                             setNewMediaDescription('');
+                            setNewMediaIsPublic(true);
                           }}
                           className='px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700'
                         >
@@ -1037,7 +1059,18 @@ const CreateDive = () => {
                             <X size={16} />
                           </button>
                         </div>
-                        <div className='text-xs text-gray-500 mb-2'>Type: {media.type}</div>
+                        <div className='text-xs text-gray-500 mb-2'>
+                          Type: {media.type} •{' '}
+                          <span
+                            className={
+                              media.is_public !== false
+                                ? 'text-green-600 font-medium'
+                                : 'text-orange-600 font-medium'
+                            }
+                          >
+                            {media.is_public !== false ? 'Public' : 'Private'}
+                          </span>
+                        </div>
                         <input
                           type='text'
                           placeholder='Add description (optional)'

@@ -16,6 +16,9 @@ import {
   Route,
   User,
   X,
+  Lock,
+  Image,
+  Video,
 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
@@ -29,11 +32,19 @@ import {
   Link as RouterLink,
 } from 'react-router-dom';
 
-import api, { getDive, deleteDive, deleteDiveMedia, removeBuddy } from '../api';
+import api, { getDive, getDiveMedia, deleteDive, deleteDiveMedia, removeBuddy } from '../api';
 import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
 import DiveProfileModal from '../components/DiveProfileModal';
 import RateLimitError from '../components/RateLimitError';
 import ShareButton from '../components/ShareButton';
+import YouTubePreview from '../components/YouTubePreview';
+import Lightbox from '../components/Lightbox/Lightbox';
+import Inline from 'yet-another-react-lightbox/plugins/inline';
+import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
+import ReactImage from '../components/Lightbox/ReactImage';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
+import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
+import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getRouteTypeColor, getDrawingTypeColor } from '../utils/colorPalette';
@@ -42,6 +53,7 @@ import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 import { renderTextWithLinks } from '../utils/textHelpers';
+import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 
 // Custom zoom control component for dive detail page
 const ZoomControl = ({ currentZoom }) => {
@@ -306,10 +318,13 @@ const DiveDetail = () => {
   const [activeTab, setActiveTab] = useState(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam === 'profile') return 'profile';
+    if (tabParam === 'photos') return 'photos';
     if (tabParam === 'route') return 'route';
     return 'details';
   });
+  const [activeMediaTab, setActiveMediaTab] = useState('photos');
   const [hasDeco, setHasDeco] = useState(false);
+  const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(new Map());
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [routeMapViewport, setRouteMapViewport] = useState({
     center: [38.1158243, 23.2146529], // Default to Psatha dive site coordinates
@@ -328,6 +343,8 @@ const DiveDetail = () => {
     const newSearchParams = new URLSearchParams(searchParams);
     if (tab === 'profile') {
       newSearchParams.set('tab', 'profile');
+    } else if (tab === 'photos') {
+      newSearchParams.set('tab', 'photos');
     } else if (tab === 'route') {
       newSearchParams.set('tab', 'route');
     } else {
@@ -358,6 +375,15 @@ const DiveDetail = () => {
     },
     {
       enabled: !!id,
+    }
+  );
+
+  // Fetch dive media separately (not included in main dive response)
+  const { data: diveMedia = [] } = useQuery(
+    ['dive-media', id],
+    () => getDiveMedia(id),
+    {
+      enabled: !!id && !!dive,
     }
   );
 
@@ -563,6 +589,108 @@ const DiveDetail = () => {
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
+  // Helper function to check if URL is a video
+  const isVideoUrl = url => {
+    if (!url) return false;
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv'];
+    const lowerUrl = url.toLowerCase();
+    return (
+      videoExtensions.some(ext => lowerUrl.includes(ext)) ||
+      lowerUrl.includes('youtube.com') ||
+      lowerUrl.includes('youtu.be') ||
+      lowerUrl.includes('vimeo.com')
+    );
+  };
+
+  // Filter media by type (photos vs videos)
+  const allPhotos = diveMedia
+    ? diveMedia.filter(item => item.media_type === 'photo' && !isVideoUrl(item.url))
+    : [];
+
+  const allVideos = diveMedia
+    ? diveMedia.filter(item => item.media_type === 'video' || isVideoUrl(item.url))
+    : [];
+
+  // Separate public and private photos
+  const publicPhotos = allPhotos.filter(item => item.is_public !== false);
+  const privatePhotos = allPhotos.filter(
+    item => item.is_public === false && user && dive?.user_id === user.id
+  );
+
+  // Separate public and private videos
+  const publicVideos = allVideos.filter(item => item.is_public !== false);
+  const privateVideos = allVideos.filter(
+    item => item.is_public === false && user && dive?.user_id === user.id
+  );
+
+  // Convert Flickr URLs to direct image URLs
+  useEffect(() => {
+    const convertFlickrUrls = async () => {
+      if (!diveMedia) return;
+
+      // Get all photos (public and private)
+      const allPhotosForFlickr = diveMedia.filter(item => item.media_type === 'photo' && !isVideoUrl(item.url));
+      const flickrPhotos = allPhotosForFlickr.filter(item => isFlickrUrl(item.url));
+      
+      if (flickrPhotos.length === 0) return;
+
+      const newConvertedUrls = new Map(convertedFlickrUrls);
+      let hasUpdates = false;
+
+      for (const photo of flickrPhotos) {
+        // Skip if already converted
+        if (newConvertedUrls.has(photo.url)) continue;
+
+        try {
+          const directUrl = await convertFlickrUrlToDirectImage(photo.url);
+          if (directUrl !== photo.url) {
+            newConvertedUrls.set(photo.url, directUrl);
+            hasUpdates = true;
+          }
+        } catch (error) {
+          console.warn('Failed to convert Flickr URL:', photo.url, error);
+        }
+      }
+
+      if (hasUpdates) {
+        setConvertedFlickrUrls(newConvertedUrls);
+      }
+    };
+
+    convertFlickrUrls();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diveMedia]);
+
+  // Helper to get the URL (converted if Flickr, original otherwise)
+  const getImageUrl = (url) => {
+    return convertedFlickrUrls.get(url) || url;
+  };
+
+  // Create slides for lightbox
+  const publicPhotoSlides = publicPhotos.map(item => ({
+    src: getImageUrl(item.url),
+    width: 1920,
+    height: 1080,
+    alt: item.description || 'Dive photo',
+    description: item.description || '',
+  }));
+
+  const privatePhotoSlides = privatePhotos.map(item => ({
+    src: getImageUrl(item.url),
+    width: 1920,
+    height: 1080,
+    alt: item.description || 'Dive photo',
+    description: item.description || '',
+  }));
+
+  // Reset activeMediaTab when switching to photos tab
+  useEffect(() => {
+    if (activeTab === 'photos') {
+      // Default to photos tab when switching to photos tab
+      setActiveMediaTab('photos');
+    }
+  }, [activeTab]);
+
   if (isLoading) {
     return (
       <div className='text-center py-8'>
@@ -733,6 +861,21 @@ const DiveDetail = () => {
                 Profile
               </div>
             </button>
+            {(allPhotos.length > 0 || allVideos.length > 0) && (
+              <button
+                onClick={() => handleTabChange('photos')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'photos'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className='flex items-center'>
+                  <Image className='h-4 w-4 mr-2' />
+                  Photos & Videos ({allPhotos.length + allVideos.length})
+                </div>
+              </button>
+            )}
             {dive.selected_route && (
               <button
                 onClick={() => handleTabChange('route')}
@@ -928,30 +1071,17 @@ const DiveDetail = () => {
                 )}
               </div>
 
-              {/* Media Gallery */}
-              {dive.media && dive.media.length > 0 && (
-                <div className='bg-white rounded-lg shadow p-6'>
-                  <h2 className='text-xl font-semibold mb-4'>Media</h2>
-                  <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                    {dive.media.map(media => (
+              {/* Media Gallery - Exclude photos and videos (shown in Photos & Videos tab) */}
+              {dive.media &&
+                dive.media.filter(m => m.media_type !== 'photo' && m.media_type !== 'video' && !isVideoUrl(m.url)).length > 0 && (
+                  <div className='bg-white rounded-lg shadow p-6'>
+                    <h2 className='text-xl font-semibold mb-4'>Media</h2>
+                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                      {dive.media
+                        .filter(m => m.media_type !== 'photo' && m.media_type !== 'video' && !isVideoUrl(m.url))
+                        .map(media => (
                       <div key={media.id} className='relative group'>
                         <div className='aspect-square bg-gray-100 rounded-lg overflow-hidden'>
-                          {media.media_type === 'photo' && (
-                            <img
-                              src={media.url}
-                              alt={media.description || 'Dive photo'}
-                              className='w-full h-full object-cover cursor-pointer'
-                              onClick={() => setSelectedMedia(media)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  setSelectedMedia(media);
-                                }
-                              }}
-                              role='button'
-                              tabIndex={0}
-                            />
-                          )}
                           {media.media_type === 'video' && (
                             <video
                               src={media.url}
@@ -1007,10 +1137,10 @@ const DiveDetail = () => {
                           <p className='text-xs text-gray-600 mt-1'>{media.description}</p>
                         )}
                       </div>
-                    ))}
+                        ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </>
           )}
 
@@ -1035,6 +1165,157 @@ const DiveDetail = () => {
                 }}
                 onMaximize={handleOpenProfileModal}
               />
+            </div>
+          )}
+
+          {activeTab === 'photos' && (allPhotos.length > 0 || allVideos.length > 0) && (
+            <div className='bg-white rounded-lg shadow p-6'>
+              <h2 className='text-xl font-semibold mb-4'>Photos & Videos</h2>
+
+              {/* Media Tab Navigation */}
+              <div className='border-b border-gray-200 mb-4'>
+                <nav className='flex space-x-8'>
+                  {publicPhotos.length > 0 && (
+                    <button
+                      onClick={() => setActiveMediaTab('photos')}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        activeMediaTab === 'photos'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      Photos ({publicPhotos.length})
+                    </button>
+                  )}
+                  {publicVideos.length > 0 && (
+                    <button
+                      onClick={() => setActiveMediaTab('videos')}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                        activeMediaTab === 'videos'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <Video className='w-4 h-4' />
+                      <span>Videos ({publicVideos.length})</span>
+                    </button>
+                  )}
+                  {user &&
+                    dive?.user_id === user.id &&
+                    (privatePhotos.length > 0 || privateVideos.length > 0) && (
+                      <button
+                        onClick={() => setActiveMediaTab('private')}
+                        className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                          activeMediaTab === 'private'
+                            ? 'border-orange-500 text-orange-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        <Lock className='w-4 h-4' />
+                        <span>Private ({privatePhotos.length + privateVideos.length})</span>
+                      </button>
+                    )}
+                </nav>
+              </div>
+
+              {/* Public Photos */}
+              {activeMediaTab === 'photos' && publicPhotos.length > 0 && (
+                <div>
+                  <Lightbox
+                    open={false}
+                    close={() => {}}
+                    slides={publicPhotoSlides}
+                    plugins={[Captions, Slideshow, Fullscreen, Thumbnails]}
+                    render={{ slide: ReactImage, thumbnail: ReactImage }}
+                    thumbnails={{ position: 'bottom' }}
+                  />
+                </div>
+              )}
+
+              {/* Public Videos */}
+              {activeMediaTab === 'videos' && publicVideos.length > 0 && (
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
+                  {publicVideos.map(item => (
+                    <div
+                      key={`video-${item.dive_id ? `dive-${item.dive_id}-` : ''}${item.id}`}
+                      className='border rounded-lg overflow-hidden'
+                    >
+                      <div className='relative'>
+                        <YouTubePreview
+                          url={item.url}
+                          description={item.description}
+                          className='w-full'
+                          openInNewTab={true}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Private Media */}
+              {activeMediaTab === 'private' &&
+                user &&
+                dive?.user_id === user.id &&
+                (privatePhotos.length > 0 || privateVideos.length > 0) && (
+                  <div>
+                    <div className='mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg'>
+                      <div className='flex items-center gap-2 text-orange-800'>
+                        <Lock size={16} />
+                        <span className='text-sm font-medium'>
+                          Your private media - only visible to you
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Private Photos */}
+                    {privatePhotos.length > 0 && (
+                      <div className='mb-6'>
+                        <h3 className='text-lg font-semibold text-gray-900 mb-3'>
+                          Private Photos ({privatePhotos.length})
+                        </h3>
+                        <Lightbox
+                          open={false}
+                          close={() => {}}
+                          slides={privatePhotoSlides}
+                          plugins={[Captions, Slideshow, Fullscreen, Thumbnails]}
+                          render={{ slide: ReactImage, thumbnail: ReactImage }}
+                          thumbnails={{ position: 'bottom' }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Private Videos */}
+                    {privateVideos.length > 0 && (
+                      <div>
+                        <h3 className='text-lg font-semibold text-gray-900 mb-3'>
+                          Private Videos ({privateVideos.length})
+                        </h3>
+                        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
+                          {privateVideos.map(item => (
+                            <div
+                              key={`private-video-${item.dive_id ? `dive-${item.dive_id}-` : ''}${item.id}`}
+                              className='border rounded-lg overflow-hidden'
+                            >
+                              <div className='relative'>
+                                <YouTubePreview
+                                  url={item.url}
+                                  description={item.description}
+                                  className='w-full'
+                                  openInNewTab={true}
+                                />
+                                <div className='absolute top-2 right-2 flex items-center gap-1 bg-white/90 px-2 py-1 rounded text-xs'>
+                                  <Lock size={12} className='text-orange-600' />
+                                  <span className='text-orange-600 font-medium'>Private</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
             </div>
           )}
 

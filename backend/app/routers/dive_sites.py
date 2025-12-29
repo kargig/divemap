@@ -12,6 +12,7 @@ from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, Divin
 from app.services.osm_coastline_service import detect_shore_direction
 from app.services.wind_recommendation_service import calculate_wind_suitability
 from app.services.open_meteo_service import fetch_wind_data_single_point
+from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus, DiveMedia
 from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse,
     SiteRatingCreate, SiteRatingResponse,
@@ -1675,7 +1676,8 @@ async def get_dive_site(
 async def get_dive_site_media(
     request: Request,
     dive_site_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
 
     # Check if dive site exists
@@ -1686,8 +1688,94 @@ async def get_dive_site_media(
             detail="Dive site not found"
         )
 
-    media = db.query(SiteMedia).filter(SiteMedia.dive_site_id == dive_site_id).all()
-    return media
+    # Get admin-uploaded site media
+    site_media = db.query(SiteMedia).filter(SiteMedia.dive_site_id == dive_site_id).all()
+    
+    # Get public media from dives associated with this dive site
+    # Also include private media if current user owns the dive
+    # Use joinedload to eagerly load dive and user relationships to avoid N+1 queries
+    dive_media_query = db.query(DiveMedia).join(Dive).options(
+        joinedload(DiveMedia.dive).joinedload(Dive.user)
+    ).filter(
+        Dive.dive_site_id == dive_site_id,
+        DiveMedia.is_public
+    )
+    
+    # If user is logged in, also include their private media
+    if current_user:
+        dive_media_query = db.query(DiveMedia).join(Dive).options(
+            joinedload(DiveMedia.dive).joinedload(Dive.user)
+        ).filter(
+            Dive.dive_site_id == dive_site_id,
+            or_(
+                DiveMedia.is_public == True,
+                and_(DiveMedia.is_public == False, Dive.user_id == current_user.id)
+            )
+        )
+    
+    dive_media = dive_media_query.all()
+    
+    # Convert to SiteMediaResponse format
+    # Note: We're using SiteMediaResponse but it will contain dive media too
+    # The frontend will need to handle both types
+    result = []
+    
+    # Add site media (admin-uploaded)
+    for media in site_media:
+        result.append(SiteMediaResponse(
+            id=media.id,
+            dive_site_id=media.dive_site_id,
+            media_type=media.media_type.value if hasattr(media.media_type, 'value') else str(media.media_type),
+            url=media.url,
+            description=media.description,
+            created_at=media.created_at,
+            dive_id=None,
+            is_public=None,
+            user_id=None,
+            user_username=None
+        ))
+    
+    # Add public dive media (user-uploaded, public or private if owner)
+    # Generate presigned URLs for R2 photos on-demand
+    from app.services.r2_storage_service import get_r2_storage
+    r2_storage = get_r2_storage()
+    
+    for media in dive_media:
+        # Get the dive to access user info (already loaded via joinedload)
+        dive = media.dive
+        
+        # Get username from dive's user relationship (already loaded)
+        user_username = dive.user.username if dive and dive.user else None
+        
+        # Format description: if user provided description, append "From dive: XXX", otherwise just "From dive: XXX"
+        dive_name = dive.name if dive else 'Unknown'
+        default_description = f"By: {user_username}\nDive: {dive_name}"
+        if media.description and media.description.strip():
+            # User provided description - append default description
+            formatted_description = f"{media.description}\n{default_description}"
+        else:
+            # No user description - just default description
+            formatted_description = default_description
+        
+        # If URL is an R2 path (starts with 'user_'), generate presigned URL
+        media_url = media.url
+        if media_url.startswith('user_'):
+            media_url = r2_storage.get_photo_url(media_url)
+        
+        result.append(SiteMediaResponse(
+            id=media.id,
+            dive_site_id=dive_site_id,
+            media_type=media.media_type.value if hasattr(media.media_type, 'value') else str(media.media_type),
+            url=media_url,
+            description=formatted_description,
+            created_at=media.created_at,
+            dive_id=media.dive_id,
+            is_public=media.is_public,
+            user_id=dive.user_id if dive else None,
+            user_username=user_username
+        ))
+    
+    return result
 
 @router.post("/{dive_site_id}/media", response_model=SiteMediaResponse)
 @skip_rate_limit_for_admin("30/minute")
