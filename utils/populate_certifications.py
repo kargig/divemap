@@ -78,15 +78,25 @@ def populate_db(data):
         db.close()
 
 if __name__ == "__main__":
-    file_path = "backend/diving_certifications_data.json"
-    if not os.path.exists(file_path):
-        file_path = "docs/diving_certifications_data.json"
-    if not os.path.exists(file_path):
-        # Fallback for running from backend dir
-        file_path = "../docs/diving_certifications_data.json"
+    # List of possible file paths to check
+    possible_paths = [
+        "diving_certifications_data.json",
+        "backend/diving_certifications_data.json",
+        "../backend/diving_certifications_data.json",
+        "docs/diving_certifications_data.json",
+        "../docs/diving_certifications_data.json"
+    ]
     
-    if not os.path.exists(file_path):
-        print(f"Data file not found at {file_path}")
+    file_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            file_path = path
+            break
+    
+    if not file_path:
+        print(f"❌ Error: Data file 'diving_certifications_data.json' not found in any of the expected locations:")
+        for path in possible_paths:
+            print(f"  - {path}")
         sys.exit(1)
         
     print(f"Loading data from {file_path}...")
