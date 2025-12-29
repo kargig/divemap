@@ -18,13 +18,13 @@ This guide explains how to deploy the Divemap frontend to Fly.io with proper sec
 2. Update `.env` with your configuration:
    ```bash
    # API Configuration
-   REACT_APP_API_URL=http://localhost:8000
+   VITE_API_URL=http://localhost:8000
 
    # Google OAuth Configuration
-   REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id_here
+   VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
 
    # Development Settings
-   REACT_APP_ENVIRONMENT=development
+   VITE_ENVIRONMENT=development
    ```
 
 ## Deployment Methods
@@ -48,7 +48,7 @@ If you prefer to deploy manually:
 
 ```bash
 # Deploy with build argument from .env file
-fly deploy -a divemap --build-arg REACT_APP_GOOGLE_CLIENT_ID="$(grep REACT_APP_GOOGLE_CLIENT_ID .env | cut -d '=' -f2)"
+fly deploy -a divemap --build-arg VITE_GOOGLE_CLIENT_ID="$(grep VITE_GOOGLE_CLIENT_ID .env | cut -d '=' -f2)"
 ```
 
 ### Method 3: Using Fly.io Secrets
@@ -57,10 +57,10 @@ You can also set the secret in Fly.io and reference it:
 
 ```bash
 # Set the secret (one-time setup)
-fly secrets set REACT_APP_GOOGLE_CLIENT_ID="your_google_client_id" -a divemap
+fly secrets set VITE_GOOGLE_CLIENT_ID="your_google_client_id" -a divemap
 
 # Deploy with the build argument
-fly deploy -a divemap --build-arg REACT_APP_GOOGLE_CLIENT_ID="your_google_client_id_here"
+fly deploy -a divemap --build-arg VITE_GOOGLE_CLIENT_ID="your_google_client_id_here"
 ```
 
 ## Security Notes
@@ -76,7 +76,7 @@ fly deploy -a divemap --build-arg REACT_APP_GOOGLE_CLIENT_ID="your_google_client
 
 If the Google login button doesn't appear:
 
-1. Check that `REACT_APP_GOOGLE_CLIENT_ID` is set in your `.env` file
+1. Check that `VITE_GOOGLE_CLIENT_ID` is set in your `.env` file
 2. Verify the deployment used build arguments correctly
 3. Check browser console for JavaScript errors
 4. Ensure the Google Client ID is valid and configured for your domain
@@ -91,8 +91,8 @@ If the build fails:
 
 ## Development vs Production
 
-- **Development**: Uses local `.env` file with `REACT_APP_API_URL=http://localhost:8000`
-- **Production**: Uses build secrets with `REACT_APP_API_URL=https://divemap-backend.fly.dev`
+- **Development**: Uses local `.env` file with `VITE_API_URL=http://localhost:8000`
+- **Production**: Uses build secrets with `VITE_API_URL=https://divemap-backend.fly.dev`
 
 ## Related Documentation
 

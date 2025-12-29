@@ -115,8 +115,8 @@ const Register = () => {
     // Initialize Google Sign-In button only if client ID is configured
     const initializeGoogleSignIn = async () => {
       if (
-        !process.env.REACT_APP_GOOGLE_CLIENT_ID ||
-        process.env.REACT_APP_GOOGLE_CLIENT_ID === 'undefined'
+        !import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+        import.meta.env.VITE_GOOGLE_CLIENT_ID === 'undefined'
       ) {
         return;
       }
@@ -299,8 +299,8 @@ const Register = () => {
               </button>
             </div>
 
-            {process.env.REACT_APP_GOOGLE_CLIENT_ID &&
-              process.env.REACT_APP_GOOGLE_CLIENT_ID !== 'undefined' && (
+            {import.meta.env.VITE_GOOGLE_CLIENT_ID &&
+              import.meta.env.VITE_GOOGLE_CLIENT_ID !== 'undefined' && (
                 <>
                   <div className='relative'>
                     <div className='absolute inset-0 flex items-center'>

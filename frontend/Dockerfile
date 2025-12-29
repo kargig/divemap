@@ -19,14 +19,14 @@ RUN npm ci --only=production --timeout=300000
 COPY . .
 
 # Build the app with environment variables (using production build that skips ESLint)
-ARG REACT_APP_API_URL
-ARG REACT_APP_GOOGLE_CLIENT_ID
-ARG REACT_APP_TURNSTILE_SITE_KEY
-ENV REACT_APP_API_URL=$REACT_APP_API_URL
-ENV REACT_APP_GOOGLE_CLIENT_ID=$REACT_APP_GOOGLE_CLIENT_ID
-ENV REACT_APP_TURNSTILE_SITE_KEY=$REACT_APP_TURNSTILE_SITE_KEY
+ARG VITE_API_URL
+ARG VITE_GOOGLE_CLIENT_ID
+ARG VITE_TURNSTILE_SITE_KEY
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+ENV VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
 ENV GENERATE_SOURCEMAP=false
-RUN GENERATE_SOURCEMAP=false npm run build:prod
+RUN npm run build
 
 # Production stage - only production dependencies
 FROM node:20-alpine as production
@@ -37,10 +37,10 @@ WORKDIR /app
 RUN npm install -g serve
 
 # Copy built app from build stage
-COPY --from=build /app/build ./build
+COPY --from=build /app/dist ./dist
 
 # Expose port
 EXPOSE 8080
 
 # Start the app
-CMD ["serve", "-s", "build", "-l", "8080"] 
+CMD ["serve", "-s", "dist", "-l", "8080"]

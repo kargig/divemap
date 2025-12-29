@@ -60,7 +60,7 @@ This guide will help you set up Google OAuth for the Divemap application.
 1. Copy `frontend/env.example` to `frontend/.env`
 2. Add your Google Client ID:
    ```
-   REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id_here
+   VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
    ```
 
 ## Step 5: Database Migration
