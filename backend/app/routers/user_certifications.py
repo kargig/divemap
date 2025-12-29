@@ -54,13 +54,38 @@ async def create_my_certification(
     if not organization:
         raise HTTPException(status_code=404, detail="Diving organization not found")
 
+    # Construct duplicate check filter
     # Check if certification already exists for this user and organization
-    existing_cert = db.query(UserCertification).filter(
+    query = db.query(UserCertification).filter(
         UserCertification.user_id == current_user.id,
-        UserCertification.diving_organization_id == certification.diving_organization_id,
-        UserCertification.certification_level == certification.certification_level
-    ).first()
-    if existing_cert:
+        UserCertification.diving_organization_id == certification.diving_organization_id
+    )
+    
+    if certification.certification_level_id:
+        # If using structured level ID
+        from app.models import CertificationLevel
+        # Verify level exists
+        level = db.query(CertificationLevel).filter(
+            CertificationLevel.id == certification.certification_level_id,
+            CertificationLevel.diving_organization_id == certification.diving_organization_id
+        ).first()
+        if not level:
+             raise HTTPException(status_code=400, detail="Invalid certification level for this organization")
+             
+        # Check duplicate
+        query = query.filter(UserCertification.certification_level_id == certification.certification_level_id)
+        
+        # Auto-fill text field for backward compatibility if empty
+        if not certification.certification_level:
+            certification.certification_level = level.name
+            
+    elif certification.certification_level:
+        # Fallback to text matching
+        query = query.filter(UserCertification.certification_level == certification.certification_level)
+    else:
+        raise HTTPException(status_code=400, detail="Certification level or ID is required")
+
+    if query.first():
         raise HTTPException(status_code=400, detail="Certification already exists for this organization and level")
 
     db_certification = UserCertification(**certification.dict(), user_id=current_user.id)
@@ -91,6 +116,24 @@ async def update_my_certification(
         ).first()
         if not organization:
             raise HTTPException(status_code=404, detail="Diving organization not found")
+
+    # If updating certification level ID, verify it exists and belongs to the org
+    if certification.certification_level_id:
+        from app.models import CertificationLevel
+        
+        # Use new org ID if provided, otherwise existing
+        org_id = certification.diving_organization_id or db_certification.diving_organization_id
+        
+        level = db.query(CertificationLevel).filter(
+            CertificationLevel.id == certification.certification_level_id,
+            CertificationLevel.diving_organization_id == org_id
+        ).first()
+        if not level:
+             raise HTTPException(status_code=400, detail="Invalid certification level for this organization")
+        
+        # Auto-update text field for backward compatibility
+        if not certification.certification_level:
+            certification.certification_level = level.name
 
     # Update fields
     update_data = certification.dict(exclude_unset=True)

@@ -57,6 +57,7 @@ fi
 # Create backup using mysqldump
 # Using root user for full backup privileges
 mysqldump \
+    --skip-ssl-verify-server-cert \
     -h "$DB_HOST" \
     -P "$DB_PORT" \
     -u root \

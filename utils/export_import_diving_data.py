@@ -411,6 +411,7 @@ class DatabaseExporter:
         
         command = [
             'mysqldump',
+            '--skip-ssl-verify-server-cert',
             f'--host={db_config["host"]}',
             f'--port={db_config["port"]}',
             f'--user={db_config["user"]}',
@@ -465,6 +466,7 @@ class DatabaseExporter:
         # Build mysqldump command for selected tables
         command = [
             'mysqldump',
+            '--skip-ssl-verify-server-cert',
             f'--host={db_config["host"]}',
             f'--port={db_config["port"]}',
             f'--user={db_config["user"]}',
@@ -517,6 +519,7 @@ class DatabaseExporter:
             
             command = [
                 'mysql',
+                '--skip-ssl-verify-server-cert',
                 f'--host={db_config["host"]}',
                 f'--port={db_config["port"]}',
                 f'--user={db_config["user"]}',
@@ -603,6 +606,7 @@ class DatabaseExporter:
             
             command = [
                 'mysql',
+                '--skip-ssl-verify-server-cert',
                 f'--host={db_config["host"]}',
                 f'--port={db_config["port"]}',
                 f'--user={db_config["user"]}',

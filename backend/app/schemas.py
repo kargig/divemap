@@ -454,6 +454,35 @@ class CenterDiveSiteResponse(BaseModel):
     class Config:
         from_attributes = True
 
+# Certification Level Schemas
+class CertificationLevelBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    category: Optional[str] = None
+    max_depth: Optional[str] = None
+    gases: Optional[str] = None
+    tanks: Optional[str] = None
+    prerequisites: Optional[str] = None
+
+class CertificationLevelCreate(CertificationLevelBase):
+    diving_organization_id: int
+
+class CertificationLevelUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    category: Optional[str] = None
+    max_depth: Optional[str] = None
+    gases: Optional[str] = None
+    tanks: Optional[str] = None
+    prerequisites: Optional[str] = None
+
+class CertificationLevelResponse(CertificationLevelBase):
+    id: int
+    diving_organization_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
 # Gear Rental Cost Schemas
 class GearRentalCostCreate(BaseModel):
     item_name: str = Field(..., min_length=1, max_length=100)
@@ -497,6 +526,7 @@ class DivingOrganizationResponse(DivingOrganizationBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    certification_levels: List[CertificationLevelResponse] = []
 
     class Config:
         from_attributes = True
@@ -524,7 +554,8 @@ class DivingCenterOrganizationResponse(DivingCenterOrganizationBase):
 # User Certification Schemas
 class UserCertificationBase(BaseModel):
     diving_organization_id: int
-    certification_level: str = Field(..., min_length=1, max_length=100)
+    certification_level: Optional[str] = Field(None, max_length=100) # Optional now, prefer ID
+    certification_level_id: Optional[int] = None
     is_active: bool = True
 
 class UserCertificationCreate(UserCertificationBase):
@@ -532,13 +563,15 @@ class UserCertificationCreate(UserCertificationBase):
 
 class UserCertificationUpdate(BaseModel):
     diving_organization_id: Optional[int] = None
-    certification_level: Optional[str] = Field(None, min_length=1, max_length=100)
+    certification_level: Optional[str] = Field(None, max_length=100)
+    certification_level_id: Optional[int] = None
     is_active: Optional[bool] = None
 
 class UserCertificationResponse(UserCertificationBase):
     id: int
     user_id: int
     diving_organization: DivingOrganizationResponse
+    certification_level_link: Optional[CertificationLevelResponse] = None
     created_at: datetime
     updated_at: datetime
 
