@@ -1343,7 +1343,7 @@ Fixed critical issues with API protocol handling and search endpoint redirects.
 
 #### **Admin Dashboard Enhancement**
 
-- **System Overview Dashboard**: Comprehensive platform statistics and health
+- **General Statistics & System Metrics**: Comprehensive platform statistics and health
   monitoring
   - Platform statistics (users, content, engagement, geographic distribution)
   - System health monitoring (database, application, resources, external
@@ -1372,7 +1372,7 @@ services)
 
 #### **Frontend Admin Interface**
 
-- **Admin Dashboard Integration**: Clickable cards for System Overview and
+- **Admin Dashboard Integration**: Clickable cards for General Statistics, System Metrics, and
   Recent Activity
 - **Navigation Updates**: Added admin menu links for new monitoring pages
 - **Real-time Updates**: Auto-refresh functionality with manual refresh options

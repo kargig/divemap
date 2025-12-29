@@ -20,6 +20,7 @@ const GlobalSearchBar = ({
   className = '',
   inputClassName = '',
   placeholder = 'Search dives, sites, centers...',
+  popoverClassName,
 }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState(null);
@@ -68,7 +69,6 @@ const GlobalSearchBar = ({
       const IconComponent = ENTITY_ICONS[group.icon_name] || Search;
       return {
         label: group.entity_type.replace(/_/g, ' '),
-        icon: <IconComponent />,
         options: group.results.map(item => ({
           value: `${group.entity_type}-${item.id}`,
           label: item.name,
@@ -129,6 +129,7 @@ const GlobalSearchBar = ({
         query.length >= 3 ? `No results found for "${query}"` : 'Type at least 3 characters...'
       }
       error={error}
+      popoverClassName={popoverClassName}
     />
   );
 };
@@ -137,6 +138,7 @@ GlobalSearchBar.propTypes = {
   className: PropTypes.string,
   inputClassName: PropTypes.string,
   placeholder: PropTypes.string,
+  popoverClassName: PropTypes.string,
 };
 
 export default GlobalSearchBar;

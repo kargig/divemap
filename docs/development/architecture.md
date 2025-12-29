@@ -298,40 +298,37 @@ This document outlines the technical design for a Python-based web application, 
 * **Tag Management**: Comprehensive tag system with usage statistics
 * **Safety Features**: Protection against deleting used tags and self-deletion
 * **Diving Center Ownership Management**: Approve/deny ownership claims and assign owners
-* **System Overview Dashboard**: Comprehensive platform statistics and health monitoring
+* **General Statistics Dashboard**: Detailed platform statistics and engagement metrics
+* **System Metrics Dashboard**: Comprehensive system health and infrastructure monitoring
 * **Recent Activity Monitoring**: Real-time tracking of user actions and system changes
 * **Backup and Export Management**: Data export capabilities and backup management
 
 ### **3.13. Admin Dashboard Pages**
 
-#### **3.13.1. System Overview Dashboard**
+#### **3.13.1. System Statistics & Metrics**
 
-The System Overview dashboard provides administrators with comprehensive platform statistics and health monitoring capabilities:
+The General Statistics and System Metrics dashboards provide administrators with comprehensive platform statistics and health monitoring capabilities:
 
-**Platform Statistics:**
-* **User Statistics**: Total users, active users (last 30 days), new registrations (last 7/30 days), user growth rate
-* **Content Statistics**: Total dive sites, diving centers, dives, comments, ratings, media uploads
+**General Statistics Dashboard:**
+* **User Statistics**: Total users, active users (last 7/30 days), new registrations (last 7/30 days), user growth rate, email verification status
+* **Content Statistics**: Total dive sites, diving centers, dives, routes, trips, comments, ratings, media uploads, tags
 * **Engagement Metrics**: Average ratings, comment activity, user participation rates
-* **Geographic Distribution**: Dive sites by country/region, user distribution by location
+* **Geographic Distribution**: Dive sites and diving centers by country/region
 * **System Usage**: API calls per day, peak usage times, most accessed endpoints
+* **Notification Analytics**: In-app notification and email delivery statistics, delivery rates, category breakdown
 
-**System Health Monitoring:**
-* **Database Performance**: Connection pool status, query response times, slow query alerts
-* **Application Health**: Response times, error rates, uptime statistics
+**System Metrics Dashboard:**
+* **Database Performance**: Connection health, query response times
+* **Application Health**: Service status (Database, API, Frontend)
 * **Resource Utilization**: CPU usage, memory consumption, disk space
-* **External Services**: Google OAuth status, geocoding service availability
-* **Security Metrics**: Failed login attempts, suspicious activity, rate limiting events
-
-**Real-time Alerts:**
-* **Critical Issues**: Database connection failures, high error rates, service outages
-* **Performance Warnings**: Slow response times, high resource usage
-* **Security Alerts**: Unusual login patterns, potential security threats
-* **Capacity Planning**: Storage usage trends, user growth projections
+* **Cloud Storage Health**: Cloudflare R2 connectivity and local fallback status
+* **Bot Protection Metrics**: Cloudflare Turnstile verification success rates, error breakdown, top IP addresses
+* **System Alerts**: Real-time summary of critical issues and warnings
 
 **Visual Dashboard Elements:**
-* **Charts and Graphs**: User growth trends, content creation rates, system performance
+* **Charts and Graphs**: Growth trends, distribution maps, metric visualizations
 * **Status Indicators**: Service health lights (green/yellow/red)
-* **Quick Actions**: Direct links to common administrative tasks
+* **Quick Actions**: Direct links to specific statistics and metrics pages
 * **Refresh Controls**: Real-time data updates with configurable intervals
 
 #### **3.13.2. Recent Activity Monitoring**
@@ -733,7 +730,8 @@ The application will follow a microservices-oriented or a well-separated monolit
 * /api/v1/dive-trips/favorites (GET, POST, DELETE \- manage favorite trips)
 * /api/v1/dive-trips/export (GET \- export trips to calendar format)
 * /api/v1/media/upload (POST \- for image/video uploads)
-* /api/v1/admin/system/overview (GET \- platform statistics and health)
+* /api/v1/admin/system/statistics (GET \- platform statistics and engagement)
+* /api/v1/admin/system/metrics (GET \- system health and infrastructure metrics)
 * /api/v1/admin/system/activity (GET \- recent user and system activity)
 * /api/v1/admin/system/backup (POST \- create database backup)
 * /api/v1/admin/system/export (GET \- export data in various formats)
@@ -1147,7 +1145,7 @@ node test_regressions.js
 * ✅ Ownership status management (unclaimed, claimed, approved, denied)
 
 #### **Admin Dashboard System ✅ COMPLETED**
-* ✅ System Overview dashboard with comprehensive platform statistics
+* ✅ General Statistics and System Metrics dashboards with comprehensive platform statistics
 * ✅ Real-time system health monitoring and performance metrics
 * ✅ Recent Activity monitoring with user and system activity tracking
 * ✅ Activity filtering by time range and activity type
@@ -1272,8 +1270,8 @@ node test_regressions.js
 * ✅ Role-based access control (User, Moderator, Admin)
 * ✅ User status management (enabled/disabled)
 * ✅ Mass delete functionality with safety features
-* ✅ Quick Actions section with System Overview, Recent Activity, and Backup & Export placeholders
-* ✅ System Overview Dashboard with comprehensive platform statistics and health monitoring
+* ✅ Quick Actions section with statistics, metrics, activity monitoring, and growth visualizations
+* ✅ General Statistics and System Metrics dashboards with comprehensive platform statistics and health monitoring
 * ✅ Recent Activity Monitoring with real-time user and system activity tracking
 
 #### **User Registration and Approval System ✅ COMPLETED**
@@ -1374,7 +1372,7 @@ node test_regressions.js
 * 🔄 Mobile application development
 
 #### **Phase 8: Admin Dashboard Enhancement 🔄 IN PROGRESS**
-* ✅ System Overview Dashboard with comprehensive platform statistics and health monitoring
+* ✅ General Statistics and System Metrics dashboards with comprehensive platform statistics and health monitoring
 * ✅ Recent Activity Monitoring with real-time user and system activity tracking
 * 🔄 Backup and Export Management (placeholder UI exists, actual functionality pending)
 * 🔄 Advanced analytics and reporting features (basic stats implemented, advanced features pending)

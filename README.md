@@ -58,8 +58,8 @@ and review dive sites and diving centers.
 
 ### **Admin Dashboard & System Monitoring**
 
-- **System Overview Dashboard**: Real-time platform statistics including user
-  counts, content metrics, and engagement data
+- **System Statistics & Metrics**: Real-time platform statistics including user
+  growth, geographic distribution, and system health monitoring.
 - **System Health Monitoring**: CPU, memory, disk usage, and database
   connectivity monitoring
 - **Recent Activity Tracking**: Monitor user registrations, content creation,

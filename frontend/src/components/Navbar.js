@@ -25,6 +25,7 @@ import {
   Code,
   Bell,
   BarChart3,
+  Award,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -44,6 +45,7 @@ const Navbar = () => {
   const location = useLocation();
   const { isMobile, navbarVisible } = useResponsiveScroll();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showMobileResourcesDropdown, setShowMobileResourcesDropdown] = useState(false);
   const [showMobileInfoDropdown, setShowMobileInfoDropdown] = useState(false);
   const [showMobileAdminDropdown, setShowMobileAdminDropdown] = useState(false);
 
@@ -58,6 +60,7 @@ const Navbar = () => {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+    setShowMobileResourcesDropdown(false);
     setShowMobileInfoDropdown(false);
     setShowMobileAdminDropdown(false);
   };
@@ -216,6 +219,30 @@ const Navbar = () => {
             <DropdownMenu
               trigger={
                 <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+                  <Award className='h-5 w-5' />
+                  <span>Resources</span>
+                  <ChevronDown className='h-4 w-4' />
+                </button>
+              }
+              items={[
+                {
+                  type: 'item',
+                  label: 'Diving Organizations',
+                  icon: <Award className='h-4 w-4' />,
+                  onClick: () => navigate('/resources/diving-organizations'),
+                },
+                {
+                  type: 'item',
+                  label: 'Tags',
+                  icon: <Tags className='h-4 w-4' />,
+                  onClick: () => navigate('/resources/tags'),
+                },
+              ]}
+            />
+
+            <DropdownMenu
+              trigger={
+                <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
                   <Info className='h-5 w-5' />
                   <span>Info</span>
                   <ChevronDown className='h-4 w-4' />
@@ -292,6 +319,12 @@ const Navbar = () => {
                         label: 'Diving Centers',
                         icon: <Building className='h-4 w-4' />,
                         onClick: () => navigate('/admin/diving-centers'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'Diving Organizations',
+                        icon: <Award className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/diving-organizations'),
                       },
                       {
                         type: 'item',
@@ -428,6 +461,7 @@ const Navbar = () => {
                       className='flex-1'
                       inputClassName='bg-white text-gray-900'
                       placeholder='Search dives, sites, centers...'
+                      popoverClassName='z-[100000]'
                     />
                     <button
                       onClick={closeMobileMenu}
@@ -493,6 +527,44 @@ const Navbar = () => {
                     <Calendar className='h-5 w-5 mr-3' />
                     <span>Dive Trips</span>
                   </Link>
+
+                  <div className='px-3 py-2'>
+                    <button
+                      onClick={() => setShowMobileResourcesDropdown(!showMobileResourcesDropdown)}
+                      className='flex items-center justify-between w-full px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                    >
+                      <div className='flex items-center'>
+                        <Award className='h-4 w-4 mr-3' />
+                        <span>Resources</span>
+                      </div>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform duration-200 ${
+                          showMobileResourcesDropdown ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+
+                    {showMobileResourcesDropdown && (
+                      <div className='ml-7 mt-1 space-y-1'>
+                        <Link
+                          to='/resources/diving-organizations'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Award className='h-4 w-4 mr-3' />
+                          <span>Diving Organizations</span>
+                        </Link>
+                        <Link
+                          to='/resources/tags'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Tags className='h-4 w-4 mr-3' />
+                          <span>Tags</span>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
 
                   <div className='px-3 py-2'>
                     <button
@@ -618,6 +690,14 @@ const Navbar = () => {
                                 >
                                   <Building className='h-4 w-4 mr-3' />
                                   <span>Diving Centers</span>
+                                </Link>
+                                <Link
+                                  to='/admin/diving-organizations'
+                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                  onClick={closeMobileMenu}
+                                >
+                                  <Award className='h-4 w-4 mr-3' />
+                                  <span>Diving Organizations</span>
                                 </Link>
                                 <Link
                                   to='/admin/tags'
