@@ -101,6 +101,15 @@ DIVING_ORGANIZATIONS = [
         "description": "IANTD is a technical diving training organization that specializes in advanced diving techniques and equipment.",
         "country": "United States",
         "founded_year": 1985
+    },
+    {
+        "name": "American Nitrox Divers International",
+        "acronym": "ANDI",
+        "website": "https://andihq.com",
+        "logo_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/American_Nitrox_Divers_International_%28logo%29.png/166px-American_Nitrox_Divers_International_%28logo%29.png",
+        "description": "ANDI is a scuba training agency originally founded to teach Enriched Air Nitrox diving, and now offering a full range of recreational, technical, and rebreather certifications.",
+        "country": "United States",
+        "founded_year": 1988
     }
 ]
 
@@ -111,11 +120,9 @@ def populate_diving_organizations():
         # Check if organizations already exist
         existing_count = db.query(DivingOrganization).count()
         if existing_count > 0:
-            print(f"⚠️  {existing_count} diving organizations already exist in the database.")
-            print("Skipping population to avoid duplicates.")
-            return
-
-        print("🚀 Populating diving organizations table...")
+            print(f"ℹ️  {existing_count} diving organizations already exist in the database. Checking for updates...")
+        else:
+            print("🚀 Populating diving organizations table...")
 
         for org_data in DIVING_ORGANIZATIONS:
             # Check if organization already exists
@@ -124,13 +131,14 @@ def populate_diving_organizations():
             ).first()
 
             if existing_org:
-                print(f"⚠️  Organization {org_data['acronym']} already exists, skipping...")
-                continue
-
-            # Create new organization
-            org = DivingOrganization(**org_data)
-            db.add(org)
-            print(f"✅ Added {org_data['acronym']} - {org_data['name']}")
+                print(f"🔄 Updating {org_data['acronym']} details...")
+                for key, value in org_data.items():
+                    setattr(existing_org, key, value)
+            else:
+                # Create new organization
+                org = DivingOrganization(**org_data)
+                db.add(org)
+                print(f"✅ Added {org_data['acronym']} - {org_data['name']}")
 
         # Commit all changes
         db.commit()

@@ -91,6 +91,7 @@ class CertificationLevel(Base):
     max_depth = Column(String(50)) # e.g., "18m (60ft)"
     gases = Column(String(255)) # e.g., "Air", "Nitrox"
     tanks = Column(String(255)) # e.g., "Single", "Double + Stage"
+    deco_time_limit = Column(String(100)) # e.g., "No decompression", "15 minutes", "Unlimited"
     prerequisites = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

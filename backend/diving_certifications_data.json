@@ -105,6 +105,7 @@
         "max_depth": "40m",
         "gases": "Air/Nitrox up to 50% for deco",
         "tanks": "Double + 1 stage (optional)",
+        "deco_time_limit": "10 minutes",
         "prerequisites": null
       },
       {
@@ -113,6 +114,7 @@
         "max_depth": "45m",
         "gases": "up to 100% O2 for deco",
         "tanks": "Double + 1 stage",
+        "deco_time_limit": "Unlimited (gas limited)",
         "prerequisites": null
       },
       {
@@ -121,6 +123,7 @@
         "max_depth": "50m",
         "gases": "Air/Nitrox/O2/Normoxic Trimix",
         "tanks": "Double + 2 stages",
+        "deco_time_limit": "Unlimited (gas limited)",
         "prerequisites": null
       },
       {
@@ -295,6 +298,7 @@
         "max_depth": "40m",
         "gases": "Nitrox up to 100%",
         "tanks": "Single + Pony or Double",
+        "deco_time_limit": "15 minutes",
         "prerequisites": null
       },
       {
@@ -303,6 +307,7 @@
         "max_depth": "45m",
         "gases": "Air/Nitrox up to 100%",
         "tanks": "Double + 1 stage",
+        "deco_time_limit": "25 minutes",
         "prerequisites": null
       },
       {
@@ -338,12 +343,22 @@
         "prerequisites": null
       },
       {
-        "name": "Deep Diving",
+        "name": "Decompression Diving",
         "category": "Specialties",
         "max_depth": "40m",
+        "gases": "Air/Nitrox (up to 40% O2 for deco)",
+        "tanks": "Single + Stage",
+        "deco_time_limit": "15 minutes",
+        "prerequisites": "Deep Diving + Nitrox 40"
+      },
+      {
+        "name": "Deep Diving",
+        "category": "Specialties",
+        "max_depth": "18-40m",
         "gases": null,
         "tanks": "Single",
-        "prerequisites": null
+        "deco_time_limit": "No decompression",
+        "prerequisites": "Open Water Diver, Min age 15"
       },
       {
         "name": "Enriched Air Nitrox",
@@ -477,6 +492,7 @@
         "max_depth": "39m",
         "gases": "Normoxic Trimix (Triox 21/35)",
         "tanks": "Double",
+        "deco_time_limit": "15 minutes (unadjusted)",
         "prerequisites": "Limited deco (15 min)"
       },
       {
@@ -485,6 +501,7 @@
         "max_depth": "51m",
         "gases": "Normoxic Trimix 21/35 or 18/45",
         "tanks": "Double + 1 stage",
+        "deco_time_limit": "30 minutes (unadjusted)",
         "prerequisites": "Min 100 dives"
       },
       {
@@ -493,6 +510,7 @@
         "max_depth": "75m",
         "gases": "Hypoxic Trimix",
         "tanks": "Double + 2+ stages",
+        "deco_time_limit": "60 minutes (unadjusted)",
         "prerequisites": "Min 25 dives at Tech 1 level"
       },
       {
@@ -635,6 +653,7 @@
         "max_depth": "40m",
         "gases": "up to 100% O2",
         "tanks": "Single + Stage or Double",
+        "deco_time_limit": "No decompression",
         "prerequisites": null
       },
       {
@@ -643,6 +662,7 @@
         "max_depth": "45m",
         "gases": null,
         "tanks": "Double + Stage",
+        "deco_time_limit": "Unlimited (gas limited)",
         "prerequisites": null
       },
       {
@@ -651,6 +671,7 @@
         "max_depth": "55m",
         "gases": "Air or Nitrox",
         "tanks": "Double + Stages",
+        "deco_time_limit": "Unlimited (gas limited)",
         "prerequisites": null
       },
       {
@@ -941,6 +962,7 @@
         "max_depth": "35m",
         "gases": "Air/Nitrox",
         "tanks": "Single",
+        "deco_time_limit": "Unlimited (subject to planning)",
         "prerequisites": "Progression from 20m"
       },
       {
@@ -949,6 +971,7 @@
         "max_depth": "50m",
         "gases": "Air/Nitrox",
         "tanks": "Single/Double",
+        "deco_time_limit": "Unlimited (subject to planning)",
         "prerequisites": null
       },
       {
@@ -1234,11 +1257,21 @@
         "prerequisites": null
       },
       {
+        "name": "Deep DECO Diver",
+        "category": "General",
+        "max_depth": "40m",
+        "gases": "Air",
+        "tanks": "Single + Stage or Double",
+        "deco_time_limit": "10 minutes",
+        "prerequisites": null
+      },
+      {
         "name": "Advanced Nitrox",
         "category": "General",
         "max_depth": "42m",
         "gases": null,
         "tanks": "Single + Stage or Double",
+        "deco_time_limit": "15 minutes",
         "prerequisites": null
       },
       {
@@ -1247,6 +1280,7 @@
         "max_depth": "54m",
         "gases": "Air/Nitrox/O2",
         "tanks": "Double + Stages",
+        "deco_time_limit": "Unlimited (gas limited)",
         "prerequisites": null
       },
       {
@@ -1255,6 +1289,7 @@
         "max_depth": "60m",
         "gases": "Normoxic Trimix",
         "tanks": "Double + 2 Stages",
+        "deco_time_limit": "Unlimited (gas limited)",
         "prerequisites": null
       },
       {
@@ -1304,6 +1339,93 @@
         "gases": null,
         "tanks": null,
         "prerequisites": null
+      }
+    ]
+  },
+  {
+    "acronym": "ANDI",
+    "name": "American Nitrox Divers International",
+    "certifications": [
+      {
+        "name": "Open Water Sport Diver (L1)",
+        "category": "Recreational Track",
+        "max_depth": "18m",
+        "gases": "Air",
+        "tanks": "Single",
+        "deco_time_limit": "No decompression",
+        "prerequisites": null
+      },
+      {
+        "name": "Advanced Open Water Diver (L2)",
+        "category": "Recreational Track",
+        "max_depth": "30m",
+        "gases": "Air/SafeAir (if qualified)",
+        "tanks": "Single",
+        "deco_time_limit": "No decompression",
+        "prerequisites": "OWD"
+      },
+      {
+        "name": "Rescue Diver (L2)",
+        "category": "Recreational Track",
+        "max_depth": "30m",
+        "gases": "Air/SafeAir",
+        "tanks": "Single",
+        "deco_time_limit": "No decompression",
+        "prerequisites": "AOWD + CPR"
+      },
+      {
+        "name": "Limited SafeAir User (LSU) / SafeAir Diver",
+        "category": "SafeAir (Nitrox)",
+        "max_depth": "40m (training dependent)",
+        "gases": "SafeAir 22-40%",
+        "tanks": "Single",
+        "deco_time_limit": "No decompression",
+        "prerequisites": "OWD"
+      },
+      {
+        "name": "Complete SafeAir User (CSU)",
+        "category": "SafeAir (Nitrox)",
+        "max_depth": "40m",
+        "gases": "SafeAir 22-50%",
+        "tanks": "Single",
+        "deco_time_limit": "No decompression",
+        "prerequisites": "LSU or equivalent"
+      },
+      {
+        "name": "Technical SafeAir Diver (TSD) (L3)",
+        "category": "Technical Track",
+        "max_depth": "40m",
+        "gases": "3 mixtures",
+        "tanks": "Double + Stage",
+        "deco_time_limit": "30 minutes",
+        "prerequisites": "CSU + Deep + Rescue"
+      },
+      {
+        "name": "Technical Tri-Mix Diver (TTM) (L3)",
+        "category": "Technical Track",
+        "max_depth": "50m",
+        "gases": "Trimix (min 16% O2)",
+        "tanks": "Double + Stages",
+        "deco_time_limit": "Unlimited (gas limited)",
+        "prerequisites": "TSD"
+      },
+      {
+        "name": "Extended Range Diver (ERD) (L4)",
+        "category": "Technical Track",
+        "max_depth": "50m",
+        "gases": "Multiple mixtures",
+        "tanks": "Double + Stages",
+        "deco_time_limit": "Unlimited (gas limited)",
+        "prerequisites": "TSD or TTM"
+      },
+      {
+        "name": "Tri-Mix Exploration Diver (TMD) (L5)",
+        "category": "Technical Track",
+        "max_depth": "100m",
+        "gases": "Hypoxic Trimix",
+        "tanks": "Double + Multiple Stages",
+        "deco_time_limit": "Unlimited (gas limited)",
+        "prerequisites": "TTM/ERD"
       }
     ]
   }

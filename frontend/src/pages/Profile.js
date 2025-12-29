@@ -803,6 +803,11 @@ const Profile = () => {
                                     Tanks: {cert.certification_level_link.tanks}
                                   </span>
                                 )}
+                                {cert.certification_level_link.deco_time_limit && (
+                                  <span className='bg-red-100 text-red-800 px-2 py-0.5 rounded'>
+                                    Deco: {cert.certification_level_link.deco_time_limit}
+                                  </span>
+                                )}
                               </div>
                             )}
                           </div>

@@ -15,6 +15,8 @@ const CertificationLevelsList = ({ organizationId, identifier }) => {
     }
   );
 
+  const [expandedCategories, setExpandedCategories] = useState({});
+
   if (isLoading) {
     return (
       <div className='flex justify-center p-4'>
@@ -27,19 +29,123 @@ const CertificationLevelsList = ({ organizationId, identifier }) => {
     return <div className='p-4 text-sm text-gray-500 italic'>No certification levels found.</div>;
   }
 
+  // Group levels by category
+  const groupedLevels = levels.reduce((acc, level) => {
+    const category = level.category || 'General';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(level);
+    return acc;
+  }, {});
+
+  const categories = Object.keys(groupedLevels);
+
+  const toggleCategory = category => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category],
+    }));
+  };
+
+  const toggleAll = () => {
+    const allExpanded = categories.every(cat => expandedCategories[cat]);
+    const newState = {};
+    categories.forEach(cat => {
+      newState[cat] = !allExpanded;
+    });
+    setExpandedCategories(newState);
+  };
+
+  const allExpanded = categories.length > 0 && categories.every(cat => expandedCategories[cat]);
+
   return (
     <div className='bg-gray-50 p-4 border-t border-gray-100'>
-      <h4 className='text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3'>
-        Certification Levels
-      </h4>
-      <div className='grid gap-2'>
-        {levels.map(level => (
-          <div
-            key={level.id}
-            className='flex items-center justify-between p-2 bg-white rounded border border-gray-200 text-sm'
-          >
-            <span className='font-medium text-gray-900'>{level.name}</span>
-            <span className='text-gray-500 text-xs'>{level.abbreviation}</span>
+      <div className='flex justify-between items-center mb-3'>
+        <h4 className='text-xs font-semibold text-gray-500 uppercase tracking-wider'>
+          Certification Levels
+        </h4>
+        <button
+          onClick={toggleAll}
+          className='text-xs font-medium text-blue-600 hover:text-blue-800 focus:outline-none'
+        >
+          {allExpanded ? 'Collapse All' : 'Expand All'}
+        </button>
+      </div>
+
+      <div className='space-y-4'>
+        {categories.map(category => (
+          <div key={category} className='bg-white rounded border border-gray-200 shadow-sm overflow-hidden'>
+            <button
+              onClick={() => toggleCategory(category)}
+              className='w-full px-4 py-3 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors focus:outline-none'
+            >
+              <span className='font-medium text-gray-900 text-sm'>{category}</span>
+              <span className='text-gray-500'>
+                {expandedCategories[category] ? (
+                  <ChevronUp className='h-4 w-4' />
+                ) : (
+                  <ChevronDown className='h-4 w-4' />
+                )}
+              </span>
+            </button>
+
+            {expandedCategories[category] && (
+              <div className='p-3 grid gap-3 border-t border-gray-200'>
+                {groupedLevels[category].map(level => (
+                  <div
+                    key={level.id}
+                    className='bg-white rounded border border-gray-200 text-sm overflow-hidden'
+                  >
+                    <div className='p-3 border-b border-gray-100 bg-blue-50/50'>
+                      <span className='font-medium text-gray-900'>{level.name}</span>
+                    </div>
+                    <div className='p-3 grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-xs'>
+                      {level.max_depth && (
+                        <div className='flex items-start'>
+                          <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                            Max Depth:
+                          </span>
+                          <span className='text-gray-700'>{level.max_depth}</span>
+                        </div>
+                      )}
+                      {level.deco_time_limit && (
+                        <div className='flex items-start'>
+                          <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                            Deco Limit:
+                          </span>
+                          <span className='text-gray-700'>{level.deco_time_limit}</span>
+                        </div>
+                      )}
+                      {level.gases && (
+                        <div className='flex items-start'>
+                          <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                            Gases:
+                          </span>
+                          <span className='text-gray-700'>{level.gases}</span>
+                        </div>
+                      )}
+                      {level.tanks && (
+                        <div className='flex items-start'>
+                          <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                            Tanks:
+                          </span>
+                          <span className='text-gray-700'>{level.tanks}</span>
+                        </div>
+                      )}
+                      {level.prerequisites && (
+                        <div className='flex items-start md:col-span-2'>
+                          <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                            Prerequisites:
+                          </span>
+                          <span className='text-gray-700'>{level.prerequisites}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
