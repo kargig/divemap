@@ -26,6 +26,7 @@ import {
   Bell,
   BarChart3,
   Award,
+  Calculator,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -230,6 +231,12 @@ const Navbar = () => {
                   label: 'Diving Organizations',
                   icon: <Award className='h-4 w-4' />,
                   onClick: () => navigate('/resources/diving-organizations'),
+                },
+                {
+                  type: 'item',
+                  label: 'Tools',
+                  icon: <Calculator className='h-4 w-4' />,
+                  onClick: () => navigate('/resources/tools'),
                 },
                 {
                   type: 'item',
@@ -553,6 +560,14 @@ const Navbar = () => {
                         >
                           <Award className='h-4 w-4 mr-3' />
                           <span>Diving Organizations</span>
+                        </Link>
+                        <Link
+                          to='/resources/tools'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Calculator className='h-4 w-4 mr-3' />
+                          <span>Tools</span>
                         </Link>
                         <Link
                           to='/resources/tags'

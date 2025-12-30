@@ -58,6 +58,7 @@ import Profile from './pages/Profile';
 import Register from './pages/Register';
 import Resubscribe from './pages/Resubscribe';
 import RouteDetail from './pages/RouteDetail';
+import Tools from './pages/Tools';
 import TripDetail from './pages/TripDetail';
 import Unsubscribe from './pages/Unsubscribe';
 import UserProfile from './pages/UserProfile';
@@ -162,6 +163,7 @@ function App() {
                     path='/resources/diving-organizations'
                     element={<DivingOrganizationsPage />}
                   />
+                  <Route path='/resources/tools' element={<Tools />} />
                   <Route path='/api-docs' element={<API />} />
                   <Route path='/changelog' element={<Changelog />} />
                   <Route path='/help' element={<Help />} />
