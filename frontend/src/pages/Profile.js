@@ -1228,6 +1228,12 @@ const Profile = () => {
           <div className='bg-white p-6 rounded-lg shadow-md'>
             <h3 className='text-lg font-semibold text-gray-900 mb-4'>Quick Actions</h3>
             <div className='space-y-3'>
+              <Link
+                to={`/users/${user.username}`}
+                className='block w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+              >
+                View Public Profile
+              </Link>
               <button
                 onClick={() => setIsChangingPassword(true)}
                 className='w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
