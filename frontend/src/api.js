@@ -404,6 +404,27 @@ export const uploadDivePhoto = async (diveId, file, description = '', isPublic =
   return response.data;
 };
 
+// Upload photo to R2 only (without creating database record)
+// Returns: { r2_path: string, url: string } - the R2 path and presigned URL for preview
+export const uploadPhotoToR2Only = async (diveId, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(`/api/v1/dives/${diveId}/media/upload-photo-r2-only`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+// Delete photo from R2 only (without deleting database record)
+export const deletePhotoFromR2 = async (diveId, r2Path) => {
+  const response = await api.delete(`/api/v1/dives/${diveId}/media/delete-r2-photo`, {
+    data: { r2_path: r2Path },
+  });
+  return response.data;
+};
+
 export const getDiveMedia = async diveId => {
   const response = await api.get(`/api/v1/dives/${diveId}/media`);
   return response.data;

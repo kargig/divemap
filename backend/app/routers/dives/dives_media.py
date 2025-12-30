@@ -10,11 +10,10 @@ This module contains operations for dive media and tags:
 - remove_dive_tag
 """
 
-from fastapi import Depends, HTTPException, status, Query, UploadFile, File, Form
+from fastapi import Depends, HTTPException, status, Query, UploadFile, File, Form, Body
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
-import os
 import logging
 import requests
 import re
@@ -22,7 +21,7 @@ from urllib.parse import quote
 from pathlib import Path
 
 from .dives_shared import router, get_db, get_current_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
-from app.schemas import DiveMediaCreate, DiveMediaResponse, DiveMediaUpdate, DiveTagResponse, DiveTagCreate
+from app.schemas import DeleteR2PhotoRequest, DiveMediaCreate, DiveMediaResponse, DiveMediaUpdate, DiveTagResponse, DiveTagCreate
 
 logger = logging.getLogger(__name__)
 
@@ -175,6 +174,134 @@ async def upload_dive_photo(
             detail="Failed to upload photo"
         )
 
+@router.post("/{dive_id}/media/upload-photo-r2-only")
+async def upload_photo_r2_only(
+    dive_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload a photo file to R2 only (no database record created). Returns R2 path and presigned URL."""
+    if not current_user.enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled"
+        )
+
+    # Verify dive exists and belongs to user
+    dive = db.query(Dive).filter(
+        Dive.id == dive_id,
+        Dive.user_id == current_user.id
+    ).first()
+
+    if not dive:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive not found"
+        )
+
+    # Validate file type
+    allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file type. Allowed types: {', '.join(allowed_types)}"
+        )
+
+    # Validate file size (max 10MB)
+    file_content = await file.read()
+    if len(file_content) > 10 * 1024 * 1024:  # 10MB
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size exceeds 10MB limit"
+        )
+
+    # Generate unique filename
+    file_ext = Path(file.filename).suffix if file.filename else '.jpg'
+    unique_filename = f"{uuid.uuid4()}{file_ext}"
+
+    # Upload to R2 or local storage only (no database record)
+    try:
+        photo_path = r2_storage.upload_photo(
+            user_id=current_user.id,
+            dive_id=dive_id,
+            filename=unique_filename,
+            content=file_content
+        )
+        
+        # Generate presigned URL for preview
+        if photo_path.startswith('user_'):
+            # R2 path - generate presigned URL
+            presigned_url = r2_storage.get_photo_url(photo_path)
+        else:
+            # Local storage - get static URL
+            presigned_url = photo_path
+        
+        return {
+            "r2_path": photo_path,
+            "url": presigned_url
+        }
+    except Exception as e:
+        logger.error(f"Failed to upload photo to R2: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload photo to R2"
+        )
+
+
+@router.delete("/{dive_id}/media/delete-r2-photo")
+async def delete_r2_photo(
+    dive_id: int,
+    request: DeleteR2PhotoRequest = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a photo from R2 only (no database record deletion)."""
+    if not current_user.enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled"
+        )
+
+    # Verify dive exists and belongs to user
+    dive = db.query(Dive).filter(
+        Dive.id == dive_id,
+        Dive.user_id == current_user.id
+    ).first()
+
+    if not dive:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive not found"
+        )
+
+    # Validate that the R2 path belongs to this user's dive
+    # R2 path format: user_{user_id}/photos/dive_{dive_id}/{filename}
+    expected_path_prefix = f"user_{current_user.id}/photos/dive_{dive_id}/"
+    if not request.r2_path.startswith(expected_path_prefix):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Photo does not belong to this dive"
+        )
+
+    # Delete from R2 or local storage
+    try:
+        success = r2_storage.delete_photo(request.r2_path)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete photo from storage"
+            )
+        return {"message": "Photo deleted from R2 successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete photo from R2 {request.r2_path}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete photo from R2"
+        )
+
 
 @router.get("/{dive_id}/media", response_model=List[DiveMediaResponse])
 def get_dive_media(
@@ -224,7 +351,7 @@ def get_dive_media(
         media = media_query.all()
     else:
         # Non-owners can only see public media
-        media = media_query.filter(DiveMedia.is_public == True).all()
+        media = media_query.filter(DiveMedia.is_public.is_(True)).all()
     
     # Generate presigned URLs for R2 photos on-demand
     from app.services.r2_storage_service import get_r2_storage

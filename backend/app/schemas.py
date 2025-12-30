@@ -1405,3 +1405,6 @@ class ApiKeyUpdate(BaseModel):
     description: Optional[str] = None
     expires_at: Optional[datetime] = None
     is_active: Optional[bool] = None
+
+class DeleteR2PhotoRequest(BaseModel):
+    r2_path: str
