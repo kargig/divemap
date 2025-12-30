@@ -19,6 +19,7 @@ Divemap is a comprehensive web application designed for scuba diving enthusiasts
 ## Git Workflow & Standards
 - **Feature Branches:** ALWAYS create a feature branch for changes: `feature/[task-name-kebab-case]`.
 - **No Direct Commits:** NEVER work directly on `main` or `master`.
+- **Git Restrictions:** NEVER attempt to use `git add` or `git commit -m`. These actions are forbidden. All commits should be prepared via `commit-message.txt` for the user to execute manually.
 - **Commit Messages:**
   - Limit subject to 50 characters, capitalize, no period.
   - Use imperative mood ("Add", "Fix", "Update").
@@ -101,3 +102,12 @@ docker-compose exec backend python run_migrations.py
 
 ## Documentation
 Documentation is consolidated in the `docs/` directory. Major changes should be reflected in the relevant documentation files to prevent information pollution.
+
+## Form Validation & Schemas
+- **Frontend Validation:** ALWAYS use Zod schemas defined in `frontend/src/utils/formHelpers.js` for form validation.
+  - Avoid inline validation in components.
+  - Ensure schemas match backend constraints to prevent 422 errors.
+  - Use `FormField` components to consistently display validation errors.
+- **Backend Validation:** Use Pydantic schemas in `backend/app/schemas.py`.
+  - Enforce strict validation (e.g., HTTPS for URLs, specific domains for platforms).
+  - Use validators to sanitize and check complex logic (e.g., preventing phone numbers in social links).

@@ -18,6 +18,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getUserPublicProfile } from '../api';
 import Avatar from '../components/Avatar';
 import OrganizationLogo from '../components/OrganizationLogo';
+import { getSocialMediaIcon } from '../components/SocialMediaIcons';
 import usePageTitle from '../hooks/usePageTitle';
 
 const UserProfile = () => {
@@ -220,6 +221,23 @@ const UserProfile = () => {
                 <span>Member since {formatDate(profile.member_since)}</span>
               </div>
             </div>
+            {/* Social Media Links */}
+            {profile.social_links && profile.social_links.length > 0 && (
+              <div className='mt-4 flex flex-wrap gap-3'>
+                {profile.social_links.map(link => (
+                  <a
+                    key={link.platform}
+                    href={link.url}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='text-gray-500 hover:text-blue-600 transition-colors bg-gray-100 hover:bg-gray-200 p-2 rounded-full'
+                    title={link.platform}
+                  >
+                    {getSocialMediaIcon(link.platform, { color: '000000', className: 'w-5 h-5' })}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -550,6 +550,70 @@ export const createDiveSchema = z.object({
 });
 
 /**
+ * Social media link schema
+ */
+export const socialLinkSchema = z
+  .object({
+    platform: z.enum(
+      [
+        'instagram',
+        'tiktok',
+        'facebook',
+        'x',
+        'linkedin',
+        'youtube',
+        'whatsapp',
+        'telegram',
+        'bluesky',
+        'mastodon',
+        'discord',
+        'threads',
+        'signal',
+      ],
+      {
+        errorMap: () => ({ message: 'Please select a valid platform' }),
+      }
+    ),
+    url: z
+      .string()
+      .url('Please enter a valid URL')
+      .refine(val => val.startsWith('https://'), {
+        message: 'URL must start with https://',
+      }),
+  })
+  .refine(
+    data => {
+      const { platform, url } = data;
+      if (!platform || !url) return true;
+
+      const domains = {
+        instagram: ['instagram.com'],
+        tiktok: ['tiktok.com'],
+        facebook: ['facebook.com', 'fb.com'],
+        x: ['twitter.com', 'x.com'],
+        linkedin: ['linkedin.com'],
+        youtube: ['youtube.com', 'youtu.be'],
+        whatsapp: ['wa.me', 'whatsapp.com'],
+        telegram: ['t.me', 'telegram.me'],
+        bluesky: ['bsky.app'],
+        discord: ['discord.com', 'discord.gg'],
+        threads: ['threads.net'],
+        signal: ['signal.me', 'signal.group'],
+      };
+
+      const allowed = domains[platform];
+      // If no specific domains defined (e.g. Mastodon), allow any HTTPS URL
+      if (!allowed) return true;
+
+      return allowed.some(d => url.includes(d));
+    },
+    {
+      message: 'URL does not match the selected platform',
+      path: ['url'], // Attach error to the URL field
+    }
+  );
+
+/**
  * Helper to create resolver with Zod schema
  */
 export const createResolver = schema => zodResolver(schema);
