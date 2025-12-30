@@ -1,4 +1,4 @@
-import { Award, ChevronDown, ChevronUp, Search, ExternalLink, Globe } from 'lucide-react';
+import { Award, ChevronDown, ChevronUp, Search, Globe, Info } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
 
@@ -158,19 +158,43 @@ const CertificationLevelsList = ({ organizationId, identifier }) => {
 
 const OrganizationCard = ({ org }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showMobileDescription, setShowMobileDescription] = useState(false);
 
   return (
     <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200'>
       <div className='p-5 cursor-pointer' onClick={() => setIsExpanded(!isExpanded)}>
         <div className='flex justify-between items-start'>
-          <div className='flex items-start space-x-3'>
+          <div className='flex items-start space-x-3 flex-1 min-w-0'>
             <OrganizationLogo org={org} size='h-24 w-24' textSize='text-xl' />
-            <div>
-              <h3 className='text-lg font-medium text-gray-900'>{org.name}</h3>
+            <div className='min-w-0'>
+              <h3 className='text-lg font-medium text-gray-900 break-words'>{org.name}</h3>
               {org.acronym && <p className='text-sm text-gray-500 font-medium'>{org.acronym}</p>}
+              {org.description && (
+                <p
+                  className={`mt-2 text-sm text-gray-600 ${showMobileDescription ? 'block' : 'hidden'} md:block`}
+                >
+                  {org.description}
+                </p>
+              )}
             </div>
           </div>
-          <div className='flex items-center space-x-2'>
+          <div className='flex items-center space-x-2 ml-2 flex-shrink-0'>
+            {org.description && (
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  setShowMobileDescription(!showMobileDescription);
+                }}
+                className={`md:hidden p-2 rounded-lg transition-all duration-200 ${
+                  showMobileDescription
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                }`}
+                title={showMobileDescription ? 'Hide description' : 'Show description'}
+              >
+                <Info className='h-5 w-5' />
+              </button>
+            )}
             <button
               onClick={e => {
                 e.stopPropagation();
@@ -203,9 +227,8 @@ const OrganizationCard = ({ org }) => {
               rel='noopener noreferrer'
               className='hover:underline'
             >
-              Visit Website
+              {org.website.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0]}
             </a>
-            <ExternalLink className='h-3 w-3 ml-1' />
           </div>
         )}
       </div>
@@ -236,7 +259,7 @@ const DivingOrganizationsPage = () => {
   });
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+    <div className='w-full max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       <div className='bg-white shadow-sm rounded-lg overflow-hidden mb-8'>
         <div className='p-6 border-b border-gray-200'>
           <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
