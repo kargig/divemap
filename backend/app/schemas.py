@@ -687,6 +687,8 @@ class CertificationStats(BaseModel):
 class UserPublicProfileResponse(BaseModel):
     username: str
     avatar_url: Optional[str] = None
+    is_admin: bool = False
+    is_moderator: bool = False
     number_of_dives: int
     member_since: datetime
     certifications: List[UserCertificationResponse] = []
