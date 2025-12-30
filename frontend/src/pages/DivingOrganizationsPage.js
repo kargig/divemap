@@ -162,30 +162,27 @@ const OrganizationCard = ({ org }) => {
 
   return (
     <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200'>
-      <div className='p-5 cursor-pointer' onClick={() => setIsExpanded(!isExpanded)}>
-        <div className='flex justify-between items-start'>
-          <div className='flex items-start space-x-3 flex-1 min-w-0'>
-            <OrganizationLogo org={org} size='h-24 w-24' textSize='text-xl' />
-            <div className='min-w-0'>
-              <h3 className='text-lg font-medium text-gray-900 break-words'>{org.name}</h3>
-              {org.acronym && <p className='text-sm text-gray-500 font-medium'>{org.acronym}</p>}
-              {org.description && (
-                <p
-                  className={`mt-2 text-sm text-gray-600 ${showMobileDescription ? 'block' : 'hidden'} md:block`}
-                >
-                  {org.description}
-                </p>
-              )}
-            </div>
+      <div className='p-4 md:p-5 cursor-pointer' onClick={() => setIsExpanded(!isExpanded)}>
+        {/* Top Row: Logo, Acronym and Actions */}
+        <div className='flex justify-between items-center mb-4'>
+          <div className='flex items-center space-x-3 min-w-0'>
+            <OrganizationLogo
+              org={org}
+              size='h-16 w-16 md:h-20 md:w-20'
+              textSize='text-lg md:text-xl'
+            />
+            {org.acronym && (
+              <span className='text-lg font-bold text-blue-600 truncate'>{org.acronym}</span>
+            )}
           </div>
-          <div className='flex items-center space-x-2 ml-2 flex-shrink-0'>
+          <div className='flex items-center space-x-1 md:space-x-2 flex-shrink-0'>
             {org.description && (
               <button
                 onClick={e => {
                   e.stopPropagation();
                   setShowMobileDescription(!showMobileDescription);
                 }}
-                className={`md:hidden p-2 rounded-lg transition-all duration-200 ${
+                className={`md:hidden p-1.5 rounded-lg transition-all duration-200 ${
                   showMobileDescription
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
@@ -200,7 +197,7 @@ const OrganizationCard = ({ org }) => {
                 e.stopPropagation();
                 setIsExpanded(!isExpanded);
               }}
-              className={`p-2 rounded-lg transition-all duration-200 ${
+              className={`p-1.5 md:p-2 rounded-lg transition-all duration-200 ${
                 isExpanded
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
@@ -215,17 +212,34 @@ const OrganizationCard = ({ org }) => {
           </div>
         </div>
 
+        {/* Name Section - Full Width */}
+        <div className='mb-3'>
+          <h3 className='text-xl font-bold text-gray-900 leading-tight'>{org.name}</h3>
+        </div>
+
+        {/* Description Section - Full Width */}
+        {org.description && (
+          <div
+            className={`mb-4 text-sm text-gray-600 leading-relaxed ${
+              showMobileDescription ? 'block' : 'hidden'
+            } md:block`}
+          >
+            {org.description}
+          </div>
+        )}
+
+        {/* Website Section */}
         {org.website && (
           <div
-            className='mt-3 flex items-center text-sm text-blue-600 hover:text-blue-800'
+            className='flex items-center text-sm text-blue-600 hover:text-blue-800'
             onClick={e => e.stopPropagation()}
           >
-            <Globe className='h-3 w-3 mr-1' />
+            <Globe className='h-4 w-4 mr-2 flex-shrink-0' />
             <a
               href={org.website}
               target='_blank'
               rel='noopener noreferrer'
-              className='hover:underline'
+              className='hover:underline truncate font-medium'
             >
               {org.website.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0]}
             </a>
