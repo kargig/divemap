@@ -4,11 +4,12 @@ from sqlalchemy import or_
 from typing import List, Optional
 
 from app.database import get_db
-from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy, ApiKey
+from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy, ApiKey, UserSocialLink
 from app.schemas import (
     UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, 
     PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse,
-    ApiKeyResponse, ApiKeyCreate, ApiKeyCreateResponse, ApiKeyUpdate, CertificationStats
+    ApiKeyResponse, ApiKeyCreate, ApiKeyCreateResponse, ApiKeyUpdate, CertificationStats,
+    UserSocialLinkCreate, UserSocialLinkResponse
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
 from app.limiter import skip_rate_limit_for_admin
@@ -419,6 +420,59 @@ async def change_password(
 
     return {"message": "Password changed successfully"}
 
+@router.post("/me/social-links", response_model=UserSocialLinkResponse)
+async def add_social_link(
+    link_data: UserSocialLinkCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Add or update a social media link for the current user."""
+    # Check if link for this platform already exists
+    existing_link = db.query(UserSocialLink).filter(
+        UserSocialLink.user_id == current_user.id,
+        UserSocialLink.platform == link_data.platform
+    ).first()
+
+    if existing_link:
+        # Update existing link
+        existing_link.url = link_data.url
+        db.commit()
+        db.refresh(existing_link)
+        return existing_link
+    else:
+        # Create new link
+        new_link = UserSocialLink(
+            user_id=current_user.id,
+            platform=link_data.platform,
+            url=link_data.url
+        )
+        db.add(new_link)
+        db.commit()
+        db.refresh(new_link)
+        return new_link
+
+@router.delete("/me/social-links/{platform}")
+async def remove_social_link(
+    platform: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Remove a social media link for the current user."""
+    link = db.query(UserSocialLink).filter(
+        UserSocialLink.user_id == current_user.id,
+        UserSocialLink.platform == platform
+    ).first()
+
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Social link not found"
+        )
+
+    db.delete(link)
+    db.commit()
+    return {"message": "Social link removed successfully"}
+
 @router.get("/search", response_model=List[UserSearchResponse])
 @skip_rate_limit_for_admin("60/minute")
 async def search_users(
@@ -578,6 +632,7 @@ async def get_user_public_profile(
         number_of_dives=user.number_of_dives,
         member_since=user.created_at,
         certifications=user.certifications,
+        social_links=user.social_links,
         stats=stats,
         certification_stats=cert_stats
     )
