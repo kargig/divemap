@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-popover": "^1.1.15",
+    "@radix-ui/react-select": "^2.2.6",
     "@tanstack/react-table": "^8.21.3",
     "autoprefixer": "^10.4.14",
     "axios": "^1.3.4",
@@ -12,6 +17,7 @@
     "leaflet": "^1.9.4",
     "leaflet-draw": "^1.0.4",
     "leaflet.markercluster": "^1.5.3",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.539.0",
     "playwright": "^1.56.1",
     "postcss": "^8.4.31",
@@ -19,18 +25,24 @@
     "react-dom": "^18.3.1",
     "react-geolocated": "^4.3.0",
     "react-helmet-async": "^2.0.5",
+    "react-hook-form": "^7.69.0",
     "react-hot-toast": "^2.6.0",
     "react-leaflet": "^4.2.1",
     "react-query": "^3.39.3",
     "react-router-dom": "^7.8.1",
-    "react-scripts": "^5.0.1",
     "react-slider": "^2.0.6",
     "recharts": "^3.2.1",
     "tailwindcss": "^3.4.17",
+    "zod": "^4.2.1",
     "yet-another-react-lightbox": "^3.26.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@types/lodash": "^4.17.21",
+    "@types/node": "^25.0.3",
+    "@vitejs/plugin-react": "^5.1.2",
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.29.1",
@@ -38,16 +50,20 @@
     "eslint-plugin-prettier": "^5.1.3",
     "eslint-plugin-react": "^7.34.0",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "jsdom": "^27.0.1",
     "prettier": "^3.2.5",
-    "puppeteer": "^24.15.0"
+    "puppeteer": "^24.15.0",
+    "vite": "^7.3.0",
+    "vite-plugin-svgr": "^4.5.0",
+    "vitest": "^3.2.4"
   },
   "scripts": {
     "postinstall": "npx update-browserslist-db@latest || true",
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "build:prod": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
+    "start": "vite",
+    "build": "vite build",
+    "build:prod": "vite build",
     "build:with-compression": "npm run build && ./scripts/precompress-assets.sh",
-    "test": "react-scripts test",
+    "test": "vitest",
     "test:e2e": "node tests/run_frontend_tests.js",
     "test:frontend": "node tests/test_frontend.js",
     "test:validation": "node tests/validate_frontend.js",
@@ -56,17 +72,11 @@
     "test:comprehensive": "node tests/run_comprehensive_tests.js",
     "test:all": "npm run test:nodejs20 && npm run test:mapview && npm run test:validation",
     "lint": "eslint src --max-warnings 0",
+    "lint:ci": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/**/*.{js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,json,css,md}\"",
-    "lint:check": "node scripts/lint-check.js",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "lint:check": "node scripts/lint-check.js"
   },
   "browserslist": {
     "production": [
@@ -85,6 +95,9 @@
     "svgo": "^3.0.2",
     "postcss": "^8.4.31",
     "webpack-dev-server": "^4.15.1",
-    "resolve-url-loader": "^5.0.0"
+    "resolve-url-loader": "^5.0.0",
+    "eslint": "^9.33.0",
+    "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.5.5",
+    "rollup-plugin-terser": "npm:@rollup/plugin-terser@^0.4.4"
   }
 }

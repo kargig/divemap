@@ -43,7 +43,7 @@ python -m pytest
 
 **New Features Added:**
 
-- **System Overview Dashboard**: Comprehensive platform statistics and health monitoring
+- **System Statistics & Metrics**: Comprehensive platform statistics and health monitoring
 - **Recent Activity Monitoring**: Real-time tracking of user actions and system changes
 - **System Health Endpoints**: Backend API endpoints for monitoring system status
 - **Real-time Activity Tracking**: Database queries for user and system activity
@@ -54,10 +54,10 @@ python -m pytest
 
 ```python
 
-def test_get_system_overview(self, client, admin_headers):
-    """Test system overview endpoint returns comprehensive platform statistics."""
-def test_get_system_health(self, client, admin_headers):
-    """Test system health endpoint returns detailed health information."""
+def test_get_system_metrics(self, client, admin_headers):
+    """Test system metrics endpoint returns detailed health information."""
+def test_get_general_statistics(self, client, admin_headers):
+    """Test general statistics endpoint returns comprehensive platform statistics."""
 def test_get_platform_stats(self, client, admin_headers):
     """Test platform statistics endpoint returns detailed breakdown."""
 def test_get_recent_activity(self, client, admin_headers):
@@ -96,7 +96,7 @@ def test_engagement_activity(self, client, admin_headers):
 
 **Frontend Integration Tests:**
 
-- System Overview page loading and data display
+- System Metrics and General Statistics pages loading and data display
 - Recent Activity page with filtering and real-time updates
 - Admin dashboard navigation and accessibility
 - Auto-refresh functionality and manual refresh options
@@ -104,15 +104,15 @@ def test_engagement_activity(self, client, admin_headers):
 
 **API Endpoint Tests:**
 
-- `GET /api/v1/admin/system/overview` - System overview with platform statistics
-- `GET /api/v1/admin/system/health` - System health monitoring
+- `GET /api/v1/admin/system/statistics` - General statistics with platform stats
+- `GET /api/v1/admin/system/metrics` - System health monitoring
 - `GET /api/v1/admin/system/stats` - Platform statistics breakdown
 - `GET /api/v1/admin/system/activity` - Recent activity with filtering
 
 **Testing Results:**
 
 - **Backend Tests**: All system monitoring endpoints working correctly ✅
-- **Frontend Validation**: System Overview and Recent Activity pages operational ✅
+- **Frontend Validation**: System Metrics, General Statistics, and Recent Activity pages operational ✅
 - **ESLint Compliance**: All formatting issues resolved ✅
 - **API Testing**: All new monitoring endpoints functional ✅
 
@@ -195,7 +195,7 @@ def test_proxy_chain_analysis(self, client):
 **API Endpoint Tests:**
 
 - `GET /api/v1/newsletters/trips` - Advanced search with filtering and sorting
-- `GET /api/v1/admin/system/overview` - System overview with client IP detection
+- `GET /api/v1/admin/system/statistics` - General statistics with client IP detection
 - Rate limiting endpoints with client IP validation
 
 **Testing Results:**

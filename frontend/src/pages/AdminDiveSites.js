@@ -26,6 +26,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
 import AdminDiveSitesTable from '../components/tables/AdminDiveSitesTable';
+import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import {
@@ -585,29 +586,20 @@ const AdminDiveSites = () => {
           </button>
         </div>
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4'>
-          <div>
-            <label
-              htmlFor='difficulty-filter'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Difficulty
-            </label>
-            <select
-              id='difficulty-filter'
-              value={filters.difficulty_code || ''}
-              onChange={e => handleFilterChange('difficulty_code', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-              <option value=''>All Difficulties</option>
-              {getDifficultyOptions()
+          <Select
+            id='difficulty-filter'
+            label='Difficulty'
+            value={filters.difficulty_code || 'all'}
+            onValueChange={value =>
+              handleFilterChange('difficulty_code', value === 'all' ? '' : value)
+            }
+            options={[
+              { value: 'all', label: 'All Difficulties' },
+              ...getDifficultyOptions()
                 .filter(option => option.value !== null)
-                .map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-            </select>
-          </div>
+                .map(opt => ({ value: opt.value, label: opt.label })),
+            ]}
+          />
           <div>
             <label
               htmlFor='country-filter'
@@ -649,12 +641,24 @@ const AdminDiveSites = () => {
               type='number'
               min='0'
               max='10'
-              step='0.1'
-              placeholder='0.0'
+              step='1'
+              placeholder='0'
               value={filters.min_rating}
               onChange={e => handleFilterChange('min_rating', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              onKeyDown={e => {
+                if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
+                  e.preventDefault();
+                }
+              }}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10)
+                  ? 'border-red-500 ring-1 ring-red-500'
+                  : 'border-gray-300'
+              }`}
             />
+            {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) && (
+              <p className='text-red-500 text-xs mt-1'>Rating must be 0-10</p>
+            )}
           </div>
           <div>
             <label
@@ -668,12 +672,24 @@ const AdminDiveSites = () => {
               type='number'
               min='0'
               max='10'
-              step='0.1'
-              placeholder='10.0'
+              step='1'
+              placeholder='10'
               value={filters.max_rating}
               onChange={e => handleFilterChange('max_rating', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              onKeyDown={e => {
+                if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
+                  e.preventDefault();
+                }
+              }}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                filters.max_rating && (filters.max_rating < 0 || filters.max_rating > 10)
+                  ? 'border-red-500 ring-1 ring-red-500'
+                  : 'border-gray-300'
+              }`}
             />
+            {filters.max_rating && (filters.max_rating < 0 || filters.max_rating > 10) && (
+              <p className='text-red-500 text-xs mt-1'>Rating must be 0-10</p>
+            )}
           </div>
         </div>
       </div>

@@ -323,13 +323,13 @@ nano .env.production
 **Update `.env.production` with production values:**
 ```bash
 # API Configuration
-REACT_APP_API_URL=https://divemap-backend.fly.dev
+VITE_API_URL=https://divemap-backend.fly.dev
 
 # Google OAuth Configuration
-REACT_APP_GOOGLE_CLIENT_ID=your-google-client-id
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
 
 # Production Settings
-REACT_APP_ENVIRONMENT=production
+VITE_ENVIRONMENT=production
 ```
 
 ```bash
@@ -387,13 +387,13 @@ nano .env.production
 
 ```bash
 # API Configuration
-REACT_APP_API_URL=https://divemap-backend.fly.dev
+VITE_API_URL=https://divemap-backend.fly.dev
 
 # Google OAuth Configuration
-REACT_APP_GOOGLE_CLIENT_ID=your-google-client-id
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
 
 # Production Settings
-REACT_APP_ENVIRONMENT=production
+VITE_ENVIRONMENT=production
 ```
 
 #### Deployment
@@ -754,7 +754,7 @@ The frontend app (`divemap-frontend`) should be configured with:
 
 ```bash
 # API URL pointing to nginx proxy
-fly secrets set REACT_APP_API_URL="https://divemap.gr/api" -a divemap-frontend
+fly secrets set VITE_API_URL="https://divemap.gr/api" -a divemap-frontend
 ```
 
 ### Monitoring and Health Checks

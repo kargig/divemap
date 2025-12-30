@@ -124,7 +124,7 @@ const Home = () => {
   );
 
   return (
-    <div className='max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 relative'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 relative'>
       {/* Background Logo Watermark */}
       <BackgroundLogo opacity={0.02} size='xlarge' />
 
@@ -138,18 +138,6 @@ const Home = () => {
         logoBackground={true}
         threeColumnLayout={true}
       >
-        <Link
-          to='/dive-sites'
-          className='bg-blue-600 hover:bg-blue-700 text-white px-8 sm:px-10 py-2 text-sm sm:text-base font-semibold flex-1 sm:flex-initial min-w-[160px] sm:min-w-[180px] whitespace-nowrap rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105'
-        >
-          Explore Dive Sites
-        </Link>
-        <Link
-          to='/dives'
-          className='bg-indigo-600 hover:bg-indigo-700 text-white px-8 sm:px-10 py-2 text-sm sm:text-base font-semibold flex-1 sm:flex-initial min-w-[160px] sm:min-w-[180px] whitespace-nowrap rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105'
-        >
-          Browse Dives
-        </Link>
         <Link
           to='/map'
           className='bg-purple-600 hover:bg-purple-700 text-white px-8 sm:px-10 py-2 text-sm sm:text-base font-semibold flex-1 sm:flex-initial min-w-[160px] sm:min-w-[180px] whitespace-nowrap rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105'
@@ -168,23 +156,29 @@ const Home = () => {
 
       {/* Features Section */}
       <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 py-8 sm:py-12 px-4'>
-        <div className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md'>
+        <Link
+          to='/dive-sites'
+          className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer'
+        >
           <Map className='h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4' />
           <h3 className='text-lg sm:text-xl font-semibold mb-2'>Discover Sites</h3>
           <p className='text-sm sm:text-base text-gray-600'>
             Browse through our comprehensive database of dive sites with detailed information,
             difficulty levels, and access instructions.
           </p>
-        </div>
+        </Link>
 
-        <div className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md'>
+        <Link
+          to='/dives'
+          className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer'
+        >
           <BookOpen className='h-10 w-10 sm:h-12 sm:w-12 text-green-600 mx-auto mb-3 sm:mb-4' />
           <h3 className='text-lg sm:text-xl font-semibold mb-2'>Log Your Dives</h3>
           <p className='text-sm sm:text-base text-gray-600'>
             Record your diving experiences, track your progress, and share your adventures with the
             diving community.
           </p>
-        </div>
+        </Link>
 
         <div className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md'>
           <Star className='h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4' />
@@ -195,14 +189,17 @@ const Home = () => {
           </p>
         </div>
 
-        <div className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md'>
+        <Link
+          to='/dive-trips'
+          className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer'
+        >
           <Anchor className='h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4' />
           <h3 className='text-lg sm:text-xl font-semibold mb-2'>Find Centers</h3>
           <p className='text-sm sm:text-base text-gray-600'>
             Connect with professional diving centers, view their services, and get in touch for your
             next diving adventure.
           </p>
-        </div>
+        </Link>
       </div>
 
       {/* Stats Section */}

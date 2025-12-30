@@ -79,6 +79,26 @@ class DivingOrganization(Base):
     # Relationships
     diving_center_organizations = relationship("DivingCenterOrganization", back_populates="diving_organization", cascade="all, delete-orphan")
     user_certifications = relationship("UserCertification", back_populates="diving_organization", cascade="all, delete-orphan")
+    certification_levels = relationship("CertificationLevel", back_populates="diving_organization", cascade="all, delete-orphan")
+
+class CertificationLevel(Base):
+    __tablename__ = "certification_levels"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diving_organization_id = Column(Integer, ForeignKey("diving_organizations.id"), nullable=False, index=True)
+    name = Column(String(255), nullable=False) # e.g., "Open Water Diver"
+    category = Column(String(100)) # e.g., "Recreational", "Technical"
+    max_depth = Column(String(50)) # e.g., "18m (60ft)"
+    gases = Column(String(255)) # e.g., "Air", "Nitrox"
+    tanks = Column(String(255)) # e.g., "Single", "Double + Stage"
+    deco_time_limit = Column(String(100)) # e.g., "No decompression", "15 minutes", "Unlimited"
+    prerequisites = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    diving_organization = relationship("DivingOrganization", back_populates="certification_levels")
+    user_certifications = relationship("UserCertification", back_populates="certification_level_link")
 
 class User(Base):
     __tablename__ = "users"
@@ -429,6 +449,7 @@ class UserCertification(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     diving_organization_id = Column(Integer, ForeignKey("diving_organizations.id"), nullable=False, index=True)
     certification_level = Column(String(100), nullable=False)
+    certification_level_id = Column(Integer, ForeignKey("certification_levels.id"), nullable=True, index=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -436,6 +457,7 @@ class UserCertification(Base):
     # Relationships
     user = relationship("User", back_populates="certifications")
     diving_organization = relationship("DivingOrganization", back_populates="user_certifications")
+    certification_level_link = relationship("CertificationLevel", back_populates="user_certifications")
 
 class Dive(Base):
     __tablename__ = "dives"

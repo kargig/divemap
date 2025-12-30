@@ -4,21 +4,15 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import api from '../api';
+import api, { extractErrorMessage } from '../api';
 import DivingCenterForm from '../components/DivingCenterForm';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
 
-// Helper function to safely extract error message
-const getErrorMessage = error => {
-  if (typeof error === 'string') return error;
-  if (error?.message) return error.message;
-  if (error?.response?.data?.detail) return error.response.data.detail;
-  if (error?.detail) return error.detail;
-  return 'An error occurred';
-};
+// Use extractErrorMessage from api.js
+const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
 
 const EditDivingCenter = () => {
   // Set page title

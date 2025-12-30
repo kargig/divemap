@@ -5,7 +5,7 @@ import usePageTitle from '../hooks/usePageTitle';
 const API = () => {
   // Set page title
   usePageTitle('Divemap - API');
-  const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   const tokenResponseExample = '{"access_token": "your_token_here"}';
   const createDiveSiteData = '{"name": "Coral Reef", "latitude": 25.7617, "longitude": -80.1918}';
   const updateDiveSiteData =

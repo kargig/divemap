@@ -171,3 +171,5 @@ nginx/frontend-build/
 terraform.tfstate*
 terraform.tfvars
 terraform/lambda_email_processor.zip
+PR-description.txt
+commit-message.txt

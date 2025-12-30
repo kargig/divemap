@@ -23,7 +23,7 @@ if (typeof window !== 'undefined') {
 
   if (isLocalhost) {
     // Development: backend on different port
-    const envUrl = process.env.REACT_APP_API_URL;
+    const envUrl = import.meta.env.VITE_API_URL;
     api.defaults.baseURL =
       envUrl && envUrl.trim() && envUrl.startsWith('http://localhost')
         ? envUrl
@@ -277,24 +277,81 @@ export const extractFieldErrors = error => {
 };
 
 // Utility function to extract error message from API responses
-export const extractErrorMessage = error => {
+// Supports FastAPI/axios error payloads, Pydantic validation errors, and various error formats
+export const extractErrorMessage = (error, defaultMessage = 'An error occurred') => {
+  // Handle null/undefined
+  if (!error) return defaultMessage;
+
+  // Handle string errors directly
+  if (typeof error === 'string') return error;
+
+  // Handle error.response.data.detail (FastAPI standard)
   if (error.response?.data?.detail) {
-    // Handle Pydantic validation errors
-    if (Array.isArray(error.response.data.detail)) {
+    const detail = error.response.data.detail;
+    // Handle Pydantic validation errors (array of error objects)
+    if (Array.isArray(detail)) {
       // Extract the first validation error message with field name
-      const firstError = error.response.data.detail[0];
-      if (firstError.loc && Array.isArray(firstError.loc)) {
-        const fieldDisplayName = getFieldNameFromLoc(firstError.loc);
-        const errorMsg = firstError.msg || 'Validation error';
-        return `${fieldDisplayName}: ${errorMsg}`;
+      const firstError = detail[0];
+      if (firstError && typeof firstError === 'object') {
+        if (firstError.loc && Array.isArray(firstError.loc)) {
+          const fieldDisplayName = getFieldNameFromLoc(firstError.loc);
+          const errorMsg = firstError.msg || 'Validation error';
+          return `${fieldDisplayName}: ${errorMsg}`;
+        }
+        return firstError.msg || 'Validation error';
       }
-      return firstError.msg || 'Validation error';
-    } else {
-      // Handle simple string error messages
-      return error.response.data.detail;
+      return 'Validation error';
+    }
+    // Handle simple string error messages
+    if (typeof detail === 'string') {
+      return detail;
+    }
+    // If detail is an object (not array, not string), try to extract message
+    if (typeof detail === 'object' && detail !== null) {
+      return detail.msg || detail.message || JSON.stringify(detail);
     }
   }
-  return 'An error occurred';
+
+  // Handle error.response.data (alternative location)
+  if (error.response?.data) {
+    const data = error.response.data;
+    if (typeof data === 'string') return data;
+    if (data.detail) {
+      if (typeof data.detail === 'string') return data.detail;
+      if (Array.isArray(data.detail) && data.detail.length > 0) {
+        const first = data.detail[0];
+        if (first?.msg) return first.msg;
+        try {
+          return JSON.stringify(data.detail);
+        } catch {
+          return defaultMessage;
+        }
+      }
+      try {
+        return JSON.stringify(data.detail);
+      } catch {
+        return defaultMessage;
+      }
+    }
+    if (data.msg) return data.msg;
+    if (data.message) return data.message;
+  }
+
+  // Handle error.detail (direct property)
+  if (error.detail) {
+    if (typeof error.detail === 'string') return error.detail;
+    if (Array.isArray(error.detail) && error.detail.length > 0) {
+      const first = error.detail[0];
+      if (first?.msg) return first.msg;
+    }
+  }
+
+  // Fallback to error.message or generic error
+  if (error.message) {
+    return error.message;
+  }
+
+  return defaultMessage;
 };
 
 // User public profile API functions
@@ -453,10 +510,24 @@ export const getDiveSites = async (params = {}) => {
   return response.data;
 };
 
-// User search API function for buddy selection
-export const searchUsers = async (query, limit = 25) => {
+export const getUniqueCountries = async (search = '') => {
+  const params = search ? { search } : {};
+  const response = await api.get('/api/v1/dive-sites/countries', { params });
+  return response.data;
+};
+
+export const getUniqueRegions = async (country = '', search = '') => {
+  const params = {};
+  if (country) params.country = country;
+  if (search) params.search = search;
+  const response = await api.get('/api/v1/dive-sites/regions', { params });
+  return response.data;
+};
+
+// User search API function for buddy selection and filtering
+export const searchUsers = async (query, limit = 25, includeSelf = false) => {
   const response = await api.get('/api/v1/users/search', {
-    params: { query, limit },
+    params: { query, limit, include_self: includeSelf },
   });
   return response.data;
 };
@@ -472,6 +543,11 @@ export const getAvailableTags = async () => {
   return response.data;
 };
 
+export const getTagsWithCounts = async () => {
+  const response = await api.get('/api/v1/tags/with-counts');
+  return response.data;
+};
+
 export const createTag = async tagData => {
   const response = await api.post('/api/v1/tags/', tagData);
   return response.data;
@@ -484,6 +560,22 @@ export const updateTag = async (tagId, tagData) => {
 
 export const deleteTag = async tagId => {
   const response = await api.delete(`/api/v1/tags/${tagId}`);
+  return response.data;
+};
+
+// Diving Organizations API functions
+export const getDivingOrganizations = async (params = {}) => {
+  const response = await api.get('/api/v1/diving-organizations/', { params });
+  return response.data;
+};
+
+export const getDivingOrganization = async identifier => {
+  const response = await api.get(`/api/v1/diving-organizations/${identifier}`);
+  return response.data;
+};
+
+export const getDivingOrganizationLevels = async identifier => {
+  const response = await api.get(`/api/v1/diving-organizations/${identifier}/levels`);
   return response.data;
 };
 
@@ -605,11 +697,6 @@ export const confirmImportDives = async divesData => {
 };
 
 // System Overview API functions
-export const getSystemOverview = async () => {
-  const response = await api.get('/api/v1/admin/system/overview');
-  return response.data;
-};
-
 export const getSystemHealth = async () => {
   const response = await api.get('/api/v1/admin/system/health');
   return response.data;

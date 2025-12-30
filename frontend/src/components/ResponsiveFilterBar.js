@@ -15,11 +15,20 @@ import {
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 
+import {
+  searchDivingCenters,
+  getDiveSites,
+  searchUsers,
+  getUniqueCountries,
+  getUniqueRegions,
+} from '../api';
 import { useResponsiveScroll } from '../hooks/useResponsive';
 import { getDifficultyOptions, getDifficultyLabel } from '../utils/difficultyHelpers';
 import { getTagColor } from '../utils/tagHelpers';
+
+import Modal from './ui/Modal';
+import Select from './ui/Select';
 
 const ResponsiveFilterBar = ({
   showFilters = false,
@@ -62,6 +71,51 @@ const ResponsiveFilterBar = ({
   const [diveSiteSearch, setDiveSiteSearch] = useState('');
   const [isDiveSiteDropdownOpen, setIsDiveSiteDropdownOpen] = useState(false);
   const diveSiteDropdownRef = useRef(null);
+
+  // Searchable state for dive-trips page
+  const [divingCenterSearch, setDivingCenterSearch] = useState('');
+  const [divingCenterSearchResults, setDivingCenterSearchResults] = useState([]);
+  const [divingCenterSearchLoading, setDivingCenterSearchLoading] = useState(false);
+  const [isDivingCenterDropdownOpen, setIsDivingCenterDropdownOpen] = useState(false);
+  const divingCenterDropdownRef = useRef(null);
+  const divingCenterSearchTimeoutRef = useRef(null);
+
+  const [diveSiteSearchForTrips, setDiveSiteSearchForTrips] = useState('');
+  const [diveSiteSearchResultsForTrips, setDiveSiteSearchResultsForTrips] = useState([]);
+  const [diveSiteSearchLoadingForTrips, setDiveSiteSearchLoadingForTrips] = useState(false);
+  const [isDiveSiteDropdownOpenForTrips, setIsDiveSiteDropdownOpenForTrips] = useState(false);
+  const diveSiteDropdownRefForTrips = useRef(null);
+  const diveSiteSearchTimeoutRefForTrips = useRef(null);
+
+  // Country and region search state
+  const [countrySearch, setCountrySearch] = useState('');
+  const [countrySearchResults, setCountrySearchResults] = useState([]);
+  const [countrySearchLoading, setCountrySearchLoading] = useState(false);
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  const countryDropdownRef = useRef(null);
+  const countrySearchTimeoutRef = useRef(null);
+
+  const [regionSearch, setRegionSearch] = useState('');
+  const [regionSearchResults, setRegionSearchResults] = useState([]);
+  const [regionSearchLoading, setRegionSearchLoading] = useState(false);
+  const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
+  const regionDropdownRef = useRef(null);
+  const regionSearchTimeoutRef = useRef(null);
+
+  // Username/Owner and Buddy search state (for dives page)
+  const [ownerSearch, setOwnerSearch] = useState('');
+  const [ownerSearchResults, setOwnerSearchResults] = useState([]);
+  const [ownerSearchLoading, setOwnerSearchLoading] = useState(false);
+  const [isOwnerDropdownOpen, setIsOwnerDropdownOpen] = useState(false);
+  const ownerDropdownRef = useRef(null);
+  const ownerSearchTimeoutRef = useRef(null);
+
+  const [buddySearch, setBuddySearch] = useState('');
+  const [buddySearchResults, setBuddySearchResults] = useState([]);
+  const [buddySearchLoading, setBuddySearchLoading] = useState(false);
+  const [isBuddyDropdownOpen, setIsBuddyDropdownOpen] = useState(false);
+  const buddyDropdownRef = useRef(null);
+  const buddySearchTimeoutRef = useRef(null);
 
   // Sorting state management
   const [pendingSortBy, setPendingSortBy] = useState(sortBy);
@@ -153,21 +207,23 @@ const ResponsiveFilterBar = ({
     onToggleFilters();
   };
 
-  // Handle clicking outside dive site dropdown
-  useEffect(() => {
-    const handleClickOutside = event => {
-      if (diveSiteDropdownRef.current && !diveSiteDropdownRef.current.contains(event.target)) {
-        setIsDiveSiteDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
   // Initialize dive site search when dive_site_id is set
+  useEffect(() => {
+    if (filters.country) {
+      setCountrySearch(filters.country);
+    } else {
+      setCountrySearch('');
+    }
+  }, [filters.country]);
+
+  useEffect(() => {
+    if (filters.region) {
+      setRegionSearch(filters.region);
+    } else {
+      setRegionSearch('');
+    }
+  }, [filters.region]);
+
   useEffect(() => {
     if (pageType === 'dives' && filters.availableDiveSites && filters.dive_site_id) {
       const selectedSite = filters.availableDiveSites.find(
@@ -183,13 +239,220 @@ const ResponsiveFilterBar = ({
     }
   }, [filters.dive_site_id, filters.availableDiveSites, pageType]);
 
-  // Filter dive sites based on search input
-  const filteredDiveSites =
-    pageType === 'dives' && filters.availableDiveSites
-      ? filters.availableDiveSites.filter(site =>
-          site.name.toLowerCase().includes(diveSiteSearch.toLowerCase())
-        )
-      : [];
+  // Initialize search values when filters are set for dive-trips
+  useEffect(() => {
+    if (pageType === 'dive-trips') {
+      // Initialize diving center search
+      if (filters.diving_center_id && filters.availableDivingCenters) {
+        const selectedCenter = filters.availableDivingCenters.find(
+          center => center.id.toString() === filters.diving_center_id.toString()
+        );
+        if (selectedCenter) {
+          setDivingCenterSearch(selectedCenter.name);
+        }
+      } else if (!filters.diving_center_id) {
+        setDivingCenterSearch('');
+      }
+
+      // Initialize dive site search
+      if (filters.dive_site_id && filters.availableDiveSites) {
+        const selectedSite = filters.availableDiveSites.find(
+          site => site.id.toString() === filters.dive_site_id.toString()
+        );
+        if (selectedSite) {
+          setDiveSiteSearchForTrips(selectedSite.name);
+        }
+      } else if (!filters.dive_site_id) {
+        setDiveSiteSearchForTrips('');
+      }
+    }
+  }, [
+    filters.diving_center_id,
+    filters.dive_site_id,
+    filters.availableDivingCenters,
+    filters.availableDiveSites,
+    pageType,
+  ]);
+
+  // Initialize dive site search when dive_site_id is set for dives page
+  useEffect(() => {
+    if (pageType === 'dives') {
+      if (filters.dive_site_id && filters.availableDiveSites) {
+        const selectedSite = filters.availableDiveSites.find(
+          site => site.id.toString() === filters.dive_site_id.toString()
+        );
+        if (selectedSite) {
+          setDiveSiteSearch(selectedSite.name);
+        } else {
+          // If not found in availableDiveSites, try to fetch it
+          setDiveSiteSearch('');
+        }
+      } else if (!filters.dive_site_id) {
+        setDiveSiteSearch('');
+        setDiveSiteSearchResults([]);
+      }
+    }
+  }, [filters.dive_site_id, filters.availableDiveSites, pageType]);
+
+  // Track if user is actively typing in search fields to prevent useEffect from resetting
+  const ownerSearchInputRef = useRef(false);
+  const buddySearchInputRef = useRef(false);
+  // Track the last value the user typed to prevent clearing while typing
+  const lastTypedBuddySearchRef = useRef('');
+  const lastTypedOwnerSearchRef = useRef('');
+
+  // Initialize owner and buddy search values for dives page
+  // Only sync from filters when user is not actively typing
+  // Use refs to track previous filter values to detect external changes
+  const prevUsernameRef = useRef(filters.username);
+  const prevBuddyUsernameRef = useRef(filters.buddy_username);
+
+  // Use a separate effect that only runs when filters actually change externally
+  // (not on every render). We use a ref to track the previous filter values
+  // and only update when they actually change AND user is not typing.
+  useEffect(() => {
+    if (pageType === 'dives') {
+      // Only sync ownerSearch from filters if user is not actively typing
+      // AND the filter value actually changed (not just a re-render)
+      if (!ownerSearchInputRef.current) {
+        const usernameChanged = prevUsernameRef.current !== filters.username;
+        if (usernameChanged) {
+          if (filters.username) {
+            setOwnerSearch(filters.username);
+            lastTypedOwnerSearchRef.current = ''; // Reset typed value when filter is set externally
+          } else {
+            // Only clear if filter was explicitly cleared (changed from non-empty to empty)
+            // Use functional update to check current value without adding to dependencies
+            setOwnerSearch(prev => {
+              // Only clear if current value matches the previous filter value
+              // AND it doesn't match what the user last typed
+              // This prevents clearing when user is typing
+              if (
+                prevUsernameRef.current &&
+                prev === prevUsernameRef.current &&
+                prev !== lastTypedOwnerSearchRef.current
+              ) {
+                return '';
+              }
+              return prev;
+            });
+          }
+          prevUsernameRef.current = filters.username;
+        }
+      }
+
+      // Only sync buddySearch from filters if user is not actively typing
+      // AND the filter value actually changed (not just a re-render)
+      if (!buddySearchInputRef.current) {
+        const buddyUsernameChanged = prevBuddyUsernameRef.current !== filters.buddy_username;
+        if (buddyUsernameChanged) {
+          if (filters.buddy_username) {
+            setBuddySearch(filters.buddy_username);
+            lastTypedBuddySearchRef.current = ''; // Reset typed value when filter is set externally
+          } else {
+            // Only clear if filter was explicitly cleared (changed from non-empty to empty)
+            // Use functional update to check current value without adding to dependencies
+            setBuddySearch(prev => {
+              // Only clear if current value matches the previous filter value
+              // AND it doesn't match what the user last typed
+              // This prevents clearing when user is typing
+              if (
+                prevBuddyUsernameRef.current &&
+                prev === prevBuddyUsernameRef.current &&
+                prev !== lastTypedBuddySearchRef.current
+              ) {
+                return '';
+              }
+              return prev;
+            });
+          }
+          prevBuddyUsernameRef.current = filters.buddy_username;
+        }
+      }
+    }
+    // Only depend on filters and pageType, NOT on ownerSearch/buddySearch state
+    // This prevents the effect from running on every keystroke
+  }, [filters.username, filters.buddy_username, pageType]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (divingCenterSearchTimeoutRef.current) {
+        clearTimeout(divingCenterSearchTimeoutRef.current);
+      }
+      if (diveSiteSearchTimeoutRefForTrips.current) {
+        clearTimeout(diveSiteSearchTimeoutRefForTrips.current);
+      }
+      if (diveSiteSearchTimeoutRef.current) {
+        clearTimeout(diveSiteSearchTimeoutRef.current);
+      }
+      if (countrySearchTimeoutRef.current) {
+        clearTimeout(countrySearchTimeoutRef.current);
+      }
+      if (regionSearchTimeoutRef.current) {
+        clearTimeout(regionSearchTimeoutRef.current);
+      }
+      if (ownerSearchTimeoutRef.current) {
+        clearTimeout(ownerSearchTimeoutRef.current);
+      }
+      if (buddySearchTimeoutRef.current) {
+        clearTimeout(buddySearchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle clicking outside dropdowns
+  useEffect(() => {
+    const handleClickOutside = event => {
+      if (diveSiteDropdownRef.current && !diveSiteDropdownRef.current.contains(event.target)) {
+        setIsDiveSiteDropdownOpen(false);
+      }
+      if (
+        divingCenterDropdownRef.current &&
+        !divingCenterDropdownRef.current.contains(event.target)
+      ) {
+        setIsDivingCenterDropdownOpen(false);
+      }
+      if (
+        diveSiteDropdownRefForTrips.current &&
+        !diveSiteDropdownRefForTrips.current.contains(event.target)
+      ) {
+        setIsDiveSiteDropdownOpenForTrips(false);
+      }
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target)) {
+        setIsCountryDropdownOpen(false);
+      }
+      if (regionDropdownRef.current && !regionDropdownRef.current.contains(event.target)) {
+        setIsRegionDropdownOpen(false);
+      }
+      if (ownerDropdownRef.current && !ownerDropdownRef.current.contains(event.target)) {
+        setIsOwnerDropdownOpen(false);
+        // Reset ref when dropdown closes (user clicked away without selecting)
+        // This allows sync from filters if needed
+        if (!ownerSearch) {
+          ownerSearchInputRef.current = false;
+        }
+      }
+      if (buddyDropdownRef.current && !buddyDropdownRef.current.contains(event.target)) {
+        setIsBuddyDropdownOpen(false);
+        // Reset ref when dropdown closes (user clicked away without selecting)
+        // This allows sync from filters if needed
+        if (!buddySearch) {
+          buddySearchInputRef.current = false;
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Dive site search state for dives page (API-based)
+  const [diveSiteSearchResults, setDiveSiteSearchResults] = useState([]);
+  const [diveSiteSearchLoading, setDiveSiteSearchLoading] = useState(false);
+  const diveSiteSearchTimeoutRef = useRef(null);
 
   // Handle dive site selection
   const handleDiveSiteSelect = (siteId, siteName) => {
@@ -198,14 +461,300 @@ const ResponsiveFilterBar = ({
     setIsDiveSiteDropdownOpen(false);
   };
 
-  // Handle dive site search change
+  // Handle dive site search change for dives page (API-based)
   const handleDiveSiteSearchChange = value => {
     setDiveSiteSearch(value);
     setIsDiveSiteDropdownOpen(true);
     if (!value) {
       // Clear dive_site_id when search is cleared
       onFilterChange('dive_site_id', '');
+      setDiveSiteSearchResults([]);
+      return;
     }
+
+    // Clear previous timeout
+    if (diveSiteSearchTimeoutRef.current) {
+      clearTimeout(diveSiteSearchTimeoutRef.current);
+    }
+
+    // Debounce search: wait 0.5 seconds after user stops typing
+    diveSiteSearchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setDiveSiteSearchLoading(true);
+        const response = await getDiveSites({
+          search: value,
+          page_size: 25,
+          detail_level: 'basic',
+        });
+
+        // Handle different possible response structures
+        let results = [];
+        if (Array.isArray(response)) {
+          results = response;
+        } else if (response && Array.isArray(response.items)) {
+          results = response.items;
+        } else if (response && Array.isArray(response.data)) {
+          results = response.data;
+        } else if (response && Array.isArray(response.results)) {
+          results = response.results;
+        }
+
+        setDiveSiteSearchResults(results);
+      } catch (error) {
+        console.error('Search dive sites failed', error);
+        setDiveSiteSearchResults([]);
+      } finally {
+        setDiveSiteSearchLoading(false);
+      }
+    }, 500);
+  };
+
+  // Handle diving center search for dive-trips
+  const handleDivingCenterSearchChangeForTrips = value => {
+    setDivingCenterSearch(value);
+    setIsDivingCenterDropdownOpen(true);
+    if (!value) {
+      onFilterChange('diving_center_id', '');
+      setDivingCenterSearchResults([]);
+      return;
+    }
+
+    // Clear previous timeout
+    if (divingCenterSearchTimeoutRef.current) {
+      clearTimeout(divingCenterSearchTimeoutRef.current);
+    }
+
+    // Debounce search: wait 0.5 seconds after user stops typing
+    divingCenterSearchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setDivingCenterSearchLoading(true);
+        const results = await searchDivingCenters({
+          q: value,
+          limit: 20,
+        });
+        setDivingCenterSearchResults(Array.isArray(results) ? results : []);
+      } catch (error) {
+        console.error('Search diving centers failed', error);
+        setDivingCenterSearchResults([]);
+      } finally {
+        setDivingCenterSearchLoading(false);
+      }
+    }, 500);
+  };
+
+  // Handle dive site search for dive-trips
+  const handleDiveSiteSearchChangeForTrips = value => {
+    setDiveSiteSearchForTrips(value);
+    setIsDiveSiteDropdownOpenForTrips(true);
+    if (!value) {
+      onFilterChange('dive_site_id', '');
+      setDiveSiteSearchResultsForTrips([]);
+      return;
+    }
+
+    // Clear previous timeout
+    if (diveSiteSearchTimeoutRefForTrips.current) {
+      clearTimeout(diveSiteSearchTimeoutRefForTrips.current);
+    }
+
+    // Debounce search: wait 0.5 seconds after user stops typing
+    diveSiteSearchTimeoutRefForTrips.current = setTimeout(async () => {
+      try {
+        setDiveSiteSearchLoadingForTrips(true);
+        const response = await getDiveSites({
+          search: value,
+          page_size: 25,
+          detail_level: 'basic',
+        });
+
+        // Handle different possible response structures
+        let results = [];
+        if (Array.isArray(response)) {
+          results = response;
+        } else if (response && Array.isArray(response.items)) {
+          results = response.items;
+        } else if (response && Array.isArray(response.data)) {
+          results = response.data;
+        } else if (response && Array.isArray(response.results)) {
+          results = response.results;
+        }
+
+        setDiveSiteSearchResultsForTrips(results);
+      } catch (error) {
+        console.error('Search dive sites failed', error);
+        setDiveSiteSearchResultsForTrips([]);
+      } finally {
+        setDiveSiteSearchLoadingForTrips(false);
+      }
+    }, 500);
+  };
+
+  // Handle diving center selection for dive-trips
+  const handleDivingCenterSelectForTrips = (centerId, centerName) => {
+    onFilterChange('diving_center_id', centerId.toString());
+    setDivingCenterSearch(centerName);
+    setIsDivingCenterDropdownOpen(false);
+  };
+
+  // Handle dive site selection for dive-trips
+  const handleDiveSiteSelectForTrips = (siteId, siteName) => {
+    onFilterChange('dive_site_id', siteId.toString());
+    setDiveSiteSearchForTrips(siteName);
+    setIsDiveSiteDropdownOpenForTrips(false);
+  };
+
+  // Handle country search
+  const handleCountrySearchChange = value => {
+    setCountrySearch(value);
+    setIsCountryDropdownOpen(true);
+    if (!value) {
+      onFilterChange('country', '');
+      setCountrySearchResults([]);
+      return;
+    }
+
+    if (countrySearchTimeoutRef.current) {
+      clearTimeout(countrySearchTimeoutRef.current);
+    }
+
+    countrySearchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setCountrySearchLoading(true);
+        const results = await getUniqueCountries(value);
+        setCountrySearchResults(results.map(country => ({ name: country })));
+      } catch (error) {
+        console.error('Search countries failed', error);
+        setCountrySearchResults([]);
+      } finally {
+        setCountrySearchLoading(false);
+      }
+    }, 500);
+  };
+
+  // Handle region search
+  const handleRegionSearchChange = value => {
+    setRegionSearch(value);
+    setIsRegionDropdownOpen(true);
+    if (!value) {
+      onFilterChange('region', '');
+      setRegionSearchResults([]);
+      return;
+    }
+
+    if (regionSearchTimeoutRef.current) {
+      clearTimeout(regionSearchTimeoutRef.current);
+    }
+
+    regionSearchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setRegionSearchLoading(true);
+        const results = await getUniqueRegions(filters.country, value);
+        setRegionSearchResults(results.map(region => ({ name: region })));
+      } catch (error) {
+        console.error('Search regions failed', error);
+        setRegionSearchResults([]);
+      } finally {
+        setRegionSearchLoading(false);
+      }
+    }, 500);
+  };
+
+  // Handle owner/username search for dives
+  const handleOwnerSearchChange = value => {
+    ownerSearchInputRef.current = true; // Mark that user is actively typing
+    lastTypedOwnerSearchRef.current = value; // Track what user typed
+    setOwnerSearch(value);
+    setIsOwnerDropdownOpen(true);
+    if (!value) {
+      onFilterChange('username', '');
+      setOwnerSearchResults([]);
+      ownerSearchInputRef.current = false; // User cleared, allow sync
+      lastTypedOwnerSearchRef.current = ''; // Reset typed value
+      return;
+    }
+
+    if (ownerSearchTimeoutRef.current) {
+      clearTimeout(ownerSearchTimeoutRef.current);
+    }
+
+    ownerSearchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setOwnerSearchLoading(true);
+        // Include self when searching for owners (for filtering dives)
+        const results = await searchUsers(value, 20, true);
+        setOwnerSearchResults(Array.isArray(results) ? results : []);
+      } catch (error) {
+        console.error('Search users failed', error);
+        setOwnerSearchResults([]);
+      } finally {
+        setOwnerSearchLoading(false);
+      }
+    }, 500);
+  };
+
+  // Handle buddy search for dives
+  const handleBuddySearchChange = value => {
+    buddySearchInputRef.current = true; // Mark that user is actively typing
+    lastTypedBuddySearchRef.current = value; // Track what user typed
+    setBuddySearch(value);
+    setIsBuddyDropdownOpen(true);
+    if (!value) {
+      onFilterChange('buddy_username', '');
+      setBuddySearchResults([]);
+      buddySearchInputRef.current = false; // User cleared, allow sync
+      lastTypedBuddySearchRef.current = ''; // Reset typed value
+      return;
+    }
+
+    if (buddySearchTimeoutRef.current) {
+      clearTimeout(buddySearchTimeoutRef.current);
+    }
+
+    buddySearchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setBuddySearchLoading(true);
+        // Include self when searching for buddies (for filtering dives)
+        const results = await searchUsers(value, 20, true);
+        setBuddySearchResults(Array.isArray(results) ? results : []);
+      } catch (error) {
+        console.error('Search users failed', error);
+        setBuddySearchResults([]);
+      } finally {
+        setBuddySearchLoading(false);
+      }
+    }, 500);
+  };
+
+  // Handle country selection
+  const handleCountrySelect = countryName => {
+    onFilterChange('country', countryName);
+    setCountrySearch(countryName);
+    setIsCountryDropdownOpen(false);
+  };
+
+  // Handle region selection
+  const handleRegionSelect = regionName => {
+    onFilterChange('region', regionName);
+    setRegionSearch(regionName);
+    setIsRegionDropdownOpen(false);
+  };
+
+  // Handle owner selection
+  const handleOwnerSelect = user => {
+    ownerSearchInputRef.current = false; // User selected, allow sync from filters
+    lastTypedOwnerSearchRef.current = ''; // Reset typed value when user selects
+    onFilterChange('username', user.username);
+    setOwnerSearch(user.username);
+    setIsOwnerDropdownOpen(false);
+  };
+
+  // Handle buddy selection
+  const handleBuddySelect = user => {
+    buddySearchInputRef.current = false; // User selected, allow sync from filters
+    lastTypedBuddySearchRef.current = ''; // Reset typed value when user selects
+    onFilterChange('buddy_username', user.username);
+    setBuddySearch(user.username);
+    setIsBuddyDropdownOpen(false);
   };
 
   const handleFilterOverlayToggle = () => {
@@ -384,7 +933,7 @@ const ResponsiveFilterBar = ({
                     🏖️ <span className='hidden sm:inline'>Shore</span>
                   </button>
                 </>
-              ) : (
+              ) : pageType === 'dive-trips' ? null : ( // No quick filters for dive trips
                 // Default dive-sites quick filters
                 <>
                   <button
@@ -503,20 +1052,14 @@ const ResponsiveFilterBar = ({
           <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
             {/* Sorting Controls */}
             <div className='flex items-center gap-3'>
-              <div className='flex items-center gap-2'>
-                <label className='text-sm font-medium text-gray-700'>Sort by:</label>
-                <select
-                  value={sortBy}
-                  onChange={e => onSortChange(e.target.value, sortOrder)}
-                  className='px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-                >
-                  {sortOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                id='desktop-sort-by'
+                label='Sort by:'
+                className='flex-row items-center gap-2'
+                value={sortBy}
+                onValueChange={value => onSortChange(value, sortOrder)}
+                options={sortOptions.map(opt => ({ value: opt.value, label: opt.label }))}
+              />
 
               <div className='flex items-center gap-1'>
                 <button
@@ -612,23 +1155,20 @@ const ResponsiveFilterBar = ({
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                 {/* Difficulty Level Filter */}
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Difficulty Level
-                  </label>
-                  <select
-                    value={filters.difficulty_code || ''}
-                    onChange={e => onFilterChange('difficulty_code', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
-                  >
-                    <option value=''>All Levels</option>
-                    {getDifficultyOptions()
-                      .filter(option => option.value !== null)
-                      .map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                  </select>
+                  <Select
+                    id='desktop-difficulty-filter'
+                    label='Difficulty Level'
+                    value={filters.difficulty_code || 'all'}
+                    onValueChange={value =>
+                      onFilterChange('difficulty_code', value === 'all' ? '' : value)
+                    }
+                    options={[
+                      { value: 'all', label: 'All Levels' },
+                      ...getDifficultyOptions()
+                        .filter(opt => opt.value !== null)
+                        .map(opt => ({ value: opt.value, label: opt.label })),
+                    ]}
+                  />
                   <label className='flex items-center mt-2'>
                     <input
                       type='checkbox'
@@ -642,24 +1182,104 @@ const ResponsiveFilterBar = ({
                   </label>
                 </div>
 
-                {/* Min Rating Filter */}
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Min Rating (≥)
-                  </label>
-                  <input
-                    type='number'
-                    min='0'
-                    max='10'
-                    step='0.1'
-                    placeholder='Show sites rated ≥ this value'
-                    value={filters.min_rating || ''}
-                    onChange={e => onFilterChange('min_rating', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
-                  />
-                </div>
+                {/* Min Rating Filter - Only show for dive-sites and dives, not dive-trips */}
+                {pageType !== 'dive-trips' && (
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Min Rating (≥)
+                    </label>
+                    <input
+                      type='number'
+                      min='0'
+                      max='10'
+                      step='1'
+                      placeholder='Min rating (1-10)'
+                      value={filters.min_rating || ''}
+                      onChange={e => onFilterChange('min_rating', e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
+                          e.preventDefault();
+                        }
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                        filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10)
+                          ? 'border-red-500 ring-1 ring-red-500'
+                          : 'border-gray-300'
+                      }`}
+                    />
+                    {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) && (
+                      <p className='text-red-500 text-xs mt-1'>Rating must be between 0 and 10</p>
+                    )}
+                  </div>
+                )}
 
-                {/* Dive Site Filter - Only show for dives page */}
+                {/* Diving Center Filter - Searchable for dive-trips */}
+                {pageType === 'dive-trips' && (
+                  <div className='relative' ref={divingCenterDropdownRef}>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Diving Center
+                    </label>
+                    <div className='relative'>
+                      <input
+                        type='text'
+                        placeholder='Search for a diving center...'
+                        value={divingCenterSearch}
+                        onChange={e => handleDivingCenterSearchChangeForTrips(e.target.value)}
+                        onFocus={() => setIsDivingCenterDropdownOpen(true)}
+                        className='w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                      />
+                      <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                        {divingCenterSearchLoading ? (
+                          <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                        ) : (
+                          <ChevronDown
+                            size={16}
+                            className={`text-gray-400 transition-transform ${
+                              isDivingCenterDropdownOpen ? 'rotate-180' : ''
+                            }`}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    {/* Dropdown */}
+                    {isDivingCenterDropdownOpen && divingCenterSearchResults.length > 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                        {divingCenterSearchResults.map(center => (
+                          <div
+                            key={center.id}
+                            onClick={() => handleDivingCenterSelectForTrips(center.id, center.name)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleDivingCenterSelectForTrips(center.id, center.name);
+                              }
+                            }}
+                            role='button'
+                            tabIndex={0}
+                            className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                          >
+                            <div className='font-medium text-gray-900'>{center.name}</div>
+                            {center.country && (
+                              <div className='text-sm text-gray-500'>{center.country}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isDivingCenterDropdownOpen &&
+                      divingCenterSearch &&
+                      !divingCenterSearchLoading &&
+                      divingCenterSearchResults.length === 0 && (
+                        <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'>
+                          <div className='px-3 py-2 text-gray-500 text-sm'>
+                            No diving centers found
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                )}
+
+                {/* Dive Site Filter - Show for dives and dive-trips */}
                 {pageType === 'dives' && (
                   <div className='relative' ref={diveSiteDropdownRef}>
                     <label className='block text-sm font-medium text-gray-700 mb-2'>
@@ -675,18 +1295,22 @@ const ResponsiveFilterBar = ({
                         className='w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
                       />
                       <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
-                        <ChevronDown
-                          size={16}
-                          className={`text-gray-400 transition-transform ${
-                            isDiveSiteDropdownOpen ? 'rotate-180' : ''
-                          }`}
-                        />
+                        {diveSiteSearchLoading ? (
+                          <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                        ) : (
+                          <ChevronDown
+                            size={16}
+                            className={`text-gray-400 transition-transform ${
+                              isDiveSiteDropdownOpen ? 'rotate-180' : ''
+                            }`}
+                          />
+                        )}
                       </div>
                     </div>
                     {/* Dropdown */}
-                    {isDiveSiteDropdownOpen && filteredDiveSites.length > 0 && (
+                    {isDiveSiteDropdownOpen && diveSiteSearchResults.length > 0 && (
                       <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
-                        {filteredDiveSites.map(site => (
+                        {diveSiteSearchResults.map(site => (
                           <div
                             key={site.id}
                             onClick={() => handleDiveSiteSelect(site.id, site.name)}
@@ -708,70 +1332,349 @@ const ResponsiveFilterBar = ({
                         ))}
                       </div>
                     )}
-                    {isDiveSiteDropdownOpen && diveSiteSearch && filteredDiveSites.length === 0 && (
-                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'>
-                        <div className='px-3 py-2 text-gray-500 text-sm'>No dive sites found</div>
+                    {isDiveSiteDropdownOpen &&
+                      diveSiteSearch &&
+                      !diveSiteSearchLoading &&
+                      diveSiteSearchResults.length === 0 && (
+                        <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'>
+                          <div className='px-3 py-2 text-gray-500 text-sm'>No dive sites found</div>
+                        </div>
+                      )}
+                  </div>
+                )}
+
+                {/* Owner Filter - Searchable for dives page */}
+                {pageType === 'dives' && (
+                  <div className='relative' ref={ownerDropdownRef}>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Owner</label>
+                    <div className='relative'>
+                      <input
+                        type='text'
+                        placeholder='Search for owner...'
+                        value={ownerSearch}
+                        onChange={e => handleOwnerSearchChange(e.target.value)}
+                        onFocus={() => setIsOwnerDropdownOpen(true)}
+                        className='w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                      />
+                      <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                        {ownerSearchLoading ? (
+                          <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                        ) : (
+                          <ChevronDown
+                            size={16}
+                            className={`text-gray-400 transition-transform ${
+                              isOwnerDropdownOpen ? 'rotate-180' : ''
+                            }`}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    {/* Dropdown */}
+                    {isOwnerDropdownOpen && ownerSearchResults.length > 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                        {ownerSearchResults.map(user => (
+                          <div
+                            key={user.id}
+                            onClick={() => handleOwnerSelect(user)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleOwnerSelect(user);
+                              }
+                            }}
+                            role='button'
+                            tabIndex={0}
+                            className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                          >
+                            <div className='font-medium text-gray-900'>{user.username}</div>
+                            {user.name && <div className='text-sm text-gray-500'>{user.name}</div>}
+                          </div>
+                        ))}
                       </div>
                     )}
+                    {isOwnerDropdownOpen &&
+                      ownerSearch &&
+                      !ownerSearchLoading &&
+                      ownerSearchResults.length === 0 && (
+                        <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'>
+                          <div className='px-3 py-2 text-gray-500 text-sm'>No users found</div>
+                        </div>
+                      )}
                   </div>
                 )}
 
-                {/* Username Filter - Only show for dives page */}
+                {/* Buddy Filter - Searchable for dives page */}
                 {pageType === 'dives' && (
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>Username</label>
-                    <input
-                      type='text'
-                      placeholder='Enter username'
-                      value={filters.username || ''}
-                      onChange={e => onFilterChange('username', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
-                    />
-                  </div>
-                )}
-
-                {/* Buddy Username Filter - Only show for dives page */}
-                {pageType === 'dives' && (
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                      Filter by Buddy
-                    </label>
-                    <input
-                      type='text'
-                      placeholder='Enter buddy username'
-                      value={filters.buddy_username || ''}
-                      onChange={e => onFilterChange('buddy_username', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
-                    />
+                  <div className='relative' ref={buddyDropdownRef}>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Buddy</label>
+                    <div className='relative'>
+                      <input
+                        type='text'
+                        placeholder='Search for buddy...'
+                        value={buddySearch}
+                        onChange={e => handleBuddySearchChange(e.target.value)}
+                        onFocus={() => setIsBuddyDropdownOpen(true)}
+                        className='w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                      />
+                      <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                        {buddySearchLoading ? (
+                          <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                        ) : (
+                          <ChevronDown
+                            size={16}
+                            className={`text-gray-400 transition-transform ${
+                              isBuddyDropdownOpen ? 'rotate-180' : ''
+                            }`}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    {/* Dropdown */}
+                    {isBuddyDropdownOpen && buddySearchResults.length > 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                        {buddySearchResults.map(user => (
+                          <div
+                            key={user.id}
+                            onClick={() => handleBuddySelect(user)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleBuddySelect(user);
+                              }
+                            }}
+                            role='button'
+                            tabIndex={0}
+                            className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                          >
+                            <div className='font-medium text-gray-900'>{user.username}</div>
+                            {user.name && <div className='text-sm text-gray-500'>{user.name}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isBuddyDropdownOpen &&
+                      buddySearch &&
+                      !buddySearchLoading &&
+                      buddySearchResults.length === 0 && (
+                        <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'>
+                          <div className='px-3 py-2 text-gray-500 text-sm'>No users found</div>
+                        </div>
+                      )}
                     <p className='mt-1 text-xs text-gray-500'>
                       Show dives where this user is a buddy
                     </p>
                   </div>
                 )}
 
-                {/* Country Filter */}
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>Country</label>
-                  <input
-                    type='text'
-                    placeholder='Enter country name'
-                    value={filters.country || ''}
-                    onChange={e => onFilterChange('country', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
-                  />
-                </div>
+                {/* Dive Site Filter - Searchable for dive-trips */}
+                {pageType === 'dive-trips' && (
+                  <div className='relative' ref={diveSiteDropdownRefForTrips}>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Dive Site
+                    </label>
+                    <div className='relative'>
+                      <input
+                        type='text'
+                        placeholder='Search for a dive site...'
+                        value={diveSiteSearchForTrips}
+                        onChange={e => handleDiveSiteSearchChangeForTrips(e.target.value)}
+                        onFocus={() => setIsDiveSiteDropdownOpenForTrips(true)}
+                        className='w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                      />
+                      <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                        {diveSiteSearchLoadingForTrips ? (
+                          <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                        ) : (
+                          <ChevronDown
+                            size={16}
+                            className={`text-gray-400 transition-transform ${
+                              isDiveSiteDropdownOpenForTrips ? 'rotate-180' : ''
+                            }`}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    {/* Dropdown */}
+                    {isDiveSiteDropdownOpenForTrips && diveSiteSearchResultsForTrips.length > 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                        {diveSiteSearchResultsForTrips.map(site => (
+                          <div
+                            key={site.id}
+                            onClick={() => handleDiveSiteSelectForTrips(site.id, site.name)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleDiveSiteSelectForTrips(site.id, site.name);
+                              }
+                            }}
+                            role='button'
+                            tabIndex={0}
+                            className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                          >
+                            <div className='font-medium text-gray-900'>{site.name}</div>
+                            {site.country && (
+                              <div className='text-sm text-gray-500'>{site.country}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isDiveSiteDropdownOpenForTrips &&
+                      diveSiteSearchForTrips &&
+                      !diveSiteSearchLoadingForTrips &&
+                      diveSiteSearchResultsForTrips.length === 0 && (
+                        <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'>
+                          <div className='px-3 py-2 text-gray-500 text-sm'>No dive sites found</div>
+                        </div>
+                      )}
+                  </div>
+                )}
 
-                {/* Region Filter */}
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>Region</label>
-                  <input
-                    type='text'
-                    placeholder='Enter region name'
-                    value={filters.region || ''}
-                    onChange={e => onFilterChange('region', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
-                  />
-                </div>
+                {/* Date Range Filters - For dive-trips */}
+                {pageType === 'dive-trips' && (
+                  <>
+                    <div>
+                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                        Start Date
+                      </label>
+                      <input
+                        type='date'
+                        value={filters.start_date || ''}
+                        onChange={e => onFilterChange('start_date', e.target.value)}
+                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                      />
+                    </div>
+                    <div>
+                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                        End Date
+                      </label>
+                      <input
+                        type='date'
+                        value={filters.end_date || ''}
+                        onChange={e => onFilterChange('end_date', e.target.value)}
+                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Country Filter - Searchable (not for dives page) */}
+                {pageType !== 'dives' && (
+                  <div className='relative' ref={countryDropdownRef}>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Country</label>
+                    <div className='relative'>
+                      <input
+                        type='text'
+                        placeholder='Search for a country...'
+                        value={countrySearch}
+                        onChange={e => handleCountrySearchChange(e.target.value)}
+                        onFocus={() => setIsCountryDropdownOpen(true)}
+                        className='w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                      />
+                      <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                        {countrySearchLoading ? (
+                          <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                        ) : (
+                          <ChevronDown
+                            size={16}
+                            className={`text-gray-400 transition-transform ${
+                              isCountryDropdownOpen ? 'rotate-180' : ''
+                            }`}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    {/* Dropdown */}
+                    {isCountryDropdownOpen && countrySearchResults.length > 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                        {countrySearchResults.map((country, index) => (
+                          <div
+                            key={index}
+                            onClick={() => handleCountrySelect(country.name)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleCountrySelect(country.name);
+                              }
+                            }}
+                            role='button'
+                            tabIndex={0}
+                            className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                          >
+                            <div className='font-medium text-gray-900'>{country.name}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isCountryDropdownOpen &&
+                      countrySearch &&
+                      !countrySearchLoading &&
+                      countrySearchResults.length === 0 && (
+                        <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'>
+                          <div className='px-3 py-2 text-gray-500 text-sm'>No countries found</div>
+                        </div>
+                      )}
+                  </div>
+                )}
+
+                {/* Region Filter - Searchable (not for dives page) */}
+                {pageType !== 'dives' && (
+                  <div className='relative' ref={regionDropdownRef}>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Region</label>
+                    <div className='relative'>
+                      <input
+                        type='text'
+                        placeholder='Search for a region...'
+                        value={regionSearch}
+                        onChange={e => handleRegionSearchChange(e.target.value)}
+                        onFocus={() => setIsRegionDropdownOpen(true)}
+                        className='w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                      />
+                      <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                        {regionSearchLoading ? (
+                          <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                        ) : (
+                          <ChevronDown
+                            size={16}
+                            className={`text-gray-400 transition-transform ${
+                              isRegionDropdownOpen ? 'rotate-180' : ''
+                            }`}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    {/* Dropdown */}
+                    {isRegionDropdownOpen && regionSearchResults.length > 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                        {regionSearchResults.map((region, index) => (
+                          <div
+                            key={index}
+                            onClick={() => handleRegionSelect(region.name)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleRegionSelect(region.name);
+                              }
+                            }}
+                            role='button'
+                            tabIndex={0}
+                            className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                          >
+                            <div className='font-medium text-gray-900'>{region.name}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isRegionDropdownOpen &&
+                      regionSearch &&
+                      !regionSearchLoading &&
+                      regionSearchResults.length === 0 && (
+                        <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'>
+                          <div className='px-3 py-2 text-gray-500 text-sm'>No regions found</div>
+                        </div>
+                      )}
+                  </div>
+                )}
 
                 {/* Tags Filter */}
                 {filters.availableTags && filters.availableTags.length > 0 && (
@@ -926,7 +1829,7 @@ const ResponsiveFilterBar = ({
                     🏖️
                   </button>
                 </>
-              ) : (
+              ) : pageType === 'dive-trips' ? null : ( // No quick filters for dive trips
                 // Default dive-sites mobile quick filters
                 <>
                   <button
@@ -981,435 +1884,880 @@ const ResponsiveFilterBar = ({
       )}
 
       {/* Mobile Filter Overlay - Full Page with Tabs */}
-      {/* Render via portal to escape parent container constraints */}
-      {isFilterOverlayOpen &&
-        createPortal(
-          <div
-            data-testid='mobile-filter-overlay'
-            className='fixed inset-0 z-[200] bg-black bg-opacity-50 flex flex-col'
+
+      <Modal
+        isOpen={isFilterOverlayOpen}
+        onClose={handleFilterOverlayToggle}
+        title='Filters & Sorting'
+        className='w-full h-screen sm:h-auto sm:max-w-2xl p-0 flex flex-col'
+        showCloseButton={true}
+      >
+        {/* Tab Navigation */}
+
+        <div className='flex border-b border-gray-200 bg-white'>
+          <button
+            onClick={() => setActiveTab('filters')}
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'filters'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+            }`}
           >
-            <div className='bg-white w-full h-full flex flex-col'>
-              {/* Header */}
-              <div className='flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50'>
-                <h3 className='text-lg font-semibold text-gray-900'>Filters & Sorting</h3>
-                <button
-                  onClick={handleFilterOverlayToggle}
-                  className='p-2 rounded-lg hover:bg-gray-200 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center'
-                  aria-label='Close filters'
-                >
-                  <X className='h-5 w-5 text-gray-600' />
-                </button>
+            <Filter className='h-4 w-4 inline mr-2' />
+            Filters
+          </button>
+
+          <button
+            onClick={() => setActiveTab('sorting')}
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'sorting'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+            }`}
+          >
+            <Settings className='h-4 w-4 inline mr-2' />
+            Sorting & View
+          </button>
+        </div>
+
+        {/* Tab Content */}
+
+        <div className='flex-1 overflow-y-auto min-h-0'>
+          {/* Filters Tab */}
+
+          {activeTab === 'filters' && (
+            <div className='p-4 space-y-6 pb-4'>
+              {/* Difficulty Level Filter */}
+
+              <div>
+                <Select
+                  id='mobile-difficulty-filter'
+                  label='Difficulty Level'
+                  value={filters.difficulty_code || 'all'}
+                  onValueChange={value =>
+                    onFilterChange('difficulty_code', value === 'all' ? '' : value)
+                  }
+                  options={[
+                    { value: 'all', label: 'All Levels' },
+                    ...getDifficultyOptions()
+                      .filter(opt => opt.value !== null)
+                      .map(opt => ({ value: opt.value, label: opt.label })),
+                  ]}
+                />
+
+                <label className='flex items-center mt-2'>
+                  <input
+                    type='checkbox'
+                    checked={filters.exclude_unspecified_difficulty ?? false}
+                    onChange={e =>
+                      onFilterChange('exclude_unspecified_difficulty', e.target.checked)
+                    }
+                    className='mr-2'
+                  />
+
+                  <span className='text-sm text-gray-600'>Exclude Unspecified</span>
+                </label>
               </div>
 
-              {/* Tab Navigation */}
-              <div className='flex border-b border-gray-200 bg-white'>
-                <button
-                  onClick={() => setActiveTab('filters')}
-                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                    activeTab === 'filters'
-                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                  }`}
-                >
-                  <Filter className='h-4 w-4 inline mr-2' />
-                  Filters
-                </button>
-                <button
-                  onClick={() => setActiveTab('sorting')}
-                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                    activeTab === 'sorting'
-                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                  }`}
-                >
-                  <Settings className='h-4 w-4 inline mr-2' />
-                  Sorting & View
-                </button>
-              </div>
+              {/* Dive Site Filter - Searchable for dives page (mobile) */}
 
-              {/* Tab Content */}
-              <div className='flex-1 overflow-y-auto min-h-0'>
-                {/* Filters Tab */}
-                {activeTab === 'filters' && (
-                  <div className='p-4 space-y-6 pb-4'>
-                    {/* Difficulty Level Filter */}
-                    <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-3'>
-                        Difficulty Level
-                      </label>
-                      <select
-                        value={filters.difficulty_code || ''}
-                        onChange={e => onFilterChange('difficulty_code', e.target.value)}
-                        className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
-                      >
-                        <option value=''>All Levels</option>
-                        {getDifficultyOptions()
-                          .filter(option => option.value !== null)
-                          .map(option => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                      </select>
-                      <label className='flex items-center mt-2'>
-                        <input
-                          type='checkbox'
-                          checked={filters.exclude_unspecified_difficulty ?? false}
-                          onChange={e =>
-                            onFilterChange('exclude_unspecified_difficulty', e.target.checked)
-                          }
-                          className='mr-2'
+              {pageType === 'dives' && (
+                <div className='relative' ref={diveSiteDropdownRef}>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>Dive Site</label>
+
+                  <div className='relative'>
+                    <input
+                      type='text'
+                      placeholder='Search for a dive site...'
+                      value={diveSiteSearch}
+                      onChange={e => handleDiveSiteSearchChange(e.target.value)}
+                      onFocus={() => setIsDiveSiteDropdownOpen(true)}
+                      className='w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+                    />
+
+                    <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                      {diveSiteSearchLoading ? (
+                        <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                      ) : (
+                        <ChevronDown
+                          size={16}
+                          className={`text-gray-400 transition-transform ${
+                            isDiveSiteDropdownOpen ? 'rotate-180' : ''
+                          }`}
                         />
-                        <span className='text-sm text-gray-600'>Exclude Unspecified</span>
-                      </label>
+                      )}
                     </div>
+                  </div>
 
-                    {/* Dive Site Filter - Only show for dives page */}
-                    {pageType === 'dives' && (
-                      <div className='relative' ref={diveSiteDropdownRef}>
-                        <label className='block text-sm font-medium text-gray-700 mb-3'>
-                          Dive Site
-                        </label>
-                        <div className='relative'>
-                          <input
-                            type='text'
-                            placeholder='Search for a dive site...'
-                            value={diveSiteSearch}
-                            onChange={e => handleDiveSiteSearchChange(e.target.value)}
-                            onFocus={() => setIsDiveSiteDropdownOpen(true)}
-                            className='w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
-                          />
-                          <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
-                            <ChevronDown
-                              size={16}
-                              className={`text-gray-400 transition-transform ${
-                                isDiveSiteDropdownOpen ? 'rotate-180' : ''
-                              }`}
-                            />
-                          </div>
-                        </div>
-                        {/* Dropdown */}
-                        {isDiveSiteDropdownOpen && filteredDiveSites.length > 0 && (
-                          <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
-                            {filteredDiveSites.map(site => (
-                              <div
-                                key={site.id}
-                                onClick={() => handleDiveSiteSelect(site.id, site.name)}
-                                onKeyDown={e => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    handleDiveSiteSelect(site.id, site.name);
-                                  }
-                                }}
-                                role='button'
-                                tabIndex={0}
-                                className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
-                              >
-                                <div className='font-medium text-gray-900'>{site.name}</div>
-                                {site.country && (
-                                  <div className='text-sm text-gray-500'>{site.country}</div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {isDiveSiteDropdownOpen &&
-                          diveSiteSearch &&
-                          filteredDiveSites.length === 0 && (
-                            <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'>
-                              <div className='px-3 py-2 text-gray-500 text-sm'>
-                                No dive sites found
-                              </div>
-                            </div>
+                  {/* Dropdown */}
+
+                  {isDiveSiteDropdownOpen && diveSiteSearchResults.length > 0 && (
+                    <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto'>
+                      {diveSiteSearchResults.map(site => (
+                        <div
+                          key={site.id}
+                          onClick={() => handleDiveSiteSelect(site.id, site.name)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+
+                              handleDiveSiteSelect(site.id, site.name);
+                            }
+                          }}
+                          role='button'
+                          tabIndex={0}
+                          className='px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 min-h-[44px]'
+                        >
+                          <div className='font-medium text-gray-900'>{site.name}</div>
+
+                          {site.country && (
+                            <div className='text-sm text-gray-500'>{site.country}</div>
                           )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {isDiveSiteDropdownOpen &&
+                    diveSiteSearch &&
+                    !diveSiteSearchLoading &&
+                    diveSiteSearchResults.length === 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'>
+                        <div className='px-4 py-3 text-gray-500 text-sm'>No dive sites found</div>
                       </div>
                     )}
+                </div>
+              )}
 
-                    {/* Username Filter - Only show for dives page */}
-                    {pageType === 'dives' && (
-                      <div>
-                        <label className='block text-sm font-medium text-gray-700 mb-3'>
-                          Username
-                        </label>
-                        <input
-                          type='text'
-                          placeholder='Enter username'
-                          value={filters.username || ''}
-                          onChange={e => onFilterChange('username', e.target.value)}
-                          className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+              {/* Owner Filter - Searchable for dives page (mobile) */}
+
+              {pageType === 'dives' && (
+                <div className='relative' ref={ownerDropdownRef}>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>Owner</label>
+
+                  <div className='relative'>
+                    <input
+                      type='text'
+                      placeholder='Search for owner...'
+                      value={ownerSearch}
+                      onChange={e => handleOwnerSearchChange(e.target.value)}
+                      onFocus={() => setIsOwnerDropdownOpen(true)}
+                      className='w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+                    />
+
+                    <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                      {ownerSearchLoading ? (
+                        <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                      ) : (
+                        <ChevronDown
+                          size={16}
+                          className={`text-gray-400 transition-transform ${
+                            isOwnerDropdownOpen ? 'rotate-180' : ''
+                          }`}
                         />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dropdown */}
+
+                  {isOwnerDropdownOpen && ownerSearchResults.length > 0 && (
+                    <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto'>
+                      {ownerSearchResults.map(user => (
+                        <div
+                          key={user.id}
+                          onClick={() => handleOwnerSelect(user)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+
+                              handleOwnerSelect(user);
+                            }
+                          }}
+                          role='button'
+                          tabIndex={0}
+                          className='px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 min-h-[44px]'
+                        >
+                          <div className='font-medium text-gray-900'>{user.username}</div>
+
+                          {user.name && <div className='text-sm text-gray-500'>{user.name}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {isOwnerDropdownOpen &&
+                    ownerSearch &&
+                    !ownerSearchLoading &&
+                    ownerSearchResults.length === 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'>
+                        <div className='px-4 py-3 text-gray-500 text-sm'>No users found</div>
                       </div>
                     )}
+                </div>
+              )}
 
-                    {/* Buddy Username Filter - Only show for dives page */}
-                    {pageType === 'dives' && (
-                      <div>
-                        <label className='block text-sm font-medium text-gray-700 mb-3'>
-                          Filter by Buddy
-                        </label>
-                        <input
-                          type='text'
-                          placeholder='Enter buddy username'
-                          value={filters.buddy_username || ''}
-                          onChange={e => onFilterChange('buddy_username', e.target.value)}
-                          className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+              {/* Buddy Filter - Searchable for dives page (mobile) */}
+
+              {pageType === 'dives' && (
+                <div className='relative' ref={buddyDropdownRef}>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>Buddy</label>
+
+                  <div className='relative'>
+                    <input
+                      type='text'
+                      placeholder='Search for buddy...'
+                      value={buddySearch}
+                      onChange={e => handleBuddySearchChange(e.target.value)}
+                      onFocus={() => setIsBuddyDropdownOpen(true)}
+                      className='w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+                    />
+
+                    <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                      {buddySearchLoading ? (
+                        <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                      ) : (
+                        <ChevronDown
+                          size={16}
+                          className={`text-gray-400 transition-transform ${
+                            isBuddyDropdownOpen ? 'rotate-180' : ''
+                          }`}
                         />
-                        <p className='mt-1 text-xs text-gray-500'>
-                          Show dives where this user is a buddy
-                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dropdown */}
+
+                  {isBuddyDropdownOpen && buddySearchResults.length > 0 && (
+                    <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto'>
+                      {buddySearchResults.map(user => (
+                        <div
+                          key={user.id}
+                          onClick={() => handleBuddySelect(user)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+
+                              handleBuddySelect(user);
+                            }
+                          }}
+                          role='button'
+                          tabIndex={0}
+                          className='px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 min-h-[44px]'
+                        >
+                          <div className='font-medium text-gray-900'>{user.username}</div>
+
+                          {user.name && <div className='text-sm text-gray-500'>{user.name}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {isBuddyDropdownOpen &&
+                    buddySearch &&
+                    !buddySearchLoading &&
+                    buddySearchResults.length === 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'>
+                        <div className='px-4 py-3 text-gray-500 text-sm'>No users found</div>
                       </div>
                     )}
 
-                    {/* Min Rating Filter */}
-                    <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-3'>
-                        Min Rating (≥)
-                      </label>
-                      <input
-                        type='number'
-                        min='0'
-                        max='10'
-                        step='0.1'
-                        placeholder='Show sites rated ≥ this value'
-                        value={filters.min_rating || ''}
-                        onChange={e => onFilterChange('min_rating', e.target.value)}
-                        className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
-                      />
-                    </div>
+                  <p className='mt-1 text-xs text-gray-500'>
+                    Show dives where this user is a buddy
+                  </p>
+                </div>
+              )}
 
-                    {/* Country Filter */}
-                    <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-3'>
-                        Country
-                      </label>
-                      <input
-                        type='text'
-                        placeholder='Enter country name'
-                        value={filters.country || ''}
-                        onChange={e => onFilterChange('country', e.target.value)}
-                        className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
-                      />
-                    </div>
+              {/* Diving Center Filter - Searchable for dive-trips (mobile) */}
 
-                    {/* Region Filter */}
-                    <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-3'>Region</label>
-                      <input
-                        type='text'
-                        placeholder='Enter region name'
-                        value={filters.region || ''}
-                        onChange={e => onFilterChange('region', e.target.value)}
-                        className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
-                      />
-                    </div>
+              {pageType === 'dive-trips' && (
+                <div className='relative' ref={divingCenterDropdownRef}>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>
+                    Diving Center
+                  </label>
 
-                    {/* Tags Filter */}
-                    {filters.availableTags && filters.availableTags.length > 0 && (
-                      <div>
-                        <label className='block text-sm font-medium text-gray-700 mb-3'>Tags</label>
-                        <div className='flex flex-wrap gap-3'>
-                          {filters.availableTags.map(tag => (
-                            <button
-                              key={tag.id}
-                              type='button'
-                              onClick={() => {
-                                const tagId = parseInt(tag.id);
-                                const currentTagIds = filters.tag_ids || [];
-                                const newTagIds = currentTagIds.includes(tagId)
-                                  ? currentTagIds.filter(id => id !== tagId)
-                                  : [...currentTagIds, tagId];
-                                onFilterChange('tag_ids', newTagIds);
-                              }}
-                              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 min-h-[34px] ${
-                                (filters.tag_ids || []).includes(tag.id)
-                                  ? `${getTagColor(tag.name)} border-2 border-current shadow-md`
-                                  : `${getTagColor(tag.name)} opacity-60 hover:opacity-100 border-2 border-transparent`
-                              }`}
-                            >
-                              {tag.name}
-                            </button>
-                          ))}
+                  <div className='relative'>
+                    <input
+                      type='text'
+                      placeholder='Search for a diving center...'
+                      value={divingCenterSearch}
+                      onChange={e => handleDivingCenterSearchChangeForTrips(e.target.value)}
+                      onFocus={() => setIsDivingCenterDropdownOpen(true)}
+                      className='w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+                    />
+
+                    <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                      {divingCenterSearchLoading ? (
+                        <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                      ) : (
+                        <ChevronDown
+                          size={16}
+                          className={`text-gray-400 transition-transform ${
+                            isDivingCenterDropdownOpen ? 'rotate-180' : ''
+                          }`}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dropdown */}
+
+                  {isDivingCenterDropdownOpen && divingCenterSearchResults.length > 0 && (
+                    <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto'>
+                      {divingCenterSearchResults.map(center => (
+                        <div
+                          key={center.id}
+                          onClick={() => handleDivingCenterSelectForTrips(center.id, center.name)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+
+                              handleDivingCenterSelectForTrips(center.id, center.name);
+                            }
+                          }}
+                          role='button'
+                          tabIndex={0}
+                          className='px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 min-h-[44px]'
+                        >
+                          <div className='font-medium text-gray-900'>{center.name}</div>
+
+                          {center.country && (
+                            <div className='text-sm text-gray-500'>{center.country}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {isDivingCenterDropdownOpen &&
+                    divingCenterSearch &&
+                    !divingCenterSearchLoading &&
+                    divingCenterSearchResults.length === 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'>
+                        <div className='px-4 py-3 text-gray-500 text-sm'>
+                          No diving centers found
                         </div>
                       </div>
                     )}
+                </div>
+              )}
+
+              {/* Dive Site Filter - Searchable for dive-trips (mobile) */}
+
+              {pageType === 'dive-trips' && (
+                <div className='relative' ref={diveSiteDropdownRefForTrips}>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>Dive Site</label>
+
+                  <div className='relative'>
+                    <input
+                      type='text'
+                      placeholder='Search for a dive site...'
+                      value={diveSiteSearchForTrips}
+                      onChange={e => handleDiveSiteSearchChangeForTrips(e.target.value)}
+                      onFocus={() => setIsDiveSiteDropdownOpenForTrips(true)}
+                      className='w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+                    />
+
+                    <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                      {diveSiteSearchLoadingForTrips ? (
+                        <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                      ) : (
+                        <ChevronDown
+                          size={16}
+                          className={`text-gray-400 transition-transform ${
+                            isDiveSiteDropdownOpenForTrips ? 'rotate-180' : ''
+                          }`}
+                        />
+                      )}
+                    </div>
                   </div>
-                )}
 
-                {/* Sorting & View Tab - Compact Mobile Interface */}
-                {activeTab === 'sorting' && (
-                  <div className='p-4 space-y-6 pb-4'>
-                    {/* Sort Field Selection - Compact Dropdown */}
-                    <div>
-                      <h4 className='text-sm font-medium text-gray-700 mb-3'>Sort Field</h4>
-                      <select
-                        value={pendingSortBy || ''}
-                        onChange={e => handleSortFieldChange(e.target.value)}
-                        className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
-                      >
-                        <option value=''>Select sort field</option>
-                        {sortOptions.map(option => (
-                          <option key={option.value} value={option.value}>
-                            {option.label} (
-                            {option.defaultOrder === 'asc' ? 'Low to High' : 'High to Low'})
-                          </option>
-                        ))}
-                      </select>
+                  {/* Dropdown */}
+
+                  {isDiveSiteDropdownOpenForTrips && diveSiteSearchResultsForTrips.length > 0 && (
+                    <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto'>
+                      {diveSiteSearchResultsForTrips.map(site => (
+                        <div
+                          key={site.id}
+                          onClick={() => handleDiveSiteSelectForTrips(site.id, site.name)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+
+                              handleDiveSiteSelectForTrips(site.id, site.name);
+                            }
+                          }}
+                          role='button'
+                          tabIndex={0}
+                          className='px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 min-h-[44px]'
+                        >
+                          <div className='font-medium text-gray-900'>{site.name}</div>
+
+                          {site.country && (
+                            <div className='text-sm text-gray-500'>{site.country}</div>
+                          )}
+                        </div>
+                      ))}
                     </div>
+                  )}
 
-                    {/* Sort Order - Compact Toggle */}
-                    <div>
-                      <h4 className='text-sm font-medium text-gray-700 mb-3'>Sort Order</h4>
-                      <div className='flex gap-2'>
-                        <button
-                          onClick={() => setPendingSortOrder('asc')}
-                          className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border transition-colors min-h-[34px] ${
-                            pendingSortOrder === 'asc'
-                              ? 'bg-blue-50 border-blue-200 text-blue-900'
-                              : 'bg-white border-gray-200 hover:bg-gray-50'
-                          }`}
-                        >
-                          <div className='flex items-center justify-center gap-2'>
-                            <SortAsc className='w-4 h-4' />
-                            Ascending
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => setPendingSortOrder('desc')}
-                          className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border transition-colors min-h-[34px] ${
-                            pendingSortOrder === 'desc'
-                              ? 'bg-blue-50 border-blue-200 text-blue-900'
-                              : 'bg-white border-gray-200 hover:bg-gray-50'
-                          }`}
-                        >
-                          <div className='flex items-center justify-center gap-2'>
-                            <SortDesc className='w-4 h-4' />
-                            Descending
-                          </div>
-                        </button>
+                  {isDiveSiteDropdownOpenForTrips &&
+                    diveSiteSearchForTrips &&
+                    !diveSiteSearchLoadingForTrips &&
+                    diveSiteSearchResultsForTrips.length === 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'>
+                        <div className='px-4 py-3 text-gray-500 text-sm'>No dive sites found</div>
                       </div>
-                    </div>
+                    )}
+                </div>
+              )}
 
-                    {/* View Mode Selection - Compact Buttons */}
-                    <div>
-                      <h4 className='text-sm font-medium text-gray-700 mb-3'>View Mode</h4>
-                      <div className='flex gap-2'>
-                        <button
-                          onClick={() => handleViewModeChange('list')}
-                          className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border transition-colors min-h-[34px] ${
-                            viewMode === 'list'
-                              ? 'bg-blue-50 border-blue-200 text-blue-900'
-                              : 'bg-white border-gray-200 hover:bg-gray-50'
+              {/* Date Range Filters - For dive-trips (mobile) */}
+
+              {pageType === 'dive-trips' && (
+                <>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-3'>
+                      Start Date
+                    </label>
+
+                    <input
+                      type='date'
+                      value={filters.start_date || ''}
+                      onChange={e => onFilterChange('start_date', e.target.value)}
+                      className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-3'>End Date</label>
+
+                    <input
+                      type='date'
+                      value={filters.end_date || ''}
+                      onChange={e => onFilterChange('end_date', e.target.value)}
+                      className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Min Rating Filter - Only show for dive-sites and dives, not dive-trips */}
+
+              {pageType !== 'dive-trips' && (
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>
+                    Min Rating (≥)
+                  </label>
+
+                  <input
+                    type='number'
+                    min='0'
+                    max='10'
+                    step='1'
+                    placeholder='Min rating (1-10)'
+                    value={filters.min_rating || ''}
+                    onChange={e => onFilterChange('min_rating', e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
+                        e.preventDefault();
+                      }
+                    }}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px] ${
+                      filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10)
+                        ? 'border-red-500 ring-1 ring-red-500'
+                        : 'border-gray-300'
+                    }`}
+                  />
+                  {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) && (
+                    <p className='text-red-500 text-sm mt-1'>Rating must be between 0 and 10</p>
+                  )}
+                </div>
+              )}
+
+              {/* Country Filter - Searchable (mobile, not for dives page) */}
+
+              {pageType !== 'dives' && (
+                <div className='relative' ref={countryDropdownRef}>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>Country</label>
+
+                  <div className='relative'>
+                    <input
+                      type='text'
+                      placeholder='Search for a country...'
+                      value={countrySearch}
+                      onChange={e => handleCountrySearchChange(e.target.value)}
+                      onFocus={() => setIsCountryDropdownOpen(true)}
+                      className='w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+                    />
+
+                    <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                      {countrySearchLoading ? (
+                        <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                      ) : (
+                        <ChevronDown
+                          size={16}
+                          className={`text-gray-400 transition-transform ${
+                            isCountryDropdownOpen ? 'rotate-180' : ''
                           }`}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dropdown */}
+
+                  {isCountryDropdownOpen && countrySearchResults.length > 0 && (
+                    <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto'>
+                      {countrySearchResults.map((country, index) => (
+                        <div
+                          key={index}
+                          onClick={() => handleCountrySelect(country.name)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+
+                              handleCountrySelect(country.name);
+                            }
+                          }}
+                          role='button'
+                          tabIndex={0}
+                          className='px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 min-h-[44px]'
                         >
-                          <div className='flex items-center justify-center gap-2'>
-                            <List className='w-4 h-4' />
-                            List
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => handleViewModeChange('map')}
-                          className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border transition-colors min-h-[34px] ${
-                            viewMode === 'map'
-                              ? 'bg-blue-50 border-blue-200 text-blue-900'
-                              : 'bg-white border-gray-200 hover:bg-gray-50'
+                          <div className='font-medium text-gray-900'>{country.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {isCountryDropdownOpen &&
+                    countrySearch &&
+                    !countrySearchLoading &&
+                    countrySearchResults.length === 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'>
+                        <div className='px-4 py-3 text-gray-500 text-sm'>No countries found</div>
+                      </div>
+                    )}
+                </div>
+              )}
+
+              {/* Region Filter - Searchable (mobile, not for dives page) */}
+
+              {pageType !== 'dives' && (
+                <div className='relative' ref={regionDropdownRef}>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>Region</label>
+
+                  <div className='relative'>
+                    <input
+                      type='text'
+                      placeholder='Search for a region...'
+                      value={regionSearch}
+                      onChange={e => handleRegionSearchChange(e.target.value)}
+                      onFocus={() => setIsRegionDropdownOpen(true)}
+                      className='w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[34px]'
+                    />
+
+                    <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                      {regionSearchLoading ? (
+                        <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400'></div>
+                      ) : (
+                        <ChevronDown
+                          size={16}
+                          className={`text-gray-400 transition-transform ${
+                            isRegionDropdownOpen ? 'rotate-180' : ''
                           }`}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dropdown */}
+
+                  {isRegionDropdownOpen && regionSearchResults.length > 0 && (
+                    <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto'>
+                      {regionSearchResults.map((region, index) => (
+                        <div
+                          key={index}
+                          onClick={() => handleRegionSelect(region.name)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+
+                              handleRegionSelect(region.name);
+                            }
+                          }}
+                          role='button'
+                          tabIndex={0}
+                          className='px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 min-h-[44px]'
                         >
-                          <div className='flex items-center justify-center gap-2'>
-                            <Map className='w-4 h-4' />
-                            Map
-                          </div>
-                        </button>
-                      </div>
+                          <div className='font-medium text-gray-900'>{region.name}</div>
+                        </div>
+                      ))}
                     </div>
+                  )}
 
-                    {/* Display Options - Compact Checkbox */}
-                    <div>
-                      <h4 className='text-sm font-medium text-gray-700 mb-3'>Display Options</h4>
-                      <div className='space-y-2'>
-                        <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
-                          <input
-                            type='checkbox'
-                            className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                            checked={compactLayout}
-                            onChange={() => onDisplayOptionChange('compact')}
-                          />
-                          <span className='text-sm text-gray-700'>Compact layout</span>
-                        </label>
+                  {isRegionDropdownOpen &&
+                    regionSearch &&
+                    !regionSearchLoading &&
+                    regionSearchResults.length === 0 && (
+                      <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'>
+                        <div className='px-4 py-3 text-gray-500 text-sm'>No regions found</div>
                       </div>
-                    </div>
+                    )}
+                </div>
+              )}
 
-                    {/* Sorting Action Buttons - Only Reset button, no Apply Sort */}
-                    <div className='flex gap-3 pt-4'>
+              {/* Tags Filter */}
+
+              {filters.availableTags && filters.availableTags.length > 0 && (
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>Tags</label>
+
+                  <div className='flex flex-wrap gap-3'>
+                    {filters.availableTags.map(tag => (
                       <button
-                        onClick={handleReset}
-                        className='flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors'
+                        key={tag.id}
+                        type='button'
+                        onClick={() => {
+                          const tagId = parseInt(tag.id);
+
+                          const currentTagIds = filters.tag_ids || [];
+
+                          const newTagIds = currentTagIds.includes(tagId)
+                            ? currentTagIds.filter(id => id !== tagId)
+                            : [...currentTagIds, tagId];
+
+                          onFilterChange('tag_ids', newTagIds);
+                        }}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 min-h-[34px] ${
+                          (filters.tag_ids || []).includes(tag.id)
+                            ? `${getTagColor(tag.name)} border-2 border-current shadow-md`
+                            : `${getTagColor(tag.name)} opacity-60 hover:opacity-100 border-2 border-transparent`
+                        }`}
                       >
-                        <RotateCcw className='w-4 h-4 inline mr-2' />
-                        Reset
+                        {tag.name}
                       </button>
-                    </div>
+                    ))}
                   </div>
-                )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sorting & View Tab - Compact Mobile Interface */}
+
+          {activeTab === 'sorting' && (
+            <div className='p-4 space-y-6 pb-4'>
+              {/* Sort Field Selection - Compact Dropdown */}
+
+              <Select
+                id='mobile-sort-by'
+                label='Sort Field'
+                value={pendingSortBy || 'all'}
+                onValueChange={value => handleSortFieldChange(value === 'all' ? '' : value)}
+                options={[
+                  { value: 'all', label: 'Select sort field' },
+                  ...sortOptions.map(opt => ({
+                    value: opt.value,
+                    label: `${opt.label} (${opt.defaultOrder === 'asc' ? 'Low to High' : 'High to Low'})`,
+                  })),
+                ]}
+              />
+
+              {/* Sort Order - Compact Toggle */}
+
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 mb-3'>Sort Order</h4>
+
+                <div className='flex gap-2'>
+                  <button
+                    onClick={() => setPendingSortOrder('asc')}
+                    className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border transition-colors min-h-[34px] ${
+                      pendingSortOrder === 'asc'
+                        ? 'bg-blue-50 border-blue-200 text-blue-900'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className='flex items-center justify-center gap-2'>
+                      <SortAsc className='w-4 h-4' />
+                      Ascending
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => setPendingSortOrder('desc')}
+                    className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border transition-colors min-h-[34px] ${
+                      pendingSortOrder === 'desc'
+                        ? 'bg-blue-50 border-blue-200 text-blue-900'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className='flex items-center justify-center gap-2'>
+                      <SortDesc className='w-4 h-4' />
+                      Descending
+                    </div>
+                  </button>
+                </div>
               </div>
 
-              {/* Footer Actions - Single Apply All button */}
-              <div className='border-t border-gray-200 p-4 bg-gray-50 flex gap-3'>
+              {/* View Mode Selection - Compact Buttons */}
+
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 mb-3'>View Mode</h4>
+
+                <div className='flex gap-2'>
+                  <button
+                    onClick={() => handleViewModeChange('list')}
+                    className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border transition-colors min-h-[34px] ${
+                      viewMode === 'list'
+                        ? 'bg-blue-50 border-blue-200 text-blue-900'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className='flex items-center justify-center gap-2'>
+                      <List className='w-4 h-4' />
+                      List
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleViewModeChange('map')}
+                    className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border transition-colors min-h-[34px] ${
+                      viewMode === 'map'
+                        ? 'bg-blue-50 border-blue-200 text-blue-900'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className='flex items-center justify-center gap-2'>
+                      <Map className='w-4 h-4' />
+                      Map
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Display Options - Compact Checkbox */}
+
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 mb-3'>Display Options</h4>
+
+                <div className='space-y-2'>
+                  <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
+                    <input
+                      type='checkbox'
+                      className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                      checked={compactLayout}
+                      onChange={() => onDisplayOptionChange('compact')}
+                    />
+
+                    <span className='text-sm text-gray-700'>Compact layout</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Sorting Action Buttons - Only Reset button, no Apply Sort */}
+
+              <div className='flex gap-3 pt-4'>
                 <button
-                  onClick={onClearFilters}
-                  className='flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[34px]'
+                  onClick={handleReset}
+                  className='flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors'
                 >
-                  Clear All
-                </button>
-                <button
-                  onClick={handleApplyAll}
-                  className='flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors min-h-[34px]'
-                >
-                  Apply All
+                  <RotateCcw className='w-4 h-4 inline mr-2' />
+                  Reset
                 </button>
               </div>
             </div>
-          </div>,
-          document.body
-        )}
+          )}
+        </div>
+
+        {/* Footer Actions - Single Apply All button */}
+
+        <div className='border-t border-gray-200 p-4 bg-gray-50 flex gap-3'>
+          <button
+            onClick={onClearFilters}
+            className='flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[34px]'
+          >
+            Clear All
+          </button>
+
+          <button
+            onClick={handleApplyAll}
+            className='flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors min-h-[34px]'
+          >
+            Apply All
+          </button>
+        </div>
+      </Modal>
     </>
   );
 };
 
 ResponsiveFilterBar.propTypes = {
   showFilters: PropTypes.bool,
+
   onToggleFilters: PropTypes.func,
+
   onClearFilters: PropTypes.func,
+
   activeFiltersCount: PropTypes.number,
+
   filters: PropTypes.object,
+
   onFilterChange: PropTypes.func,
+
   onQuickFilter: PropTypes.func,
+
   quickFilters: PropTypes.array,
+
   className: PropTypes.string,
+
   variant: PropTypes.oneOf(['sticky', 'floating', 'inline']),
+
   showQuickFilters: PropTypes.bool,
+
   showAdvancedToggle: PropTypes.bool,
+
   searchQuery: PropTypes.string,
+
   onSearchChange: PropTypes.func,
+
   onSearchSubmit: PropTypes.func,
+
   // New sorting props
+
   sortBy: PropTypes.string,
+
   sortOrder: PropTypes.oneOf(['asc', 'desc']),
+
   sortOptions: PropTypes.arrayOf(
     PropTypes.shape({
       value: PropTypes.string.isRequired,
+
       label: PropTypes.string.isRequired,
+
       defaultOrder: PropTypes.oneOf(['asc', 'desc']),
+
       icon: PropTypes.element,
     })
   ),
+
   onSortChange: PropTypes.func,
+
   onReset: PropTypes.func,
+
   viewMode: PropTypes.oneOf(['list', 'grid', 'map']),
+
   onViewModeChange: PropTypes.func,
+
   compactLayout: PropTypes.bool,
+
   onDisplayOptionChange: PropTypes.func,
+
   // New prop for page-specific quick filters
+
   pageType: PropTypes.string,
+
   user: PropTypes.object,
 };
 

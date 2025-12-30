@@ -25,6 +25,7 @@ async def list_all_users(
     db: Session = Depends(get_db),
     search: Optional[str] = Query(None, max_length=200, description="Unified search across username and email"),
     is_admin: Optional[bool] = Query(None, description="Filter by admin role"),
+    is_moderator: Optional[bool] = Query(None, description="Filter by moderator role"),
     enabled: Optional[bool] = Query(None, description="Filter by enabled status"),
     email_verified: Optional[bool] = Query(None, description="Filter by email verified status"),
     sort_by: Optional[str] = Query(None, description="Sort field (id, username, email, created_at, is_admin, enabled, email_verified)"),
@@ -57,6 +58,9 @@ async def list_all_users(
     # Apply filters
     if is_admin is not None:
         query = query.filter(User.is_admin == is_admin)
+    
+    if is_moderator is not None:
+        query = query.filter(User.is_moderator == is_moderator)
     
     if enabled is not None:
         query = query.filter(User.enabled == enabled)
@@ -287,11 +291,12 @@ async def search_users(
     request: Request,
     query: str = Query(..., min_length=1, max_length=100, description="Search term for username or name (max 100 characters)"),
     limit: int = Query(25, ge=1, le=100, description="Maximum number of results"),
+    include_self: bool = Query(False, description="Include current user in results (useful for filtering)"),
     current_user: Optional[User] = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Search for users by username or name. Only returns users with buddy_visibility='public' and enabled=True.
-    Excludes the current user from results."""
+    By default excludes the current user from results, but can include with include_self=True."""
     if not current_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -300,17 +305,48 @@ async def search_users(
     
     # Search for users matching query in username or name
     # Only include users with buddy_visibility='public' and enabled=True
-    # Exclude current user
+    # Exclude current user unless include_self=True
+    # When include_self=True, include current user regardless of buddy_visibility
     search_term = f"%{query.strip()}%"
-    users = db.query(User).filter(
-        User.enabled == True,
-        User.buddy_visibility == 'public',
-        User.id != current_user.id,
-        or_(
-            User.username.ilike(search_term),
-            User.name.ilike(search_term)
+    
+    if include_self:
+        # When including self, we need to handle current user separately
+        # Current user should be included even if buddy_visibility is not 'public'
+        # Other users still need buddy_visibility='public'
+        from sqlalchemy import and_
+        query_filter = db.query(User).filter(
+            User.enabled == True,
+            or_(
+                and_(
+                    User.id == current_user.id,
+                    or_(
+                        User.username.ilike(search_term),
+                        User.name.ilike(search_term)
+                    )
+                ),
+                and_(
+                    User.buddy_visibility == 'public',
+                    User.id != current_user.id,
+                    or_(
+                        User.username.ilike(search_term),
+                        User.name.ilike(search_term)
+                    )
+                )
+            )
         )
-    ).limit(limit).all()
+    else:
+        # Default behavior: exclude current user and require buddy_visibility='public'
+        query_filter = db.query(User).filter(
+            User.enabled == True,
+            User.buddy_visibility == 'public',
+            User.id != current_user.id,
+            or_(
+                User.username.ilike(search_term),
+                User.name.ilike(search_term)
+            )
+        )
+    
+    users = query_filter.limit(limit).all()
     
     return [
         UserSearchResponse(

@@ -20,6 +20,8 @@ import React, { useState, useEffect, useRef } from 'react';
 
 import { useResponsiveScroll } from '../hooks/useResponsive';
 
+import Modal from './ui/Modal';
+
 const DivingCentersResponsiveFilterBar = ({
   showFilters = false,
   onToggleFilters = () => {},
@@ -360,12 +362,24 @@ const DivingCentersResponsiveFilterBar = ({
                       type='number'
                       min='0'
                       max='10'
-                      step='0.1'
-                      placeholder='Show centers rated ≥ this value'
+                      step='1'
+                      placeholder='Min rating (1-10)'
                       value={filters.min_rating || ''}
                       onChange={e => onFilterChange('min_rating', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                      onKeyDown={e => {
+                        if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
+                          e.preventDefault();
+                        }
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                        filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10)
+                          ? 'border-red-500 ring-1 ring-red-500'
+                          : 'border-gray-300'
+                      }`}
                     />
+                    {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) && (
+                      <p className='text-red-500 text-xs mt-1'>Rating must be between 0 and 10</p>
+                    )}
                   </div>
                 )}
 
@@ -484,233 +498,234 @@ const DivingCentersResponsiveFilterBar = ({
       )}
 
       {/* Mobile Filter Overlay - Full Page with Tabs */}
-      {isFilterOverlayOpen && (
-        <div
-          data-testid='diving-centers-mobile-filter-overlay'
-          className='fixed inset-0 z-[200] bg-black bg-opacity-50 flex flex-col'
-        >
-          <div className='bg-white w-full h-full flex flex-col'>
-            {/* Header */}
-            <div className='flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50'>
-              <h3 className='text-lg font-semibold text-gray-900'>Filters & Sorting</h3>
-              <button
-                onClick={handleFilterOverlayToggle}
-                className='p-2 rounded-lg hover:bg-gray-200 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center'
-                aria-label='Close filters'
-              >
-                <X className='h-5 w-5 text-gray-600' />
-              </button>
-            </div>
-
-            {/* Tab Navigation */}
-            <div className='flex border-b border-gray-200 bg-white'>
-              <button
-                onClick={() => setActiveTab('filters')}
-                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                  activeTab === 'filters'
-                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-              >
-                <Filter className='h-4 w-4 inline mr-2' />
-                Filters
-              </button>
-              <button
-                onClick={() => setActiveTab('sorting')}
-                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                  activeTab === 'sorting'
-                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-              >
-                <Settings className='h-4 w-4 inline mr-2' />
-                Sorting & View
-              </button>
-            </div>
-
-            {/* Tab Content */}
-            <div className='flex-1 overflow-y-auto min-h-0'>
-              {/* Filters Tab */}
-              {activeTab === 'filters' && (
-                <div className='p-4 space-y-6 pb-4'>
-                  {/* Min Rating Filter */}
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-3'>
-                      Min Rating (≥)
-                    </label>
-                    <input
-                      type='number'
-                      min='0'
-                      max='10'
-                      step='0.1'
-                      placeholder='Show centers rated ≥ this value'
-                      value={filters.min_rating || ''}
-                      onChange={e => onFilterChange('min_rating', e.target.value)}
-                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
-                    />
-                  </div>
-
-                  {/* Country Filter */}
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-3'>Country</label>
-                    <input
-                      type='text'
-                      placeholder='Enter country name'
-                      value={filters.country || ''}
-                      onChange={e => onFilterChange('country', e.target.value)}
-                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
-                    />
-                  </div>
-
-                  {/* Services Filter */}
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-3'>Services</label>
-                    <input
-                      type='text'
-                      placeholder='Enter service type'
-                      value={filters.services || ''}
-                      onChange={e => onFilterChange('services', e.target.value)}
-                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Sorting & View Tab */}
-              {activeTab === 'sorting' && (
-                <div className='p-4 space-y-6 pb-4'>
-                  {/* Sort Field Selection - Compact Dropdown */}
-                  <div>
-                    <h4 className='text-sm font-medium text-gray-700 mb-3'>Sort Field</h4>
-                    <select
-                      value={pendingSortBy || ''}
-                      onChange={e => handleSortFieldChange(e.target.value)}
-                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
-                    >
-                      <option value=''>Select sort field</option>
-                      {sortOptions.map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label} (
-                          {option.defaultOrder === 'asc' ? 'Low to High' : 'High to Low'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Sort Order - Compact Toggle */}
-                  <div>
-                    <h4 className='text-sm font-medium text-gray-700 mb-3'>Sort Order</h4>
-                    <div className='flex gap-2'>
-                      <button
-                        onClick={() => setPendingSortOrder('asc')}
-                        className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg border transition-colors min-h-[48px] ${
-                          pendingSortOrder === 'asc'
-                            ? 'bg-blue-50 border-blue-200 text-blue-900'
-                            : 'bg-white border-gray-200 hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className='flex items-center justify-center gap-2'>
-                          <SortAsc className='w-4 h-4' />
-                          Ascending
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => setPendingSortOrder('desc')}
-                        className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg border transition-colors min-h-[48px] ${
-                          pendingSortOrder === 'desc'
-                            ? 'bg-blue-50 border-blue-200 text-blue-900'
-                            : 'bg-white border-gray-200 hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className='flex items-center justify-center gap-2'>
-                          <SortDesc className='w-4 h-4' />
-                          Descending
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* View Mode Selection - Compact Buttons */}
-                  <div>
-                    <h4 className='text-sm font-medium text-gray-700 mb-3'>View Mode</h4>
-                    <div className='flex gap-2'>
-                      <button
-                        onClick={() => handleViewModeChange('list')}
-                        className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg border transition-colors min-h-[48px] ${
-                          viewMode === 'list'
-                            ? 'bg-blue-50 border-blue-200 text-blue-900'
-                            : 'bg-white border-gray-200 hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className='flex items-center justify-center gap-2'>
-                          <List className='w-4 h-4' />
-                          List
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => handleViewModeChange('map')}
-                        className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg border transition-colors min-h-[48px] ${
-                          viewMode === 'map'
-                            ? 'bg-blue-50 border-blue-200 text-blue-900'
-                            : 'bg-white border-gray-200 hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className='flex items-center justify-center gap-2'>
-                          <Map className='w-4 h-4' />
-                          Map
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Display Options - Compact Checkbox */}
-                  <div>
-                    <h4 className='text-sm font-medium text-gray-700 mb-3'>Display Options</h4>
-                    <div className='space-y-2'>
-                      <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
-                        <input
-                          type='checkbox'
-                          className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                          checked={compactLayout}
-                          onChange={() => onDisplayOptionChange('compact')}
-                        />
-                        <span className='text-sm font-medium'>Compact layout</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Sorting Action Buttons - Only Reset button, no Apply Sort */}
-                  <div className='flex gap-3 pt-4'>
-                    <button
-                      onClick={handleReset}
-                      className='flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors'
-                    >
-                      <RotateCcw className='w-4 h-4 inline mr-2' />
-                      Reset
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Footer Actions - Single Apply All button */}
-            <div className='border-t border-gray-200 p-4 bg-gray-50 flex gap-3'>
-              <button
-                onClick={onClearFilters}
-                className='flex-1 px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[48px]'
-              >
-                Clear All
-              </button>
-              <button
-                onClick={handleApplyAll}
-                className='flex-1 px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors min-h-[48px]'
-              >
-                Apply All
-              </button>
-            </div>
-          </div>
+      <Modal
+        isOpen={isFilterOverlayOpen}
+        onClose={handleFilterOverlayToggle}
+        title='Filters & Sorting'
+        className='w-full h-screen sm:h-auto sm:max-w-xl p-0 flex flex-col'
+        showCloseButton={true}
+      >
+        {/* Tab Navigation */}
+        <div className='flex border-b border-gray-200 bg-white'>
+          <button
+            onClick={() => setActiveTab('filters')}
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'filters'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+            }`}
+          >
+            <Filter className='h-4 w-4 inline mr-2' />
+            Filters
+          </button>
+          <button
+            onClick={() => setActiveTab('sorting')}
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'sorting'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+            }`}
+          >
+            <Settings className='h-4 w-4 inline mr-2' />
+            Sorting & View
+          </button>
         </div>
-      )}
+
+        {/* Tab Content */}
+        <div className='flex-1 overflow-y-auto min-h-0'>
+          {/* Filters Tab */}
+          {activeTab === 'filters' && (
+            <div className='p-4 space-y-6 pb-4'>
+              {/* Min Rating Filter */}
+              {reviewsEnabled && (
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-3'>
+                    Min Rating (≥)
+                  </label>
+                  <input
+                    type='number'
+                    min='0'
+                    max='10'
+                    step='1'
+                    placeholder='Min rating (1-10)'
+                    value={filters.min_rating || ''}
+                    onChange={e => onFilterChange('min_rating', e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
+                        e.preventDefault();
+                      }
+                    }}
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px] ${
+                      filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10)
+                        ? 'border-red-500 ring-1 ring-red-500'
+                        : 'border-gray-300'
+                    }`}
+                  />
+                  {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) && (
+                    <p className='text-red-500 text-sm mt-1'>Rating must be between 0 and 10</p>
+                  )}
+                </div>
+              )}
+
+              {/* Country Filter */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-3'>Country</label>
+                <input
+                  type='text'
+                  placeholder='Enter country name'
+                  value={filters.country || ''}
+                  onChange={e => onFilterChange('country', e.target.value)}
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
+                />
+              </div>
+
+              {/* Services Filter */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-3'>Services</label>
+                <input
+                  type='text'
+                  placeholder='Enter service type'
+                  value={filters.services || ''}
+                  onChange={e => onFilterChange('services', e.target.value)}
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Sorting & View Tab */}
+          {activeTab === 'sorting' && (
+            <div className='p-4 space-y-6 pb-4'>
+              {/* Sort Field Selection - Compact Dropdown */}
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 mb-3'>Sort Field</h4>
+                <select
+                  value={pendingSortBy || ''}
+                  onChange={e => handleSortFieldChange(e.target.value)}
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px]'
+                >
+                  <option value=''>Select sort field</option>
+                  {sortOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label} (
+                      {option.defaultOrder === 'asc' ? 'Low to High' : 'High to Low'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sort Order - Compact Toggle */}
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 mb-3'>Sort Order</h4>
+                <div className='flex gap-2'>
+                  <button
+                    onClick={() => setPendingSortOrder('asc')}
+                    className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg border transition-colors min-h-[48px] ${
+                      pendingSortOrder === 'asc'
+                        ? 'bg-blue-50 border-blue-200 text-blue-900'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className='flex items-center justify-center gap-2'>
+                      <SortAsc className='w-4 h-4' />
+                      Ascending
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setPendingSortOrder('desc')}
+                    className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg border transition-colors min-h-[48px] ${
+                      pendingSortOrder === 'desc'
+                        ? 'bg-blue-50 border-blue-200 text-blue-900'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className='flex items-center justify-center gap-2'>
+                      <SortDesc className='w-4 h-4' />
+                      Descending
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* View Mode Selection - Compact Buttons */}
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 mb-3'>View Mode</h4>
+                <div className='flex gap-2'>
+                  <button
+                    onClick={() => handleViewModeChange('list')}
+                    className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg border transition-colors min-h-[48px] ${
+                      viewMode === 'list'
+                        ? 'bg-blue-50 border-blue-200 text-blue-900'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className='flex items-center justify-center gap-2'>
+                      <List className='w-4 h-4' />
+                      List
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleViewModeChange('map')}
+                    className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg border transition-colors min-h-[48px] ${
+                      viewMode === 'map'
+                        ? 'bg-blue-50 border-blue-200 text-blue-900'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className='flex items-center justify-center gap-2'>
+                      <Map className='w-4 h-4' />
+                      Map
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Display Options - Compact Checkbox */}
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 mb-3'>Display Options</h4>
+                <div className='space-y-2'>
+                  <label className='flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors'>
+                    <input
+                      type='checkbox'
+                      className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                      checked={compactLayout}
+                      onChange={() => onDisplayOptionChange('compact')}
+                    />
+                    <span className='text-sm font-medium'>Compact layout</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Sorting Action Buttons - Only Reset button, no Apply Sort */}
+              <div className='flex gap-3 pt-4'>
+                <button
+                  onClick={handleReset}
+                  className='flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors'
+                >
+                  <RotateCcw className='w-4 h-4 inline mr-2' />
+                  Reset
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer Actions - Single Apply All button */}
+        <div className='border-t border-gray-200 p-4 bg-gray-50 flex gap-3'>
+          <button
+            onClick={onClearFilters}
+            className='flex-1 px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[48px]'
+          >
+            Clear All
+          </button>
+          <button
+            onClick={handleApplyAll}
+            className='flex-1 px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors min-h-[48px]'
+          >
+            Apply All
+          </button>
+        </div>
+      </Modal>
     </>
   );
 };

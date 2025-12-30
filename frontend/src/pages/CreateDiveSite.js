@@ -1,14 +1,22 @@
 import { ArrowLeft, Save, X } from 'lucide-react';
-import { useState } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
+import { z } from 'zod';
 
 import api, { extractErrorMessage } from '../api';
+import { FormField } from '../components/forms/FormField';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
+import {
+  commonSchemas,
+  diveSiteSchema,
+  createResolver,
+  getErrorMessage,
+} from '../utils/formHelpers';
 
 const CreateDiveSite = () => {
   // Set page title
@@ -16,23 +24,39 @@ const CreateDiveSite = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    latitude: '',
-    longitude: '',
-    country: '',
-    region: '',
-    access_instructions: '',
-    difficulty_code: '',
-    marine_life: '',
-    safety_information: '',
-    max_depth: '',
-    shore_direction: '',
-    shore_direction_confidence: '',
-    shore_direction_method: '',
-    shore_direction_distance_m: '',
+
+  const methods = useForm({
+    resolver: createResolver(diveSiteSchema),
+    mode: 'onChange', // Validate on change to clear errors immediately
+    defaultValues: {
+      name: '',
+      description: '',
+      latitude: '',
+      longitude: '',
+      country: '',
+      region: '',
+      access_instructions: '',
+      difficulty_code: '',
+      marine_life: '',
+      safety_information: '',
+      max_depth: '',
+      shore_direction: '',
+      shore_direction_confidence: '',
+      shore_direction_method: '',
+      shore_direction_distance_m: '',
+    },
   });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+    trigger,
+  } = methods;
+
+  const formData = watch();
 
   const createDiveSiteMutation = useMutation(data => api.post('/api/v1/dive-sites/', data), {
     onSuccess: () => {
@@ -52,80 +76,72 @@ const CreateDiveSite = () => {
     },
   });
 
-  const handleInputChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = e => {
-    e.preventDefault();
-
-    // Validate required fields
-    if (!formData.latitude || formData.latitude.trim() === '') {
-      toast.error('Latitude is required');
-      return;
-    }
-    if (!formData.longitude || formData.longitude.trim() === '') {
-      toast.error('Longitude is required');
-      return;
-    }
-
+  const onSubmit = data => {
     // Convert latitude/longitude to numbers
-    // Start with formData but exclude shore_direction fields (we'll add them conditionally)
     const {
       shore_direction,
       shore_direction_confidence,
       shore_direction_method,
       shore_direction_distance_m,
       ...baseData
-    } = formData;
+    } = data;
     const submitData = {
       ...baseData,
-      latitude: parseFloat(formData.latitude),
-      longitude: parseFloat(formData.longitude),
+      latitude: typeof data.latitude === 'string' ? parseFloat(data.latitude) : data.latitude,
+      longitude: typeof data.longitude === 'string' ? parseFloat(data.longitude) : data.longitude,
     };
 
     // Convert max_depth to number if provided, or set to null if empty
-    if (formData.max_depth && formData.max_depth.trim() !== '') {
-      submitData.max_depth = parseFloat(formData.max_depth);
+    if (
+      data.max_depth &&
+      (typeof data.max_depth === 'string' ? data.max_depth.trim() !== '' : true)
+    ) {
+      submitData.max_depth =
+        typeof data.max_depth === 'string' ? parseFloat(data.max_depth) : data.max_depth;
     } else {
       submitData.max_depth = null;
     }
 
-    // Convert difficulty_code: empty string becomes null, otherwise keep the code
-    if (formData.difficulty_code && formData.difficulty_code.trim() !== '') {
-      submitData.difficulty_code = formData.difficulty_code;
+    // Convert difficulty_code: null or empty string becomes null, otherwise keep the code
+    // Note: Schema already transforms empty strings to null, but we handle both cases for safety
+    if (data.difficulty_code && data.difficulty_code !== null && data.difficulty_code !== '') {
+      submitData.difficulty_code = data.difficulty_code;
     } else {
       submitData.difficulty_code = null;
     }
 
     // Handle shore_direction: only include if provided, otherwise omit from create
     // This allows creating without shore_direction (backend will auto-detect if coordinates are provided)
-    if (formData.shore_direction && formData.shore_direction.trim() !== '') {
-      submitData.shore_direction = parseFloat(formData.shore_direction);
+    if (
+      data.shore_direction &&
+      (typeof data.shore_direction === 'string' ? data.shore_direction.trim() !== '' : true)
+    ) {
+      submitData.shore_direction =
+        typeof data.shore_direction === 'string'
+          ? parseFloat(data.shore_direction)
+          : data.shore_direction;
 
       // Include other shore_direction fields if shore_direction is set
-      if (
-        formData.shore_direction_confidence &&
-        formData.shore_direction_confidence.trim() !== ''
-      ) {
-        submitData.shore_direction_confidence = formData.shore_direction_confidence;
+      if (data.shore_direction_confidence && data.shore_direction_confidence.trim() !== '') {
+        submitData.shore_direction_confidence = data.shore_direction_confidence;
       } else {
         submitData.shore_direction_confidence = null;
       }
-      if (formData.shore_direction_method && formData.shore_direction_method.trim() !== '') {
-        submitData.shore_direction_method = formData.shore_direction_method;
+      if (data.shore_direction_method && data.shore_direction_method.trim() !== '') {
+        submitData.shore_direction_method = data.shore_direction_method;
       } else {
         submitData.shore_direction_method = null;
       }
       if (
-        formData.shore_direction_distance_m &&
-        formData.shore_direction_distance_m.trim() !== ''
+        data.shore_direction_distance_m &&
+        (typeof data.shore_direction_distance_m === 'string'
+          ? data.shore_direction_distance_m.trim() !== ''
+          : true)
       ) {
-        submitData.shore_direction_distance_m = parseFloat(formData.shore_direction_distance_m);
+        submitData.shore_direction_distance_m =
+          typeof data.shore_direction_distance_m === 'string'
+            ? parseFloat(data.shore_direction_distance_m)
+            : data.shore_direction_distance_m;
       } else {
         submitData.shore_direction_distance_m = null;
       }
@@ -146,7 +162,9 @@ const CreateDiveSite = () => {
   };
 
   const suggestLocation = async () => {
-    if (!formData.latitude || !formData.longitude) {
+    const lat = formData.latitude;
+    const lng = formData.longitude;
+    if (!lat || !lng) {
       toast.error('Please enter latitude and longitude first');
       return;
     }
@@ -154,19 +172,16 @@ const CreateDiveSite = () => {
     try {
       const response = await api.get('/api/v1/dive-sites/reverse-geocode', {
         params: {
-          latitude: parseFloat(formData.latitude),
-          longitude: parseFloat(formData.longitude),
+          latitude: typeof lat === 'string' ? parseFloat(lat) : lat,
+          longitude: typeof lng === 'string' ? parseFloat(lng) : lng,
         },
         timeout: 30000, // 30 second timeout
       });
 
       const { country, region } = response.data;
 
-      setFormData(prev => ({
-        ...prev,
-        country: country || '',
-        region: region || '',
-      }));
+      setValue('country', country || '');
+      setValue('region', region || '');
 
       if (country || region) {
         toast.success('Location suggestions applied!');
@@ -233,289 +248,280 @@ const CreateDiveSite = () => {
           <h1 className='text-2xl font-bold text-gray-900'>Create New Dive Site</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className='space-y-6'>
-          {/* Basic Information */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+        <FormProvider {...methods}>
+          <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
+            {/* Basic Information */}
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+              <div>
+                <FormField name='name' label='Name' required>
+                  {({ register, name }) => (
+                    <input
+                      id='dive-site-name'
+                      type='text'
+                      {...register(name)}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.name ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder='Enter dive site name'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='difficulty_code' label='Difficulty Level'>
+                  {({ register, name }) => (
+                    <select
+                      id='difficulty-level'
+                      {...register(name)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    >
+                      {getDifficultyOptions().map(option => (
+                        <option
+                          key={option.value === null ? 'null' : option.value}
+                          value={option.value === null ? '' : option.value}
+                        >
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </FormField>
+              </div>
+            </div>
+
             <div>
-              <label
-                htmlFor='dive-site-name'
-                className='block text-sm font-medium text-gray-700 mb-2'
+              <FormField name='description' label='Description'>
+                {({ register, name }) => (
+                  <textarea
+                    id='dive-site-description'
+                    {...register(name)}
+                    rows={3}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.description ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder='Enter dive site description'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            {/* Location Information */}
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+              <div>
+                <FormField name='latitude' label='Latitude' required>
+                  {({ register, name }) => (
+                    <input
+                      id='latitude'
+                      type='number'
+                      step='any'
+                      {...register(name)}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.latitude ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder='e.g., -16.5'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='longitude' label='Longitude' required>
+                  {({ register, name }) => (
+                    <input
+                      id='longitude'
+                      type='number'
+                      step='any'
+                      {...register(name)}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.longitude ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder='e.g., 145.67'
+                    />
+                  )}
+                </FormField>
+              </div>
+            </div>
+
+            {/* Location Suggestion Button */}
+            <div className='flex justify-center'>
+              <button
+                type='button'
+                onClick={suggestLocation}
+                disabled={!formData.latitude || !formData.longitude}
+                className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
+                style={{ backgroundColor: UI_COLORS.success }}
+                onMouseEnter={e =>
+                  !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')
+                }
+                onMouseLeave={e =>
+                  !e.currentTarget.disabled &&
+                  (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                }
               >
-                Name *
-              </label>
-              <input
-                id='dive-site-name'
-                type='text'
-                name='name'
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='Enter dive site name'
-              />
+                🗺️ Suggest Country & Region from Coordinates
+              </button>
+            </div>
+
+            {/* Country and Region Information */}
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+              <div>
+                <FormField name='country' label='Country'>
+                  {({ register, name }) => (
+                    <input
+                      id='country'
+                      type='text'
+                      {...register(name)}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.country ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder='e.g., Australia'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='region' label='Region'>
+                  {({ register, name }) => (
+                    <input
+                      id='region'
+                      type='text'
+                      {...register(name)}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.region ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder='e.g., Queensland'
+                    />
+                  )}
+                </FormField>
+              </div>
+            </div>
+
+            {/* Shore Direction Information */}
+            <div>
+              <FormField name='shore_direction' label='Shore Direction (degrees)'>
+                {({ register, name }) => (
+                  <>
+                    <input
+                      id='shore_direction'
+                      type='number'
+                      step='0.01'
+                      min='0'
+                      max='360'
+                      {...register(name)}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.shore_direction ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder='Auto-detected from coordinates (or enter manually)'
+                    />
+                    <p className='mt-1 text-xs text-gray-500'>
+                      Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South, 270°
+                      = West. If left empty, shore direction will be auto-detected from coordinates
+                      when the dive site is created.
+                    </p>
+                  </>
+                )}
+              </FormField>
+            </div>
+
+            {/* Dive Information */}
+            <div>
+              <FormField name='max_depth' label='Maximum Depth (meters)'>
+                {({ register, name }) => (
+                  <input
+                    id='max-depth'
+                    type='number'
+                    min='0'
+                    max='1000'
+                    step='any'
+                    {...register(name)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.max_depth ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder='e.g., 25.5'
+                  />
+                )}
+              </FormField>
             </div>
 
             <div>
-              <label
-                htmlFor='difficulty-level'
-                className='block text-sm font-medium text-gray-700 mb-2'
+              <FormField name='access_instructions' label='Access Instructions'>
+                {({ register, name }) => (
+                  <textarea
+                    id='access-instructions'
+                    {...register(name)}
+                    rows={3}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.access_instructions ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder='How to access this dive site'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='marine_life' label='Marine Life'>
+                {({ register, name }) => (
+                  <textarea
+                    id='marine-life'
+                    {...register(name)}
+                    rows={3}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.marine_life ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder='Marine life commonly found at this site'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='safety_information' label='Safety Information'>
+                {({ register, name }) => (
+                  <textarea
+                    id='safety-information'
+                    {...register(name)}
+                    rows={3}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.safety_information ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder='Important safety considerations'
+                  />
+                )}
+              </FormField>
+            </div>
+
+            {/* Form Actions */}
+            <div className='flex justify-end space-x-4 pt-6 border-t'>
+              <button
+                type='button'
+                onClick={handleCancel}
+                className='flex items-center px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200'
               >
-                Difficulty Level
-              </label>
-              <select
-                id='difficulty-level'
-                name='difficulty_code'
-                value={formData.difficulty_code || ''}
-                onChange={handleInputChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                <X className='h-4 w-4 mr-2' />
+                Cancel
+              </button>
+              <button
+                type='submit'
+                disabled={createDiveSiteMutation.isLoading}
+                className='flex items-center px-4 py-2 text-white rounded-md disabled:opacity-50'
+                style={{ backgroundColor: UI_COLORS.primary }}
+                onMouseEnter={e =>
+                  !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#005a8a')
+                }
+                onMouseLeave={e =>
+                  !e.currentTarget.disabled &&
+                  (e.currentTarget.style.backgroundColor = UI_COLORS.primary)
+                }
               >
-                {getDifficultyOptions().map(option => (
-                  <option
-                    key={option.value === null ? 'null' : option.value}
-                    value={option.value === null ? '' : option.value}
-                  >
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                <Save className='h-4 w-4 mr-2' />
+                {createDiveSiteMutation.isLoading ? 'Creating...' : 'Create Dive Site'}
+              </button>
             </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor='dive-site-description'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Description
-            </label>
-            <textarea
-              id='dive-site-description'
-              name='description'
-              value={formData.description}
-              onChange={handleInputChange}
-              rows={3}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Enter dive site description'
-            />
-          </div>
-
-          {/* Location Information */}
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-            <div>
-              <label htmlFor='latitude' className='block text-sm font-medium text-gray-700 mb-2'>
-                Latitude *
-              </label>
-              <input
-                id='latitude'
-                type='number'
-                step='any'
-                name='latitude'
-                value={formData.latitude}
-                onChange={handleInputChange}
-                required
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='e.g., -16.5'
-              />
-            </div>
-
-            <div>
-              <label htmlFor='longitude' className='block text-sm font-medium text-gray-700 mb-2'>
-                Longitude *
-              </label>
-              <input
-                id='longitude'
-                type='number'
-                step='any'
-                name='longitude'
-                value={formData.longitude}
-                onChange={handleInputChange}
-                required
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='e.g., 145.67'
-              />
-            </div>
-          </div>
-
-          {/* Location Suggestion Button */}
-          <div className='flex justify-center'>
-            <button
-              type='button'
-              onClick={suggestLocation}
-              disabled={!formData.latitude || !formData.longitude}
-              className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
-              style={{ backgroundColor: UI_COLORS.success }}
-              onMouseEnter={e =>
-                !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')
-              }
-              onMouseLeave={e =>
-                !e.currentTarget.disabled &&
-                (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-              }
-            >
-              🗺️ Suggest Country & Region from Coordinates
-            </button>
-          </div>
-
-          {/* Country and Region Information */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            <div>
-              <label htmlFor='country' className='block text-sm font-medium text-gray-700 mb-2'>
-                Country
-              </label>
-              <input
-                id='country'
-                type='text'
-                name='country'
-                value={formData.country}
-                onChange={handleInputChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='e.g., Australia'
-              />
-            </div>
-
-            <div>
-              <label htmlFor='region' className='block text-sm font-medium text-gray-700 mb-2'>
-                Region
-              </label>
-              <input
-                id='region'
-                type='text'
-                name='region'
-                value={formData.region}
-                onChange={handleInputChange}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='e.g., Queensland'
-              />
-            </div>
-          </div>
-
-          {/* Shore Direction Information */}
-          <div>
-            <label
-              htmlFor='shore_direction'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Shore Direction (degrees)
-            </label>
-            <input
-              id='shore_direction'
-              type='number'
-              step='0.01'
-              min='0'
-              max='360'
-              name='shore_direction'
-              value={formData.shore_direction}
-              onChange={handleInputChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Auto-detected from coordinates (or enter manually)'
-            />
-            <p className='mt-1 text-xs text-gray-500'>
-              Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South, 270° = West.
-              If left empty, shore direction will be auto-detected from coordinates when the dive
-              site is created.
-            </p>
-          </div>
-
-          {/* Dive Information */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'></div>
-
-          <div>
-            <label htmlFor='max-depth' className='block text-sm font-medium text-gray-700 mb-2'>
-              Maximum Depth (meters)
-            </label>
-            <input
-              id='max-depth'
-              type='number'
-              min='0'
-              max='1000'
-              step='any'
-              name='max_depth'
-              value={formData.max_depth}
-              onChange={handleInputChange}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='e.g., 25.5'
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor='access-instructions'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Access Instructions
-            </label>
-            <textarea
-              id='access-instructions'
-              name='access_instructions'
-              value={formData.access_instructions}
-              onChange={handleInputChange}
-              rows={3}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='How to access this dive site'
-            />
-          </div>
-
-          <div>
-            <label htmlFor='marine-life' className='block text-sm font-medium text-gray-700 mb-2'>
-              Marine Life
-            </label>
-            <textarea
-              id='marine-life'
-              name='marine_life'
-              value={formData.marine_life}
-              onChange={handleInputChange}
-              rows={3}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Marine life commonly found at this site'
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor='safety-information'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Safety Information
-            </label>
-            <textarea
-              id='safety-information'
-              name='safety_information'
-              value={formData.safety_information}
-              onChange={handleInputChange}
-              rows={3}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Important safety considerations'
-            />
-          </div>
-
-          {/* Form Actions */}
-          <div className='flex justify-end space-x-4 pt-6 border-t'>
-            <button
-              type='button'
-              onClick={handleCancel}
-              className='flex items-center px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200'
-            >
-              <X className='h-4 w-4 mr-2' />
-              Cancel
-            </button>
-            <button
-              type='submit'
-              disabled={createDiveSiteMutation.isLoading}
-              className='flex items-center px-4 py-2 text-white rounded-md disabled:opacity-50'
-              style={{ backgroundColor: UI_COLORS.primary }}
-              onMouseEnter={e =>
-                !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#005a8a')
-              }
-              onMouseLeave={e =>
-                !e.currentTarget.disabled &&
-                (e.currentTarget.style.backgroundColor = UI_COLORS.primary)
-              }
-            >
-              <Save className='h-4 w-4 mr-2' />
-              {createDiveSiteMutation.isLoading ? 'Creating...' : 'Create Dive Site'}
-            </button>
-          </div>
-        </form>
+          </form>
+        </FormProvider>
       </div>
     </div>
   );

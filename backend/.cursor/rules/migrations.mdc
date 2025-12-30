@@ -1,6 +1,6 @@
 ---
 description: Database migration rules and Alembic requirements for backend database schema changes
-globs: ["backend/migrations/**/*", "backend/app/models/**/*", "backend/create_migration.py", "backend/run_migrations.py"]
+globs: ["backend/migrations/**/*", "backend/app/models/**/*", "backend/create_migration.py", "backend/run_migrations.py", "**/*.py"]
 alwaysApply: false
 ---
 
@@ -16,19 +16,11 @@ alwaysApply: false
 
 ## Migration Workflow
 ```bash
-# ✅ CORRECT - Use Alembic for migrations
 cd backend
 source divemap_venv/bin/activate
 export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
-
-# Create new migration
 python create_migration.py "Description of changes"
-
-# Run migrations
 python run_migrations.py
-
-# ❌ WRONG - Never modify database manually
-# Direct SQL ALTER TABLE statements are forbidden
 ```
 
 ## Migration Best Practices
@@ -55,38 +47,22 @@ python run_migrations.py
 
 ## Migration Testing Workflow
 ```bash
-# ✅ CORRECT - Test migrations on isolated MySQL container
-# 1. Start test MySQL container
-docker run --name divemap_test_mysql \
-  -e MYSQL_ROOT_PASSWORD=password \
-  -e MYSQL_DATABASE=divemap_test \
-  -d -p 3307:3306 mysql:8.0
-
-# 2. Wait for MySQL to be ready
+# Start test MySQL container
+docker run --name divemap_test_mysql -e MYSQL_ROOT_PASSWORD=password -e MYSQL_DATABASE=divemap_test -d -p 3307:3306 mysql:8.0
 sleep 15
 docker exec divemap_test_mysql mysql -u root -ppassword -e "SELECT 1;"
 
-# 3. Set up Python environment
+# Set up Python environment
 cd backend
 source divemap_venv/bin/activate
 export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
 export DATABASE_URL="mysql+pymysql://root:password@localhost:3307/divemap_test"
 
-# 4. Run all migrations from scratch
+# Run migrations and verify
 alembic upgrade head
-
-# 5. Verify all modified tables in the migration file match models. Example:
-docker exec divemap_test_mysql mysql -u root -ppassword divemap_test -e "DESCRIBE parsed_dive_trips;"
-
-# 6. Run backend tests to ensure compatibility
+docker exec divemap_test_mysql mysql -u root -ppassword divemap_test -e "DESCRIBE [table_name];"
 python -m pytest tests/ -v
-
-# 7. Clean up test container
 docker stop divemap_test_mysql && docker rm divemap_test_mysql
-
-# ❌ WRONG - Don't skip migration testing
-# Never apply migrations without testing them first
-# Never assume migrations will work in production
 ```
 
 ## Migration Testing Checklist
@@ -135,32 +111,20 @@ Before considering a migration ready for production:
 
 ## Migration Filename Examples
 ```bash
-# ✅ CORRECT - Numerical ordering with descriptive names
+# Correct: Numerical ordering
 0001_initial.py
 0002_add_max_depth_and_alternative_names.py
 0003_add_country_region_fields.py
-0004_add_view_count_fields.py
-0005_add_user_diving_fields.py
-0006_add_diving_organizations_and_user_certifications.py
-0007_remove_unnecessary_certification_fields.py
 
-# ❌ WRONG - Hash-based or non-numerical filenames
-c85d7af66778_add_diving_organizations_and_user_.py
+# Wrong: Hash-based or non-numerical
+c85d7af66778_description.py
 abc123_description.py
-add_dive_name_and_privacy.py
-consolidated_dive_system_final.py
+add_something.py
 ```
 
 ## Migration Filename Workflow
 ```bash
-# ✅ CORRECT - Check existing migrations before creating new ones
 cd backend/migrations/versions
 ls -la *.py | grep -E '^[0-9]{4}_' | sort
-
-# Find the next available number
-# If highest is 0017, use 0018 for the next migration
-
-# ❌ WRONG - Don't use random or hash-based names
-# Don't create: abc123_description.py
-# Don't create: add_something.py
+# Use next sequential number (e.g., if highest is 0017, use 0018)
 ```

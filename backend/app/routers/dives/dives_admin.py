@@ -45,8 +45,8 @@ def get_all_dives_count_admin(
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
     min_visibility: Optional[int] = Query(None, ge=1, le=10),
     max_visibility: Optional[int] = Query(None, ge=1, le=10),
-    min_rating: Optional[int] = Query(None, ge=1, le=10),
-    max_rating: Optional[int] = Query(None, ge=1, le=10),
+    min_rating: Optional[float] = Query(None, ge=1, le=10),
+    max_rating: Optional[float] = Query(None, ge=1, le=10),
     start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
@@ -107,8 +107,8 @@ def get_all_dives_count_admin(
             query = query.filter(Dive.difficulty_id == difficulty_id)
         elif exclude_unspecified_difficulty:
             query = query.filter(False)
-        elif exclude_unspecified_difficulty:
-            query = query.filter(Dive.difficulty_id.isnot(None))
+    elif exclude_unspecified_difficulty:
+        query = query.filter(Dive.difficulty_id.isnot(None))
 
     if suit_type:
         query = query.filter(Dive.suit_type == suit_type)
@@ -180,8 +180,8 @@ def get_all_dives_admin(
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
     min_visibility: Optional[int] = Query(None, ge=1, le=10),
     max_visibility: Optional[int] = Query(None, ge=1, le=10),
-    min_rating: Optional[int] = Query(None, ge=1, le=10),
-    max_rating: Optional[int] = Query(None, ge=1, le=10),
+    min_rating: Optional[float] = Query(None, ge=1, le=10),
+    max_rating: Optional[float] = Query(None, ge=1, le=10),
     start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
@@ -259,8 +259,8 @@ def get_all_dives_admin(
             query = query.filter(Dive.difficulty_id == difficulty_id)
         elif exclude_unspecified_difficulty:
             query = query.filter(False)
-        elif exclude_unspecified_difficulty:
-            query = query.filter(Dive.difficulty_id.isnot(None))
+    elif exclude_unspecified_difficulty:
+        query = query.filter(Dive.difficulty_id.isnot(None))
 
     if suit_type:
         query = query.filter(Dive.suit_type == suit_type)

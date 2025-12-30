@@ -19,7 +19,7 @@ import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useParams, useLocation, Link as RouterLink } from 'react-router-dom';
 
-import api from '../api';
+import api, { extractErrorMessage } from '../api';
 import DiveSiteRoutes from '../components/DiveSiteRoutes';
 import Lightbox from '../components/Lightbox/Lightbox';
 import Inline from 'yet-another-react-lightbox/plugins/inline';
@@ -42,14 +42,8 @@ import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 
-// Helper function to safely extract error message
-const getErrorMessage = error => {
-  if (typeof error === 'string') return error;
-  if (error?.message) return error.message;
-  if (error?.response?.data?.detail) return error.response.data.detail;
-  if (error?.detail) return error.detail;
-  return 'An error occurred';
-};
+// Use extractErrorMessage from api.js
+const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
 
 const DiveSiteDetail = () => {
   const { id } = useParams();
@@ -386,7 +380,7 @@ const DiveSiteDetail = () => {
   }
 
   return (
-    <div className='max-w-7xl mx-auto px-4 sm:px-6'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       {/* Header */}
       <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6'>
         <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4'>

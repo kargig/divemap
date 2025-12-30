@@ -37,7 +37,7 @@ async function testAccessibility(page) {
   // Check for alt attributes on images
   const images = await page.$$('img');
   for (const img of images) {
-    const alt = await img.getAttribute('alt');
+    const alt = await page.evaluate(el => el.getAttribute('alt'), img);
     if (!alt) {
       issues.push('Image missing alt attribute');
     }
@@ -46,11 +46,11 @@ async function testAccessibility(page) {
   // Check for form labels
   const inputs = await page.$$('input, textarea, select');
   for (const input of inputs) {
-    const id = await input.getAttribute('id');
+    const id = await page.evaluate(el => el.getAttribute('id'), input);
     if (id) {
       const label = await page.$(`label[for="${id}"]`);
       if (!label) {
-        const ariaLabel = await input.getAttribute('aria-label');
+        const ariaLabel = await page.evaluate(el => el.getAttribute('aria-label'), input);
         if (!ariaLabel) {
           issues.push(`Input missing label or aria-label: ${id}`);
         }

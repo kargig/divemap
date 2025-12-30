@@ -42,7 +42,7 @@ TURNSTILE_VERIFY_URL=https://challenges.cloudflare.com/turnstile/v0/siteverify
 **Frontend Environment Variables**
 ```bash
 # Cloudflare Turnstile Configuration
-REACT_APP_TURNSTILE_SITE_KEY=your_turnstile_site_key_here
+VITE_TURNSTILE_SITE_KEY=your_turnstile_site_key_here
 ```
 
 #### 1.2 Database Schema Updates
@@ -389,7 +389,7 @@ const Login = () => {
           {/* Turnstile Widget */}
           <div className="space-y-2">
             <Turnstile
-              siteKey={process.env.REACT_APP_TURNSTILE_SITE_KEY}
+              siteKey={process.env.VITE_TURNSTILE_SITE_KEY}
               onVerify={handleTurnstileVerify}
               onExpire={handleTurnstileExpire}
               onError={handleTurnstileError}
@@ -494,7 +494,7 @@ const Register = () => {
           {/* Turnstile Widget */}
           <div className="space-y-2">
             <Turnstile
-              siteKey={process.env.REACT_APP_TURNSTILE_SITE_KEY}
+              siteKey={process.env.VITE_TURNSTILE_SITE_KEY}
               onVerify={handleTurnstileVerify}
               onExpire={handleTurnstileExpire}
               onError={handleTurnstileError}
@@ -881,19 +881,19 @@ The implementation now includes intelligent detection of Turnstile configuration
 The deployment process now automatically handles Turnstile configuration:
 
 **Deploy Script (`frontend/deploy.sh`):**
-- Automatically detects if `REACT_APP_TURNSTILE_SITE_KEY` is set
+- Automatically detects if `VITE_TURNSTILE_SITE_KEY` is set
 - Includes Turnstile build argument when available
 - Provides clear feedback about Turnstile configuration status
 - Maintains backward compatibility for existing deployments
 
 **Docker Build:**
-- Production Dockerfile accepts `REACT_APP_TURNSTILE_SITE_KEY` as build argument
+- Production Dockerfile accepts `VITE_TURNSTILE_SITE_KEY` as build argument
 - Environment variable is properly set during build process
 - Frontend automatically detects and uses Turnstile when configured
 
 **Environment Variables:**
-- **Required**: `REACT_APP_GOOGLE_CLIENT_ID`, `REACT_APP_API_URL`
-- **Optional**: `REACT_APP_TURNSTILE_SITE_KEY` (enables Turnstile when set)
+- **Required**: `VITE_GOOGLE_CLIENT_ID`, `VITE_API_URL`
+- **Optional**: `VITE_TURNSTILE_SITE_KEY` (enables Turnstile when set)
 - **Backend**: `TURNSTILE_SECRET_KEY`, `TURNSTILE_SITE_KEY` (both required for backend verification)
 
 ### **Benefits of Conditional Rendering**
@@ -917,14 +917,14 @@ cd frontend
 # Output will show:
 # Turnstile Site Key: Not set (Turnstile will be disabled)
 # fly deploy -a divemap-frontend \
-#   --build-arg REACT_APP_GOOGLE_CLIENT_ID="..." \
-#   --build-arg REACT_APP_API_URL="..."
+#   --build-arg VITE_GOOGLE_CLIENT_ID="..." \
+#   --build-arg VITE_API_URL="..."
 ```
 
 ### **Deploying With Turnstile Enabled**
 ```bash
 # Add Turnstile site key to your .env file
-echo "REACT_APP_TURNSTILE_SITE_KEY=your_turnstile_site_key_here" >> .env
+echo "VITE_TURNSTILE_SITE_KEY=your_turnstile_site_key_here" >> .env
 
 # Deploy with Turnstile enabled
 ./deploy.sh
@@ -932,19 +932,19 @@ echo "REACT_APP_TURNSTILE_SITE_KEY=your_turnstile_site_key_here" >> .env
 # Output will show:
 # Turnstile Site Key: your_turnstile_site_key_here...
 # fly deploy -a divemap-frontend \
-#   --build-arg REACT_APP_GOOGLE_CLIENT_ID="..." \
-#   --build-arg REACT_APP_API_URL="..." \
-#   --build-arg REACT_APP_TURNSTILE_SITE_KEY="your_turnstile_site_key_here"
+#   --build-arg VITE_GOOGLE_CLIENT_ID="..." \
+#   --build-arg VITE_API_URL="..." \
+#   --build-arg VITE_TURNSTILE_SITE_KEY="your_turnstile_site_key_here"
 ```
 
 ### **Environment File Structure**
 ```bash
 # Required variables
-REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id
-REACT_APP_API_URL=https://your-api-url.com
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
+VITE_API_URL=https://your-api-url.com
 
 # Optional - enables Turnstile when set
-REACT_APP_TURNSTILE_SITE_KEY=your_turnstile_site_key
+VITE_TURNSTILE_SITE_KEY=your_turnstile_site_key
 ```
 
 ## Conclusion

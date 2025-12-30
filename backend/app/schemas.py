@@ -33,9 +33,7 @@ class UserCreate(UserBase):
     password: str = Field(..., min_length=8, max_length=128)
 
 class UserUpdate(BaseModel):
-    username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
     name: Optional[str] = Field(None, min_length=1, max_length=255)
-    email: Optional[EmailStr] = None
     password: Optional[str] = Field(None, min_length=8, max_length=128)
     number_of_dives: Optional[int] = Field(None, ge=0)
     buddy_visibility: Optional[str] = Field(None, pattern=r"^(public|private)$", description="Control whether user can be added as buddy: 'public' or 'private'")
@@ -48,6 +46,7 @@ class UserResponse(UserBase):
     is_admin: bool
     is_moderator: bool
     number_of_dives: int = 0
+    buddy_visibility: str = 'public'
     created_at: datetime
     updated_at: datetime
 
@@ -460,6 +459,37 @@ class CenterDiveSiteResponse(BaseModel):
     class Config:
         from_attributes = True
 
+# Certification Level Schemas
+class CertificationLevelBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    category: Optional[str] = None
+    max_depth: Optional[str] = None
+    gases: Optional[str] = None
+    tanks: Optional[str] = None
+    deco_time_limit: Optional[str] = None
+    prerequisites: Optional[str] = None
+
+class CertificationLevelCreate(CertificationLevelBase):
+    diving_organization_id: int
+
+class CertificationLevelUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    category: Optional[str] = None
+    max_depth: Optional[str] = None
+    gases: Optional[str] = None
+    tanks: Optional[str] = None
+    deco_time_limit: Optional[str] = None
+    prerequisites: Optional[str] = None
+
+class CertificationLevelResponse(CertificationLevelBase):
+    id: int
+    diving_organization_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
 # Gear Rental Cost Schemas
 class GearRentalCostCreate(BaseModel):
     item_name: str = Field(..., min_length=1, max_length=100)
@@ -503,6 +533,7 @@ class DivingOrganizationResponse(DivingOrganizationBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    certification_levels: List[CertificationLevelResponse] = []
 
     class Config:
         from_attributes = True
@@ -530,7 +561,8 @@ class DivingCenterOrganizationResponse(DivingCenterOrganizationBase):
 # User Certification Schemas
 class UserCertificationBase(BaseModel):
     diving_organization_id: int
-    certification_level: str = Field(..., min_length=1, max_length=100)
+    certification_level: Optional[str] = Field(None, max_length=100) # Optional now, prefer ID
+    certification_level_id: Optional[int] = None
     is_active: bool = True
 
 class UserCertificationCreate(UserCertificationBase):
@@ -538,13 +570,15 @@ class UserCertificationCreate(UserCertificationBase):
 
 class UserCertificationUpdate(BaseModel):
     diving_organization_id: Optional[int] = None
-    certification_level: Optional[str] = Field(None, min_length=1, max_length=100)
+    certification_level: Optional[str] = Field(None, max_length=100)
+    certification_level_id: Optional[int] = None
     is_active: Optional[bool] = None
 
 class UserCertificationResponse(UserCertificationBase):
     id: int
     user_id: int
     diving_organization: DivingOrganizationResponse
+    certification_level_link: Optional[CertificationLevelResponse] = None
     created_at: datetime
     updated_at: datetime
 
@@ -783,6 +817,10 @@ class DivingCenterOwnershipResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class DivingCenterOwnershipRevocation(BaseModel):
+    """Schema for revoking diving center ownership."""
+    reason: Optional[str] = Field(None, max_length=1000)
+
 class DivingCenterOwnershipApproval(BaseModel):
     approved: bool
     reason: Optional[str] = Field(None, max_length=1000)
@@ -821,7 +859,7 @@ class ParsedDiveResponse(BaseModel):
         from_attributes = True
 
 class ParsedDiveCreate(BaseModel):
-    trip_id: int
+    trip_id: Optional[int] = None  # Optional when creating dives as part of a trip (backend sets it)
     dive_site_id: Optional[int] = None
     dive_number: int = Field(..., ge=1)
     dive_time: Optional[time] = None
@@ -923,84 +961,6 @@ class ParsedDiveTripUpdate(BaseModel):
     special_requirements: Optional[str] = None
     trip_status: Optional[str] = Field(None, pattern=r"^(scheduled|confirmed|cancelled|completed)$")
     dives: Optional[List[ParsedDiveCreate]] = None
-
-# System Overview Schemas
-class UserStats(BaseModel):
-    total: int
-    active_30d: int
-    new_7d: int
-    new_30d: int
-    growth_rate: float
-
-class ContentStats(BaseModel):
-    dive_sites: int
-    diving_centers: int
-    dives: int
-    comments: int
-    ratings: int
-    media_uploads: int
-
-class EngagementStats(BaseModel):
-    avg_site_rating: float
-    avg_center_rating: float
-    recent_comments_24h: int
-    recent_ratings_24h: int
-    recent_dives_24h: int
-
-class GeographicStats(BaseModel):
-    dive_sites_by_country: List[dict]
-
-class SystemUsageStats(BaseModel):
-    api_calls_today: int
-    peak_usage_time: str
-    most_accessed_endpoint: str
-
-class PlatformStats(BaseModel):
-    users: UserStats
-    content: ContentStats
-    engagement: EngagementStats
-    geographic: GeographicStats
-    system_usage: SystemUsageStats
-
-class DatabaseHealth(BaseModel):
-    status: str
-    response_time: str
-
-class ApplicationHealth(BaseModel):
-    status: str
-    uptime: str
-    response_time: str
-
-class ResourceHealth(BaseModel):
-    cpu_usage: float
-    memory_usage: float
-    disk_usage: float
-
-class ExternalServicesHealth(BaseModel):
-    google_oauth: str
-    geocoding_service: str
-
-class SecurityHealth(BaseModel):
-    failed_logins_24h: int
-    suspicious_activity: str
-
-class SystemHealth(BaseModel):
-    database: DatabaseHealth
-    application: ApplicationHealth
-    resources: ResourceHealth
-    external_services: ExternalServicesHealth
-    security: SecurityHealth
-
-class Alerts(BaseModel):
-    critical: List[str]
-    warnings: List[str]
-    info: List[str]
-
-class SystemOverviewResponse(BaseModel):
-    platform_stats: PlatformStats
-    system_health: SystemHealth
-    alerts: Alerts
-    last_updated: str
 
 class SystemHealthResponse(BaseModel):
     status: str

@@ -3,10 +3,11 @@ import 'leaflet/dist/leaflet.css';
 import { Maximize2, X, Layers } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 
 import MapLayersPanel from '../components/MapLayersPanel';
+
+import Modal from './ui/Modal';
 
 // Fix default marker icons (so they appear without bundler asset config)
 delete L.Icon.Default.prototype._getIconUrl;
@@ -60,38 +61,26 @@ const MiniMap = ({
   }, [isMaximized]);
 
   if (isMaximized) {
-    return createPortal(
-      <div className='fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4'>
-        <div className='bg-white rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[90vh] relative'>
-          <div className='flex items-center justify-between p-4 border-b'>
-            <h3 className='text-lg font-semibold'>{name} - Location</h3>
-            <button
-              onClick={onClose}
-              className='p-2 hover:bg-gray-100 rounded-md transition-colors'
-            >
-              <X className='w-5 h-5' />
-            </button>
-          </div>
-          <div className='h-full'>
-            <div className='w-full h-full rounded-b-lg'>
-              <MapContainer
-                center={[latitude, longitude]}
-                zoom={12}
-                className='w-full h-full rounded-b-lg'
-                style={{ zIndex: 1 }}
-              >
-                <TileLayer
-                  attribution={selectedLayer?.attribution || ''}
-                  url={selectedLayer?.url}
-                />
-                <Recenter lat={latitude} lng={longitude} zoom={12} />
-                <Marker position={[latitude, longitude]} />
-              </MapContainer>
-            </div>
-          </div>
+    return (
+      <Modal
+        isOpen={true}
+        onClose={onClose}
+        title={`${name} - Location`}
+        className='w-full max-w-4xl h-[90vh] p-0 overflow-hidden'
+      >
+        <div className='w-full h-full'>
+          <MapContainer
+            center={[latitude, longitude]}
+            zoom={12}
+            className='w-full h-full'
+            style={{ zIndex: 1 }}
+          >
+            <TileLayer attribution={selectedLayer?.attribution || ''} url={selectedLayer?.url} />
+            <Recenter lat={latitude} lng={longitude} zoom={12} />
+            <Marker position={[latitude, longitude]} />
+          </MapContainer>
         </div>
-      </div>,
-      document.body
+      </Modal>
     );
   }
 

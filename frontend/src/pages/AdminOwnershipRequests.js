@@ -8,6 +8,7 @@ import {
   getOwnershipRequests,
   revokeDivingCenterOwnership,
 } from '../api';
+import Modal from '../components/ui/Modal';
 import usePageTitle from '../hooks/usePageTitle';
 
 // Extracted components to reduce complexity
@@ -233,138 +234,129 @@ const ApprovalModal = ({
   approvalMutation,
   revokeMutation,
 }) => (
-  <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-    <div className='bg-white rounded-lg p-6 max-w-md w-full mx-4'>
-      <div className='flex items-center justify-between mb-4'>
-        <h3 className='text-lg font-semibold text-gray-900'>
-          {isRevoking ? 'Revoke Ownership' : 'Review Ownership Claim'}
-        </h3>
-        <button onClick={onClose} className='text-gray-500 hover:text-gray-700'>
-          <X className='h-5 w-5' />
-        </button>
-      </div>
-
-      <div className='mb-4'>
-        <h4 className='font-medium text-gray-900 mb-2'>{request.name}</h4>
-        {request.owner_username && (
-          <p className='text-sm text-gray-600 mb-2'>
-            {isRevoking ? 'Current Owner:' : 'Claimed by:'} {request.owner_username}
-          </p>
-        )}
-        <p className='text-sm text-gray-600'>
-          Status: {request.ownership_status === 'claimed' ? 'Pending Approval' : 'Approved'}
+  <Modal
+    isOpen={true}
+    onClose={onClose}
+    title={isRevoking ? 'Revoke Ownership' : 'Review Ownership Claim'}
+    className='max-w-md w-full mx-4'
+  >
+    <div className='mb-4'>
+      <h4 className='font-medium text-gray-900 mb-2'>{request.name}</h4>
+      {request.owner_username && (
+        <p className='text-sm text-gray-600 mb-2'>
+          {isRevoking ? 'Current Owner:' : 'Claimed by:'} {request.owner_username}
         </p>
-        {request.claim_reason && (
-          <div className='mt-3 pt-3 border-t border-gray-200'>
-            <p className='text-sm font-medium text-gray-900 mb-2'>Claim Reason:</p>
-            <p className='text-sm text-gray-700 bg-gray-50 p-3 rounded-md whitespace-pre-wrap'>
-              {request.claim_reason}
-            </p>
-          </div>
-        )}
-        {isRevoking && (
-          <p className='text-sm text-red-600 mt-2'>
-            ⚠️ This action will remove the current owner and set the diving center status to
-            unclaimed.
-          </p>
-        )}
-      </div>
-
-      {request.ownership_status === 'claimed' && !isRevoking && (
-        <>
-          <div className='mb-4'>
-            <label
-              htmlFor='approval-reason'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Approval Reason (Optional)
-            </label>
-            <textarea
-              id='approval-reason'
-              value={approvalReason}
-              onChange={e => setApprovalReason(e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              rows='3'
-              placeholder='Add a reason for approval or denial...'
-            />
-          </div>
-
-          <div className='flex justify-end space-x-3'>
-            <button
-              onClick={onClose}
-              className='px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50'
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => onApproval(false)}
-              disabled={approvalMutation.isLoading}
-              className='px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2'
-            >
-              {approvalMutation.isLoading ? (
-                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
-              ) : (
-                <X className='h-4 w-4' />
-              )}
-              <span>Deny</span>
-            </button>
-            <button
-              onClick={() => onApproval(true)}
-              disabled={approvalMutation.isLoading}
-              className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2'
-            >
-              {approvalMutation.isLoading ? (
-                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
-              ) : (
-                <Check className='h-4 w-4' />
-              )}
-              <span>Approve</span>
-            </button>
-          </div>
-        </>
       )}
-
+      <p className='text-sm text-gray-600'>
+        Status: {request.ownership_status === 'claimed' ? 'Pending Approval' : 'Approved'}
+      </p>
+      {request.claim_reason && (
+        <div className='mt-3 pt-3 border-t border-gray-200'>
+          <p className='text-sm font-medium text-gray-900 mb-2'>Claim Reason:</p>
+          <p className='text-sm text-gray-700 bg-gray-50 p-3 rounded-md whitespace-pre-wrap'>
+            {request.claim_reason}
+          </p>
+        </div>
+      )}
       {isRevoking && (
-        <>
-          <div className='mb-4'>
-            <label htmlFor='revoke-reason' className='block text-sm font-medium text-gray-700 mb-2'>
-              Revocation Reason (Required)
-            </label>
-            <textarea
-              id='revoke-reason'
-              value={revokeReason}
-              onChange={e => setRevokeReason(e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500'
-              rows='3'
-              placeholder='Please provide a reason for revoking ownership...'
-              required
-            />
-          </div>
-
-          <div className='flex justify-end space-x-3'>
-            <button
-              onClick={onClose}
-              className='px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50'
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onRevoke}
-              disabled={revokeMutation.isLoading || !revokeReason.trim()}
-              className='px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2'
-            >
-              {revokeMutation.isLoading ? (
-                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
-              ) : (
-                <X className='h-4 w-4' />
-              )}
-              <span>Revoke Ownership</span>
-            </button>
-          </div>
-        </>
+        <p className='text-sm text-red-600 mt-2'>
+          ⚠️ This action will remove the current owner and set the diving center status to
+          unclaimed.
+        </p>
       )}
     </div>
-  </div>
+
+    {request.ownership_status === 'claimed' && !isRevoking && (
+      <>
+        <div className='mb-4'>
+          <label htmlFor='approval-reason' className='block text-sm font-medium text-gray-700 mb-2'>
+            Approval Reason (Optional)
+          </label>
+          <textarea
+            id='approval-reason'
+            value={approvalReason}
+            onChange={e => setApprovalReason(e.target.value)}
+            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            rows='3'
+            placeholder='Add a reason for approval or denial...'
+          />
+        </div>
+
+        <div className='flex justify-end space-x-3'>
+          <button
+            onClick={onClose}
+            className='px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50'
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onApproval(false)}
+            disabled={approvalMutation.isLoading}
+            className='px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2'
+          >
+            {approvalMutation.isLoading ? (
+              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+            ) : (
+              <X className='h-4 w-4' />
+            )}
+            <span>Deny</span>
+          </button>
+          <button
+            onClick={() => onApproval(true)}
+            disabled={approvalMutation.isLoading}
+            className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2'
+          >
+            {approvalMutation.isLoading ? (
+              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+            ) : (
+              <Check className='h-4 w-4' />
+            )}
+            <span>Approve</span>
+          </button>
+        </div>
+      </>
+    )}
+
+    {isRevoking && (
+      <>
+        <div className='mb-4'>
+          <label htmlFor='revoke-reason' className='block text-sm font-medium text-gray-700 mb-2'>
+            Revocation Reason (Required)
+          </label>
+          <textarea
+            id='revoke-reason'
+            value={revokeReason}
+            onChange={e => setRevokeReason(e.target.value)}
+            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500'
+            rows='3'
+            placeholder='Please provide a reason for revoking ownership...'
+            required
+          />
+        </div>
+
+        <div className='flex justify-end space-x-3'>
+          <button
+            onClick={onClose}
+            className='px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50'
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onRevoke}
+            disabled={revokeMutation.isLoading || !revokeReason.trim()}
+            className='px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2'
+          >
+            {revokeMutation.isLoading ? (
+              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+            ) : (
+              <X className='h-4 w-4' />
+            )}
+            <span>Revoke Ownership</span>
+          </button>
+        </div>
+      </>
+    )}
+  </Modal>
 );
 
 const AdminOwnershipRequests = () => {
@@ -415,7 +407,7 @@ const AdminOwnershipRequests = () => {
   // Revoke mutation
   const revokeMutation = useMutation({
     mutationFn: async ({ divingCenterId, reason }) => {
-      return revokeDivingCenterOwnership(divingCenterId, reason);
+      return revokeDivingCenterOwnership(divingCenterId, { reason });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ownership-requests'] });

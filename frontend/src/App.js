@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 
 import EmailVerificationBanner from './components/EmailVerificationBanner';
 import Navbar from './components/Navbar';
+import ReportIssueButton from './components/ReportIssueButton';
 import { SessionManager } from './components/SessionManager';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -14,6 +15,7 @@ import AdminDives from './pages/AdminDives';
 import AdminDiveSiteAliases from './pages/AdminDiveSiteAliases';
 import AdminDiveSites from './pages/AdminDiveSites';
 import AdminDivingCenters from './pages/AdminDivingCenters';
+import AdminDivingOrganizationCertifications from './pages/AdminDivingOrganizationCertifications';
 import AdminDivingOrganizations from './pages/AdminDivingOrganizations';
 import AdminGeneralStatistics from './pages/AdminGeneralStatistics';
 import AdminGrowthVisualizations from './pages/AdminGrowthVisualizations';
@@ -22,7 +24,6 @@ import AdminNotificationPreferences from './pages/AdminNotificationPreferences';
 import AdminOwnershipRequests from './pages/AdminOwnershipRequests';
 import AdminRecentActivity from './pages/AdminRecentActivity';
 import AdminSystemMetrics from './pages/AdminSystemMetrics';
-import AdminSystemOverview from './pages/AdminSystemOverview';
 import AdminTags from './pages/AdminTags';
 import AdminUsers from './pages/AdminUsers';
 import API from './pages/API';
@@ -41,6 +42,8 @@ import DiveSites from './pages/DiveSites';
 import DiveTrips from './pages/DiveTrips';
 import DivingCenterDetail from './pages/DivingCenterDetail';
 import DivingCenters from './pages/DivingCenters';
+import DivingOrganizationsPage from './pages/DivingOrganizationsPage';
+import DivingTagsPage from './pages/DivingTagsPage';
 import EditDive from './pages/EditDive';
 import EditDiveSite from './pages/EditDiveSite';
 import EditDivingCenter from './pages/EditDivingCenter';
@@ -154,6 +157,11 @@ function App() {
                 <Routes>
                   <Route path='/' element={<Home />} />
                   <Route path='/about' element={<About />} />
+                  <Route path='/resources/tags' element={<DivingTagsPage />} />
+                  <Route
+                    path='/resources/diving-organizations'
+                    element={<DivingOrganizationsPage />}
+                  />
                   <Route path='/api-docs' element={<API />} />
                   <Route path='/changelog' element={<Changelog />} />
                   <Route path='/help' element={<Help />} />
@@ -294,6 +302,14 @@ function App() {
                     }
                   />
                   <Route
+                    path='/admin/diving-organizations/:identifier/certifications'
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <AdminDivingOrganizationCertifications />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path='/admin/tags'
                     element={
                       <ProtectedRoute requireAdmin={true}>
@@ -375,14 +391,6 @@ function App() {
                     }
                   />
                   <Route
-                    path='/admin/system-overview'
-                    element={
-                      <ProtectedRoute requireAdmin={true}>
-                        <AdminSystemOverview />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
                     path='/admin/system-metrics'
                     element={
                       <ProtectedRoute requireAdmin={true}>
@@ -425,6 +433,7 @@ function App() {
                   />
                   <Route path='/dive-trips/:id' element={<TripDetail />} />
                 </Routes>
+                <ReportIssueButton />
               </main>
               <Toaster
                 position='top-right'

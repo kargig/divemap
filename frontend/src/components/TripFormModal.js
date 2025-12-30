@@ -1,6 +1,14 @@
 import { Plus, X } from 'lucide-react';
 import PropTypes from 'prop-types';
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
+
+import { getDifficultyOptions } from '../utils/difficultyHelpers';
+import { tripSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
+
+import DivingCenterSearchableDropdown from './DivingCenterSearchableDropdown';
+import Modal from './ui/Modal';
+import Select from './ui/Select';
 
 const TripFormModal = ({
   trip,
@@ -15,114 +23,131 @@ const TripFormModal = ({
   // Combine regular dive sites with additional ones
   const allDiveSites = [...diveSites, ...additionalDiveSites];
 
-  const [formData, setFormData] = useState({
-    diving_center_id: trip?.diving_center_id ? parseInt(trip.diving_center_id) : null,
-    trip_date: trip?.trip_date || '',
-    trip_time: trip?.trip_time || '',
-    trip_duration: trip?.trip_duration || '',
-    trip_difficulty_code: trip?.trip_difficulty_code || '',
-    trip_price: trip?.trip_price || '',
-    trip_currency: trip?.trip_currency || 'EUR',
-    group_size_limit: trip?.group_size_limit || '',
-    current_bookings: trip?.current_bookings || 0,
-    trip_description: trip?.trip_description || '',
-    special_requirements: trip?.special_requirements || '',
-    trip_status: trip?.trip_status || 'scheduled',
-    dives: trip?.dives || [],
+  // Prepare default values
+  const getDefaultValues = () => {
+    if (trip) {
+      return {
+        diving_center_id: trip.diving_center_id ? trip.diving_center_id : null,
+        trip_date: trip.trip_date || '',
+        trip_time: trip.trip_time || '',
+        trip_duration: trip.trip_duration || '',
+        trip_difficulty_code: trip.trip_difficulty_code || '',
+        trip_price: trip.trip_price || '',
+        trip_currency: trip.trip_currency || 'EUR',
+        group_size_limit: trip.group_size_limit || '',
+        current_bookings: trip.current_bookings || 0,
+        trip_description: trip.trip_description || '',
+        special_requirements: trip.special_requirements || '',
+        trip_status: trip.trip_status || 'scheduled',
+        dives:
+          trip.dives?.map((dive, index) => ({
+            id: dive.id || Date.now() + index,
+            dive_number: dive.dive_number || index + 1,
+            dive_site_id: dive.dive_site_id || null,
+            dive_time: dive.dive_time || '',
+            dive_duration: dive.dive_duration || '',
+            dive_description: dive.dive_description || '',
+          })) || [],
+      };
+    }
+    return {
+      diving_center_id: null,
+      trip_date: '',
+      trip_time: '',
+      trip_duration: '',
+      trip_difficulty_code: '',
+      trip_price: '',
+      trip_currency: 'EUR',
+      group_size_limit: '',
+      current_bookings: 0,
+      trip_description: '',
+      special_requirements: '',
+      trip_status: 'scheduled',
+      dives: [],
+    };
+  };
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+    reset,
+    getValues,
+    setValue,
+    watch,
+  } = useForm({
+    resolver: createResolver(tripSchemas.trip),
+    mode: 'onChange',
+    defaultValues: getDefaultValues(),
   });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'dives',
+  });
+
+  // Reset form when trip prop changes
+  useEffect(() => {
+    reset(getDefaultValues());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip]);
+
+  // Sync dive_number with index whenever fields change
+  useEffect(() => {
+    fields.forEach((_, index) => {
+      setValue(`dives.${index}.dive_number`, index + 1, { shouldValidate: false });
+    });
+  }, [fields, setValue]);
 
   const addDive = () => {
     const newDive = {
-      id: Date.now(), // Temporary ID for new dives
-      dive_number: formData.dives.length + 1,
+      id: Date.now(),
+      dive_number: fields.length + 1,
       dive_site_id: null,
       dive_time: '',
       dive_duration: '',
       dive_description: '',
     };
-    setFormData({
-      ...formData,
-      dives: [...formData.dives, newDive],
-    });
+    append(newDive);
   };
 
   const removeDive = index => {
-    const updatedDives = formData.dives.filter((_, i) => i !== index);
-    // Renumber the dives
-    const renumberedDives = updatedDives.map((dive, i) => ({
-      ...dive,
-      dive_number: i + 1,
-    }));
-    setFormData({
-      ...formData,
-      dives: renumberedDives,
-    });
+    remove(index);
+    // dive_number will be automatically synced by useEffect
   };
 
-  const updateDive = (index, field, value) => {
-    const updatedDives = [...formData.dives];
-    updatedDives[index] = {
-      ...updatedDives[index],
-      [field]: value,
-    };
-    setFormData({
-      ...formData,
-      dives: updatedDives,
-    });
-  };
-
-  const handleSubmit = e => {
-    e.preventDefault();
-
-    // Convert form data to API format
+  const onFormSubmit = data => {
+    // Data is already validated and transformed by Zod schema
+    // Just need to clean up temporary IDs and ensure proper formatting
     const submitData = {
-      ...formData,
-      diving_center_id: formData.diving_center_id ? parseInt(formData.diving_center_id) : null,
-      trip_duration: formData.trip_duration ? parseInt(formData.trip_duration) : null,
-      trip_price: formData.trip_price ? parseFloat(formData.trip_price) : null,
-      group_size_limit: formData.group_size_limit ? parseInt(formData.group_size_limit) : null,
-      current_bookings: parseInt(formData.current_bookings),
-      trip_time: formData.trip_time || null,
-      dives: formData.dives.map(dive => ({
+      ...data,
+      // Transform empty string difficulty_code to null for backend
+      trip_difficulty_code: data.trip_difficulty_code === '' ? null : data.trip_difficulty_code,
+      dives: data.dives.map((dive, index) => ({
         ...dive,
-        dive_site_id: dive.dive_site_id ? parseInt(dive.dive_site_id) : null,
-        dive_duration: dive.dive_duration ? parseInt(dive.dive_duration) : null,
-        dive_time: dive.dive_time || null,
+        dive_number: index + 1, // Ensure proper numbering
+        // Remove temporary id if present
+        ...(dive.id && typeof dive.id === 'number' && dive.id > 1000000000000
+          ? {}
+          : { id: dive.id }),
       })),
     };
-
     onSubmit(submitData);
   };
 
   const formContent = (
-    <form onSubmit={handleSubmit} className='space-y-6'>
+    <form onSubmit={handleSubmit(onFormSubmit)} className='space-y-6'>
       {/* Trip Details */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
         <div>
-          <label
-            htmlFor='trip-diving-center'
-            className='block text-sm font-medium text-gray-700 mb-1'
-          >
-            Diving Center
-          </label>
-          <select
+          <DivingCenterSearchableDropdown
+            divingCenters={divingCenters}
+            selectedId={watch('diving_center_id')}
+            onSelect={id => setValue('diving_center_id', id, { shouldValidate: true })}
+            error={errors.diving_center_id ? getErrorMessage(errors.diving_center_id) : null}
             id='trip-diving-center'
-            value={formData.diving_center_id ? formData.diving_center_id.toString() : ''}
-            onChange={e =>
-              setFormData({
-                ...formData,
-                diving_center_id: e.target.value ? parseInt(e.target.value) : null,
-              })
-            }
-            className='w-full p-2 border rounded-md'
-          >
-            <option value=''>Select diving center</option>
-            {divingCenters.map(center => (
-              <option key={center.id} value={center.id}>
-                {center.name}
-              </option>
-            ))}
-          </select>
+          />
         </div>
 
         <div>
@@ -132,11 +157,13 @@ const TripFormModal = ({
           <input
             id='trip-date'
             type='date'
-            value={formData.trip_date}
-            onChange={e => setFormData({ ...formData, trip_date: e.target.value })}
-            className='w-full p-2 border rounded-md'
+            {...register('trip_date')}
+            className={`w-full p-2 border rounded-md ${errors.trip_date ? 'border-red-500' : ''}`}
             required
           />
+          {errors.trip_date && (
+            <p className='text-red-500 text-sm mt-1'>{getErrorMessage(errors.trip_date)}</p>
+          )}
         </div>
 
         <div>
@@ -146,10 +173,12 @@ const TripFormModal = ({
           <input
             id='trip-time'
             type='time'
-            value={formData.trip_time}
-            onChange={e => setFormData({ ...formData, trip_time: e.target.value })}
-            className='w-full p-2 border rounded-md'
+            {...register('trip_time')}
+            className={`w-full p-2 border rounded-md ${errors.trip_time ? 'border-red-500' : ''}`}
           />
+          {errors.trip_time && (
+            <p className='text-red-500 text-sm mt-1'>{getErrorMessage(errors.trip_time)}</p>
+          )}
         </div>
 
         <div>
@@ -159,11 +188,17 @@ const TripFormModal = ({
           <input
             id='trip-duration'
             type='number'
-            value={formData.trip_duration}
-            onChange={e => setFormData({ ...formData, trip_duration: e.target.value })}
-            className='w-full p-2 border rounded-md'
+            {...register('trip_duration', {
+              setValueAs: val => (val === '' ? null : val),
+            })}
+            className={`w-full p-2 border rounded-md ${
+              errors.trip_duration ? 'border-red-500' : ''
+            }`}
             min='1'
           />
+          {errors.trip_duration && (
+            <p className='text-red-500 text-sm mt-1'>{getErrorMessage(errors.trip_duration)}</p>
+          )}
         </div>
 
         <div>
@@ -174,27 +209,34 @@ const TripFormModal = ({
             id='trip-price'
             type='number'
             step='0.01'
-            value={formData.trip_price}
-            onChange={e => setFormData({ ...formData, trip_price: e.target.value })}
-            className='w-full p-2 border rounded-md'
+            {...register('trip_price', {
+              setValueAs: val => (val === '' ? null : val),
+            })}
+            className={`w-full p-2 border rounded-md ${errors.trip_price ? 'border-red-500' : ''}`}
           />
+          {errors.trip_price && (
+            <p className='text-red-500 text-sm mt-1'>{getErrorMessage(errors.trip_price)}</p>
+          )}
         </div>
 
-        <div>
-          <label htmlFor='trip-currency' className='block text-sm font-medium text-gray-700 mb-1'>
-            Currency
-          </label>
-          <select
-            id='trip-currency'
-            value={formData.trip_currency}
-            onChange={e => setFormData({ ...formData, trip_currency: e.target.value })}
-            className='w-full p-2 border rounded-md'
-          >
-            <option value='EUR'>EUR</option>
-            <option value='USD'>USD</option>
-            <option value='GBP'>GBP</option>
-          </select>
-        </div>
+        <Controller
+          name='trip_currency'
+          control={control}
+          render={({ field }) => (
+            <Select
+              id='trip-currency'
+              label='Currency'
+              value={field.value}
+              onValueChange={field.onChange}
+              error={errors.trip_currency ? getErrorMessage(errors.trip_currency) : null}
+              options={[
+                { value: 'EUR', label: 'EUR' },
+                { value: 'USD', label: 'USD' },
+                { value: 'GBP', label: 'GBP' },
+              ]}
+            />
+          )}
+        />
 
         <div>
           <label
@@ -206,11 +248,17 @@ const TripFormModal = ({
           <input
             id='trip-group-size-limit'
             type='number'
-            value={formData.group_size_limit}
-            onChange={e => setFormData({ ...formData, group_size_limit: e.target.value })}
-            className='w-full p-2 border rounded-md'
+            {...register('group_size_limit', {
+              setValueAs: val => (val === '' ? null : val),
+            })}
+            className={`w-full p-2 border rounded-md ${
+              errors.group_size_limit ? 'border-red-500' : ''
+            }`}
             min='1'
           />
+          {errors.group_size_limit && (
+            <p className='text-red-500 text-sm mt-1'>{getErrorMessage(errors.group_size_limit)}</p>
+          )}
         </div>
 
         <div>
@@ -223,29 +271,60 @@ const TripFormModal = ({
           <input
             id='trip-current-bookings'
             type='number'
-            value={formData.current_bookings}
-            onChange={e => setFormData({ ...formData, current_bookings: e.target.value })}
-            className='w-full p-2 border rounded-md'
+            {...register('current_bookings', {
+              setValueAs: val => (val === '' ? 0 : Number(val)),
+            })}
+            className={`w-full p-2 border rounded-md ${
+              errors.current_bookings ? 'border-red-500' : ''
+            }`}
             min='0'
           />
+          {errors.current_bookings && (
+            <p className='text-red-500 text-sm mt-1'>{getErrorMessage(errors.current_bookings)}</p>
+          )}
         </div>
 
-        <div>
-          <label htmlFor='trip-status' className='block text-sm font-medium text-gray-700 mb-1'>
-            Trip Status
-          </label>
-          <select
-            id='trip-status'
-            value={formData.trip_status}
-            onChange={e => setFormData({ ...formData, trip_status: e.target.value })}
-            className='w-full p-2 border rounded-md'
-          >
-            <option value='scheduled'>Scheduled</option>
-            <option value='confirmed'>Confirmed</option>
-            <option value='cancelled'>Cancelled</option>
-            <option value='completed'>Completed</option>
-          </select>
-        </div>
+        <Controller
+          name='trip_status'
+          control={control}
+          render={({ field }) => (
+            <Select
+              id='trip-status'
+              label='Trip Status'
+              value={field.value}
+              onValueChange={field.onChange}
+              error={errors.trip_status ? getErrorMessage(errors.trip_status) : null}
+              options={[
+                { value: 'scheduled', label: 'Scheduled' },
+                { value: 'confirmed', label: 'Confirmed' },
+                { value: 'cancelled', label: 'Cancelled' },
+                { value: 'completed', label: 'Completed' },
+              ]}
+            />
+          )}
+        />
+
+        <Controller
+          name='trip_difficulty_code'
+          control={control}
+          render={({ field }) => (
+            <Select
+              id='trip-difficulty-code'
+              label='Trip Difficulty'
+              value={field.value || 'all'}
+              onValueChange={value => field.onChange(value === 'all' ? null : value)}
+              error={
+                errors.trip_difficulty_code ? getErrorMessage(errors.trip_difficulty_code) : null
+              }
+              options={[
+                { value: 'all', label: 'Unspecified' },
+                ...getDifficultyOptions()
+                  .filter(opt => opt.value !== null)
+                  .map(opt => ({ value: opt.value, label: opt.label })),
+              ]}
+            />
+          )}
+        />
       </div>
 
       <div>
@@ -254,11 +333,15 @@ const TripFormModal = ({
         </label>
         <textarea
           id='trip-description'
-          value={formData.trip_description}
-          onChange={e => setFormData({ ...formData, trip_description: e.target.value })}
-          className='w-full p-2 border rounded-md'
+          {...register('trip_description')}
+          className={`w-full p-2 border rounded-md ${
+            errors.trip_description ? 'border-red-500' : ''
+          }`}
           rows='3'
         />
+        {errors.trip_description && (
+          <p className='text-red-500 text-sm mt-1'>{getErrorMessage(errors.trip_description)}</p>
+        )}
       </div>
 
       <div>
@@ -270,11 +353,17 @@ const TripFormModal = ({
         </label>
         <textarea
           id='trip-special-requirements'
-          value={formData.special_requirements}
-          onChange={e => setFormData({ ...formData, special_requirements: e.target.value })}
-          className='w-full p-2 border rounded-md'
+          {...register('special_requirements')}
+          className={`w-full p-2 border rounded-md ${
+            errors.special_requirements ? 'border-red-500' : ''
+          }`}
           rows='2'
         />
+        {errors.special_requirements && (
+          <p className='text-red-500 text-sm mt-1'>
+            {getErrorMessage(errors.special_requirements)}
+          </p>
+        )}
       </div>
 
       {/* Dives Section */}
@@ -291,16 +380,16 @@ const TripFormModal = ({
           </button>
         </div>
 
-        {formData.dives.length === 0 && (
+        {fields.length === 0 && (
           <p className='text-gray-500 text-sm'>
             No dives added yet. Click &quot;Add Dive&quot; to add dives to this trip.
           </p>
         )}
 
-        {formData.dives.map((dive, index) => (
-          <div key={dive.id} className='border rounded-lg p-4 mb-4 bg-gray-50'>
+        {fields.map((field, index) => (
+          <div key={field.id} className='border rounded-lg p-4 mb-4 bg-gray-50'>
             <div className='flex justify-between items-center mb-3'>
-              <h5 className='text-md font-medium text-gray-700'>Dive {dive.dive_number}</h5>
+              <h5 className='text-md font-medium text-gray-700'>Dive {index + 1}</h5>
               <button
                 type='button'
                 onClick={() => removeDive(index)}
@@ -311,33 +400,37 @@ const TripFormModal = ({
             </div>
 
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <div>
-                <label
-                  htmlFor={`dive-site-${index}`}
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Dive Site
-                </label>
-                <select
-                  id={`dive-site-${index}`}
-                  value={dive.dive_site_id ? dive.dive_site_id.toString() : ''}
-                  onChange={e =>
-                    updateDive(
-                      index,
-                      'dive_site_id',
-                      e.target.value ? parseInt(e.target.value) : null
-                    )
-                  }
-                  className='w-full p-2 border rounded-md'
-                >
-                  <option value=''>Select dive site</option>
-                  {allDiveSites.map(site => (
-                    <option key={site.id} value={site.id}>
-                      {site.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Hidden field for dive_number */}
+              <input
+                type='hidden'
+                {...register(`dives.${index}.dive_number`, {
+                  value: index + 1,
+                })}
+              />
+              <Controller
+                name={`dives.${index}.dive_site_id`}
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    id={`dive-site-${index}`}
+                    label='Dive Site'
+                    value={field.value ? field.value.toString() : 'all'}
+                    onValueChange={value => field.onChange(value === 'all' ? null : Number(value))}
+                    error={
+                      errors.dives?.[index]?.dive_site_id
+                        ? getErrorMessage(errors.dives?.[index]?.dive_site_id)
+                        : null
+                    }
+                    options={[
+                      { value: 'all', label: 'Select dive site' },
+                      ...allDiveSites.map(site => ({
+                        value: site.id.toString(),
+                        label: site.name,
+                      })),
+                    ]}
+                  />
+                )}
+              />
 
               <div>
                 <label
@@ -349,10 +442,16 @@ const TripFormModal = ({
                 <input
                   id={`dive-time-${index}`}
                   type='time'
-                  value={dive.dive_time}
-                  onChange={e => updateDive(index, 'dive_time', e.target.value)}
-                  className='w-full p-2 border rounded-md'
+                  {...register(`dives.${index}.dive_time`)}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.dives?.[index]?.dive_time ? 'border-red-500' : ''
+                  }`}
                 />
+                {errors.dives?.[index]?.dive_time && (
+                  <p className='text-red-500 text-sm mt-1'>
+                    {getErrorMessage(errors.dives?.[index]?.dive_time)}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -365,11 +464,19 @@ const TripFormModal = ({
                 <input
                   id={`dive-duration-${index}`}
                   type='number'
-                  value={dive.dive_duration}
-                  onChange={e => updateDive(index, 'dive_duration', e.target.value)}
-                  className='w-full p-2 border rounded-md'
+                  {...register(`dives.${index}.dive_duration`, {
+                    setValueAs: val => (val === '' ? null : val),
+                  })}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.dives?.[index]?.dive_duration ? 'border-red-500' : ''
+                  }`}
                   min='1'
                 />
+                {errors.dives?.[index]?.dive_duration && (
+                  <p className='text-red-500 text-sm mt-1'>
+                    {getErrorMessage(errors.dives?.[index]?.dive_duration)}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -381,11 +488,17 @@ const TripFormModal = ({
                 </label>
                 <textarea
                   id={`dive-description-${index}`}
-                  value={dive.dive_description}
-                  onChange={e => updateDive(index, 'dive_description', e.target.value)}
-                  className='w-full p-2 border rounded-md'
+                  {...register(`dives.${index}.dive_description`)}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.dives?.[index]?.dive_description ? 'border-red-500' : ''
+                  }`}
                   rows='2'
                 />
+                {errors.dives?.[index]?.dive_description && (
+                  <p className='text-red-500 text-sm mt-1'>
+                    {getErrorMessage(errors.dives?.[index]?.dive_description)}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -415,19 +528,14 @@ const TripFormModal = ({
   // Render as modal if isModal is true, otherwise render as standalone form
   if (isModal) {
     return (
-      <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-        <div className='bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto'>
-          <div className='flex justify-between items-center mb-4'>
-            <h3 className='text-lg font-semibold'>{title || 'Dive Trip'}</h3>
-            {onCancel && (
-              <button onClick={onCancel} className='text-gray-500 hover:text-gray-700'>
-                ×
-              </button>
-            )}
-          </div>
-          {formContent}
-        </div>
-      </div>
+      <Modal
+        isOpen={true}
+        onClose={onCancel}
+        title={title || 'Dive Trip'}
+        className='max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto'
+      >
+        {formContent}
+      </Modal>
     );
   }
 

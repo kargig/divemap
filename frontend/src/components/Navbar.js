@@ -25,6 +25,7 @@ import {
   Code,
   Bell,
   BarChart3,
+  Award,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -36,6 +37,7 @@ import { useResponsiveScroll } from '../hooks/useResponsive';
 import GlobalSearchBar from './GlobalSearchBar';
 import Logo from './Logo';
 import NotificationBell from './NotificationBell';
+import DropdownMenu from './ui/DropdownMenu';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -43,42 +45,9 @@ const Navbar = () => {
   const location = useLocation();
   const { isMobile, navbarVisible } = useResponsiveScroll();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showAdminDropdown, setShowAdminDropdown] = useState(false);
-  const [showInfoDropdown, setShowInfoDropdown] = useState(false);
+  const [showMobileResourcesDropdown, setShowMobileResourcesDropdown] = useState(false);
   const [showMobileInfoDropdown, setShowMobileInfoDropdown] = useState(false);
   const [showMobileAdminDropdown, setShowMobileAdminDropdown] = useState(false);
-
-  // Handle clicks outside dropdowns
-  useEffect(() => {
-    const handleClickOutside = event => {
-      if (showAdminDropdown || showInfoDropdown) {
-        const target = event.target;
-        const isDropdownButton = target.closest(
-          'button[onclick*="setShowAdminDropdown"], button[onclick*="setShowInfoDropdown"]'
-        );
-        const isDropdownContent = target.closest('.dropdown-content');
-
-        if (!isDropdownButton && !isDropdownContent) {
-          setShowAdminDropdown(false);
-          setShowInfoDropdown(false);
-        }
-      }
-    };
-
-    if (showAdminDropdown || showInfoDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') {
-          setShowAdminDropdown(false);
-          setShowInfoDropdown(false);
-        }
-      });
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showAdminDropdown, showInfoDropdown]);
 
   const handleLogout = () => {
     logout();
@@ -91,8 +60,7 @@ const Navbar = () => {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
-    setShowAdminDropdown(false);
-    setShowInfoDropdown(false);
+    setShowMobileResourcesDropdown(false);
     setShowMobileInfoDropdown(false);
     setShowMobileAdminDropdown(false);
   };
@@ -248,186 +216,172 @@ const Navbar = () => {
               <span>Dive Trips</span>
             </Link>
 
-            <div className='relative'>
-              <button
-                onClick={() => setShowInfoDropdown(!showInfoDropdown)}
-                className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
-              >
-                <Info className='h-5 w-5' />
-                <span>Info</span>
-                <ChevronDown className='h-4 w-4' />
-              </button>
+            <DropdownMenu
+              trigger={
+                <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+                  <Award className='h-5 w-5' />
+                  <span>Resources</span>
+                  <ChevronDown className='h-4 w-4' />
+                </button>
+              }
+              items={[
+                {
+                  type: 'item',
+                  label: 'Diving Organizations',
+                  icon: <Award className='h-4 w-4' />,
+                  onClick: () => navigate('/resources/diving-organizations'),
+                },
+                {
+                  type: 'item',
+                  label: 'Tags',
+                  icon: <Tags className='h-4 w-4' />,
+                  onClick: () => navigate('/resources/tags'),
+                },
+              ]}
+            />
 
-              {showInfoDropdown && (
-                <div className='absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-xl py-1 z-[9999] border-2 border-gray-300 dropdown-content'>
-                  <Link
-                    to='/about'
-                    className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                    onClick={() => setShowInfoDropdown(false)}
-                  >
-                    <Info className='h-4 w-4 mr-2' />
-                    About
-                  </Link>
-                  <Link
-                    to='/api-docs'
-                    className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                    onClick={() => setShowInfoDropdown(false)}
-                  >
-                    <Code className='h-4 w-4 mr-2' />
-                    API
-                  </Link>
-                  <Link
-                    to='/changelog'
-                    className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                    onClick={() => setShowInfoDropdown(false)}
-                  >
-                    <FileText className='h-4 w-4 mr-2' />
-                    Changelog
-                  </Link>
-                  <Link
-                    to='/help'
-                    className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                    onClick={() => setShowInfoDropdown(false)}
-                  >
-                    <HelpCircle className='h-4 w-4 mr-2' />
-                    Help
-                  </Link>
-                  <Link
-                    to='/privacy'
-                    className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                    onClick={() => setShowInfoDropdown(false)}
-                  >
-                    <Shield className='h-4 w-4 mr-2' />
-                    Privacy
-                  </Link>
-                </div>
-              )}
-            </div>
+            <DropdownMenu
+              trigger={
+                <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+                  <Info className='h-5 w-5' />
+                  <span>Info</span>
+                  <ChevronDown className='h-4 w-4' />
+                </button>
+              }
+              items={[
+                {
+                  type: 'item',
+                  label: 'About',
+                  icon: <Info className='h-4 w-4' />,
+                  onClick: () => navigate('/about'),
+                },
+                {
+                  type: 'item',
+                  label: 'API',
+                  icon: <Code className='h-4 w-4' />,
+                  onClick: () => navigate('/api-docs'),
+                },
+                {
+                  type: 'item',
+                  label: 'Changelog',
+                  icon: <FileText className='h-4 w-4' />,
+                  onClick: () => navigate('/changelog'),
+                },
+                {
+                  type: 'item',
+                  label: 'Help',
+                  icon: <HelpCircle className='h-4 w-4' />,
+                  onClick: () => navigate('/help'),
+                },
+                {
+                  type: 'item',
+                  label: 'Privacy',
+                  icon: <Shield className='h-4 w-4' />,
+                  onClick: () => navigate('/privacy'),
+                },
+              ]}
+            />
 
             {user ? (
               <div className='flex items-center space-x-4'>
                 <NotificationBell />
 
                 {user.is_admin && (
-                  <div className='relative'>
-                    <button
-                      onClick={() => setShowAdminDropdown(!showAdminDropdown)}
-                      className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
-                    >
-                      <Settings className='h-5 w-5' />
-                      <span>Admin</span>
-                      <ChevronDown className='h-4 w-4' />
-                    </button>
-
-                    {showAdminDropdown && (
-                      <div className='absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-xl py-1 z-[9999] border-2 border-gray-300 dropdown-content'>
-                        <Link
-                          to='/admin'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <Settings className='h-4 w-4 mr-2' />
-                          Dashboard
-                        </Link>
-                        <Link
-                          to='/admin/dives'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <Anchor className='h-4 w-4 mr-2' />
-                          Dives
-                        </Link>
-                        <Link
-                          to='/admin/dive-sites'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <MapPin className='h-4 w-4 mr-2' />
-                          Dive Sites
-                        </Link>
-                        <Link
-                          to='/admin/diving-centers'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <Building className='h-4 w-4 mr-2' />
-                          Diving Centers
-                        </Link>
-                        <Link
-                          to='/admin/tags'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <Tags className='h-4 w-4 mr-2' />
-                          Tags
-                        </Link>
-                        <Link
-                          to='/admin/newsletters'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <FileText className='h-4 w-4 mr-2' />
-                          Newsletter Management
-                        </Link>
-                        <Link
-                          to='/admin/ownership-requests'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <Crown className='h-4 w-4 mr-2' />
-                          Ownership Requests
-                        </Link>
-                        <Link
-                          to='/admin/system-metrics'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <Activity className='h-4 w-4 mr-2' />
-                          System Metrics
-                        </Link>
-                        <Link
-                          to='/admin/general-statistics'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <BarChart3 className='h-4 w-4 mr-2' />
-                          General Statistics
-                        </Link>
-                        <Link
-                          to='/admin/growth-visualizations'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <BarChart3 className='h-4 w-4 mr-2' />
-                          Growth Visualizations
-                        </Link>
-                        <Link
-                          to='/admin/recent-activity'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <Clock className='h-4 w-4 mr-2' />
-                          Recent Activity
-                        </Link>
-                        <Link
-                          to='/admin/users'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <Users className='h-4 w-4 mr-2' />
-                          Users
-                        </Link>
-                        <Link
-                          to='/admin/notification-preferences'
-                          className='flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100'
-                          onClick={() => setShowAdminDropdown(false)}
-                        >
-                          <Bell className='h-4 w-4 mr-2' />
-                          Notification Preferences
-                        </Link>
-                      </div>
-                    )}
-                  </div>
+                  <DropdownMenu
+                    trigger={
+                      <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+                        <Settings className='h-5 w-5' />
+                        <span>Admin</span>
+                        <ChevronDown className='h-4 w-4' />
+                      </button>
+                    }
+                    items={[
+                      {
+                        type: 'item',
+                        label: 'Dashboard',
+                        icon: <Settings className='h-4 w-4' />,
+                        onClick: () => navigate('/admin'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'Dives',
+                        icon: <Anchor className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/dives'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'Dive Sites',
+                        icon: <MapPin className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/dive-sites'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'Diving Centers',
+                        icon: <Building className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/diving-centers'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'Diving Organizations',
+                        icon: <Award className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/diving-organizations'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'Tags',
+                        icon: <Tags className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/tags'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'Newsletters',
+                        icon: <FileText className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/newsletters'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'Ownership Requests',
+                        icon: <Crown className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/ownership-requests'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'System Metrics',
+                        icon: <Activity className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/system-metrics'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'General Statistics',
+                        icon: <BarChart3 className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/general-statistics'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'Growth Visualizations',
+                        icon: <BarChart3 className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/growth-visualizations'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'Recent Activity',
+                        icon: <Clock className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/recent-activity'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'Users',
+                        icon: <Users className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/users'),
+                      },
+                      {
+                        type: 'item',
+                        label: 'Notification Preferences',
+                        icon: <Bell className='h-4 w-4' />,
+                        onClick: () => navigate('/admin/notification-preferences'),
+                      },
+                    ]}
+                  />
                 )}
 
                 <Link
@@ -507,6 +461,7 @@ const Navbar = () => {
                       className='flex-1'
                       inputClassName='bg-white text-gray-900'
                       placeholder='Search dives, sites, centers...'
+                      popoverClassName='z-[100000]'
                     />
                     <button
                       onClick={closeMobileMenu}
@@ -572,6 +527,44 @@ const Navbar = () => {
                     <Calendar className='h-5 w-5 mr-3' />
                     <span>Dive Trips</span>
                   </Link>
+
+                  <div className='px-3 py-2'>
+                    <button
+                      onClick={() => setShowMobileResourcesDropdown(!showMobileResourcesDropdown)}
+                      className='flex items-center justify-between w-full px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                    >
+                      <div className='flex items-center'>
+                        <Award className='h-4 w-4 mr-3' />
+                        <span>Resources</span>
+                      </div>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform duration-200 ${
+                          showMobileResourcesDropdown ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+
+                    {showMobileResourcesDropdown && (
+                      <div className='ml-7 mt-1 space-y-1'>
+                        <Link
+                          to='/resources/diving-organizations'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Award className='h-4 w-4 mr-3' />
+                          <span>Diving Organizations</span>
+                        </Link>
+                        <Link
+                          to='/resources/tags'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Tags className='h-4 w-4 mr-3' />
+                          <span>Tags</span>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
 
                   <div className='px-3 py-2'>
                     <button
@@ -697,6 +690,14 @@ const Navbar = () => {
                                 >
                                   <Building className='h-4 w-4 mr-3' />
                                   <span>Diving Centers</span>
+                                </Link>
+                                <Link
+                                  to='/admin/diving-organizations'
+                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                                  onClick={closeMobileMenu}
+                                >
+                                  <Award className='h-4 w-4 mr-3' />
+                                  <span>Diving Organizations</span>
                                 </Link>
                                 <Link
                                   to='/admin/tags'

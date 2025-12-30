@@ -1,0 +1,1432 @@
+[
+  {
+    "acronym": "PADI",
+    "name": "Professional Association of Diving Instructors",
+    "certifications": [
+      {
+        "name": "Discover Scuba Diving (DSD)",
+        "category": "Recreational Track",
+        "max_depth": "12m (40ft)",
+        "gases": "Air",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Scuba Diver",
+        "category": "Recreational Track",
+        "max_depth": "12m (40ft)",
+        "gases": "Air",
+        "tanks": "Single",
+        "prerequisites": "direct supervision"
+      },
+      {
+        "name": "Open Water Diver (OWD)",
+        "category": "Recreational Track",
+        "max_depth": "18m (60ft)",
+        "gases": "Air",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Advanced Open Water Diver (AOWD)",
+        "category": "Recreational Track",
+        "max_depth": "30m (100ft)",
+        "gases": "Air/Nitrox",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Rescue Diver",
+        "category": "Recreational Track",
+        "max_depth": "30m (100ft)",
+        "gases": "Air/Nitrox",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Master Scuba Diver",
+        "category": "Recreational Track",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": "Rescue + 5 Specialties + 50 dives"
+      },
+      {
+        "name": "Divemaster",
+        "category": "Professional Track",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": "Rescue Diver + 40 dives (60 to certify)"
+      },
+      {
+        "name": "Open Water Scuba Instructor (OWSI)",
+        "category": "Professional Track",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": "Divemaster + 100 dives"
+      },
+      {
+        "name": "Master Scuba Diver Trainer (MSDT)",
+        "category": "Professional Track",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "IDC Staff Instructor",
+        "category": "Professional Track",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Master Instructor",
+        "category": "Professional Track",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Course Director",
+        "category": "Professional Track",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Tec 40",
+        "category": "Technical Track (Tecrec)",
+        "max_depth": "40m",
+        "gases": "Air/Nitrox up to 50% for deco",
+        "tanks": "Double + 1 stage (optional)",
+        "deco_time_limit": "10 minutes",
+        "prerequisites": null
+      },
+      {
+        "name": "Tec 45",
+        "category": "Technical Track (Tecrec)",
+        "max_depth": "45m",
+        "gases": "up to 100% O2 for deco",
+        "tanks": "Double + 1 stage",
+        "deco_time_limit": "Unlimited (gas limited)",
+        "prerequisites": null
+      },
+      {
+        "name": "Tec 50",
+        "category": "Technical Track (Tecrec)",
+        "max_depth": "50m",
+        "gases": "Air/Nitrox/O2/Normoxic Trimix",
+        "tanks": "Double + 2 stages",
+        "deco_time_limit": "Unlimited (gas limited)",
+        "prerequisites": null
+      },
+      {
+        "name": "Tec Trimix 65",
+        "category": "Technical Track (Tecrec)",
+        "max_depth": "65m",
+        "gases": "Trimix (min 18% O2)",
+        "tanks": "Double + 2+ stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Tec Trimix Diver",
+        "category": "Technical Track (Tecrec)",
+        "max_depth": "Beyond 65m (limit set by training, often 90m+)",
+        "gases": null,
+        "tanks": "Double + 3+ stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Enriched Air Diver (Nitrox)",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Deep Diver",
+        "category": "Specialties",
+        "max_depth": "40m",
+        "gases": null,
+        "tanks": "Single + Pony/Stage recommended",
+        "prerequisites": null
+      },
+      {
+        "name": "Wreck Diver",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single/Double",
+        "prerequisites": null
+      },
+      {
+        "name": "Sidemount Diver",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "2 Sidemount",
+        "prerequisites": null
+      },
+      {
+        "name": "Dry Suit Diver",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single/Double",
+        "prerequisites": null
+      },
+      {
+        "name": "Self-Reliant Diver",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single + Pony or Doubles",
+        "prerequisites": "Min 100 dives"
+      },
+      {
+        "name": "Cavern Diver",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single/Double",
+        "prerequisites": null
+      },
+      {
+        "name": "Ice Diver",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single/Double",
+        "prerequisites": null
+      }
+    ]
+  },
+  {
+    "acronym": "SSI",
+    "name": "Scuba Schools International",
+    "certifications": [
+      {
+        "name": "Try Scuba",
+        "category": "Recreational Track",
+        "max_depth": "12m",
+        "gases": "Air",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Scuba Diver",
+        "category": "Recreational Track",
+        "max_depth": "12m",
+        "gases": "Air",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Open Water Diver (OWD)",
+        "category": "Recreational Track",
+        "max_depth": "18m",
+        "gases": "Air",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Advanced Adventurer",
+        "category": "Recreational Track",
+        "max_depth": "30m (Intro to 5 specialties)",
+        "gases": "Air/Nitrox",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Diver Stress & Rescue",
+        "category": "Recreational Track",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Master Diver",
+        "category": "Recreational Track",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": "Stress & Rescue + 4 Specialties + 50 dives"
+      },
+      {
+        "name": "Dive Guide",
+        "category": "Professional Track",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Divemaster",
+        "category": "Professional Track",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Assistant Instructor",
+        "category": "Professional Track",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Open Water Instructor",
+        "category": "Professional Track",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "XR Nitrox",
+        "category": "Extended Range (Xr) / Technical",
+        "max_depth": "40m",
+        "gases": "Nitrox up to 100%",
+        "tanks": "Single + Pony or Double",
+        "deco_time_limit": "15 minutes",
+        "prerequisites": null
+      },
+      {
+        "name": "Extended Range",
+        "category": "Extended Range (Xr) / Technical",
+        "max_depth": "45m",
+        "gases": "Air/Nitrox up to 100%",
+        "tanks": "Double + 1 stage",
+        "deco_time_limit": "25 minutes",
+        "prerequisites": null
+      },
+      {
+        "name": "Technical Extended Range",
+        "category": "Extended Range (Xr) / Technical",
+        "max_depth": "50m (60m with Trimix)",
+        "gases": "Normoxic Trimix / Nitrox / O2",
+        "tanks": "Double + 2 stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Hypoxic Trimix",
+        "category": "Extended Range (Xr) / Technical",
+        "max_depth": "100m",
+        "gases": "Hypoxic Trimix / multiple stages",
+        "tanks": "Double + 3+ stages",
+        "prerequisites": null
+      },
+      {
+        "name": "XR Sidemount",
+        "category": "Extended Range (Xr) / Technical",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "2+ Sidemount",
+        "prerequisites": null
+      },
+      {
+        "name": "XR Cavern / Cave / Wreck",
+        "category": "Extended Range (Xr) / Technical",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Double/Sidemount + Stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Decompression Diving",
+        "category": "Specialties",
+        "max_depth": "40m",
+        "gases": "Air/Nitrox (up to 40% O2 for deco)",
+        "tanks": "Single + Stage",
+        "deco_time_limit": "15 minutes",
+        "prerequisites": "Deep Diving + Nitrox 40"
+      },
+      {
+        "name": "Deep Diving",
+        "category": "Specialties",
+        "max_depth": "18-40m",
+        "gases": null,
+        "tanks": "Single",
+        "deco_time_limit": "No decompression",
+        "prerequisites": "Open Water Diver, Min age 15"
+      },
+      {
+        "name": "Enriched Air Nitrox",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": "Up to 40% O2",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Navigation",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Night & Limited Visibility",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Wreck Diving",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Dry Suit Diving",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Waves, Tides & Currents",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Search & Recovery",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Perfect Buoyancy",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Computer Diving",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Photo & Video",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Ecology Programs",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      }
+    ]
+  },
+  {
+    "acronym": "GUE",
+    "name": "Global Underwater Explorers",
+    "certifications": [
+      {
+        "name": "Fundamentals (Rec Pass)",
+        "category": "General",
+        "max_depth": "21m",
+        "gases": "Nitrox 32%",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Fundamentals (Tec Pass)",
+        "category": "General",
+        "max_depth": null,
+        "gases": "Nitrox 32%",
+        "tanks": "Double + Canister Light",
+        "prerequisites": null
+      },
+      {
+        "name": "Recreational 1",
+        "category": "General",
+        "max_depth": "21m",
+        "gases": "Nitrox 32%",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Recreational 2",
+        "category": "General",
+        "max_depth": "30m",
+        "gases": "Triox 30/30",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Recreational 3",
+        "category": "General",
+        "max_depth": "39m",
+        "gases": "Normoxic Trimix (Triox 21/35)",
+        "tanks": "Double",
+        "deco_time_limit": "15 minutes (unadjusted)",
+        "prerequisites": "Limited deco (15 min)"
+      },
+      {
+        "name": "Technical Diver 1",
+        "category": "Technical Track",
+        "max_depth": "51m",
+        "gases": "Normoxic Trimix 21/35 or 18/45",
+        "tanks": "Double + 1 stage",
+        "deco_time_limit": "30 minutes (unadjusted)",
+        "prerequisites": "Min 100 dives"
+      },
+      {
+        "name": "Technical Diver 2",
+        "category": "Technical Track",
+        "max_depth": "75m",
+        "gases": "Hypoxic Trimix",
+        "tanks": "Double + 2+ stages",
+        "deco_time_limit": "60 minutes (unadjusted)",
+        "prerequisites": "Min 25 dives at Tech 1 level"
+      },
+      {
+        "name": "Technical Diver 3",
+        "category": "Technical Track",
+        "max_depth": "Beyond 75m",
+        "gases": "Hypoxic Trimix",
+        "tanks": "Double + 3+ stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Cave Diver 1",
+        "category": "Cave Track",
+        "max_depth": "30m",
+        "gases": "Nitrox 32%",
+        "tanks": "Double",
+        "prerequisites": null
+      },
+      {
+        "name": "Cave Diver 2",
+        "category": "Cave Track",
+        "max_depth": null,
+        "gases": "Nitrox 32%",
+        "tanks": "Double",
+        "prerequisites": null
+      },
+      {
+        "name": "Cave Diver 3",
+        "category": "Cave Track",
+        "max_depth": null,
+        "gases": "Nitrox 32% + Stages",
+        "tanks": "Double + Stages/CCR",
+        "prerequisites": null
+      },
+      {
+        "name": "Doubles Primer",
+        "category": "Specialized Courses / Primers",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Double",
+        "prerequisites": null
+      },
+      {
+        "name": "Drysuit Primer",
+        "category": "Specialized Courses / Primers",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single/Double",
+        "prerequisites": null
+      },
+      {
+        "name": "DPV 1",
+        "category": "Specialized Courses / Primers",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Double",
+        "prerequisites": "Min 75 dives"
+      },
+      {
+        "name": "DPV 2",
+        "category": "Specialized Courses / Primers",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Double + Stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Documentation Diver",
+        "category": "Specialized Courses / Primers",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Photogrammetry Diver",
+        "category": "Specialized Courses / Primers",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Scientific Diver",
+        "category": "Specialized Courses / Primers",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Gas Blender",
+        "category": "Specialized Courses / Primers",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Navigation Diver",
+        "category": "Specialized Courses / Primers",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Rescue Primer",
+        "category": "Specialized Courses / Primers",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Triox Primer",
+        "category": "Specialized Courses / Primers",
+        "max_depth": null,
+        "gases": "Triox 30/30",
+        "tanks": "Single/Double",
+        "prerequisites": null
+      }
+    ]
+  },
+  {
+    "acronym": "TDI",
+    "name": "Technical Diving International",
+    "certifications": [
+      {
+        "name": "Intro to Tech",
+        "category": "General",
+        "max_depth": "23m",
+        "gases": null,
+        "tanks": "Double/Sidemount",
+        "prerequisites": null
+      },
+      {
+        "name": "Advanced Nitrox Diver",
+        "category": "General",
+        "max_depth": "40m",
+        "gases": "up to 100% O2",
+        "tanks": "Single + Stage or Double",
+        "deco_time_limit": "No decompression",
+        "prerequisites": null
+      },
+      {
+        "name": "Decompression Procedures Diver",
+        "category": "General",
+        "max_depth": "45m",
+        "gases": null,
+        "tanks": "Double + Stage",
+        "deco_time_limit": "Unlimited (gas limited)",
+        "prerequisites": null
+      },
+      {
+        "name": "Extended Range Diver",
+        "category": "General",
+        "max_depth": "55m",
+        "gases": "Air or Nitrox",
+        "tanks": "Double + Stages",
+        "deco_time_limit": "Unlimited (gas limited)",
+        "prerequisites": null
+      },
+      {
+        "name": "Trimix Diver",
+        "category": "General",
+        "max_depth": "60m",
+        "gases": "Normoxic Trimix",
+        "tanks": "Double + 2 Stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Advanced Trimix Diver",
+        "category": "General",
+        "max_depth": "100m",
+        "gases": "Hypoxic Trimix",
+        "tanks": "Double + 3+ Stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Helitrox Diver",
+        "category": "General",
+        "max_depth": "45m",
+        "gases": "Helium Mixes",
+        "tanks": "Double + Stage",
+        "prerequisites": null
+      },
+      {
+        "name": "CCR Air Diluent / Decompression / Mixed Gas / Hypoxic",
+        "category": "General",
+        "max_depth": "40m-100m",
+        "gases": null,
+        "tanks": "CCR + Bailouts",
+        "prerequisites": null
+      },
+      {
+        "name": "Advanced Wreck",
+        "category": "General",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Double/Sidemount + Stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Cavern / Cave / Full Cave",
+        "category": "General",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Double/Sidemount + Stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Technical Sidemount",
+        "category": "General",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "2+ Sidemount",
+        "prerequisites": null
+      }
+    ]
+  },
+  {
+    "acronym": "SDI",
+    "name": "Scuba Diving International",
+    "certifications": [
+      {
+        "name": "Open Water Scuba Diver",
+        "category": "General",
+        "max_depth": "18m",
+        "gases": "Air",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Advanced Adventure Diver",
+        "category": "General",
+        "max_depth": "30m (5 specialties intro)",
+        "gases": "Air/Nitrox",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Rescue Diver",
+        "category": "General",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Master Scuba Diver",
+        "category": "General",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": "4 specialties + 50 dives"
+      },
+      {
+        "name": "Solo Diver",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single + Pony or Double",
+        "prerequisites": "Min 100 dives"
+      },
+      {
+        "name": "Computer Nitrox",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": "Nitrox",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Deep Diver",
+        "category": "Specialties",
+        "max_depth": "40m",
+        "gases": "Air/Nitrox",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Wreck Diver",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Navigation",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Dry Suit",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Search and Recovery",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Night / Limited Visibility",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Underwater Video / Still Photography",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Full Face Mask",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      }
+    ]
+  },
+  {
+    "acronym": "NAUI",
+    "name": "National Association of Underwater Instructors",
+    "certifications": [
+      {
+        "name": "Scuba Diver",
+        "category": "General",
+        "max_depth": "18m",
+        "gases": "Air",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Advanced Scuba Diver",
+        "category": "General",
+        "max_depth": "40m",
+        "gases": "Air/Nitrox",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Rescue Scuba Diver",
+        "category": "General",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Master Scuba Diver",
+        "category": "General",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": "Advanced recreational skills"
+      },
+      {
+        "name": "Underwater Environment",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Deep Diving",
+        "category": "Specialties",
+        "max_depth": "40m",
+        "gases": null,
+        "tanks": "Single + Pony",
+        "prerequisites": null
+      },
+      {
+        "name": "Wreck Diving",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Night Diving",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Search and Recovery",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Training for specialized equipment (Sidemount, Drysuit)",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Technical Tracks",
+        "category": "Technical",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Double + Stages",
+        "prerequisites": null
+      }
+    ]
+  },
+  {
+    "acronym": "BSAC",
+    "name": "British Sub-Aqua Club",
+    "certifications": [
+      {
+        "name": "Ocean Diver",
+        "category": "General",
+        "max_depth": "20m",
+        "gases": "Air/Nitrox",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Sports Diver",
+        "category": "General",
+        "max_depth": "35m",
+        "gases": "Air/Nitrox",
+        "tanks": "Single",
+        "deco_time_limit": "Unlimited (subject to planning)",
+        "prerequisites": "Progression from 20m"
+      },
+      {
+        "name": "Dive Leader",
+        "category": "General",
+        "max_depth": "50m",
+        "gases": "Air/Nitrox",
+        "tanks": "Single/Double",
+        "deco_time_limit": "Unlimited (subject to planning)",
+        "prerequisites": null
+      },
+      {
+        "name": "Advanced Diver",
+        "category": "General",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single/Double + Stages",
+        "prerequisites": "Advanced planning/management"
+      },
+      {
+        "name": "First Class Diver",
+        "category": "General",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single/Double + Stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Boat Handling / Chartwork & Position Fixing",
+        "category": "Skill Development Courses (SDCs)",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Marine Life Identification / Underwater Photography",
+        "category": "Skill Development Courses (SDCs)",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "First Aid for Divers / Oxygen Administration",
+        "category": "Skill Development Courses (SDCs)",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Wreck Diving / Search and Recovery",
+        "category": "Skill Development Courses (SDCs)",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Twin-set Diver / Accelerated Decompression",
+        "category": "Skill Development Courses (SDCs)",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Twinset / Stages",
+        "prerequisites": null
+      }
+    ]
+  },
+  {
+    "acronym": "RAID",
+    "name": "Rebreather Association of International Divers",
+    "certifications": [
+      {
+        "name": "Open Water 20",
+        "category": "General",
+        "max_depth": "20m",
+        "gases": "Air/Nitrox",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Explorer 30",
+        "category": "General",
+        "max_depth": "30m",
+        "gases": "Air/Nitrox",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Deep 40",
+        "category": "General",
+        "max_depth": "40m",
+        "gases": "Air/Nitrox",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Master Diver",
+        "category": "General",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": "40 dives + specific specialties"
+      },
+      {
+        "name": "Deco 40",
+        "category": "General",
+        "max_depth": "40m",
+        "gases": "up to 100% O2",
+        "tanks": "Double / Single + Stage",
+        "prerequisites": null
+      },
+      {
+        "name": "Deco 50",
+        "category": "General",
+        "max_depth": "50m",
+        "gases": "Normoxic Trimix",
+        "tanks": "Double + Stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Sidemount / Twinset",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Sidemount/Twinset",
+        "prerequisites": null
+      },
+      {
+        "name": "Drysuit",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Night / Limited Visibility",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Navigation",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Wreck / Advanced Wreck",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Single/Double",
+        "prerequisites": null
+      },
+      {
+        "name": "Cave 1 / 2",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Double/Sidemount",
+        "prerequisites": null
+      },
+      {
+        "name": "Rebreather (CCR) Levels",
+        "category": "Specialties",
+        "max_depth": "40m-100m",
+        "gases": null,
+        "tanks": "CCR + Bailout",
+        "prerequisites": null
+      }
+    ]
+  },
+  {
+    "acronym": "CMAS",
+    "name": "Confédération Mondiale des Activités Subaquatiques",
+    "certifications": [
+      {
+        "name": "One Star Diver (*)",
+        "category": "General",
+        "max_depth": "20m",
+        "gases": "Air",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Two Star Diver (**)",
+        "category": "General",
+        "max_depth": "40m",
+        "gases": "Air/Nitrox",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Three Star Diver (***)",
+        "category": "General",
+        "max_depth": "56m (Rec limit)",
+        "gases": "Air/Nitrox",
+        "tanks": "Double recommended",
+        "prerequisites": null
+      },
+      {
+        "name": "Four Star Diver (****)",
+        "category": "General",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Oxygen Provider",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Rescue",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Night Diving",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Cave Diving",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Double + Stages",
+        "prerequisites": "For penetration >500m"
+      },
+      {
+        "name": "Marine Biology",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Underwater Archaeology",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      }
+    ]
+  },
+  {
+    "acronym": "IANTD",
+    "name": "International Association of Nitrox and Technical Divers",
+    "certifications": [
+      {
+        "name": "Open Water",
+        "category": "General",
+        "max_depth": "18m",
+        "gases": "Air",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Advanced Open Water",
+        "category": "General",
+        "max_depth": "30m",
+        "gases": "Air/Nitrox",
+        "tanks": "Single",
+        "prerequisites": null
+      },
+      {
+        "name": "Rescue / Divemaster",
+        "category": "General",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Deep DECO Diver",
+        "category": "General",
+        "max_depth": "40m",
+        "gases": "Air",
+        "tanks": "Single + Stage or Double",
+        "deco_time_limit": "10 minutes",
+        "prerequisites": null
+      },
+      {
+        "name": "Advanced Nitrox",
+        "category": "General",
+        "max_depth": "42m",
+        "gases": null,
+        "tanks": "Single + Stage or Double",
+        "deco_time_limit": "15 minutes",
+        "prerequisites": null
+      },
+      {
+        "name": "Technical Diver",
+        "category": "General",
+        "max_depth": "54m",
+        "gases": "Air/Nitrox/O2",
+        "tanks": "Double + Stages",
+        "deco_time_limit": "Unlimited (gas limited)",
+        "prerequisites": null
+      },
+      {
+        "name": "Normoxic Trimix",
+        "category": "General",
+        "max_depth": "60m",
+        "gases": "Normoxic Trimix",
+        "tanks": "Double + 2 Stages",
+        "deco_time_limit": "Unlimited (gas limited)",
+        "prerequisites": null
+      },
+      {
+        "name": "Trimix Diver",
+        "category": "General",
+        "max_depth": "100m",
+        "gases": "Hypoxic Trimix",
+        "tanks": "Double + 3+ Stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Deep Diver",
+        "category": "Specialties",
+        "max_depth": "40m",
+        "gases": "Air",
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Wreck / Technical Wreck",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Double + Stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Cavern / Cave",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": "Double + Stages",
+        "prerequisites": null
+      },
+      {
+        "name": "Public Safety Diver",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      },
+      {
+        "name": "Gas Blender",
+        "category": "Specialties",
+        "max_depth": null,
+        "gases": null,
+        "tanks": null,
+        "prerequisites": null
+      }
+    ]
+  },
+  {
+    "acronym": "ANDI",
+    "name": "American Nitrox Divers International",
+    "certifications": [
+      {
+        "name": "Open Water Sport Diver (L1)",
+        "category": "Recreational Track",
+        "max_depth": "18m",
+        "gases": "Air",
+        "tanks": "Single",
+        "deco_time_limit": "No decompression",
+        "prerequisites": null
+      },
+      {
+        "name": "Advanced Open Water Diver (L2)",
+        "category": "Recreational Track",
+        "max_depth": "30m",
+        "gases": "Air/SafeAir (if qualified)",
+        "tanks": "Single",
+        "deco_time_limit": "No decompression",
+        "prerequisites": "OWD"
+      },
+      {
+        "name": "Rescue Diver (L2)",
+        "category": "Recreational Track",
+        "max_depth": "30m",
+        "gases": "Air/SafeAir",
+        "tanks": "Single",
+        "deco_time_limit": "No decompression",
+        "prerequisites": "AOWD + CPR"
+      },
+      {
+        "name": "Limited SafeAir User (LSU) / SafeAir Diver",
+        "category": "SafeAir (Nitrox)",
+        "max_depth": "40m (training dependent)",
+        "gases": "SafeAir 22-40%",
+        "tanks": "Single",
+        "deco_time_limit": "No decompression",
+        "prerequisites": "OWD"
+      },
+      {
+        "name": "Complete SafeAir User (CSU)",
+        "category": "SafeAir (Nitrox)",
+        "max_depth": "40m",
+        "gases": "SafeAir 22-50%",
+        "tanks": "Single",
+        "deco_time_limit": "No decompression",
+        "prerequisites": "LSU or equivalent"
+      },
+      {
+        "name": "Technical SafeAir Diver (TSD) (L3)",
+        "category": "Technical Track",
+        "max_depth": "40m",
+        "gases": "3 mixtures",
+        "tanks": "Double + Stage",
+        "deco_time_limit": "30 minutes",
+        "prerequisites": "CSU + Deep + Rescue"
+      },
+      {
+        "name": "Technical Tri-Mix Diver (TTM) (L3)",
+        "category": "Technical Track",
+        "max_depth": "50m",
+        "gases": "Trimix (min 16% O2)",
+        "tanks": "Double + Stages",
+        "deco_time_limit": "Unlimited (gas limited)",
+        "prerequisites": "TSD"
+      },
+      {
+        "name": "Extended Range Diver (ERD) (L4)",
+        "category": "Technical Track",
+        "max_depth": "50m",
+        "gases": "Multiple mixtures",
+        "tanks": "Double + Stages",
+        "deco_time_limit": "Unlimited (gas limited)",
+        "prerequisites": "TSD or TTM"
+      },
+      {
+        "name": "Tri-Mix Exploration Diver (TMD) (L5)",
+        "category": "Technical Track",
+        "max_depth": "100m",
+        "gases": "Hypoxic Trimix",
+        "tanks": "Double + Multiple Stages",
+        "deco_time_limit": "Unlimited (gas limited)",
+        "prerequisites": "TTM/ERD"
+      }
+    ]
+  }
+]

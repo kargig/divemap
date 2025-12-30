@@ -128,7 +128,8 @@ class TestUserCertifications:
         response = client.post("/api/v1/user-certifications/my-certifications",
                              json=certification_data, headers=auth_headers)
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Certification level or ID is required" in response.json()["detail"]
 
     def test_update_my_certification(self, client, auth_headers, test_user_certification):
         """Test updating a certification for current user."""

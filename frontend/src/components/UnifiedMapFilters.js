@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { getSuitabilityLabel } from '../utils/windSuitabilityHelpers';
 
+import Select from './ui/Select';
+
 const UnifiedMapFilters = ({
   filters,
   onFilterChange,
@@ -162,116 +164,78 @@ const UnifiedMapFilters = ({
           </h3>
 
           <div className='grid grid-cols-2 gap-2'>
-            <div>
-              <label htmlFor='min-rating-select' className='block text-xs text-gray-600 mb-1'>
-                Min Rating
-              </label>
-              <select
-                id='min-rating-select'
-                value={localFilters.min_rating}
-                onChange={e => handleFilterChange('min_rating', e.target.value)}
-                className='w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value=''>Any</option>
-                <option value='1'>1+ Stars</option>
-                <option value='2'>2+ Stars</option>
-                <option value='3'>3+ Stars</option>
-                <option value='4'>4+ Stars</option>
-                <option value='5'>5 Stars</option>
-              </select>
-            </div>
+            <Select
+              id='min-rating-select'
+              label='Min Rating'
+              value={localFilters.min_rating || 'all'}
+              onValueChange={value =>
+                handleFilterChange('min_rating', value === 'all' ? '' : value)
+              }
+              options={[
+                { value: 'all', label: 'Any' },
+                { value: '1', label: '1+ Stars' },
+                { value: '2', label: '2+ Stars' },
+                { value: '3', label: '3+ Stars' },
+                { value: '4', label: '4+ Stars' },
+                { value: '5', label: '5 Stars' },
+              ]}
+            />
 
-            <div>
-              <label htmlFor='max-rating-select' className='block text-xs text-gray-600 mb-1'>
-                Max Rating
-              </label>
-              <select
-                id='max-rating-select'
-                value={localFilters.max_rating}
-                onChange={e => handleFilterChange('max_rating', e.target.value)}
-                className='w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value=''>Any</option>
-                <option value='1'>1 Star</option>
-                <option value='2'>2 Stars</option>
-                <option value='3'>3 Stars</option>
-                <option value='4'>4 Stars</option>
-                <option value='5'>5 Stars</option>
-              </select>
-            </div>
+            <Select
+              id='max-rating-select'
+              label='Max Rating'
+              value={localFilters.max_rating || 'all'}
+              onValueChange={value =>
+                handleFilterChange('max_rating', value === 'all' ? '' : value)
+              }
+              options={[
+                { value: 'all', label: 'Any' },
+                { value: '1', label: '1 Star' },
+                { value: '2', label: '2 Stars' },
+                { value: '3', label: '3 Stars' },
+                { value: '4', label: '4 Stars' },
+                { value: '5', label: '5 Stars' },
+              ]}
+            />
           </div>
         </div>
 
         {/* Wind Suitability Filter - Only for Dive Sites */}
         {selectedEntityType === 'dive-sites' && (
-          <div>
-            <label
-              htmlFor='wind-suitability-select'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              <Wind className='w-4 h-4 inline mr-1' />
-              Wind Suitability
-            </label>
-            <select
-              id='wind-suitability-select'
-              value={localFilters.wind_suitability || ''}
-              onChange={e => handleFilterChange('wind_suitability', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-            >
-              <option value=''>All Conditions (No Filter)</option>
-              <option value='good'>Good Conditions Only</option>
-              <option value='caution'>Good + Caution</option>
-              <option value='difficult'>Good + Caution + Difficult</option>
-              <option value='avoid'>Good + Caution + Difficult + Avoid</option>
-            </select>
-            <p className='text-xs text-gray-500 mt-1'>
-              Filter dive sites by wind conditions (range: selected level and better)
-            </p>
-
-            {/* Unknown conditions checkbox */}
-            <div className='mt-3 flex items-center'>
-              <input
-                type='checkbox'
-                id='include-unknown-wind'
-                checked={localFilters.include_unknown_wind || false}
-                onChange={e => handleFilterChange('include_unknown_wind', e.target.checked)}
-                className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
-              />
-              <label htmlFor='include-unknown-wind' className='ml-2 block text-sm text-gray-700'>
-                Include unknown conditions
-              </label>
-            </div>
-            <p className='text-xs text-gray-500 mt-1 ml-6'>
-              Also show dive sites with unknown wind conditions
-            </p>
-          </div>
+          <Select
+            id='wind-suitability-select'
+            label='Wind Suitability'
+            value={localFilters.wind_suitability || 'all'}
+            onValueChange={value =>
+              handleFilterChange('wind_suitability', value === 'all' ? '' : value)
+            }
+            options={[
+              { value: 'all', label: 'All Conditions' },
+              { value: 'good', label: 'Good Conditions Only' },
+              { value: 'caution', label: 'Good + Caution' },
+              { value: 'difficult', label: 'Good + Caution + Difficult' },
+              { value: 'avoid', label: 'Good + Caution + Difficult + Avoid' },
+            ]}
+          />
         )}
 
         {/* Difficulty Filter */}
         {(selectedEntityType === 'dive-sites' || selectedEntityType === 'dives') && (
-          <div>
-            <label
-              htmlFor='difficulty-select'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              <Waves className='w-4 h-4 inline mr-1' />
-              Difficulty Level
-            </label>
-            <select
+          <div className='space-y-2'>
+            <Select
               id='difficulty-select'
-              value={localFilters.difficulty_code || ''}
-              onChange={e => handleFilterChange('difficulty_code', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-            >
-              <option value=''>Any Difficulty</option>
-              {getDifficultyOptions()
-                .filter(option => option.value !== null) // Exclude "Unspecified" from the dropdown
-                .map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-            </select>
+              label='Difficulty Level'
+              value={localFilters.difficulty_code || 'all'}
+              onValueChange={value =>
+                handleFilterChange('difficulty_code', value === 'all' ? '' : value)
+              }
+              options={[
+                { value: 'all', label: 'Any Difficulty' },
+                ...getDifficultyOptions()
+                  .filter(option => option.value !== null)
+                  .map(opt => ({ value: opt.value, label: opt.label })),
+              ]}
+            />
             <label className='flex items-center mt-2'>
               <input
                 type='checkbox'
@@ -354,23 +318,19 @@ const UnifiedMapFilters = ({
               </div>
             </div>
 
-            <div>
-              <label htmlFor='suit-type-select' className='block text-xs text-gray-600 mb-1'>
-                Suit Type
-              </label>
-              <select
-                id='suit-type-select'
-                value={localFilters.suit_type}
-                onChange={e => handleFilterChange('suit_type', e.target.value)}
-                className='w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value=''>Any</option>
-                <option value='wetsuit'>Wetsuit</option>
-                <option value='dry_suit'>Dry Suit</option>
-                <option value='swimsuit'>Swimsuit</option>
-                <option value='none'>No Suit</option>
-              </select>
-            </div>
+            <Select
+              id='suit-type-select'
+              label='Suit Type'
+              value={localFilters.suit_type || 'all'}
+              onValueChange={value => handleFilterChange('suit_type', value === 'all' ? '' : value)}
+              options={[
+                { value: 'all', label: 'Any' },
+                { value: 'wetsuit', label: 'Wetsuit' },
+                { value: 'dry_suit', label: 'Dry Suit' },
+                { value: 'swimsuit', label: 'Swimsuit' },
+                { value: 'none', label: 'No Suit' },
+              ]}
+            />
           </div>
         )}
 
@@ -419,43 +379,38 @@ const UnifiedMapFilters = ({
             </h3>
 
             {/* Diving Center Filter */}
-            <div>
-              <label htmlFor='diving-center-select' className='block text-xs text-gray-600 mb-1'>
-                Diving Center
-              </label>
-              <select
-                id='diving-center-select'
-                value={localFilters.diving_center_id || ''}
-                onChange={e => handleFilterChange('diving_center_id', e.target.value)}
-                className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value=''>All Centers</option>
-                {divingCenters.map(center => (
-                  <option key={center.id} value={center.id}>
-                    {center.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              id='diving-center-select'
+              label='Diving Center'
+              value={localFilters.diving_center_id || 'all'}
+              onValueChange={value =>
+                handleFilterChange('diving_center_id', value === 'all' ? '' : value)
+              }
+              options={[
+                { value: 'all', label: 'All Centers' },
+                ...divingCenters.map(center => ({
+                  value: center.id.toString(),
+                  label: center.name,
+                })),
+              ]}
+            />
 
             {/* Trip Status Filter */}
-            <div>
-              <label htmlFor='trip-status-select' className='block text-xs text-gray-600 mb-1'>
-                Trip Status
-              </label>
-              <select
-                id='trip-status-select'
-                value={localFilters.trip_status || ''}
-                onChange={e => handleFilterChange('trip_status', e.target.value)}
-                className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value=''>All Statuses</option>
-                <option value='scheduled'>Scheduled</option>
-                <option value='confirmed'>Confirmed</option>
-                <option value='cancelled'>Cancelled</option>
-                <option value='completed'>Completed</option>
-              </select>
-            </div>
+            <Select
+              id='trip-status-select'
+              label='Trip Status'
+              value={localFilters.trip_status || 'all'}
+              onValueChange={value =>
+                handleFilterChange('trip_status', value === 'all' ? '' : value)
+              }
+              options={[
+                { value: 'all', label: 'All Statuses' },
+                { value: 'scheduled', label: 'Scheduled' },
+                { value: 'confirmed', label: 'Confirmed' },
+                { value: 'cancelled', label: 'Cancelled' },
+                { value: 'completed', label: 'Completed' },
+              ]}
+            />
 
             {/* Date Range Filter */}
             <div>
