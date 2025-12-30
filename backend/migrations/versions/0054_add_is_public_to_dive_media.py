@@ -1,7 +1,7 @@
 """add_is_public_to_dive_media
 
-Revision ID: 0051
-Revises: 0050
+Revision ID: 0054
+Revises: 0053
 Create Date: 2025-12-06 17:25:10.251933
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
-revision = '0051'
-down_revision = '0050'
+revision = '0054'
+down_revision = '0053'
 branch_labels = None
 depends_on = None
 
