@@ -1,6 +1,6 @@
 import { Save, ArrowLeft, Plus, X, ChevronDown, Image, Video, FileText, Link } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -17,6 +17,7 @@ import {
 } from '../api';
 import DivingCenterSearchableDropdown from '../components/DivingCenterSearchableDropdown';
 import { FormField } from '../components/forms/FormField';
+import GasTanksInput from '../components/forms/GasTanksInput';
 import RouteSelection from '../components/RouteSelection';
 import UserSearchInput from '../components/UserSearchInput';
 import { useAuth } from '../contexts/AuthContext';
@@ -66,6 +67,7 @@ const EditDive = () => {
     watch,
     setError,
     reset,
+    control,
   } = methods;
 
   // Watch dive_site_id for dependent field clearing
@@ -732,12 +734,13 @@ const EditDive = () => {
 
             <div className='md:col-span-2'>
               <FormField name='gas_bottles_used' label='Gas Bottles Used'>
-                {({ register, name }) => (
-                  <textarea
-                    {...register(name)}
-                    className='w-full border border-gray-300 rounded-md px-3 py-2'
-                    rows='2'
-                    placeholder='e.g., 12L aluminum tank, 200 bar'
+                {() => (
+                  <Controller
+                    name='gas_bottles_used'
+                    control={control}
+                    render={({ field: { value, onChange } }) => (
+                      <GasTanksInput value={value} onChange={onChange} error={null} />
+                    )}
                   />
                 )}
               </FormField>

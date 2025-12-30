@@ -32,6 +32,7 @@ import {
 import api, { getDive, deleteDive, deleteDiveMedia, removeBuddy } from '../api';
 import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
 import DiveProfileModal from '../components/DiveProfileModal';
+import GasTanksDisplay from '../components/GasTanksDisplay';
 import RateLimitError from '../components/RateLimitError';
 import ShareButton from '../components/ShareButton';
 import Modal from '../components/ui/Modal';
@@ -911,13 +912,11 @@ const DiveDetail = () => {
                 {dive.gas_bottles_used && (
                   <div className='mt-4'>
                     <h3 className='text-sm font-medium text-gray-700 mb-1'>Gas Bottles Used</h3>
-                    <div className='text-gray-600'>
-                      {dive.gas_bottles_used.split('\n').map((bottle, index) => (
-                        <div key={index} className={index > 0 ? 'mt-1' : ''}>
-                          {bottle.trim()}
-                        </div>
-                      ))}
-                    </div>
+                    <GasTanksDisplay
+                      gasData={dive.gas_bottles_used}
+                      averageDepth={dive.average_depth}
+                      duration={dive.duration}
+                    />
                   </div>
                 )}
 

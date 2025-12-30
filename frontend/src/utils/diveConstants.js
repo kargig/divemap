@@ -1,0 +1,26 @@
+// Tank Definitions
+export const TANK_SIZES = [
+  { id: '7', name: '7 Liters', size: 7, defaultPressure: 200 },
+  { id: '8.5', name: '8.5 Liters', size: 8.5, defaultPressure: 200 },
+  { id: '10', name: '10 Liters', size: 10, defaultPressure: 200 },
+  { id: 'al40', name: 'AL40 (5.7L)', size: 5.7, defaultPressure: 200 },
+  { id: 'al80', name: 'AL80 (11.1L)', size: 11.1, defaultPressure: 200 },
+  { id: '12', name: '12 Liters', size: 12, defaultPressure: 200 },
+  { id: '14', name: 'Double 7s (14L)', size: 14, defaultPressure: 200 },
+  { id: '15', name: '15 Liters', size: 15, defaultPressure: 200 },
+  { id: '18', name: '18 Liters', size: 18, defaultPressure: 200 },
+  { id: 'double_al80', name: 'Double AL80 (22.2L)', size: 22.2, defaultPressure: 200 },
+  { id: '24', name: 'Double 12s (24L)', size: 24, defaultPressure: 200 },
+];
+
+// Common Gas Mixes
+export const GAS_MIXES = [
+  { id: 'air', name: 'Air (21%)', o2: 21, he: 0 },
+  { id: 'ean32', name: 'EAN32', o2: 32, he: 0 },
+  { id: 'ean36', name: 'EAN36', o2: 36, he: 0 },
+  { id: 'nx50', name: 'Nitrox 50%', o2: 50, he: 0 },
+  { id: 'oxy', name: 'Oxygen (100%)', o2: 100, he: 0 },
+  { id: 'tx2135', name: 'Tx 21/35', o2: 21, he: 35 },
+  { id: 'tx1845', name: 'Tx 18/45', o2: 18, he: 45 },
+  { id: 'custom', name: 'Custom Mix...', o2: null, he: null },
+];

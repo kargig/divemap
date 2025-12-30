@@ -2,6 +2,7 @@ import { Calculator, Gauge, Wind, Info, AlertTriangle, Timer, Compass } from 'lu
 import { useState, useEffect } from 'react';
 
 import usePageTitle from '../hooks/usePageTitle';
+import { TANK_SIZES } from '../utils/diveConstants';
 
 const Tools = () => {
   usePageTitle('Divemap - Diving Tools');
@@ -498,17 +499,12 @@ const Tools = () => {
                     onChange={e => setSacTankSize(parseFloat(e.target.value))}
                     className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500'
                   >
-                    <option value='7'>7 Liters</option>
-                    <option value='8.5'>8.5 Liters</option>
-                    <option value='10'>10 Liters</option>
-                    <option value='11.1'>11.1 Liters (AL80)</option>
-                    <option value='12'>12 Liters</option>
-                    <option value='14'>14 Liters (Double 7s)</option>
-                    <option value='15'>15 Liters</option>
-                    <option value='18'>18 Liters</option>
-                    <option value='22.2'>22.2 Liters (Double AL80)</option>
-                    <option value='24'>24 Liters (Double 12s)</option>
-                  </select>
+                    {TANK_SIZES.map(tank => (
+                      <option key={tank.id} value={tank.size}>
+                        {tank.name}
+                      </option>
+                    ))}
+                  </select>{' '}
                 </div>
 
                 <div className='grid grid-cols-2 gap-4'>
@@ -681,16 +677,11 @@ const Tools = () => {
                       }}
                       className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500'
                     >
-                      <option value='7'>7 Liters</option>
-                      <option value='8.5'>8.5 Liters</option>
-                      <option value='10'>10 Liters</option>
-                      <option value='11.1'>11.1 Liters (AL80)</option>
-                      <option value='12'>12 Liters</option>
-                      <option value='14'>14 Liters (Double 7s)</option>
-                      <option value='15'>15 Liters</option>
-                      <option value='18'>18 Liters</option>
-                      <option value='22.2'>22.2 Liters (Double AL80)</option>
-                      <option value='24'>24 Liters (Double 12s)</option>
+                      {TANK_SIZES.map(tank => (
+                        <option key={tank.id} value={tank.size}>
+                          {tank.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -928,16 +919,11 @@ const Tools = () => {
                       onChange={e => setMinGasTankSize(parseFloat(e.target.value))}
                       className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500'
                     >
-                      <option value='7'>7 Liters</option>
-                      <option value='8.5'>8.5 Liters</option>
-                      <option value='10'>10 Liters</option>
-                      <option value='11.1'>11.1 Liters (AL80)</option>
-                      <option value='12'>12 Liters</option>
-                      <option value='14'>14 Liters (Double 7s)</option>
-                      <option value='15'>15 Liters</option>
-                      <option value='18'>18 Liters</option>
-                      <option value='22.2'>22.2 Liters (Double AL80)</option>
-                      <option value='24'>24 Liters (Double 12s)</option>
+                      {TANK_SIZES.map(tank => (
+                        <option key={tank.id} value={tank.size}>
+                          {tank.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
