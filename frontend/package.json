@@ -33,8 +33,7 @@
     "react-slider": "^2.0.6",
     "recharts": "^3.2.1",
     "tailwindcss": "^3.4.17",
-    "zod": "^4.2.1",
-    "yet-another-react-lightbox": "^3.26.0"
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",

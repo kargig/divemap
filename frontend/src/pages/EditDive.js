@@ -1,7 +1,9 @@
 import { Save, ArrowLeft, Plus, X, ChevronDown, Image, Video, FileText, Link } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
+import { Upload, Image as AntImage, Button } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -92,7 +94,8 @@ const EditDive = () => {
   const [selectedBuddies, setSelectedBuddies] = useState([]);
   const [newMediaIsPublic, setNewMediaIsPublic] = useState(true);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
-  const fileInputRef = useRef(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState('');
 
   // Fetch dive data
   const {
@@ -134,6 +137,30 @@ const EditDive = () => {
         setSelectedTags(data.tags.map(tag => tag.id));
       } else {
         setSelectedTags([]);
+      }
+
+      // Load existing media
+      if (data.media && Array.isArray(data.media)) {
+        const existingMedia = data.media.map(media => ({
+          id: media.id,
+          type: media.media_type,
+          url: media.url,
+          description: media.description || '',
+          title: media.title || '',
+          is_public: media.is_public !== undefined ? media.is_public : true,
+          uploaded: true, // Mark as already uploaded
+          original_filename: media.original_filename || undefined,
+        }));
+        setMediaUrls(existingMedia);
+      } else {
+        setMediaUrls([]);
+      }
+
+      // Load existing buddies
+      if (data.buddies && Array.isArray(data.buddies)) {
+        setSelectedBuddies(data.buddies);
+      } else {
+        setSelectedBuddies([]);
       }
 
       // Set dive site search name
@@ -380,75 +407,200 @@ const EditDive = () => {
     }
   };
 
-  const handlePhotoUpload = async (event) => {
-    const files = Array.from(event.target.files);
-    if (files.length === 0) return;
-    
-    // Prevent multiple simultaneous uploads
-    if (uploadingPhotos) {
-      return;
-    }
-
-    setUploadingPhotos(true);
-    const uploadPromises = files.map(async (file) => {
-      try {
-        const uploadedMedia = await uploadDivePhoto(
-          id,
-          file,
-          newMediaDescription.trim(),
-          newMediaIsPublic
-        );
-        return {
-          id: uploadedMedia.id, // Use database ID for uploaded photos
-          type: 'photo',
-          url: uploadedMedia.url,
-          description: uploadedMedia.description || '',
-          title: '',
-          is_public: uploadedMedia.is_public,
-          uploaded: true, // Mark as already uploaded (indicates it's in database)
-        };
-      } catch (error) {
-        toast.error(`Failed to upload ${file.name}: ${error.response?.data?.detail || error.message}`);
-        return null;
-      }
-    });
-
-    const uploadedMedia = await Promise.all(uploadPromises);
-    const validMedia = uploadedMedia.filter(m => m !== null);
-    
-    if (validMedia.length > 0) {
-      setMediaUrls(prev => [...prev, ...validMedia]);
-      toast.success(`Successfully uploaded ${validMedia.length} photo(s)`);
-    }
-
-    // Reset form
-    setNewMediaDescription('');
-    setNewMediaIsPublic(true);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    setUploadingPhotos(false);
-  };
-
   const handleMediaRemove = async (mediaItem) => {
-    // If this is an uploaded photo (has database ID), delete it from backend and R2
-    if (mediaItem.uploaded && typeof mediaItem.id === 'number') {
+    // If this has a database ID, it means it's been saved and we need to delete from backend and R2
+    if (mediaItem.id) {
       try {
-        await deleteDiveMedia(id, mediaItem.id);
+        // Ensure mediaId is a number
+        const mediaId = typeof mediaItem.id === 'number' ? mediaItem.id : parseInt(mediaItem.id);
+        if (isNaN(mediaId)) {
+          toast.error('Invalid media ID');
+          return;
+        }
+        // Delete from backend (which also deletes from R2)
+        await deleteDiveMedia(id, mediaId);
         toast.success('Photo deleted successfully');
+        // Remove from local state only after successful deletion
+        setMediaUrls(prev => prev.filter(item => item.id !== mediaItem.id));
         queryClient.invalidateQueries(['dive', id]);
       } catch (error) {
         toast.error(error.response?.data?.detail || 'Failed to delete photo');
-        return; // Don't remove from UI if deletion failed
+        // Don't remove from UI if deletion failed
       }
+    } else {
+      // For non-uploaded items (files that were just selected but not yet uploaded), just remove from local state
+      setMediaUrls(prev => prev.filter(item => item.id !== mediaItem.id));
     }
-    
-    // Remove from local state
-    setMediaUrls(prev => prev.filter(item => item.id !== mediaItem.id));
   };
 
   const handleMediaDescriptionChange = (id, description) => {
     setMediaUrls(prev => prev.map(item => (item.id === id ? { ...item, description } : item)));
+  };
+
+  // Helper function to get base64 for preview
+  const getBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+
+  // State to track files in the upload component (both uploading and uploaded)
+  const [uploadFileList, setUploadFileList] = useState([]);
+
+  // Convert mediaUrls photos to Upload fileList format and merge with uploadFileList
+  const photoFileList = useMemo(() => {
+    const uploadedFiles = mediaUrls
+      .filter(media => media.type === 'photo')
+      .map((media, index) => {
+        // Use original filename if available, otherwise extract from URL
+        // For presigned URLs, the URL contains query params, so we use the stored original filename
+        const displayName = media.original_filename || 'photo.jpg';
+        
+        return {
+          uid: media.id?.toString() || `uploaded-${index}`,
+          name: displayName,
+          status: 'done',
+          url: media.url,
+          thumbUrl: media.url,
+          mediaItem: media, // Store reference to original media item
+        };
+      });
+
+    // Merge uploaded files with files currently in upload process
+    // uploadFileList contains files that are selected/uploading but not yet in mediaUrls
+    const uploadedFileIds = new Set(uploadedFiles.map(f => f.uid));
+    const uploadingFiles = uploadFileList.filter(f => !uploadedFileIds.has(f.uid));
+    
+    return [...uploadedFiles, ...uploadingFiles];
+  }, [mediaUrls, uploadFileList]);
+
+  // Handle file preview
+  const handlePreview = async (file) => {
+    if (!file.url && !file.preview) {
+      if (file.originFileObj) {
+        file.preview = await getBase64(file.originFileObj);
+      }
+    }
+    setPreviewImage(file.url || file.preview);
+    setPreviewOpen(true);
+  };
+
+  // Custom upload handler
+  const customRequest = async ({ file, onSuccess, onError, onProgress }) => {
+    const fileUid = file.uid || `upload-${Date.now()}-${Math.random()}`;
+    
+    // Add file to uploadFileList with uploading status, storing original file reference
+    setUploadFileList(prev => [
+      ...prev.filter(f => f.uid !== fileUid && f.originFileObj !== file),
+      {
+        uid: fileUid,
+        name: file.name,
+        status: 'uploading',
+        percent: 0,
+        originFileObj: file, // Store reference to original file object
+      },
+    ]);
+
+    try {
+      setUploadingPhotos(true);
+      onProgress({ percent: 0 });
+      
+      // Update progress
+      setUploadFileList(prev =>
+        prev.map(f =>
+          (f.uid === fileUid || f.originFileObj === file) ? { ...f, percent: 0, status: 'uploading' } : f
+        )
+      );
+      
+      const uploadedMedia = await uploadDivePhoto(
+        id,
+        file,
+        newMediaDescription.trim(),
+        newMediaIsPublic
+      );
+
+      onProgress({ percent: 100 });
+
+      const mediaItem = {
+        id: uploadedMedia.id,
+        type: 'photo',
+        url: uploadedMedia.url,
+        description: uploadedMedia.description || '',
+        title: '',
+        is_public: uploadedMedia.is_public,
+        uploaded: true,
+        original_filename: file.name, // Store original filename for display
+      };
+
+      // Remove from uploadFileList (match by both UID and originFileObj to catch all cases)
+      setUploadFileList(prev => prev.filter(f => f.uid !== fileUid && f.originFileObj !== file));
+      setMediaUrls(prev => [...prev, mediaItem]);
+      toast.success(`Successfully uploaded ${file.name}`);
+      onSuccess(uploadedMedia, file);
+      setUploadingPhotos(false);
+    } catch (error) {
+      // Update file status to error
+      setUploadFileList(prev =>
+        prev.map(f =>
+          (f.uid === fileUid || f.originFileObj === file) ? { ...f, status: 'error' } : f
+        )
+      );
+      onError(error);
+      setUploadingPhotos(false);
+      toast.error(`Failed to upload ${file.name}: ${error.response?.data?.detail || error.message}`);
+    }
+  };
+
+  // Handle file removal (called directly when remove button is clicked)
+  const handleRemove = (file) => {
+    // Find the mediaItem by UID (which should match the media ID)
+    const mediaItem = mediaUrls.find(m => m.type === 'photo' && m.id?.toString() === file.uid);
+    
+    if (mediaItem) {
+      handleMediaRemove(mediaItem);
+    } else {
+      // For files that are not yet uploaded (just selected), remove from uploadFileList
+      setUploadFileList(prev => prev.filter(f => f.uid !== file.uid));
+    }
+    
+    // Return false to prevent Ant Design from removing it immediately
+    // We'll handle the removal in handleMediaRemove after successful deletion
+    return false;
+  };
+
+  // Handle file list change (for adding files)
+  const handleFileListChange = ({ fileList: newFileList }) => {
+
+    // Now filter for files not yet uploaded
+    const uploadedFileIds = new Set(
+      mediaUrls
+        .filter(m => m.type === 'photo')
+        .map(m => m.id?.toString())
+    );
+
+    // Filter out files that are already uploaded (from mediaUrls) - these are managed separately
+    // Also filter out files with status 'done' that don't match uploaded IDs (these are duplicates from Ant Design)
+    const filesNotYetUploaded = newFileList.filter(f => {
+      // Exclude files that are already uploaded (in mediaUrls) - match by UID
+      if (uploadedFileIds.has(f.uid) && f.status === 'done') {
+        return false;
+      }
+      
+      // Exclude files with status 'done' that don't have a URL (these are duplicates)
+      // Uploaded files should have a URL from mediaUrls, so files with status 'done' but no URL
+      // are likely duplicates from Ant Design that should be removed
+      if (f.status === 'done' && !f.url) {
+        return false;
+      }
+      
+      // Include all other files (uploading, error, newly selected with any status, etc.)
+      return true;
+    });
+
+    // Update uploadFileList with files that are not yet uploaded
+    setUploadFileList(filesNotYetUploaded);
   };
 
   const onSubmit = async data => {
@@ -844,6 +996,68 @@ const EditDive = () => {
             <div className='md:col-span-2'>
               <h2 className='text-xl font-semibold mb-4'>Media</h2>
               <div className='space-y-4'>
+                {/* Photo Upload */}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Upload Photos
+                  </label>
+                  <div className='space-y-3'>
+                    {/* Upload Settings */}
+                    <div className='space-y-3 mb-4'>
+                      <div className='flex items-center'>
+                        <input
+                          id='photo-is-public'
+                          type='checkbox'
+                          checked={newMediaIsPublic}
+                          onChange={e => setNewMediaIsPublic(e.target.checked)}
+                          className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                        />
+                        <label
+                          htmlFor='photo-is-public'
+                          className='ml-2 block text-sm text-gray-700'
+                        >
+                          Make photos public (visible on dive site)
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Ant Design Upload with Picture List Style */}
+                    <Upload
+                      customRequest={customRequest}
+                      listType='picture'
+                      fileList={photoFileList}
+                      onPreview={handlePreview}
+                      onRemove={handleRemove}
+                      onChange={handleFileListChange}
+                      accept='image/jpeg,image/jpg,image/png,image/gif,image/webp'
+                      multiple
+                      disabled={uploadingPhotos}
+                    >
+                      <Button type='primary' icon={<UploadOutlined />} disabled={uploadingPhotos}>
+                        Upload Photos
+                      </Button>
+                    </Upload>
+
+                    {/* Preview Modal */}
+                    {previewImage && (
+                      <AntImage
+                        style={{ display: 'none' }}
+                        preview={{
+                          open: previewOpen,
+                          onOpenChange: visible => {
+                            setPreviewOpen(visible);
+                            if (!visible) {
+                              setPreviewImage('');
+                            }
+                          },
+                          afterOpenChange: visible => !visible && setPreviewImage(''),
+                        }}
+                        src={previewImage}
+                      />
+                    )}
+                  </div>
+                </div>
+
                 {/* URL Upload */}
                 <div>
                   <label className='block text-sm font-medium text-gray-700 mb-2'>
@@ -893,7 +1107,6 @@ const EditDive = () => {
                             className='w-full border border-gray-300 rounded-md px-3 py-2'
                           >
                             <option value='external_link'>External Link</option>
-                            <option value='photo'>Photo</option>
                             <option value='video'>Video</option>
                             <option value='dive_plan'>Dive Plan</option>
                           </select>
@@ -935,7 +1148,7 @@ const EditDive = () => {
                             onClick={() => {
                               setShowMediaForm(false);
                               setNewMediaUrl('');
-                              setNewMediaType('external_link');
+                              setNewMediaType('video');
                               setNewMediaDescription('');
                             }}
                             className='px-4 py-2 text-white rounded-md'
@@ -953,51 +1166,51 @@ const EditDive = () => {
                   )}
                 </div>
 
-                {/* Media Preview */}
-                {mediaUrls.length > 0 && (
+                {/* Media Preview (for non-photo media) */}
+                {mediaUrls.filter(media => media.type !== 'photo').length > 0 && (
                   <div className='space-y-3'>
                     <h3 className='text-lg font-medium text-gray-900'>Media Preview</h3>
 
-                    {mediaUrls.map(media => (
-                      <div
-                        key={media.id}
-                        className='flex items-start gap-3 p-3 border border-gray-200 rounded-lg'
-                      >
-                        <div className='flex-shrink-0'>
-                          {media.type === 'photo' ? (
-                            <Image size={24} className='text-blue-600' />
-                          ) : media.type === 'video' ? (
-                            <Video size={24} className='text-purple-600' />
-                          ) : media.type === 'dive_plan' ? (
-                            <FileText size={24} className='text-green-600' />
-                          ) : (
-                            <Link size={24} className='text-orange-600' />
-                          )}
-                        </div>
-                        <div className='flex-1 min-w-0'>
-                          <div className='flex items-center justify-between mb-2'>
-                            <span className='text-sm font-medium text-gray-900 truncate'>
-                              {media.url}
-                            </span>
-                            <button
-                              type='button'
-                              onClick={() => handleMediaRemove(media.id)}
-                              className='text-red-600 hover:text-red-800'
-                            >
-                              <X size={16} />
-                            </button>
+                    {mediaUrls
+                      .filter(media => media.type !== 'photo')
+                      .map(media => (
+                        <div
+                          key={media.id}
+                          className='flex items-start gap-3 p-3 border border-gray-200 rounded-lg'
+                        >
+                          <div className='flex-shrink-0'>
+                            {media.type === 'video' ? (
+                              <Video size={24} className='text-purple-600' />
+                            ) : media.type === 'dive_plan' ? (
+                              <FileText size={24} className='text-green-600' />
+                            ) : (
+                              <Link size={24} className='text-orange-600' />
+                            )}
                           </div>
-                          <div className='text-xs text-gray-500 mb-2'>Type: {media.type}</div>
-                          <input
-                            type='text'
-                            placeholder='Add description (optional)'
-                            value={media.description}
-                            onChange={e => handleMediaDescriptionChange(media.id, e.target.value)}
-                            className='w-full text-sm border border-gray-300 rounded px-2 py-1'
-                          />
+                          <div className='flex-1 min-w-0'>
+                            <div className='flex items-center justify-between mb-2'>
+                              <span className='text-sm font-medium text-gray-900 truncate'>
+                                {media.url}
+                              </span>
+                              <button
+                                type='button'
+                                onClick={() => handleMediaRemove(media)}
+                                className='text-red-600 hover:text-red-800'
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                            <div className='text-xs text-gray-500 mb-2'>Type: {media.type}</div>
+                            <input
+                              type='text'
+                              placeholder='Add description (optional)'
+                              value={media.description}
+                              onChange={e => handleMediaDescriptionChange(media.id, e.target.value)}
+                              className='w-full text-sm border border-gray-300 rounded px-2 py-1'
+                            />
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 )}
               </div>
