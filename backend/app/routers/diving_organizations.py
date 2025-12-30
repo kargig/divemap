@@ -1,3 +1,4 @@
+import re
 from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
@@ -12,6 +13,62 @@ from app.schemas import (
 from app.auth import get_current_admin_user, get_current_user_optional, is_admin_or_moderator
 
 router = APIRouter()
+
+def get_depth_value(depth_str: Optional[str]) -> int:
+    """Extract maximum depth value from string for sorting. Returns 999 if no depth found."""
+    if not depth_str:
+        return 999
+    
+    # Extract all numbers
+    matches = re.findall(r'(\d+)', depth_str)
+    if matches:
+        # Return the largest number found (e.g. "18-40m" -> 40)
+        return max(int(m) for m in matches)
+    
+    return 999
+
+def get_gas_value(gas_str: Optional[str]) -> int:
+    """Calculate gas difficulty score."""
+    if not gas_str:
+        return 0 # Air/Default
+    
+    gas_str = gas_str.lower()
+    if 'hypoxic' in gas_str:
+        return 4
+    if 'trimix' in gas_str or 'helitrox' in gas_str or 'triox' in gas_str:
+        return 3
+    if 'nitrox' in gas_str or 'oxygen' in gas_str or 'o2' in gas_str or 'safeair' in gas_str:
+        return 2
+    return 1 # Explicit Air or other simple gas
+
+def get_category_score(category: Optional[str]) -> int:
+    """
+    Calculate category sort score based on keywords.
+    Order: Recreational/General -> Specialties/Nitrox -> Technical -> Cave -> Professional
+    """
+    if not category:
+        return 1 # Default to lowest/general
+    
+    cat = category.lower()
+    
+    # Professional (Highest)
+    if any(k in cat for k in ['professional', 'instructor', 'dive guide', 'divemaster', 'assistant']):
+        return 5
+    
+    # Cave (Higher than Tech usually, or specific track)
+    if 'cave' in cat:
+        return 4
+        
+    # Technical
+    if any(k in cat for k in ['technical', 'tec', 'extended range', 'rebreather', 'ccr']):
+        return 3
+        
+    # Specialties / Nitrox
+    if any(k in cat for k in ['specialt', 'nitrox', 'safeair']):
+        return 2
+        
+    # Recreational / General (Default)
+    return 1
 
 def get_org_by_id_or_name(db: Session, identifier: str) -> Optional[DivingOrganization]:
     """Helper to find an organization by ID, name, or acronym."""
@@ -60,6 +117,14 @@ async def get_organization_certification_levels(
     levels = db.query(CertificationLevel).filter(
         CertificationLevel.diving_organization_id == organization.id
     ).all()
+    
+    # Sort levels by Category -> Depth -> Gas
+    levels.sort(key=lambda l: (
+        get_category_score(l.category), 
+        get_depth_value(l.max_depth), 
+        get_gas_value(l.gases)
+    ))
+    
     return levels
 
 @router.post("/{identifier}/levels", response_model=CertificationLevelResponse)

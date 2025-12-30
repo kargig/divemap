@@ -602,6 +602,16 @@ class UserProfileStats(BaseModel):
     class Config:
         from_attributes = True
 
+class CertificationStats(BaseModel):
+    max_depth: Optional[float] = None # Converted to meters
+    max_depth_str: Optional[str] = None # Original string (e.g. "100m")
+    best_gases: List[str] = []
+    largest_tanks: List[str] = []
+    max_deco_time: Optional[str] = None
+    max_nitrox_pct: Optional[int] = None
+    max_trimix_pct: Optional[str] = None # e.g. "10/50" or just "Hypoxic"
+    max_stages: Optional[int] = None
+
 class UserPublicProfileResponse(BaseModel):
     username: str
     avatar_url: Optional[str] = None
@@ -609,6 +619,7 @@ class UserPublicProfileResponse(BaseModel):
     member_since: datetime
     certifications: List[UserCertificationResponse] = []
     stats: UserProfileStats
+    certification_stats: Optional[CertificationStats] = None
 
     class Config:
         from_attributes = True

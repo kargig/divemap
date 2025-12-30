@@ -7,6 +7,10 @@ import {
   Activity,
   Building2,
   Users,
+  Gauge,
+  Wind,
+  Cylinder,
+  Timer,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
@@ -97,14 +101,20 @@ const UserProfile = () => {
       yellow: 'bg-yellow-50 text-yellow-600',
       indigo: 'bg-indigo-50 text-indigo-600',
       teal: 'bg-teal-50 text-teal-600',
+      cyan: 'bg-cyan-50 text-cyan-600',
+      rose: 'bg-rose-50 text-rose-600',
+      amber: 'bg-amber-50 text-amber-600',
+      emerald: 'bg-emerald-50 text-emerald-600',
+      violet: 'bg-violet-50 text-violet-600',
+      fuchsia: 'bg-fuchsia-50 text-fuchsia-600',
     };
 
     const content = (
       <div
-        className={`text-center p-4 ${colorClasses[color]} rounded-lg ${link ? 'hover:shadow-md transition-shadow cursor-pointer' : ''}`}
+        className={`text-center p-4 ${colorClasses[color] || colorClasses.blue} rounded-lg ${link ? 'hover:shadow-md transition-shadow cursor-pointer' : ''}`}
       >
         <div className='flex items-center justify-center mb-2'>{icon}</div>
-        <div className='text-2xl font-bold'>{value}</div>
+        <div className='text-xl font-bold break-words'>{value}</div>
         <div className='text-sm text-gray-600 mt-1'>{label}</div>
       </div>
     );
@@ -114,6 +124,77 @@ const UserProfile = () => {
     }
 
     return content;
+  };
+
+  const CertificationStats = ({ stats }) => {
+    if (!stats) return null;
+    // Don't render if all stats are empty
+    if (
+      !stats.max_depth_str &&
+      (!stats.best_gases || stats.best_gases.length === 0) &&
+      (!stats.largest_tanks || stats.largest_tanks.length === 0) &&
+      !stats.max_deco_time
+    ) {
+      return null;
+    }
+
+    // Format Best Gas
+    let bestGasValue = 'Air';
+    if (stats.max_trimix_pct) {
+      bestGasValue = `Trimix (${stats.max_trimix_pct})`;
+    } else if (stats.max_nitrox_pct > 21) {
+      bestGasValue = `Nitrox ${stats.max_nitrox_pct}%`;
+    } else if (stats.best_gases && stats.best_gases.length > 0) {
+      bestGasValue = stats.best_gases[0];
+    }
+
+    // Format Best Tanks
+    let bestTanksValue = 'Single';
+    if (stats.largest_tanks && stats.largest_tanks.length > 0) {
+      bestTanksValue = stats.largest_tanks[0];
+    }
+    if (stats.max_stages > 0) {
+      bestTanksValue += ` + ${stats.max_stages} Stg`;
+    }
+
+    return (
+      <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+        <h2 className='text-xl font-semibold text-gray-900 mb-4'>Certification Level Overview</h2>
+        <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+          {stats.max_depth_str && (
+            <StatCard
+              icon={<Gauge className='h-6 w-6 text-cyan-600' />}
+              value={stats.max_depth_str}
+              label='Max Depth'
+              color='cyan'
+            />
+          )}
+
+          <StatCard
+            icon={<Wind className='h-6 w-6 text-rose-600' />}
+            value={bestGasValue}
+            label='Best Gas'
+            color='rose'
+          />
+
+          <StatCard
+            icon={<Cylinder className='h-6 w-6 text-amber-600' />}
+            value={bestTanksValue}
+            label='Best Tanks'
+            color='amber'
+          />
+
+          {stats.max_deco_time && (
+            <StatCard
+              icon={<Timer className='h-6 w-6 text-emerald-600' />}
+              value={stats.max_deco_time}
+              label='Max Deco Time'
+              color='emerald'
+            />
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -146,6 +227,11 @@ const UserProfile = () => {
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
         {/* Main Content */}
         <div className='lg:col-span-2 space-y-6'>
+          {/* Certification Stats */}
+          {profile.certification_stats && (
+            <CertificationStats stats={profile.certification_stats} />
+          )}
+
           {/* Certifications */}
           {profile.certifications && profile.certifications.length > 0 && (
             <div className='bg-white rounded-lg shadow-md p-6'>
