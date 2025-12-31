@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 
 import { sacRateSchema } from '../../utils/calculatorSchemas';
+import { TANK_SIZES } from '../../utils/diveConstants';
 import GasMixInput from '../forms/GasMixInput';
 
 // Gas compressibility factor (Z) using Subsurface's virial model
@@ -46,6 +47,7 @@ const SacRateCalculator = () => {
     register,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(sacRateSchema),
@@ -93,7 +95,8 @@ const SacRateCalculator = () => {
       ideal: Math.max(0, idealSac),
       real: Math.max(0, realSac),
     });
-  }, [values]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(values)]);
 
   return (
     <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full'>
@@ -110,59 +113,77 @@ const SacRateCalculator = () => {
       </div>
 
       <div className='p-6 flex-grow space-y-6'>
-        <div>
-          <label htmlFor='sacDepth' className='block text-sm font-semibold text-gray-700 mb-2'>
-            Average Depth (meters)
-          </label>
-          <input
-            id='sacDepth'
-            type='number'
-            min='0'
-            {...register('depth', { valueAsNumber: true })}
-            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500'
-          />
-          {errors.depth && <p className='text-red-500 text-xs mt-1'>{errors.depth.message}</p>}
+        <div className='grid grid-cols-2 gap-4'>
+          <div>
+            <label htmlFor='sacDepth' className='block text-sm font-semibold text-gray-700 mb-2'>
+              Average Depth (meters)
+            </label>
+            <input
+              id='sacDepth'
+              type='number'
+              min='0'
+              {...register('depth', { valueAsNumber: true })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500'
+            />
+            {errors.depth && <p className='text-red-500 text-xs mt-1'>{errors.depth.message}</p>}
+          </div>
+
+          <div>
+            <label htmlFor='sacTime' className='block text-sm font-semibold text-gray-700 mb-2'>
+              Bottom Time (minutes)
+            </label>
+            <input
+              id='sacTime'
+              type='number'
+              min='1'
+              {...register('time', { valueAsNumber: true })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500'
+            />
+            {errors.time && <p className='text-red-500 text-xs mt-1'>{errors.time.message}</p>}
+          </div>
         </div>
 
-        <div>
-          <label htmlFor='sacTime' className='block text-sm font-semibold text-gray-700 mb-2'>
-            Bottom Time (minutes)
-          </label>
-          <input
-            id='sacTime'
-            type='number'
-            min='1'
-            {...register('time', { valueAsNumber: true })}
-            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500'
-          />
-          {errors.time && <p className='text-red-500 text-xs mt-1'>{errors.time.message}</p>}
-        </div>
+        <div className='grid grid-cols-2 gap-4'>
+          <div>
+            <label htmlFor='sacTankSize' className='block text-sm font-semibold text-gray-700 mb-2'>
+              Cylinder Size (Liters)
+            </label>
+            <select
+              id='sacTankSize'
+              {...register('tankSize', { valueAsNumber: true })}
+              onChange={e => {
+                const newSize = parseFloat(e.target.value);
+                setValue('tankSize', newSize);
+                const tank = TANK_SIZES.find(t => t.size === newSize);
+                if (tank) {
+                  setValue('startPressure', tank.defaultPressure);
+                }
+              }}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500'
+            >
+              {TANK_SIZES.map(t => (
+                <option key={t.id} value={t.size}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            {errors.tankSize && (
+              <p className='text-red-500 text-xs mt-1'>{errors.tankSize.message}</p>
+            )}
+          </div>
 
-        <div>
-          <label htmlFor='sacTankSize' className='block text-sm font-semibold text-gray-700 mb-2'>
-            Cylinder Size (Liters)
-          </label>
-          <select
-            id='sacTankSize'
-            {...register('tankSize', { valueAsNumber: true })}
-            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500'
-          >
-            <option value='7'>7 Liters</option>
-            <option value='8.5'>8.5 Liters</option>
-            <option value='10'>10 Liters</option>
-            <option value='11.1'>11.1 Liters (AL80)</option>
-            <option value='12'>12 Liters</option>
-            <option value='14'>14 Liters (Double 7s)</option>
-            <option value='15'>15 Liters</option>
-            <option value='17'>Double 8.5s (17L)</option>
-            <option value='18'>18 Liters</option>
-            <option value='20'>Double 10s (20L)</option>
-            <option value='22.2'>22.2 Liters (Double AL80)</option>
-            <option value='24'>24 Liters (Double 12s)</option>
-          </select>
-          {errors.tankSize && (
-            <p className='text-red-500 text-xs mt-1'>{errors.tankSize.message}</p>
-          )}
+          <div>
+            <label className='block text-sm font-semibold text-gray-700 mb-2'>Gas Mix</label>
+            <Controller
+              name='gas'
+              control={control}
+              render={({ field }) => <GasMixInput value={field.value} onChange={field.onChange} />}
+            />
+            {errors.gas?.o2 && <p className='text-red-500 text-xs mt-1'>{errors.gas.o2.message}</p>}
+            <p className='text-xs text-gray-500 mt-1'>
+              Gas mix affects compressibility (Z-factor) for Real SAC calculation.
+            </p>
+          </div>
         </div>
 
         <div className='grid grid-cols-2 gap-4'>
@@ -204,19 +225,6 @@ const SacRateCalculator = () => {
               <p className='text-red-500 text-xs mt-1'>{errors.endPressure.message}</p>
             )}
           </div>
-        </div>
-
-        <div>
-          <label className='block text-sm font-semibold text-gray-700 mb-2'>Gas Mix</label>
-          <Controller
-            name='gas'
-            control={control}
-            render={({ field }) => <GasMixInput value={field.value} onChange={field.onChange} />}
-          />
-          {errors.gas?.o2 && <p className='text-red-500 text-xs mt-1'>{errors.gas.o2.message}</p>}
-          <p className='text-xs text-gray-500 mt-1'>
-            Gas mix affects compressibility (Z-factor) for Real SAC calculation.
-          </p>
         </div>
 
         <div className='flex justify-end'>

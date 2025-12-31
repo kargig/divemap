@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { minGasSchema } from '../../utils/calculatorSchemas';
+import { TANK_SIZES } from '../../utils/diveConstants';
 
 const MinGasCalculator = () => {
   const [minGasResult, setMinGasResult] = useState({ liters: 0, bar: 0 });
@@ -108,35 +109,37 @@ const MinGasCalculator = () => {
       </div>
 
       <div className='p-6 flex-grow space-y-6'>
-        <div>
-          <label htmlFor='minGasDepth' className='block text-sm font-semibold text-gray-700 mb-2'>
-            Depth (meters)
-          </label>
-          <input
-            id='minGasDepth'
-            type='number'
-            min='0'
-            {...register('depth', { valueAsNumber: true })}
-            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500'
-          />
-          {errors.depth && <p className='text-red-500 text-xs mt-1'>{errors.depth.message}</p>}
-        </div>
+        <div className='grid grid-cols-2 gap-4'>
+          <div>
+            <label htmlFor='minGasDepth' className='block text-sm font-semibold text-gray-700 mb-2'>
+              Depth (meters)
+            </label>
+            <input
+              id='minGasDepth'
+              type='number'
+              min='0'
+              {...register('depth', { valueAsNumber: true })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500'
+            />
+            {errors.depth && <p className='text-red-500 text-xs mt-1'>{errors.depth.message}</p>}
+          </div>
 
-        <div>
-          <label htmlFor='minGasSAC' className='block text-sm font-semibold text-gray-700 mb-2'>
-            Emergency SAC (L/min)
-          </label>
-          <input
-            id='minGasSAC'
-            type='number'
-            min='10'
-            {...register('sac', { valueAsNumber: true })}
-            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500'
-          />
-          {errors.sac && <p className='text-red-500 text-xs mt-1'>{errors.sac.message}</p>}
-          <p className='text-xs text-gray-500 mt-1'>
-            Typically 60 L/min for two stressed divers (30 L/min each).
-          </p>
+          <div>
+            <label htmlFor='minGasSAC' className='block text-sm font-semibold text-gray-700 mb-2'>
+              Emergency SAC (L/min)
+            </label>
+            <input
+              id='minGasSAC'
+              type='number'
+              min='10'
+              {...register('sac', { valueAsNumber: true })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500'
+            />
+            {errors.sac && <p className='text-red-500 text-xs mt-1'>{errors.sac.message}</p>}
+            <p className='text-xs text-gray-500 mt-1'>
+              Typically 60 L/min for two stressed divers (30 L/min each).
+            </p>
+          </div>
         </div>
 
         <div className='flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200'>
@@ -250,18 +253,11 @@ const MinGasCalculator = () => {
               {...register('tankSize', { valueAsNumber: true })}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500'
             >
-              <option value='7'>7 Liters</option>
-              <option value='8.5'>8.5 Liters</option>
-              <option value='10'>10 Liters</option>
-              <option value='11.1'>11.1 Liters (AL80)</option>
-              <option value='12'>12 Liters</option>
-              <option value='14'>14 Liters (Double 7s)</option>
-              <option value='15'>15 Liters</option>
-              <option value='17'>Double 8.5s (17L)</option>
-              <option value='18'>18 Liters</option>
-              <option value='20'>Double 10s (20L)</option>
-              <option value='22.2'>22.2 Liters (Double AL80)</option>
-              <option value='24'>24 Liters (Double 12s)</option>
+              {TANK_SIZES.map(t => (
+                <option key={t.id} value={t.size}>
+                  {t.name}
+                </option>
+              ))}
             </select>
             {errors.tankSize && (
               <p className='text-red-500 text-xs mt-1'>{errors.tankSize.message}</p>

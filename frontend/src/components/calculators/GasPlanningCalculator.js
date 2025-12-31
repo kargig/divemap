@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { gasPlanningSchema } from '../../utils/calculatorSchemas';
+import { TANK_SIZES } from '../../utils/diveConstants';
 
 const GasPlanningCalculator = () => {
   const [planGasResult, setPlanGasResult] = useState({
@@ -15,12 +16,6 @@ const GasPlanningCalculator = () => {
     remainingPressure: 0,
   });
   const [showDetails, setShowDetails] = useState(false);
-
-  const getDefaultPressure = size => {
-    // AL80 (11.1) and Double AL80 (22.2) are typically 200/207 bar
-    if (size === 11.1 || size === 22.2) return 200;
-    return 230;
-  };
 
   const {
     register,
@@ -104,32 +99,34 @@ const GasPlanningCalculator = () => {
       </div>
 
       <div className='p-6 flex-grow space-y-6'>
-        <div>
-          <label htmlFor='planDepth' className='block text-sm font-semibold text-gray-700 mb-2'>
-            Average Depth (meters)
-          </label>
-          <input
-            id='planDepth'
-            type='number'
-            min='0'
-            {...register('depth', { valueAsNumber: true })}
-            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500'
-          />
-          {errors.depth && <p className='text-red-500 text-xs mt-1'>{errors.depth.message}</p>}
-        </div>
+        <div className='grid grid-cols-2 gap-4'>
+          <div>
+            <label htmlFor='planDepth' className='block text-sm font-semibold text-gray-700 mb-2'>
+              Average Depth (meters)
+            </label>
+            <input
+              id='planDepth'
+              type='number'
+              min='0'
+              {...register('depth', { valueAsNumber: true })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500'
+            />
+            {errors.depth && <p className='text-red-500 text-xs mt-1'>{errors.depth.message}</p>}
+          </div>
 
-        <div>
-          <label htmlFor='planTime' className='block text-sm font-semibold text-gray-700 mb-2'>
-            Total Dive Time (minutes)
-          </label>
-          <input
-            id='planTime'
-            type='number'
-            min='1'
-            {...register('time', { valueAsNumber: true })}
-            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500'
-          />
-          {errors.time && <p className='text-red-500 text-xs mt-1'>{errors.time.message}</p>}
+          <div>
+            <label htmlFor='planTime' className='block text-sm font-semibold text-gray-700 mb-2'>
+              Total Dive Time (minutes)
+            </label>
+            <input
+              id='planTime'
+              type='number'
+              min='1'
+              {...register('time', { valueAsNumber: true })}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500'
+            />
+            {errors.time && <p className='text-red-500 text-xs mt-1'>{errors.time.message}</p>}
+          </div>
         </div>
 
         <div>
@@ -175,22 +172,18 @@ const GasPlanningCalculator = () => {
               onChange={e => {
                 const newSize = parseFloat(e.target.value);
                 setValue('tankSize', newSize);
-                setValue('pressure', getDefaultPressure(newSize));
+                const tank = TANK_SIZES.find(t => t.size === newSize);
+                if (tank) {
+                  setValue('pressure', tank.defaultPressure);
+                }
               }}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500'
             >
-              <option value='7'>7 Liters</option>
-              <option value='8.5'>8.5 Liters</option>
-              <option value='10'>10 Liters</option>
-              <option value='11.1'>11.1 Liters (AL80)</option>
-              <option value='12'>12 Liters</option>
-              <option value='14'>14 Liters (Double 7s)</option>
-              <option value='15'>15 Liters</option>
-              <option value='17'>Double 8.5s (17L)</option>
-              <option value='18'>18 Liters</option>
-              <option value='20'>Double 10s (20L)</option>
-              <option value='22.2'>22.2 Liters (Double AL80)</option>
-              <option value='24'>24 Liters (Double 12s)</option>
+              {TANK_SIZES.map(t => (
+                <option key={t.id} value={t.size}>
+                  {t.name}
+                </option>
+              ))}
             </select>
             {errors.tankSize && (
               <p className='text-red-500 text-xs mt-1'>{errors.tankSize.message}</p>

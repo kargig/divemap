@@ -2,7 +2,7 @@ import { Gauge, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import { TANK_SIZES } from '../../utils/diveConstants';
-import { calculateTankBuoyancy } from '../../utils/TankBuoyancy';
+import { calculateTankBuoyancy, WATER_TYPES } from '../../utils/TankBuoyancy';
 import GasTanksInput from '../forms/GasTanksInput';
 
 const SUIT_OPTIONS = [
@@ -18,7 +18,7 @@ const SUIT_OPTIONS = [
 const WeightCalculator = () => {
   const [bodyWeight, setBodyWeight] = useState(80);
   const [suitIdx, setSuitIdx] = useState(2); // Default 5mm
-  const [isSaltWater, setIsSaltWater] = useState(true);
+  const [waterTypeIdx, setWaterTypeIdx] = useState(6); // Default Aegean Sea (1.029)
   const [experience, setExperience] = useState('proficient'); // novice, proficient, expert
   const [neutralityTarget, setNeutralityTarget] = useState('empty'); // 'empty' or 'reserve'
   const [isPrecisionMode, setIsPrecisionMode] = useState(false);
@@ -45,6 +45,7 @@ const WeightCalculator = () => {
 
   useEffect(() => {
     const suit = SUIT_OPTIONS[suitIdx];
+    const waterType = WATER_TYPES[waterTypeIdx];
 
     // 1. Base Suit Weight
     const suitLead = bodyWeight * suit.multiplier + suit.offset;
@@ -71,7 +72,7 @@ const WeightCalculator = () => {
           liters: isDoubles ? tankDef.size / 2 : tankDef.size,
           weight: isDoubles ? tankDef.emptyWeight / 2 : tankDef.emptyWeight,
           material: tankDef.material,
-          isSaltWater,
+          waterDensity: waterType.density,
           isDoubles,
           includeValve,
           o2: tankItem.gas?.o2 || 21,
@@ -110,15 +111,11 @@ const WeightCalculator = () => {
 
     const tankAdjustment = totalTankAdjustment;
 
-    // 3. Water Type Adjustment (Freshwater vs Saltwater)
-    // Saltwater is ~2.5% denser. Human body is neutral-ish.
-    // If calibrated in fresh, you need extra weight in salt.
-    // Formula: Body Weight * 0.025 (approx 2.5kg for 100kg diver)
-    // Wait, the existing logic was: const waterAdjustment = isSaltWater ? 0 : -(bodyWeight * 0.025);
-    // This implies the BASELINE is Saltwater.
-    // Let's clarify: The suit multipliers are typically for Saltwater usage in most calculators.
-    // So if you are in Fresh (-2.5%), you remove weight.
-    const waterAdjustment = isSaltWater ? 0 : -(bodyWeight * 0.025);
+    // 3. Water Type Adjustment
+    // Baseline is Standard Ocean (1.025).
+    // Formula: Weight Adjustment = Body Weight * (New Density - Base Density)
+    // Example: Fresh (1.000) -> 80 * (1.000 - 1.025) = 80 * -0.025 = -2kg.
+    const waterAdjustment = bodyWeight * (waterType.density - 1.025);
 
     // 4. Experience Adjustment
     let experienceAdjustment = 0;
@@ -135,7 +132,7 @@ const WeightCalculator = () => {
       experienceAdjustment,
       tankBreakdown,
     });
-  }, [bodyWeight, suitIdx, isSaltWater, gasConfig, experience, neutralityTarget, includeValve]);
+  }, [bodyWeight, suitIdx, waterTypeIdx, gasConfig, experience, neutralityTarget, includeValve]);
 
   return (
     <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col'>
@@ -184,22 +181,41 @@ const WeightCalculator = () => {
           </div>
         </div>
 
-        <div>
-          <label htmlFor='suitType' className='block text-sm font-semibold text-gray-700 mb-2'>
-            Exposure Suit
-          </label>
-          <select
-            id='suitType'
-            value={suitIdx}
-            onChange={e => setSuitIdx(parseInt(e.target.value))}
-            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500'
-          >
-            {SUIT_OPTIONS.map((suit, idx) => (
-              <option key={idx} value={idx}>
-                {suit.label}
-              </option>
-            ))}
-          </select>
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+          <div>
+            <label htmlFor='suitType' className='block text-sm font-semibold text-gray-700 mb-2'>
+              Exposure Suit
+            </label>
+            <select
+              id='suitType'
+              value={suitIdx}
+              onChange={e => setSuitIdx(parseInt(e.target.value))}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500'
+            >
+              {SUIT_OPTIONS.map((suit, idx) => (
+                <option key={idx} value={idx}>
+                  {suit.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor='waterType' className='block text-sm font-semibold text-gray-700 mb-2'>
+              Water Salinity
+            </label>
+            <select
+              id='waterType'
+              value={waterTypeIdx}
+              onChange={e => setWaterTypeIdx(parseInt(e.target.value))}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500'
+            >
+              {WATER_TYPES.map((type, idx) => (
+                <option key={idx} value={idx}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>
@@ -256,21 +272,6 @@ const WeightCalculator = () => {
 
         <div className='flex flex-wrap items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 gap-3'>
           <div className='flex items-center gap-4'>
-            <div className='flex items-center'>
-              <input
-                id='isSaltWaterWeight'
-                type='checkbox'
-                checked={isSaltWater}
-                onChange={e => setIsSaltWater(e.target.checked)}
-                className='w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 cursor-pointer'
-              />
-              <label
-                htmlFor='isSaltWaterWeight'
-                className='ml-2 text-sm font-medium text-gray-700 cursor-pointer select-none'
-              >
-                Salt Water
-              </label>
-            </div>
             <div className='flex items-center'>
               <input
                 id='includeValveWeight'
@@ -385,7 +386,7 @@ const WeightCalculator = () => {
                 3. Environmental & Personal
               </h4>
               <div className='flex justify-between text-gray-600'>
-                <span>Water Type ({isSaltWater ? 'Salt' : 'Fresh'}):</span>
+                <span>Water Type ({WATER_TYPES[waterTypeIdx].label}):</span>
                 <span>{result.waterAdjustment.toFixed(1)} kg</span>
               </div>
               <div className='flex justify-between text-gray-600'>

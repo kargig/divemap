@@ -83,6 +83,7 @@ const ModCalculator = () => {
               Standard (Nitrox)
             </span>
             <button
+              aria-label="Toggle Advanced Mode"
               onClick={() => {
                 setIsAdvanced(!isAdvanced);
                 // Reset Helium when switching back to Standard
