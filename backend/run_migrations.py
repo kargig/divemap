@@ -69,6 +69,23 @@ def run_migrations():
         )
         print("✅ Migrations completed successfully!")
         print(result.stdout)
+
+        # Get and display the current database revision
+        try:
+            current_rev = subprocess.run(
+                ["alembic", "current"],
+                cwd=Path(__file__).parent,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            # Format output to be cleaner (remove (head) if present for cleaner ID, or keep it)
+            # Output format is usually: "revision_id (head)"
+            rev_output = current_rev.stdout.strip()
+            print(f"📌 Current Database Revision: {rev_output}")
+        except subprocess.CalledProcessError:
+            print("⚠️ Could not retrieve current revision ID")
+
         return True
     except subprocess.CalledProcessError as e:
         print("❌ Migration failed!")

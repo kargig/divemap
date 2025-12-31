@@ -205,7 +205,7 @@ async def list_all_users(
 
     # Apply sorting
     if sort_by:
-        valid_sort_fields = {'id', 'username', 'email', 'created_at', 'is_admin', 'enabled', 'email_verified'}
+        valid_sort_fields = {'id', 'username', 'email', 'created_at', 'is_admin', 'enabled', 'email_verified', 'last_accessed_at'}
         if sort_by not in valid_sort_fields:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -233,6 +233,8 @@ async def list_all_users(
             sort_field = User.enabled
         elif sort_by == 'email_verified':
             sort_field = User.email_verified
+        elif sort_by == 'last_accessed_at':
+            sort_field = User.last_accessed_at
 
         if sort_order == 'desc':
             query = query.order_by(sort_field.desc())

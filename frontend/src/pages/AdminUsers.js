@@ -34,6 +34,7 @@ const AdminUsers = () => {
     status: true,
     email_verified: true,
     created_at: true,
+    last_active: true,
     actions: true,
   });
 
@@ -80,6 +81,7 @@ const AdminUsers = () => {
       status: 'enabled',
       email_verified: 'email_verified',
       created_at: 'created_at',
+      last_active: 'last_accessed_at',
     };
     return fieldMapping[columnId] || null;
   };
@@ -527,6 +529,30 @@ const AdminUsers = () => {
         size: 120,
       },
       {
+        id: 'last_active',
+        accessorKey: 'last_accessed_at',
+        header: 'Last Active',
+        cell: ({ row }) => {
+          const userItem = row.original;
+          if (!userItem.last_accessed_at) return <span className='text-sm text-gray-400'>-</span>;
+          return (
+            <div className='flex flex-col'>
+              <span className='text-sm text-gray-700'>
+                {new Date(userItem.last_accessed_at).toLocaleDateString()}
+              </span>
+              <span className='text-xs text-gray-500'>
+                {new Date(userItem.last_accessed_at).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            </div>
+          );
+        },
+        enableSorting: true,
+        size: 120,
+      },
+      {
         id: 'actions',
         header: 'Actions',
         cell: ({ row }) => {
@@ -833,6 +859,7 @@ const AdminUsers = () => {
                   'Status',
                   'Email Verified',
                   'Created',
+                  'Last Active',
                 ];
                 const rows = (users || []).map(user => [
                   user.id,
@@ -842,6 +869,7 @@ const AdminUsers = () => {
                   user.enabled ? 'Enabled' : 'Disabled',
                   user.email_verified ? 'Yes' : 'No',
                   new Date(user.created_at).toLocaleDateString(),
+                  user.last_accessed_at ? new Date(user.last_accessed_at).toLocaleString() : '-',
                 ]);
 
                 const csvContent = [
@@ -969,6 +997,7 @@ const AdminUsers = () => {
                   'Status',
                   'Email Verified',
                   'Created',
+                  'Last Active',
                 ];
                 const rows = allUsers.map(user => [
                   user.id,
@@ -978,6 +1007,7 @@ const AdminUsers = () => {
                   user.enabled ? 'Enabled' : 'Disabled',
                   user.email_verified ? 'Yes' : 'No',
                   new Date(user.created_at).toLocaleDateString(),
+                  user.last_accessed_at ? new Date(user.last_accessed_at).toLocaleString() : '-',
                 ]);
 
                 const csvContent = [

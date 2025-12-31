@@ -2,6 +2,7 @@ from datetime import timedelta, datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from slowapi.util import get_remote_address
 from slowapi import Limiter
@@ -176,6 +177,8 @@ async def login(
         # Try to update the database, but don't fail if it doesn't work
         try:
             user.turnstile_verified_at = turnstile_verified_at
+            # Update last_accessed_at
+            user.last_accessed_at = func.now()
             db.commit()
         except Exception as e:
             # Log the error but don't fail the login
@@ -183,6 +186,14 @@ async def login(
             # Rollback and continue without Turnstile persistence
             db.rollback()
             # Don't refresh the user object - just continue with login
+    elif user:
+        # Update last_accessed_at even if Turnstile is disabled
+        try:
+            user.last_accessed_at = func.now()
+            db.commit()
+        except Exception as e:
+            db.rollback()
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -251,6 +262,13 @@ async def google_login(
         user = get_or_create_google_user(db, google_user_info)
         
         if user:
+            # Update last_accessed_at
+            try:
+                user.last_accessed_at = func.now()
+                db.commit()
+            except Exception:
+                db.rollback()
+
             # Notify admins about new user registration
             # The notification service will check if notifications were already sent to prevent duplicates
             try:

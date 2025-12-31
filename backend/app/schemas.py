@@ -181,8 +181,9 @@ class UserListResponse(BaseModel):
     email_verified: bool
     email_verified_at: Optional[datetime] = None
     created_at: datetime
+    last_accessed_at: Optional[datetime] = None
 
-    @validator('created_at', 'email_verified_at', pre=True)
+    @validator('created_at', 'email_verified_at', 'last_accessed_at', pre=True)
     def normalize_datetime_to_utc(cls, v):
         return normalize_datetime_to_utc(cls, v)
 
