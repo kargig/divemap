@@ -87,16 +87,13 @@ const EditDiveSite = () => {
   const [editingAlias, setEditingAlias] = useState(null);
   const [showAliasForm, setShowAliasForm] = useState(false);
 
-  // Check if user has edit privileges
-  const canEdit = user && (user.is_admin || user.is_moderator);
-
-  // Fetch dive site data
+  // Fetch dive site data (load first to check ownership)
   const {
     data: diveSite,
     isLoading,
     error,
   } = useQuery(['dive-site', id], () => api.get(`/api/v1/dive-sites/${id}`).then(res => res.data), {
-    enabled: !!id && canEdit,
+    enabled: !!id,
     onSuccess: data => {
       reset({
         name: data.name || '',
@@ -124,12 +121,15 @@ const EditDiveSite = () => {
     },
   });
 
+  // Check if user has edit privileges (admin, moderator, or owner)
+  const canEdit = user && (user.is_admin || user.is_moderator || user.id === diveSite?.created_by);
+
   // Fetch all available tags
   const { data: availableTags = [] } = useQuery(
     ['available-tags'],
     () => api.get('/api/v1/tags/').then(res => res.data),
     {
-      enabled: canEdit,
+      enabled: !!id && canEdit,
     }
   );
 
@@ -222,7 +222,7 @@ const EditDiveSite = () => {
     ['dive-site-diving-centers', id],
     () => api.get(`/api/v1/dive-sites/${id}/diving-centers`).then(res => res.data || []),
     {
-      enabled: !!id && canEdit,
+      enabled: !!id && canEdit && !!diveSite,
       onError: error => {
         console.error('Failed to fetch diving centers:', error);
         toast.error('Failed to load diving centers');
@@ -235,7 +235,7 @@ const EditDiveSite = () => {
     ['dive-site-aliases', id],
     () => api.get(`/api/v1/dive-sites/${id}/aliases`).then(res => res.data || []),
     {
-      enabled: !!id && canEdit,
+      enabled: !!id && canEdit && !!diveSite,
       onError: error => {
         console.error('Failed to fetch aliases:', error);
         toast.error('Failed to load aliases');
@@ -255,7 +255,7 @@ const EditDiveSite = () => {
         return res.data || [];
       }),
     {
-      enabled: !!id && canEdit,
+      enabled: !!id && canEdit && !!diveSite,
       onError: _error => {
         toast.error('Failed to load media');
       },
@@ -636,7 +636,7 @@ const EditDiveSite = () => {
         <div className='max-w-4xl mx-auto px-4'>
           <div className='bg-white rounded-lg shadow-md p-6'>
             <h1 className='text-2xl font-bold text-gray-900 mb-4'>Access Denied</h1>
-            <p className='text-gray-600'>You don&apos;t have permission to edit dive sites.</p>
+            <p className='text-gray-600'>You don&apos;t have permission to edit this dive site.</p>
           </div>
         </div>
       </div>

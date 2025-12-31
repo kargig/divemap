@@ -177,6 +177,7 @@ class DiveSiteAliasResponse(DiveSiteAliasBase):
 class DiveSiteResponse(DiveSiteBase):
     id: int
     created_at: datetime
+    created_by: int
     updated_at: datetime
     average_rating: Optional[float] = None
     total_ratings: int = 0

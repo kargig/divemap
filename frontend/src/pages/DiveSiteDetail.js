@@ -71,9 +71,6 @@ const DiveSiteDetail = () => {
     navigate(`/dive-sites/${id}/dive-route`);
   };
 
-  // Check if user has edit privileges
-  const canEdit = user && (user.is_admin || user.is_moderator);
-
   // Route creation mutation
   const createRouteMutation = useMutation(
     routeData =>
@@ -388,15 +385,21 @@ const DiveSiteDetail = () => {
                 className='inline-flex items-center'
               />
             )}
-            {canEdit && (
-              <RouterLink
-                to={`/dive-sites/${id}/edit`}
-                className='inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-              >
-                <Edit className='h-4 w-4 mr-1' />
-                Edit
-              </RouterLink>
-            )}
+            {(() => {
+              const isOwner = user?.id === diveSite?.created_by;
+              const isAdmin = user?.is_admin;
+              const shouldShowEdit = isOwner || isAdmin;
+              
+              return shouldShowEdit && (
+                <RouterLink
+                  to={`/dive-sites/${id}/edit`}
+                  className='inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                >
+                  <Edit className='h-4 w-4 mr-1' />
+                  Edit
+                </RouterLink>
+              );
+            })()}
           </div>
         </div>
         <div className='flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4'>
