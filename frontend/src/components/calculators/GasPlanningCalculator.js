@@ -25,11 +25,11 @@ const GasPlanningCalculator = () => {
   } = useForm({
     resolver: zodResolver(gasPlanningSchema),
     defaultValues: {
-      depth: 20,
+      depth: 15,
       time: 45,
       sac: 15,
       tankSize: 12,
-      pressure: 200,
+      pressure: 220,
       isAdvanced: false,
     },
     mode: 'onChange',

@@ -14,6 +14,7 @@ export const CONSTANTS = {
   SALT_DENSITY: 1.025, // kg/liter (Standard Mean Ocean Water at 15°C)
   FRESH_DENSITY: 1.0, // kg/liter (Pure water at 4°C)
   VALVE_WEIGHT: 0.8, // kg (Average DIN valve weight)
+  MANIFOLD_WEIGHT: 0.7, // kg (Approximate weight of isolation bar)
   // Specific Gravities (relative to Air)
   SG_O2: 1.105,
   SG_N2: 0.967,
@@ -61,6 +62,7 @@ export const calculateTankBuoyancy = ({
         : CONSTANTS.FRESH_DENSITY;
 
   let valveKg = includeValve ? CONSTANTS.VALVE_WEIGHT : 0;
+  let manifoldKg = 0;
   let currentLiters = parseFloat(liters) || 0;
   let currentKg = parseFloat(weight) || 0;
   const currentBar = parseFloat(bar) || 0;
@@ -68,6 +70,10 @@ export const calculateTankBuoyancy = ({
 
   if (isDoubles) {
     valveKg *= 2;
+    // Add manifold bar weight if valves are included
+    if (includeValve) {
+      manifoldKg = CONSTANTS.MANIFOLD_WEIGHT;
+    }
     currentLiters *= 2;
     currentKg *= 2;
   }
@@ -82,11 +88,12 @@ export const calculateTankBuoyancy = ({
   const mixDensity = CONSTANTS.AIR_DENSITY * mixSG;
 
   const volMetal = currentKg / metalDensity;
-  const volValve = valveKg / CONSTANTS.STEEL_DENSITY;
+  // Volume of valve + manifold (assuming steel density for simplicity)
+  const volValve = (valveKg + manifoldKg) / CONSTANTS.STEEL_DENSITY;
   const totalDisplacedVolume = volMetal + volValve + currentLiters;
 
   const buoyantForce = totalDisplacedVolume * waterDensity;
-  const weightEmpty = currentKg + valveKg;
+  const weightEmpty = currentKg + valveKg + manifoldKg;
 
   // Weights of gas
   const weightGasFull = mixDensity * currentBar * currentLiters;
@@ -113,6 +120,7 @@ export const calculateTankBuoyancy = ({
     metalDensity,
     waterDensity,
     totalValveWeight: valveKg,
+    totalManifoldWeight: manifoldKg,
     totalTankWeight: currentKg,
   };
 };
@@ -292,63 +300,122 @@ const TankBuoyancy = () => {
                     {item.type}
                   </span>
                 </div>
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-xs font-mono text-gray-600'>
-                  <div className='flex justify-between'>
-                    <span>Steel/Alu Volume:</span>
-                    <span>{(item.props.weight / item.data.metalDensity).toFixed(3)} L</span>
-                  </div>
-                  <div className='flex justify-between'>
-                    <span>Valve Volume:</span>
-                    <span>{item.data.volValve.toFixed(3)} L</span>
-                  </div>
-                  <div className='flex justify-between'>
-                    <span>Internal Volume:</span>
-                    <span>{item.data.currentLiters.toFixed(1)} L</span>
-                  </div>
-                  <div className='flex justify-between font-bold text-gray-800 border-t border-gray-200 pt-1'>
-                    <span>Total Displacement:</span>
-                    <span>{item.data.totalDisplacedVolume.toFixed(3)} L</span>
-                  </div>
-                  <div className='flex justify-between'>
-                    <span>Water Density:</span>
-                    <span>{item.data.waterDensity.toFixed(3)} kg/L</span>
-                  </div>
-                  <div className='flex justify-between font-bold text-sky-700 border-t border-gray-200 pt-1'>
-                    <span>Buoyant Force:</span>
-                    <span>{item.data.buoyantForce.toFixed(3)} kg</span>
-                  </div>
-                  <div className='flex justify-between mt-2 border-t border-gray-200 pt-1'>
-                    <span>Tank Weight (No Valve):</span>
-                    <span>{item.data.totalTankWeight.toFixed(2)} kg</span>
-                  </div>
-                  <div className='flex justify-between'>
-                    <span>Valve Weight:</span>
-                    <span>{item.data.totalValveWeight.toFixed(2)} kg</span>
-                  </div>
-                  <div className='flex justify-between font-bold text-gray-800 border-t border-gray-200 pt-1'>
-                    <span>Total Weight (Empty):</span>
-                    <span>{item.data.weightEmpty.toFixed(2)} kg</span>
-                  </div>
-                  <div className='flex justify-between'>
-                    <span>Weight (Full):</span>
-                    <span>{item.data.weightFull.toFixed(2)} kg</span>
+                <div className='space-y-4 text-xs font-mono text-gray-600'>
+                  {/* Volume Section */}
+                  <div className='bg-gray-50/50 p-2 rounded border border-gray-100'>
+                    <h5 className='font-bold text-gray-700 mb-2 border-b border-gray-200 pb-1 flex justify-between items-center'>
+                      <span>Displacement / Volume</span>
+                      <span className='text-[10px] font-normal text-gray-400 italic'>
+                        Total = Metal + Valve + Internal
+                      </span>
+                    </h5>
+                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1'>
+                      <div className='flex justify-between'>
+                        <span>Metal Volume:</span>
+                        <span>{item.data.volMetal.toFixed(3)} L</span>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span>Valve Volume:</span>
+                        <span>{item.data.volValve.toFixed(3)} L</span>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span>Internal Tank Volume:</span>
+                        <span>{item.data.currentLiters.toFixed(1)} L</span>
+                      </div>
+                      <div className='flex justify-between font-bold text-gray-800 border-t border-gray-200 pt-1 mt-1 sm:mt-0'>
+                        <span>Total Displacement:</span>
+                        <span>{item.data.totalDisplacedVolume.toFixed(3)} L</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className='flex justify-between font-bold border-t border-gray-200 pt-1'>
-                    <span>Buoyancy (Empty):</span>
-                    <span
-                      className={item.data.buoyancyEmpty > 0 ? 'text-amber-600' : 'text-sky-700'}
-                    >
-                      {formatNum(item.data.buoyancyEmpty)} kg
-                    </span>
+                  {/* Weight Section */}
+                  <div className='bg-gray-50/50 p-2 rounded border border-gray-100'>
+                    <h5 className='font-bold text-gray-700 mb-2 border-b border-gray-200 pb-1'>
+                      Weight Breakdown
+                    </h5>
+                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1'>
+                      <div className='flex justify-between'>
+                        <span>Tank Weight (No Valve):</span>
+                        <span>{item.data.totalTankWeight.toFixed(2)} kg</span>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span>Valve Weight:</span>
+                        <span>{item.data.totalValveWeight.toFixed(2)} kg</span>
+                      </div>
+                      {item.data.totalManifoldWeight > 0 && (
+                        <div className='flex justify-between'>
+                          <span>Manifold Weight:</span>
+                          <span>{item.data.totalManifoldWeight.toFixed(2)} kg</span>
+                        </div>
+                      )}
+                      <div className='col-span-1 sm:col-span-2 border-t border-gray-200 my-1'></div>
+                      <div className='flex justify-between font-bold text-gray-800'>
+                        <span>Total Weight (Empty):</span>
+                        <span>{item.data.weightEmpty.toFixed(2)} kg</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className='flex justify-between font-bold'>
-                    <span>Buoyancy (Full):</span>
-                    <span
-                      className={item.data.buoyancyFull > 0 ? 'text-amber-600' : 'text-sky-700'}
-                    >
-                      {formatNum(item.data.buoyancyFull)} kg
-                    </span>
+
+                  {/* Gas Section */}
+                  <div className='bg-gray-50/50 p-2 rounded border border-gray-100'>
+                    <h5 className='font-bold text-gray-700 mb-2 border-b border-gray-200 pb-1'>
+                      Gas Characteristics
+                    </h5>
+                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1'>
+                      <div className='flex justify-between'>
+                        <span>Gas Density:</span>
+                        <span>{item.data.mixDensity.toFixed(4)} kg/L</span>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span>Gas Weight (Full):</span>
+                        <span>{item.data.gasWeightFull.toFixed(2)} kg</span>
+                      </div>
+                      <div className='col-span-1 sm:col-span-2 border-t border-gray-200 my-1'></div>
+                      <div className='flex justify-between font-bold'>
+                        <span>Total Weight (Full):</span>
+                        <span>{item.data.weightFull.toFixed(2)} kg</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Forces Section */}
+                  <div className='bg-gray-50/50 p-2 rounded border border-gray-100'>
+                    <h5 className='font-bold text-gray-700 mb-2 border-b border-gray-200 pb-1 flex justify-between items-center'>
+                      <span>Forces & Buoyancy</span>
+                      <span className='text-[10px] font-normal text-gray-400 italic'>
+                        Force = Displacement × Water Density
+                      </span>
+                    </h5>
+                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1'>
+                      <div className='flex justify-between'>
+                        <span>Water Density:</span>
+                        <span>{item.data.waterDensity.toFixed(3)} kg/L</span>
+                      </div>
+                      <div className='flex justify-between font-bold text-sky-700'>
+                        <span>Buoyant Force:</span>
+                        <span>{item.data.buoyantForce.toFixed(3)} kg</span>
+                      </div>
+                      <div className='col-span-1 sm:col-span-2 border-t border-gray-200 my-1'></div>
+                      <div className='flex justify-between font-bold'>
+                        <span>Buoyancy (Empty):</span>
+                        <span
+                          className={
+                            item.data.buoyancyEmpty > 0 ? 'text-amber-600' : 'text-sky-700'
+                          }
+                        >
+                          {formatNum(item.data.buoyancyEmpty)} kg
+                        </span>
+                      </div>
+                      <div className='flex justify-between font-bold'>
+                        <span>Buoyancy (Full):</span>
+                        <span
+                          className={item.data.buoyancyFull > 0 ? 'text-amber-600' : 'text-sky-700'}
+                        >
+                          {formatNum(item.data.buoyancyFull)} kg
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -437,6 +504,74 @@ const TankBuoyancy = () => {
           Buoyancy calculated using Archimedes principle. Values represent total system buoyancy
           (Back Gas + Stages).
         </p>
+      </div>
+
+      {/* Detailed Formulas Section */}
+      <div className='border-t border-gray-200'>
+        <details className='group'>
+          <summary className='flex justify-between items-center font-medium cursor-pointer list-none p-4 bg-gray-50 hover:bg-gray-100 transition-colors'>
+            <span className='text-sm text-gray-700 font-semibold flex items-center gap-2'>
+              <Info className='h-4 w-4 text-sky-600' />
+              View Calculation Formulas
+            </span>
+            <span className='transition group-open:rotate-180'>
+              <svg
+                fill='none'
+                height='24'
+                shapeRendering='geometricPrecision'
+                stroke='currentColor'
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth='1.5'
+                viewBox='0 0 24 24'
+                width='24'
+              >
+                <path d='M6 9l6 6 6-6'></path>
+              </svg>
+            </span>
+          </summary>
+          <div className='text-gray-600 text-xs p-6 bg-white space-y-6 animate-in slide-in-from-top-2 duration-200'>
+            <div>
+              <h4 className='font-bold text-gray-900 mb-1 text-sm'>
+                1. Displacement (Archimedes' Principle)
+              </h4>
+              <p className='mb-2'>
+                The upward force is equal to the weight of the water displaced by the object's total
+                volume.
+              </p>
+              <div className='bg-gray-50 p-3 rounded-lg font-mono text-sky-800 border border-gray-100'>
+                <p>Total Volume = Metal Vol + Valve Vol + Internal Vol</p>
+                <p className='mt-1'>Buoyant Force = Total Volume × Water Density</p>
+              </div>
+              <ul className='mt-2 list-disc pl-4 space-y-1 text-gray-500'>
+                <li>Metal Vol = Tank Weight / Metal Density (Steel: 7.9, Alu: 2.7)</li>
+                <li>Valve Vol = Valve Weight / Steel Density</li>
+                <li>Internal Vol = Tank Water Capacity (Liters)</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className='font-bold text-gray-900 mb-1 text-sm'>2. Weights</h4>
+              <p className='mb-2'>The downward force of gravity acting on the rig.</p>
+              <div className='bg-gray-50 p-3 rounded-lg font-mono text-sky-800 border border-gray-100'>
+                <p>Weight (Empty) = Tank + Valve + Manifold</p>
+                <p className='mt-1'>Weight (Full) = Weight (Empty) + Gas Weight</p>
+                <p className='mt-1'>Gas Weight = Internal Vol × Pressure × Gas Density</p>
+              </div>
+            </div>
+
+            <div>
+              <h4 className='font-bold text-gray-900 mb-1 text-sm'>3. Net Buoyancy</h4>
+              <p className='mb-2'>
+                The actual force you feel (Positive = Floats, Negative = Sinks).
+              </p>
+              <div className='bg-gray-50 p-3 rounded-lg font-mono text-sky-800 border border-gray-100'>
+                <p>Buoyancy (Empty) = Buoyant Force - Weight (Empty)</p>
+                <p className='mt-1'>Buoyancy (Full) = Buoyant Force - Weight (Full)</p>
+              </div>
+            </div>
+          </div>
+        </details>
       </div>
     </div>
   );

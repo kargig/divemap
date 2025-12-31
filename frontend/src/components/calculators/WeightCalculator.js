@@ -94,6 +94,8 @@ const WeightCalculator = () => {
           empty: buoyancy.buoyancyEmpty,
           check: buoyancy.buoyancyAtCheck,
           gasWeightFull: buoyancy.gasWeightFull,
+          valveWeight: buoyancy.totalValveWeight,
+          manifoldWeight: buoyancy.totalManifoldWeight,
         });
       };
 
@@ -357,6 +359,16 @@ const WeightCalculator = () => {
                       <span>{tank.gasWeightFull.toFixed(1)} kg</span>
                     </div>
                     <div className='flex justify-between'>
+                      <span>Valve Weight:</span>
+                      <span>{tank.valveWeight.toFixed(1)} kg</span>
+                    </div>
+                    {tank.manifoldWeight > 0 && (
+                      <div className='flex justify-between'>
+                        <span>Manifold Weight:</span>
+                        <span>{tank.manifoldWeight.toFixed(1)} kg</span>
+                      </div>
+                    )}
+                    <div className='flex justify-between'>
                       <span>Buoyancy (Empty):</span>
                       <span>{tank.empty.toFixed(1)} kg</span>
                     </div>
@@ -428,6 +440,82 @@ const WeightCalculator = () => {
           composition, specific gear brands, and lung volume significantly affect actual weighting
           requirements.
         </p>
+      </div>
+
+      {/* Detailed Formulas Section */}
+      <div className='border-t border-gray-200'>
+        <details className='group'>
+          <summary className='flex justify-between items-center font-medium cursor-pointer list-none p-4 bg-gray-50 hover:bg-gray-100 transition-colors'>
+            <span className='text-sm text-gray-700 font-semibold flex items-center gap-2'>
+              <Gauge className='h-4 w-4 text-emerald-600' />
+              View Calculation Formulas
+            </span>
+            <span className='transition group-open:rotate-180'>
+              <svg
+                fill='none'
+                height='24'
+                shapeRendering='geometricPrecision'
+                stroke='currentColor'
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth='1.5'
+                viewBox='0 0 24 24'
+                width='24'
+              >
+                <path d='M6 9l6 6 6-6'></path>
+              </svg>
+            </span>
+          </summary>
+          <div className='text-gray-600 text-xs p-6 bg-white space-y-6 animate-in slide-in-from-top-2 duration-200'>
+            <div>
+              <h4 className='font-bold text-gray-900 mb-1 text-sm'>1. Total Lead Required</h4>
+              <p className='mb-2'>
+                The sum of all positive buoyancy factors that need to be counteracted.
+              </p>
+              <div className='bg-gray-50 p-3 rounded-lg font-mono text-emerald-800 border border-gray-100'>
+                <p>Total = Suit Buoyancy + Tank Adjustment + Water Density Adj + Experience</p>
+              </div>
+            </div>
+
+            <div>
+              <h4 className='font-bold text-gray-900 mb-1 text-sm'>2. Suit Buoyancy</h4>
+              <p className='mb-2'>Estimates the positive buoyancy of your exposure protection.</p>
+              <div className='bg-gray-50 p-3 rounded-lg font-mono text-emerald-800 border border-gray-100'>
+                <p>Suit Buoyancy = (Body Weight × Multiplier) + Offset</p>
+              </div>
+              <ul className='mt-2 list-disc pl-4 space-y-1 text-gray-500'>
+                <li>Multiplier: 5mm = 0.08, 7mm = 0.10, Drysuit = 0.10</li>
+                <li>Offset: Added for thick suits or drysuits (2-6 kg)</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className='font-bold text-gray-900 mb-1 text-sm'>3. Tank Adjustment</h4>
+              <p className='mb-2'>
+                Compensates for the buoyancy characteristics of your cylinders.
+              </p>
+              <div className='bg-gray-50 p-3 rounded-lg font-mono text-emerald-800 border border-gray-100'>
+                <p>Adjustment = Σ (Tank Buoyancy at Target Pressure)</p>
+              </div>
+              <p className='mt-2 text-gray-500'>
+                If target is 'Empty', we add lead to ensure you are neutral with 0 bar. If
+                'Reserve', we check at 50 bar.
+              </p>
+            </div>
+
+            <div>
+              <h4 className='font-bold text-gray-900 mb-1 text-sm'>4. Water Density Adjustment</h4>
+              <p className='mb-2'>Compensates for the extra lift provided by saltier water.</p>
+              <div className='bg-gray-50 p-3 rounded-lg font-mono text-emerald-800 border border-gray-100'>
+                <p>Adj = Body Weight × (Current Density - 1.025)</p>
+              </div>
+              <p className='mt-2 text-gray-500'>
+                Baseline is Standard Ocean (1.025). Freshwater (1.000) provides less lift, so you
+                need less weight (result is negative).
+              </p>
+            </div>
+          </div>
+        </details>
       </div>
     </div>
   );

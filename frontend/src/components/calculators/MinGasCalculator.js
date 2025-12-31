@@ -23,7 +23,7 @@ const MinGasCalculator = () => {
       solveTime: 1,
       ascentRate: 10,
       safetyStopDuration: 3,
-      tankSize: 24,
+      tankSize: 12,
       isTech: false,
       targetDepth: 21,
     },
