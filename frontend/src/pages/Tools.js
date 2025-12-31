@@ -49,6 +49,8 @@ const Tools = () => {
   const [minGasAscentRate, setMinGasAscentRate] = useState(10);
   const [minGasSafetyStopDuration, setMinGasSafetyStopDuration] = useState(3);
   const [minGasTankSize, setMinGasTankSize] = useState(12);
+  const [isTechMinGas, setIsTechMinGas] = useState(false);
+  const [minGasTargetDepth, setMinGasTargetDepth] = useState(21);
   const [minGasResult, setMinGasResult] = useState({ liters: 0, bar: 0 });
 
   const getDefaultPressure = size => {
@@ -156,28 +158,45 @@ const Tools = () => {
     const depthATA = minGasDepth / 10 + 1;
     const volSolve = depthATA * minGasSolveTime * minGasSAC;
 
-    // 2. Ascent to Safety Stop (assume 5m)
-    // Time = distance / rate
-    // If depth < 5m, no ascent to safety stop
     let volAscent = 0;
-    if (minGasDepth > 5) {
-      const ascentTime = (minGasDepth - 5) / minGasAscentRate;
-      const avgAscentDepth = (minGasDepth + 5) / 2;
-      const avgAscentATA = avgAscentDepth / 10 + 1;
-      volAscent = avgAscentATA * ascentTime * minGasSAC;
+    let volSafety = 0;
+    let volSurface = 0;
+
+    if (isTechMinGas) {
+      // Tech Mode: Ascent to Target Depth (Gas Switch)
+      // We assume we switch gas immediately upon reaching target depth.
+      // If we are shallower than target, no ascent needed (but input should prevent this logically)
+      if (minGasDepth > minGasTargetDepth) {
+        const ascentTime = (minGasDepth - minGasTargetDepth) / minGasAscentRate;
+        const avgAscentDepth = (minGasDepth + minGasTargetDepth) / 2;
+        const avgAscentATA = avgAscentDepth / 10 + 1;
+        volAscent = avgAscentATA * ascentTime * minGasSAC;
+      }
+      // No safety stop or surface ascent calculated for this gas in tech mode (gas switch assumed)
+    } else {
+      // Recreational Mode
+      // 2. Ascent to Safety Stop (assume 5m)
+      // Time = distance / rate
+      // If depth < 5m, no ascent to safety stop
+      if (minGasDepth > 5) {
+        const ascentTime = (minGasDepth - 5) / minGasAscentRate;
+        const avgAscentDepth = (minGasDepth + 5) / 2;
+        const avgAscentATA = avgAscentDepth / 10 + 1;
+        volAscent = avgAscentATA * ascentTime * minGasSAC;
+      }
+
+      // 3. Safety Stop at 5m
+      const safetyStopATA = 5 / 10 + 1; // 1.5 ATA
+      volSafety = safetyStopATA * minGasSafetyStopDuration * minGasSAC;
+
+      // 4. Ascent from 5m to Surface
+      // Assuming ascent from 5m (or depth if shallower) to 0
+      const shallowestDepth = Math.min(minGasDepth, 5);
+      const surfaceAscentTime = shallowestDepth / minGasAscentRate;
+      const avgSurfaceDepth = shallowestDepth / 2;
+      const avgSurfaceATA = avgSurfaceDepth / 10 + 1;
+      volSurface = avgSurfaceATA * surfaceAscentTime * minGasSAC;
     }
-
-    // 3. Safety Stop at 5m
-    const safetyStopATA = 5 / 10 + 1; // 1.5 ATA
-    const volSafety = safetyStopATA * minGasSafetyStopDuration * minGasSAC;
-
-    // 4. Ascent from 5m to Surface
-    // Assuming ascent from 5m (or depth if shallower) to 0
-    const shallowestDepth = Math.min(minGasDepth, 5);
-    const surfaceAscentTime = shallowestDepth / minGasAscentRate;
-    const avgSurfaceDepth = shallowestDepth / 2;
-    const avgSurfaceATA = avgSurfaceDepth / 10 + 1;
-    const volSurface = avgSurfaceATA * surfaceAscentTime * minGasSAC;
 
     const totalLiters = volSolve + volAscent + volSafety + volSurface;
     const totalBar = totalLiters / minGasTankSize;
@@ -190,6 +209,8 @@ const Tools = () => {
     minGasAscentRate,
     minGasSafetyStopDuration,
     minGasTankSize,
+    isTechMinGas,
+    minGasTargetDepth,
   ]);
 
   return (
@@ -862,6 +883,45 @@ const Tools = () => {
                   </p>
                 </div>
 
+                <div className='flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200'>
+                  <input
+                    id='techMinGasToggle'
+                    type='checkbox'
+                    checked={isTechMinGas}
+                    onChange={e => setIsTechMinGas(e.target.checked)}
+                    className='w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer'
+                  />
+                  <label
+                    htmlFor='techMinGasToggle'
+                    className='ml-2 text-sm font-medium text-gray-700 cursor-pointer select-none'
+                  >
+                    Gas Switch Mode
+                  </label>
+                </div>
+
+                {isTechMinGas && (
+                  <div>
+                    <label
+                      htmlFor='minGasTargetDepth'
+                      className='block text-sm font-semibold text-gray-700 mb-2'
+                    >
+                      Target Depth / Gas Switch (meters)
+                    </label>
+                    <input
+                      id='minGasTargetDepth'
+                      type='number'
+                      min='0'
+                      max={minGasDepth}
+                      value={minGasTargetDepth}
+                      onChange={e => setMinGasTargetDepth(parseFloat(e.target.value) || 0)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500'
+                    />
+                    <p className='text-xs text-gray-500 mt-1'>
+                      Depth where you switch to a deco gas.
+                    </p>
+                  </div>
+                )}
+
                 <div className='grid grid-cols-2 gap-4'>
                   <div>
                     <label
@@ -898,24 +958,26 @@ const Tools = () => {
                 </div>
 
                 <div className='grid grid-cols-2 gap-4'>
-                  <div>
-                    <label
-                      htmlFor='minGasSafetyStopDuration'
-                      className='block text-sm font-semibold text-gray-700 mb-2'
-                    >
-                      Safety Stop (min)
-                    </label>
-                    <input
-                      id='minGasSafetyStopDuration'
-                      type='number'
-                      min='0'
-                      value={minGasSafetyStopDuration}
-                      onChange={e => setMinGasSafetyStopDuration(parseFloat(e.target.value) || 0)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500'
-                    />
-                    <p className='text-xs text-gray-500 mt-1'>Usually 3 min at 5m.</p>
-                  </div>
-                  <div>
+                  {!isTechMinGas && (
+                    <div>
+                      <label
+                        htmlFor='minGasSafetyStopDuration'
+                        className='block text-sm font-semibold text-gray-700 mb-2'
+                      >
+                        Safety Stop (min)
+                      </label>
+                      <input
+                        id='minGasSafetyStopDuration'
+                        type='number'
+                        min='0'
+                        value={minGasSafetyStopDuration}
+                        onChange={e => setMinGasSafetyStopDuration(parseFloat(e.target.value) || 0)}
+                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500'
+                      />
+                      <p className='text-xs text-gray-500 mt-1'>Usually 3 min at 5m.</p>
+                    </div>
+                  )}
+                  <div className={isTechMinGas ? 'col-span-2' : ''}>
                     <label
                       htmlFor='minGasTankSize'
                       className='block text-sm font-semibold text-gray-700 mb-2'
@@ -961,8 +1023,9 @@ const Tools = () => {
               <div className='p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-start'>
                 <Info className='h-4 w-4 mr-2 text-gray-400 flex-shrink-0' />
                 <p>
-                  Includes gas for solving problems at depth, ascent to safety stop, safety stop,
-                  and final ascent. Assumes sharing air (2 divers).
+                  {isTechMinGas
+                    ? 'Includes gas for solving problems at depth and ascent to gas switch depth. Assumes sharing air (2 divers).'
+                    : 'Includes gas for solving problems at depth, ascent to safety stop, safety stop, and final ascent. Assumes sharing air (2 divers).'}
                 </p>
               </div>
             </div>
