@@ -6,6 +6,7 @@ from typing import Optional, Dict, Any
 import jwt
 from fastapi import Request
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.models import User, RefreshToken, AuthAuditLog
 from app.database import get_db
@@ -124,6 +125,10 @@ class TokenService:
             
             # Update last used timestamp
             db_token.last_used_at = datetime.utcnow()
+            
+            # Update user last accessed
+            user.last_accessed_at = func.now()
+            
             db.commit()
             
             # Log successful token refresh
