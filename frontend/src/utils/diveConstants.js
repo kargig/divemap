@@ -1,5 +1,13 @@
 // Tank Definitions
 export const TANK_SIZES = [
+  {
+    id: 'al40',
+    name: 'AL40 (5.7L)',
+    size: 5.7,
+    defaultPressure: 207,
+    material: 'alu',
+    emptyWeight: 6.9,
+  },
   { id: '7', name: '7 Liters', size: 7, defaultPressure: 232, material: 'steel', emptyWeight: 8.5 },
   {
     id: '8.5',
@@ -16,14 +24,6 @@ export const TANK_SIZES = [
     defaultPressure: 232,
     material: 'steel',
     emptyWeight: 12,
-  },
-  {
-    id: 'al40',
-    name: 'AL40 (5.7L)',
-    size: 5.7,
-    defaultPressure: 207,
-    material: 'alu',
-    emptyWeight: 6.9,
   },
   {
     id: 'al80',
