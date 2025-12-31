@@ -6,17 +6,35 @@ import GasTanksInput from '../components/forms/GasTanksInput';
 import { TANK_SIZES } from './diveConstants';
 
 export const CONSTANTS = {
-  STEEL_DENSITY: 7.9, // kg/liter
-  ALU_DENSITY: 2.699, // kg/liter
-  AIR_DENSITY: 0.001225, // kg/liter (at ~15C)
-  SALT_DENSITY: 1.024, // kg/liter
-  FRESH_DENSITY: 1.0, // kg/liter
-  VALVE_WEIGHT: 0.8, // kg
+  // Typical densities for diving grade metals and gases.
+  // Sources: Subsurface source code, Engineering ToolBox, and common industry standards.
+  STEEL_DENSITY: 7.9, // kg/liter (Standard Chrome-Moly steel)
+  ALU_DENSITY: 2.699, // kg/liter (6061-T6 Aluminum)
+  AIR_DENSITY: 0.001225, // kg/liter (at 15°C, 1 atm - International Standard Atmosphere)
+  SALT_DENSITY: 1.025, // kg/liter (Standard Mean Ocean Water at 15°C)
+  FRESH_DENSITY: 1.0, // kg/liter (Pure water at 4°C)
+  VALVE_WEIGHT: 0.8, // kg (Average DIN valve weight)
   // Specific Gravities (relative to Air)
   SG_O2: 1.105,
   SG_N2: 0.967,
   SG_HE: 0.138,
 };
+
+export const WATER_TYPES = [
+  // Densities derived from UNESCO International Equation of State (EOS-80)
+  // and regional salinity studies (ICAS, New World Encyclopedia, etc.)
+  // assuming typical surface temperatures for diving (20°C - 25°C).
+  { id: 'fresh', label: 'Freshwater (1.000)', density: 1.0 },
+  { id: 'brackish', label: 'Brackish / Baltic (1.007)', density: 1.007 }, // Avg 8-10 ppt
+  { id: 'black', label: 'Black Sea (1.014)', density: 1.014 }, // Avg 17-18 ppt
+  { id: 'tropical', label: 'Tropical / Caribbean (1.024)', density: 1.024 }, // Avg 34-35 ppt (warmer)
+  { id: 'standard', label: 'Standard Ocean (1.025)', density: 1.025 }, // Avg 35 ppt
+  { id: 'med', label: 'Mediterranean (Western) (1.028)', density: 1.028 }, // Avg 38 ppt
+  { id: 'aegean', label: 'Aegean / Eastern Med (1.029)', density: 1.029 }, // Avg 39 ppt
+  { id: 'red', label: 'Red Sea (1.031)', density: 1.031 }, // Avg 40-41 ppt (Source: ICAS / New World Encyclopedia)
+  { id: 'gulf', label: 'Persian Gulf (1.033)', density: 1.033 }, // Avg 42+ ppt
+  { id: 'dead', label: 'Dead Sea (1.240)', density: 1.24 }, // Avg 340+ ppt
+];
 
 /**
  * Calculates tank buoyancy at full, empty, and specific pressure states with gas mix.
@@ -27,6 +45,7 @@ export const calculateTankBuoyancy = ({
   weight,
   material,
   isSaltWater,
+  waterDensity: customWaterDensity,
   isDoubles,
   includeValve,
   o2 = 21,
@@ -34,7 +53,12 @@ export const calculateTankBuoyancy = ({
   checkPressure = 50,
 }) => {
   const metalDensity = material === 'alu' ? CONSTANTS.ALU_DENSITY : CONSTANTS.STEEL_DENSITY;
-  const waterDensity = isSaltWater ? CONSTANTS.SALT_DENSITY : CONSTANTS.FRESH_DENSITY;
+  const waterDensity =
+    customWaterDensity !== undefined
+      ? customWaterDensity
+      : isSaltWater
+        ? CONSTANTS.SALT_DENSITY
+        : CONSTANTS.FRESH_DENSITY;
 
   let valveKg = includeValve ? CONSTANTS.VALVE_WEIGHT : 0;
   let currentLiters = parseFloat(liters) || 0;
@@ -94,7 +118,7 @@ export const calculateTankBuoyancy = ({
 };
 
 const TankBuoyancy = () => {
-  const [isSaltWater, setIsSaltWater] = useState(true);
+  const [waterTypeIdx, setWaterTypeIdx] = useState(6); // Default Aegean Sea (1.025)
   const [showDetails, setShowDetails] = useState(false);
   const [includeValve, setIncludeValve] = useState(true);
 
@@ -122,6 +146,8 @@ const TankBuoyancy = () => {
     let totalGasWeight = 0;
     const tankBreakdown = [];
 
+    const waterType = WATER_TYPES[waterTypeIdx];
+
     try {
       let config = {};
       if (gasConfig.trim().startsWith('{')) {
@@ -139,7 +165,7 @@ const TankBuoyancy = () => {
           liters: isDoubles ? tankDef.size / 2 : tankDef.size,
           weight: isDoubles ? tankDef.emptyWeight / 2 : tankDef.emptyWeight,
           material: tankDef.material,
-          isSaltWater,
+          waterDensity: waterType.density,
           isDoubles,
           includeValve,
           o2: tankItem.gas?.o2 || 21,
@@ -180,7 +206,7 @@ const TankBuoyancy = () => {
       totalGasWeight,
       tankBreakdown,
     });
-  }, [isSaltWater, gasConfig, includeValve]);
+  }, [waterTypeIdx, gasConfig, includeValve]);
 
   const formatNum = num => {
     const val = parseFloat(num);
@@ -215,20 +241,22 @@ const TankBuoyancy = () => {
         {/* Environment */}
         <div className='flex flex-wrap items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 gap-3'>
           <div className='flex items-center gap-4'>
-            <div className='flex items-center'>
-              <input
-                id='isSaltWater'
-                type='checkbox'
-                checked={isSaltWater}
-                onChange={e => setIsSaltWater(e.target.checked)}
-                className='w-4 h-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500 cursor-pointer'
-              />
-              <label
-                htmlFor='isSaltWater'
-                className='ml-2 text-sm font-medium text-gray-700 select-none cursor-pointer'
-              >
-                Salt Water
+            <div>
+              <label htmlFor='tankWaterType' className='text-sm font-semibold text-gray-700 mr-2'>
+                Water:
               </label>
+              <select
+                id='tankWaterType'
+                value={waterTypeIdx}
+                onChange={e => setWaterTypeIdx(parseInt(e.target.value))}
+                className='text-sm border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500 py-1'
+              >
+                {WATER_TYPES.map((type, idx) => (
+                  <option key={idx} value={idx}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className='flex items-center'>
               <input

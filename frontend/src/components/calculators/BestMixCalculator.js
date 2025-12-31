@@ -102,7 +102,7 @@ const BestMixCalculator = () => {
         n2Pct,
       },
     });
-  }, [values]);
+  }, [values.depth, values.pO2, values.isTrimix, values.targetEAD]);
 
   return (
     <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full'>
