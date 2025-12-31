@@ -43,21 +43,29 @@ docker-compose up -d
 - **API Docs:** http://localhost:8000/docs
 
 ### Testing
-⚠️ **CRITICAL:** NEVER run tests inside the `divemap_backend` container. It connects to the live MySQL database, and teardown may result in data loss.
+⚠️ **CRITICAL SAFETY WARNING:** NEVER run tests inside the `divemap_backend` container (e.g., `docker-compose exec backend pytest`). It connects to the live development database, and the test suite's teardown process WILL WIPE THE DATABASE.
 
-**Backend Tests (Host Venv):**
-```bash
-cd backend
-source divemap_venv/bin/activate
-export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
-export GOOGLE_CLIENT_ID="dummy-client-id-for-testing"
-python -m pytest tests/ -v
-```
+**Correct Testing Methods:**
+1.  **Isolated Docker (Recommended):**
+    ```bash
+    cd backend
+    ./docker-test-github-actions.sh
+    ```
+    *This script sets up a separate, ephemeral test environment.*
 
-**Backend Tests (Isolated Docker):**
+2.  **Host Venv (Alternative):**
+    ```bash
+    cd backend
+    source divemap_venv/bin/activate
+    export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+    export GOOGLE_CLIENT_ID="dummy-client-id-for-testing"
+    python -m pytest tests/ -v
+    ```
+
+**Disaster Recovery:**
+If the database is accidentally wiped, check `database_backups/` for recent SQL dumps and restore using:
 ```bash
-cd backend
-./docker-test-github-actions.sh
+cat database_backups/<backup_file> | docker-compose exec -T db mysql -u divemap_user -pdivemap_password divemap
 ```
 
 **Frontend Tests:**
