@@ -433,7 +433,7 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
   );
 };
 
-UploadCustomComponent.propTypes = {
+UploadPhotosComponent.propTypes = {
   id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   mediaUrls: PropTypes.arrayOf(
     PropTypes.shape({
