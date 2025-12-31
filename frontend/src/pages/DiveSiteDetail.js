@@ -235,41 +235,19 @@ const DiveSiteDetail = () => {
     );
   };
 
-  // Separate public and private media
-  const publicMedia = media
-    ? media.filter(item => {
-        // Admin-uploaded site media (no user_id) is always public
-        if (!item.user_id) return true;
-        // Public dive media
-        if (item.is_public !== false) return true;
-        return false;
-      })
-    : [];
-  
-  const privateMedia = media
-    ? media.filter(item => {
-        // Only show private media if user is logged in and owns it
-        if (item.user_id && user && item.user_id === user.id && item.is_public === false) {
-          return true;
-        }
-        return false;
-      })
-    : [];
+  // All media is public (is_public column removed from database)
+  const publicMedia = media || [];
 
   // Public media categories
   const publicVideos = publicMedia.filter(item => isVideoUrl(item.url));
   const publicPhotos = publicMedia.filter(item => !isVideoUrl(item.url));
-  
-  // Private media categories (only for owner)
-  const privateVideos = privateMedia.filter(item => isVideoUrl(item.url));
-  const privatePhotos = privateMedia.filter(item => !isVideoUrl(item.url));
   
   // Convert Flickr URLs to direct image URLs
   useEffect(() => {
     const convertFlickrUrls = async () => {
       if (!media) return;
 
-      // Get all photos (public and private)
+      // Get all photos
       const allPhotos = media.filter(item => !isVideoUrl(item.url));
       const flickrPhotos = allPhotos.filter(item => isFlickrUrl(item.url));
       
@@ -312,14 +290,6 @@ const DiveSiteDetail = () => {
   const photos = publicPhotos;
 
   const photoSlides = photos.map(item => ({
-    src: getImageUrl(item.url),
-    width: 1920,
-    height: 1080,
-    alt: item.description || 'Dive site photo',
-    description:  item.description || ''
-  }));
-  
-  const privatePhotoSlides = privatePhotos.map(item => ({
     src: getImageUrl(item.url),
     width: 1920,
     height: 1080,
@@ -582,21 +552,6 @@ const DiveSiteDetail = () => {
                           <span>Videos ({videos.length})</span>
                         </button>
                       )}
-                      {user && (privatePhotos.length > 0 || privateVideos.length > 0) && (
-                        <button
-                          onClick={() => setActiveMediaTab('private')}
-                          className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                            activeMediaTab === 'private'
-                              ? 'border-orange-500 text-orange-600'
-                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                          }`}
-                        >
-                          <Lock className='w-4 h-4' />
-                          <span>
-                            Private ({privatePhotos.length + privateVideos.length})
-                          </span>
-                        </button>
-                      )}
                     </nav>
                   </div>
 
@@ -631,66 +586,6 @@ const DiveSiteDetail = () => {
                     </div>
                   )}
 
-                  {/* Private Media Tab Content */}
-                  {activeMediaTab === 'private' && user && (privatePhotos.length > 0 || privateVideos.length > 0) && (
-                    <div>
-                      <div className='mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg'>
-                        <div className='flex items-center gap-2 text-orange-800'>
-                          <Lock size={16} />
-                          <span className='text-sm font-medium'>
-                            Your private media from all dives at this site - only visible to you
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Private Photos */}
-                      {privatePhotos.length > 0 && (
-                        <div className='mb-6'>
-                          <h3 className='text-lg font-semibold text-gray-900 mb-3'>
-                            Private Photos ({privatePhotos.length})
-                          </h3>
-                          <Lightbox
-                            open={false}
-                            close={() => {}}
-                            slides={privatePhotoSlides}
-                            plugins={[Captions, Slideshow, Fullscreen ,Thumbnails]}
-                            render={{ slide: ReactImage, thumbnail: ReactImage }}
-                            thumbnails={{ position: 'bottom' }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Private Videos */}
-                      {privateVideos.length > 0 && (
-                        <div>
-                          <h3 className='text-lg font-semibold text-gray-900 mb-3'>
-                            Private Videos ({privateVideos.length})
-                          </h3>
-                          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
-                            {privateVideos.map(item => (
-                              <div
-                                key={`private-video-${item.dive_id ? `dive-${item.dive_id}-` : 'site-'}${item.id}`}
-                                className='border rounded-lg overflow-hidden'
-                              >
-                                <div className='relative'>
-                                  <YouTubePreview
-                                    url={item.url}
-                                    description={item.description}
-                                    className='w-full'
-                                    openInNewTab={true}
-                                  />
-                                  <div className='absolute top-2 right-2 flex items-center gap-1 bg-white/90 px-2 py-1 rounded text-xs'>
-                                    <Lock size={12} className='text-orange-600' />
-                                    <span className='text-orange-600 font-medium'>Private</span>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
             </div>

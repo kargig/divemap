@@ -19,7 +19,7 @@ import requests
 import re
 from urllib.parse import quote
 from pathlib import Path
-
+from app.services.r2_storage_service import get_r2_storage
 from .dives_shared import router, get_db, get_current_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
 from app.schemas import DeleteR2PhotoRequest, DiveMediaCreate, DiveMediaResponse, DiveMediaUpdate, DiveTagResponse, DiveTagCreate
 
@@ -58,8 +58,7 @@ def add_dive_media(
         url=media.url,
         description=media.description,
         title=media.title,
-        thumbnail_url=media.thumbnail_url,
-        is_public=media.is_public
+        thumbnail_url=media.thumbnail_url
     )
 
     db.add(db_media)
@@ -74,7 +73,6 @@ async def upload_dive_photo(
     dive_id: int,
     file: UploadFile = File(...),
     description: Optional[str] = Form(None),
-    is_public: bool = Form(True),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -142,8 +140,7 @@ async def upload_dive_photo(
             url=photo_url,
             description=description or '',
             title='',
-            thumbnail_url=None,
-            is_public=is_public
+            thumbnail_url=None
         )
 
         db.add(db_media)
@@ -162,7 +159,6 @@ async def upload_dive_photo(
                 description=db_media.description,
                 title=db_media.title,
                 thumbnail_url=db_media.thumbnail_url,
-                is_public=db_media.is_public,
                 created_at=db_media.created_at
             )
         
@@ -344,17 +340,9 @@ def get_dive_media(
 
     # Get all media for the dive
     media_query = db.query(DiveMedia).filter(DiveMedia.dive_id == dive_id)
-    
-    # Filter media based on ownership and public/private status
-    if current_user and dive.user_id == current_user.id:
-        # Owner can see all their media (public and private)
-        media = media_query.all()
-    else:
-        # Non-owners can only see public media
-        media = media_query.filter(DiveMedia.is_public.is_(True)).all()
+    media = media_query.all()
     
     # Generate presigned URLs for R2 photos on-demand
-    from app.services.r2_storage_service import get_r2_storage
     r2_storage = get_r2_storage()
     
     result = []
@@ -371,7 +359,6 @@ def get_dive_media(
                 "description": item.description,
                 "title": item.title,
                 "thumbnail_url": item.thumbnail_url,
-                "is_public": item.is_public,
                 "created_at": item.created_at
             }
             result.append(DiveMediaResponse(**media_dict))

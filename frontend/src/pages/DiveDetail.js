@@ -612,24 +612,16 @@ const DiveDetail = () => {
     ? diveMedia.filter(item => item.media_type === 'video' || isVideoUrl(item.url))
     : [];
 
-  // Separate public and private photos
-  const publicPhotos = allPhotos.filter(item => item.is_public !== false);
-  const privatePhotos = allPhotos.filter(
-    item => item.is_public === false && user && dive?.user_id === user.id
-  );
-
-  // Separate public and private videos
-  const publicVideos = allVideos.filter(item => item.is_public !== false);
-  const privateVideos = allVideos.filter(
-    item => item.is_public === false && user && dive?.user_id === user.id
-  );
+  // All media is public (is_public column removed from database)
+  const publicPhotos = allPhotos;
+  const publicVideos = allVideos;
 
   // Convert Flickr URLs to direct image URLs
   useEffect(() => {
     const convertFlickrUrls = async () => {
       if (!diveMedia) return;
 
-      // Get all photos (public and private)
+      // Get all photos
       const allPhotosForFlickr = diveMedia.filter(item => item.media_type === 'photo' && !isVideoUrl(item.url));
       const flickrPhotos = allPhotosForFlickr.filter(item => isFlickrUrl(item.url));
       
@@ -669,14 +661,6 @@ const DiveDetail = () => {
 
   // Create slides for lightbox
   const publicPhotoSlides = publicPhotos.map(item => ({
-    src: getImageUrl(item.url),
-    width: 1920,
-    height: 1080,
-    alt: item.description || 'Dive photo',
-    description: item.description || '',
-  }));
-
-  const privatePhotoSlides = privatePhotos.map(item => ({
     src: getImageUrl(item.url),
     width: 1920,
     height: 1080,
@@ -1201,21 +1185,6 @@ const DiveDetail = () => {
                       <span>Videos ({publicVideos.length})</span>
                     </button>
                   )}
-                  {user &&
-                    dive?.user_id === user.id &&
-                    (privatePhotos.length > 0 || privateVideos.length > 0) && (
-                      <button
-                        onClick={() => setActiveMediaTab('private')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                          activeMediaTab === 'private'
-                            ? 'border-orange-500 text-orange-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        }`}
-                      >
-                        <Lock className='w-4 h-4' />
-                        <span>Private ({privatePhotos.length + privateVideos.length})</span>
-                      </button>
-                    )}
                 </nav>
               </div>
 
@@ -1254,69 +1223,6 @@ const DiveDetail = () => {
                 </div>
               )}
 
-              {/* Private Media */}
-              {activeMediaTab === 'private' &&
-                user &&
-                dive?.user_id === user.id &&
-                (privatePhotos.length > 0 || privateVideos.length > 0) && (
-                  <div>
-                    <div className='mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg'>
-                      <div className='flex items-center gap-2 text-orange-800'>
-                        <Lock size={16} />
-                        <span className='text-sm font-medium'>
-                          Your private media - only visible to you
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Private Photos */}
-                    {privatePhotos.length > 0 && (
-                      <div className='mb-6'>
-                        <h3 className='text-lg font-semibold text-gray-900 mb-3'>
-                          Private Photos ({privatePhotos.length})
-                        </h3>
-                        <Lightbox
-                          open={false}
-                          close={() => {}}
-                          slides={privatePhotoSlides}
-                          plugins={[Captions, Slideshow, Fullscreen, Thumbnails]}
-                          render={{ slide: ReactImage, thumbnail: ReactImage }}
-                          thumbnails={{ position: 'bottom' }}
-                        />
-                      </div>
-                    )}
-
-                    {/* Private Videos */}
-                    {privateVideos.length > 0 && (
-                      <div>
-                        <h3 className='text-lg font-semibold text-gray-900 mb-3'>
-                          Private Videos ({privateVideos.length})
-                        </h3>
-                        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
-                          {privateVideos.map(item => (
-                            <div
-                              key={`private-video-${item.dive_id ? `dive-${item.dive_id}-` : ''}${item.id}`}
-                              className='border rounded-lg overflow-hidden'
-                            >
-                              <div className='relative'>
-                                <YouTubePreview
-                                  url={item.url}
-                                  description={item.description}
-                                  className='w-full'
-                                  openInNewTab={true}
-                                />
-                                <div className='absolute top-2 right-2 flex items-center gap-1 bg-white/90 px-2 py-1 rounded text-xs'>
-                                  <Lock size={12} className='text-orange-600' />
-                                  <span className='text-orange-600 font-medium'>Private</span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
             </div>
           )}
 

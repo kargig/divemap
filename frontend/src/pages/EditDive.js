@@ -17,6 +17,7 @@ import {
   getDivingCenters,
   extractErrorMessage,
   extractFieldErrors,
+  uploadPhotoToR2Only,
 } from '../api';
 import DivingCenterSearchableDropdown from '../components/DivingCenterSearchableDropdown';
 import { FormField } from '../components/forms/FormField';
@@ -91,7 +92,6 @@ const EditDive = () => {
   const [newMediaType, setNewMediaType] = useState('video'); // Changed default to video since photos use file upload
   const [newMediaDescription, setNewMediaDescription] = useState('');
   const [selectedBuddies, setSelectedBuddies] = useState([]);
-  const [newMediaIsPublic, setNewMediaIsPublic] = useState(true);
   // Ref to store unsaved R2 photos from UploadPhotosComponent for use in onSubmit
   const unsavedR2PhotosRef = useRef([]);
   // Track photo UIDs that have been saved to DB (to signal component to clear them from unsaved list)
@@ -147,7 +147,6 @@ const EditDive = () => {
           url: media.url,
           description: media.description || '',
           title: media.title || '',
-          is_public: media.is_public !== undefined ? media.is_public : true,
           uploaded: true, // Mark as already uploaded
           original_filename: media.original_filename || undefined,
         }));
@@ -397,7 +396,6 @@ const EditDive = () => {
         url: newMediaUrl.trim(),
         description: newMediaDescription.trim(),
         title: '',
-        is_public: newMediaIsPublic,
       };
       setMediaUrls(prev => [...prev, newMedia]);
 
@@ -405,7 +403,6 @@ const EditDive = () => {
       setNewMediaUrl('');
       setNewMediaType('video');
       setNewMediaDescription('');
-      setNewMediaIsPublic(true);
       setShowMediaForm(false);
     }
   };
@@ -452,37 +449,74 @@ const EditDive = () => {
     };
 
     try {
-      // First, create database records for photos uploaded to R2 but not yet saved
+      // First, upload photos to R2 and create database records for them
       const dbCreationPromises = [];
       const unsavedR2Photos = unsavedR2PhotosRef.current;
+      
       for (const unsavedPhoto of unsavedR2Photos) {
-        const mediaData = {
-          media_type: 'photo',
-          url: unsavedPhoto.r2_path, // Use R2 path for storage
-          description: unsavedPhoto.description || '',
-          title: '',
-          is_public: unsavedPhoto.is_public,
-        };
+        if (unsavedPhoto.originFileObj) {
+          // This is a photo from create/edit flow - upload to R2 first
+          try {
+            const r2UploadResult = await uploadPhotoToR2Only(id, unsavedPhoto.originFileObj);
+            
+            // Create database record
+            const mediaData = {
+              media_type: 'photo',
+              url: r2UploadResult.r2_path, // Use R2 path for storage
+              description: unsavedPhoto.description || '',
+              title: '',
+            };
 
-        dbCreationPromises.push(
-          addDiveMedia(id, mediaData)
-            .then(createdMedia => {
-              // Update mediaUrls with the new DB ID
-              setMediaUrls(prev =>
-                prev.map(item =>
-                  item.temp_uid === unsavedPhoto.uid
-                    ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
-                    : item
-                )
-              );
-              // Track this UID as saved so component can clear it from unsaved list
-              setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
-              return createdMedia;
-            })
-            .catch(_error => {
-              toast.error(`Failed to save photo ${unsavedPhoto.file_name} to database`);
-            })
-        );
+            dbCreationPromises.push(
+              addDiveMedia(id, mediaData)
+                .then(createdMedia => {
+                  // Update mediaUrls with the new DB ID
+                  setMediaUrls(prev =>
+                    prev.map(item =>
+                      item.temp_uid === unsavedPhoto.uid
+                        ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
+                        : item
+                    )
+                  );
+                  // Track this UID as saved so component can clear it from unsaved list
+                  setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
+                  return createdMedia;
+                })
+                .catch(_error => {
+                  toast.error(`Failed to save photo ${unsavedPhoto.file_name} to database`);
+                })
+            );
+          } catch (error) {
+            console.error('Failed to upload photo to R2:', error);
+            toast.error(`Failed to upload photo ${unsavedPhoto.file_name} to R2`);
+          }
+        } else if (unsavedPhoto.r2_path) {
+          // Photo was already uploaded to R2 (from previous edit session), just create DB record
+          const mediaData = {
+            media_type: 'photo',
+            url: unsavedPhoto.r2_path,
+            description: unsavedPhoto.description || '',
+            title: '',
+          };
+
+          dbCreationPromises.push(
+            addDiveMedia(id, mediaData)
+              .then(createdMedia => {
+                setMediaUrls(prev =>
+                  prev.map(item =>
+                    item.temp_uid === unsavedPhoto.uid
+                      ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
+                      : item
+                  )
+                );
+                setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
+                return createdMedia;
+              })
+              .catch(_error => {
+                toast.error(`Failed to save photo ${unsavedPhoto.file_name} to database`);
+              })
+          );
+        }
       }
 
       // Wait for all DB records to be created
@@ -508,7 +542,7 @@ const EditDive = () => {
         // If photo was already uploaded and saved, update its description if changed
         if (mediaUrl.uploaded && mediaUrl.id) {
           mediaPromises.push(
-            updateDiveMedia(id, mediaUrl.id, mediaUrl.description || '', mediaUrl.is_public).catch(_error => {
+            updateDiveMedia(id, mediaUrl.id, mediaUrl.description || '', null).catch(_error => {
               toast.error(`Failed to update media description: ${mediaUrl.url}`);
             })
           );
@@ -526,7 +560,6 @@ const EditDive = () => {
           url: mediaUrl.url,
           description: mediaUrl.description || '',
           title: mediaUrl.title || '',
-          is_public: mediaUrl.is_public !== undefined ? mediaUrl.is_public : true,
         };
 
         mediaPromises.push(
@@ -702,7 +735,9 @@ const EditDive = () => {
               <FormField name='is_private' label='Privacy Setting'>
                 {({ register, name }) => (
                   <select
-                    {...register(name, { valueAsBoolean: true })}
+                    {...register(name, {
+                      setValueAs: value => value === 'true' || value === true,
+                    })}
                     className='w-full border border-gray-300 rounded-md px-3 py-2'
                   >
                     <option value='false'>Public (visible to everyone)</option>
@@ -885,17 +920,26 @@ const EditDive = () => {
             <div className='md:col-span-2'>
               <h2 className='text-xl font-semibold mb-4'>Media</h2>
               <div className='space-y-4'>
-                {/* Photo Upload */}
-                <UploadPhotosComponent
-                  id={id}
-                  mediaUrls={mediaUrls}
-                  setMediaUrls={setMediaUrls}
-                  onUnsavedPhotosChange={unsavedPhotos => {
-                    unsavedR2PhotosRef.current = unsavedPhotos;
-                  }}
-                  onMediaRemove={handleMediaRemove}
-                  savedPhotoUids={savedPhotoUids}
-                />
+                {/* Photo Upload - Only show for public dives */}
+                {!watch('is_private') && (
+                  <UploadPhotosComponent
+                    id={null}
+                    mediaUrls={mediaUrls}
+                    setMediaUrls={setMediaUrls}
+                    onUnsavedPhotosChange={unsavedPhotos => {
+                      unsavedR2PhotosRef.current = unsavedPhotos;
+                    }}
+                    onMediaRemove={handleMediaRemove}
+                    savedPhotoUids={savedPhotoUids}
+                  />
+                )}
+                {watch('is_private') && (
+                  <div className='p-4 bg-gray-50 border border-gray-200 rounded-lg'>
+                    <p className='text-sm text-gray-600'>
+                      Photo uploads are only available for public dives. Photos are visible on the dive site.
+                    </p>
+                  </div>
+                )}
 
                 {/* URL Upload */}
                 <div>

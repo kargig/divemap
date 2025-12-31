@@ -13,11 +13,13 @@ import {
   getAvailableTags,
   addDiveMedia,
   getDivingCenters,
+  uploadPhotoToR2Only,
 } from '../api';
 import DivingCenterSearchableDropdown from '../components/DivingCenterSearchableDropdown';
 import { FormField } from '../components/forms/FormField';
 import RouteSelection from '../components/RouteSelection';
 import UserSearchInput from '../components/UserSearchInput';
+import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { createDiveSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
@@ -78,7 +80,8 @@ const CreateDive = () => {
   const diveSiteSearchTimeoutRef = useRef(null);
   const [mediaUrls, setMediaUrls] = useState([]);
   const [selectedBuddies, setSelectedBuddies] = useState([]);
-  const [newMediaIsPublic, setNewMediaIsPublic] = useState(true);
+  // Ref to store unsaved photos from UploadPhotosComponent (for create flow, these are files not yet uploaded to R2)
+  const unsavedR2PhotosRef = useRef([]);
 
   // Fetch dive sites for dropdown
   const { data: diveSites = [] } = useQuery(['dive-sites'], () => getDiveSites({ page_size: 100 }));
@@ -312,7 +315,6 @@ const CreateDive = () => {
         url: newMediaUrl.trim(),
         description: newMediaDescription.trim(),
         title: '',
-        is_public: newMediaIsPublic,
       };
       setMediaUrls(prev => [...prev, newMedia]);
 
@@ -320,7 +322,6 @@ const CreateDive = () => {
       setNewMediaUrl('');
       setNewMediaType('external_link');
       setNewMediaDescription('');
-      setNewMediaIsPublic(true);
       setShowMediaForm(false);
     }
   };
@@ -346,16 +347,50 @@ const CreateDive = () => {
     try {
       const createdDive = await createDiveMutation.mutateAsync(diveData);
 
-      // Add media URLs
       const mediaPromises = [];
+      const unsavedR2Photos = unsavedR2PhotosRef.current;
 
+      // First, upload photos to R2 and create DB records for them
+      for (const unsavedPhoto of unsavedR2Photos) {
+        if (unsavedPhoto.originFileObj) {
+          // This is a photo from create flow - upload to R2 first
+          try {
+            const r2UploadResult = await uploadPhotoToR2Only(createdDive.id, unsavedPhoto.originFileObj);
+            
+            // Create database record
+            const mediaData = {
+              media_type: 'photo',
+              url: r2UploadResult.r2_path, // Use R2 path for storage
+              description: unsavedPhoto.description || '',
+              title: '',
+            };
+
+            mediaPromises.push(
+              addDiveMedia(createdDive.id, mediaData).catch(error => {
+                console.error('Failed to save photo to database:', error);
+                toast.error(`Failed to save photo ${unsavedPhoto.file_name} to database`);
+              })
+            );
+          } catch (error) {
+            console.error('Failed to upload photo to R2:', error);
+            toast.error(`Failed to upload photo ${unsavedPhoto.file_name} to R2`);
+          }
+        }
+      }
+
+      // Add URL-based media (videos, external links, photo URLs like Flickr, etc.)
+      // Skip R2-uploaded photos (they have temp_uid) - they're handled above
       for (const mediaUrl of mediaUrls) {
+        // Skip R2-uploaded photos (they have temp_uid and are handled above)
+        if (mediaUrl.type === 'photo' && mediaUrl.temp_uid) {
+          continue;
+        }
+
         const mediaData = {
           media_type: mediaUrl.type,
           url: mediaUrl.url,
           description: mediaUrl.description || '',
           title: mediaUrl.title || '',
-          is_public: mediaUrl.is_public !== undefined ? mediaUrl.is_public : true,
         };
 
         mediaPromises.push(
@@ -707,6 +742,36 @@ const CreateDive = () => {
             <div className='md:col-span-2'>
               <h2 className='text-xl font-semibold mb-4'>Media</h2>
               <div className='space-y-4'>
+                {/* Photo Upload - Only show for public dives */}
+                {!watch('is_private') && (
+                  <UploadPhotosComponent
+                    id={null}
+                    mediaUrls={mediaUrls.filter(m => m.type === 'photo')}
+                    setMediaUrls={(updater) => {
+                      if (typeof updater === 'function') {
+                        setMediaUrls(prev => {
+                          const nonPhotos = prev.filter(m => m.type !== 'photo');
+                          const photos = updater(prev.filter(m => m.type === 'photo'));
+                          return [...nonPhotos, ...photos];
+                        });
+                      } else {
+                        const nonPhotos = mediaUrls.filter(m => m.type !== 'photo');
+                        setMediaUrls([...nonPhotos, ...updater]);
+                      }
+                    }}
+                    onUnsavedPhotosChange={unsavedPhotos => {
+                      unsavedR2PhotosRef.current = unsavedPhotos;
+                    }}
+                  />
+                )}
+                {watch('is_private') && (
+                  <div className='p-4 bg-gray-50 border border-gray-200 rounded-lg'>
+                    <p className='text-sm text-gray-600'>
+                      Photo uploads are only available for public dives. Photos are visible on the dive site.
+                    </p>
+                  </div>
+                )}
+
                 {/* URL Upload */}
                 <div>
                   <label className='block text-sm font-medium text-gray-700 mb-2'>
@@ -758,10 +823,8 @@ const CreateDive = () => {
                             onChange={e => setNewMediaType(e.target.value)}
                             className='w-full border border-gray-300 rounded-md px-3 py-2'
                           >
-                            <option value='external_link'>External Link</option>
-                            <option value='photo'>Photo</option>
+                            <option value='photo'>Photo (URL)</option>
                             <option value='video'>Video</option>
-                            <option value='dive_plan'>Dive Plan</option>
                           </select>
                         </div>
 
@@ -809,12 +872,14 @@ const CreateDive = () => {
                   )}
                 </div>
 
-                {/* Media Preview */}
-                {mediaUrls.length > 0 && (
+                {/* Media Preview (for URL-based media, including photo URLs like Flickr) */}
+                {mediaUrls.filter(media => !media.temp_uid).length > 0 && (
                   <div className='space-y-3'>
                     <h3 className='text-lg font-medium text-gray-900'>Media Preview</h3>
 
-                    {mediaUrls.map(media => (
+                    {mediaUrls
+                      .filter(media => !media.temp_uid) // Only show URL-based media, not R2-uploaded photos
+                      .map(media => (
                       <div
                         key={media.id}
                         className='flex items-start gap-3 p-3 border border-gray-200 rounded-lg'

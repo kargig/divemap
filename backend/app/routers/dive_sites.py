@@ -6,7 +6,7 @@ from slowapi.util import get_remote_address
 from datetime import datetime, timedelta
 import difflib
 import json
-
+from app.services.r2_storage_service import get_r2_storage
 from app.database import get_db
 from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus
 from app.services.osm_coastline_service import detect_shore_direction
@@ -1725,20 +1725,7 @@ async def get_dive_site_media(
         joinedload(DiveMedia.dive).joinedload(Dive.user)
     ).filter(
         Dive.dive_site_id == dive_site_id,
-        DiveMedia.is_public
     )
-    
-    # If user is logged in, also include their private media
-    if current_user:
-        dive_media_query = db.query(DiveMedia).join(Dive).options(
-            joinedload(DiveMedia.dive).joinedload(Dive.user)
-        ).filter(
-            Dive.dive_site_id == dive_site_id,
-            or_(
-                DiveMedia.is_public == True,
-                and_(DiveMedia.is_public == False, Dive.user_id == current_user.id)
-            )
-        )
     
     dive_media = dive_media_query.all()
     
@@ -1757,14 +1744,11 @@ async def get_dive_site_media(
             description=media.description,
             created_at=media.created_at,
             dive_id=None,
-            is_public=None,
             user_id=None,
             user_username=None
         ))
     
-    # Add public dive media (user-uploaded, public or private if owner)
     # Generate presigned URLs for R2 photos on-demand
-    from app.services.r2_storage_service import get_r2_storage
     r2_storage = get_r2_storage()
     
     for media in dive_media:
@@ -1797,7 +1781,6 @@ async def get_dive_site_media(
             description=formatted_description,
             created_at=media.created_at,
             dive_id=media.dive_id,
-            is_public=media.is_public,
             user_id=dive.user_id if dive else None,
             user_username=user_username
         ))

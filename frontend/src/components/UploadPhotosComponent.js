@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Upload, Image as AntImage, Collapse, Card, Tooltip } from 'antd';
-import { InboxOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Upload, Image as AntImage, Collapse, Card } from 'antd';
+import { InboxOutlined } from '@ant-design/icons';
 import { toast } from 'react-hot-toast';
 import PropTypes from 'prop-types';
 
-import { uploadPhotoToR2Only, deletePhotoFromR2, deleteDiveMedia } from '../api';
+// Note: uploadPhotoToR2Only and deletePhotoFromR2 are not needed here
+// Photos are only uploaded to R2 when form is submitted (handled in parent components)
+// deleteDiveMedia is handled via onMediaRemove callback for saved photos
 
 const { Dragger } = Upload;
 
 /**
  * Reusable photo upload component with Collapse, drag-and-drop, and per-photo controls
  * 
- * @param {string} id - The dive/resource ID for API calls
+ * @param {string|number|null} id - The dive/resource ID for API calls (null/undefined for create flows)
  * @param {Array} mediaUrls - Array of media items (photos) to display
  * @param {Function} setMediaUrls - Function to update mediaUrls
  * @param {Function} onUnsavedPhotosChange - Callback that receives unsavedR2Photos array when it changes
@@ -45,20 +47,8 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
     }
   }, [savedPhotoUids]);
 
-  // Cleanup: Only delete unsaved photos on component unmount, not on state changes
-  useEffect(() => {
-    return () => {
-      // Delete any photos that were uploaded to R2 but not saved to database
-      // Use ref to get the latest value without triggering cleanup on every change
-      if (unsavedR2PhotosRef.current.length > 0) {
-        unsavedR2PhotosRef.current.forEach(photo => {
-          deletePhotoFromR2(id, photo.r2_path).catch(error => {
-            console.error(`Failed to cleanup unsaved R2 photo ${photo.r2_path}:`, error);
-          });
-        });
-      }
-    };
-  }, [id]);
+  // Cleanup: No R2 cleanup needed since photos are only uploaded on form submission
+  // Photos stored locally (base64 previews) are automatically cleaned up when component unmounts
 
   // Helper function to get base64 for preview
   const getBase64 = (file) =>
@@ -136,20 +126,31 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
         )
       );
       
-      // Upload to R2 only (no database record created yet)
-      const r2UploadResult = await uploadPhotoToR2Only(id, file);
+      let r2UploadResult = null;
+      let previewUrl = null;
+
+      // If id is provided (edit flow), upload to R2 immediately
+      // If id is null/undefined (create flow), store file locally and upload later
+      if (id) {
+        // Upload to R2 only (no database record created yet)
+        r2UploadResult = await uploadPhotoToR2Only(id, file);
+        previewUrl = r2UploadResult.url;
+      } else {
+        // For create flow, create a local preview URL from the file
+        previewUrl = await getBase64(file);
+      }
 
       onProgress({ percent: 100 });
 
-      // Store photo info for later DB creation when Update Dive is pressed
-      // Default to true for is_public, can be changed per photo
+      // Store photo info for later DB creation
+      // For create flow, we'll upload to R2 after dive is created
       const unsavedPhoto = {
         uid: fileUid,
-        r2_path: r2UploadResult.r2_path,
-        url: r2UploadResult.url,
+        r2_path: r2UploadResult?.r2_path || null, // null for create flow, will be set after upload
+        url: previewUrl,
         file_name: file.name,
         description: '',
-        is_public: true, // Default to public, can be changed per photo
+        originFileObj: id ? null : file, // Store file object for create flow to upload later
       };
       setUnsavedR2Photos(prev => [...prev, unsavedPhoto]);
 
@@ -157,10 +158,9 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
       const mediaItem = {
         id: null, // No DB ID yet
         type: 'photo',
-        url: r2UploadResult.url,
+        url: previewUrl,
         description: '',
         title: '',
-        is_public: true, // Default to public, can be changed per photo
         uploaded: false, // Not saved to DB yet
         original_filename: file.name,
         temp_uid: fileUid, // Track this for later DB creation
@@ -169,11 +169,11 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
       // Remove from uploadFileList (match by both UID and originFileObj to catch all cases)
       setUploadFileList(prev => prev.filter(f => f.uid !== fileUid && f.originFileObj !== file));
       setMediaUrls(prev => [...prev, mediaItem]);
-      toast.success(`Successfully uploaded ${file.name} It will show on Dive when you finish editing`);
+      toast.success(`Successfully ${id ? 'uploaded' : 'added'} ${file.name}${id ? ' It will show on Dive when you finish editing' : ''}`);
       
       // Call onSuccess with the file to mark it as done in Ant Design's internal state
       // Use fileUid to ensure it matches the temp_uid in mediaUrls, preventing duplicates
-      onSuccess({ ...file, uid: fileUid, url: r2UploadResult.url, status: 'done' }, file);
+      onSuccess({ ...file, uid: fileUid, url: previewUrl, status: 'done' }, file);
       setUploadingPhotos(false);
     } catch (error) {
       // Update file status to error
@@ -184,55 +184,39 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
       );
       onError(error);
       setUploadingPhotos(false);
-      toast.error(`Failed to upload ${file.name}: ${error.response?.data?.detail || error.message}`);
+      toast.error(`Failed to ${id ? 'upload' : 'add'} ${file.name}: ${error.response?.data?.detail || error.message}`);
     }
   };
 
   // Handle file removal (called directly when remove button is clicked)
   const handleRemove = async (file) => {
-    // Check if it's an unsaved R2 photo (has temp_uid)
+    // Check if it's an unsaved photo (local preview, not yet uploaded to R2)
     const unsavedPhoto = unsavedR2Photos.find(p => p.uid === file.uid);
     if (unsavedPhoto) {
-      // Delete from R2 and remove from state
-      try {
-        await deletePhotoFromR2(id, unsavedPhoto.r2_path);
-        setUnsavedR2Photos(prev => prev.filter(p => p.uid !== file.uid));
-        setMediaUrls(prev => prev.filter(m => m.temp_uid !== file.uid));
-        setUploadFileList(prev => prev.filter(f => f.uid !== file.uid));
-        toast.success('Photo removed');
-        return true; // Allow Ant Design to remove it immediately
-      } catch (error) {
-        toast.error(`Failed to delete photo: ${error.response?.data?.detail || error.message}`);
-        return false;
-      }
+      // Just remove from local state - no API calls needed since photo wasn't uploaded to R2 yet
+      setUnsavedR2Photos(prev => prev.filter(p => p.uid !== file.uid));
+      setMediaUrls(prev => prev.filter(m => m.temp_uid !== file.uid));
+      setUploadFileList(prev => prev.filter(f => f.uid !== file.uid));
+      toast.success('Photo removed');
+      return true; // Allow Ant Design to remove it immediately
     }
 
     // Find the mediaItem by UID (which should match the media ID)
     const mediaItem = mediaUrls.find(m => m.type === 'photo' && (m.id?.toString() === file.uid || m.temp_uid === file.uid));
     
     if (mediaItem) {
-      // If onMediaRemove is provided, use it; otherwise handle deletion here
+      // If photo has a DB ID, it's been saved - use onMediaRemove callback to delete from backend
+      // If onMediaRemove is provided, use it; otherwise just remove from local state
       if (onMediaRemove) {
         onMediaRemove(mediaItem);
       } else {
-        // Default behavior: delete from backend if it has an ID
-        if (mediaItem.id) {
-          try {
-            const mediaId = typeof mediaItem.id === 'number' ? mediaItem.id : parseInt(mediaItem.id);
-            if (!isNaN(mediaId)) {
-              await deleteDiveMedia(id, mediaId);
-              toast.success('Photo deleted successfully');
-              setMediaUrls(prev => prev.filter(item => item.id !== mediaItem.id));
-            }
-          } catch (error) {
-            toast.error(error.response?.data?.detail || 'Failed to delete photo');
-          }
-        } else {
-          // Just remove from local state if no ID
-          setMediaUrls(prev => prev.filter(item => item.temp_uid !== file.uid));
-        }
+        // No callback provided - just remove from local state
+        // (This shouldn't happen in normal usage, but handle gracefully)
+        setMediaUrls(prev => prev.filter(item => 
+          item.id !== mediaItem.id && item.temp_uid !== file.uid
+        ));
       }
-      return false; // Prevent Ant Design from removing it immediately
+      return false; // Prevent Ant Design from removing it immediately (let parent handle it)
     } else {
       // For files that are not yet uploaded (just selected), remove from uploadFileList
       setUploadFileList(prev => prev.filter(f => f.uid !== file.uid));
@@ -273,23 +257,6 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
     setUploadFileList(filesNotYetUploaded);
   };
 
-  // Handle toggling is_public for a specific photo
-  const handlePhotoPublicToggle = (fileUid, isPublic) => {
-    // Update in mediaUrls
-    setMediaUrls(prev =>
-      prev.map(item =>
-        (item.id?.toString() === fileUid || item.temp_uid === fileUid)
-          ? { ...item, is_public: isPublic }
-          : item
-      )
-    );
-
-    // Update in unsavedR2Photos if it exists
-    setUnsavedR2Photos(prev =>
-      prev.map(photo => (photo.uid === fileUid ? { ...photo, is_public: isPublic } : photo))
-    );
-  };
-
   // Handle description change for a specific photo
   const handlePhotoDescriptionChange = (fileUid, description) => {
     // Update in mediaUrls
@@ -307,15 +274,14 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
     );
   };
 
-  // Custom item render to add "Make public" checkbox and description field underneath each list item
+  // Custom item render to add description field underneath each list item
   const itemRender = (originNode, file, fileList, actions) => {
-    // Find the media item to get is_public status and description
+    // Find the media item to get description
     const mediaItem = mediaUrls.find(
       m =>
         m.type === 'photo' &&
         (m.id?.toString() === file.uid || m.temp_uid === file.uid)
     );
-    const isPublic = mediaItem?.is_public ?? true;
     const description = mediaItem?.description || '';
 
     // Wrap originNode and controls in a Card
@@ -337,39 +303,19 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
           onMouseDown={e => e.stopPropagation()}
           style={{ pointerEvents: 'auto' }}
         >
-          <div className='flex flex-col gap-2'>
-            {/* Public checkbox */}
-            <label className='flex items-center gap-2 cursor-pointer'>
-              <input
-                type='checkbox'
-                checked={isPublic}
-                onChange={e => {
-                  e.stopPropagation();
-                  handlePhotoPublicToggle(file.uid, e.target.checked);
-                }}
-                onClick={e => e.stopPropagation()}
-                onMouseDown={e => e.stopPropagation()}
-                className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer'
-              />
-              <span className='text-sm text-gray-700 font-medium select-none'>Make public</span>
-              <Tooltip title='Visible on dive site and the dive if dive is public'>
-                <InfoCircleOutlined className='text-gray-400 hover:text-gray-600 cursor-help' />
-              </Tooltip>
-            </label>
-            {/* Description input field */}
-            <input
-              type='text'
-              value={description}
-              onChange={e => {
-                e.stopPropagation();
-                handlePhotoDescriptionChange(file.uid, e.target.value);
-              }}
-              onClick={e => e.stopPropagation()}
-              onMouseDown={e => e.stopPropagation()}
-              placeholder='Add description...'
-              className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
-            />
-          </div>
+          {/* Description input field */}
+          <input
+            type='text'
+            value={description}
+            onChange={e => {
+              e.stopPropagation();
+              handlePhotoDescriptionChange(file.uid, e.target.value);
+            }}
+            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
+            placeholder='Add description...'
+            className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+          />
         </div>
       </Card>
     );
@@ -434,14 +380,13 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
 };
 
 UploadPhotosComponent.propTypes = {
-  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   mediaUrls: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       type: PropTypes.string,
       url: PropTypes.string,
       description: PropTypes.string,
-      is_public: PropTypes.bool,
       original_filename: PropTypes.string,
       temp_uid: PropTypes.string,
       uploaded: PropTypes.bool,

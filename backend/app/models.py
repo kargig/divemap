@@ -509,7 +509,6 @@ class DiveMedia(Base):
     description = Column(Text)
     title = Column(String(255))  # For external links
     thumbnail_url = Column(String(500))  # For external links
-    is_public = Column(Boolean, default=True, nullable=False)  # Public media visible on dive sites
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
