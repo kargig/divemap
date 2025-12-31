@@ -2019,7 +2019,7 @@ async def update_dive_site(
     request: Request,
     dive_site_id: int,
     dive_site_update: DiveSiteUpdate,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
 
@@ -2028,6 +2028,19 @@ async def update_dive_site(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
+        )
+
+    # Check if user has permission to edit (admin, moderator, or owner)
+    can_edit = (
+        current_user.is_admin or
+        current_user.is_moderator or
+        dive_site.created_by == current_user.id
+    )
+
+    if not can_edit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to edit this dive site"
         )
 
     # Update only provided fields
