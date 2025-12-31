@@ -18,7 +18,7 @@ const { Dragger } = Upload;
  * @param {Function} onMediaRemove - Optional callback for handling media removal (for saved media)
  * @param {Array} savedPhotoUids - Array of UIDs for photos that have been saved to DB (to clear from unsaved list)
  */
-const UploadCustomComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosChange, onMediaRemove, savedPhotoUids = [] }) => {
+const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosChange, onMediaRemove, savedPhotoUids = [] }) => {
   // State for upload management
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -453,5 +453,5 @@ UploadCustomComponent.propTypes = {
   savedPhotoUids: PropTypes.arrayOf(PropTypes.string),
 };
 
-export default UploadCustomComponent;
+export default UploadPhotosComponent;
 

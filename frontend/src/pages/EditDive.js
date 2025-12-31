@@ -92,7 +92,7 @@ const EditDive = () => {
   const [newMediaDescription, setNewMediaDescription] = useState('');
   const [selectedBuddies, setSelectedBuddies] = useState([]);
   const [newMediaIsPublic, setNewMediaIsPublic] = useState(true);
-  // Ref to store unsaved R2 photos from UploadCustomComponent for use in onSubmit
+  // Ref to store unsaved R2 photos from UploadPhotosComponent for use in onSubmit
   const unsavedR2PhotosRef = useRef([]);
   // Track photo UIDs that have been saved to DB (to signal component to clear them from unsaved list)
   const [savedPhotoUids, setSavedPhotoUids] = useState([]);
