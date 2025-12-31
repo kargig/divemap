@@ -22,7 +22,7 @@ import DivingCenterSearchableDropdown from '../components/DivingCenterSearchable
 import { FormField } from '../components/forms/FormField';
 import RouteSelection from '../components/RouteSelection';
 import UserSearchInput from '../components/UserSearchInput';
-import UploadCustomComponent from '../components/UploadCustomComponent';
+import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
@@ -886,7 +886,7 @@ const EditDive = () => {
               <h2 className='text-xl font-semibold mb-4'>Media</h2>
               <div className='space-y-4'>
                 {/* Photo Upload */}
-                <UploadCustomComponent
+                <UploadPhotosComponent
                   id={id}
                   mediaUrls={mediaUrls}
                   setMediaUrls={setMediaUrls}
