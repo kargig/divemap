@@ -1,11 +1,13 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_, desc, asc
 from slowapi.util import get_remote_address
 from datetime import datetime, timedelta
 import difflib
 import json
+import uuid
+from pathlib import Path
 from app.services.r2_storage_service import get_r2_storage
 from app.database import get_db
 from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus
@@ -17,7 +19,7 @@ from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse,
     SiteRatingCreate, SiteRatingResponse,
     SiteCommentCreate, SiteCommentUpdate, SiteCommentResponse,
-    SiteMediaCreate, SiteMediaResponse,
+    SiteMediaCreate, SiteMediaUpdate, SiteMediaResponse,
     DiveSiteSearchParams, CenterDiveSiteCreate, DiveResponse,
     DiveSiteAliasCreate, DiveSiteAliasUpdate, DiveSiteAliasResponse,
     DiveRouteCreate, DiveRouteResponse, DiveRouteWithCreator
@@ -1733,23 +1735,25 @@ async def get_dive_site_media(
     # Note: We're using SiteMediaResponse but it will contain dive media too
     # The frontend will need to handle both types
     result = []
-    
+    r2_storage = get_r2_storage()
     # Add site media (admin-uploaded)
     for media in site_media:
+        # If URL is an R2 path (starts with 'user_'), generate presigned URL
+        media_url = media.url
+        if media_url.startswith('user_'):
+            media_url = r2_storage.get_photo_url(media_url)
         result.append(SiteMediaResponse(
             id=media.id,
             dive_site_id=media.dive_site_id,
             media_type=media.media_type.value if hasattr(media.media_type, 'value') else str(media.media_type),
-            url=media.url,
+            url=media_url,  # Use media_url (presigned URL) instead of media.url
             description=media.description,
             created_at=media.created_at,
             dive_id=None,
             user_id=None,
             user_username=None
         ))
-    
-    # Generate presigned URLs for R2 photos on-demand
-    r2_storage = get_r2_storage()
+
     
     for media in dive_media:
         # Get the dive to access user info (already loaded via joinedload)
@@ -1780,7 +1784,7 @@ async def get_dive_site_media(
             url=media_url,
             description=formatted_description,
             created_at=media.created_at,
-            dive_id=media.dive_id,
+            dive_id=media.dive_id if media.dive_id else None,
             user_id=dive.user_id if dive else None,
             user_username=user_username
         ))
@@ -1793,10 +1797,9 @@ async def add_dive_site_media(
     request: Request,
     dive_site_id: int,
     media: SiteMediaCreate,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
@@ -1805,8 +1808,22 @@ async def add_dive_site_media(
             detail="Dive site not found"
         )
 
+    # Check if user has permission to edit (admin, moderator, or owner)
+    can_edit = (
+        current_user.is_admin or
+        current_user.is_moderator or
+        dive_site.created_by == current_user.id
+    )
+
+    if not can_edit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to edit this dive site"
+        )
+
     # Validate media URL
-    if not media.url.startswith(('http://', 'https://')):
+    # Allow HTTP/HTTPS URLs for external media, or R2 paths (starting with 'user_') for uploaded photos
+    if not (media.url.startswith(('http://', 'https://')) or media.url.startswith('user_')):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid media URL"
@@ -1823,22 +1840,84 @@ async def add_dive_site_media(
     db.refresh(db_media)
     return db_media
 
-@router.delete("/{dive_site_id}/media/{media_id}")
+@router.patch("/{dive_site_id}/media/{media_id}", response_model=SiteMediaResponse)
 @skip_rate_limit_for_admin("30/minute")
-async def delete_dive_site_media(
+async def update_dive_site_media(
     request: Request,
     dive_site_id: int,
     media_id: int,
-    current_user: User = Depends(get_current_admin_user),
+    media_update: SiteMediaUpdate,
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
+        )
+
+    # Check if user has permission to edit (admin, moderator, or owner)
+    can_edit = (
+        current_user.is_admin or
+        current_user.is_moderator or
+        dive_site.created_by == current_user.id
+    )
+
+    if not can_edit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to edit this dive site"
+        )
+
+    # Check if media exists
+    media = db.query(SiteMedia).filter(
+        and_(SiteMedia.id == media_id, SiteMedia.dive_site_id == dive_site_id)
+    ).first()
+    if not media:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Media not found"
+        )
+
+    # Update fields if provided
+    update_data = media_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(media, field, value)
+
+    db.commit()
+    db.refresh(media)
+    return media
+
+@router.delete("/{dive_site_id}/media/{media_id}")
+@skip_rate_limit_for_admin("30/minute")
+async def delete_dive_site_media(
+    request: Request,
+    dive_site_id: int,
+    media_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    # Check if dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+
+    # Check if user has permission to edit (admin, moderator, or owner)
+    can_edit = (
+        current_user.is_admin or
+        current_user.is_moderator or
+        dive_site.created_by == current_user.id
+    )
+
+    if not can_edit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to edit this dive site"
         )
 
     # Check if media exists
@@ -1854,6 +1933,89 @@ async def delete_dive_site_media(
     db.delete(media)
     db.commit()
     return {"message": "Media deleted successfully"}
+
+@router.post("/{dive_site_id}/media/upload-photo-r2-only")
+@skip_rate_limit_for_admin("30/minute")
+async def upload_dive_site_photo_r2_only(
+    request: Request,
+    dive_site_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload photo to R2 only (no database record created yet).
+    Used for photo uploads that will be saved to database on form submission.
+    """
+    # Check if dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+
+    # Check if user has permission to edit (admin, moderator, or owner)
+    can_edit = (
+        current_user.is_admin or
+        current_user.is_moderator or
+        dive_site.created_by == current_user.id
+    )
+
+    if not can_edit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to edit this dive site"
+        )
+
+    # Validate file type
+    allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file type. Allowed types: {', '.join(allowed_types)}"
+        )
+
+    # Validate file size (max 10MB)
+    file_content = await file.read()
+    if len(file_content) > 10 * 1024 * 1024:  # 10MB
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size exceeds 10MB limit"
+        )
+
+    # Generate unique filename
+    file_ext = Path(file.filename).suffix if file.filename else '.jpg'
+    unique_filename = f"{uuid.uuid4()}{file_ext}"
+
+    # Upload to R2 or local storage only (no database record)
+    r2_storage = get_r2_storage()
+    try:
+        photo_path = r2_storage.upload_photo(
+            user_id=current_user.id,
+            filename=unique_filename,
+            content=file_content,
+            dive_site_id=dive_site_id
+        )
+        
+        # Generate presigned URL for preview
+        if photo_path.startswith('user_'):
+            # R2 path - generate presigned URL
+            presigned_url = r2_storage.get_photo_url(photo_path)
+        else:
+            # Local storage - get static URL
+            presigned_url = photo_path
+        
+        return {
+            "r2_path": photo_path,
+            "url": presigned_url
+        }
+    except Exception as e:
+        logger.error(f"Failed to upload photo to R2: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload photo to R2"
+        )
 
 @router.get("/{dive_site_id}/diving-centers")
 @skip_rate_limit_for_admin("250/minute")

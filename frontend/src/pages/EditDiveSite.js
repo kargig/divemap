@@ -4,9 +4,12 @@ import { useForm, FormProvider } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Collapse, Image } from 'antd';
 
-import api, { getNearbyDivingCenters, searchDivingCenters, extractErrorMessage } from '../api';
+import api, { getNearbyDivingCenters, searchDivingCenters, extractErrorMessage, updateDiveSiteMedia, uploadDiveSitePhotoToR2Only, addDiveSiteMedia } from '../api';
 import { FormField } from '../components/forms/FormField';
+import UploadPhotosComponent from '../components/UploadPhotosComponent';
+import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
@@ -64,6 +67,14 @@ const EditDiveSite = () => {
   });
 
   const [isAddingMedia, setIsAddingMedia] = useState(false);
+  const [mediaDescriptions, setMediaDescriptions] = useState({});
+  const [pendingMedia, setPendingMedia] = useState([]); // Media URLs to be saved on form submission
+  const [addLinksCollapseOpen, setAddLinksCollapseOpen] = useState(false); // Control Add External Links collapse
+
+  // Photo upload state
+  const [photoMediaUrls, setPhotoMediaUrls] = useState([]);
+  const unsavedR2PhotosRef = useRef([]);
+  const [savedPhotoUids, setSavedPhotoUids] = useState([]);
 
   // Tag management state
   const [selectedTags, setSelectedTags] = useState([]);
@@ -259,6 +270,31 @@ const EditDiveSite = () => {
       onError: _error => {
         toast.error('Failed to load media');
       },
+      onSuccess: data => {
+        // Initialize media descriptions when media loads (only for SiteMedia, not DiveMedia)
+        const descriptions = {};
+        // Initialize photoMediaUrls with photos (SiteMedia only, no dive_id)
+        const photos = data
+          .filter(item => item.media_type === 'photo' && !item.dive_id)
+          .map(item => ({
+            id: item.id,
+            type: 'photo',
+            url: item.url,
+            description: item.description || '',
+            title: '',
+            uploaded: true,
+            original_filename: item.url.split('/').pop() || 'photo.jpg',
+          }));
+        setPhotoMediaUrls(photos);
+
+        data.forEach(item => {
+          // Only initialize descriptions for SiteMedia (without dive_id)
+          if (!item.dive_id) {
+            descriptions[item.id] = item.description || '';
+          }
+        });
+        setMediaDescriptions(descriptions);
+      },
     }
   );
 
@@ -369,20 +405,6 @@ const EditDiveSite = () => {
   });
 
   // Add media mutation
-  const addMediaMutation = useMutation(
-    mediaData => api.post(`/api/v1/dive-sites/${id}/media`, mediaData),
-    {
-      onSuccess: () => {
-        toast.success('Media added successfully');
-        queryClient.invalidateQueries(['dive-site-media', id]);
-        setNewMedia({ url: '', description: '', media_type: 'photo' });
-        setIsAddingMedia(false);
-      },
-      onError: error => {
-        toast.error(error.response?.data?.detail || 'Failed to add media');
-      },
-    }
-  );
 
   // Delete media mutation
   const deleteMediaMutation = useMutation(
@@ -517,7 +539,7 @@ const EditDiveSite = () => {
     }
   };
 
-  const onSubmit = data => {
+  const onSubmit = async data => {
     // Prepare the update data
     const updateData = {
       ...data,
@@ -566,6 +588,85 @@ const EditDiveSite = () => {
       delete updateData.shore_direction_distance_m;
     }
 
+    // First, upload photos to R2 and create database records for them
+    const dbCreationPromises = [];
+    const unsavedR2Photos = unsavedR2PhotosRef.current;
+
+    for (const unsavedPhoto of unsavedR2Photos) {
+      if (unsavedPhoto.originFileObj) {
+        // This is a photo from create/edit flow - upload to R2 first
+        try {
+          const r2UploadResult = await uploadDiveSitePhotoToR2Only(id, unsavedPhoto.originFileObj);
+
+          // Create database record
+          const mediaData = {
+            media_type: 'photo',
+            url: r2UploadResult.r2_path, // Use R2 path for storage
+            description: unsavedPhoto.description || '',
+          };
+
+          dbCreationPromises.push(
+            addDiveSiteMedia(id, mediaData)
+              .then(createdMedia => {
+                // Update photoMediaUrls with the new DB ID
+                setPhotoMediaUrls(prev =>
+                  prev.map(item =>
+                    item.temp_uid === unsavedPhoto.uid
+                      ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
+                      : item
+                  )
+                );
+                // Track this UID as saved so component can clear it from unsaved list
+                setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
+                return createdMedia;
+              })
+              .catch(_error => {
+                toast.error(`Failed to save photo ${unsavedPhoto.file_name} to database`);
+              })
+          );
+        } catch (error) {
+          console.error('Failed to upload photo to R2:', error);
+          toast.error(`Failed to upload photo ${unsavedPhoto.file_name} to R2`);
+        }
+      } else if (unsavedPhoto.r2_path) {
+        // Photo was already uploaded to R2 (from previous edit session), just create DB record
+        const mediaData = {
+          media_type: 'photo',
+          url: unsavedPhoto.r2_path,
+          description: unsavedPhoto.description || '',
+        };
+
+        dbCreationPromises.push(
+          addDiveSiteMedia(id, mediaData)
+            .then(createdMedia => {
+              setPhotoMediaUrls(prev =>
+                prev.map(item =>
+                  item.temp_uid === unsavedPhoto.uid
+                    ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
+                    : item
+                )
+              );
+              setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
+              return createdMedia;
+            })
+            .catch(_error => {
+              toast.error(`Failed to save photo ${unsavedPhoto.file_name} to database`);
+            })
+        );
+      }
+    }
+
+    // Wait for all DB records to be created
+    if (dbCreationPromises.length > 0) {
+      await Promise.all(dbCreationPromises);
+      // Invalidate media query to refresh the list
+      await queryClient.invalidateQueries(['dive-site-media', id]);
+    }
+
+    // Clear unsaved photos ref since they're now saved
+    unsavedR2PhotosRef.current = [];
+    setSavedPhotoUids([]);
+
     // Update the dive site first
     updateMutation.mutate(updateData, {
       onSuccess: async updatedDiveSite => {
@@ -595,6 +696,55 @@ const EditDiveSite = () => {
           }
         }
 
+        // Save pending media to database
+        const pendingMediaPromises = [];
+        for (const pendingItem of pendingMedia) {
+          const mediaData = {
+            media_type: pendingItem.media_type,
+            url: pendingItem.url,
+            description: mediaDescriptions[pendingItem.id] || pendingItem.description || '',
+          };
+          pendingMediaPromises.push(
+            addDiveSiteMedia(id, mediaData).catch(error => {
+              console.error(`Failed to save media ${pendingItem.url}:`, error);
+              toast.error(`Failed to save media: ${pendingItem.url}`);
+            })
+          );
+        }
+        if (pendingMediaPromises.length > 0) {
+          await Promise.all(pendingMediaPromises);
+        }
+
+        // Update media descriptions that have changed
+        // Only update SiteMedia (dive site media), not DiveMedia (dive media)
+        // Dive media has dive_id set, so we skip those
+        const mediaUpdatePromises = [];
+        for (const mediaItem of media) {
+          // Skip media from dives (has dive_id) - only update direct dive site media
+          if (mediaItem.dive_id) {
+            continue;
+          }
+          const currentDescription = mediaItem.description || '';
+          const newDescription = mediaDescriptions[mediaItem.id] || '';
+          if (currentDescription !== newDescription) {
+            mediaUpdatePromises.push(
+              updateDiveSiteMedia(id, mediaItem.id, newDescription || null).catch(error => {
+                console.error(`Failed to update media description for media ${mediaItem.id}:`, error);
+                toast.error(`Failed to update media description`);
+              })
+            );
+          }
+        }
+        if (mediaUpdatePromises.length > 0) {
+          await Promise.all(mediaUpdatePromises);
+        }
+
+        // Clear pending media after successful save
+        setPendingMedia([]);
+
+        // Invalidate media query to refresh the list
+        await queryClient.invalidateQueries(['dive-site-media', id]);
+
         // Update the cache with the new data immediately
         queryClient.setQueryData(['dive-site', id], updatedDiveSite);
 
@@ -621,12 +771,62 @@ const EditDiveSite = () => {
       toast.error('Please enter a media URL');
       return;
     }
-    addMediaMutation.mutate(newMedia);
+    // Add to pending media state (will be saved on form submission)
+    const tempId = `pending-${Date.now()}-${Math.random()}`;
+    setPendingMedia(prev => [
+      ...prev,
+      {
+        id: tempId,
+        url: newMedia.url,
+        description: newMedia.description || '',
+        media_type: newMedia.media_type,
+        isPending: true, // Flag to identify pending media
+      },
+    ]);
+    // Initialize description in mediaDescriptions
+    setMediaDescriptions(prev => ({
+      ...prev,
+      [tempId]: newMedia.description || '',
+    }));
+    // Clear form
+    setNewMedia({ url: '', description: '', media_type: 'photo' });
+    // Close the collapse
+    setAddLinksCollapseOpen(false);
+    toast.success('Media added (will be saved on form submission)');
   };
 
   const handleDeleteMedia = mediaId => {
     if (window.confirm('Are you sure you want to delete this media?')) {
-      deleteMediaMutation.mutate(mediaId);
+      // Check if it's pending media (not yet saved to DB)
+      if (mediaId.toString().startsWith('pending-')) {
+        // Remove from pending media state
+        setPendingMedia(prev => prev.filter(item => item.id !== mediaId));
+        // Remove description from state
+        setMediaDescriptions(prev => {
+          const newDescriptions = { ...prev };
+          delete newDescriptions[mediaId];
+          return newDescriptions;
+        });
+        toast.success('Media removed');
+      } else {
+        // Delete from database
+        deleteMediaMutation.mutate(mediaId);
+      }
+    }
+  };
+
+  const handleMediaRemove = async (mediaItem) => {
+    // Handle removal of saved photos (with DB ID)
+    if (mediaItem.id) {
+      try {
+        await api.delete(`/api/v1/dive-sites/${id}/media/${mediaItem.id}`);
+        setPhotoMediaUrls(prev => prev.filter(item => item.id !== mediaItem.id));
+        queryClient.invalidateQueries(['dive-site-media', id]);
+        toast.success('Photo deleted successfully');
+      } catch (error) {
+        console.error('Failed to delete photo:', error);
+        toast.error('Failed to delete photo');
+      }
     }
   };
 
@@ -705,9 +905,8 @@ const EditDiveSite = () => {
                         id='dive-site-name'
                         type='text'
                         {...register(name)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.name ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
+                          }`}
                       />
                     )}
                   </FormField>
@@ -881,9 +1080,8 @@ const EditDiveSite = () => {
                       id='dive-site-description'
                       {...register(name)}
                       rows={4}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.description ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
+                        }`}
                     />
                   )}
                 </FormField>
@@ -899,9 +1097,8 @@ const EditDiveSite = () => {
                         type='number'
                         step='any'
                         {...register(name)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.latitude ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.latitude ? 'border-red-500' : 'border-gray-300'
+                          }`}
                       />
                     )}
                   </FormField>
@@ -915,9 +1112,8 @@ const EditDiveSite = () => {
                         type='number'
                         step='any'
                         {...register(name)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.longitude ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.longitude ? 'border-red-500' : 'border-gray-300'
+                          }`}
                       />
                     )}
                   </FormField>
@@ -987,9 +1183,8 @@ const EditDiveSite = () => {
                         min='0'
                         max='360'
                         {...register(name)}
-                        className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.shore_direction ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.shore_direction ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         placeholder='Enter shore direction in degrees (0-360)'
                       />
                       <button
@@ -1051,9 +1246,8 @@ const EditDiveSite = () => {
                       max='1000'
                       step='any'
                       {...register(name)}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.max_depth ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.max_depth ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       placeholder='e.g., 25.5'
                     />
                   )}
@@ -1105,164 +1299,254 @@ const EditDiveSite = () => {
               <div className='border-t pt-6'>
                 <div className='flex items-center justify-between mb-4'>
                   <h3 className='text-lg font-semibold text-gray-900'>Media</h3>
-                  <button
-                    type='button'
-                    onClick={() => setIsAddingMedia(!isAddingMedia)}
-                    className='flex items-center px-4 py-2 text-white rounded-md'
-                    style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
-                  >
-                    <Upload className='w-4 h-4 mr-2' />
-                    Add Media
-                  </button>
+                </div>
+                {/* Photo Upload */}
+                <div className='mb-3'>
+                  <UploadPhotosComponent
+                    id={null} // Defer R2 upload until form submission
+                    mediaUrls={photoMediaUrls}
+                    setMediaUrls={setPhotoMediaUrls}
+                    onUnsavedPhotosChange={unsavedPhotos => {
+                      unsavedR2PhotosRef.current = unsavedPhotos;
+                    }}
+                    onMediaRemove={handleMediaRemove}
+                    savedPhotoUids={savedPhotoUids}
+                  />
                 </div>
 
-                {/* Add Media Form */}
-                {isAddingMedia && (
-                  <div className='bg-gray-50 p-4 rounded-md mb-4'>
-                    <div className='space-y-4'>
-                      <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                        <div>
-                          <label
-                            htmlFor='media_type'
-                            className='block text-sm font-medium text-gray-700 mb-1'
-                          >
-                            Media Type
-                          </label>
-                          <select
-                            id='media_type'
-                            value={newMedia.media_type}
-                            onChange={e =>
-                              setNewMedia(prev => ({ ...prev, media_type: e.target.value }))
-                            }
-                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                          >
-                            <option value='photo'>Photo</option>
-                            <option value='video'>Video</option>
-                          </select>
+                {/* Add External Links */}
+                <div className='mb-3'>
+                <Collapse
+                  activeKey={addLinksCollapseOpen ? ['1'] : []}
+                  onChange={(keys) => setAddLinksCollapseOpen(keys.includes('1'))}
+                  items={[
+                    {
+                      key: '1',
+                      label: 'Add External Links (Photo / Video)',
+                      children: (
+                        <div className='space-y-4'>
+                          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                            <div>
+                              <label
+                                htmlFor='media_type'
+                                className='block text-sm font-medium text-gray-700 mb-1'
+                              >
+                                Media Type
+                              </label>
+                              <select
+                                id='media_type'
+                                value={newMedia.media_type}
+                                onChange={e =>
+                                  setNewMedia(prev => ({ ...prev, media_type: e.target.value }))
+                                }
+                                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                              >
+                                <option value='photo'>Photo</option>
+                                <option value='video'>Video</option>
+                              </select>
+                            </div>
+                            <div className='md:col-span-2'>
+                              <label
+                                htmlFor='media_url'
+                                className='block text-sm font-medium text-gray-700 mb-1'
+                              >
+                                URL *
+                              </label>
+                              <input
+                                id='media_url'
+                                type='url'
+                                value={newMedia.url}
+                                onChange={e => setNewMedia(prev => ({ ...prev, url: e.target.value }))}
+                                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                placeholder='https://example.com/image.jpg'
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label
+                              htmlFor='media_description'
+                              className='block text-sm font-medium text-gray-700 mb-1'
+                            >
+                              Description
+                            </label>
+                            <input
+                              id='media_description'
+                              type='text'
+                              value={newMedia.description}
+                              onChange={e =>
+                                setNewMedia(prev => ({ ...prev, description: e.target.value }))
+                              }
+                              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                            />
+                          </div>
+                          <div className='flex space-x-2'>
+                            <button
+                              type='button'
+                              onClick={handleAddMedia}
+                              className='px-4 py-2 text-white rounded-md'
+                              style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                              onMouseEnter={e =>
+                                (e.currentTarget.style.backgroundColor = '#007a5c')
+                              }
+                              onMouseLeave={e =>
+                                (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                              }
+                            >
+                              Add Media
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                setNewMedia({ url: '', description: '', media_type: 'photo' });
+                              }}
+                              className='px-4 py-2 text-white rounded-md'
+                              style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
+                              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                              onMouseLeave={e =>
+                                (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                              }
+                            >
+                              Clear
+                            </button>
+                          </div>
                         </div>
-                        <div className='md:col-span-2'>
-                          <label
-                            htmlFor='media_url'
-                            className='block text-sm font-medium text-gray-700 mb-1'
-                          >
-                            URL *
-                          </label>
-                          <input
-                            id='media_url'
-                            type='url'
-                            value={newMedia.url}
-                            onChange={e => setNewMedia(prev => ({ ...prev, url: e.target.value }))}
-                            required
-                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                            placeholder='https://example.com/image.jpg'
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label
-                          htmlFor='media_description'
-                          className='block text-sm font-medium text-gray-700 mb-1'
-                        >
-                          Description
-                        </label>
-                        <input
-                          id='media_description'
-                          type='text'
-                          value={newMedia.description}
-                          onChange={e =>
-                            setNewMedia(prev => ({ ...prev, description: e.target.value }))
-                          }
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        />
-                      </div>
-                      <div className='flex space-x-2'>
-                        <button
-                          type='button'
-                          onClick={handleAddMedia}
-                          disabled={addMediaMutation.isLoading}
-                          className='px-4 py-2 text-white rounded-md disabled:opacity-50'
-                          style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                          onMouseEnter={e =>
-                            !e.currentTarget.disabled &&
-                            (e.currentTarget.style.backgroundColor = '#007a5c')
-                          }
-                          onMouseLeave={e =>
-                            !e.currentTarget.disabled &&
-                            (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                          }
-                        >
-                          {addMediaMutation.isLoading ? 'Adding...' : 'Add Media'}
-                        </button>
-                        <button
-                          type='button'
-                          onClick={() => setIsAddingMedia(false)}
-                          className='px-4 py-2 text-white rounded-md'
-                          style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-                          onMouseLeave={e =>
-                            (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
-                          }
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
+                      ),
+                    },
+                  ]}
+                />
+                </div>
+                {/* Media List */}
+                {mediaLoading && (
+                  <div className='col-span-full text-center py-4'>
+                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
+                    <p className='text-gray-600 mt-2'>Loading media...</p>
                   </div>
                 )}
-
-                {/* Media List */}
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                  {mediaLoading && (
-                    <div className='col-span-full text-center py-4'>
-                      <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
-                      <p className='text-gray-600 mt-2'>Loading media...</p>
-                    </div>
-                  )}
-                  {mediaError && (
-                    <div className='col-span-full text-center py-4'>
-                      <p className='text-red-600'>Failed to load media</p>
-                    </div>
-                  )}
-                  {!mediaLoading && !mediaError && Array.isArray(media) && media.length === 0 && (
-                    <div className='col-span-full text-center py-4'>
-                      <p className='text-gray-500'>No media added yet.</p>
-                    </div>
-                  )}
-                  {!mediaLoading &&
-                    !mediaError &&
-                    Array.isArray(media) &&
-                    media.map(item => (
-                      <div key={item.id} className='border rounded-lg p-4'>
-                        <div className='flex items-center justify-between mb-2'>
-                          <span className='text-sm font-medium text-gray-700 capitalize'>
-                            {item.media_type}
-                          </span>
-                          <button
-                            onClick={() => handleDeleteMedia(item.id)}
-                            className='text-red-600 hover:text-red-800'
-                            title='Delete media'
-                          >
-                            <Trash2 className='w-4 h-4' />
-                          </button>
-                        </div>
-                        <div className='space-y-2'>
-                          <a
-                            href={item.url}
-                            target='_blank'
-                            rel='noopener noreferrer'
-                            className='text-blue-600 hover:text-blue-800 text-sm break-all'
-                          >
-                            {item.url}
-                          </a>
-                          {item.description && (
-                            <p className='text-sm text-gray-600'>{item.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                </div>
+                {mediaError && (
+                  <div className='col-span-full text-center py-4'>
+                    <p className='text-red-600'>Failed to load media</p>
+                  </div>
+                )}
+                {!mediaLoading && !mediaError && Array.isArray(media) && media.filter(item => !item.dive_id).length === 0 && pendingMedia.length === 0 && (
+                  <div className='col-span-full text-center py-4'>
+                    <p className='text-gray-500'>No media added yet.</p>
+                  </div>
+                )}
+                {(!mediaLoading && !mediaError && (Array.isArray(media) && media.filter(item => !item.dive_id).length > 0 || pendingMedia.length > 0)) && (
+                  <div className='mb-3'>
+                  <Collapse
+                    items={[
+                      {
+                        key: '1',
+                        label: 'Manage Media',
+                        children: (
+                          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                            {/* Show saved media */}
+                            {media.filter(item => !item.dive_id).map(item => (
+                              <div key={item.id} className='border rounded-lg p-4'>
+                                <div className='flex items-center justify-between mb-2'>
+                                  <span className='text-sm font-medium text-gray-700 capitalize'>
+                                    {item.media_type}
+                                  </span>
+                                  {!item.dive_id && (
+                                    <button
+                                      onClick={() => handleDeleteMedia(item.id)}
+                                      className='text-red-600 hover:text-red-800'
+                                      title='Delete media'
+                                    >
+                                      <Trash2 className='w-4 h-4' />
+                                    </button>
+                                  )}
+                                </div>
+                                <div className='space-y-2'>
+                                  {item.media_type === 'photo' ? (
+                                    <Image
+                                      src={item.url}
+                                      alt={item.description || 'Media'}
+                                      className='w-full'
+                                      preview={{
+                                        mask: 'Preview',
+                                      }}
+                                    />
+                                  ) : (
+                                    <YouTubePreview
+                                      url={item.url}
+                                      description={item.description}
+                                      className='w-full'
+                                      openInNewTab={true}
+                                    />
+                                  )}
+                                  <input
+                                    type='text'
+                                    value={mediaDescriptions[item.id] || ''}
+                                    onChange={e => {
+                                      setMediaDescriptions(prev => ({
+                                        ...prev,
+                                        [item.id]: e.target.value,
+                                      }));
+                                    }}
+                                    disabled={!!item.dive_id}
+                                    placeholder={item.dive_id ? 'Description from dive (not editable)' : 'Add description...'}
+                                    className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed'
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                            {/* Show pending media */}
+                            {pendingMedia.map(item => (
+                              <div key={item.id} className='border rounded-lg p-4 border-yellow-400 bg-yellow-50'>
+                                <div className='flex items-center justify-between mb-2'>
+                                  <span className='text-sm font-medium text-gray-700 capitalize'>
+                                    {item.media_type} <span className='text-xs text-yellow-700'>(Pending)</span>
+                                  </span>
+                                  <button
+                                    onClick={() => handleDeleteMedia(item.id)}
+                                    className='text-red-600 hover:text-red-800'
+                                    title='Remove media'
+                                  >
+                                    <Trash2 className='w-4 h-4' />
+                                  </button>
+                                </div>
+                                <div className='space-y-2'>
+                                  {item.media_type === 'photo' ? (
+                                    <Image
+                                      src={item.url}
+                                      alt={item.description || 'Media'}
+                                      className='w-full'
+                                      preview={{
+                                        mask: 'Preview',
+                                      }}
+                                    />
+                                  ) : (
+                                    <YouTubePreview
+                                      url={item.url}
+                                      description={item.description}
+                                      className='w-full'
+                                      openInNewTab={true}
+                                    />
+                                  )}
+                                  <input
+                                    type='text'
+                                    value={mediaDescriptions[item.id] || ''}
+                                    onChange={e => {
+                                      setMediaDescriptions(prev => ({
+                                        ...prev,
+                                        [item.id]: e.target.value,
+                                      }));
+                                    }}
+                                    placeholder='Add description...'
+                                    className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ),
+                      },
+                    ]}
+                  />
+                  </div>
+                )}
               </div>
 
               {/* Tags Management */}
@@ -1491,11 +1775,10 @@ const EditDiveSite = () => {
                                 <li key={option.id}>
                                   <button
                                     type='button'
-                                    className={`w-full text-left px-3 py-2 hover:bg-gray-100 ${
-                                      String(newDivingCenterId) === String(option.id)
-                                        ? 'bg-gray-50'
-                                        : ''
-                                    }`}
+                                    className={`w-full text-left px-3 py-2 hover:bg-gray-100 ${String(newDivingCenterId) === String(option.id)
+                                      ? 'bg-gray-50'
+                                      : ''
+                                      }`}
                                     onClick={() => {
                                       setNewDivingCenterId(String(option.id));
                                       setDivingCenterQuery(option.name);
@@ -1638,8 +1921,8 @@ const EditDiveSite = () => {
                   ))}
                 {(!Array.isArray(associatedDivingCenters) ||
                   associatedDivingCenters.length === 0) && (
-                  <p className='text-gray-500 text-sm'>No diving centers associated</p>
-                )}
+                    <p className='text-gray-500 text-sm'>No diving centers associated</p>
+                  )}
               </div>
             </div>
           </div>

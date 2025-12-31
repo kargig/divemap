@@ -248,6 +248,9 @@ class SiteMediaCreate(BaseModel):
     url: str = Field(..., min_length=1, max_length=500)
     description: Optional[str] = None
 
+class SiteMediaUpdate(BaseModel):
+    description: Optional[str] = None
+
 class SiteMediaResponse(BaseModel):
     id: int
     dive_site_id: int

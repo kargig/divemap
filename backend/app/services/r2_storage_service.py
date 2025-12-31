@@ -66,9 +66,40 @@ class R2StorageService:
         month = now.strftime("%m")
         return f"user_{user_id}/dive_profiles/{year}/{month}/{filename}"
     
-    def _get_photo_path(self, user_id: int, dive_id: int, filename: str) -> str:
-        """Generate photo-specific path for storage: user_{user_id}/photos/dive_{dive_id}/{filename}"""
-        return f"user_{user_id}/photos/dive_{dive_id}/{filename}"
+    def _get_photo_path(
+        self, 
+        user_id: int, 
+        filename: str, 
+        dive_id: int | None = None, 
+        dive_site_id: int | None = None
+    ) -> str:
+        """
+        Generate photo-specific path for storage of photos uploaded by users for dives and dive sites.
+        
+        Args:
+            user_id: User ID for path organization
+            filename: Name of the file to store
+            dive_id: Optional dive ID for dive photos
+            dive_site_id: Optional dive site ID for dive site photos
+            
+        Returns:
+            str: Path where file should be stored
+            
+        Raises:
+            ValueError: If neither dive_id nor dive_site_id is provided
+        """
+        
+        now = datetime.now()
+        year = now.strftime("%Y")
+        month = now.strftime("%m")
+        
+        if dive_id:
+            return f"user_{user_id}/photos/dive_{dive_id}/{year}/{month}/{filename}"
+        elif dive_site_id:
+            return f"user_{user_id}/photos/dive_site_{dive_site_id}/{year}/{month}/{filename}"
+        
+        # This should never be reached due to the validation above, but added for type safety
+        raise ValueError("Either dive_id or dive_site_id must be provided")
     
     def _ensure_local_directory(self, file_path: str) -> None:
         """Ensure local directory exists for file path."""
@@ -327,23 +358,24 @@ class R2StorageService:
         
         return status
     
-    def upload_photo(self, user_id: int, dive_id: int, filename: str, content: bytes) -> str:
+    def upload_photo(self, user_id: int, filename: str, content: bytes, dive_id: int | None = None, dive_site_id: int | None = None) -> str:
         """
-        Upload dive photo to R2 with user/dive-specific path.
+        Upload photo to R2 with user/dive or dive_site-specific path.
         
         Args:
             user_id: User ID for path organization
-            dive_id: Dive ID for path organization
             filename: Name of the file to store
             content: File content as bytes
+            dive_id: Optional dive ID for dive photos
+            dive_site_id: Optional dive site ID for dive site photos
             
         Returns:
             str: Path where file was stored (R2 key or local path)
         """
         if not self.r2_available:
-            return self._upload_photo_local(user_id, dive_id, filename, content)
+            return self._upload_photo_local(user_id, filename, content, dive_id=dive_id, dive_site_id=dive_site_id)
         
-        r2_path = self._get_photo_path(user_id, dive_id, filename)
+        r2_path = self._get_photo_path(user_id, filename, dive_id=dive_id, dive_site_id=dive_site_id)
         try:
             self.s3_client.put_object(
                 Bucket=os.getenv('R2_BUCKET_NAME'),
@@ -354,17 +386,28 @@ class R2StorageService:
             return r2_path
         except Exception as e:
             logger.warning(f"R2 photo upload failed, falling back to local: {e}")
-            return self._upload_photo_local(user_id, dive_id, filename, content)
+            return self._upload_photo_local(user_id, filename, content, dive_id=dive_id, dive_site_id=dive_site_id)
     
-    def _upload_photo_local(self, user_id: int, dive_id: int, filename: str, content: bytes) -> str:
+    def _upload_photo_local(self, user_id: int, filename: str, content: bytes, dive_id: int | None = None, dive_site_id: int | None = None) -> str:
         """Upload photo to local filesystem."""
-        local_path = os.path.join(
-            "uploads",
-            f"user_{user_id}",
-            "photos",
-            f"dive_{dive_id}",
-            filename
-        )
+        if dive_id:
+            local_path = os.path.join(
+                "uploads",
+                f"user_{user_id}",
+                "photos",
+                f"dive_{dive_id}",
+                filename
+            )
+        elif dive_site_id:
+            local_path = os.path.join(
+                "uploads",
+                f"user_{user_id}",
+                "photos",
+                f"dive_site_{dive_site_id}",
+                filename
+            )
+        else:
+            raise ValueError("Either dive_id or dive_site_id must be provided")
         
         self._ensure_local_directory(local_path)
         

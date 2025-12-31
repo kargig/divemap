@@ -897,3 +897,28 @@ export const updateDiveMedia = async (diveId, mediaId, description = null, isPub
   const response = await api.patch(`/api/v1/dives/${diveId}/media/${mediaId}`, data);
   return response.data;
 };
+
+export const updateDiveSiteMedia = async (diveSiteId, mediaId, description = null) => {
+  const data = {};
+  if (description !== null) data.description = description;
+  const response = await api.patch(`/api/v1/dive-sites/${diveSiteId}/media/${mediaId}`, data);
+  return response.data;
+};
+
+// Upload photo to R2 only for dive sites (without creating database record)
+export const uploadDiveSitePhotoToR2Only = async (diveSiteId, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(`/api/v1/dive-sites/${diveSiteId}/media/upload-photo-r2-only`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+// Add dive site media
+export const addDiveSiteMedia = async (diveSiteId, mediaData) => {
+  const response = await api.post(`/api/v1/dive-sites/${diveSiteId}/media`, mediaData);
+  return response.data;
+};

@@ -119,9 +119,9 @@ async def upload_dive_photo(
     try:
         photo_path = r2_storage.upload_photo(
             user_id=current_user.id,
-            dive_id=dive_id,
             filename=unique_filename,
-            content=file_content
+            content=file_content,
+            dive_id=dive_id
         )
         
         # For R2 photos, store the path and generate presigned URL on-demand
@@ -220,9 +220,9 @@ async def upload_photo_r2_only(
     try:
         photo_path = r2_storage.upload_photo(
             user_id=current_user.id,
-            dive_id=dive_id,
             filename=unique_filename,
-            content=file_content
+            content=file_content,
+            dive_id=dive_id
         )
         
         # Generate presigned URL for preview
