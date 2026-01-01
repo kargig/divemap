@@ -6,7 +6,7 @@ Automatically detects AWS credentials and falls back gracefully when unavailable
 """
 
 import os
-import json
+import orjson
 import logging
 from typing import Optional, Dict, Any
 
@@ -100,8 +100,8 @@ class SQSService:
             
             response = self.sqs_client.send_message(
                 QueueUrl=self.queue_url,
-                MessageBody=json.dumps(message_body),
-                DelaySeconds=min(delay_seconds, 900)  # SQS max delay is 900 seconds
+                MessageBody=orjson.dumps(message_body).decode('utf-8'),
+                DelaySeconds=min(delay_seconds, 900)
             )
             
             logger.info(f"Email task queued successfully: MessageId={response.get('MessageId')}")
@@ -161,7 +161,7 @@ class SQSService:
                     
                     entries.append({
                         'Id': str(i + idx),
-                        'MessageBody': json.dumps(message_body),
+                        'MessageBody': orjson.dumps(message_body).decode('utf-8'),
                         'DelaySeconds': min(delay_seconds, 900)
                     })
                 

@@ -19,7 +19,7 @@ from fastapi import Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import date, time, datetime
-import json
+import orjson
 import os
 import re
 import tempfile
@@ -299,7 +299,7 @@ def save_dive_profile_data(dive, profile_data, db):
         filename = f"dive_{dive.id}_profile_{timestamp}.json"
         
         # Convert profile data to JSON bytes
-        json_content = json.dumps(profile_data, indent=2).encode('utf-8')
+        json_content = orjson.dumps(profile_data, option=orjson.OPT_INDENT_2)
         
         # Upload to R2 or local storage
         stored_path = r2_storage.upload_profile(dive.user_id, filename, json_content)
