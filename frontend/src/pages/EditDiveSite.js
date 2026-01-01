@@ -294,7 +294,7 @@ const EditDiveSite = () => {
   // Convert Flickr URLs to direct image URLs
   useEffect(() => {
     const convertFlickrUrls = async () => {
-      if (!media || media.length === 0) return;
+      if (!media || !Array.isArray(media) || media.length === 0) return;
 
       // Get all photos (SiteMedia only, no dive_id)
       const photos = media.filter(item => item.media_type === 'photo' && !item.dive_id);

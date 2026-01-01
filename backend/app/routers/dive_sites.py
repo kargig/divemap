@@ -1545,6 +1545,7 @@ async def create_dive_site(
         **dive_site.dict(),
         "id": db_dive_site.id,
         "created_at": db_dive_site.created_at,
+        "created_by": db_dive_site.created_by,
         "updated_at": db_dive_site.updated_at,
         "average_rating": None,
         "total_ratings": 0,
