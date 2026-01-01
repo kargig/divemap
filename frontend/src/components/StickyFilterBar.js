@@ -1,6 +1,6 @@
 import { Filter, Search, X, ChevronDown, MapPin, Calendar } from 'lucide-react';
 import PropTypes from 'prop-types';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 import { getDifficultyOptions, getDifficultyLabel } from '../utils/difficultyHelpers';
 
@@ -32,7 +32,7 @@ const StickyFilterBar = ({
     onToggleFilters();
   };
 
-  const getActiveFilters = () => {
+  const activeFilters = useMemo(() => {
     const active = [];
     if (filters.search_query)
       active.push({ key: 'search', label: 'Search', value: filters.search_query });
@@ -63,9 +63,7 @@ const StickyFilterBar = ({
       });
     }
     return active;
-  };
-
-  const activeFilters = getActiveFilters();
+  }, [filters]);
 
   return (
     <div className={`${variantClasses[variant]} ${className}`}>
@@ -76,6 +74,7 @@ const StickyFilterBar = ({
           <div className='relative'>
             <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
             <input
+              id='sticky-search'
               type='text'
               placeholder={searchPlaceholder}
               value={searchValue}
@@ -187,8 +186,11 @@ const StickyFilterBar = ({
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
             {/* Date Filters */}
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Start Date</label>
+              <label htmlFor='start-date' className='block text-sm font-medium text-gray-700 mb-2'>
+                Start Date
+              </label>
               <input
+                id='start-date'
                 type='date'
                 value={filters.start_date || ''}
                 onChange={e => onFilterChange('start_date', e.target.value)}
@@ -196,8 +198,11 @@ const StickyFilterBar = ({
               />
             </div>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>End Date</label>
+              <label htmlFor='end-date' className='block text-sm font-medium text-gray-700 mb-2'>
+                End Date
+              </label>
               <input
+                id='end-date'
                 type='date'
                 value={filters.end_date || ''}
                 onChange={e => onFilterChange('end_date', e.target.value)}
@@ -207,8 +212,11 @@ const StickyFilterBar = ({
 
             {/* Price Filters */}
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Min Price (€)</label>
+              <label htmlFor='min-price' className='block text-sm font-medium text-gray-700 mb-2'>
+                Min Price (€)
+              </label>
               <input
+                id='min-price'
                 type='number'
                 placeholder='0'
                 value={filters.min_price || ''}
@@ -217,8 +225,11 @@ const StickyFilterBar = ({
               />
             </div>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Max Price (€)</label>
+              <label htmlFor='max-price' className='block text-sm font-medium text-gray-700 mb-2'>
+                Max Price (€)
+              </label>
               <input
+                id='max-price'
                 type='number'
                 placeholder='1000'
                 value={filters.max_price || ''}
@@ -229,8 +240,11 @@ const StickyFilterBar = ({
 
             {/* Status and Difficulty */}
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Status</label>
+              <label htmlFor='trip-status' className='block text-sm font-medium text-gray-700 mb-2'>
+                Status
+              </label>
               <select
+                id='trip-status'
                 value={filters.trip_status || ''}
                 onChange={e => onFilterChange('trip_status', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
@@ -243,8 +257,14 @@ const StickyFilterBar = ({
               </select>
             </div>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Difficulty</label>
+              <label
+                htmlFor='difficulty-code'
+                className='block text-sm font-medium text-gray-700 mb-2'
+              >
+                Difficulty
+              </label>
               <select
+                id='difficulty-code'
                 value={filters.difficulty_code || ''}
                 onChange={e => onFilterChange('difficulty_code', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
@@ -271,8 +291,14 @@ const StickyFilterBar = ({
 
             {/* Diving Center Filter */}
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>Diving Center</label>
+              <label
+                htmlFor='diving-center-id'
+                className='block text-sm font-medium text-gray-700 mb-2'
+              >
+                Diving Center
+              </label>
               <select
+                id='diving-center-id'
                 value={filters.diving_center_id || ''}
                 onChange={e => onFilterChange('diving_center_id', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
@@ -290,9 +316,9 @@ const StickyFilterBar = ({
             <div className='md:col-span-2 lg:col-span-4'>
               <div className='p-3 bg-blue-50 rounded-lg border border-blue-200'>
                 <div className='flex items-center justify-between mb-2'>
-                  <label className='block text-sm font-medium text-blue-700'>
+                  <span className='block text-sm font-medium text-blue-700'>
                     Your Location (for distance sorting)
-                  </label>
+                  </span>
                   <button
                     onClick={() => onFilterChange('get_user_location', '')}
                     className='text-xs text-blue-600 hover:text-blue-800 underline'

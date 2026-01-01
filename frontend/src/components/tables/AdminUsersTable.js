@@ -6,6 +6,7 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 import { Edit, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 /**
  * AdminUsersTable - TanStack Table implementation for users
@@ -96,6 +97,13 @@ const AdminUsersTable = ({
                             header.column.getCanSort() ? 'cursor-pointer hover:bg-gray-100' : ''
                           }`}
                           onClick={header.column.getToggleSortingHandler()}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              header.column.getToggleSortingHandler()(e);
+                            }
+                          }}
+                          role='button'
+                          tabIndex={0}
                         >
                           {flexRender(header.column.columnDef.header, header.getContext())}
                           {header.column.getCanSort() && (
@@ -240,82 +248,91 @@ const AdminUsersTable = ({
         </div>
       </div>
 
-      {/* Pagination */}
-      {table.getPageCount() > 1 && (
-        <div className='flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6'>
-          <div className='flex-1 flex justify-between sm:hidden'>
+      {/* Pagination Controls */}
+      <div className='flex flex-col sm:flex-row justify-between items-center gap-4'>
+        {/* Page Size Selection */}
+        <div className='flex items-center gap-2'>
+          <label htmlFor='page-size-select' className='text-sm font-medium text-gray-700'>
+            Show:
+          </label>
+          <select
+            id='page-size-select'
+            value={pagination.pageSize}
+            onChange={e => handlePageSizeChange(Number(e.target.value))}
+            className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+          >
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+          <span className='text-sm text-gray-600'>per page</span>
+        </div>
+
+        {/* Pagination Info */}
+        {pagination.totalCount !== undefined && (
+          <div className='text-sm text-gray-600'>
+            Showing {pagination.pageIndex * pagination.pageSize + 1} to{' '}
+            {Math.min((pagination.pageIndex + 1) * pagination.pageSize, table.getRowCount())} of{' '}
+            {table.getRowCount()} results
+          </div>
+        )}
+
+        {/* Pagination Navigation */}
+        {pagination.totalCount !== undefined && (
+          <div className='flex items-center gap-2'>
             <button
               onClick={() => handlePageChange(pagination.pageIndex - 1)}
               disabled={!table.getCanPreviousPage()}
-              className='relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
+              className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
             >
-              Previous
+              <ChevronLeft className='h-4 w-4' />
             </button>
+
+            <span className='text-sm text-gray-700'>
+              Page {pagination.pageIndex + 1} of {table.getPageCount()}
+            </span>
+
             <button
               onClick={() => handlePageChange(pagination.pageIndex + 1)}
               disabled={!table.getCanNextPage()}
-              className='ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
+              className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
             >
-              Next
+              <ChevronRight className='h-5 w-5' />
+            </button>
+            <button
+              onClick={() => handlePageChange(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+              className='relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
+            >
+              <ChevronRight className='h-5 w-5' />
             </button>
           </div>
-          <div className='hidden sm:flex-1 sm:flex sm:items-center sm:justify-between'>
-            <div>
-              <p className='text-sm text-gray-700'>
-                Showing{' '}
-                <span className='font-medium'>
-                  {pagination.pageIndex * pagination.pageSize + 1}
-                </span>{' '}
-                to{' '}
-                <span className='font-medium'>
-                  {Math.min((pagination.pageIndex + 1) * pagination.pageSize, table.getRowCount())}
-                </span>{' '}
-                of <span className='font-medium'>{table.getRowCount()}</span> results
-              </p>
-            </div>
-            <div>
-              <nav
-                className='relative z-0 inline-flex rounded-md shadow-sm -space-x-px'
-                aria-label='Pagination'
-              >
-                <button
-                  onClick={() => handlePageChange(0)}
-                  disabled={!table.getCanPreviousPage()}
-                  className='relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
-                >
-                  <ChevronLeft className='h-5 w-5' />
-                </button>
-                <button
-                  onClick={() => handlePageChange(pagination.pageIndex - 1)}
-                  disabled={!table.getCanPreviousPage()}
-                  className='relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
-                >
-                  <ChevronLeft className='h-5 w-5' />
-                </button>
-                <span className='relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700'>
-                  Page {pagination.pageIndex + 1} of {table.getPageCount()}
-                </span>
-                <button
-                  onClick={() => handlePageChange(pagination.pageIndex + 1)}
-                  disabled={!table.getCanNextPage()}
-                  className='relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
-                >
-                  <ChevronRight className='h-5 w-5' />
-                </button>
-                <button
-                  onClick={() => handlePageChange(table.getPageCount() - 1)}
-                  disabled={!table.getCanNextPage()}
-                  className='relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
-                >
-                  <ChevronRight className='h-5 w-5' />
-                </button>
-              </nav>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
+};
+
+AdminUsersTable.propTypes = {
+  data: PropTypes.array,
+  columns: PropTypes.array.isRequired,
+  pagination: PropTypes.shape({
+    pageIndex: PropTypes.number.isRequired,
+    pageSize: PropTypes.number.isRequired,
+    pageCount: PropTypes.number,
+    totalCount: PropTypes.number,
+  }).isRequired,
+  onPaginationChange: PropTypes.func.isRequired,
+  sorting: PropTypes.array,
+  onSortingChange: PropTypes.func.isRequired,
+  rowSelection: PropTypes.object,
+  onRowSelectionChange: PropTypes.func.isRequired,
+  columnVisibility: PropTypes.object,
+  onColumnVisibilityChange: PropTypes.func.isRequired,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  isLoading: PropTypes.bool,
+  currentUserId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };
 
 export default AdminUsersTable;

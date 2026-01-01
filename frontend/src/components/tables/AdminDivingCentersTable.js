@@ -6,6 +6,7 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 import { Edit, Trash2, Eye, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 /**
  * AdminDivingCentersTable - TanStack Table implementation for diving centers
@@ -96,6 +97,13 @@ const AdminDivingCentersTable = ({
                             header.column.getCanSort() ? 'cursor-pointer hover:bg-gray-100' : ''
                           }`}
                           onClick={header.column.getToggleSortingHandler()}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              header.column.getToggleSortingHandler()(e);
+                            }
+                          }}
+                          role='button'
+                          tabIndex={0}
                         >
                           {flexRender(header.column.columnDef.header, header.getContext())}
                           {header.column.getCanSort() && (
@@ -316,6 +324,28 @@ const AdminDivingCentersTable = ({
       </div>
     </div>
   );
+};
+
+AdminDivingCentersTable.propTypes = {
+  data: PropTypes.array,
+  columns: PropTypes.array.isRequired,
+  pagination: PropTypes.shape({
+    pageIndex: PropTypes.number.isRequired,
+    pageSize: PropTypes.number.isRequired,
+    pageCount: PropTypes.number,
+    totalCount: PropTypes.number,
+  }).isRequired,
+  onPaginationChange: PropTypes.func.isRequired,
+  sorting: PropTypes.array,
+  onSortingChange: PropTypes.func.isRequired,
+  rowSelection: PropTypes.object,
+  onRowSelectionChange: PropTypes.func.isRequired,
+  columnVisibility: PropTypes.object,
+  onColumnVisibilityChange: PropTypes.func.isRequired,
+  onView: PropTypes.func.isRequired,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  isLoading: PropTypes.bool,
 };
 
 export default AdminDivingCentersTable;
