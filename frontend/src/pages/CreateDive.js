@@ -2,6 +2,7 @@ import { Save, ArrowLeft, Plus, X, ChevronDown, Image, Video, FileText, Link } f
 import { useState, useRef, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
+import { Collapse, Image as AntdImage } from 'antd';
 import { useMutation, useQueryClient, useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
@@ -20,9 +21,12 @@ import { FormField } from '../components/forms/FormField';
 import RouteSelection from '../components/RouteSelection';
 import UserSearchInput from '../components/UserSearchInput';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
+import YouTubePreview from '../components/YouTubePreview';
 import usePageTitle from '../hooks/usePageTitle';
+import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { createDiveSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
+import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 
 const CreateDive = () => {
   // Set page title
@@ -82,6 +86,15 @@ const CreateDive = () => {
   const [selectedBuddies, setSelectedBuddies] = useState([]);
   // Ref to store unsaved photos from UploadPhotosComponent (for create flow, these are files not yet uploaded to R2)
   const unsavedR2PhotosRef = useRef([]);
+  // Media handling state
+  const [newMediaUrl, setNewMediaUrl] = useState('');
+  const [newMediaType, setNewMediaType] = useState('photo');
+  const [newMediaDescription, setNewMediaDescription] = useState('');
+  const [pendingMedia, setPendingMedia] = useState([]); // Media URLs to be saved on form submission
+  const [addLinksCollapseOpen, setAddLinksCollapseOpen] = useState(false); // Control Add External Links collapse
+  const [mediaDescriptions, setMediaDescriptions] = useState({}); // Track media descriptions
+  // Store converted Flickr URLs (Map: original URL -> direct image URL)
+  const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(() => new Map());
 
   // Fetch dive sites for dropdown
   const { data: diveSites = [] } = useQuery(['dive-sites'], () => getDiveSites({ page_size: 100 }));
@@ -139,6 +152,48 @@ const CreateDive = () => {
       }
     };
   }, []);
+
+  // Convert Flickr URLs to direct image URLs for pending media
+  useEffect(() => {
+    const convertFlickrUrls = async () => {
+      if (!pendingMedia || pendingMedia.length === 0) return;
+
+      const photos = pendingMedia.filter(item => item.type === 'photo');
+      const flickrPhotos = photos.filter(item => isFlickrUrl(item.url));
+      
+      if (flickrPhotos.length === 0) return;
+
+      const newConvertedUrls = new Map(convertedFlickrUrls);
+      let hasUpdates = false;
+
+      for (const photo of flickrPhotos) {
+        // Skip if already converted
+        if (newConvertedUrls.has(photo.url)) continue;
+
+        try {
+          const directUrl = await convertFlickrUrlToDirectImage(photo.url);
+          if (directUrl !== photo.url) {
+            newConvertedUrls.set(photo.url, directUrl);
+            hasUpdates = true;
+          }
+        } catch (error) {
+          console.warn('Failed to convert Flickr URL:', photo.url, error);
+        }
+      }
+
+      if (hasUpdates) {
+        setConvertedFlickrUrls(newConvertedUrls);
+      }
+    };
+
+    convertFlickrUrls();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingMedia]);
+
+  // Helper to get the URL (converted if Flickr, original otherwise)
+  const getImageUrl = (url) => {
+    return convertedFlickrUrls.get(url) || url;
+  };
 
   // Create dive mutation
   const createDiveMutation = useMutation(createDive, {
@@ -302,36 +357,53 @@ const CreateDive = () => {
   };
 
   // Media handling functions
-  const [showMediaForm, setShowMediaForm] = useState(false);
-  const [newMediaUrl, setNewMediaUrl] = useState('');
-  const [newMediaType, setNewMediaType] = useState('external_link');
-  const [newMediaDescription, setNewMediaDescription] = useState('');
 
-  const handleUrlAdd = () => {
-    if (newMediaUrl.trim()) {
-      const newMedia = {
-        id: Date.now() + Math.random(),
-        type: newMediaType,
-        url: newMediaUrl.trim(),
-        description: newMediaDescription.trim(),
-        title: '',
-      };
-      setMediaUrls(prev => [...prev, newMedia]);
-
-      // Reset form
-      setNewMediaUrl('');
-      setNewMediaType('external_link');
-      setNewMediaDescription('');
-      setShowMediaForm(false);
+  const handleUrlAdd = (e) => {
+    e?.preventDefault();
+    if (!newMediaUrl.trim()) {
+      toast.error('Please enter a media URL');
+      return;
     }
+    // Add to pending media state (will be saved on form submission)
+    const tempId = `pending-${Date.now()}-${Math.random()}`;
+    setPendingMedia(prev => [
+      ...prev,
+      {
+        id: tempId,
+        url: newMediaUrl.trim(),
+        description: newMediaDescription.trim() || '',
+        type: newMediaType,
+        isPending: true, // Flag to identify pending media
+      },
+    ]);
+    // Initialize description in mediaDescriptions
+    setMediaDescriptions(prev => ({
+      ...prev,
+      [tempId]: newMediaDescription.trim() || '',
+    }));
+    // Reset form
+    setNewMediaUrl('');
+    setNewMediaType('photo');
+    setNewMediaDescription('');
+    toast.success('Media added (will be saved on form submission)');
   };
 
-  const handleMediaRemove = id => {
-    setMediaUrls(prev => prev.filter(item => item.id !== id));
-  };
-
-  const handleMediaDescriptionChange = (id, description) => {
-    setMediaUrls(prev => prev.map(item => (item.id === id ? { ...item, description } : item)));
+  const handleMediaRemove = (mediaItem) => {
+    // Check if it's pending media (not yet saved to DB)
+    if (mediaItem.id && mediaItem.id.toString().startsWith('pending-')) {
+      // Remove from pending media state
+      setPendingMedia(prev => prev.filter(item => item.id !== mediaItem.id));
+      // Remove description from state
+      setMediaDescriptions(prev => {
+        const newDescriptions = { ...prev };
+        delete newDescriptions[mediaItem.id];
+        return newDescriptions;
+      });
+      toast.success('Media removed');
+    } else {
+      // For other items (shouldn't happen in create flow, but handle gracefully)
+      setMediaUrls(prev => prev.filter(item => item.id !== mediaItem.id));
+    }
   };
 
   const onSubmit = async data => {
@@ -378,25 +450,18 @@ const CreateDive = () => {
         }
       }
 
-      // Add URL-based media (videos, external links, photo URLs like Flickr, etc.)
-      // Skip R2-uploaded photos (they have temp_uid) - they're handled above
-      for (const mediaUrl of mediaUrls) {
-        // Skip R2-uploaded photos (they have temp_uid and are handled above)
-        if (mediaUrl.type === 'photo' && mediaUrl.temp_uid) {
-          continue;
-        }
-
+      // Save pending media to database
+      for (const pendingItem of pendingMedia) {
         const mediaData = {
-          media_type: mediaUrl.type,
-          url: mediaUrl.url,
-          description: mediaUrl.description || '',
-          title: mediaUrl.title || '',
+          media_type: pendingItem.type,
+          url: pendingItem.url,
+          description: mediaDescriptions[pendingItem.id] || pendingItem.description || '',
+          title: '',
         };
-
         mediaPromises.push(
           addDiveMedia(createdDive.id, mediaData).catch(error => {
-            console.error('Failed to add media URL:', error);
-            toast.error(`Failed to add media URL: ${mediaUrl.url}`);
+            console.error(`Failed to save media ${pendingItem.url}:`, error);
+            toast.error(`Failed to save media: ${pendingItem.url}`);
           })
         );
       }
@@ -772,155 +837,162 @@ const CreateDive = () => {
                   </div>
                 )}
 
-                {/* URL Upload */}
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Add Media URLs
-                  </label>
-                  <div className='flex items-center gap-4'>
-                    <button
-                      type='button'
-                      onClick={() => setShowMediaForm(true)}
-                      className='flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700'
-                    >
-                      <Link size={16} />
-                      Add Media URL
-                    </button>
-                  </div>
+                {/* Add External Links */}
+                <div className='mb-3'>
+                  <Collapse
+                    activeKey={addLinksCollapseOpen ? ['1'] : []}
+                    onChange={(keys) => setAddLinksCollapseOpen(keys.includes('1'))}
+                    items={[
+                      {
+                        key: '1',
+                        label: 'Add External Links (Photo / Video)',
+                        children: (
+                          <div className='space-y-4'>
+                            {/* Form for adding media */}
+                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                              <div>
+                                <label
+                                  htmlFor='media_type'
+                                  className='block text-sm font-medium text-gray-700 mb-1'
+                                >
+                                  Media Type
+                                </label>
+                                <select
+                                  id='media_type'
+                                  value={newMediaType}
+                                  onChange={e => setNewMediaType(e.target.value)}
+                                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                >
+                                  <option value='photo'>Photo</option>
+                                  <option value='video'>Video</option>
+                                </select>
+                              </div>
+                              <div className='md:col-span-2'>
+                                <label
+                                  htmlFor='media_url'
+                                  className='block text-sm font-medium text-gray-700 mb-1'
+                                >
+                                  URL
+                                </label>
+                                <input
+                                  id='media_url'
+                                  type='url'
+                                  value={newMediaUrl}
+                                  onChange={e => setNewMediaUrl(e.target.value)}
+                                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                  placeholder='https://example.com/image.jpg'
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label
+                                htmlFor='media_description'
+                                className='block text-sm font-medium text-gray-700 mb-1'
+                              >
+                                Description
+                              </label>
+                              <input
+                                id='media_description'
+                                type='text'
+                                value={newMediaDescription}
+                                onChange={e => setNewMediaDescription(e.target.value)}
+                                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                              />
+                            </div>
+                            <div className='flex space-x-2'>
+                              <button
+                                type='button'
+                                onClick={handleUrlAdd}
+                                className='px-4 py-2 text-white rounded-md'
+                                style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                                onMouseEnter={e =>
+                                  (e.currentTarget.style.backgroundColor = '#007a5c')
+                                }
+                                onMouseLeave={e =>
+                                  (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                                }
+                              >
+                                Add Media
+                              </button>
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  setNewMediaUrl('');
+                                  setNewMediaDescription('');
+                                  setNewMediaType('photo');
+                                }}
+                                className='px-4 py-2 text-white rounded-md'
+                                style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
+                                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                                onMouseLeave={e =>
+                                  (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                                }
+                              >
+                                Clear
+                              </button>
+                            </div>
 
-                  {/* Media Form */}
-                  {showMediaForm && (
-                    <div className='mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50'>
-                      <div className='space-y-3'>
-                        <div>
-                          <label
-                            htmlFor='media-url'
-                            className='block text-sm font-medium text-gray-700 mb-1'
-                          >
-                            Media URL *
-                          </label>
-                          <input
-                            id='media-url'
-                            type='url'
-                            value={newMediaUrl}
-                            onChange={e => setNewMediaUrl(e.target.value)}
-                            placeholder='https://example.com/media'
-                            className='w-full border border-gray-300 rounded-md px-3 py-2'
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <label
-                            htmlFor='media-type'
-                            className='block text-sm font-medium text-gray-700 mb-1'
-                          >
-                            Media Type
-                          </label>
-                          <select
-                            id='media-type'
-                            value={newMediaType}
-                            onChange={e => setNewMediaType(e.target.value)}
-                            className='w-full border border-gray-300 rounded-md px-3 py-2'
-                          >
-                            <option value='photo'>Photo (URL)</option>
-                            <option value='video'>Video</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label
-                            htmlFor='media-description'
-                            className='block text-sm font-medium text-gray-700 mb-1'
-                          >
-                            Description (Optional)
-                          </label>
-                          <textarea
-                            id='media-description'
-                            value={newMediaDescription}
-                            onChange={e => setNewMediaDescription(e.target.value)}
-                            placeholder='Describe this media...'
-                            className='w-full border border-gray-300 rounded-md px-3 py-2'
-                            rows='2'
-                          />
-                        </div>
-
-                        <div className='flex gap-2'>
-                          <button
-                            type='button'
-                            onClick={handleUrlAdd}
-                            disabled={!newMediaUrl.trim()}
-                            className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed'
-                          >
-                            Add Media
-                          </button>
-                          <button
-                            type='button'
-                            onClick={() => {
-                              setShowMediaForm(false);
-                              setNewMediaUrl('');
-                              setNewMediaType('external_link');
-                              setNewMediaDescription('');
-                            }}
-                            className='px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700'
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Media Preview (for URL-based media, including photo URLs like Flickr) */}
-                {mediaUrls.filter(media => !media.temp_uid).length > 0 && (
-                  <div className='space-y-3'>
-                    <h3 className='text-lg font-medium text-gray-900'>Media Preview</h3>
-
-                    {mediaUrls
-                      .filter(media => !media.temp_uid) // Only show URL-based media, not R2-uploaded photos
-                      .map(media => (
-                      <div
-                        key={media.id}
-                        className='flex items-start gap-3 p-3 border border-gray-200 rounded-lg'
-                      >
-                        <div className='flex-shrink-0'>
-                          {media.type === 'photo' ? (
-                            <Image size={24} className='text-blue-600' />
-                          ) : media.type === 'video' ? (
-                            <Video size={24} className='text-purple-600' />
-                          ) : media.type === 'dive_plan' ? (
-                            <FileText size={24} className='text-green-600' />
-                          ) : (
-                            <Link size={24} className='text-orange-600' />
-                          )}
-                        </div>
-                        <div className='flex-1 min-w-0'>
-                          <div className='flex items-center justify-between mb-2'>
-                            <span className='text-sm font-medium text-gray-900 truncate'>
-                              {media.url}
-                            </span>
-                            <button
-                              type='button'
-                              onClick={() => handleMediaRemove(media.id)}
-                              className='text-red-600 hover:text-red-800'
-                            >
-                              <X size={16} />
-                            </button>
+                            {/* Show pending media */}
+                            {pendingMedia.length > 0 && (
+                              <div className='mt-4 pt-4 border-t border-gray-200'>
+                                <h4 className='text-sm font-medium text-gray-700 mb-3'>Pending Media</h4>
+                                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                                  {pendingMedia.map(item => (
+                                    <div key={item.id} className='border rounded-lg p-4 border-yellow-400 bg-yellow-50'>
+                                      <div className='flex items-center justify-between mb-2'>
+                                        <span className='text-sm font-medium text-gray-700 capitalize'>
+                                          {item.type} <span className='text-xs text-yellow-700'>(Pending)</span>
+                                        </span>
+                                        <button
+                                          onClick={() => handleMediaRemove(item)}
+                                          className='text-red-600 hover:text-red-800'
+                                          title='Remove media'
+                                        >
+                                          <X size={16} />
+                                        </button>
+                                      </div>
+                                      <div className='space-y-2'>
+                                        {item.type === 'photo' ? (
+                                          <AntdImage
+                                            src={getImageUrl(item.url)}
+                                            alt={item.description || 'Media'}
+                                            className='w-full'
+                                            preview={{
+                                              mask: 'Preview',
+                                            }}
+                                          />
+                                        ) : (
+                                          <YouTubePreview
+                                            url={item.url}
+                                            description={item.description}
+                                            className='w-full'
+                                            openInNewTab={true}
+                                          />
+                                        )}
+                                        <input
+                                          type='text'
+                                          value={mediaDescriptions[item.id] || ''}
+                                          onChange={e => {
+                                            setMediaDescriptions(prev => ({
+                                              ...prev,
+                                              [item.id]: e.target.value,
+                                            }));
+                                          }}
+                                          placeholder='Add description...'
+                                          className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+                                        />
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          <div className='text-xs text-gray-500 mb-2'>Type: {media.type}</div>
-                          <input
-                            type='text'
-                            placeholder='Add description (optional)'
-                            value={media.description}
-                            onChange={e => handleMediaDescriptionChange(media.id, e.target.value)}
-                            className='w-full text-sm border border-gray-300 rounded px-2 py-1'
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                        ),
+                      },
+                    ]}
+                  />
+                </div>
               </div>
             </div>
 
