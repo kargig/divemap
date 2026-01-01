@@ -1,12 +1,11 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 
 import WeightCalculator from './WeightCalculator';
 
 // Mock GasTanksInput
 vi.mock('../forms/GasTanksInput', () => ({
-  default: ({ value, onChange }) => (
+  default: ({ onChange }) => (
     <div data-testid='gas-tanks-input'>
       <button
         data-testid='set-12L-steel'

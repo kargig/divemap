@@ -726,8 +726,14 @@ const DiveSites = () => {
                   <div className='flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto'>
                     {/* Page Size Selection */}
                     <div className='flex items-center gap-1 sm:gap-2 w-full sm:w-auto justify-center sm:justify-start'>
-                      <label className='text-xs sm:text-sm font-medium text-gray-700'>Show:</label>
+                      <label
+                        htmlFor='page-size-select-top'
+                        className='text-xs sm:text-sm font-medium text-gray-700'
+                      >
+                        Show:
+                      </label>
                       <select
+                        id='page-size-select-top'
                         value={pagination.page_size}
                         onChange={e => handlePageSizeChange(parseInt(e.target.value))}
                         className='px-1 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[36px] sm:min-h-0 touch-manipulation'
@@ -1596,8 +1602,14 @@ const DiveSites = () => {
                   <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
                     {/* Page Size Selection */}
                     <div className='flex items-center gap-2'>
-                      <label className='text-xs sm:text-sm font-medium text-gray-700'>Show:</label>
+                      <label
+                        htmlFor='page-size-select-bottom'
+                        className='text-xs sm:text-sm font-medium text-gray-700'
+                      >
+                        Show:
+                      </label>
                       <select
+                        id='page-size-select-bottom'
                         value={effectivePageSize}
                         onChange={e => handlePageSizeChange(parseInt(e.target.value))}
                         className='px-2 sm:px-3 py-1 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
