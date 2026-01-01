@@ -42,16 +42,33 @@ class UserSocialLinkBase(BaseModel):
     platform: str
     url: str
 
+ALLOWED_SOCIAL_PLATFORMS = [
+    "instagram", "tiktok", "facebook", "x", "linkedin", "youtube", 
+    "whatsapp", "telegram", "bluesky", "mastodon", "discord", 
+    "threads", "signal"
+]
+
+SOCIAL_PLATFORM_DOMAINS = {
+    "instagram": ["instagram.com"],
+    "tiktok": ["tiktok.com"],
+    "facebook": ["facebook.com", "fb.com"],
+    "x": ["twitter.com", "x.com"],
+    "linkedin": ["linkedin.com"],
+    "youtube": ["youtube.com", "youtu.be"],
+    "whatsapp": ["wa.me", "whatsapp.com"],
+    "telegram": ["t.me", "telegram.me"],
+    "bluesky": ["bsky.app"],
+    "mastodon": [], # Decentralized
+    "discord": ["discord.com", "discord.gg"],
+    "threads": ["threads.net"],
+    "signal": ["signal.me", "signal.group"]
+}
+
 class UserSocialLinkCreate(UserSocialLinkBase):
     @validator('platform')
     def validate_platform(cls, v):
-        allowed = [
-            "instagram", "tiktok", "facebook", "x", "linkedin", "youtube", 
-            "whatsapp", "telegram", "bluesky", "mastodon", "discord", 
-            "threads", "signal"
-        ]
-        if v.lower() not in allowed:
-            raise ValueError(f"Platform must be one of: {', '.join(allowed)}")
+        if v.lower() not in ALLOWED_SOCIAL_PLATFORMS:
+            raise ValueError(f"Platform must be one of: {', '.join(ALLOWED_SOCIAL_PLATFORMS)}")
         return v.lower()
 
     @validator('url')
@@ -70,24 +87,7 @@ class UserSocialLinkCreate(UserSocialLinkBase):
         if re.search(r'\d{7,}', v) or re.search(r'(?:\d[\s\-\(\)]*){8,}', v):
              raise ValueError("URL cannot contain phone numbers or long sequences of digits")
         
-        # Platform specific domain checks
-        domains = {
-            "instagram": ["instagram.com"],
-            "tiktok": ["tiktok.com"],
-            "facebook": ["facebook.com", "fb.com"],
-            "x": ["twitter.com", "x.com"],
-            "linkedin": ["linkedin.com"],
-            "youtube": ["youtube.com", "youtu.be"],
-            "whatsapp": ["wa.me", "whatsapp.com"],
-            "telegram": ["t.me", "telegram.me"],
-            "bluesky": ["bsky.app"],
-            "mastodon": [], # Decentralized
-            "discord": ["discord.com", "discord.gg"],
-            "threads": ["threads.net"],
-            "signal": ["signal.me", "signal.group"]
-        }
-        
-        allowed_domains = domains.get(platform, [])
+        allowed_domains = SOCIAL_PLATFORM_DOMAINS.get(platform, [])
         if allowed_domains:
             # Check if URL host matches allowed domains
             # Simple check: domain must be present in the URL

@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-import json
+import orjson
 
 from app.database import get_db
 from app.models import Setting
@@ -15,15 +15,16 @@ router = APIRouter()
 def parse_setting_value(value: str):
     """Parse JSON string value from database to Python type."""
     try:
-        return json.loads(value)
-    except json.JSONDecodeError:
+        return orjson.loads(value)
+    except orjson.JSONDecodeError:
         # If not valid JSON, return as string
         return value
 
 
 def serialize_setting_value(value) -> str:
     """Serialize Python value to JSON string for database storage."""
-    return json.dumps(value)
+    # orjson.dumps returns bytes, so decode to string
+    return orjson.dumps(value).decode('utf-8')
 
 
 @router.get("/{key}", response_model=SettingResponse)

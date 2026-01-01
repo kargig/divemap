@@ -9,6 +9,7 @@ import {
   Globe,
   Info,
 } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
 
@@ -163,6 +164,11 @@ const CertificationLevelsList = ({ organizationId, identifier }) => {
   );
 };
 
+CertificationLevelsList.propTypes = {
+  organizationId: PropTypes.number.isRequired,
+  identifier: PropTypes.number.isRequired,
+};
+
 const OrganizationCard = ({ org }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -171,6 +177,14 @@ const OrganizationCard = ({ org }) => {
       <div
         className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer'
         onClick={() => setDrawerOpen(true)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setDrawerOpen(true);
+          }
+        }}
+        role='button'
+        tabIndex={0}
       >
         <div className='p-5'>
           <div className='flex justify-between items-start'>
@@ -199,6 +213,13 @@ const OrganizationCard = ({ org }) => {
             <div
               className='mt-3 flex items-center text-sm text-blue-600 hover:text-blue-800'
               onClick={e => e.stopPropagation()}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation();
+                }
+              }}
+              role='button'
+              tabIndex={0}
             >
               <Globe className='h-3 w-3 mr-1' />
               <a
@@ -206,6 +227,7 @@ const OrganizationCard = ({ org }) => {
                 target='_blank'
                 rel='noopener noreferrer'
                 className='hover:underline'
+                tabIndex={-1}
               >
                 Visit Website
               </a>
@@ -234,6 +256,16 @@ const OrganizationCard = ({ org }) => {
       </Drawer>
     </>
   );
+};
+
+OrganizationCard.propTypes = {
+  org: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    name: PropTypes.string.isRequired,
+    acronym: PropTypes.string,
+    description: PropTypes.string,
+    website: PropTypes.string,
+  }).isRequired,
 };
 
 const DivingOrganizationsPage = () => {

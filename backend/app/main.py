@@ -31,6 +31,8 @@ numeric_level = getattr(logging, log_level, logging.WARNING)
 # we expect ~6 proxy hops, so we set a higher threshold
 suspicious_proxy_chain_length = int(os.getenv("SUSPICIOUS_PROXY_CHAIN_LENGTH", "3"))
 
+DOCS_PATHS = {"/docs", "/redoc", "/openapi.json"}
+
 # Configure root logger
 logging.basicConfig(
     level=numeric_level,
@@ -217,7 +219,7 @@ async def add_security_headers(request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
     # Check if this is a documentation endpoint
-    if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
+    if request.url.path in DOCS_PATHS:
         # More permissive CSP for documentation endpoints
         csp_policy = (
             "default-src 'self'; "
@@ -522,7 +524,7 @@ async def lazy_router_loading(request: Request, call_next):
     path = request.url.path
     
     # Check if we need to load all routers for documentation
-    is_docs = path in ["/docs", "/redoc", "/openapi.json"]
+    is_docs = path in DOCS_PATHS
     
     # Load dive-sites router
     if (path.startswith("/api/v1/dive-sites") or is_docs) and not hasattr(app, '_dive_sites_router_loaded'):

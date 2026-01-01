@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, desc, asc
 from typing import List, Optional
 from datetime import datetime
-import json
+import orjson
 
 from .dives_shared import router, get_db, get_current_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage, UNIFIED_TYPO_TOLERANCE
 from app.models import DiveBuddy
@@ -878,7 +878,7 @@ def get_dives(
             }
         
         # Convert to JSON and check size
-        match_types_json = json.dumps(optimized_match_types)
+        match_types_json = orjson.dumps(optimized_match_types, option=orjson.OPT_NON_STR_KEYS).decode('utf-8')
         
         # If header is still too large, truncate or omit it
         if len(match_types_json) > 8000:  # 8KB limit for headers

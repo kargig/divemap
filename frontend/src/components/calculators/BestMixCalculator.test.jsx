@@ -9,7 +9,14 @@ describe('BestMixCalculator', () => {
     render(<BestMixCalculator />);
 
     expect(screen.getByLabelText(/Planned Depth/i)).toBeInTheDocument();
-    expect(screen.getByText(/Max pO2/i)).toBeInTheDocument();
+    expect(
+      screen.getByText((content, element) => {
+        const hasText = node => node.textContent === 'Max pO2 (bar)';
+        const nodeHasText = hasText(element);
+        const childrenDontHaveText = Array.from(element.children).every(child => !hasText(child));
+        return nodeHasText && childrenDontHaveText;
+      })
+    ).toBeInTheDocument();
     expect(screen.getByLabelText(/Enable Trimix/i)).toBeInTheDocument();
   });
 

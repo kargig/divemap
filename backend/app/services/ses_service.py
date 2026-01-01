@@ -6,7 +6,7 @@ Automatically detects AWS credentials and falls back gracefully when unavailable
 """
 
 import os
-import json
+import orjson
 import logging
 from typing import Optional, Dict, Any, List
 from email.mime.text import MIMEText
@@ -234,7 +234,7 @@ class SESService:
             response = self.ses_client.send_bulk_templated_email(
                 Source=f"{from_name} <{from_email}>",
                 Template='',  # Not using templates for now
-                DefaultTemplateData=json.dumps({}),
+                DefaultTemplateData=orjson.dumps({}).decode('utf-8'),
                 Destinations=ses_destinations
             )
             

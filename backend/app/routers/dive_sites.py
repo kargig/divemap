@@ -5,7 +5,7 @@ from sqlalchemy import func, and_, or_, desc, asc
 from slowapi.util import get_remote_address
 from datetime import datetime, timedelta
 import difflib
-import json
+import orjson
 import uuid
 from pathlib import Path
 from app.services.r2_storage_service import get_r2_storage
@@ -603,7 +603,7 @@ async def reverse_geocode(
             print(f"   Status Code: {response.status_code}")
             print(f"   Response Headers: {dict(response.headers)}")
             print(f"   Full Response Content:")
-            print(f"   {json.dumps(data, indent=2)}")
+            print(f"   {orjson.dumps(data, option=orjson.OPT_INDENT_2).decode('utf-8')}")
         
         address = data.get("address", {})
 
@@ -644,7 +644,7 @@ async def reverse_geocode(
             print(f"   Country: '{country}'")
             print(f"   Region: '{region}'")
             print(f"   Full Address: '{data.get('display_name', '')}'")
-            print(f"   Raw Address Object: {json.dumps(address, indent=2)}")
+            print(f"   Raw Address Object: {orjson.dumps(address, option=orjson.OPT_INDENT_2).decode('utf-8')}")
             
             # Show which region fields were found and used
             print(f"   Region Field Analysis:")
@@ -1274,7 +1274,7 @@ async def get_dive_sites(
             }
         
         # Convert to JSON and check size
-        match_types_json = json.dumps(optimized_match_types)
+        match_types_json = orjson.dumps(optimized_match_types, option=orjson.OPT_NON_STR_KEYS).decode('utf-8')
         
         # If header is still too large, truncate or omit it
         if len(match_types_json) > 8000:  # 8KB limit for headers
