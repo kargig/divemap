@@ -16,6 +16,7 @@ import { UI_COLORS } from '../utils/colorPalette';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { diveSiteSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
+import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 
 const EditDiveSite = () => {
   // Set page title
@@ -75,6 +76,8 @@ const EditDiveSite = () => {
   const [photoMediaUrls, setPhotoMediaUrls] = useState([]);
   const unsavedR2PhotosRef = useRef([]);
   const [savedPhotoUids, setSavedPhotoUids] = useState([]);
+  // Store converted Flickr URLs (Map: original URL -> direct image URL)
+  const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(() => new Map());
 
   // Tag management state
   const [selectedTags, setSelectedTags] = useState([]);
@@ -273,19 +276,9 @@ const EditDiveSite = () => {
       onSuccess: data => {
         // Initialize media descriptions when media loads (only for SiteMedia, not DiveMedia)
         const descriptions = {};
-        // Initialize photoMediaUrls with photos (SiteMedia only, no dive_id)
-        const photos = data
-          .filter(item => item.media_type === 'photo' && !item.dive_id)
-          .map(item => ({
-            id: item.id,
-            type: 'photo',
-            url: item.url,
-            description: item.description || '',
-            title: '',
-            uploaded: true,
-            original_filename: item.url.split('/').pop() || 'photo.jpg',
-          }));
-        setPhotoMediaUrls(photos);
+        // Don't initialize photoMediaUrls with existing photos - they should only show in Manage Media
+        // photoMediaUrls should only contain new photos that are waiting to be uploaded
+        setPhotoMediaUrls([]);
 
         data.forEach(item => {
           // Only initialize descriptions for SiteMedia (without dive_id)
@@ -297,6 +290,65 @@ const EditDiveSite = () => {
       },
     }
   );
+
+  // Convert Flickr URLs to direct image URLs
+  useEffect(() => {
+    const convertFlickrUrls = async () => {
+      if (!media || media.length === 0) return;
+
+      // Get all photos (SiteMedia only, no dive_id)
+      const photos = media.filter(item => item.media_type === 'photo' && !item.dive_id);
+      const flickrPhotos = photos.filter(item => isFlickrUrl(item.url));
+      
+      if (flickrPhotos.length === 0 && (!pendingMedia || pendingMedia.length === 0)) return;
+
+      const newConvertedUrls = new Map(convertedFlickrUrls);
+      let hasUpdates = false;
+
+      for (const photo of flickrPhotos) {
+        // Skip if already converted
+        if (newConvertedUrls.has(photo.url)) continue;
+
+        try {
+          const directUrl = await convertFlickrUrlToDirectImage(photo.url);
+          if (directUrl !== photo.url) {
+            newConvertedUrls.set(photo.url, directUrl);
+            hasUpdates = true;
+          }
+        } catch (error) {
+          console.warn('Failed to convert Flickr URL:', photo.url, error);
+        }
+      }
+
+      // Also check pending media for Flickr URLs
+      const pendingFlickrPhotos = pendingMedia.filter(item => item.media_type === 'photo' && isFlickrUrl(item.url));
+      for (const photo of pendingFlickrPhotos) {
+        if (newConvertedUrls.has(photo.url)) continue;
+
+        try {
+          const directUrl = await convertFlickrUrlToDirectImage(photo.url);
+          if (directUrl !== photo.url) {
+            newConvertedUrls.set(photo.url, directUrl);
+            hasUpdates = true;
+          }
+        } catch (error) {
+          console.warn('Failed to convert Flickr URL:', photo.url, error);
+        }
+      }
+
+      if (hasUpdates) {
+        setConvertedFlickrUrls(newConvertedUrls);
+      }
+    };
+
+    convertFlickrUrls();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [media, pendingMedia]);
+
+  // Helper to get the URL (converted if Flickr, original otherwise)
+  const getImageUrl = (url) => {
+    return convertedFlickrUrls.get(url) || url;
+  };
 
   // Tag mutations
   const createTagMutation = useMutation(tagData => api.post('/api/v1/tags/', tagData), {
@@ -1350,7 +1402,7 @@ const EditDiveSite = () => {
                                 htmlFor='media_url'
                                 className='block text-sm font-medium text-gray-700 mb-1'
                               >
-                                URL *
+                                URL
                               </label>
                               <input
                                 id='media_url'
@@ -1461,7 +1513,7 @@ const EditDiveSite = () => {
                                 <div className='space-y-2'>
                                   {item.media_type === 'photo' ? (
                                     <Image
-                                      src={item.url}
+                                      src={getImageUrl(item.url)}
                                       alt={item.description || 'Media'}
                                       className='w-full'
                                       preview={{
@@ -1510,7 +1562,7 @@ const EditDiveSite = () => {
                                 <div className='space-y-2'>
                                   {item.media_type === 'photo' ? (
                                     <Image
-                                      src={item.url}
+                                      src={getImageUrl(item.url)}
                                       alt={item.description || 'Media'}
                                       className='w-full'
                                       preview={{
