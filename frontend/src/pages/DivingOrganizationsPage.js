@@ -1,4 +1,14 @@
-import { Award, ChevronDown, ChevronUp, Search, Globe, Info } from 'lucide-react';
+import { Drawer } from 'antd';
+import {
+  Award,
+  NotebookText,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  ExternalLink,
+  Globe,
+  Info,
+} from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
@@ -63,9 +73,6 @@ const CertificationLevelsList = ({ organizationId, identifier }) => {
   return (
     <div className='bg-gray-50 p-4 border-t border-gray-100'>
       <div className='flex justify-between items-center mb-3'>
-        <h4 className='text-xs font-semibold text-gray-500 uppercase tracking-wider'>
-          Certification Levels
-        </h4>
         <button
           onClick={toggleAll}
           className='text-xs font-medium text-blue-600 hover:text-blue-800 focus:outline-none'
@@ -163,120 +170,91 @@ CertificationLevelsList.propTypes = {
 };
 
 const OrganizationCard = ({ org }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [showMobileDescription, setShowMobileDescription] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200'>
+    <>
       <div
-        className='p-4 md:p-5 cursor-pointer'
-        onClick={() => setIsExpanded(!isExpanded)}
+        className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer'
+        onClick={() => setDrawerOpen(true)}
         onKeyDown={e => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            setIsExpanded(!isExpanded);
+            setDrawerOpen(true);
           }
         }}
         role='button'
         tabIndex={0}
       >
-        {/* Top Row: Logo, Acronym and Actions */}
-        <div className='flex justify-between items-center mb-4'>
-          <div className='flex items-center space-x-3 min-w-0'>
-            <OrganizationLogo
-              org={org}
-              size='h-16 w-16 md:h-20 md:w-20'
-              textSize='text-lg md:text-xl'
-            />
-            {org.acronym && (
-              <span className='text-lg font-bold text-blue-600 truncate'>{org.acronym}</span>
-            )}
-          </div>
-          <div className='flex items-center space-x-1 md:space-x-2 flex-shrink-0'>
-            {org.description && (
+        <div className='p-5'>
+          <div className='flex justify-between items-start'>
+            <div className='flex items-start space-x-3'>
+              <OrganizationLogo org={org} size='h-24 w-24' textSize='text-xl' />
+              <div>
+                <h3 className='text-lg font-medium text-gray-900'>{org.name}</h3>
+                {org.acronym && <p className='text-sm text-gray-500 font-medium'>{org.acronym}</p>}
+              </div>
+            </div>
+            <div className='flex items-center space-x-2'>
               <button
                 onClick={e => {
                   e.stopPropagation();
-                  setShowMobileDescription(!showMobileDescription);
+                  setDrawerOpen(true);
                 }}
-                className={`md:hidden p-1.5 rounded-lg transition-all duration-200 ${
-                  showMobileDescription
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                }`}
-                title={showMobileDescription ? 'Hide description' : 'Show description'}
+                className='p-2 rounded-lg transition-all duration-200 bg-blue-50 text-blue-600 hover:bg-blue-100'
+                title='View certifications'
               >
-                <Info className='h-5 w-5' />
+                <NotebookText className='h-5 w-5' />
               </button>
-            )}
-            <button
-              onClick={e => {
-                e.stopPropagation();
-                setIsExpanded(!isExpanded);
-              }}
-              className={`p-1.5 md:p-2 rounded-lg transition-all duration-200 ${
-                isExpanded
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-              }`}
-              title={isExpanded ? 'Hide certifications' : 'Show certifications'}
-            >
-              <Award className='h-5 w-5' />
-            </button>
-            <div className='text-gray-400'>
-              {isExpanded ? <ChevronUp className='h-5 w-5' /> : <ChevronDown className='h-5 w-5' />}
             </div>
           </div>
-        </div>
 
-        {/* Name Section - Full Width */}
-        <div className='mb-3'>
-          <h3 className='text-xl font-bold text-gray-900 leading-tight'>{org.name}</h3>
-        </div>
-
-        {/* Description Section - Full Width */}
-        {org.description && (
-          <div
-            className={`mb-4 text-sm text-gray-600 leading-relaxed ${
-              showMobileDescription ? 'block' : 'hidden'
-            } md:block`}
-          >
-            {org.description}
-          </div>
-        )}
-
-        {/* Website Section */}
-        {org.website && (
-          <div
-            className='flex items-center text-sm text-blue-600 hover:text-blue-800'
-            onClick={e => {
-              e.stopPropagation();
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.stopPropagation();
-              }
-            }}
-            role='button'
-            tabIndex={0}
-          >
-            <Globe className='h-4 w-4 mr-2 flex-shrink-0' />
-            <a
-              href={org.website}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='hover:underline truncate font-medium'
+          {org.website && (
+            <div
+              className='mt-3 flex items-center text-sm text-blue-600 hover:text-blue-800'
               onClick={e => e.stopPropagation()}
-              tabIndex={-1} // Prevent double tab stop since container is focusable
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation();
+                }
+              }}
+              role='button'
+              tabIndex={0}
             >
-              {org.website.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0]}
-            </a>
-          </div>
-        )}
+              <Globe className='h-3 w-3 mr-1' />
+              <a
+                href={org.website}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='hover:underline'
+                tabIndex={-1}
+              >
+                Visit Website
+              </a>
+              <ExternalLink className='h-3 w-3 ml-1' />
+            </div>
+          )}
+        </div>
       </div>
 
-      {isExpanded && <CertificationLevelsList organizationId={org.id} identifier={org.id} />}
-    </div>
+      <Drawer
+        title={
+          <div className='flex items-center space-x-3'>
+            <OrganizationLogo org={org} size='h-8 w-8' textSize='text-sm' />
+            <div>
+              <span className='font-medium'>{org.name}</span>
+              <span className='text-gray-500 ml-2'>- Certification Levels</span>
+            </div>
+          </div>
+        }
+        placement='right'
+        onClose={() => setDrawerOpen(false)}
+        open={drawerOpen}
+        size={'large'}
+      >
+        <CertificationLevelsList organizationId={org.id} identifier={org.id} />
+      </Drawer>
+    </>
   );
 };
 
@@ -353,7 +331,7 @@ const DivingOrganizationsPage = () => {
               </div>
             ) : (
               <div className='text-center py-12 bg-white rounded-lg border border-dashed border-gray-300'>
-                <Award className='mx-auto h-12 w-12 text-gray-400' />
+                <NotebookText className='mx-auto h-12 w-12 text-gray-400' />
                 <h3 className='mt-2 text-sm font-medium text-gray-900'>No organizations found</h3>
                 <p className='mt-1 text-sm text-gray-500'>
                   {searchTerm

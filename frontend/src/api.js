@@ -391,6 +391,40 @@ export const addDiveMedia = async (diveId, mediaData) => {
   return response.data;
 };
 
+export const uploadDivePhoto = async (diveId, file, description = '', isPublic = true) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('description', description);
+  formData.append('is_public', isPublic);
+  const response = await api.post(`/api/v1/dives/${diveId}/media/upload-photo`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+// Upload photo to R2 only (without creating database record)
+// Returns: { r2_path: string, url: string } - the R2 path and presigned URL for preview
+export const uploadPhotoToR2Only = async (diveId, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(`/api/v1/dives/${diveId}/media/upload-photo-r2-only`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+// Delete photo from R2 only (without deleting database record)
+export const deletePhotoFromR2 = async (diveId, r2Path) => {
+  const response = await api.delete(`/api/v1/dives/${diveId}/media/delete-r2-photo`, {
+    data: { r2_path: r2Path },
+  });
+  return response.data;
+};
+
 export const getDiveMedia = async diveId => {
   const response = await api.get(`/api/v1/dives/${diveId}/media`);
   return response.data;
@@ -398,6 +432,13 @@ export const getDiveMedia = async diveId => {
 
 export const deleteDiveMedia = async (diveId, mediaId) => {
   const response = await api.delete(`/api/v1/dives/${diveId}/media/${mediaId}`);
+  return response.data;
+};
+
+export const getFlickrOembed = async flickrUrl => {
+  const response = await api.get('/api/v1/dives/media/flickr-oembed', {
+    params: { url: flickrUrl },
+  });
   return response.data;
 };
 
@@ -846,5 +887,42 @@ export const deleteUserNotificationPreference = async (userId, category) => {
   const response = await api.delete(
     `/api/v1/notifications/admin/users/${userId}/preferences/${category}`
   );
+  return response.data;
+};
+
+export const updateDiveMedia = async (diveId, mediaId, description = null, isPublic = null) => {
+  const data = {};
+  if (description !== null) data.description = description;
+  if (isPublic !== null) data.is_public = isPublic;
+  const response = await api.patch(`/api/v1/dives/${diveId}/media/${mediaId}`, data);
+  return response.data;
+};
+
+export const updateDiveSiteMedia = async (diveSiteId, mediaId, description = null) => {
+  const data = {};
+  if (description !== null) data.description = description;
+  const response = await api.patch(`/api/v1/dive-sites/${diveSiteId}/media/${mediaId}`, data);
+  return response.data;
+};
+
+// Upload photo to R2 only for dive sites (without creating database record)
+export const uploadDiveSitePhotoToR2Only = async (diveSiteId, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(
+    `/api/v1/dive-sites/${diveSiteId}/media/upload-photo-r2-only`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+  return response.data;
+};
+
+// Add dive site media
+export const addDiveSiteMedia = async (diveSiteId, mediaData) => {
+  const response = await api.post(`/api/v1/dive-sites/${diveSiteId}/media`, mediaData);
   return response.data;
 };
