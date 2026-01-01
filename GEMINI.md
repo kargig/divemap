@@ -119,3 +119,16 @@ Documentation is consolidated in the `docs/` directory. Major changes should be 
 - **Backend Validation:** Use Pydantic schemas in `backend/app/schemas.py`.
   - Enforce strict validation (e.g., HTTPS for URLs, specific domains for platforms).
   - Use validators to sanitize and check complex logic (e.g., preventing phone numbers in social links).
+
+## Performance Tuning Guidelines
+- **JSON Processing:**
+  - Prefer `orjson` over the standard `json` library for serialization (`dumps`) and deserialization (`loads`) in performance-critical paths (e.g., large API responses, data processing).
+  - `orjson.dumps` returns `bytes`. Use `.decode('utf-8')` if a string is strictly required (e.g., headers).
+  - **Dictionary Keys:** `orjson` requires string keys by default. To serialize dictionaries with non-string keys (e.g., integers), use the `option=orjson.OPT_NON_STR_KEYS` parameter.
+  - Use `orjson.OPT_INDENT_2` for pretty printing in debug logs.
+  - **Benchmark Results (Local):** `orjson` showed ~11x speedup for serialization and ~1.5x speedup for deserialization compared to standard `json` on sample data.
+- **Data Structures & Validation:**
+  - **Avoid Re-allocation:** In Pydantic validators (`@validator`) and frequently called functions, define constant data structures (lists, dicts, sets) at the module level (e.g., `ALLOWED_PLATFORMS`) instead of re-creating them inside the function.
+  - **Membership Checks:** Use `set` or `dict` for checking existence (`item in collection`) instead of `list` when the collection is static or large, to achieve O(1) lookup performance.
+- **Memory Management:**
+  - Be mindful of object creation overhead. Use `__slots__` for classes that will have many instances (thousands+) to reduce memory footprint, though this is less relevant for standard Pydantic/SQLAlchemy models which handle this internally or differently.

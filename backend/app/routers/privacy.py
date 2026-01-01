@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
-import json
+import orjson
+from fastapi.responses import Response
 
 from app.database import get_db
 from app.auth import get_current_active_user
@@ -67,8 +68,8 @@ async def export_user_data(
         "id": current_user.id,
         "username": current_user.username,
         "email": current_user.email,
-        "created_at": current_user.created_at.isoformat(),
-        "updated_at": current_user.updated_at.isoformat(),
+        "created_at": current_user.created_at,
+        "updated_at": current_user.updated_at,
         "is_admin": current_user.is_admin,
         "is_moderator": current_user.is_moderator,
         "enabled": current_user.enabled,
@@ -113,7 +114,7 @@ async def export_user_data(
             "description": m.description,
             "title": m.title,
             "thumbnail_url": m.thumbnail_url,
-            "created_at": m.created_at.isoformat()
+            "created_at": m.created_at
         } for m in media_query]
         
         # Get dive tags
@@ -139,12 +140,12 @@ async def export_user_data(
             "difficulty_label": dive.difficulty.label if dive.difficulty else None,
             "visibility_rating": dive.visibility_rating,
             "user_rating": dive.user_rating,
-            "dive_date": dive.dive_date.isoformat(),
-            "dive_time": dive.dive_time.isoformat() if dive.dive_time else None,
+            "dive_date": dive.dive_date,
+            "dive_time": dive.dive_time,
             "duration": dive.duration,
             "view_count": dive.view_count,
-            "created_at": dive.created_at.isoformat(),
-            "updated_at": dive.updated_at.isoformat(),
+            "created_at": dive.created_at,
+            "updated_at": dive.updated_at,
             "dive_site": dive_site_info,
             "diving_center": diving_center_info,
             "media": media,
@@ -159,7 +160,7 @@ async def export_user_data(
         "dive_site_id": sr.dive_site_id,
         "dive_site_name": sr.dive_site.name,
         "score": sr.score,
-        "created_at": sr.created_at.isoformat()
+        "created_at": sr.created_at
     } for sr in site_ratings_query]
     
     center_ratings_query = db.query(CenterRating).join(DivingCenter).filter(CenterRating.user_id == current_user.id).all()
@@ -168,7 +169,7 @@ async def export_user_data(
         "diving_center_id": cr.diving_center_id,
         "diving_center_name": cr.diving_center.name,
         "score": cr.score,
-        "created_at": cr.created_at.isoformat()
+        "created_at": cr.created_at
     } for cr in center_ratings_query]
     
     ratings = {
@@ -183,8 +184,8 @@ async def export_user_data(
         "dive_site_id": sc.dive_site_id,
         "dive_site_name": sc.dive_site.name,
         "comment_text": sc.comment_text,
-        "created_at": sc.created_at.isoformat(),
-        "updated_at": sc.updated_at.isoformat()
+        "created_at": sc.created_at,
+        "updated_at": sc.updated_at
     } for sc in site_comments_query]
     
     center_comments_query = db.query(CenterComment).join(DivingCenter).filter(CenterComment.user_id == current_user.id).all()
@@ -193,8 +194,8 @@ async def export_user_data(
         "diving_center_id": cc.diving_center_id,
         "diving_center_name": cc.diving_center.name,
         "comment_text": cc.comment_text,
-        "created_at": cc.created_at.isoformat(),
-        "updated_at": cc.updated_at.isoformat()
+        "created_at": cc.created_at,
+        "updated_at": cc.updated_at
     } for cc in center_comments_query]
     
     comments = {
@@ -213,8 +214,8 @@ async def export_user_data(
         "organization_acronym": uc.diving_organization.acronym,
         "certification_level": uc.certification_level,
         "is_active": uc.is_active,
-        "created_at": uc.created_at.isoformat(),
-        "updated_at": uc.updated_at.isoformat()
+        "created_at": uc.created_at,
+        "updated_at": uc.updated_at
     } for uc in certifications_query]
     
     # Export user's owned diving centers
@@ -229,8 +230,8 @@ async def export_user_data(
         "latitude": float(dc.latitude) if dc.latitude else None,
         "longitude": float(dc.longitude) if dc.longitude else None,
         "ownership_status": dc.ownership_status.value,
-        "created_at": dc.created_at.isoformat(),
-        "updated_at": dc.updated_at.isoformat()
+        "created_at": dc.created_at,
+        "updated_at": dc.updated_at
     } for dc in owned_centers_query]
     
     # Calculate total records
@@ -243,16 +244,18 @@ async def export_user_data(
         len(owned_diving_centers)
     )
     
-    return UserDataExport(
-        user_profile=user_profile,
-        dives=dives,
-        ratings=ratings,
-        comments=comments,
-        certifications=certifications,
-        owned_diving_centers=owned_diving_centers,
-        export_timestamp=datetime.utcnow().isoformat(),
-        total_records=total_records
-    )
+    export_data = {
+        "user_profile": user_profile,
+        "dives": dives,
+        "ratings": ratings,
+        "comments": comments,
+        "certifications": certifications,
+        "owned_diving_centers": owned_diving_centers,
+        "export_timestamp": datetime.utcnow(),
+        "total_records": total_records
+    }
+    
+    return Response(content=orjson.dumps(export_data), media_type="application/json")
 
 @router.get("/audit-log", response_model=AuditLogResponse)
 async def get_user_audit_log(

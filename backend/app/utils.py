@@ -2,7 +2,7 @@ from fastapi import Request
 from typing import Optional
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
-import json
+import orjson
 
 
 def is_diving_center_reviews_enabled(db: Session) -> bool:
@@ -24,11 +24,11 @@ def is_diving_center_reviews_enabled(db: Session) -> bool:
         return True
     
     try:
-        # Parse JSON boolean value
-        value = json.loads(setting.value)
+        # Parse JSON boolean value using orjson for performance
+        value = orjson.loads(setting.value)
         # Setting is "disable_diving_center_reviews", so if value is True, reviews are disabled
         return not bool(value)
-    except (json.JSONDecodeError, ValueError):
+    except (orjson.JSONDecodeError, ValueError):
         # If value is not a valid boolean, default to enabled
         return True
 

@@ -7,7 +7,7 @@ but this service provides helper functions for rule management.
 """
 
 import os
-import json
+import orjson
 import logging
 from typing import Optional, Dict, Any
 
@@ -105,19 +105,23 @@ class EventBridgeService:
                 self.eventbridge_client.put_rule(**rule_params)
                 logger.info(f"Created EventBridge rule: {rule_name}")
             
-            # Add target to rule
-            target_params = {
-                'Rule': rule_name,
-                'Targets': [{
-                    'Id': '1',
-                    'Arn': target_arn
-                }]
-            }
+        targets = [{
+            'Id': '1',
+            'Arn': target_arn
+        }]
+
+        # Prepare target parameters
+        target_params = {
+            'Rule': rule_name,
+            'Targets': targets
+        }
+        
+        # Add Input if provided (must be JSON string)
+        if input_data:
+            target_params['Targets'][0]['Input'] = orjson.dumps(input_data).decode('utf-8')
             
-            if input_data:
-                target_params['Targets'][0]['Input'] = json.dumps(input_data)
-            
-            self.eventbridge_client.put_targets(**target_params)
+        try:
+            response = self.eventbridge_client.put_targets(**target_params)
             logger.info(f"Added target to rule: {rule_name} -> {target_arn}")
             
             return True

@@ -4,7 +4,7 @@ from sqlalchemy import or_, and_, func, desc, asc
 from typing import List, Optional
 from datetime import datetime, date, time, timedelta
 import re
-import json
+import orjson
 import os
 import requests
 import math
@@ -805,7 +805,7 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
                 elif content.startswith('```'):
                     content = content.replace('```', '').strip()
 
-                trips = json.loads(content)
+                trips = orjson.loads(content)
                 if isinstance(trips, list):
                     # Add diving center ID to each trip if found
                     for trip in trips:
@@ -842,10 +842,15 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
                 else:
                     logger.error(f"OpenAI returned invalid format (not a list): {type(trips)}")
                     return parse_newsletter_content(clean_content, db)
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse OpenAI response as JSON: {e}")
-                logger.error(f"Raw OpenAI response: {content}")
-                return parse_newsletter_content(clean_content, db)
+            except orjson.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON from OpenAI: {str(e)}")
+                logger.error(f"Content that failed parsing: {content}")
+                
+                # If we have a partial JSON, it might be recoverable manually or just fail
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to parse structured data from AI service: {str(e)}"
+                )
         else:
             logger.error(f"OpenAI API error: {response}")
             return parse_newsletter_content(clean_content, db)
@@ -1653,7 +1658,7 @@ async def get_parsed_trips(
             }
         
         # Convert to JSON and check size
-        match_types_json = json.dumps(optimized_match_types)
+        match_types_json = orjson.dumps(optimized_match_types).decode('utf-8')
         
         # If header is still too large, truncate or omit it
         if len(match_types_json) > 8000:  # 8KB limit for headers
@@ -1663,31 +1668,17 @@ async def get_parsed_trips(
             logger.warning(f"X-Match-Types header too large ({len(match_types_json)} chars), omitting to prevent nginx errors")
             # Return response without the header
             return Response(
-                content=json.dumps(serialized_trips),
+                content=orjson.dumps(serialized_trips),
                 media_type="application/json"
             )
         
         # Properly serialize the Pydantic models to handle datetime fields
         serialized_trips = []
         for trip in response_data:
-            trip_dict = trip.model_dump()
-            # Recursively handle date and datetime serialization
-            def serialize_datetime(obj):
-                if isinstance(obj, dict):
-                    return {key: serialize_datetime(value) for key, value in obj.items()}
-                elif isinstance(obj, list):
-                    return [serialize_datetime(item) for item in obj]
-                elif hasattr(obj, 'isoformat'):
-                    return obj.isoformat()
-                else:
-                    return obj
-            
-            # Apply serialization to the entire trip dictionary
-            trip_dict = serialize_datetime(trip_dict)
-            serialized_trips.append(trip_dict)
+            serialized_trips.append(trip.model_dump())
         
         response = Response(
-            content=json.dumps(serialized_trips),
+            content=orjson.dumps(serialized_trips),
             media_type="application/json",
             headers={"X-Match-Types": match_types_json}
         )

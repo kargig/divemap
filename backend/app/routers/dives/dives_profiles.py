@@ -18,7 +18,7 @@ from fastapi import Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import date, time, datetime
-import json
+import orjson
 import os
 import tempfile
 import uuid
@@ -70,7 +70,7 @@ def get_dive_profile(
         # Check file extension to determine parsing method
         if dive.profile_xml_path.endswith('.json'):
             # Imported profile (JSON format)
-            profile_data = json.loads(profile_content.decode('utf-8'))
+            profile_data = orjson.loads(profile_content)
         else:
             # Manually uploaded profile (XML format) - save temporarily and parse
             from app.services.dive_profile_parser import DiveProfileParser

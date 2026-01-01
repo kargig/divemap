@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, B
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
 import difflib
-import json
+import orjson
 import requests
 
 from app.database import get_db
@@ -404,7 +404,7 @@ async def reverse_geocode(
             print(f"   Status Code: {response.status_code}")
             print(f"   Response Headers: {dict(response.headers)}")
             print(f"   Full Response Content:")
-            print(f"   {json.dumps(data, indent=2)}")
+            print(f"   {orjson.dumps(data, option=orjson.OPT_INDENT_2).decode('utf-8')}")
         
         address = data.get("address", {})
 
@@ -489,7 +489,7 @@ async def reverse_geocode(
             print(f"   Region: '{region}'")
             print(f"   City: '{city}'")
             print(f"   Full Address: '{data.get('display_name', '')}'")
-            print(f"   Raw Address Object: {json.dumps(address, indent=2)}")
+            print(f"   Raw Address Object: {orjson.dumps(address, option=orjson.OPT_INDENT_2).decode('utf-8')}")
             
             # Show which region fields were found and used
             print(f"   Region Field Analysis:")
@@ -994,7 +994,7 @@ async def get_diving_centers(
             }
         
         # Convert to JSON and check size
-        match_types_json = json.dumps(optimized_match_types)
+        match_types_json = orjson.dumps(optimized_match_types, option=orjson.OPT_NON_STR_KEYS).decode('utf-8')
         
         # If header is still too large, truncate or omit it
         if len(match_types_json) > 8000:  # 8KB limit for headers
