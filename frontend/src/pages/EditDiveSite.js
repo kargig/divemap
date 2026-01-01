@@ -1,10 +1,10 @@
+import { Collapse, Image } from 'antd';
 import { ArrowLeft, Save, Trash2, Upload, X, Tag, Building, Plus, Edit } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Collapse, Image } from 'antd';
 
 import api, {
   getNearbyDivingCenters,
@@ -22,8 +22,8 @@ import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
-import { diveSiteSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
+import { diveSiteSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 const EditDiveSite = () => {
   // Set page title
@@ -1373,7 +1373,6 @@ const EditDiveSite = () => {
                 {/* Photo Upload */}
                 <div className='mb-3'>
                   <UploadPhotosComponent
-                    id={null} // Defer R2 upload until form submission
                     mediaUrls={photoMediaUrls}
                     setMediaUrls={setPhotoMediaUrls}
                     onUnsavedPhotosChange={unsavedPhotos => {

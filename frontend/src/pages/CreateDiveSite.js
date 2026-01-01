@@ -1,8 +1,8 @@
+import { Collapse, Image as AntdImage } from 'antd';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
-import { Collapse, Image as AntdImage } from 'antd';
 import { useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -15,13 +15,13 @@ import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
+import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 import {
   commonSchemas,
   diveSiteSchema,
   createResolver,
   getErrorMessage,
 } from '../utils/formHelpers';
-import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 
 const CreateDiveSite = () => {
   // Set page title
@@ -682,7 +682,6 @@ const CreateDiveSite = () => {
               <div className='space-y-4'>
                 {/* Photo Upload */}
                 <UploadPhotosComponent
-                  id={null} // No dive site ID yet for create flow
                   mediaUrls={photoMediaUrls}
                   setMediaUrls={setPhotoMediaUrls}
                   onUnsavedPhotosChange={unsavedPhotos => {

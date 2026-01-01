@@ -1,11 +1,10 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { Upload, Image as AntImage, Collapse, Card } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
-import { toast } from 'react-hot-toast';
+import { Upload, Image as AntImage, Collapse, Card } from 'antd';
 import PropTypes from 'prop-types';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { toast } from 'react-hot-toast';
 
-// Note: uploadPhotoToR2Only and deletePhotoFromR2 are not needed here
-// Photos are only uploaded to R2 when form is submitted (handled in parent components)
+// Photos are stored locally (base64 previews) and uploaded to R2 on form submission (handled in parent components)
 // deleteDiveMedia is handled via onMediaRemove callback for saved photos
 
 const { Dragger } = Upload;
@@ -13,7 +12,6 @@ const { Dragger } = Upload;
 /**
  * Reusable photo upload component with Collapse, drag-and-drop, and per-photo controls
  *
- * @param {string|number|null} id - The dive/resource ID for API calls (null/undefined for create flows)
  * @param {Array} mediaUrls - Array of media items (photos) to display
  * @param {Function} setMediaUrls - Function to update mediaUrls
  * @param {Function} onUnsavedPhotosChange - Callback that receives unsavedR2Photos array when it changes
@@ -21,7 +19,6 @@ const { Dragger } = Upload;
  * @param {Array} savedPhotoUids - Array of UIDs for photos that have been saved to DB (to clear from unsaved list)
  */
 const UploadPhotosComponent = ({
-  id,
   mediaUrls,
   setMediaUrls,
   onUnsavedPhotosChange,
@@ -60,6 +57,7 @@ const UploadPhotosComponent = ({
   // Helper function to get base64 for preview
   const getBase64 = file =>
     new Promise((resolve, reject) => {
+      // eslint-disable-next-line no-undef
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => resolve(reader.result);
@@ -135,31 +133,20 @@ const UploadPhotosComponent = ({
         )
       );
 
-      let r2UploadResult = null;
-      let previewUrl = null;
-
-      // If id is provided (edit flow), upload to R2 immediately
-      // If id is null/undefined (create flow), store file locally and upload later
-      if (id) {
-        // Upload to R2 only (no database record created yet)
-        r2UploadResult = await uploadPhotoToR2Only(id, file);
-        previewUrl = r2UploadResult.url;
-      } else {
-        // For create flow, create a local preview URL from the file
-        previewUrl = await getBase64(file);
-      }
+      // Create a local preview URL from the file (base64)
+      // Photo will be uploaded to R2 on form submission (handled in parent components)
+      const previewUrl = await getBase64(file);
 
       onProgress({ percent: 100 });
 
-      // Store photo info for later DB creation
-      // For create flow, we'll upload to R2 after dive is created
+      // Store photo info for later R2 upload and DB creation (on form submission)
       const unsavedPhoto = {
         uid: fileUid,
-        r2_path: r2UploadResult?.r2_path || null, // null for create flow, will be set after upload
+        r2_path: null, // Will be set after upload to R2 on form submission
         url: previewUrl,
         file_name: file.name,
         description: '',
-        originFileObj: id ? null : file, // Store file object for create flow to upload later
+        originFileObj: file, // Store file object to upload to R2 later
       };
       setUnsavedR2Photos(prev => [...prev, unsavedPhoto]);
 
@@ -178,9 +165,7 @@ const UploadPhotosComponent = ({
       // Remove from uploadFileList (match by both UID and originFileObj to catch all cases)
       setUploadFileList(prev => prev.filter(f => f.uid !== fileUid && f.originFileObj !== file));
       setMediaUrls(prev => [...prev, mediaItem]);
-      toast.success(
-        `Successfully ${id ? 'uploaded' : 'added'} ${file.name}${id ? ' It will show on Dive when you finish editing' : ''}`
-      );
+      toast.success(`Successfully added ${file.name}`);
 
       // Call onSuccess with the file to mark it as done in Ant Design's internal state
       // Use fileUid to ensure it matches the temp_uid in mediaUrls, preventing duplicates
@@ -195,9 +180,7 @@ const UploadPhotosComponent = ({
       );
       onError(error);
       setUploadingPhotos(false);
-      toast.error(
-        `Failed to ${id ? 'upload' : 'add'} ${file.name}: ${error.response?.data?.detail || error.message}`
-      );
+      toast.error(`Failed to add ${file.name}: ${error.response?.data?.detail || error.message}`);
     }
   };
 
@@ -394,7 +377,6 @@ const UploadPhotosComponent = ({
 };
 
 UploadPhotosComponent.propTypes = {
-  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   mediaUrls: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

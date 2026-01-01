@@ -18,16 +18,16 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useParams, useLocation, Link as RouterLink } from 'react-router-dom';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
+import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
+import Inline from 'yet-another-react-lightbox/plugins/inline';
+import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
+import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 
 import api, { extractErrorMessage } from '../api';
 import DiveSiteRoutes from '../components/DiveSiteRoutes';
 import Lightbox from '../components/Lightbox/Lightbox';
-import Inline from 'yet-another-react-lightbox/plugins/inline';
-import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 import ReactImage from '../components/Lightbox/ReactImage';
-import Captions from 'yet-another-react-lightbox/plugins/captions';
-import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
-import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
 import MaskedEmail from '../components/MaskedEmail';
 import MiniMap from '../components/MiniMap';
 import RateLimitError from '../components/RateLimitError';
@@ -37,10 +37,10 @@ import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
-import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 
 // Use extractErrorMessage from api.js
 const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');

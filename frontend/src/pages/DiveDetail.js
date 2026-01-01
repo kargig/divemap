@@ -16,7 +16,6 @@ import {
   Route,
   User,
   X,
-  Lock,
   Image,
   Video,
 } from 'lucide-react';
@@ -31,30 +30,30 @@ import {
   useLocation,
   Link as RouterLink,
 } from 'react-router-dom';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
+import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
+import Inline from 'yet-another-react-lightbox/plugins/inline';
+import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
+import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 
 import api, { getDive, getDiveMedia, deleteDive, deleteDiveMedia, removeBuddy } from '../api';
 import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
 import DiveProfileModal from '../components/DiveProfileModal';
+import Lightbox from '../components/Lightbox/Lightbox';
+import ReactImage from '../components/Lightbox/ReactImage';
 import RateLimitError from '../components/RateLimitError';
 import ShareButton from '../components/ShareButton';
-import YouTubePreview from '../components/YouTubePreview';
-import Lightbox from '../components/Lightbox/Lightbox';
-import Inline from 'yet-another-react-lightbox/plugins/inline';
-import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
-import ReactImage from '../components/Lightbox/ReactImage';
-import Captions from 'yet-another-react-lightbox/plugins/captions';
-import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
-import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
 import Modal from '../components/ui/Modal';
+import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { getRouteTypeColor, getDrawingTypeColor } from '../utils/colorPalette';
+import { getRouteTypeColor } from '../utils/colorPalette';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 import { renderTextWithLinks } from '../utils/textHelpers';
-import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 
 // Custom zoom control component for dive detail page
 const ZoomControl = ({ currentZoom }) => {

@@ -1,3 +1,4 @@
+import { Drawer } from 'antd';
 import {
   Award,
   NotebookText,
@@ -10,7 +11,6 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
-import { Drawer } from 'antd';
 
 import { getDivingOrganizations, getDivingOrganizationLevels } from '../api';
 import OrganizationLogo from '../components/OrganizationLogo';

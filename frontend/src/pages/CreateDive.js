@@ -1,8 +1,8 @@
-import { Save, ArrowLeft, Plus, X, ChevronDown, Image, Video, FileText, Link } from 'lucide-react';
+import { Collapse, Image as AntdImage } from 'antd';
+import { Save, ArrowLeft, Plus, X, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
-import { Collapse, Image as AntdImage } from 'antd';
 import { useMutation, useQueryClient, useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
@@ -19,14 +19,14 @@ import {
 import DivingCenterSearchableDropdown from '../components/DivingCenterSearchableDropdown';
 import { FormField } from '../components/forms/FormField';
 import RouteSelection from '../components/RouteSelection';
-import UserSearchInput from '../components/UserSearchInput';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
+import UserSearchInput from '../components/UserSearchInput';
 import YouTubePreview from '../components/YouTubePreview';
 import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
-import { createDiveSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
+import { createDiveSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 const CreateDive = () => {
   // Set page title
@@ -813,7 +813,6 @@ const CreateDive = () => {
                 {/* Photo Upload - Only show for public dives */}
                 {!watch('is_private') && (
                   <UploadPhotosComponent
-                    id={null}
                     mediaUrls={mediaUrls.filter(m => m.type === 'photo')}
                     setMediaUrls={updater => {
                       if (typeof updater === 'function') {
