@@ -70,9 +70,11 @@ const GasMixInput = ({ value, onChange }) => {
                 value={value?.o2 || ''}
                 onChange={e => handleCustomChange('o2', e.target.value)}
                 className='w-full rounded-md border-gray-300 pr-8 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
-                placeholder='O2'
+                placeholder='O₂'
               />
-              <span className='absolute right-2 top-2 text-gray-500 text-xs'>%O2</span>
+              <span className='absolute right-2 top-2 text-gray-500 text-xs'>
+                %O<sub>2</sub>
+              </span>
             </div>
             <div className='relative w-20'>
               <input
@@ -91,13 +93,19 @@ const GasMixInput = ({ value, onChange }) => {
       </div>
       {/* Display computed mix label for clarity */}
       <div className='text-xs text-gray-500'>
-        {value?.he > 0
-          ? `Trimix ${value.o2}/${value.he}`
-          : value?.o2 > 21
-            ? `EAN${value.o2}`
-            : value?.o2 === 21
-              ? 'Air'
-              : `O2: ${value?.o2}%`}
+        {value?.he > 0 ? (
+          <span>
+            Trimix {value.o2}/{value.he}
+          </span>
+        ) : value?.o2 > 21 ? (
+          <span>EAN{value.o2}</span>
+        ) : value?.o2 === 21 ? (
+          <span>Air</span>
+        ) : (
+          <span>
+            O<sub>2</sub>: {value?.o2}%
+          </span>
+        )}
       </div>
     </div>
   );

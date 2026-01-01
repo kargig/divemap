@@ -55,7 +55,7 @@ const SacRateCalculator = () => {
       depth: 15,
       time: 45,
       tankSize: 12,
-      startPressure: 200,
+      startPressure: 220,
       endPressure: 50,
       gas: { o2: 21, he: 0 },
     },

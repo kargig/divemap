@@ -109,7 +109,15 @@ const ModCalculator = () => {
 
         <div>
           <label className='block text-sm font-semibold text-gray-700 mb-2'>
-            Gas Mixture ({isAdvanced ? 'O2 / He' : `Nitrox ${gas?.o2}%`})
+            Gas Mixture (
+            {isAdvanced ? (
+              <span>
+                O<sub>2</sub> / He
+              </span>
+            ) : (
+              `Nitrox ${gas?.o2}%`
+            )}
+            )
           </label>
 
           {!isAdvanced ? (
@@ -125,7 +133,9 @@ const ModCalculator = () => {
               />
               <div className='flex justify-between text-xs text-gray-500 font-medium'>
                 <span>Air (21%)</span>
-                <span>O2 (100%)</span>
+                <span>
+                  O<sub>2</sub> (100%)
+                </span>
               </div>
               <div className='flex justify-center'>
                 <div className='bg-blue-50 text-blue-800 px-4 py-2 rounded-lg font-bold text-xl shadow-sm border border-blue-100'>
@@ -145,7 +155,7 @@ const ModCalculator = () => {
 
         <div>
           <label htmlFor='modPO2' className='block text-sm font-semibold text-gray-700 mb-2'>
-            Max pO2 (bar)
+            Max pO<sub>2</sub> (bar)
           </label>
           <div id='modPO2' className='grid grid-cols-3 gap-2'>
             {[1.2, 1.4, 1.6].map(val => (
@@ -184,7 +194,9 @@ const ModCalculator = () => {
             </div>
             <div className='flex justify-between'>
               <span>Formula:</span>
-              <span>Max pO2 / Fraction O2</span>
+              <span>
+                Max pO<sub>2</sub> / Fraction O<sub>2</sub>
+              </span>
             </div>
             <div className='flex justify-between'>
               <span>Calculation:</span>
@@ -212,7 +224,9 @@ const ModCalculator = () => {
                 </div>
                 <div className='flex justify-between'>
                   <span>Logic:</span>
-                  <span>Treating O2 as Narcotic (Standard)</span>
+                  <span>
+                    Treating O<sub>2</sub> as Narcotic (Standard)
+                  </span>
                 </div>
                 <div className='flex justify-between'>
                   <span>Calculation:</span>
@@ -254,10 +268,16 @@ const ModCalculator = () => {
       <div className='p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-start'>
         <Info className='h-4 w-4 mr-2 text-gray-400 flex-shrink-0' />
         <p>
-          Formula: MOD = (pO2_max / fO2 - 1) * 10.
-          {result.fHe > 0
-            ? ' Includes Helium (Trimix) calculation for Narcotic Depth (assuming O2 is narcotic).'
-            : ' Based on standard salt water density.'}
+          Formula: MOD = (pO<sub>2</sub>_max / fO<sub>2</sub> - 1) * 10.
+          {result.fHe > 0 ? (
+            <span>
+              {' '}
+              Includes Helium (Trimix) calculation for Narcotic Depth (assuming O<sub>2</sub> is
+              narcotic).
+            </span>
+          ) : (
+            ' Based on standard salt water density.'
+          )}
         </p>
       </div>
     </div>

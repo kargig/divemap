@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import BestMixCalculator from '../components/calculators/BestMixCalculator';
+import GasFillPriceCalculator from '../components/calculators/GasFillPriceCalculator';
 import GasPlanningCalculator from '../components/calculators/GasPlanningCalculator';
 import MinGasCalculator from '../components/calculators/MinGasCalculator';
 import ModCalculator from '../components/calculators/ModCalculator';
@@ -19,6 +20,7 @@ const TOOL_TABS = [
   { value: 'sac', label: 'SAC Rate' },
   { value: 'gas-planning', label: 'Gas Consumption' },
   { value: 'min-gas', label: 'Min Gas' },
+  { value: 'gas-fill', label: 'Fill Price' },
   { value: 'buoyancy', label: 'Tank Buoyancy' },
   { value: 'weight', label: 'Weight' },
 ];
@@ -96,6 +98,10 @@ const Tools = () => {
 
               <TabsContent value='min-gas'>
                 <MinGasCalculator />
+              </TabsContent>
+
+              <TabsContent value='gas-fill'>
+                <GasFillPriceCalculator />
               </TabsContent>
 
               <TabsContent value='buoyancy'>
