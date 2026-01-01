@@ -29,7 +29,14 @@ describe('ModCalculator', () => {
     render(<ModCalculator />);
 
     expect(screen.getByText(/Gas Mixture/i, { selector: 'label' })).toBeInTheDocument();
-    expect(screen.getByText(/Max pO2/i)).toBeInTheDocument();
+    expect(
+      screen.getByText((content, element) => {
+        const hasText = node => node.textContent === 'Max pO2 (bar)';
+        const nodeHasText = hasText(element);
+        const childrenDontHaveText = Array.from(element.children).every(child => !hasText(child));
+        return nodeHasText && childrenDontHaveText;
+      })
+    ).toBeInTheDocument();
   });
 
   it('calculates MOD correctly for Nitrox', async () => {

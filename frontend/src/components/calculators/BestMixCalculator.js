@@ -144,7 +144,7 @@ const BestMixCalculator = () => {
 
         <div>
           <label htmlFor='bestMixPO2' className='block text-sm font-semibold text-gray-700 mb-2'>
-            Max pO2 (bar)
+            Max pO<sub>2</sub> (bar)
           </label>
           <div id='bestMixPO2' className='grid grid-cols-3 gap-2'>
             {[1.2, 1.4, 1.6].map(val => (
@@ -238,7 +238,9 @@ const BestMixCalculator = () => {
             </div>
             <div className='flex justify-between'>
               <span>Formula:</span>
-              <span>Max pO2 / ATA</span>
+              <span>
+                Max pO<sub>2</sub> / ATA
+              </span>
             </div>
             <div className='flex justify-between'>
               <span>Calculation:</span>
@@ -249,7 +251,9 @@ const BestMixCalculator = () => {
             </div>
             <div className='flex justify-between font-bold text-emerald-600'>
               <span>Result:</span>
-              <span>{(bestMixResult.details.fO2 * 100).toFixed(1)}% O2</span>
+              <span>
+                {(bestMixResult.details.fO2 * 100).toFixed(1)}% O<sub>2</sub>
+              </span>
             </div>
 
             {bestMixResult.details.isTrimix && (
@@ -282,7 +286,9 @@ const BestMixCalculator = () => {
                 </div>
                 <div className='flex justify-between'>
                   <span>Formula:</span>
-                  <span>100% - O2% - Max N2%</span>
+                  <span>
+                    100% - O<sub>2</sub>% - Max N<sub>2</sub>%
+                  </span>
                 </div>
                 <div className='flex justify-between'>
                   <span>Calculation:</span>
@@ -309,7 +315,7 @@ const BestMixCalculator = () => {
           </div>
           {bestMixResult.fHe > 0.1 && (
             <div className='mt-1 text-sm text-emerald-600 font-medium'>
-              {bestMixResult.fO2.toFixed(0)}% O2 / {bestMixResult.fHe.toFixed(0)}% He
+              {bestMixResult.fO2.toFixed(0)}% O<sub>2</sub> / {bestMixResult.fHe.toFixed(0)}% He
             </div>
           )}
           {bestMixResult.fO2 > 40 && (
@@ -324,8 +330,8 @@ const BestMixCalculator = () => {
       <div className='p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-start'>
         <Info className='h-4 w-4 mr-2 text-gray-400 flex-shrink-0' />
         <p>
-          Calculates Best Mix based on pO2 limit. If Trimix is enabled, Helium is added to keep
-          Equivalent Air Depth (EAD) within limits.
+          Calculates Best Mix based on pO<sub>2</sub> limit. If Trimix is enabled, Helium is added
+          to keep Equivalent Air Depth (EAD) within limits.
         </p>
       </div>
     </div>

@@ -108,3 +108,12 @@ export const weightSchema = z.object({
     }
   }, 'Invalid tank configuration'),
 });
+
+// Gas Fill Price Calculator Schema
+export const gasFillSchema = z.object({
+  tankSize: volumeSchema,
+  pressure: pressureSchema,
+  gas: gasMixSchema,
+  o2Price: z.number().min(0, 'Price must be non-negative'),
+  hePrice: z.number().min(0, 'Price must be non-negative'),
+});
