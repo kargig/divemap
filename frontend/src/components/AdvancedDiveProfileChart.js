@@ -11,7 +11,7 @@ import {
   Contrast,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
-import React, { useMemo, useState, useCallback, useRef } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import {
   ComposedChart,
   Line,
@@ -24,6 +24,202 @@ import {
   ReferenceLine,
 } from 'recharts';
 
+/**
+ * Custom Tooltip component for the chart
+ */
+/* eslint-disable complexity */
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+  showCNS,
+  showCeiling,
+  showStoptime,
+  showTemperature,
+  formatStoptime,
+}) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className='bg-white p-4 border border-gray-200 rounded-lg shadow-lg min-w-[200px]'>
+        <div className='font-semibold text-gray-900 mb-2'>Dive Profile</div>
+        <div className='space-y-1 text-sm'>
+          <div className='flex justify-between'>
+            <span className='text-gray-600'>Time:</span>
+            <span className='font-medium'>{label?.toFixed(1)} min</span>
+          </div>
+          <div className='flex justify-between'>
+            <span style={{ color: '#0072B2' }}>Depth:</span>
+            <span className='font-medium'>{data.depth?.toFixed(1)}m</span>
+          </div>
+          <div className='flex justify-between'>
+            <span style={{ color: '#E69F00' }}>Avg Depth:</span>
+            <span className='font-medium'>{data.averageDepth?.toFixed(1)}m</span>
+          </div>
+          {data.temperature && showTemperature && (
+            <div className='flex justify-between'>
+              <span style={{ color: '#009E73' }}>Temperature:</span>
+              <span className='font-medium'>{data.temperature?.toFixed(1)}°C</span>
+            </div>
+          )}
+          <div className='flex justify-between'>
+            <span style={{ color: '#D55E00' }}>NDL:</span>
+            <span className='font-medium'>
+              {data.in_deco ? (
+                <span style={{ color: '#D55E00' }}>In deco</span>
+              ) : data.ndl === 0 ? (
+                'NDL 0 mins/deco'
+              ) : data.ndl ? (
+                `${data.ndl?.toFixed(0)} min`
+              ) : (
+                'N/A'
+              )}
+            </span>
+          </div>
+          {data.cns && showCNS && (
+            <div className='flex justify-between'>
+              <span style={{ color: '#CC79A7' }}>CNS:</span>
+              <span className='font-medium'>{data.cns?.toFixed(1)}%</span>
+            </div>
+          )}
+          {data.stopdepth > 0 && showCeiling && (
+            <div className='flex justify-between'>
+              <span style={{ color: '#56B4E9' }}>Ceiling:</span>
+              <span className='font-medium'>{data.stopdepth?.toFixed(1)}m</span>
+            </div>
+          )}
+          {data.stoptime > 0 && data.in_deco && showStoptime && (
+            <div className='flex justify-between'>
+              <span style={{ color: '#F0E442' }}>Stop Time:</span>
+              <span className='font-medium'>{formatStoptime(data.stoptime)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+/* eslint-enable complexity */
+
+CustomTooltip.propTypes = {
+  active: PropTypes.bool,
+  payload: PropTypes.arrayOf(
+    PropTypes.shape({
+      payload: PropTypes.shape({
+        depth: PropTypes.number,
+        averageDepth: PropTypes.number,
+        temperature: PropTypes.number,
+        ndl: PropTypes.number,
+        cns: PropTypes.number,
+        in_deco: PropTypes.bool,
+        stopdepth: PropTypes.number,
+        stoptime: PropTypes.number,
+      }),
+    })
+  ),
+  label: PropTypes.number,
+  showCNS: PropTypes.bool,
+  showCeiling: PropTypes.bool,
+  showStoptime: PropTypes.bool,
+  showTemperature: PropTypes.bool,
+  formatStoptime: PropTypes.func.isRequired,
+};
+
+/**
+ * Smart sampling logic extracted to a pure function to reduce component complexity
+ */
+/* eslint-disable complexity, max-depth */
+const performSmartSampling = (samples, showAllSamples) => {
+  if (!samples || samples.length <= 1000 || showAllSamples) {
+    return samples || [];
+  }
+
+  const duration = samples[samples.length - 1]?.time_minutes || 0;
+  const eventFrequency = samples.length / (duration * 60); // events per second
+  const canSample = eventFrequency < 0.1; // less than 1 per 10 seconds
+
+  if (canSample) {
+    const sampledSamples = [];
+    for (let i = 0; i < samples.length; i++) {
+      const sample = samples[i];
+      const isFirstOrLast = i === 0 || i === samples.length - 1;
+      const hasImportantMetadata =
+        sample.in_deco !== undefined ||
+        sample.ndl !== undefined ||
+        sample.cns !== undefined ||
+        sample.temp !== undefined ||
+        sample.stopdepth !== undefined ||
+        sample.tts !== undefined;
+
+      if (isFirstOrLast || hasImportantMetadata) {
+        sampledSamples.push(sample);
+      } else if (i % 10 === 0) {
+        // Check if the next few samples have important metadata
+        let hasNearbyImportantMetadata = false;
+        for (let j = i + 1; j <= Math.min(i + 9, samples.length - 1); j++) {
+          const nearbySample = samples[j];
+          if (
+            nearbySample.in_deco !== undefined ||
+            nearbySample.ndl !== undefined ||
+            nearbySample.cns !== undefined ||
+            nearbySample.temp !== undefined ||
+            nearbySample.stopdepth !== undefined ||
+            nearbySample.tts !== undefined
+          ) {
+            hasNearbyImportantMetadata = true;
+            break;
+          }
+        }
+
+        if (!hasNearbyImportantMetadata) {
+          sampledSamples.push(sample);
+        } else {
+          // Find nearest sample without important metadata
+          let nearestIndex = -1;
+          for (let j = i + 1; j <= Math.min(i + 9, samples.length - 1); j++) {
+            const nearbySample = samples[j];
+            if (
+              nearbySample.in_deco === undefined &&
+              nearbySample.ndl === undefined &&
+              nearbySample.cns === undefined &&
+              nearbySample.temp === undefined &&
+              nearbySample.stopdepth === undefined &&
+              nearbySample.tts === undefined
+            ) {
+              nearestIndex = j;
+              break;
+            }
+          }
+          if (nearestIndex !== -1) {
+            sampledSamples.push(samples[nearestIndex]);
+            i = nearestIndex;
+          } else {
+            sampledSamples.push(sample);
+          }
+        }
+      }
+    }
+    return sampledSamples;
+  }
+
+  const sampleRate = Math.ceil(samples.length / 100);
+  return samples.filter((sample, index) => {
+    if (index === 0 || index === samples.length - 1) return true;
+    return (
+      sample.in_deco !== undefined ||
+      sample.ndl !== undefined ||
+      sample.cns !== undefined ||
+      sample.temp !== undefined ||
+      sample.stopdepth !== undefined ||
+      sample.tts !== undefined ||
+      index % sampleRate === 0
+    );
+  });
+};
+/* eslint-enable complexity, max-depth */
+
+/* eslint-disable max-lines-per-function, complexity */
 const AdvancedDiveProfileChart = ({
   profileData,
   isLoading = false,
@@ -32,7 +228,7 @@ const AdvancedDiveProfileChart = ({
   screenSize = 'desktop',
   onDecoStatusChange,
   onMaximize,
-  onClose, // Add onClose prop for mobile landscape close button
+  onClose,
 }) => {
   const [, setHoveredPoint] = useState(null);
   const [showTemperature, setShowTemperature] = useState(initialShowTemperature);
@@ -50,9 +246,9 @@ const AdvancedDiveProfileChart = ({
   const [isMobileViewport, setIsMobileViewport] = useState(false);
 
   // Detect mobile viewport
-  React.useEffect(() => {
+  useEffect(() => {
     const checkMobile = () => {
-      setIsMobileViewport(window.innerWidth < 640); // sm breakpoint
+      setIsMobileViewport(window.innerWidth < 640);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -65,7 +261,7 @@ const AdvancedDiveProfileChart = ({
     return profileData.samples.some(sample => sample.in_deco === true);
   }, [profileData]);
 
-  // Check if dive has any stopdepth data (for conditional ceiling display)
+  // Check if dive has any stopdepth data
   const hasStopdepth = useMemo(() => {
     if (!profileData?.samples) return false;
     return profileData.samples.some(
@@ -77,12 +273,12 @@ const AdvancedDiveProfileChart = ({
   const gasChangeEvents = useMemo(() => {
     if (!profileData?.events) return [];
     return profileData.events.filter(
-      event => event.name === 'gaschange' && event.type === '25' && event.time_minutes > 1.0 // Ignore gas change events in the first minute of the dive
+      event => event.name === 'gaschange' && event.type === '25' && event.time_minutes > 1.0
     );
   }, [profileData]);
 
   // Notify parent component of deco status change
-  React.useEffect(() => {
+  useEffect(() => {
     if (onDecoStatusChange) {
       onDecoStatusChange(hasDeco);
     }
@@ -90,178 +286,45 @@ const AdvancedDiveProfileChart = ({
 
   // Process the data for the chart with smart sampling
   const chartData = useMemo(() => {
-    if (!profileData || !profileData.samples) return [];
+    if (!profileData?.samples) return [];
+
+    const samplesToProcess = performSmartSampling(profileData.samples, showAllSamples);
 
     let runningDepthSum = 0;
-    const samples = profileData.samples;
-
-    // Smart sampling logic - only sample if more than 1000 data points
-    const shouldSample = !showAllSamples && samples.length > 1000;
-    let samplesToProcess = samples;
-
-    if (shouldSample) {
-      // Calculate sampling rate - if less than 1 event per 10 seconds, we can sample
-      const duration = samples[samples.length - 1]?.time_minutes || 0;
-      const eventFrequency = samples.length / (duration * 60); // events per second
-      const canSample = eventFrequency < 0.1; // less than 1 per 10 seconds
-
-      if (canSample) {
-        // Smart sampling: preserve important metadata and sample regular data
-        const sampledSamples = [];
-
-        for (let i = 0; i < samples.length; i++) {
-          const sample = samples[i];
-          const isFirstOrLast = i === 0 || i === samples.length - 1;
-          const hasImportantMetadata =
-            sample.in_deco !== undefined ||
-            sample.ndl !== undefined ||
-            sample.cns !== undefined ||
-            sample.temp !== undefined ||
-            sample.stopdepth !== undefined ||
-            sample.tts !== undefined;
-
-          // Always include first, last, and samples with important metadata
-          if (isFirstOrLast || hasImportantMetadata) {
-            sampledSamples.push(sample);
-          } else {
-            // For regular samples, check if we should include this one
-            // Sample every 10th point, but ensure we don't skip important metadata
-            if (i % 10 === 0) {
-              // Check if the next few samples have important metadata
-              let hasNearbyImportantMetadata = false;
-              for (let j = i + 1; j <= Math.min(i + 9, samples.length - 1); j++) {
-                const nearbySample = samples[j];
-                if (
-                  nearbySample.in_deco !== undefined ||
-                  nearbySample.ndl !== undefined ||
-                  nearbySample.cns !== undefined ||
-                  nearbySample.temp !== undefined ||
-                  nearbySample.stopdepth !== undefined ||
-                  nearbySample.tts !== undefined
-                ) {
-                  hasNearbyImportantMetadata = true;
-                  break;
-                }
-              }
-
-              // If no important metadata nearby, include this sample
-              if (!hasNearbyImportantMetadata) {
-                sampledSamples.push(sample);
-              } else {
-                // Find the nearest sample without important metadata
-                let nearestIndex = -1;
-                for (let j = i + 1; j <= Math.min(i + 9, samples.length - 1); j++) {
-                  const nearbySample = samples[j];
-                  if (
-                    nearbySample.in_deco === undefined &&
-                    nearbySample.ndl === undefined &&
-                    nearbySample.cns === undefined &&
-                    nearbySample.temp === undefined &&
-                    nearbySample.stopdepth === undefined &&
-                    nearbySample.tts === undefined
-                  ) {
-                    nearestIndex = j;
-                    break;
-                  }
-                }
-                if (nearestIndex !== -1) {
-                  sampledSamples.push(samples[nearestIndex]);
-                  i = nearestIndex; // Skip ahead to avoid duplicate processing
-                } else {
-                  // If no suitable nearby sample, include current one
-                  sampledSamples.push(sample);
-                }
-              }
-            }
-          }
-        }
-
-        samplesToProcess = sampledSamples;
-      } else {
-        // For high-frequency data, use sampling but still cover full duration
-        const sampleRate = Math.ceil(samples.length / 100); // Aim for ~100 samples
-        samplesToProcess = samples.filter((sample, index) => {
-          // Always include first and last samples
-          if (index === 0 || index === samples.length - 1) return true;
-
-          // Always include samples with important metadata
-          if (
-            sample.in_deco !== undefined ||
-            sample.ndl !== undefined ||
-            sample.cns !== undefined ||
-            sample.temp !== undefined ||
-            sample.stopdepth !== undefined ||
-            sample.tts !== undefined
-          ) {
-            return true;
-          }
-
-          // Sample at regular intervals
-          return index % sampleRate === 0;
-        });
-      }
-    }
-
-    // First pass: collect all temperature readings from loaded samples
-    samplesToProcess
-      .map((sample, index) => ({
-        time: sample.time_minutes || 0,
-        temperature: sample.temperature,
-        index,
-      }))
-      .filter(item => item.temperature !== null && item.temperature !== undefined);
-
-    // Create stepped temperature, NDL, CNS, and stopdepth data - hold last known values
     let lastKnownTemperature = null;
     let lastKnownNDL = null;
     let lastKnownInDeco = false;
     let lastKnownCNS = null;
-    let lastKnownStopdepth = 0; // Initialize stopdepth to 0 (surface)
-    let lastKnownStoptime = null; // Initialize stoptime to null (no stop time at surface)
-    const steppedSamples = samplesToProcess.map((sample, index) => {
+    let lastKnownStopdepth = 0;
+    let lastKnownStoptime = null;
+
+    return samplesToProcess.map((sample, index) => {
       const depth = sample.depth || 0;
       runningDepthSum += depth;
       const averageDepth = runningDepthSum / (index + 1);
 
-      // For stepped line: use actual temperature if available, otherwise hold last known value
       if (sample.temperature !== null && sample.temperature !== undefined) {
         lastKnownTemperature = sample.temperature;
       }
-
-      // For stepped line: use actual NDL if available, otherwise hold last known value
       if (sample.ndl_minutes !== null && sample.ndl_minutes !== undefined) {
         lastKnownNDL = sample.ndl_minutes;
       }
-
-      // For stepped line: use actual in_deco status if available, otherwise hold last known value
       if (sample.in_deco !== null && sample.in_deco !== undefined) {
         lastKnownInDeco = sample.in_deco;
       }
-
-      // For stepped line: use actual CNS if available, otherwise hold last known value
       if (sample.cns_percent !== null && sample.cns_percent !== undefined) {
         lastKnownCNS = sample.cns_percent;
       }
 
-      // Handle stopdepth persistence logic
       if (lastKnownInDeco) {
-        // When in decompression, use stopdepth if present, otherwise maintain previous value
         if (sample.stopdepth !== null && sample.stopdepth !== undefined) {
           lastKnownStopdepth = sample.stopdepth;
         }
-      } else {
-        // When not in decompression, reset stopdepth to 0 (surface)
-        lastKnownStopdepth = 0;
-      }
-
-      // Handle stoptime persistence logic
-      if (lastKnownInDeco) {
-        // When in decompression, use stoptime_minutes if present, otherwise maintain previous value
         if (sample.stoptime_minutes !== null && sample.stoptime_minutes !== undefined) {
           lastKnownStoptime = sample.stoptime_minutes;
         }
       } else {
-        // When not in decompression, reset stoptime to null (no stop time)
+        lastKnownStopdepth = 0;
         lastKnownStoptime = null;
       }
 
@@ -273,16 +336,11 @@ const AdvancedDiveProfileChart = ({
         ndl: lastKnownNDL,
         cns: lastKnownCNS,
         in_deco: lastKnownInDeco,
-        stopdepth: lastKnownStopdepth, // Add stopdepth with persistence logic
-        stoptime: lastKnownStoptime, // Add stoptime with persistence logic
+        stopdepth: lastKnownStopdepth,
+        stoptime: lastKnownStoptime,
       };
     });
-
-    return steppedSamples;
   }, [profileData, showAllSamples]);
-
-  // Use chart data directly (no pagination needed without zoom)
-  const paginatedChartData = chartData;
 
   // Calculate metrics
   const metrics = useMemo(() => {
@@ -293,13 +351,10 @@ const AdvancedDiveProfileChart = ({
         duration: 0,
         minTemp: null,
         maxTemp: null,
-        minNDL: null,
-        maxNDL: null,
       };
 
     const depths = chartData.map(d => d.depth);
     const temperatures = chartData.map(d => d.temperature).filter(t => t !== null && !isNaN(t));
-    const ndls = chartData.map(d => d.ndl).filter(n => n !== null && !isNaN(n));
 
     return {
       maxDepth: Math.max(...depths),
@@ -307,91 +362,17 @@ const AdvancedDiveProfileChart = ({
       duration: Math.max(...chartData.map(d => d.time)),
       minTemp: temperatures.length > 0 ? Math.min(...temperatures) : null,
       maxTemp: temperatures.length > 0 ? Math.max(...temperatures) : null,
-      minNDL: ndls.length > 0 ? Math.min(...ndls) : null,
-      maxNDL: ndls.length > 0 ? Math.max(...ndls) : null,
     };
   }, [chartData]);
 
   // Format stoptime for display
-  const formatStoptime = stoptime => {
+  const formatStoptime = useCallback(stoptime => {
     if (!stoptime || stoptime <= 0) return '0:00';
-
     const minutes = Math.floor(stoptime);
     const seconds = Math.round((stoptime - minutes) * 60);
-
-    if (seconds === 60) {
-      return `${minutes + 1}:00`;
-    } else if (seconds < 10) {
-      return `${minutes}:0${seconds}`;
-    } else {
-      return `${minutes}:${seconds}`;
-    }
-  };
-
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload, label, showCNS, showCeiling, showStoptime }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className='bg-white p-4 border border-gray-200 rounded-lg shadow-lg min-w-[200px]'>
-          <div className='font-semibold text-gray-900 mb-2'>Dive Profile</div>
-          <div className='space-y-1 text-sm'>
-            <div className='flex justify-between'>
-              <span className='text-gray-600'>Time:</span>
-              <span className='font-medium'>{label?.toFixed(1)} min</span>
-            </div>
-            <div className='flex justify-between'>
-              <span style={{ color: '#0072B2' }}>Depth:</span>
-              <span className='font-medium'>{data.depth?.toFixed(1)}m</span>
-            </div>
-            <div className='flex justify-between'>
-              <span style={{ color: '#E69F00' }}>Avg Depth:</span>
-              <span className='font-medium'>{data.averageDepth?.toFixed(1)}m</span>
-            </div>
-            {data.temperature && showTemperature && (
-              <div className='flex justify-between'>
-                <span style={{ color: '#009E73' }}>Temperature:</span>
-                <span className='font-medium'>{data.temperature?.toFixed(1)}°C</span>
-              </div>
-            )}
-            <div className='flex justify-between'>
-              <span style={{ color: '#D55E00' }}>NDL:</span>
-              <span className='font-medium'>
-                {data.in_deco ? (
-                  <span style={{ color: '#D55E00' }}>In deco</span>
-                ) : data.ndl === 0 ? (
-                  'NDL 0 mins/deco'
-                ) : data.ndl ? (
-                  `${data.ndl?.toFixed(0)} min`
-                ) : (
-                  'N/A'
-                )}
-              </span>
-            </div>
-            {data.cns && showCNS && (
-              <div className='flex justify-between'>
-                <span style={{ color: '#CC79A7' }}>CNS:</span>
-                <span className='font-medium'>{data.cns?.toFixed(1)}%</span>
-              </div>
-            )}
-            {data.stopdepth > 0 && showCeiling && (
-              <div className='flex justify-between'>
-                <span style={{ color: '#56B4E9' }}>Ceiling:</span>
-                <span className='font-medium'>{data.stopdepth?.toFixed(1)}m</span>
-              </div>
-            )}
-            {data.stoptime > 0 && data.in_deco && showStoptime && (
-              <div className='flex justify-between'>
-                <span style={{ color: '#F0E442' }}>Stop Time:</span>
-                <span className='font-medium'>{formatStoptime(data.stoptime)}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
+    if (seconds === 60) return `${minutes + 1}:00`;
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  }, []);
 
   // Handle chart interactions
   const handleMouseMove = useCallback(data => {
@@ -404,7 +385,6 @@ const AdvancedDiveProfileChart = ({
 
   const handleExportPNG = useCallback(async () => {
     if (!chartRef.current) return;
-
     try {
       const canvas = await html2canvas(chartRef.current);
       const link = document.createElement('a');
@@ -412,23 +392,20 @@ const AdvancedDiveProfileChart = ({
       link.href = canvas.toDataURL();
       link.click();
     } catch {
-      // Error exporting PNG
+      /* error */
     }
   }, []);
 
   const handleExportPDF = useCallback(async () => {
     if (!chartRef.current) return;
-
     try {
       const canvas = await html2canvas(chartRef.current);
       const imgData = canvas.toDataURL('image/png');
-
       const pdf = new jsPDF();
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 295; // A4 height in mm
+      const imgWidth = 210;
+      const pageHeight = 295;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
-
       let position = 0;
 
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
@@ -440,33 +417,25 @@ const AdvancedDiveProfileChart = ({
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
-
       pdf.save(`dive-profile-${new Date().toISOString().split('T')[0]}.pdf`);
     } catch {
-      // Error exporting PDF
+      /* error */
     }
   }, []);
 
-  // Mobile touch interactions
   const handleTouchStart = useCallback(e => {
     if (e.touches.length === 1) {
-      setTouchStart({
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-        time: Date.now(),
-      });
+      setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() });
       setIsPanning(false);
     } else if (e.touches.length === 2) {
-      // Pinch to zoom
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-      const distance = Math.sqrt(
-        Math.pow(touch2.clientX - touch1.clientX, 2) + Math.pow(touch2.clientY - touch1.clientY, 2)
-      );
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
       setTouchStart({
-        distance,
-        centerX: (touch1.clientX + touch2.clientX) / 2,
-        centerY: (touch1.clientY + touch2.clientY) / 2,
+        distance: Math.sqrt(
+          Math.pow(t2.clientX - t1.clientX, 2) + Math.pow(t2.clientY - t1.clientY, 2)
+        ),
+        centerX: (t1.clientX + t2.clientX) / 2,
+        centerY: (t1.clientY + t2.clientY) / 2,
         time: Date.now(),
       });
     }
@@ -474,44 +443,30 @@ const AdvancedDiveProfileChart = ({
 
   const handleTouchMove = useCallback(
     e => {
+      if (!touchStart) return;
       e.preventDefault();
-
-      if (e.touches.length === 1 && touchStart && !isPanning) {
+      if (e.touches.length === 1 && !isPanning) {
         const touch = e.touches[0];
         const deltaX = touch.clientX - touchStart.x;
         const deltaY = touch.clientY - touchStart.y;
-        const deltaTime = Date.now() - touchStart.time;
-
-        // Start panning if moved more than 10px or 100ms
-        if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10 || deltaTime > 100) {
+        if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10 || Date.now() - touchStart.time > 100) {
           setIsPanning(true);
-          setChartOffset(prev => ({
-            x: prev.x + deltaX,
-            y: prev.y + deltaY,
-          }));
-          setTouchStart({
-            x: touch.clientX,
-            y: touch.clientY,
-            time: Date.now(),
-          });
+          setChartOffset(prev => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+          setTouchStart({ x: touch.clientX, y: touch.clientY, time: Date.now() });
         }
-      } else if (e.touches.length === 2 && touchStart && touchStart.distance) {
-        // Pinch to zoom
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
+      } else if (e.touches.length === 2 && touchStart.distance) {
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
         const distance = Math.sqrt(
-          Math.pow(touch2.clientX - touch1.clientX, 2) +
-            Math.pow(touch2.clientY - touch1.clientY, 2)
+          Math.pow(t2.clientX - t1.clientX, 2) + Math.pow(t2.clientY - t1.clientY, 2)
         );
-
         const scale = distance / touchStart.distance;
-        const newScale = Math.max(0.5, Math.min(3, chartScale * scale));
-        setChartScale(newScale);
-
+        setChartScale(Math.max(0.5, Math.min(3, chartScale * scale)));
         setTouchStart({
+          ...touchStart,
           distance,
-          centerX: (touch1.clientX + touch2.clientX) / 2,
-          centerY: (touch1.clientY + touch2.clientY) / 2,
+          centerX: (t1.clientX + t2.clientX) / 2,
+          centerY: (t1.clientY + t2.clientY) / 2,
           time: Date.now(),
         });
       }
@@ -547,7 +502,9 @@ const AdvancedDiveProfileChart = ({
       <div className='text-center py-8 text-red-600 bg-red-50 rounded-lg'>
         <AlertTriangle className='h-12 w-12 mx-auto mb-4 text-red-500' />
         <p className='font-semibold'>Error loading dive profile</p>
-        <p className='text-sm'>{error}</p>
+        <p className='text-sm'>
+          {typeof error === 'string' ? error : error?.message || 'Unknown error'}
+        </p>
       </div>
     );
   }
@@ -562,24 +519,9 @@ const AdvancedDiveProfileChart = ({
     );
   }
 
-  // Determine chart height based on screen size and viewport
-  const getChartHeight = () => {
-    if (screenSize === 'mobile') {
-      // For mobile landscape in modal, use much smaller height
-      const isMobileLandscape = window.innerWidth > window.innerHeight && window.innerWidth <= 1024;
-      if (isMobileLandscape) {
-        return 200; // Much smaller for mobile landscape modal
-      }
-      return 300; // Regular mobile height
-    }
-    return 400; // Desktop height
-  };
-
-  const chartHeight = getChartHeight();
-
-  // Check if we're in mobile landscape mode
   const isMobileLandscape =
     screenSize === 'mobile' && window.innerWidth > window.innerHeight && window.innerWidth <= 1024;
+  const chartHeight = screenSize === 'mobile' ? (isMobileLandscape ? 200 : 300) : 400;
 
   return (
     <>
@@ -605,7 +547,7 @@ const AdvancedDiveProfileChart = ({
             .high-contrast .bg-gray-50 {
               background-color: rgb(0 0 0) !important;
             }
-            .high-contrast .hover\\:bg-gray-100:hover {
+            .high-contrast .hover:bg-gray-100:hover {
               background-color: rgb(64 64 64) !important;
             }
           `}
@@ -616,9 +558,7 @@ const AdvancedDiveProfileChart = ({
         role='region'
         aria-label='Dive profile chart with interactive controls'
       >
-        {/* Header with metrics and controls */}
         <div className={`flex flex-col ${isMobileLandscape ? 'gap-0.5' : 'gap-4'}`}>
-          {/* Mobile Landscape Close Button Row */}
           {isMobileLandscape && onClose && (
             <div className='flex justify-end'>
               <button
@@ -631,7 +571,6 @@ const AdvancedDiveProfileChart = ({
             </div>
           )}
 
-          {/* Metrics Row */}
           <div className={`flex flex-wrap items-center ${isMobileLandscape ? 'gap-2' : 'gap-6'}`}>
             <div className='flex items-center gap-2'>
               <Clock className={`${isMobileLandscape ? 'h-3 w-3' : 'h-5 w-5'} text-gray-500`} />
@@ -671,30 +610,18 @@ const AdvancedDiveProfileChart = ({
             )}
           </div>
 
-          {/* Data Toggles - Grouped by Chart vs Tooltip */}
           <div className='mb-3'>
-            {/* Chart Visualization Toggles */}
             <div className='mb-2'>
               <div className='text-xs text-gray-500 mb-1.5 font-medium'>Chart Display:</div>
               <div
-                className={`${
-                  isMobileViewport && !isMobileLandscape
-                    ? 'grid grid-cols-2 gap-x-2 gap-y-1.5'
-                    : `flex items-center ${isMobileLandscape ? 'space-x-2' : 'space-x-4'}`
-                }`}
+                className={`${isMobileViewport && !isMobileLandscape ? 'grid grid-cols-2 gap-x-2 gap-y-1.5' : `flex items-center ${isMobileLandscape ? 'space-x-2' : 'space-x-4'}`}`}
               >
                 <label className='flex items-center min-h-[34px] cursor-pointer'>
                   <input
                     type='checkbox'
                     checked={showTemperature}
                     onChange={e => setShowTemperature(e.target.checked)}
-                    className={`${
-                      isMobileViewport && !isMobileLandscape
-                        ? 'mr-1.5'
-                        : isMobileLandscape
-                          ? 'mr-1'
-                          : 'mr-2'
-                    } w-4 h-4 cursor-pointer flex-shrink-0`}
+                    className='w-4 h-4 mr-2 cursor-pointer flex-shrink-0'
                   />
                   <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
                     Temperature
@@ -706,13 +633,7 @@ const AdvancedDiveProfileChart = ({
                       type='checkbox'
                       checked={showCeiling}
                       onChange={e => setShowCeiling(e.target.checked)}
-                      className={`${
-                        isMobileViewport && !isMobileLandscape
-                          ? 'mr-1.5'
-                          : isMobileLandscape
-                            ? 'mr-1'
-                            : 'mr-2'
-                      } w-4 h-4 cursor-pointer flex-shrink-0`}
+                      className='w-4 h-4 mr-2 cursor-pointer flex-shrink-0'
                     />
                     <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
                       Ceiling
@@ -722,35 +643,20 @@ const AdvancedDiveProfileChart = ({
               </div>
             </div>
 
-            {/* Tooltip Display Toggles */}
-            {(chartData.some(sample => sample.cns !== null && sample.cns !== undefined) ||
-              (hasDeco &&
-                chartData.some(
-                  sample =>
-                    sample.stoptime !== null && sample.stoptime !== undefined && sample.stoptime > 0
-                ))) && (
+            {(chartData.some(s => s.cns !== null && s.cns !== undefined) ||
+              (hasDeco && chartData.some(s => s.stoptime > 0))) && (
               <div>
                 <div className='text-xs text-gray-500 mb-1.5 font-medium'>Tooltip Display:</div>
                 <div
-                  className={`${
-                    isMobileViewport && !isMobileLandscape
-                      ? 'grid grid-cols-2 gap-x-2 gap-y-1.5'
-                      : `flex items-center ${isMobileLandscape ? 'space-x-2' : 'space-x-4'}`
-                  }`}
+                  className={`${isMobileViewport && !isMobileLandscape ? 'grid grid-cols-2 gap-x-2 gap-y-1.5' : `flex items-center ${isMobileLandscape ? 'space-x-2' : 'space-x-4'}`}`}
                 >
-                  {chartData.some(sample => sample.cns !== null && sample.cns !== undefined) && (
+                  {chartData.some(s => s.cns !== null && s.cns !== undefined) && (
                     <label className='flex items-center min-h-[34px] cursor-pointer'>
                       <input
                         type='checkbox'
                         checked={showCNS}
                         onChange={e => setShowCNS(e.target.checked)}
-                        className={`${
-                          isMobileViewport && !isMobileLandscape
-                            ? 'mr-1.5'
-                            : isMobileLandscape
-                              ? 'mr-1'
-                              : 'mr-2'
-                        } w-4 h-4 cursor-pointer flex-shrink-0`}
+                        className='w-4 h-4 mr-2 cursor-pointer flex-shrink-0'
                       />
                       <span
                         className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}
@@ -759,99 +665,64 @@ const AdvancedDiveProfileChart = ({
                       </span>
                     </label>
                   )}
-                  {hasDeco &&
-                    chartData.some(
-                      sample =>
-                        sample.stoptime !== null &&
-                        sample.stoptime !== undefined &&
-                        sample.stoptime > 0
-                    ) && (
-                      <label className='flex items-center min-h-[34px] cursor-pointer'>
-                        <input
-                          type='checkbox'
-                          checked={showStoptime}
-                          onChange={e => setShowStoptime(e.target.checked)}
-                          className={`${
-                            isMobileViewport && !isMobileLandscape
-                              ? 'mr-1.5'
-                              : isMobileLandscape
-                                ? 'mr-1'
-                                : 'mr-2'
-                          } w-4 h-4 cursor-pointer flex-shrink-0`}
-                        />
-                        <span
-                          className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}
-                        >
-                          Stop Time
-                        </span>
-                      </label>
-                    )}
+                  {hasDeco && chartData.some(s => s.stoptime > 0) && (
+                    <label className='flex items-center min-h-[34px] cursor-pointer'>
+                      <input
+                        type='checkbox'
+                        checked={showStoptime}
+                        onChange={e => setShowStoptime(e.target.checked)}
+                        className='w-4 h-4 mr-2 cursor-pointer flex-shrink-0'
+                      />
+                      <span
+                        className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}
+                      >
+                        Stop Time
+                      </span>
+                    </label>
+                  )}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Action Buttons - Icon only for mobile optimization */}
           <div className='flex items-center gap-2'>
             {profileData?.samples && profileData.samples.length > 1000 && !isMobileLandscape && (
               <button
                 onClick={() => setShowAllSamples(!showAllSamples)}
-                className={`px-3 py-1 text-xs rounded border ${
-                  showAllSamples
-                    ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
-                    : 'text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-300'
-                }`}
-                title={showAllSamples ? 'Switch to sampled view' : 'Switch to all samples view'}
-                aria-label={
-                  showAllSamples ? 'Switch to sampled view' : 'Switch to all samples view'
-                }
+                className={`px-3 py-1 text-xs rounded border ${showAllSamples ? 'bg-green-600 text-white border-green-600' : 'text-blue-600 border-blue-300'}`}
               >
                 {showAllSamples ? 'Sampled View' : 'All Samples'}
               </button>
             )}
             <button
               onClick={() => setHighContrastMode(!highContrastMode)}
-              className={`p-2 rounded-md border-2 transition-all duration-200 ${
-                highContrastMode
-                  ? 'bg-gray-900 text-white border-gray-900 shadow-lg'
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 border-gray-400 hover:border-gray-500 shadow-sm hover:shadow-md'
-              }`}
-              title={highContrastMode ? 'High Contrast On' : 'High Contrast Off'}
-              aria-label={`${highContrastMode ? 'Disable' : 'Enable'} high contrast mode`}
+              className='p-2 rounded-md border-2 border-gray-400'
             >
               <Contrast className={`${isMobileLandscape ? 'h-4 w-4' : 'h-5 w-5'}`} />
             </button>
             {onMaximize && (
               <button
                 onClick={onMaximize}
-                className='p-2 rounded border text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-300'
-                title='Maximize chart view'
-                aria-label='Open chart in full-screen modal'
+                className='p-2 rounded border border-blue-300 text-blue-600'
               >
                 <Maximize className={`${isMobileLandscape ? 'h-4 w-4' : 'h-5 w-5'}`} />
               </button>
             )}
             {!isMobileLandscape && (
               <div className='relative group'>
-                <button
-                  className='p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded border border-gray-300 hover:border-gray-400'
-                  title='Download Chart'
-                  aria-label='Download chart options'
-                >
+                <button className='p-2 text-gray-500 rounded border border-gray-300'>
                   <Download className='h-5 w-5' />
                 </button>
-                <div className='absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10'>
+                <div className='absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible z-10'>
                   <button
                     onClick={handleExportPNG}
-                    className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg'
-                    aria-label='Export chart as PNG image'
+                    className='w-full px-3 py-2 text-left text-sm hover:bg-gray-100 rounded-t-lg'
                   >
                     Export PNG
                   </button>
                   <button
                     onClick={handleExportPDF}
-                    className='w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg'
-                    aria-label='Export chart as PDF document'
+                    className='w-full px-3 py-2 text-left text-sm hover:bg-gray-100 rounded-b-lg'
                   >
                     Export PDF
                   </button>
@@ -861,7 +732,6 @@ const AdvancedDiveProfileChart = ({
           </div>
         </div>
 
-        {/* Chart */}
         <div
           ref={chartRef}
           className={`bg-white rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1' : 'p-4'} relative`}
@@ -871,49 +741,26 @@ const AdvancedDiveProfileChart = ({
           style={{
             transform: `scale(${chartScale}) translate(${chartOffset.x}px, ${chartOffset.y}px)`,
             transformOrigin: 'center center',
-            transition: isPanning ? 'none' : 'transform 0.1s ease-out',
           }}
         >
-          {/* Mobile Landscape Tip - Overlay at top of chart */}
           {showLandscapeTip && isMobileViewport && !isMobileLandscape && (
-            <div className='absolute top-2 left-2 right-2 z-20 bg-blue-600 text-white rounded-md shadow-lg px-3 py-2 flex items-center justify-between gap-3'>
-              <div className='flex items-center gap-2 flex-1'>
-                <svg
-                  className='w-4 h-4 flex-shrink-0'
-                  fill='none'
-                  stroke='currentColor'
-                  viewBox='0 0 24 24'
-                >
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
-                  />
-                </svg>
-                <span className='text-xs font-medium'>
+            <div className='absolute top-2 left-2 right-2 z-20 bg-blue-600 text-white rounded-md shadow-lg px-3 py-2 flex items-center justify-between'>
+              <div className='flex items-center gap-2'>
+                <span className='text-xs'>
                   Tip: Rotate your phone to landscape for a better view
                 </span>
               </div>
-              <button
-                onClick={() => setShowLandscapeTip(false)}
-                className='flex-shrink-0 text-white hover:text-gray-200 transition-colors p-0.5'
-                title='Dismiss tip'
-                aria-label='Close tip'
-              >
+              <button onClick={() => setShowLandscapeTip(false)}>
                 <X className='h-4 w-4' />
               </button>
             </div>
           )}
-
-          {/* Mobile Controls */}
           {screenSize === 'mobile' &&
             (chartScale !== 1 || chartOffset.x !== 0 || chartOffset.y !== 0) && (
               <div className='absolute top-2 right-2 z-10'>
                 <button
                   onClick={resetChartView}
                   className='px-3 py-1 text-xs bg-blue-600 text-white rounded shadow-lg'
-                  title='Reset chart view'
                 >
                   Reset View
                 </button>
@@ -921,99 +768,50 @@ const AdvancedDiveProfileChart = ({
             )}
           <ResponsiveContainer width='100%' height={chartHeight}>
             <ComposedChart
-              data={paginatedChartData}
-              margin={{
-                top: 20,
-                right: 30,
-                left: 20,
-                bottom: 20,
-              }}
+              data={chartData}
+              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
               onMouseMove={handleMouseMove}
             >
               <CartesianGrid strokeDasharray='3 3' stroke='#e5e7eb' />
-
-              {/* X Axis - Time */}
               <XAxis
                 dataKey='time'
                 type='number'
                 domain={[0, metrics.duration]}
-                tickFormatter={value => `${value.toFixed(0)}m`}
-                tick={{ fontSize: 12, fill: '#666' }}
-                label={{
-                  value: 'Time (minutes)',
-                  position: 'insideBottom',
-                  offset: -10,
-                  style: { textAnchor: 'middle', fontSize: 12, fill: '#666' },
-                }}
+                tickFormatter={v => `${v.toFixed(0)}m`}
               />
-
-              {/* Y Axis - Depth */}
               <YAxis
                 domain={[0, metrics.maxDepth + 2]}
-                scale='linear'
-                orientation='left'
                 reversed
-                tickFormatter={value => `${value.toFixed(0)}m`}
-                tick={{ fontSize: 12, fill: '#666' }}
-                label={{
-                  value: 'Depth (m)',
-                  angle: -90,
-                  position: 'insideLeft',
-                  style: { textAnchor: 'middle', fontSize: 12, fill: '#666' },
-                }}
+                tickFormatter={v => `${v.toFixed(0)}m`}
               />
-
-              {/* Secondary Y Axis - Temperature */}
               {showTemperature && metrics.minTemp !== null && (
                 <YAxis
                   yAxisId='temperature'
                   orientation='right'
                   domain={[metrics.minTemp - 2, metrics.maxTemp + 2]}
-                  tickFormatter={value => `${value.toFixed(0)}°C`}
-                  tick={{ fontSize: 12, fill: '#009E73' }}
-                  label={{
-                    value: 'Temperature (°C)',
-                    angle: 90,
-                    position: 'insideRight',
-                    style: { textAnchor: 'middle', fontSize: 12, fill: '#009E73' },
-                  }}
+                  tickFormatter={v => `${v.toFixed(0)}°C`}
                 />
               )}
-
               <Tooltip
                 content={
                   <CustomTooltip
                     showCNS={showCNS}
                     showCeiling={showCeiling}
                     showStoptime={showStoptime}
+                    showTemperature={showTemperature}
+                    formatStoptime={formatStoptime}
                   />
                 }
               />
-
-              {/* Stopdepth ceiling area - only show if dive has decompression stops and toggle is enabled */}
               <Area
                 type='monotone'
                 dataKey='stopdepth'
                 fill='#56B4E9'
                 fillOpacity={hasDeco && hasStopdepth && showCeiling ? 0.2 : 0}
                 stroke='#E69F00'
-                strokeWidth={hasDeco && hasStopdepth && showCeiling ? 1 : 0}
-                strokeDasharray='3 3'
-                name='Decompression Ceiling'
                 hide={!hasDeco || !hasStopdepth || !showCeiling}
               />
-
-              {/* Main depth line */}
-              <Line
-                type='monotone'
-                dataKey='depth'
-                stroke='#0072B2'
-                strokeWidth={3}
-                dot={false}
-                name='Depth'
-              />
-
-              {/* Average depth line */}
+              <Line type='monotone' dataKey='depth' stroke='#0072B2' strokeWidth={3} dot={false} />
               <Line
                 type='monotone'
                 dataKey='averageDepth'
@@ -1021,10 +819,7 @@ const AdvancedDiveProfileChart = ({
                 strokeDasharray='5 5'
                 strokeWidth={2}
                 dot={false}
-                name='Average Depth'
               />
-
-              {/* Temperature line */}
               {showTemperature && (
                 <Line
                   yAxisId='temperature'
@@ -1034,27 +829,20 @@ const AdvancedDiveProfileChart = ({
                   strokeWidth={2}
                   strokeDasharray='5 5'
                   dot={false}
-                  name='Temperature'
                 />
               )}
-
-              {/* Gas change event markers */}
               {gasChangeEvents.map(event => (
                 <ReferenceLine
-                  key={`gas-change-${event.time_minutes}-${event.cylinder || 'unknown'}`}
+                  key={`gc-${event.time_minutes}`}
                   x={event.time_minutes}
                   stroke='#F0E442'
                   strokeWidth={2}
                   strokeDasharray='8 4'
                   label={{
-                    value: `Gas Change ${event.cylinder || ''}${event.o2 ? ` (${event.o2} O2)` : ''}`,
+                    value: `Gas ${event.cylinder || ''}`,
                     position: 'top',
-                    style: {
-                      textAnchor: 'middle',
-                      fontSize: 10,
-                      fill: '#F0E442',
-                      fontWeight: 'bold',
-                    },
+                    fontSize: 10,
+                    fill: '#F0E442',
                   }}
                 />
               ))}
@@ -1062,79 +850,44 @@ const AdvancedDiveProfileChart = ({
           </ResponsiveContainer>
         </div>
 
-        {/* Chart Legend - Moved below chart for better mobile layout */}
         <div
-          className={`bg-gray-50 rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1 mb-1 mt-2' : 'p-3 mb-2 mt-2'}`}
+          className={`bg-gray-50 rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1' : 'p-3'}`}
         >
-          <div
-            className={`${
-              isMobileViewport && !isMobileLandscape
-                ? 'flex flex-wrap items-center justify-center gap-x-4 gap-y-2'
-                : `flex items-center justify-center ${isMobileLandscape ? 'space-x-3' : 'space-x-6'}`
-            } ${isMobileLandscape ? 'text-xs' : 'text-sm'}`}
-          >
+          <div className='flex items-center justify-center space-x-6 text-sm'>
             <div className='flex items-center space-x-1'>
-              <div
-                className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'}`}
-                style={{ backgroundColor: '#0072B2' }}
-              ></div>
-              <span className='text-gray-700'>Depth</span>
+              <div className='w-4 h-0.5' style={{ backgroundColor: '#0072B2' }}></div>
+              <span>Depth</span>
             </div>
             <div className='flex items-center space-x-1'>
               <div
-                className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'} border-dashed border-t-2`}
+                className='w-4 h-0.5 border-dashed border-t-2'
                 style={{ borderColor: '#E69F00' }}
               ></div>
-              <span className='text-gray-700'>Avg Depth</span>
+              <span>Avg Depth</span>
             </div>
             <div className='flex items-center space-x-1'>
               <div
-                className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'} border-dashed border-t-2`}
+                className='w-4 h-0.5 border-dashed border-t-2'
                 style={{ borderColor: '#009E73' }}
               ></div>
-              <span className='text-gray-700'>Temp</span>
+              <span>Temp</span>
             </div>
             {hasDeco && hasStopdepth && (
               <div className='flex items-center space-x-1'>
                 <div
-                  className={`${isMobileLandscape ? 'w-3 h-0.5' : 'w-4 h-0.5'} border-dashed border-t-2`}
+                  className='w-4 h-0.5 border-dashed border-t-2'
                   style={{ borderColor: '#56B4E9' }}
                 ></div>
-                <span className='text-gray-700'>Ceiling</span>
+                <span>Ceiling</span>
               </div>
             )}
           </div>
         </div>
-
-        {/* Sampling Information */}
-        {profileData?.samples && profileData.samples.length > 1000 && (
-          <div className='mt-4 text-center'>
-            {!showAllSamples && chartData.length < profileData.samples.length && (
-              <div className='text-sm text-gray-600 mb-2'>
-                <span className='font-medium'>Sampled View:</span> Showing {chartData.length} of{' '}
-                {profileData.samples.length} samples
-                <br />
-                <span className='text-xs text-gray-500'>
-                  Full dive duration displayed with smart sampling for performance
-                </span>
-              </div>
-            )}
-            {showAllSamples && (
-              <div className='text-sm text-green-600 mb-2'>
-                <span className='font-medium'>All Samples View:</span> Showing all{' '}
-                {profileData.samples.length} samples
-                <br />
-                <span className='text-xs text-gray-500'>
-                  Complete dataset - may impact performance on very large dives
-                </span>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </>
   );
 };
+/* eslint-enable max-lines-per-function, complexity */
 
 AdvancedDiveProfileChart.propTypes = {
   profileData: PropTypes.shape({
@@ -1146,6 +899,8 @@ AdvancedDiveProfileChart.propTypes = {
         ndl_minutes: PropTypes.number,
         cns_percent: PropTypes.number,
         in_deco: PropTypes.bool,
+        stopdepth: PropTypes.number,
+        stoptime_minutes: PropTypes.number,
       })
     ),
     events: PropTypes.arrayOf(

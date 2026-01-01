@@ -1,6 +1,6 @@
 import L, { Icon } from 'leaflet';
 import PropTypes from 'prop-types';
-import React, { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
 
 /**
@@ -202,13 +202,11 @@ const WindOverlay = ({ windData = null, isWindOverlayEnabled = false, maxArrows 
       const lon = typeof point.lon === 'number' && !isNaN(point.lon) ? point.lon : null;
 
       if (lat === null || lon === null) {
-        console.warn('WindOverlay: Invalid coordinates', point);
         return;
       }
 
       // Validate coordinate ranges
       if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-        console.warn('WindOverlay: Coordinates out of range', { lat, lon });
         return;
       }
 
@@ -256,9 +254,8 @@ const WindOverlay = ({ windData = null, isWindOverlayEnabled = false, maxArrows 
           map.removeLayer(layerGroupRef.current);
           layerGroupRef.current = null;
           markersRef.current = [];
-        } catch (error) {
+        } catch {
           // Ignore errors during cleanup (e.g., if map is already destroyed)
-          console.warn('WindOverlay: Error during cleanup', error);
         }
       }
     };

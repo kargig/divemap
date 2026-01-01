@@ -79,7 +79,7 @@ const GasPlanningCalculator = () => {
   return (
     <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full'>
       <div
-        className={`p-5 border-b border-gray-100 ${
+        className={`p-3 sm:p-5 border-b border-gray-100 ${
           planGasResult.isSafe ? 'bg-orange-50/30' : 'bg-red-50'
         }`}
       >
@@ -89,19 +89,22 @@ const GasPlanningCalculator = () => {
               planGasResult.isSafe ? 'bg-orange-600' : 'bg-red-600'
             }`}
           >
-            <Compass className='h-6 w-6' />
+            <Compass className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-xl font-bold text-gray-900'>Gas Consumption</h2>
+          <h2 className='text-lg sm:text-xl font-bold text-gray-900'>Gas Consumption</h2>
         </div>
-        <p className='mt-2 text-sm text-gray-600'>
+        <p className='mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600'>
           Estimate the total gas volume consumed for your planned depth and bottom time.
         </p>
       </div>
 
-      <div className='p-6 flex-grow space-y-6'>
-        <div className='grid grid-cols-2 gap-4'>
+      <div className='p-3 sm:p-6 flex-grow space-y-3 sm:space-y-6'>
+        <div className='grid grid-cols-2 gap-2 sm:gap-4'>
           <div>
-            <label htmlFor='planDepth' className='block text-sm font-semibold text-gray-700 mb-2'>
+            <label
+              htmlFor='planDepth'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+            >
               Average Depth (meters)
             </label>
             <input
@@ -109,13 +112,16 @@ const GasPlanningCalculator = () => {
               type='number'
               min='0'
               {...register('depth', { valueAsNumber: true })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-xs sm:text-sm'
             />
             {errors.depth && <p className='text-red-500 text-xs mt-1'>{errors.depth.message}</p>}
           </div>
 
           <div>
-            <label htmlFor='planTime' className='block text-sm font-semibold text-gray-700 mb-2'>
+            <label
+              htmlFor='planTime'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+            >
               Total Dive Time (minutes)
             </label>
             <input
@@ -123,14 +129,17 @@ const GasPlanningCalculator = () => {
               type='number'
               min='1'
               {...register('time', { valueAsNumber: true })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-xs sm:text-sm'
             />
             {errors.time && <p className='text-red-500 text-xs mt-1'>{errors.time.message}</p>}
           </div>
         </div>
 
         <div>
-          <label htmlFor='planSAC' className='block text-sm font-semibold text-gray-700 mb-2'>
+          <label
+            htmlFor='planSAC'
+            className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+          >
             SAC Rate (L/min)
           </label>
           <input
@@ -138,12 +147,12 @@ const GasPlanningCalculator = () => {
             type='number'
             min='5'
             {...register('sac', { valueAsNumber: true })}
-            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500'
+            className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-xs sm:text-sm'
           />
           {errors.sac && <p className='text-red-500 text-xs mt-1'>{errors.sac.message}</p>}
         </div>
 
-        <div className='flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200'>
+        <div className='flex items-center p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200'>
           <input
             id='advancedGasToggle'
             type='checkbox'
@@ -152,17 +161,17 @@ const GasPlanningCalculator = () => {
           />
           <label
             htmlFor='advancedGasToggle'
-            className='ml-2 text-sm font-medium text-gray-700 cursor-pointer select-none'
+            className='ml-2 text-xs sm:text-sm font-medium text-gray-700 cursor-pointer select-none'
           >
             Advanced/Tech Mode (Rule of Thirds)
           </label>
         </div>
 
-        <div className='grid grid-cols-2 gap-4'>
+        <div className='grid grid-cols-2 gap-2 sm:gap-4'>
           <div>
             <label
               htmlFor='planTankSize'
-              className='block text-sm font-semibold text-gray-700 mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
             >
               Cylinder Size (Liters)
             </label>
@@ -177,7 +186,7 @@ const GasPlanningCalculator = () => {
                   setValue('pressure', tank.defaultPressure);
                 }
               }}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-xs sm:text-sm'
             >
               {TANK_SIZES.map(t => (
                 <option key={t.id} value={t.size}>
@@ -192,7 +201,7 @@ const GasPlanningCalculator = () => {
           <div>
             <label
               htmlFor='planTankPressure'
-              className='block text-sm font-semibold text-gray-700 mb-2'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
             >
               Max Pressure (bar)
             </label>
@@ -202,7 +211,7 @@ const GasPlanningCalculator = () => {
               min='0'
               max='300'
               {...register('pressure', { valueAsNumber: true })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500'
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-xs sm:text-sm'
             />
             {errors.pressure && (
               <p className='text-red-500 text-xs mt-1'>{errors.pressure.message}</p>
@@ -261,12 +270,12 @@ const GasPlanningCalculator = () => {
         )}
 
         <div
-          className={`mt-8 p-6 rounded-2xl border flex flex-col items-center justify-center text-center ${
+          className={`mt-2 sm:mt-8 p-3 sm:p-6 rounded-2xl border flex flex-col items-center justify-center text-center ${
             planGasResult.isSafe ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'
           }`}
         >
           <span
-            className={`text-sm uppercase tracking-wider font-bold mb-1 ${
+            className={`text-xs sm:text-sm uppercase tracking-wider font-bold mb-1 ${
               planGasResult.isSafe ? 'text-emerald-800' : 'text-red-800'
             }`}
           >
@@ -274,14 +283,14 @@ const GasPlanningCalculator = () => {
           </span>
           <div className='flex items-baseline'>
             <span
-              className={`text-5xl font-black ${
+              className={`text-3xl sm:text-5xl font-black ${
                 planGasResult.isSafe ? 'text-emerald-600' : 'text-red-600'
               }`}
             >
               {planGasResult.totalPressure.toFixed(0)}
             </span>
             <span
-              className={`ml-2 text-xl font-bold ${
+              className={`ml-1 sm:ml-2 text-lg sm:text-xl font-bold ${
                 planGasResult.isSafe ? 'text-emerald-400' : 'text-red-400'
               }`}
             >
@@ -289,7 +298,7 @@ const GasPlanningCalculator = () => {
             </span>
           </div>
           <div
-            className={`mt-2 text-sm font-medium ${
+            className={`mt-1 sm:mt-2 text-xs sm:text-sm font-medium ${
               planGasResult.isSafe ? 'text-emerald-700' : 'text-red-700'
             }`}
           >
@@ -297,30 +306,30 @@ const GasPlanningCalculator = () => {
           </div>
 
           {!planGasResult.isSafe && (
-            <div className='mt-3 flex items-center text-red-600 bg-white px-3 py-2 rounded-lg text-sm font-bold border border-red-200 shadow-sm'>
-              <AlertTriangle className='h-5 w-5 mr-2' />
-              WARNING: Exceeds cylinder capacity ({pressure} bar)
+            <div className='mt-2 sm:mt-3 flex items-center text-red-600 bg-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-bold border border-red-200 shadow-sm'>
+              <AlertTriangle className='h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2' />
+              WARNING: Exceeds capacity
             </div>
           )}
 
           {planGasResult.isSafe && !values.isAdvanced && planGasResult.remainingPressure < 50 && (
-            <div className='mt-3 flex items-center text-amber-600 bg-white px-3 py-2 rounded-lg text-sm font-bold border border-amber-200 shadow-sm'>
-              <AlertTriangle className='h-5 w-5 mr-2' />
-              WARNING: Low reserve ({planGasResult.remainingPressure.toFixed(0)} bar left)
+            <div className='mt-2 sm:mt-3 flex items-center text-amber-600 bg-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-bold border border-amber-200 shadow-sm'>
+              <AlertTriangle className='h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2' />
+              WARNING: Low reserve
             </div>
           )}
 
           {planGasResult.isSafe && (values.isAdvanced || planGasResult.remainingPressure >= 50) && (
-            <div className='mt-3 flex items-center text-emerald-600 bg-white px-3 py-1 rounded-full text-xs font-medium border border-emerald-200'>
-              <div className='w-2 h-2 rounded-full bg-emerald-500 mr-2'></div>
-              Within safe limits (Max {pressure} bar)
+            <div className='mt-2 sm:mt-3 flex items-center text-emerald-600 bg-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium border border-emerald-200'>
+              <div className='w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 mr-1 sm:mr-2'></div>
+              Within safe limits
             </div>
           )}
 
-          <div className='mt-4 w-full grid grid-cols-2 gap-2 text-xs'>
+          <div className='mt-2 sm:mt-4 w-full grid grid-cols-2 gap-2 text-xs'>
             <div className='bg-white p-2 rounded border border-gray-200'>
               <div className='font-bold text-gray-500'>Dive Gas</div>
-              <div className='text-gray-900 font-bold text-base'>
+              <div className='text-gray-900 font-bold text-sm sm:text-base'>
                 {planGasResult.diveGasLiters.toFixed(0)} L
                 <span className='text-gray-400 font-normal ml-1'>
                   ({(planGasResult.diveGasLiters / tankSize).toFixed(0)} bar)
@@ -330,7 +339,7 @@ const GasPlanningCalculator = () => {
             {values.isAdvanced && (
               <div className='bg-white p-2 rounded border border-orange-200'>
                 <div className='font-bold text-gray-500'>Reserve (1/3)</div>
-                <div className='text-gray-900 font-bold text-base'>
+                <div className='text-gray-900 font-bold text-sm sm:text-base'>
                   {planGasResult.reserveGasLiters.toFixed(0)} L
                   <span className='text-gray-400 font-normal ml-1'>
                     ({(planGasResult.reserveGasLiters / tankSize).toFixed(0)} bar)
@@ -342,7 +351,7 @@ const GasPlanningCalculator = () => {
         </div>
       </div>
 
-      <div className='p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-start'>
+      <div className='p-3 sm:p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-start'>
         <Info className='h-4 w-4 mr-2 text-gray-400 flex-shrink-0' />
         <p>
           {values.isAdvanced

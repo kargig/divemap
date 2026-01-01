@@ -1,4 +1,5 @@
 import { Award, ChevronDown, ChevronUp, Search, Globe, Info } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
 
@@ -156,13 +157,29 @@ const CertificationLevelsList = ({ organizationId, identifier }) => {
   );
 };
 
+CertificationLevelsList.propTypes = {
+  organizationId: PropTypes.number.isRequired,
+  identifier: PropTypes.number.isRequired,
+};
+
 const OrganizationCard = ({ org }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMobileDescription, setShowMobileDescription] = useState(false);
 
   return (
     <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200'>
-      <div className='p-4 md:p-5 cursor-pointer' onClick={() => setIsExpanded(!isExpanded)}>
+      <div
+        className='p-4 md:p-5 cursor-pointer'
+        onClick={() => setIsExpanded(!isExpanded)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsExpanded(!isExpanded);
+          }
+        }}
+        role='button'
+        tabIndex={0}
+      >
         {/* Top Row: Logo, Acronym and Actions */}
         <div className='flex justify-between items-center mb-4'>
           <div className='flex items-center space-x-3 min-w-0'>
@@ -232,7 +249,16 @@ const OrganizationCard = ({ org }) => {
         {org.website && (
           <div
             className='flex items-center text-sm text-blue-600 hover:text-blue-800'
-            onClick={e => e.stopPropagation()}
+            onClick={e => {
+              e.stopPropagation();
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
+            role='button'
+            tabIndex={0}
           >
             <Globe className='h-4 w-4 mr-2 flex-shrink-0' />
             <a
@@ -240,6 +266,8 @@ const OrganizationCard = ({ org }) => {
               target='_blank'
               rel='noopener noreferrer'
               className='hover:underline truncate font-medium'
+              onClick={e => e.stopPropagation()}
+              tabIndex={-1} // Prevent double tab stop since container is focusable
             >
               {org.website.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0]}
             </a>
@@ -250,6 +278,16 @@ const OrganizationCard = ({ org }) => {
       {isExpanded && <CertificationLevelsList organizationId={org.id} identifier={org.id} />}
     </div>
   );
+};
+
+OrganizationCard.propTypes = {
+  org: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    name: PropTypes.string.isRequired,
+    acronym: PropTypes.string,
+    description: PropTypes.string,
+    website: PropTypes.string,
+  }).isRequired,
 };
 
 const DivingOrganizationsPage = () => {

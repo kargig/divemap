@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { forwardRef } from 'react';
 import { useFormContext } from 'react-hook-form';
 
@@ -29,3 +30,12 @@ export const FormField = forwardRef(
 );
 
 FormField.displayName = 'FormField';
+
+FormField.propTypes = {
+  name: PropTypes.string.isRequired,
+  label: PropTypes.string,
+  error: PropTypes.object,
+  children: PropTypes.func.isRequired,
+  className: PropTypes.string,
+  required: PropTypes.bool,
+};

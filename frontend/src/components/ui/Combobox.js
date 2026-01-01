@@ -1,7 +1,7 @@
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { ChevronDown, Check, Search, X, Loader } from 'lucide-react';
 import PropTypes from 'prop-types';
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 
 const Combobox = ({
   value,
@@ -71,8 +71,8 @@ const Combobox = ({
     }
   };
 
-  const renderOptionList = (items, groupIndex = null) => {
-    return items.map((option, itemIndex) => (
+  const renderOptionList = items => {
+    return items.map(option => (
       <div
         key={option.value}
         className={`
@@ -81,6 +81,14 @@ const Combobox = ({
           ${value?.toString() === option.value.toString() ? 'bg-blue-50 text-blue-900' : ''}
         `}
         onClick={() => handleSelect(option.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            handleSelect(option.value);
+          }
+        }}
+        role='option'
+        aria-selected={value?.toString() === option.value.toString()}
+        tabIndex={0}
       >
         <span className='absolute left-2 flex h-3.5 w-3.5 items-center justify-center'>
           {value?.toString() === option.value.toString() && <Check className='h-4 w-4' />}

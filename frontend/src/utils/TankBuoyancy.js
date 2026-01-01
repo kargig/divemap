@@ -243,7 +243,7 @@ const TankBuoyancy = () => {
           <label className='block text-sm font-semibold text-gray-700 mb-2'>
             Cylinder Configuration
           </label>
-          <GasTanksInput value={gasConfig} onChange={setGasConfig} />
+          <GasTanksInput value={gasConfig} onChange={setGasConfig} showSwitchMode={false} />
         </div>
 
         {/* Environment */}

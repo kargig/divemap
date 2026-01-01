@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+
 /**
  * Social Media Icons Component
  *
@@ -29,6 +31,11 @@ export const TwitterIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
   );
 };
 
+TwitterIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
+};
+
 /**
  * Facebook Icon Component
  */
@@ -45,6 +52,11 @@ export const FacebookIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
       }}
     />
   );
+};
+
+FacebookIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
 };
 
 /**
@@ -65,6 +77,11 @@ export const WhatsAppIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
   );
 };
 
+WhatsAppIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
+};
+
 /**
  * Viber Icon Component
  */
@@ -81,6 +98,11 @@ export const ViberIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
       }}
     />
   );
+};
+
+ViberIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
 };
 
 /**
@@ -101,6 +123,11 @@ export const RedditIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
   );
 };
 
+RedditIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
+};
+
 /**
  * Instagram Icon Component
  */
@@ -116,6 +143,11 @@ export const InstagramIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
       }}
     />
   );
+};
+
+InstagramIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
 };
 
 /**
@@ -135,6 +167,11 @@ export const TikTokIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
   );
 };
 
+TikTokIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
+};
+
 /**
  * LinkedIn Icon Component
  */
@@ -150,6 +187,11 @@ export const LinkedInIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
       }}
     />
   );
+};
+
+LinkedInIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
 };
 
 /**
@@ -169,6 +211,11 @@ export const YouTubeIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
   );
 };
 
+YouTubeIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
+};
+
 /**
  * Telegram Icon Component
  */
@@ -184,6 +231,11 @@ export const TelegramIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
       }}
     />
   );
+};
+
+TelegramIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
 };
 
 /**
@@ -204,6 +256,11 @@ export const BlueSkyIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
   );
 };
 
+BlueSkyIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
+};
+
 /**
  * Mastodon Icon Component
  */
@@ -221,6 +278,11 @@ export const MastodonIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
   );
 };
 
+MastodonIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
+};
+
 /**
  * Discord Icon Component
  */
@@ -236,6 +298,11 @@ export const DiscordIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
       }}
     />
   );
+};
+
+DiscordIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
 };
 
 /**
@@ -256,6 +323,11 @@ export const ThreadsIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
   );
 };
 
+ThreadsIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
+};
+
 /**
  * Signal Icon Component
  */
@@ -271,6 +343,11 @@ export const SignalIcon = ({ className = 'w-5 h-5', color = 'ffffff' }) => {
       }}
     />
   );
+};
+
+SignalIcon.propTypes = {
+  className: PropTypes.string,
+  color: PropTypes.string,
 };
 
 /**

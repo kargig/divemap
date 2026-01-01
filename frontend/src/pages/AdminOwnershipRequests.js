@@ -1,4 +1,5 @@
 import { Check, Clock, X } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 
@@ -9,7 +10,6 @@ import {
   revokeDivingCenterOwnership,
 } from '../api';
 import Modal from '../components/ui/Modal';
-import usePageTitle from '../hooks/usePageTitle';
 
 // Extracted components to reduce complexity
 const LoadingSpinner = () => (
@@ -28,6 +28,12 @@ const ErrorDisplay = ({ error }) => (
     </div>
   </div>
 );
+
+ErrorDisplay.propTypes = {
+  error: PropTypes.shape({
+    message: PropTypes.string,
+  }),
+};
 
 const TabNavigation = ({ activeTab, setActiveTab }) => (
   <div className='mb-6 border-b border-gray-200'>
@@ -55,6 +61,11 @@ const TabNavigation = ({ activeTab, setActiveTab }) => (
     </nav>
   </div>
 );
+
+TabNavigation.propTypes = {
+  activeTab: PropTypes.string.isRequired,
+  setActiveTab: PropTypes.func.isRequired,
+};
 
 const CurrentRequestCard = ({ request, onModalOpen }) => (
   <div className='bg-white rounded-lg shadow-md p-6 border border-gray-200'>
@@ -134,6 +145,21 @@ const CurrentRequestCard = ({ request, onModalOpen }) => (
     </div>
   </div>
 );
+
+CurrentRequestCard.propTypes = {
+  request: PropTypes.shape({
+    id: PropTypes.number,
+    name: PropTypes.string,
+    location: PropTypes.string,
+    owner_username: PropTypes.string,
+    ownership_status: PropTypes.string,
+    request_date: PropTypes.string,
+    created_at: PropTypes.string,
+    updated_at: PropTypes.string,
+    claim_reason: PropTypes.string,
+  }).isRequired,
+  onModalOpen: PropTypes.func.isRequired,
+};
 
 const HistoryCard = ({ request }) => {
   const getStatusColor = status => {
@@ -219,6 +245,20 @@ const HistoryCard = ({ request }) => {
       </div>
     </div>
   );
+};
+
+HistoryCard.propTypes = {
+  request: PropTypes.shape({
+    id: PropTypes.number,
+    diving_center_name: PropTypes.string,
+    username: PropTypes.string,
+    request_status: PropTypes.string,
+    request_date: PropTypes.string,
+    processed_date: PropTypes.string,
+    admin_username: PropTypes.string,
+    reason: PropTypes.string,
+    notes: PropTypes.string,
+  }).isRequired,
 };
 
 const ApprovalModal = ({
@@ -358,6 +398,29 @@ const ApprovalModal = ({
     )}
   </Modal>
 );
+
+ApprovalModal.propTypes = {
+  request: PropTypes.shape({
+    name: PropTypes.string,
+    owner_username: PropTypes.string,
+    ownership_status: PropTypes.string,
+    claim_reason: PropTypes.string,
+  }).isRequired,
+  isRevoking: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onApproval: PropTypes.func.isRequired,
+  onRevoke: PropTypes.func.isRequired,
+  approvalReason: PropTypes.string.isRequired,
+  setApprovalReason: PropTypes.func.isRequired,
+  revokeReason: PropTypes.string.isRequired,
+  setRevokeReason: PropTypes.func.isRequired,
+  approvalMutation: PropTypes.shape({
+    isLoading: PropTypes.bool,
+  }).isRequired,
+  revokeMutation: PropTypes.shape({
+    isLoading: PropTypes.bool,
+  }).isRequired,
+};
 
 const AdminOwnershipRequests = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
