@@ -26,8 +26,8 @@ import Inline from 'yet-another-react-lightbox/plugins/inline';
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 import ReactImage from '../components/Lightbox/ReactImage';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
-import Slideshow from "yet-another-react-lightbox/plugins/slideshow";
-import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
+import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
+import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
 import MaskedEmail from '../components/MaskedEmail';
 import MiniMap from '../components/MiniMap';
 import RateLimitError from '../components/RateLimitError';
@@ -238,7 +238,7 @@ const DiveSiteDetail = () => {
   // Public media categories
   const publicVideos = publicMedia.filter(item => isVideoUrl(item.url));
   const publicPhotos = publicMedia.filter(item => !isVideoUrl(item.url));
-  
+
   // Convert Flickr URLs to direct image URLs
   useEffect(() => {
     const convertFlickrUrls = async () => {
@@ -247,7 +247,7 @@ const DiveSiteDetail = () => {
       // Get all photos
       const allPhotos = media.filter(item => !isVideoUrl(item.url));
       const flickrPhotos = allPhotos.filter(item => isFlickrUrl(item.url));
-      
+
       if (flickrPhotos.length === 0) return;
 
       const newConvertedUrls = new Map(convertedFlickrUrls);
@@ -278,7 +278,7 @@ const DiveSiteDetail = () => {
   }, [media]);
 
   // Helper to get the URL (converted if Flickr, original otherwise)
-  const getImageUrl = (url) => {
+  const getImageUrl = url => {
     return convertedFlickrUrls.get(url) || url;
   };
 
@@ -291,7 +291,7 @@ const DiveSiteDetail = () => {
     width: 1920,
     height: 1080,
     alt: item.description || 'Dive site photo',
-    description:  item.description || ''
+    description: item.description || '',
   }));
 
   // Set initial content tab based on available content
@@ -389,15 +389,17 @@ const DiveSiteDetail = () => {
               const isOwner = user?.id === diveSite?.created_by;
               const isAdmin = user?.is_admin;
               const shouldShowEdit = isOwner || isAdmin;
-              
-              return shouldShowEdit && (
-                <RouterLink
-                  to={`/dive-sites/${id}/edit`}
-                  className='inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-                >
-                  <Edit className='h-4 w-4 mr-1' />
-                  Edit
-                </RouterLink>
+
+              return (
+                shouldShowEdit && (
+                  <RouterLink
+                    to={`/dive-sites/${id}/edit`}
+                    className='inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                  >
+                    <Edit className='h-4 w-4 mr-1' />
+                    Edit
+                  </RouterLink>
+                )
               );
             })()}
           </div>
@@ -565,7 +567,7 @@ const DiveSiteDetail = () => {
                         open={false}
                         close={() => {}}
                         slides={photoSlides}
-                        plugins={[Captions, Slideshow, Fullscreen ,Thumbnails]}
+                        plugins={[Captions, Slideshow, Fullscreen, Thumbnails]}
                         render={{ slide: ReactImage, thumbnail: ReactImage }}
                         thumbnails={{ position: 'bottom' }}
                       />
@@ -575,7 +577,10 @@ const DiveSiteDetail = () => {
                   {activeMediaTab === 'videos' && videos.length > 0 && (
                     <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
                       {videos.map(item => (
-                        <div key={`video-${item.dive_id ? `dive-${item.dive_id}-` : 'site-'}${item.id}`} className='border rounded-lg overflow-hidden'>
+                        <div
+                          key={`video-${item.dive_id ? `dive-${item.dive_id}-` : 'site-'}${item.id}`}
+                          className='border rounded-lg overflow-hidden'
+                        >
                           <div className='relative'>
                             <YouTubePreview
                               url={item.url}
@@ -588,12 +593,10 @@ const DiveSiteDetail = () => {
                       ))}
                     </div>
                   )}
-
                 </div>
               )}
             </div>
           )}
-
 
           {/* Location */}
           {(diveSite.latitude && diveSite.longitude) || diveSite.address ? (
@@ -859,7 +862,6 @@ const DiveSiteDetail = () => {
               <p className='text-gray-700 text-sm sm:text-base'>{diveSite.marine_life}</p>
             </div>
           )}
-
 
           {/* Associated Diving Centers */}
           {divingCenters && divingCenters.length > 0 && (

@@ -435,9 +435,9 @@ export const deleteDiveMedia = async (diveId, mediaId) => {
   return response.data;
 };
 
-export const getFlickrOembed = async (flickrUrl) => {
+export const getFlickrOembed = async flickrUrl => {
   const response = await api.get('/api/v1/dives/media/flickr-oembed', {
-    params: { url: flickrUrl }
+    params: { url: flickrUrl },
   });
   return response.data;
 };
@@ -909,11 +909,15 @@ export const updateDiveSiteMedia = async (diveSiteId, mediaId, description = nul
 export const uploadDiveSitePhotoToR2Only = async (diveSiteId, file) => {
   const formData = new FormData();
   formData.append('file', file);
-  const response = await api.post(`/api/v1/dive-sites/${diveSiteId}/media/upload-photo-r2-only`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  const response = await api.post(
+    `/api/v1/dive-sites/${diveSiteId}/media/upload-photo-r2-only`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
   return response.data;
 };
 

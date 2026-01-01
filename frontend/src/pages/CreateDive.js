@@ -160,7 +160,7 @@ const CreateDive = () => {
 
       const photos = pendingMedia.filter(item => item.type === 'photo');
       const flickrPhotos = photos.filter(item => isFlickrUrl(item.url));
-      
+
       if (flickrPhotos.length === 0) return;
 
       const newConvertedUrls = new Map(convertedFlickrUrls);
@@ -191,7 +191,7 @@ const CreateDive = () => {
   }, [pendingMedia]);
 
   // Helper to get the URL (converted if Flickr, original otherwise)
-  const getImageUrl = (url) => {
+  const getImageUrl = url => {
     return convertedFlickrUrls.get(url) || url;
   };
 
@@ -358,7 +358,7 @@ const CreateDive = () => {
 
   // Media handling functions
 
-  const handleUrlAdd = (e) => {
+  const handleUrlAdd = e => {
     e?.preventDefault();
     if (!newMediaUrl.trim()) {
       toast.error('Please enter a media URL');
@@ -388,7 +388,7 @@ const CreateDive = () => {
     toast.success('Media added (will be saved on form submission)');
   };
 
-  const handleMediaRemove = (mediaItem) => {
+  const handleMediaRemove = mediaItem => {
     // Check if it's pending media (not yet saved to DB)
     if (mediaItem.id && mediaItem.id.toString().startsWith('pending-')) {
       // Remove from pending media state
@@ -427,8 +427,11 @@ const CreateDive = () => {
         if (unsavedPhoto.originFileObj) {
           // This is a photo from create flow - upload to R2 first
           try {
-            const r2UploadResult = await uploadPhotoToR2Only(createdDive.id, unsavedPhoto.originFileObj);
-            
+            const r2UploadResult = await uploadPhotoToR2Only(
+              createdDive.id,
+              unsavedPhoto.originFileObj
+            );
+
             // Create database record
             const mediaData = {
               media_type: 'photo',
@@ -812,7 +815,7 @@ const CreateDive = () => {
                   <UploadPhotosComponent
                     id={null}
                     mediaUrls={mediaUrls.filter(m => m.type === 'photo')}
-                    setMediaUrls={(updater) => {
+                    setMediaUrls={updater => {
                       if (typeof updater === 'function') {
                         setMediaUrls(prev => {
                           const nonPhotos = prev.filter(m => m.type !== 'photo');
@@ -832,7 +835,8 @@ const CreateDive = () => {
                 {watch('is_private') && (
                   <div className='p-4 bg-gray-50 border border-gray-200 rounded-lg'>
                     <p className='text-sm text-gray-600'>
-                      Photo uploads are only available for public dives. Photos are visible on the dive site.
+                      Photo uploads are only available for public dives. Photos are visible on the
+                      dive site.
                     </p>
                   </div>
                 )}
@@ -841,7 +845,7 @@ const CreateDive = () => {
                 <div className='mb-3'>
                   <Collapse
                     activeKey={addLinksCollapseOpen ? ['1'] : []}
-                    onChange={(keys) => setAddLinksCollapseOpen(keys.includes('1'))}
+                    onChange={keys => setAddLinksCollapseOpen(keys.includes('1'))}
                     items={[
                       {
                         key: '1',
@@ -923,7 +927,9 @@ const CreateDive = () => {
                                 }}
                                 className='px-4 py-2 text-white rounded-md'
                                 style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                                onMouseEnter={e =>
+                                  (e.currentTarget.style.backgroundColor = '#1f2937')
+                                }
                                 onMouseLeave={e =>
                                   (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
                                 }
@@ -935,13 +941,19 @@ const CreateDive = () => {
                             {/* Show pending media */}
                             {pendingMedia.length > 0 && (
                               <div className='mt-4 pt-4 border-t border-gray-200'>
-                                <h4 className='text-sm font-medium text-gray-700 mb-3'>Pending Media</h4>
+                                <h4 className='text-sm font-medium text-gray-700 mb-3'>
+                                  Pending Media
+                                </h4>
                                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                                   {pendingMedia.map(item => (
-                                    <div key={item.id} className='border rounded-lg p-4 border-yellow-400 bg-yellow-50'>
+                                    <div
+                                      key={item.id}
+                                      className='border rounded-lg p-4 border-yellow-400 bg-yellow-50'
+                                    >
                                       <div className='flex items-center justify-between mb-2'>
                                         <span className='text-sm font-medium text-gray-700 capitalize'>
-                                          {item.type} <span className='text-xs text-yellow-700'>(Pending)</span>
+                                          {item.type}{' '}
+                                          <span className='text-xs text-yellow-700'>(Pending)</span>
                                         </span>
                                         <button
                                           onClick={() => handleMediaRemove(item)}

@@ -92,4 +92,3 @@ export default function ReactImage({ slide, offset, rect }) {
     </div>
   );
 }
-

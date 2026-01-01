@@ -12,7 +12,7 @@ const { Dragger } = Upload;
 
 /**
  * Reusable photo upload component with Collapse, drag-and-drop, and per-photo controls
- * 
+ *
  * @param {string|number|null} id - The dive/resource ID for API calls (null/undefined for create flows)
  * @param {Array} mediaUrls - Array of media items (photos) to display
  * @param {Function} setMediaUrls - Function to update mediaUrls
@@ -20,14 +20,21 @@ const { Dragger } = Upload;
  * @param {Function} onMediaRemove - Optional callback for handling media removal (for saved media)
  * @param {Array} savedPhotoUids - Array of UIDs for photos that have been saved to DB (to clear from unsaved list)
  */
-const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosChange, onMediaRemove, savedPhotoUids = [] }) => {
+const UploadPhotosComponent = ({
+  id,
+  mediaUrls,
+  setMediaUrls,
+  onUnsavedPhotosChange,
+  onMediaRemove,
+  savedPhotoUids = [],
+}) => {
   // State for upload management
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState('');
   const [unsavedR2Photos, setUnsavedR2Photos] = useState([]);
   const [uploadFileList, setUploadFileList] = useState([]);
-  
+
   // Use ref to track unsaved photos for cleanup (only on unmount, not on state changes)
   const unsavedR2PhotosRef = useRef([]);
 
@@ -51,7 +58,7 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
   // Photos stored locally (base64 previews) are automatically cleaned up when component unmounts
 
   // Helper function to get base64 for preview
-  const getBase64 = (file) =>
+  const getBase64 = file =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -66,10 +73,10 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
       .map((media, index) => {
         // Use original filename if available, otherwise extract from URL
         const displayName = media.original_filename || 'photo.jpg';
-        
+
         // Use temp_uid for newly uploaded files (not yet saved to DB), otherwise use id
         const uid = media.id?.toString() || media.temp_uid || `uploaded-${index}`;
-        
+
         return {
           uid,
           name: displayName,
@@ -84,12 +91,12 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
     // uploadFileList contains files that are selected/uploading but not yet in mediaUrls
     const uploadedFileUids = new Set(uploadedFiles.map(f => f.uid));
     const uploadingFiles = uploadFileList.filter(f => !uploadedFileUids.has(f.uid));
-    
+
     return [...uploadedFiles, ...uploadingFiles];
   }, [mediaUrls, uploadFileList]);
 
   // Handle file preview
-  const handlePreview = async (file) => {
+  const handlePreview = async file => {
     if (!file.url && !file.preview) {
       if (file.originFileObj) {
         file.preview = await getBase64(file.originFileObj);
@@ -102,7 +109,7 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
   // Custom upload handler
   const customRequest = async ({ file, onSuccess, onError, onProgress }) => {
     const fileUid = file.uid || `upload-${Date.now()}-${Math.random()}`;
-    
+
     // Add file to uploadFileList with uploading status, storing original file reference
     setUploadFileList(prev => [
       ...prev.filter(f => f.uid !== fileUid && f.originFileObj !== file),
@@ -118,14 +125,16 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
     try {
       setUploadingPhotos(true);
       onProgress({ percent: 0 });
-      
+
       // Update progress
       setUploadFileList(prev =>
         prev.map(f =>
-          (f.uid === fileUid || f.originFileObj === file) ? { ...f, percent: 0, status: 'uploading' } : f
+          f.uid === fileUid || f.originFileObj === file
+            ? { ...f, percent: 0, status: 'uploading' }
+            : f
         )
       );
-      
+
       let r2UploadResult = null;
       let previewUrl = null;
 
@@ -169,8 +178,10 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
       // Remove from uploadFileList (match by both UID and originFileObj to catch all cases)
       setUploadFileList(prev => prev.filter(f => f.uid !== fileUid && f.originFileObj !== file));
       setMediaUrls(prev => [...prev, mediaItem]);
-      toast.success(`Successfully ${id ? 'uploaded' : 'added'} ${file.name}${id ? ' It will show on Dive when you finish editing' : ''}`);
-      
+      toast.success(
+        `Successfully ${id ? 'uploaded' : 'added'} ${file.name}${id ? ' It will show on Dive when you finish editing' : ''}`
+      );
+
       // Call onSuccess with the file to mark it as done in Ant Design's internal state
       // Use fileUid to ensure it matches the temp_uid in mediaUrls, preventing duplicates
       onSuccess({ ...file, uid: fileUid, url: previewUrl, status: 'done' }, file);
@@ -179,17 +190,19 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
       // Update file status to error
       setUploadFileList(prev =>
         prev.map(f =>
-          (f.uid === fileUid || f.originFileObj === file) ? { ...f, status: 'error' } : f
+          f.uid === fileUid || f.originFileObj === file ? { ...f, status: 'error' } : f
         )
       );
       onError(error);
       setUploadingPhotos(false);
-      toast.error(`Failed to ${id ? 'upload' : 'add'} ${file.name}: ${error.response?.data?.detail || error.message}`);
+      toast.error(
+        `Failed to ${id ? 'upload' : 'add'} ${file.name}: ${error.response?.data?.detail || error.message}`
+      );
     }
   };
 
   // Handle file removal (called directly when remove button is clicked)
-  const handleRemove = async (file) => {
+  const handleRemove = async file => {
     // Check if it's an unsaved photo (local preview, not yet uploaded to R2)
     const unsavedPhoto = unsavedR2Photos.find(p => p.uid === file.uid);
     if (unsavedPhoto) {
@@ -202,8 +215,10 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
     }
 
     // Find the mediaItem by UID (which should match the media ID)
-    const mediaItem = mediaUrls.find(m => m.type === 'photo' && (m.id?.toString() === file.uid || m.temp_uid === file.uid));
-    
+    const mediaItem = mediaUrls.find(
+      m => m.type === 'photo' && (m.id?.toString() === file.uid || m.temp_uid === file.uid)
+    );
+
     if (mediaItem) {
       // If photo has a DB ID, it's been saved - use onMediaRemove callback to delete from backend
       // If onMediaRemove is provided, use it; otherwise just remove from local state
@@ -212,9 +227,9 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
       } else {
         // No callback provided - just remove from local state
         // (This shouldn't happen in normal usage, but handle gracefully)
-        setMediaUrls(prev => prev.filter(item => 
-          item.id !== mediaItem.id && item.temp_uid !== file.uid
-        ));
+        setMediaUrls(prev =>
+          prev.filter(item => item.id !== mediaItem.id && item.temp_uid !== file.uid)
+        );
       }
       return false; // Prevent Ant Design from removing it immediately (let parent handle it)
     } else {
@@ -241,14 +256,14 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
       if (uploadedFileUids.has(f.uid) && f.status === 'done') {
         return false;
       }
-      
+
       // Exclude files with status 'done' that don't have a URL (these are duplicates)
       // Uploaded files should have a URL from mediaUrls, so files with status 'done' but no URL
       // are likely duplicates from Ant Design that should be removed
       if (f.status === 'done' && !f.url) {
         return false;
       }
-      
+
       // Include all other files (uploading, error, newly selected with any status, etc.)
       return true;
     });
@@ -262,7 +277,7 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
     // Update in mediaUrls
     setMediaUrls(prev =>
       prev.map(item =>
-        (item.id?.toString() === fileUid || item.temp_uid === fileUid)
+        item.id?.toString() === fileUid || item.temp_uid === fileUid
           ? { ...item, description }
           : item
       )
@@ -278,9 +293,7 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
   const itemRender = (originNode, file, fileList, actions) => {
     // Find the media item to get description
     const mediaItem = mediaUrls.find(
-      m =>
-        m.type === 'photo' &&
-        (m.id?.toString() === file.uid || m.temp_uid === file.uid)
+      m => m.type === 'photo' && (m.id?.toString() === file.uid || m.temp_uid === file.uid)
     );
     const description = mediaItem?.description || '';
 
@@ -350,7 +363,8 @@ const UploadPhotosComponent = ({ id, mediaUrls, setMediaUrls, onUnsavedPhotosCha
                 </p>
                 <p className='ant-upload-text'>Click or drag photos to this area to upload</p>
                 <p className='ant-upload-hint'>
-                  Support for JPEG, JPG, PNG, GIF, and WebP formats. Multiple files can be uploaded at once.
+                  Support for JPEG, JPG, PNG, GIF, and WebP formats. Multiple files can be uploaded
+                  at once.
                 </p>
               </Dragger>
 
@@ -399,4 +413,3 @@ UploadPhotosComponent.propTypes = {
 };
 
 export default UploadPhotosComponent;
-

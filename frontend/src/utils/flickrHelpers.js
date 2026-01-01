@@ -20,7 +20,7 @@ export async function convertFlickrUrlToDirectImage(flickrUrl) {
     // Use backend proxy endpoint to avoid CORS issues
     const { getFlickrOembed } = await import('../api');
     const result = await getFlickrOembed(flickrUrl);
-    
+
     // Return the direct image URL if available
     if (result.direct_image_url) {
       return result.direct_image_url;
@@ -55,4 +55,3 @@ export function isFlickrUrl(url) {
   if (!url || typeof url !== 'string') return false;
   return url.includes('flic.kr/p/') || url.includes('flickr.com/photos/');
 }
-

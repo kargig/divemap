@@ -380,13 +380,9 @@ const DiveDetail = () => {
   );
 
   // Fetch dive media separately (not included in main dive response)
-  const { data: diveMedia = [] } = useQuery(
-    ['dive-media', id],
-    () => getDiveMedia(id),
-    {
-      enabled: !!id && !!dive,
-    }
-  );
+  const { data: diveMedia = [] } = useQuery(['dive-media', id], () => getDiveMedia(id), {
+    enabled: !!id && !!dive,
+  });
 
   // Check if dive has deco tag (case-insensitive)
   useEffect(() => {
@@ -622,9 +618,11 @@ const DiveDetail = () => {
       if (!diveMedia) return;
 
       // Get all photos
-      const allPhotosForFlickr = diveMedia.filter(item => item.media_type === 'photo' && !isVideoUrl(item.url));
+      const allPhotosForFlickr = diveMedia.filter(
+        item => item.media_type === 'photo' && !isVideoUrl(item.url)
+      );
       const flickrPhotos = allPhotosForFlickr.filter(item => isFlickrUrl(item.url));
-      
+
       if (flickrPhotos.length === 0) return;
 
       const newConvertedUrls = new Map(convertedFlickrUrls);
@@ -655,7 +653,7 @@ const DiveDetail = () => {
   }, [diveMedia]);
 
   // Helper to get the URL (converted if Flickr, original otherwise)
-  const getImageUrl = (url) => {
+  const getImageUrl = url => {
     return convertedFlickrUrls.get(url) || url;
   };
 
@@ -1058,70 +1056,77 @@ const DiveDetail = () => {
 
               {/* Media Gallery - Exclude photos and videos (shown in Photos & Videos tab) */}
               {dive.media &&
-                dive.media.filter(m => m.media_type !== 'photo' && m.media_type !== 'video' && !isVideoUrl(m.url)).length > 0 && (
+                dive.media.filter(
+                  m => m.media_type !== 'photo' && m.media_type !== 'video' && !isVideoUrl(m.url)
+                ).length > 0 && (
                   <div className='bg-white rounded-lg shadow p-6'>
                     <h2 className='text-xl font-semibold mb-4'>Media</h2>
                     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                       {dive.media
-                        .filter(m => m.media_type !== 'photo' && m.media_type !== 'video' && !isVideoUrl(m.url))
+                        .filter(
+                          m =>
+                            m.media_type !== 'photo' &&
+                            m.media_type !== 'video' &&
+                            !isVideoUrl(m.url)
+                        )
                         .map(media => (
-                      <div key={media.id} className='relative group'>
-                        <div className='aspect-square bg-gray-100 rounded-lg overflow-hidden'>
-                          {media.media_type === 'video' && (
-                            <video
-                              src={media.url}
-                              controls
-                              className='w-full h-full object-cover'
-                            />
-                          )}
-                          {media.media_type === 'dive_plan' && (
-                            <div className='w-full h-full flex items-center justify-center'>
-                              <div className='text-center'>
-                                <Download size={32} className='mx-auto text-gray-400 mb-2' />
-                                <p className='text-sm text-gray-600'>Dive Plan</p>
-                                <a
-                                  href={media.url}
-                                  target='_blank'
-                                  rel='noopener noreferrer'
-                                  className='text-blue-600 hover:text-blue-800 text-sm'
-                                >
-                                  Download
-                                </a>
-                              </div>
+                          <div key={media.id} className='relative group'>
+                            <div className='aspect-square bg-gray-100 rounded-lg overflow-hidden'>
+                              {media.media_type === 'video' && (
+                                <video
+                                  src={media.url}
+                                  controls
+                                  className='w-full h-full object-cover'
+                                />
+                              )}
+                              {media.media_type === 'dive_plan' && (
+                                <div className='w-full h-full flex items-center justify-center'>
+                                  <div className='text-center'>
+                                    <Download size={32} className='mx-auto text-gray-400 mb-2' />
+                                    <p className='text-sm text-gray-600'>Dive Plan</p>
+                                    <a
+                                      href={media.url}
+                                      target='_blank'
+                                      rel='noopener noreferrer'
+                                      className='text-blue-600 hover:text-blue-800 text-sm'
+                                    >
+                                      Download
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
+                              {media.media_type === 'external_link' && (
+                                <div className='w-full h-full flex items-center justify-center'>
+                                  <div className='text-center'>
+                                    <Link size={32} className='mx-auto text-gray-400 mb-2' />
+                                    <p className='text-sm text-gray-600'>
+                                      {media.title || 'External Link'}
+                                    </p>
+                                    <a
+                                      href={media.url}
+                                      target='_blank'
+                                      rel='noopener noreferrer'
+                                      className='text-blue-600 hover:text-blue-800 text-sm'
+                                    >
+                                      Visit Link
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          )}
-                          {media.media_type === 'external_link' && (
-                            <div className='w-full h-full flex items-center justify-center'>
-                              <div className='text-center'>
-                                <Link size={32} className='mx-auto text-gray-400 mb-2' />
-                                <p className='text-sm text-gray-600'>
-                                  {media.title || 'External Link'}
-                                </p>
-                                <a
-                                  href={media.url}
-                                  target='_blank'
-                                  rel='noopener noreferrer'
-                                  className='text-blue-600 hover:text-blue-800 text-sm'
-                                >
-                                  Visit Link
-                                </a>
-                              </div>
+                            <div className='absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity'>
+                              <button
+                                onClick={() => handleDeleteMedia(media.id)}
+                                className='bg-red-600 text-white p-1 rounded-full hover:bg-red-700'
+                                title='Delete media'
+                              >
+                                <Trash2 size={12} />
+                              </button>
                             </div>
-                          )}
-                        </div>
-                        <div className='absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity'>
-                          <button
-                            onClick={() => handleDeleteMedia(media.id)}
-                            className='bg-red-600 text-white p-1 rounded-full hover:bg-red-700'
-                            title='Delete media'
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                        {media.description && (
-                          <p className='text-xs text-gray-600 mt-1'>{media.description}</p>
-                        )}
-                      </div>
+                            {media.description && (
+                              <p className='text-xs text-gray-600 mt-1'>{media.description}</p>
+                            )}
+                          </div>
                         ))}
                     </div>
                   </div>
@@ -1222,7 +1227,6 @@ const DiveDetail = () => {
                   ))}
                 </div>
               )}
-
             </div>
           )}
 

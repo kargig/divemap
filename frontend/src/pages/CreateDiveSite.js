@@ -76,26 +76,29 @@ const CreateDiveSite = () => {
   // Store converted Flickr URLs (Map: original URL -> direct image URL)
   const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(() => new Map());
 
-  const createDiveSiteMutation = useMutation(async data => {
-    const response = await api.post('/api/v1/dive-sites/', data);
-    return response.data;
-  }, {
-    onSuccess: () => {
-      queryClient.invalidateQueries(['admin-dive-sites']);
-      queryClient.invalidateQueries(['dive-sites']);
-      toast.success('Dive site created successfully!');
+  const createDiveSiteMutation = useMutation(
+    async data => {
+      const response = await api.post('/api/v1/dive-sites/', data);
+      return response.data;
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['admin-dive-sites']);
+        queryClient.invalidateQueries(['dive-sites']);
+        toast.success('Dive site created successfully!');
 
-      // Navigate based on user role
-      if (user?.is_admin) {
-        navigate('/admin/dive-sites');
-      } else {
-        navigate('/dive-sites');
-      }
-    },
-    onError: error => {
-      toast.error(extractErrorMessage(error) || 'Failed to create dive site');
-    },
-  });
+        // Navigate based on user role
+        if (user?.is_admin) {
+          navigate('/admin/dive-sites');
+        } else {
+          navigate('/dive-sites');
+        }
+      },
+      onError: error => {
+        toast.error(extractErrorMessage(error) || 'Failed to create dive site');
+      },
+    }
+  );
 
   const onSubmit = async data => {
     // Convert latitude/longitude to numbers
@@ -182,8 +185,11 @@ const CreateDiveSite = () => {
         if (unsavedPhoto.originFileObj) {
           // This is a photo from create flow - upload to R2 first
           try {
-            const r2UploadResult = await uploadDiveSitePhotoToR2Only(createdDiveSite.id, unsavedPhoto.originFileObj);
-            
+            const r2UploadResult = await uploadDiveSitePhotoToR2Only(
+              createdDiveSite.id,
+              unsavedPhoto.originFileObj
+            );
+
             // Create database record
             const mediaData = {
               media_type: 'photo',
@@ -327,7 +333,7 @@ const CreateDiveSite = () => {
 
       const photos = pendingMedia.filter(item => item.type === 'photo');
       const flickrPhotos = photos.filter(item => isFlickrUrl(item.url));
-      
+
       if (flickrPhotos.length === 0) return;
 
       const newConvertedUrls = new Map(convertedFlickrUrls);
@@ -358,12 +364,12 @@ const CreateDiveSite = () => {
   }, [pendingMedia]);
 
   // Helper to get the URL (converted if Flickr, original otherwise)
-  const getImageUrl = (url) => {
+  const getImageUrl = url => {
     return convertedFlickrUrls.get(url) || url;
   };
 
   // Media handling functions
-  const handleUrlAdd = (e) => {
+  const handleUrlAdd = e => {
     e?.preventDefault();
     if (!newMediaUrl.trim()) {
       toast.error('Please enter a media URL');
@@ -393,7 +399,7 @@ const CreateDiveSite = () => {
     toast.success('Media added (will be saved on form submission)');
   };
 
-  const handleMediaRemove = (mediaItem) => {
+  const handleMediaRemove = mediaItem => {
     // Check if it's pending media (not yet saved to DB)
     if (mediaItem.id && mediaItem.id.toString().startsWith('pending-')) {
       // Remove from pending media state
@@ -688,7 +694,7 @@ const CreateDiveSite = () => {
                 <div className='mb-3'>
                   <Collapse
                     activeKey={addLinksCollapseOpen ? ['1'] : []}
-                    onChange={(keys) => setAddLinksCollapseOpen(keys.includes('1'))}
+                    onChange={keys => setAddLinksCollapseOpen(keys.includes('1'))}
                     items={[
                       {
                         key: '1',
@@ -770,7 +776,9 @@ const CreateDiveSite = () => {
                                 }}
                                 className='px-4 py-2 text-white rounded-md'
                                 style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                                onMouseEnter={e =>
+                                  (e.currentTarget.style.backgroundColor = '#1f2937')
+                                }
                                 onMouseLeave={e =>
                                   (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
                                 }
@@ -782,13 +790,19 @@ const CreateDiveSite = () => {
                             {/* Show pending media */}
                             {pendingMedia.length > 0 && (
                               <div className='mt-4 pt-4 border-t border-gray-200'>
-                                <h4 className='text-sm font-medium text-gray-700 mb-3'>Pending Media</h4>
+                                <h4 className='text-sm font-medium text-gray-700 mb-3'>
+                                  Pending Media
+                                </h4>
                                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                                   {pendingMedia.map(item => (
-                                    <div key={item.id} className='border rounded-lg p-4 border-yellow-400 bg-yellow-50'>
+                                    <div
+                                      key={item.id}
+                                      className='border rounded-lg p-4 border-yellow-400 bg-yellow-50'
+                                    >
                                       <div className='flex items-center justify-between mb-2'>
                                         <span className='text-sm font-medium text-gray-700 capitalize'>
-                                          {item.type} <span className='text-xs text-yellow-700'>(Pending)</span>
+                                          {item.type}{' '}
+                                          <span className='text-xs text-yellow-700'>(Pending)</span>
                                         </span>
                                         <button
                                           onClick={() => handleMediaRemove(item)}

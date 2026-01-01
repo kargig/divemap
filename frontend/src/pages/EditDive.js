@@ -204,24 +204,20 @@ const EditDive = () => {
     data: diveMedia = [],
     isLoading: mediaLoading,
     error: mediaError,
-  } = useQuery(
-    ['dive-media', id],
-    () => getDiveMedia(id),
-    {
-      enabled: !!id && !authLoading && !!user && !!dive,
-      onSuccess: data => {
-        // Initialize media descriptions when media loads (for all media including photos)
-        const descriptions = {};
-        data.forEach(media => {
-          descriptions[media.id] = media.description || '';
-        });
-        setMediaDescriptions(prev => ({ ...prev, ...descriptions }));
-      },
-      onError: _error => {
-        toast.error('Failed to load media');
-      },
-    }
-  );
+  } = useQuery(['dive-media', id], () => getDiveMedia(id), {
+    enabled: !!id && !authLoading && !!user && !!dive,
+    onSuccess: data => {
+      // Initialize media descriptions when media loads (for all media including photos)
+      const descriptions = {};
+      data.forEach(media => {
+        descriptions[media.id] = media.description || '';
+      });
+      setMediaDescriptions(prev => ({ ...prev, ...descriptions }));
+    },
+    onError: _error => {
+      toast.error('Failed to load media');
+    },
+  });
 
   // Convert Flickr URLs to direct image URLs
   useEffect(() => {
@@ -231,7 +227,7 @@ const EditDive = () => {
       // Get all photos
       const photos = diveMedia.filter(item => item.media_type === 'photo');
       const flickrPhotos = photos.filter(item => isFlickrUrl(item.url));
-      
+
       if (flickrPhotos.length === 0) return;
 
       const newConvertedUrls = new Map(convertedFlickrUrls);
@@ -253,7 +249,9 @@ const EditDive = () => {
       }
 
       // Also check pending media for Flickr URLs
-      const pendingFlickrPhotos = pendingMedia.filter(item => item.type === 'photo' && isFlickrUrl(item.url));
+      const pendingFlickrPhotos = pendingMedia.filter(
+        item => item.type === 'photo' && isFlickrUrl(item.url)
+      );
       for (const photo of pendingFlickrPhotos) {
         if (newConvertedUrls.has(photo.url)) continue;
 
@@ -278,7 +276,7 @@ const EditDive = () => {
   }, [diveMedia, pendingMedia]);
 
   // Helper to get the URL (converted if Flickr, original otherwise)
-  const getImageUrl = (url) => {
+  const getImageUrl = url => {
     return convertedFlickrUrls.get(url) || url;
   };
 
@@ -329,7 +327,6 @@ const EditDive = () => {
       }
     };
   }, []);
-
 
   // Clear route selection when dive site changes (handled by useEffect above)
 
@@ -485,7 +482,7 @@ const EditDive = () => {
   };
 
   // Media handling functions
-  const handleUrlAdd = (e) => {
+  const handleUrlAdd = e => {
     e?.preventDefault();
     if (!newMediaUrl.trim()) {
       toast.error('Please enter a media URL');
@@ -517,7 +514,7 @@ const EditDive = () => {
     toast.success('Media added (will be saved on form submission)');
   };
 
-  const handleMediaRemove = async (mediaItem) => {
+  const handleMediaRemove = async mediaItem => {
     // Check if it's pending media (not yet saved to DB)
     if (mediaItem.id && mediaItem.id.toString().startsWith('pending-')) {
       // Remove from pending media state
@@ -566,7 +563,6 @@ const EditDive = () => {
     setMediaUrls(prev => prev.map(item => (item.id === id ? { ...item, description } : item)));
   };
 
-
   const onSubmit = async data => {
     // Data is already validated and transformed by Zod schema
     // Format dive_time to include seconds (HH:MM -> HH:MM:00) for backend
@@ -581,13 +577,13 @@ const EditDive = () => {
       // First, upload photos to R2 and create database records for them
       const dbCreationPromises = [];
       const unsavedR2Photos = unsavedR2PhotosRef.current;
-      
+
       for (const unsavedPhoto of unsavedR2Photos) {
         if (unsavedPhoto.originFileObj) {
           // This is a photo from create/edit flow - upload to R2 first
           try {
             const r2UploadResult = await uploadPhotoToR2Only(id, unsavedPhoto.originFileObj);
-            
+
             // Create database record
             const mediaData = {
               media_type: 'photo',
@@ -655,7 +651,7 @@ const EditDive = () => {
 
       // Clear unsaved photos ref since they're now saved
       unsavedR2PhotosRef.current = [];
-      
+
       // Note: savedPhotoUids is set above when each photo is saved
       // The component will clear these from its unsaved list via useEffect
       // We'll reset it after navigation to prepare for next use
@@ -749,7 +745,11 @@ const EditDive = () => {
       await queryClient.invalidateQueries(['dive', id]);
       await queryClient.invalidateQueries(['dive-media', id]);
 
-      if (mediaPromises.length > 0 || pendingMediaPromises.length > 0 || mediaUpdatePromises.length > 0) {
+      if (
+        mediaPromises.length > 0 ||
+        pendingMediaPromises.length > 0 ||
+        mediaUpdatePromises.length > 0
+      ) {
         toast.success('Dive updated successfully with media!');
       }
     } catch (error) {
@@ -1114,7 +1114,8 @@ const EditDive = () => {
                 {watch('is_private') && (
                   <div className='p-4 bg-gray-50 border border-gray-200 rounded-lg'>
                     <p className='text-sm text-gray-600'>
-                      Photo uploads are only available for public dives. Photos are visible on the dive site.
+                      Photo uploads are only available for public dives. Photos are visible on the
+                      dive site.
                     </p>
                   </div>
                 )}
@@ -1123,7 +1124,7 @@ const EditDive = () => {
                 <div className='mb-3'>
                   <Collapse
                     activeKey={addLinksCollapseOpen ? ['1'] : []}
-                    onChange={(keys) => setAddLinksCollapseOpen(keys.includes('1'))}
+                    onChange={keys => setAddLinksCollapseOpen(keys.includes('1'))}
                     items={[
                       {
                         key: '1',
@@ -1141,9 +1142,7 @@ const EditDive = () => {
                                 <select
                                   id='media_type'
                                   value={newMediaType}
-                                  onChange={e =>
-                                    setNewMediaType(e.target.value)
-                                  }
+                                  onChange={e => setNewMediaType(e.target.value)}
                                   className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                                 >
                                   <option value='photo'>Photo</option>
@@ -1178,9 +1177,7 @@ const EditDive = () => {
                                 id='media_description'
                                 type='text'
                                 value={newMediaDescription}
-                                onChange={e =>
-                                  setNewMediaDescription(e.target.value)
-                                }
+                                onChange={e => setNewMediaDescription(e.target.value)}
                                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                               />
                             </div>
@@ -1208,7 +1205,9 @@ const EditDive = () => {
                                 }}
                                 className='px-4 py-2 text-white rounded-md'
                                 style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                                onMouseEnter={e =>
+                                  (e.currentTarget.style.backgroundColor = '#1f2937')
+                                }
                                 onMouseLeave={e =>
                                   (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
                                 }
@@ -1235,123 +1234,131 @@ const EditDive = () => {
                     <p className='text-red-600'>Failed to load media</p>
                   </div>
                 )}
-                {(!mediaLoading && !mediaError && (diveMedia.length > 0 || pendingMedia.length > 0)) && (
-                  <div className='mb-3'>
-                    <Collapse
-                      items={[
-                        {
-                          key: '1',
-                          label: 'Manage Media',
-                          children: (
-                            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                              {/* Show saved media (including photos) */}
-                              {diveMedia.map(item => (
-                                <div key={item.id} className='border rounded-lg p-4'>
-                                  <div className='flex items-center justify-between mb-2'>
-                                    <span className='text-sm font-medium text-gray-700 capitalize'>
-                                      {item.media_type}
-                                    </span>
-                                    <button
-                                      onClick={() => handleMediaRemove({
-                                        id: item.id,
-                                        type: item.media_type,
-                                        url: item.url,
-                                        description: item.description,
-                                      })}
-                                      className='text-red-600 hover:text-red-800'
-                                      title='Delete media'
-                                    >
-                                      <X size={16} />
-                                    </button>
-                                  </div>
-                                  <div className='space-y-2'>
-                                    {item.media_type === 'photo' ? (
-                                      <AntdImage
-                                        src={getImageUrl(item.url)}
-                                        alt={item.description || 'Media'}
-                                        className='w-full'
-                                        preview={{
-                                          mask: 'Preview',
+                {!mediaLoading &&
+                  !mediaError &&
+                  (diveMedia.length > 0 || pendingMedia.length > 0) && (
+                    <div className='mb-3'>
+                      <Collapse
+                        items={[
+                          {
+                            key: '1',
+                            label: 'Manage Media',
+                            children: (
+                              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                                {/* Show saved media (including photos) */}
+                                {diveMedia.map(item => (
+                                  <div key={item.id} className='border rounded-lg p-4'>
+                                    <div className='flex items-center justify-between mb-2'>
+                                      <span className='text-sm font-medium text-gray-700 capitalize'>
+                                        {item.media_type}
+                                      </span>
+                                      <button
+                                        onClick={() =>
+                                          handleMediaRemove({
+                                            id: item.id,
+                                            type: item.media_type,
+                                            url: item.url,
+                                            description: item.description,
+                                          })
+                                        }
+                                        className='text-red-600 hover:text-red-800'
+                                        title='Delete media'
+                                      >
+                                        <X size={16} />
+                                      </button>
+                                    </div>
+                                    <div className='space-y-2'>
+                                      {item.media_type === 'photo' ? (
+                                        <AntdImage
+                                          src={getImageUrl(item.url)}
+                                          alt={item.description || 'Media'}
+                                          className='w-full'
+                                          preview={{
+                                            mask: 'Preview',
+                                          }}
+                                        />
+                                      ) : (
+                                        <YouTubePreview
+                                          url={item.url}
+                                          description={item.description}
+                                          className='w-full'
+                                          openInNewTab={true}
+                                        />
+                                      )}
+                                      <input
+                                        type='text'
+                                        value={mediaDescriptions[item.id] || ''}
+                                        onChange={e => {
+                                          setMediaDescriptions(prev => ({
+                                            ...prev,
+                                            [item.id]: e.target.value,
+                                          }));
                                         }}
+                                        placeholder='Add description...'
+                                        className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
                                       />
-                                    ) : (
-                                      <YouTubePreview
-                                        url={item.url}
-                                        description={item.description}
-                                        className='w-full'
-                                        openInNewTab={true}
-                                      />
-                                    )}
-                                    <input
-                                      type='text'
-                                      value={mediaDescriptions[item.id] || ''}
-                                      onChange={e => {
-                                        setMediaDescriptions(prev => ({
-                                          ...prev,
-                                          [item.id]: e.target.value,
-                                        }));
-                                      }}
-                                      placeholder='Add description...'
-                                      className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
-                                    />
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
-                              {/* Show pending media */}
-                              {pendingMedia.map(item => (
-                                <div key={item.id} className='border rounded-lg p-4 border-yellow-400 bg-yellow-50'>
-                                  <div className='flex items-center justify-between mb-2'>
-                                    <span className='text-sm font-medium text-gray-700 capitalize'>
-                                      {item.type} <span className='text-xs text-yellow-700'>(Pending)</span>
-                                    </span>
-                                    <button
-                                      onClick={() => handleMediaRemove(item)}
-                                      className='text-red-600 hover:text-red-800'
-                                      title='Remove media'
-                                    >
-                                      <X size={16} />
-                                    </button>
-                                  </div>
-                                  <div className='space-y-2'>
-                                    {item.type === 'photo' ? (
-                                      <AntdImage
-                                        src={getImageUrl(item.url)}
-                                        alt={item.description || 'Media'}
-                                        className='w-full'
-                                        preview={{
-                                          mask: 'Preview',
+                                ))}
+                                {/* Show pending media */}
+                                {pendingMedia.map(item => (
+                                  <div
+                                    key={item.id}
+                                    className='border rounded-lg p-4 border-yellow-400 bg-yellow-50'
+                                  >
+                                    <div className='flex items-center justify-between mb-2'>
+                                      <span className='text-sm font-medium text-gray-700 capitalize'>
+                                        {item.type}{' '}
+                                        <span className='text-xs text-yellow-700'>(Pending)</span>
+                                      </span>
+                                      <button
+                                        onClick={() => handleMediaRemove(item)}
+                                        className='text-red-600 hover:text-red-800'
+                                        title='Remove media'
+                                      >
+                                        <X size={16} />
+                                      </button>
+                                    </div>
+                                    <div className='space-y-2'>
+                                      {item.type === 'photo' ? (
+                                        <AntdImage
+                                          src={getImageUrl(item.url)}
+                                          alt={item.description || 'Media'}
+                                          className='w-full'
+                                          preview={{
+                                            mask: 'Preview',
+                                          }}
+                                        />
+                                      ) : (
+                                        <YouTubePreview
+                                          url={item.url}
+                                          description={item.description}
+                                          className='w-full'
+                                          openInNewTab={true}
+                                        />
+                                      )}
+                                      <input
+                                        type='text'
+                                        value={mediaDescriptions[item.id] || ''}
+                                        onChange={e => {
+                                          setMediaDescriptions(prev => ({
+                                            ...prev,
+                                            [item.id]: e.target.value,
+                                          }));
                                         }}
+                                        placeholder='Add description...'
+                                        className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
                                       />
-                                    ) : (
-                                      <YouTubePreview
-                                        url={item.url}
-                                        description={item.description}
-                                        className='w-full'
-                                        openInNewTab={true}
-                                      />
-                                    )}
-                                    <input
-                                      type='text'
-                                      value={mediaDescriptions[item.id] || ''}
-                                      onChange={e => {
-                                        setMediaDescriptions(prev => ({
-                                          ...prev,
-                                          [item.id]: e.target.value,
-                                        }));
-                                      }}
-                                      placeholder='Add description...'
-                                      className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
-                                    />
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
-                            </div>
-                          ),
-                        },
-                      ]}
-                    />
-                  </div>
-                )}
+                                ))}
+                              </div>
+                            ),
+                          },
+                        ]}
+                      />
+                    </div>
+                  )}
               </div>
             </div>
 
