@@ -256,13 +256,16 @@ async def list_all_users(
     # Apply pagination
     users = query.offset(offset).limit(page_size).all()
 
-    # Convert SQLAlchemy User objects to Pydantic models, then to JSON-serializable dicts
-    from fastapi.encoders import jsonable_encoder
-    user_list = [jsonable_encoder(UserListResponse.model_validate(user)) for user in users]
+    # Convert SQLAlchemy User objects to Pydantic models, then to dictionaries
+    # Use orjson for optimized serialization (handles datetime natively)
+    import orjson
+    from fastapi.responses import Response
+    
+    user_list = [UserListResponse.model_validate(user).model_dump() for user in users]
 
     # Return response with pagination headers
-    from fastapi.responses import JSONResponse
-    response = JSONResponse(content=user_list)
+    # orjson.dumps returns bytes, so we pass it directly to content
+    response = Response(content=orjson.dumps(user_list), media_type="application/json")
     response.headers["X-Total-Count"] = str(total_count)
     response.headers["X-Total-Pages"] = str(total_pages)
     response.headers["X-Current-Page"] = str(page)
