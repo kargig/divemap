@@ -38,6 +38,77 @@ class UserUpdate(BaseModel):
     number_of_dives: Optional[int] = Field(None, ge=0)
     buddy_visibility: Optional[str] = Field(None, pattern=r"^(public|private)$", description="Control whether user can be added as buddy: 'public' or 'private'")
 
+class UserSocialLinkBase(BaseModel):
+    platform: str
+    url: str
+
+class UserSocialLinkCreate(UserSocialLinkBase):
+    @validator('platform')
+    def validate_platform(cls, v):
+        allowed = [
+            "instagram", "tiktok", "facebook", "x", "linkedin", "youtube", 
+            "whatsapp", "telegram", "bluesky", "mastodon", "discord", 
+            "threads", "signal"
+        ]
+        if v.lower() not in allowed:
+            raise ValueError(f"Platform must be one of: {', '.join(allowed)}")
+        return v.lower()
+
+    @validator('url')
+    def validate_url(cls, v, values):
+        platform = values.get('platform')
+        if not platform:
+            return v
+        
+        v = v.strip()
+        if not v.startswith('https://'):
+            raise ValueError("URL must start with https://")
+        
+        # No phone numbers allowed check
+        # Search for any sequence of 7 or more digits, or digits with common phone separators
+        # that could represent a phone number.
+        if re.search(r'\d{7,}', v) or re.search(r'(?:\d[\s\-\(\)]*){8,}', v):
+             raise ValueError("URL cannot contain phone numbers or long sequences of digits")
+        
+        # Platform specific domain checks
+        domains = {
+            "instagram": ["instagram.com"],
+            "tiktok": ["tiktok.com"],
+            "facebook": ["facebook.com", "fb.com"],
+            "x": ["twitter.com", "x.com"],
+            "linkedin": ["linkedin.com"],
+            "youtube": ["youtube.com", "youtu.be"],
+            "whatsapp": ["wa.me", "whatsapp.com"],
+            "telegram": ["t.me", "telegram.me"],
+            "bluesky": ["bsky.app"],
+            "mastodon": [], # Decentralized
+            "discord": ["discord.com", "discord.gg"],
+            "threads": ["threads.net"],
+            "signal": ["signal.me", "signal.group"]
+        }
+        
+        allowed_domains = domains.get(platform, [])
+        if allowed_domains:
+            # Check if URL host matches allowed domains
+            # Simple check: domain must be present in the URL
+            if not any(d in v for d in allowed_domains):
+                raise ValueError(f"Invalid domain for {platform}. Expected one of: {', '.join(allowed_domains)}")
+        
+        return v
+
+class UserSocialLinkResponse(UserSocialLinkBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    @validator('created_at', 'updated_at', pre=True)
+    def normalize_datetime_to_utc(cls, v):
+        return normalize_datetime_to_utc(cls, v)
+
+    class Config:
+        from_attributes = True
+
 class UserResponse(UserBase):
     id: int
     name: Optional[str] = None
@@ -49,6 +120,7 @@ class UserResponse(UserBase):
     buddy_visibility: str = 'public'
     created_at: datetime
     updated_at: datetime
+    social_links: List[UserSocialLinkResponse] = []
 
     @validator('created_at', 'updated_at', pre=True)
     def normalize_datetime_to_utc(cls, v):
@@ -109,8 +181,9 @@ class UserListResponse(BaseModel):
     email_verified: bool
     email_verified_at: Optional[datetime] = None
     created_at: datetime
+    last_accessed_at: Optional[datetime] = None
 
-    @validator('created_at', 'email_verified_at', pre=True)
+    @validator('created_at', 'email_verified_at', 'last_accessed_at', pre=True)
     def normalize_datetime_to_utc(cls, v):
         return normalize_datetime_to_utc(cls, v)
 
@@ -610,13 +683,27 @@ class UserProfileStats(BaseModel):
     class Config:
         from_attributes = True
 
+class CertificationStats(BaseModel):
+    max_depth: Optional[float] = None # Converted to meters
+    max_depth_str: Optional[str] = None # Original string (e.g. "100m")
+    best_gases: List[str] = []
+    largest_tanks: List[str] = []
+    max_deco_time: Optional[str] = None
+    max_nitrox_pct: Optional[int] = None
+    max_trimix_pct: Optional[str] = None # e.g. "10/50" or just "Hypoxic"
+    max_stages: Optional[int] = None
+
 class UserPublicProfileResponse(BaseModel):
     username: str
     avatar_url: Optional[str] = None
+    is_admin: bool = False
+    is_moderator: bool = False
     number_of_dives: int
     member_since: datetime
     certifications: List[UserCertificationResponse] = []
+    social_links: List[UserSocialLinkResponse] = []
     stats: UserProfileStats
+    certification_stats: Optional[CertificationStats] = None
 
     class Config:
         from_attributes = True

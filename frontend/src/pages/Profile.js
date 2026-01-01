@@ -11,6 +11,7 @@ import {
   Trash2,
   X,
   Building2,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -22,12 +23,14 @@ import api, { getDivingCenters, getUserPublicProfile } from '../api';
 import { FormField } from '../components/forms/FormField';
 import MaskedEmail from '../components/MaskedEmail';
 import OrganizationLogo from '../components/OrganizationLogo';
+import { getSocialMediaIcon } from '../components/SocialMediaIcons';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import {
   profileSchema,
   certificationSchema,
   changePasswordSchema,
+  socialLinkSchema,
   createResolver,
   getErrorMessage,
 } from '../utils/formHelpers';
@@ -41,6 +44,7 @@ const Profile = () => {
   const [isAddingCertification, setIsAddingCertification] = useState(false);
   const [editingCertification, setEditingCertification] = useState(null);
   const [availableLevels, setAvailableLevels] = useState([]);
+  const [isAddingSocialLink, setIsAddingSocialLink] = useState(false);
 
   // Profile Form
   const profileMethods = useForm({
@@ -74,6 +78,23 @@ const Profile = () => {
       });
     }
   }, [user, resetProfile]);
+
+  // Social Link Form
+  const socialLinkMethods = useForm({
+    resolver: createResolver(socialLinkSchema),
+    mode: 'onChange',
+    defaultValues: {
+      platform: '',
+      url: '',
+    },
+  });
+
+  const {
+    register: registerSocialLink,
+    handleSubmit: handleSubmitSocialLink,
+    reset: resetSocialLink,
+    formState: { errors: socialLinkErrors },
+  } = socialLinkMethods;
 
   // Certification Form
   const certMethods = useForm({
@@ -130,6 +151,47 @@ const Profile = () => {
       toast.error(error.response?.data?.detail || 'Failed to update profile');
     },
   });
+
+  const addSocialLinkMutation = useMutation(
+    data => api.post('/api/v1/users/me/social-links', data),
+    {
+      onSuccess: response => {
+        // Optimistically update local user state or re-fetch user
+        const updatedUser = { ...user };
+        // Check if updating existing or adding new
+        const existingIndex = updatedUser.social_links.findIndex(
+          l => l.platform === response.data.platform
+        );
+        if (existingIndex >= 0) {
+          updatedUser.social_links[existingIndex] = response.data;
+        } else {
+          updatedUser.social_links.push(response.data);
+        }
+        updateUser(updatedUser);
+        toast.success('Social link saved!');
+        setIsAddingSocialLink(false);
+        resetSocialLink();
+      },
+      onError: error => {
+        toast.error(error.response?.data?.detail || 'Failed to save social link');
+      },
+    }
+  );
+
+  const removeSocialLinkMutation = useMutation(
+    platform => api.delete(`/api/v1/users/me/social-links/${platform}`),
+    {
+      onSuccess: (_, platform) => {
+        const updatedUser = { ...user };
+        updatedUser.social_links = updatedUser.social_links.filter(l => l.platform !== platform);
+        updateUser(updatedUser);
+        toast.success('Social link removed!');
+      },
+      onError: error => {
+        toast.error(error.response?.data?.detail || 'Failed to remove social link');
+      },
+    }
+  );
 
   const addCertMutation = useMutation(
     data => api.post('/api/v1/user-certifications/my-certifications', data),
@@ -243,6 +305,10 @@ const Profile = () => {
     }
   };
 
+  const onSocialLinkSubmit = data => {
+    addSocialLinkMutation.mutate(data);
+  };
+
   const onPasswordSubmit = data => {
     const { current_password, new_password } = data;
     changePasswordMutation.mutate({ current_password, new_password });
@@ -288,6 +354,22 @@ const Profile = () => {
     setEditingCertification(null);
     resetCert();
   };
+
+  const supportedPlatforms = [
+    'Instagram',
+    'TikTok',
+    'Facebook',
+    'X',
+    'LinkedIn',
+    'YouTube',
+    'WhatsApp',
+    'Telegram',
+    'BlueSky',
+    'Mastodon',
+    'Discord',
+    'Threads',
+    'Signal',
+  ];
 
   if (!user) {
     return (
@@ -538,6 +620,145 @@ const Profile = () => {
                     </p>
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* Social Media Links Section */}
+          <div className='bg-white p-6 rounded-lg shadow-md mt-6'>
+            <div className='flex items-center justify-between mb-6'>
+              <h2 className='text-xl font-semibold text-gray-900'>Social Media Links</h2>
+              <button
+                onClick={() => {
+                  if (isAddingSocialLink) {
+                    resetSocialLink();
+                  }
+                  setIsAddingSocialLink(!isAddingSocialLink);
+                }}
+                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
+              >
+                <Plus className='h-4 w-4 mr-2' />
+                Add Link
+              </button>
+            </div>
+
+            {isAddingSocialLink && (
+              <FormProvider {...socialLinkMethods}>
+                <form
+                  onSubmit={handleSubmitSocialLink(onSocialLinkSubmit)}
+                  className='mb-6 p-4 border border-gray-200 rounded-lg'
+                >
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <div>
+                      <FormField name='platform' label='Platform'>
+                        {({ register, name }) => (
+                          <select
+                            {...register(name)}
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                              socialLinkErrors.platform ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                          >
+                            <option value=''>Select Platform</option>
+                            {supportedPlatforms.map(p => (
+                              <option key={p} value={p.toLowerCase()}>
+                                {p}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </FormField>
+                    </div>
+
+                    <div>
+                      <FormField name='url' label='Profile URL'>
+                        {({ register, name }) => (
+                          <input
+                            type='url'
+                            {...register(name)}
+                            placeholder='https://...'
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                              socialLinkErrors.url ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                          />
+                        )}
+                      </FormField>
+                    </div>
+                  </div>
+
+                  <div className='flex justify-end space-x-3 mt-4'>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setIsAddingSocialLink(false);
+                        resetSocialLink();
+                      }}
+                      className='px-4 py-2 text-gray-600 hover:text-gray-700'
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type='submit'
+                      disabled={addSocialLinkMutation.isLoading}
+                      className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+                    >
+                      {addSocialLinkMutation.isLoading ? 'Saving...' : 'Save Link'}
+                    </button>
+                  </div>
+                </form>
+              </FormProvider>
+            )}
+
+            {!user.social_links || user.social_links.length === 0 ? (
+              <div className='text-center py-8'>
+                <LinkIcon className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+                <p className='text-gray-500'>No social media links added yet.</p>
+                <p className='text-sm text-gray-400'>
+                  Add links to your social profiles so others can connect with you.
+                </p>
+              </div>
+            ) : (
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                {user.social_links.map(link => (
+                  <div
+                    key={link.platform}
+                    className='flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50'
+                  >
+                    <a
+                      href={link.url}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='flex items-center space-x-3 flex-1 min-w-0'
+                    >
+                      <div className='bg-gray-100 p-2 rounded-full'>
+                        {getSocialMediaIcon(link.platform, {
+                          color: '000000',
+                          className: 'w-5 h-5',
+                        })}
+                      </div>
+                      <div className='truncate'>
+                        <span className='font-medium text-gray-900 capitalize block'>
+                          {link.platform}
+                        </span>
+                        <span className='text-xs text-gray-500 truncate block'>{link.url}</span>
+                      </div>
+                    </a>
+                    <button
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Are you sure you want to remove your ${link.platform} link?`
+                          )
+                        ) {
+                          removeSocialLinkMutation.mutate(link.platform);
+                        }
+                      }}
+                      className='ml-2 p-1 text-gray-400 hover:text-red-600'
+                      title='Remove link'
+                    >
+                      <Trash2 className='h-4 w-4' />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -1007,6 +1228,12 @@ const Profile = () => {
           <div className='bg-white p-6 rounded-lg shadow-md'>
             <h3 className='text-lg font-semibold text-gray-900 mb-4'>Quick Actions</h3>
             <div className='space-y-3'>
+              <Link
+                to={`/users/${user.username}`}
+                className='block w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+              >
+                View Public Profile
+              </Link>
               <button
                 onClick={() => setIsChangingPassword(true)}
                 className='w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'

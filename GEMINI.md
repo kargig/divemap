@@ -19,6 +19,7 @@ Divemap is a comprehensive web application designed for scuba diving enthusiasts
 ## Git Workflow & Standards
 - **Feature Branches:** ALWAYS create a feature branch for changes: `feature/[task-name-kebab-case]`.
 - **No Direct Commits:** NEVER work directly on `main` or `master`.
+- **Git Restrictions:** NEVER attempt to use `git add` or `git commit -m`. These actions are forbidden. All commits should be prepared via `commit-message.txt` for the user to execute manually.
 - **Commit Messages:**
   - Limit subject to 50 characters, capitalize, no period.
   - Use imperative mood ("Add", "Fix", "Update").
@@ -42,21 +43,29 @@ docker-compose up -d
 - **API Docs:** http://localhost:8000/docs
 
 ### Testing
-⚠️ **CRITICAL:** NEVER run tests inside the `divemap_backend` container. It connects to the live MySQL database, and teardown may result in data loss.
+⚠️ **CRITICAL SAFETY WARNING:** NEVER run tests inside the `divemap_backend` container (e.g., `docker-compose exec backend pytest`). It connects to the live development database, and the test suite's teardown process WILL WIPE THE DATABASE.
 
-**Backend Tests (Host Venv):**
-```bash
-cd backend
-source divemap_venv/bin/activate
-export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
-export GOOGLE_CLIENT_ID="dummy-client-id-for-testing"
-python -m pytest tests/ -v
-```
+**Correct Testing Methods:**
+1.  **Isolated Docker (Recommended):**
+    ```bash
+    cd backend
+    ./docker-test-github-actions.sh
+    ```
+    *This script sets up a separate, ephemeral test environment.*
 
-**Backend Tests (Isolated Docker):**
+2.  **Host Venv (Alternative):**
+    ```bash
+    cd backend
+    source divemap_venv/bin/activate
+    export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+    export GOOGLE_CLIENT_ID="dummy-client-id-for-testing"
+    python -m pytest tests/ -v
+    ```
+
+**Disaster Recovery:**
+If the database is accidentally wiped, check `database_backups/` for recent SQL dumps and restore using:
 ```bash
-cd backend
-./docker-test-github-actions.sh
+cat database_backups/<backup_file> | docker-compose exec -T db mysql -u divemap_user -pdivemap_password divemap
 ```
 
 **Frontend Tests:**
@@ -101,3 +110,12 @@ docker-compose exec backend python run_migrations.py
 
 ## Documentation
 Documentation is consolidated in the `docs/` directory. Major changes should be reflected in the relevant documentation files to prevent information pollution.
+
+## Form Validation & Schemas
+- **Frontend Validation:** ALWAYS use Zod schemas defined in `frontend/src/utils/formHelpers.js` for form validation.
+  - Avoid inline validation in components.
+  - Ensure schemas match backend constraints to prevent 422 errors.
+  - Use `FormField` components to consistently display validation errors.
+- **Backend Validation:** Use Pydantic schemas in `backend/app/schemas.py`.
+  - Enforce strict validation (e.g., HTTPS for URLs, specific domains for platforms).
+  - Use validators to sanitize and check complex logic (e.g., preventing phone numbers in social links).

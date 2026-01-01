@@ -123,6 +123,7 @@ class User(Base):
     email_verified_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when email was verified
     email_notifications_opted_out = Column(Boolean, default=False, nullable=False)  # Global email opt-out flag
     email_opt_out_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when user opted out of all emails
+    last_accessed_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when user last accessed the application
 
     # Relationships
     site_ratings = relationship("SiteRating", back_populates="user", cascade="all, delete-orphan")
@@ -140,6 +141,20 @@ class User(Base):
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     email_verification_tokens = relationship("EmailVerificationToken", back_populates="user", cascade="all, delete-orphan")
     unsubscribe_token = relationship("UnsubscribeToken", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    social_links = relationship("UserSocialLink", back_populates="user", cascade="all, delete-orphan")
+
+class UserSocialLink(Base):
+    __tablename__ = "user_social_links"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    platform = Column(String(50), nullable=False) # e.g., "instagram", "facebook"
+    url = Column(String(500), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="social_links")
 
 class DiveSite(Base):
     __tablename__ = "dive_sites"

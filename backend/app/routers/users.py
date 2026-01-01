@@ -4,19 +4,154 @@ from sqlalchemy import or_
 from typing import List, Optional
 
 from app.database import get_db
-from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy, ApiKey
+from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy, ApiKey, UserSocialLink
 from app.schemas import (
     UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, 
     PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse,
-    ApiKeyResponse, ApiKeyCreate, ApiKeyCreateResponse, ApiKeyUpdate
+    ApiKeyResponse, ApiKeyCreate, ApiKeyCreateResponse, ApiKeyUpdate, CertificationStats,
+    UserSocialLinkCreate, UserSocialLinkResponse
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
 from app.limiter import skip_rate_limit_for_admin
 from sqlalchemy import func
 import secrets
 import base64
+import re
 
 router = APIRouter()
+
+def calculate_certification_stats(certifications) -> Optional[CertificationStats]:
+    if not certifications:
+        return None
+    
+    max_depth_val = 0.0
+    max_depth_str = None
+    all_gases = set()
+    all_tanks = set()
+    max_deco_minutes = -1
+    max_deco_str = None
+    is_unlimited_deco = False
+    
+    max_nitrox = 21 # Default to Air
+    max_trimix = None # None means no trimix
+    max_stages = 0
+
+    # Keywords to look for (naive normalization)
+    gas_keywords = ["Trimix", "Helitrox", "Helium", "Oxygen", "Nitrox", "Air"]
+    tank_keywords = ["CCR", "Rebreather", "Double", "Twinset", "Sidemount", "Stage", "Pony", "Single"]
+
+    for user_cert in certifications:
+        cert_level = user_cert.certification_level_link
+        if not cert_level:
+            continue
+        
+        # Max Depth
+        if cert_level.max_depth:
+            # Extract all numbers preceding 'm'
+            matches = re.findall(r'(\d+(?:\.\d+)?)m', cert_level.max_depth)
+            if matches:
+                # Take the largest value found in the string
+                local_max = max(float(m) for m in matches)
+                if local_max > max_depth_val:
+                    max_depth_val = local_max
+                    max_depth_str = cert_level.max_depth
+            elif "Beyond" in cert_level.max_depth:
+                 # Fallback for "Beyond Xm" if regex failed or to handle specific cases
+                 # But the regex above (\d+)m should catch "65m" in "Beyond 65m"
+                 pass
+
+        # Gases
+        if cert_level.gases:
+            val = cert_level.gases
+            # Check for keywords
+            for kw in gas_keywords:
+                if kw.lower() in val.lower():
+                    # Normalize to capitalized keyword
+                    all_gases.add(kw)
+            
+            # Nitrox / O2 Calculation
+            if "Oxygen" in val or "O2" in val or "100%" in val:
+                max_nitrox = 100
+            elif "Nitrox" in val:
+                # Look for percentage
+                matches = re.findall(r'(\d+)%', val)
+                if matches:
+                    local_max = max(int(m) for m in matches)
+                    if local_max > max_nitrox:
+                        max_nitrox = local_max
+                elif max_nitrox < 40: # Default assumption for "Nitrox" without % is usually EAN40 max for recreational
+                     max_nitrox = 40
+            
+            # Trimix Calculation
+            if "Trimix" in val or "Helitrox" in val or "Triox" in val:
+                # Check for Hypoxic vs Normoxic
+                if "Hypoxic" in val:
+                    max_trimix = "Hypoxic"
+                elif "Normoxic" in val or "Triox" in val or "Helitrox" in val:
+                    if max_trimix != "Hypoxic": # Hypoxic is "higher" level
+                        max_trimix = "Normoxic"
+                else:
+                     if max_trimix is None:
+                         max_trimix = "Trimix"
+
+        
+        # Tanks & Stages
+        if cert_level.tanks:
+            val = cert_level.tanks
+            for kw in tank_keywords:
+                if kw.lower() in val.lower():
+                    if kw == "Twinset": kw = "Double" # Normalize
+                    if kw == "Rebreather": kw = "CCR" # Normalize
+                    all_tanks.add(kw)
+            
+            # Count stages
+            # Look for "X stages" or "X+ stages"
+            stage_matches = re.findall(r'(\d+)\+?\s*stages?', val.lower())
+            if stage_matches:
+                local_stages = max(int(m) for m in stage_matches)
+                if local_stages > max_stages:
+                    max_stages = local_stages
+            elif "stage" in val.lower(): # Single "stage" mentioned without number
+                if max_stages < 1:
+                    max_stages = 1
+
+        # Deco Time
+        val = cert_level.deco_time_limit
+        if val:
+            if "Unlimited" in val:
+                is_unlimited_deco = True
+                max_deco_str = val
+            elif not is_unlimited_deco:
+                # Extract minutes
+                matches = re.findall(r'(\d+)\s*minutes?', val)
+                if matches:
+                    local_minutes = max(int(m) for m in matches)
+                    if local_minutes > max_deco_minutes:
+                        max_deco_minutes = local_minutes
+                        max_deco_str = val
+                elif "No decompression" in val and max_deco_minutes == -1:
+                     if max_deco_str is None:
+                         max_deco_str = val
+
+    # Sort sets to lists
+    # Custom sort for gases: Trimix > Helitrox > Oxygen > Nitrox > Air
+    gas_order = {k: i for i, k in enumerate(["Trimix", "Helitrox", "Helium", "Oxygen", "Nitrox", "Air"])}
+    sorted_gases = sorted(list(all_gases), key=lambda x: gas_order.get(x, 99))
+
+    # Custom sort for tanks: CCR > Double > Sidemount > Stage > Pony > Single
+    tank_order = {k: i for i, k in enumerate(["CCR", "Double", "Sidemount", "Stage", "Pony", "Single"])}
+    sorted_tanks = sorted(list(all_tanks), key=lambda x: tank_order.get(x, 99))
+
+    return CertificationStats(
+        max_depth=max_depth_val if max_depth_val > 0 else None,
+        max_depth_str=max_depth_str,
+        best_gases=sorted_gases,
+        largest_tanks=sorted_tanks,
+        max_deco_time=max_deco_str,
+        max_nitrox_pct=max_nitrox,
+        max_trimix_pct=max_trimix,
+        max_stages=max_stages
+    )
 
 # Admin user management endpoints - must be defined before regular routes
 @router.get("/admin/users", response_model=List[UserListResponse])
@@ -70,7 +205,7 @@ async def list_all_users(
 
     # Apply sorting
     if sort_by:
-        valid_sort_fields = {'id', 'username', 'email', 'created_at', 'is_admin', 'enabled', 'email_verified'}
+        valid_sort_fields = {'id', 'username', 'email', 'created_at', 'is_admin', 'enabled', 'email_verified', 'last_accessed_at'}
         if sort_by not in valid_sort_fields:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -98,6 +233,8 @@ async def list_all_users(
             sort_field = User.enabled
         elif sort_by == 'email_verified':
             sort_field = User.email_verified
+        elif sort_by == 'last_accessed_at':
+            sort_field = User.last_accessed_at
 
         if sort_order == 'desc':
             query = query.order_by(sort_field.desc())
@@ -285,6 +422,59 @@ async def change_password(
 
     return {"message": "Password changed successfully"}
 
+@router.post("/me/social-links", response_model=UserSocialLinkResponse)
+async def add_social_link(
+    link_data: UserSocialLinkCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Add or update a social media link for the current user."""
+    # Check if link for this platform already exists
+    existing_link = db.query(UserSocialLink).filter(
+        UserSocialLink.user_id == current_user.id,
+        UserSocialLink.platform == link_data.platform
+    ).first()
+
+    if existing_link:
+        # Update existing link
+        existing_link.url = link_data.url
+        db.commit()
+        db.refresh(existing_link)
+        return existing_link
+    else:
+        # Create new link
+        new_link = UserSocialLink(
+            user_id=current_user.id,
+            platform=link_data.platform,
+            url=link_data.url
+        )
+        db.add(new_link)
+        db.commit()
+        db.refresh(new_link)
+        return new_link
+
+@router.delete("/me/social-links/{platform}")
+async def remove_social_link(
+    platform: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Remove a social media link for the current user."""
+    link = db.query(UserSocialLink).filter(
+        UserSocialLink.user_id == current_user.id,
+        UserSocialLink.platform == platform
+    ).first()
+
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Social link not found"
+        )
+
+    db.delete(link)
+    db.commit()
+    return {"message": "Social link removed successfully"}
+
 @router.get("/search", response_model=List[UserSearchResponse])
 @skip_rate_limit_for_admin("60/minute")
 async def search_users(
@@ -434,14 +624,21 @@ async def get_user_public_profile(
         buddy_dives_count=buddy_dives_count or 0
     )
 
+    # Calculate certification stats
+    cert_stats = calculate_certification_stats(user.certifications)
+
     # Create response object
     response = UserPublicProfileResponse(
         username=user.username,
         avatar_url=user.avatar_url,
+        is_admin=user.is_admin,
+        is_moderator=user.is_moderator,
         number_of_dives=user.number_of_dives,
         member_since=user.created_at,
         certifications=user.certifications,
-        stats=stats
+        social_links=user.social_links,
+        stats=stats,
+        certification_stats=cert_stats
     )
 
     return response
