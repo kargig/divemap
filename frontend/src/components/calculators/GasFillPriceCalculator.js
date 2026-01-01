@@ -31,10 +31,10 @@ const GasFillPriceCalculator = () => {
     resolver: zodResolver(gasFillSchema),
     defaultValues: {
       tankSize: 12,
-      pressure: 200,
+      pressure: 220,
       gas: { o2: 32, he: 0 },
-      o2Price: 0.05,
-      hePrice: 0.15,
+      o2Price: 0.02,
+      hePrice: 0.1,
     },
     mode: 'onChange',
   });
