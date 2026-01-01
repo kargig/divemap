@@ -25,11 +25,24 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            // Put ALL node_modules into a single vendor chunk
+            // This is the safest strategy to prevent circular dependencies and
+            // initialization order issues (e.g. "Cannot read properties of undefined (reading 'forwardRef')")
+            return 'vendor';
+          }
+        },
+      },
+    },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    dedupe: ['react', 'react-dom'],
   },
   // Ensure .js files with JSX are handled (until renamed)
   esbuild: {
