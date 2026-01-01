@@ -66,6 +66,41 @@ class R2StorageService:
         month = now.strftime("%m")
         return f"user_{user_id}/dive_profiles/{year}/{month}/{filename}"
     
+    def _get_photo_path(
+        self, 
+        user_id: int, 
+        filename: str, 
+        dive_id: int | None = None, 
+        dive_site_id: int | None = None
+    ) -> str:
+        """
+        Generate photo-specific path for storage of photos uploaded by users for dives and dive sites.
+        
+        Args:
+            user_id: User ID for path organization
+            filename: Name of the file to store
+            dive_id: Optional dive ID for dive photos
+            dive_site_id: Optional dive site ID for dive site photos
+            
+        Returns:
+            str: Path where file should be stored
+            
+        Raises:
+            ValueError: If neither dive_id nor dive_site_id is provided
+        """
+        
+        now = datetime.now()
+        year = now.strftime("%Y")
+        month = now.strftime("%m")
+        
+        if dive_id:
+            return f"user_{user_id}/photos/dive_{dive_id}/{year}/{month}/{filename}"
+        elif dive_site_id:
+            return f"user_{user_id}/photos/dive_site_{dive_site_id}/{year}/{month}/{filename}"
+        
+        # This should never be reached due to the validation above, but added for type safety
+        raise ValueError("Either dive_id or dive_site_id must be provided")
+    
     def _ensure_local_directory(self, file_path: str) -> None:
         """Ensure local directory exists for file path."""
         directory = os.path.dirname(file_path)
@@ -322,6 +357,154 @@ class R2StorageService:
             status["local_storage_error"] = str(e)
         
         return status
+    
+    def upload_photo(self, user_id: int, filename: str, content: bytes, dive_id: int | None = None, dive_site_id: int | None = None) -> str:
+        """
+        Upload photo to R2 with user/dive or dive_site-specific path.
+        
+        Args:
+            user_id: User ID for path organization
+            filename: Name of the file to store
+            content: File content as bytes
+            dive_id: Optional dive ID for dive photos
+            dive_site_id: Optional dive site ID for dive site photos
+            
+        Returns:
+            str: Path where file was stored (R2 key or local path)
+        """
+        if not self.r2_available:
+            return self._upload_photo_local(user_id, filename, content, dive_id=dive_id, dive_site_id=dive_site_id)
+        
+        r2_path = self._get_photo_path(user_id, filename, dive_id=dive_id, dive_site_id=dive_site_id)
+        try:
+            self.s3_client.put_object(
+                Bucket=os.getenv('R2_BUCKET_NAME'),
+                Key=r2_path,
+                Body=content
+            )
+            logger.info(f"Successfully uploaded photo to R2: {r2_path}")
+            return r2_path
+        except Exception as e:
+            logger.warning(f"R2 photo upload failed, falling back to local: {e}")
+            return self._upload_photo_local(user_id, filename, content, dive_id=dive_id, dive_site_id=dive_site_id)
+    
+    def _upload_photo_local(self, user_id: int, filename: str, content: bytes, dive_id: int | None = None, dive_site_id: int | None = None) -> str:
+        """Upload photo to local filesystem."""
+        if dive_id:
+            local_path = os.path.join(
+                "uploads",
+                f"user_{user_id}",
+                "photos",
+                f"dive_{dive_id}",
+                filename
+            )
+        elif dive_site_id:
+            local_path = os.path.join(
+                "uploads",
+                f"user_{user_id}",
+                "photos",
+                f"dive_site_{dive_site_id}",
+                filename
+            )
+        else:
+            raise ValueError("Either dive_id or dive_site_id must be provided")
+        
+        self._ensure_local_directory(local_path)
+        
+        with open(local_path, 'wb') as f:
+            f.write(content)
+        
+        logger.info(f"Successfully uploaded photo to local storage: {local_path}")
+        return local_path
+    
+    def delete_photo(self, photo_path: str) -> bool:
+        """
+        Delete a photo from R2 or local storage.
+        
+        Args:
+            photo_path: Path to the photo (R2 key or local path)
+            
+        Returns:
+            bool: True if deletion was successful, False otherwise
+        """
+        if not self.r2_available or not photo_path.startswith('user_'):
+            # Local storage deletion
+            if photo_path.startswith('uploads/'):
+                local_path = photo_path
+            else:
+                local_path = f"uploads/{photo_path}"
+            
+            try:
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                    logger.info(f"Successfully deleted photo from local storage: {local_path}")
+                    return True
+                else:
+                    logger.warning(f"Photo not found in local storage: {local_path}")
+                    return False
+            except Exception as e:
+                logger.error(f"Failed to delete photo from local storage {local_path}: {e}")
+                return False
+        
+        # R2 deletion
+        bucket_name = os.getenv('R2_BUCKET_NAME')
+        try:
+            self.s3_client.delete_object(
+                Bucket=bucket_name,
+                Key=photo_path
+            )
+            logger.info(f"Successfully deleted photo from R2: {photo_path}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete photo from R2 {photo_path}: {e}")
+            return False
+    
+    def get_photo_url(self, photo_path: str, expires_in: int = 3600) -> str:
+        """
+        Get URL for a photo stored in R2 or local storage.
+        For R2, generates a presigned URL for secure access to private buckets.
+        
+        Args:
+            photo_path: Path to the photo (R2 key or local path)
+            expires_in: Expiration time in seconds for presigned URLs (default: 1 hour)
+            
+        Returns:
+            str: URL to access the photo (presigned URL for R2, static URL for local)
+        """
+        if not self.r2_available or not photo_path.startswith('user_'):
+            # For local storage, return a URL that uses the static file mount
+            # The backend mounts /uploads as static files
+            # photo_path is already relative like "uploads/user_1/dive_7/photo/file.jpg"
+            # So we just need to ensure it starts with /uploads
+            if photo_path.startswith('uploads/'):
+                return f"/{photo_path}"
+            return f"/uploads/{photo_path}"
+        
+        # For R2, generate a presigned URL for secure access
+        # This allows access to private buckets without making them public
+        bucket_name = os.getenv('R2_BUCKET_NAME')
+        
+        try:
+            # Check if custom domain is configured (for public buckets)
+            custom_domain = os.getenv('R2_PUBLIC_DOMAIN')
+            if custom_domain:
+                # If custom domain is set, assume bucket is public
+                return f"https://{custom_domain}/{photo_path}"
+            
+            # Generate presigned URL for private bucket access
+            # Presigned URLs are temporary and secure, allowing access without exposing credentials
+            presigned_url = self.s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': bucket_name, 'Key': photo_path},
+                ExpiresIn=expires_in
+            )
+            logger.debug(f"Generated presigned URL for {photo_path} (expires in {expires_in}s)")
+            return presigned_url
+        except Exception as e:
+            logger.error(f"Failed to generate presigned URL for {photo_path}: {e}")
+            # Fallback: try public URL format (may fail if bucket is private)
+            account_id = os.getenv('R2_ACCOUNT_ID')
+            return f"https://pub-{account_id}.r2.dev/{bucket_name}/{photo_path}"
 
 
 # Lazy-loaded global instance

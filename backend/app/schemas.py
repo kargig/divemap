@@ -250,6 +250,7 @@ class DiveSiteAliasResponse(DiveSiteAliasBase):
 class DiveSiteResponse(DiveSiteBase):
     id: int
     created_at: datetime
+    created_by: Optional[int] = None
     updated_at: datetime
     average_rating: Optional[float] = None
     total_ratings: int = 0
@@ -320,6 +321,9 @@ class SiteMediaCreate(BaseModel):
     url: str = Field(..., min_length=1, max_length=500)
     description: Optional[str] = None
 
+class SiteMediaUpdate(BaseModel):
+    description: Optional[str] = None
+
 class SiteMediaResponse(BaseModel):
     id: int
     dive_site_id: int
@@ -327,6 +331,10 @@ class SiteMediaResponse(BaseModel):
     url: str
     description: Optional[str] = None
     created_at: datetime
+    # Optional fields for dive media (when media comes from a dive)
+    dive_id: Optional[int] = None
+    user_id: Optional[int] = None
+    user_username: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -818,6 +826,9 @@ class DiveMediaCreate(BaseModel):
     description: Optional[str] = None
     title: Optional[str] = Field(None, max_length=255)  # For external links
     thumbnail_url: Optional[str] = Field(None, max_length=500)  # For external links
+
+class DiveMediaUpdate(BaseModel):
+    description: Optional[str] = None
 
 class DiveMediaResponse(BaseModel):
     id: int
@@ -1481,3 +1492,6 @@ class ApiKeyUpdate(BaseModel):
     description: Optional[str] = None
     expires_at: Optional[datetime] = None
     is_active: Optional[bool] = None
+
+class DeleteR2PhotoRequest(BaseModel):
+    r2_path: str
