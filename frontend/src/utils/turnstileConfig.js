@@ -3,12 +3,14 @@
  * @returns {Object} Object containing isEnabled boolean and siteKey string
  */
 export const getTurnstileConfig = () => {
-  const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
-  const isEnabled = Boolean(siteKey && siteKey.trim() && siteKey !== 'undefined');
+  const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+  const isEnabled = Boolean(
+    turnstileSiteKey && turnstileSiteKey.trim() && turnstileSiteKey !== 'undefined'
+  );
 
   return {
     isEnabled,
-    siteKey: isEnabled ? siteKey : null,
+    siteKey: isEnabled ? turnstileSiteKey : null,
   };
 };
 
