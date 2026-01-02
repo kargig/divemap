@@ -33,6 +33,7 @@ from app.services.dive_profile_parser import DiveProfileParser
 from .dives_validation import raise_validation_error
 from .dives_logging import log_dive_operation, log_error
 from .dives_utils import has_deco_profile, generate_dive_name, get_or_create_deco_tag, find_dive_site_by_import_id
+from app.physics import GasMix, calculate_real_volume
 
 
 # Helper function to convert old difficulty labels to new codes
@@ -643,6 +644,7 @@ def parse_cylinder(cylinder_elem):
     cylinder_data['workpressure'] = cylinder_elem.get('workpressure')
     cylinder_data['description'] = cylinder_elem.get('description')
     cylinder_data['o2'] = cylinder_elem.get('o2')
+    cylinder_data['he'] = cylinder_elem.get('he')
     cylinder_data['start'] = cylinder_elem.get('start')
     cylinder_data['end'] = cylinder_elem.get('end')
     cylinder_data['depth'] = cylinder_elem.get('depth')
@@ -819,6 +821,51 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
 
     if sac:
         dive_info_parts.append(f"SAC: {sac}")
+
+    # Calculate Real SAC (Z-Factor) using Physics Engine
+    if parsed_duration and parsed_duration > 0 and cylinders:
+        # Use first cylinder with valid pressure drop
+        for cylinder in cylinders:
+            try:
+                # Extract volume (e.g. "15.0 l")
+                size_str = cylinder.get('size', '').replace(' l', '').strip()
+                vol = float(size_str) if size_str else 0
+                
+                # Extract pressures (e.g. "200.0 bar")
+                start_str = cylinder.get('start', '').replace(' bar', '').strip()
+                end_str = cylinder.get('end', '').replace(' bar', '').strip()
+                start_p = float(start_str) if start_str else 0
+                end_p = float(end_str) if end_str else 0
+                
+                # Extract gas mix
+                o2_str = cylinder.get('o2', '21%').replace('%', '').strip()
+                he_str = cylinder.get('he', '0%').replace('%', '').strip()
+                o2 = float(o2_str) if o2_str else 21.0
+                he = float(he_str) if he_str else 0.0
+                
+                if vol > 0 and start_p > end_p:
+                    # Get average depth from computer data if available
+                    avg_depth = 0
+                    if computer_data and computer_data.get('mean_depth'):
+                        avg_depth = float(computer_data['mean_depth'].replace(' m', ''))
+                    
+                    if avg_depth > 0:
+                        gas_mix = GasMix(o2=o2, he=he)
+                        
+                        # Calculate Real Volume used (Surface Equivalent)
+                        vol_start = calculate_real_volume(vol, start_p, gas_mix)
+                        vol_end = calculate_real_volume(vol, end_p, gas_mix)
+                        gas_used_liters = vol_start - vol_end
+                        
+                        # Calculate SAC (L/min/atm)
+                        # ATA = Depth/10 + 1 (Approx for SAC)
+                        ata = (avg_depth / 10.0) + 1.0
+                        real_sac = gas_used_liters / parsed_duration / ata
+                        
+                        dive_info_parts.append(f"Real SAC (Z-Factor): {real_sac:.1f} L/min")
+                        break # Only calculate for primary cylinder
+            except (ValueError, AttributeError):
+                continue
 
     if otu:
         dive_info_parts.append(f"OTU: {otu}")

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { bestMixSchema } from '../../utils/calculatorSchemas';
+import { SURFACE_PRESSURE_BAR } from '../../utils/physics';
 
 const BestMixCalculator = () => {
   const [bestMixResult, setBestMixResult] = useState({
@@ -33,10 +34,10 @@ const BestMixCalculator = () => {
   const values = watch();
 
   // Calculate max allowed depth based on pO2 and Air (21% O2) if not using Trimix
-  // Formula: (pO2 / 0.21 - 1) * 10
+  // Formula: (pO2 / 0.21 - Surface) * 10
   const maxDepthAllowed = values.isTrimix
     ? 100
-    : Math.floor(((parseFloat(values.pO2) || 1.4) / 0.21 - 1) * 10);
+    : Math.floor(((parseFloat(values.pO2) || 1.4) / 0.21 - SURFACE_PRESSURE_BAR) * 10);
 
   useEffect(() => {
     // Clamp depth if it exceeds the new maximum when switching modes
@@ -51,7 +52,7 @@ const BestMixCalculator = () => {
     const depth = Math.max(0, parseFloat(values.depth) || 0);
     const pO2Limit = parseFloat(values.pO2) || 1.4;
     // Effective depth for ATA calc is actual depth
-    const ata = depth / 10 + 1;
+    const ata = depth / 10 + SURFACE_PRESSURE_BAR;
 
     // 1. Maximize O2 based on pO2 limit
     let fO2 = pO2Limit / ata;
@@ -68,7 +69,7 @@ const BestMixCalculator = () => {
     // 2. If Trimix, add Helium to limit Narcosis (END/EAD)
     if (values.isTrimix) {
       const targetEAD = parseFloat(values.targetEAD) || 30;
-      ataEAD = targetEAD / 10 + 1;
+      ataEAD = targetEAD / 10 + SURFACE_PRESSURE_BAR;
 
       // Max allowed N2 partial pressure to simulate Air at target EAD
       // Air is 79% N2. pN2 at EAD = 0.79 * ataEAD
@@ -252,14 +253,17 @@ const BestMixCalculator = () => {
             </div>
             <div className='flex justify-between'>
               <span>Formula:</span>
-              <span>(Depth / 10) + 1</span>
+              <span>(Depth / 10) + {SURFACE_PRESSURE_BAR}</span>
             </div>
             <div className='flex justify-between'>
               <span>Calculation:</span>
               <span>
-                ({bestMixResult.details.depth} / 10) + 1 = {bestMixResult.details.ata.toFixed(2)}{' '}
-                ATA
+                ({bestMixResult.details.depth} / 10) + {SURFACE_PRESSURE_BAR} ={' '}
+                {bestMixResult.details.ata.toFixed(2)} ATA
               </span>
+            </div>
+            <div className='text-[10px] text-gray-400 italic text-right mb-1'>
+              * {SURFACE_PRESSURE_BAR} bar is Standard Surface Pressure (1 atm).
             </div>
 
             <div className='flex justify-between font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1 mt-3'>
@@ -295,14 +299,18 @@ const BestMixCalculator = () => {
                   <span>{bestMixResult.details.targetEAD}m</span>
                 </div>
                 <div className='flex justify-between'>
-                  <span>Allowed pN2 (at EAD):</span>
+                  <span>
+                    Allowed pN<sub>2</sub> (at EAD):
+                  </span>
                   <span>
                     0.79 * {bestMixResult.details.ataEAD.toFixed(2)} ATA ={' '}
                     {bestMixResult.details.maxPPN2.toFixed(2)} bar
                   </span>
                 </div>
                 <div className='flex justify-between'>
-                  <span>Max N2 % (at Depth):</span>
+                  <span>
+                    Max N<sub>2</sub> % (at Depth):
+                  </span>
                   <span>
                     {bestMixResult.details.maxPPN2.toFixed(2)} bar /{' '}
                     {bestMixResult.details.ata.toFixed(2)} ATA ={' '}

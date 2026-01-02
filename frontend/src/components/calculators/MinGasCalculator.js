@@ -5,9 +5,10 @@ import { useForm } from 'react-hook-form';
 
 import { minGasSchema } from '../../utils/calculatorSchemas';
 import { TANK_SIZES } from '../../utils/diveConstants';
+import { calculatePressureFromVolume, SURFACE_PRESSURE_BAR } from '../../utils/physics';
 
 const MinGasCalculator = () => {
-  const [minGasResult, setMinGasResult] = useState({ liters: 0, bar: 0 });
+  const [minGasResult, setMinGasResult] = useState({ liters: 0, barIdeal: 0, barReal: 0 });
   const [showDetails, setShowDetails] = useState(false);
   const [breakdown, setBreakdown] = useState({});
 
@@ -42,7 +43,7 @@ const MinGasCalculator = () => {
 
   useEffect(() => {
     // 1. Problem Solving at Depth (1 min typically)
-    const depthATA = depth / 10 + 1;
+    const depthATA = depth / 10 + SURFACE_PRESSURE_BAR;
     const volSolve = depthATA * solveTime * sac;
 
     let volAscent = 0;
@@ -55,7 +56,7 @@ const MinGasCalculator = () => {
       if (depth > targetDepth) {
         const ascentTime = (depth - targetDepth) / ascentRate;
         const avgAscentDepth = (depth + targetDepth) / 2;
-        const avgAscentATA = avgAscentDepth / 10 + 1;
+        const avgAscentATA = avgAscentDepth / 10 + SURFACE_PRESSURE_BAR;
         volAscent = avgAscentATA * ascentTime * sac;
       }
       // No safety stop or surface ascent calculated for this gas in tech mode (gas switch assumed)
@@ -65,26 +66,31 @@ const MinGasCalculator = () => {
       if (depth > 5) {
         const ascentTime = (depth - 5) / ascentRate;
         const avgAscentDepth = (depth + 5) / 2;
-        const avgAscentATA = avgAscentDepth / 10 + 1;
+        const avgAscentATA = avgAscentDepth / 10 + SURFACE_PRESSURE_BAR;
         volAscent = avgAscentATA * ascentTime * sac;
       }
 
       // 3. Safety Stop at 5m
-      const safetyStopATA = 5 / 10 + 1; // 1.5 ATA
+      const safetyStopATA = 5 / 10 + SURFACE_PRESSURE_BAR;
       volSafety = safetyStopATA * safetyStopDuration * sac;
 
       // 4. Ascent from 5m to Surface
       const shallowestDepth = Math.min(depth, 5);
       const surfaceAscentTime = shallowestDepth / ascentRate;
       const avgSurfaceDepth = shallowestDepth / 2;
-      const avgSurfaceATA = avgSurfaceDepth / 10 + 1;
+      const avgSurfaceATA = avgSurfaceDepth / 10 + SURFACE_PRESSURE_BAR;
       volSurface = avgSurfaceATA * surfaceAscentTime * sac;
     }
 
     const totalLiters = volSolve + volAscent + volSafety + volSurface;
-    const totalBar = totalLiters / tankSize;
 
-    setMinGasResult({ liters: totalLiters, bar: totalBar });
+    // Ideal Gas Law
+    const barIdeal = totalLiters / tankSize;
+
+    // Real Gas Law (Assuming Air for simple calculation)
+    const barReal = calculatePressureFromVolume(totalLiters, tankSize, { o2: 21, he: 0 });
+
+    setMinGasResult({ liters: totalLiters, barIdeal, barReal });
     setBreakdown({
       volSolve,
       volAscent,
@@ -287,8 +293,12 @@ const MinGasCalculator = () => {
             <div className='flex justify-between'>
               <span>Solve Problem:</span>
               <span>
-                {depth / 10 + 1} ATA * {solveTime} min * {sac}L = {breakdown.volSolve?.toFixed(0)} L
+                {(depth / 10 + SURFACE_PRESSURE_BAR).toFixed(2)} ATA * {solveTime} min * {sac}L ={' '}
+                {breakdown.volSolve?.toFixed(0)} L
               </span>
+            </div>
+            <div className='text-[10px] text-gray-400 italic text-right mb-1'>
+              * {SURFACE_PRESSURE_BAR} bar is Standard Surface Pressure (1 atm).
             </div>
             <div className='flex justify-between'>
               <span>Ascent Gas:</span>
@@ -299,8 +309,8 @@ const MinGasCalculator = () => {
                 <div className='flex justify-between'>
                   <span>Safety Stop:</span>
                   <span>
-                    1.5 ATA * {safetyStopDuration} min * {sac}L = {breakdown.volSafety?.toFixed(0)}{' '}
-                    L
+                    {(5 / 10 + SURFACE_PRESSURE_BAR).toFixed(2)} ATA * {safetyStopDuration} min *{' '}
+                    {sac}L = {breakdown.volSafety?.toFixed(0)} L
                   </span>
                 </div>
                 <div className='flex justify-between'>
@@ -314,35 +324,42 @@ const MinGasCalculator = () => {
               <span>{minGasResult.liters.toFixed(0)} L</span>
             </div>
             <div className='flex justify-between text-gray-400'>
-              <span>In Bar:</span>
+              <span>Ideal Pressure:</span>
               <span>
-                {minGasResult.liters.toFixed(0)} L / {tankSize}L = {minGasResult.bar.toFixed(1)} bar
+                {minGasResult.liters.toFixed(0)} L / {tankSize}L ={' '}
+                {minGasResult.barIdeal.toFixed(1)} bar
               </span>
+            </div>
+            <div className='flex justify-between text-gray-600 pt-1'>
+              <span>Real Pressure (Z-Factor):</span>
+              <span>{minGasResult.barReal.toFixed(1)} bar</span>
+            </div>
+            <div className='text-[10px] text-gray-400 italic mt-1'>
+              Real Pressure accounts for gas becoming less compressible at high pressures.
             </div>
           </div>
         )}
 
         <div className='mt-1 sm:mt-2 p-3 sm:p-6 bg-red-50 rounded-2xl border border-red-100 flex flex-col items-center justify-center text-center'>
           <span className='text-xs sm:text-sm uppercase tracking-wider font-bold text-red-800 mb-1 sm:mb-2'>
-            Minimum Gas
+            Minimum Gas (Real)
           </span>
           <div className='flex items-baseline'>
             <span className='text-3xl sm:text-5xl font-black text-red-600'>
-              {Math.ceil(minGasResult.bar)}
+              {Math.ceil(minGasResult.barReal)}
             </span>
             <span className='ml-1 sm:ml-2 text-lg sm:text-xl font-bold text-red-400'>bar</span>
           </div>
           <p className='mt-1 sm:mt-2 text-xs sm:text-sm text-red-700 font-medium'>
-            Reserve required for safe ascent in emergency.
+            Reserve required (accounting for compressibility).
           </p>
         </div>
 
         <div className='p-3 sm:p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-start'>
           <Info className='h-4 w-4 mr-2 text-gray-400 flex-shrink-0' />
           <p>
-            This calculates the 'Rock Bottom' or 'Minimum Gas' reserve. This is the amount of gas
-            required to handle a stress situation at the deepest point and perform a safe ascent for
-            two divers.
+            This calculates the 'Rock Bottom' reserve using the Real Gas Law (Z-Factor), ensuring
+            you have enough actual gas volume for an emergency ascent.
           </p>
         </div>
       </div>

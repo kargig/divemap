@@ -5,39 +5,8 @@ import { useForm, Controller } from 'react-hook-form';
 
 import { sacRateSchema } from '../../utils/calculatorSchemas';
 import { TANK_SIZES } from '../../utils/diveConstants';
+import { calculateRealVolume, SURFACE_PRESSURE_BAR } from '../../utils/physics';
 import GasMixInput from '../forms/GasMixInput';
-
-// Gas compressibility factor (Z) using Subsurface's virial model
-const getZFactor = (bar, gas) => {
-  // Clamp pressure as Subsurface does
-  const p = Math.max(0, Math.min(bar, 500));
-
-  // Coefficients from Subsurface (3rd order virial)
-  const O2_COEFFS = [-7.18092073703e-4, 2.81852572808e-6, -1.50290620492e-9];
-  const N2_COEFFS = [-2.19260353292e-4, 2.92844845532e-6, -2.07613482075e-9];
-  const HE_COEFFS = [4.87320026468e-4, -8.83632921053e-8, 5.33304543646e-11];
-
-  const virial = (coeffs, x) => {
-    return x * coeffs[0] + x * x * coeffs[1] + x * x * x * coeffs[2];
-  };
-
-  // Subsurface uses permille (0-1000)
-  const o2 = (gas?.o2 || 21) * 10;
-  const he = (gas?.he || 0) * 10;
-  const n2 = 1000 - o2 - he;
-
-  const z_m1 = virial(O2_COEFFS, p) * o2 + virial(HE_COEFFS, p) * he + virial(N2_COEFFS, p) * n2;
-
-  return z_m1 * 0.001 + 1.0;
-};
-
-// Calculate Real Gas Volume in Liters (at 1 atm)
-const getRealVolume = (bar, tankSize, gas) => {
-  if (!bar || !tankSize) return 0;
-  const z = getZFactor(bar, gas);
-  // Subsurface uses 1 atm (1.01325 bar) as the standard pressure for volume
-  return (tankSize * (bar / 1.01325)) / z;
-};
 
 const SacRateCalculator = () => {
   const [sacResults, setSacResults] = useState({ ideal: 0, real: 0 });
@@ -72,7 +41,7 @@ const SacRateCalculator = () => {
     const endPressure = parseFloat(values.endPressure) || 0;
     const gas = values.gas || { o2: 21, he: 0 };
 
-    const ata = depth / 10 + 1;
+    const ata = depth / 10 + SURFACE_PRESSURE_BAR;
 
     // Ideal SAC Calculation
     const idealGasUsedBar = startPressure - endPressure;
@@ -83,8 +52,8 @@ const SacRateCalculator = () => {
     }
 
     // Real SAC Calculation
-    const realVolStart = getRealVolume(startPressure, tankSize, gas);
-    const realVolEnd = getRealVolume(endPressure, tankSize, gas);
+    const realVolStart = calculateRealVolume(startPressure, tankSize, gas);
+    const realVolEnd = calculateRealVolume(endPressure, tankSize, gas);
     const realGasUsedLiters = Math.max(0, realVolStart - realVolEnd);
     let realSac = 0;
     if (time > 0 && ata > 0) {
@@ -274,11 +243,17 @@ const SacRateCalculator = () => {
             </div>
             <div className='flex justify-between'>
               <span>Ambient Pressure:</span>
-              <span>{((parseFloat(values.depth) || 0) / 10 + 1).toFixed(2)} ATA</span>
+              <span>
+                ({parseFloat(values.depth) || 0}m / 10) + {SURFACE_PRESSURE_BAR} ={' '}
+                {((parseFloat(values.depth) || 0) / 10 + SURFACE_PRESSURE_BAR).toFixed(2)} ATA
+              </span>
+            </div>
+            <div className='text-[10px] text-gray-400 italic text-right mb-1'>
+              * {SURFACE_PRESSURE_BAR} bar is Standard Surface Pressure (1 atm).
             </div>
 
             <div className='flex justify-between font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1 mt-3'>
-              <span>Real SAC (Van der Waals)</span>
+              <span>Real SAC (Virial Equation)</span>
             </div>
             <div className='flex justify-between text-gray-500'>
               <span>Takes gas compressibility (Z-factor) into account.</span>
