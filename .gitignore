@@ -173,3 +173,4 @@ terraform.tfvars
 terraform/lambda_email_processor.zip
 PR-description.txt
 commit-message.txt
+frontend/dev-dist/

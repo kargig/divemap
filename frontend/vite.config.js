@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
+import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
 export default defineConfig({
@@ -15,6 +16,59 @@ export default defineConfig({
       },
       include: '**/*.svg',
     }),
+    VitePWA({
+      registerType: 'prompt',
+      includeAssets: ['favicons/*.ico', 'favicons/*.png', 'help-screenshots/*.png'],
+      manifest: {
+        name: 'Divemap - Scuba Dive Site Review Platform',
+        short_name: 'Divemap',
+        description: 'Discover, rate and review dive sites and diving centers.',
+        theme_color: '#2563eb',
+        background_color: '#ffffff',
+        display: 'standalone',
+        scope: '/',
+        start_url: '/',
+        id: '/',
+        icons: [
+          {
+            src: '/favicons/android-chrome-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any maskable'
+          },
+          {
+            src: '/favicons/android-chrome-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ],
+        screenshots: [
+          {
+            src: "/help-screenshots/dive-sites-map-view.png",
+            sizes: "2038x2388",
+            type: "image/png",
+            label: "Explore Dive Sites"
+          },
+          {
+            src: "/help-screenshots/dives-logging-interface.png",
+            sizes: "2036x2108",
+            type: "image/png",
+            label: "Log Your Dives"
+          },
+          {
+            src: "/help-screenshots/dedicated-map-view.png",
+            sizes: "2038x1053",
+            type: "image/png",
+            form_factor: "wide",
+            label: "Map View"
+          }
+        ]
+      },
+      workbox: {
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB to match the large vendor chunk
+      }
+    })
   ],
   server: {
     host: true, // Needed for Docker

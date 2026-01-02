@@ -130,6 +130,7 @@ const GlobalSearchBar = ({
       }
       error={error}
       popoverClassName={popoverClassName}
+      aria-label='Global Search'
     />
   );
 };

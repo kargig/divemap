@@ -70,8 +70,11 @@ const HeroSection = ({
               <div className='absolute inset-0 flex items-center justify-center opacity-8 bg-white'>
                 <img
                   src='/divemap_logo_domain_top4_extend.jpg'
+                  srcSet='/divemap_logo_domain_top4_extend_small.jpg 600w, /divemap_logo_domain_top4_extend.jpg 2801w'
+                  sizes='(max-width: 600px) 600px, 100vw'
                   alt=''
                   className='h-full w-full object-contain'
+                  fetchpriority='high'
                 />
               </div>
             )}

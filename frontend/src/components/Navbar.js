@@ -430,6 +430,7 @@ const Navbar = () => {
             <button
               onClick={toggleMobileMenu}
               className='text-white hover:text-blue-200 transition-colors'
+              aria-label={isMobileMenuOpen ? 'Close mobile menu' : 'Open mobile menu'}
             >
               {isMobileMenuOpen ? <X className='h-6 w-6' /> : <Menu className='h-6 w-6' />}
             </button>
