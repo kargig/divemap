@@ -15,7 +15,7 @@ const BackgroundLogo = ({ opacity = 0.03, size = 'large', className = '' }) => {
       <img
         src='/divemap-logo-hero.png'
         alt=''
-        className={`${sizeClasses[size]} opacity-${Math.round(opacity * 100)}`}
+        className={`${sizeClasses[size]} opacity-${Math.round(opacity * 100)} object-contain`}
         style={{ opacity }}
       />
     </div>
