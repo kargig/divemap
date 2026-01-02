@@ -1,4 +1,4 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 
 const BackgroundLogo = ({ opacity = 0.03, size = 'large', className = '' }) => {
   const sizeClasses = {
@@ -20,6 +20,12 @@ const BackgroundLogo = ({ opacity = 0.03, size = 'large', className = '' }) => {
       />
     </div>
   );
+};
+
+BackgroundLogo.propTypes = {
+  opacity: PropTypes.number,
+  size: PropTypes.oneOf(['small', 'medium', 'large', 'xlarge']),
+  className: PropTypes.string,
 };
 
 export default BackgroundLogo;

@@ -81,12 +81,96 @@ const getRetryDelay = attempt => {
   return Math.min(1000 * Math.pow(2, attempt), 10000);
 };
 
+// Helper to handle 401 unauthorized errors and token refresh
+const handle401Error = async (error, originalRequest) => {
+  if (isRefreshing) {
+    // If already refreshing, queue this request
+    return new Promise((resolve, reject) => {
+      failedQueue.push({ resolve, reject });
+    })
+      .then(token => {
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return api(originalRequest);
+      })
+      .catch(err => {
+        return Promise.reject(err);
+      });
+  }
+
+  originalRequest._retry = true;
+  isRefreshing = true;
+
+  try {
+    // Attempt to renew token using refresh token from cookies
+    const response = await api.post(
+      '/api/v1/auth/refresh',
+      {},
+      {
+        withCredentials: true, // Important: include cookies
+      }
+    );
+    const { access_token } = response.data;
+
+    // Update localStorage with new token
+    localStorage.setItem('access_token', access_token);
+
+    // Dispatch custom event to notify AuthContext of token refresh
+    window.dispatchEvent(
+      new window.CustomEvent('tokenRefreshed', {
+        detail: { access_token },
+      })
+    );
+
+    // Process queued requests
+    processQueue(null, access_token);
+
+    // Retry original request with new token
+    originalRequest.headers.Authorization = `Bearer ${access_token}`;
+    return api(originalRequest);
+  } catch (refreshError) {
+    // Process queued requests with error
+    processQueue(refreshError, null);
+
+    // Refresh failed, redirect to login
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+    return Promise.reject(refreshError);
+  } finally {
+    isRefreshing = false;
+  }
+};
+
+// Helper to handle retryable errors (gateway timeouts, server errors)
+const handleRetryableError = async (error, originalRequest) => {
+  const requestKey = `${originalRequest.method}:${originalRequest.url}`;
+  const attempt = retryAttempts.get(requestKey) || 0;
+  const maxRetries = 3;
+
+  if (attempt < maxRetries) {
+    // Mark as gateway retry to prevent infinite loops
+    retryAttempts.set(requestKey, attempt + 1);
+
+    const delay = getRetryDelay(attempt);
+
+    // Wait before retrying (exponential backoff)
+    await new Promise(resolve => setTimeout(resolve, delay));
+
+    // Retry the request (don't clear _gatewayRetry, it prevents infinite loops)
+    return api(originalRequest);
+  } else {
+    // Max retries reached, clear tracking and reject
+    retryAttempts.delete(requestKey);
+    error.isGatewayTimeout = true;
+    error.isServerError = true;
+    return Promise.reject(error);
+  }
+};
+
 // Response interceptor for successful responses
 api.interceptors.response.use(
   response => {
-    if (response.config.url?.includes('/auth/login') && response.status === 200) {
-    }
-
     // If we get a successful response after backend was down, notify AuthContext
     // This helps recover user session when backend comes back
     if (response.status >= 200 && response.status < 300) {
@@ -111,96 +195,22 @@ api.interceptors.response.use(
       url.includes('/auth/register') ||
       url.includes('/auth/google-login');
 
+    // Handle 401 Unauthorized
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
-      if (isRefreshing) {
-        // If already refreshing, queue this request
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then(token => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
-          })
-          .catch(err => {
-            return Promise.reject(err);
-          });
-      }
+      return handle401Error(error, originalRequest);
+    }
 
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        // Attempt to renew token using refresh token from cookies
-
-        const response = await api.post(
-          '/api/v1/auth/refresh',
-          {},
-          {
-            withCredentials: true, // Important: include cookies
-          }
-        );
-        const { access_token } = response.data;
-
-        // Update localStorage with new token
-        localStorage.setItem('access_token', access_token);
-
-        // Dispatch custom event to notify AuthContext of token refresh
-        window.dispatchEvent(
-          new window.CustomEvent('tokenRefreshed', {
-            detail: { access_token },
-          })
-        );
-
-        // Process queued requests
-        processQueue(null, access_token);
-
-        // Retry original request with new token
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        // Process queued requests with error
-        processQueue(refreshError, null);
-
-        // Refresh failed, redirect to login
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
-      }
-    } else if (error.response?.status === 429) {
-      // Rate limiting - extract retry after information if available
+    // Handle 429 Rate Limiting
+    if (error.response?.status === 429) {
       const retryAfter =
         error.response.headers['retry-after'] || error.response.data?.retry_after || 30;
       error.retryAfter = retryAfter;
       error.isRateLimited = true;
-    } else if (isRetryableError(error) && !originalRequest._gatewayRetry && !isAuthEndpoint) {
-      // Handle gateway timeouts (504) and server errors (5xx)
-      // These often happen when backend is cold-starting on Fly.io
-      const requestKey = `${originalRequest.method}:${originalRequest.url}`;
-      const attempt = retryAttempts.get(requestKey) || 0;
-      const maxRetries = 3;
+    }
 
-      if (attempt < maxRetries) {
-        // Mark as gateway retry to prevent infinite loops
-        originalRequest._gatewayRetry = true;
-        retryAttempts.set(requestKey, attempt + 1);
-
-        const delay = getRetryDelay(attempt);
-
-        // Wait before retrying (exponential backoff)
-        await new Promise(resolve => setTimeout(resolve, delay));
-
-        // Retry the request (don't clear _gatewayRetry, it prevents infinite loops)
-        return api(originalRequest);
-      } else {
-        // Max retries reached, clear tracking and reject
-        retryAttempts.delete(requestKey);
-        error.isGatewayTimeout = true;
-        error.isServerError = true;
-      }
+    // Handle Retryable Errors (5xx, timeouts)
+    if (isRetryableError(error) && !originalRequest._gatewayRetry && !isAuthEndpoint) {
+      return handleRetryableError(error, originalRequest);
     }
 
     // Clear retry tracking on final failure (if not already cleared)
@@ -220,7 +230,7 @@ export const healthCheck = async () => {
       timeout: 5000, // 5 second timeout
     });
     return response.data;
-  } catch (error) {
+  } catch {
     // Silently fail - this is just a keepalive
     return null;
   }
@@ -276,6 +286,58 @@ export const extractFieldErrors = error => {
   return fieldErrors;
 };
 
+// Helper to extract error message from FastAPI detail
+const extractDetailMessage = detail => {
+  // Handle Pydantic validation errors (array of error objects)
+  if (Array.isArray(detail)) {
+    // Extract the first validation error message with field name
+    const firstError = detail[0];
+    if (firstError && typeof firstError === 'object') {
+      if (firstError.loc && Array.isArray(firstError.loc)) {
+        const fieldDisplayName = getFieldNameFromLoc(firstError.loc);
+        const errorMsg = firstError.msg || 'Validation error';
+        return `${fieldDisplayName}: ${errorMsg}`;
+      }
+      return firstError.msg || 'Validation error';
+    }
+    return 'Validation error';
+  }
+  // Handle simple string error messages
+  if (typeof detail === 'string') {
+    return detail;
+  }
+  // If detail is an object (not array, not string), try to extract message
+  if (typeof detail === 'object' && detail !== null) {
+    return detail.msg || detail.message || JSON.stringify(detail);
+  }
+  return null;
+};
+
+// Helper to extract message from general response data
+const extractDataMessage = (data, defaultMessage) => {
+  if (typeof data === 'string') return data;
+  if (data.detail) {
+    if (typeof data.detail === 'string') return data.detail;
+    if (Array.isArray(data.detail) && data.detail.length > 0) {
+      const first = data.detail[0];
+      if (first?.msg) return first.msg;
+      try {
+        return JSON.stringify(data.detail);
+      } catch {
+        return defaultMessage;
+      }
+    }
+    try {
+      return JSON.stringify(data.detail);
+    } catch {
+      return defaultMessage;
+    }
+  }
+  if (data.msg) return data.msg;
+  if (data.message) return data.message;
+  return null;
+};
+
 // Utility function to extract error message from API responses
 // Supports FastAPI/axios error payloads, Pydantic validation errors, and various error formats
 export const extractErrorMessage = (error, defaultMessage = 'An error occurred') => {
@@ -287,54 +349,14 @@ export const extractErrorMessage = (error, defaultMessage = 'An error occurred')
 
   // Handle error.response.data.detail (FastAPI standard)
   if (error.response?.data?.detail) {
-    const detail = error.response.data.detail;
-    // Handle Pydantic validation errors (array of error objects)
-    if (Array.isArray(detail)) {
-      // Extract the first validation error message with field name
-      const firstError = detail[0];
-      if (firstError && typeof firstError === 'object') {
-        if (firstError.loc && Array.isArray(firstError.loc)) {
-          const fieldDisplayName = getFieldNameFromLoc(firstError.loc);
-          const errorMsg = firstError.msg || 'Validation error';
-          return `${fieldDisplayName}: ${errorMsg}`;
-        }
-        return firstError.msg || 'Validation error';
-      }
-      return 'Validation error';
-    }
-    // Handle simple string error messages
-    if (typeof detail === 'string') {
-      return detail;
-    }
-    // If detail is an object (not array, not string), try to extract message
-    if (typeof detail === 'object' && detail !== null) {
-      return detail.msg || detail.message || JSON.stringify(detail);
-    }
+    const detailMsg = extractDetailMessage(error.response.data.detail);
+    if (detailMsg) return detailMsg;
   }
 
   // Handle error.response.data (alternative location)
   if (error.response?.data) {
-    const data = error.response.data;
-    if (typeof data === 'string') return data;
-    if (data.detail) {
-      if (typeof data.detail === 'string') return data.detail;
-      if (Array.isArray(data.detail) && data.detail.length > 0) {
-        const first = data.detail[0];
-        if (first?.msg) return first.msg;
-        try {
-          return JSON.stringify(data.detail);
-        } catch {
-          return defaultMessage;
-        }
-      }
-      try {
-        return JSON.stringify(data.detail);
-      } catch {
-        return defaultMessage;
-      }
-    }
-    if (data.msg) return data.msg;
-    if (data.message) return data.message;
+    const dataMsg = extractDataMessage(error.response.data, defaultMessage);
+    if (dataMsg) return dataMsg;
   }
 
   // Handle error.detail (direct property)
