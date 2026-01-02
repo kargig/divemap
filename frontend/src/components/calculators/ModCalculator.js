@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 
 import { modSchema } from '../../utils/calculatorSchemas';
+import { calculateMOD, calculateEND, SURFACE_PRESSURE_BAR } from '../../utils/physics';
 import GasMixInput from '../forms/GasMixInput';
 
 const ModCalculator = () => {
@@ -36,19 +37,18 @@ const ModCalculator = () => {
 
     if (fO2 <= 0) return { mod: 0, end: 0, ata: 0, fO2, fHe };
 
-    // 1. Calculate Max Ambient Pressure (ATA)
+    // 1. Calculate MOD (Depth) using shared physics
+    const mod = calculateMOD(gas, parseFloat(pO2));
+
+    // 2. Calculate Max Ambient Pressure (ATA) - derived for display
     const maxAta = parseFloat(pO2) / fO2;
 
-    // 2. Calculate MOD (Depth)
-    const mod = (maxAta - 1) * 10;
-
-    // 3. Calculate END
-    const endAta = maxAta * (1 - fHe);
-    const end = (endAta - 1) * 10;
+    // 3. Calculate END using shared physics
+    const end = calculateEND(mod, gas);
 
     return {
-      mod: Math.max(0, mod),
-      end: Math.max(0, end),
+      mod,
+      end,
       ata: maxAta,
       fO2,
       fHe,
@@ -215,7 +215,11 @@ const ModCalculator = () => {
             </div>
             <div className='flex justify-between'>
               <span>Formula:</span>
-              <span>(ATA - 1) * 10</span>
+              <span>(ATA - {SURFACE_PRESSURE_BAR}) * 10</span>
+            </div>
+            <div className='text-[10px] text-gray-400 italic text-right mb-1'>
+              * {SURFACE_PRESSURE_BAR} bar is Standard Surface Pressure (1 atm), used for precise
+              depth calculation.
             </div>
             <div className='flex justify-between font-bold text-blue-600'>
               <span>Result:</span>
@@ -275,7 +279,7 @@ const ModCalculator = () => {
       <div className='p-3 sm:p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-start'>
         <Info className='h-4 w-4 mr-2 text-gray-400 flex-shrink-0' />
         <p>
-          Formula: MOD = (pO<sub>2</sub>_max / fO<sub>2</sub> - 1) * 10.
+          Formula: MOD = (pO<sub>2</sub>_max / fO<sub>2</sub> - {SURFACE_PRESSURE_BAR}) * 10.
           {result.fHe > 0 ? (
             <span>
               {' '}
