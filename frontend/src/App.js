@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 
 import EmailVerificationBanner from './components/EmailVerificationBanner';
 import Navbar from './components/Navbar';
+import PWAUpdater from './components/PWAUpdater';
 import ReportIssueButton from './components/ReportIssueButton';
 import { SessionManager } from './components/SessionManager';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -161,6 +162,7 @@ function App() {
         <NotificationProvider>
           <Router>
             <div className='min-h-screen bg-gray-50'>
+              <PWAUpdater />
               <Navbar />
               <SessionManager />
               <main className='container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pt-16'>

@@ -22,6 +22,7 @@ const ReportIssueButton = () => {
                  opacity-40 hover:opacity-100 hover:bg-white hover:text-black hover:shadow-md
                  transition-all duration-300 z-50 border border-gray-200'
       title='Report an issue'
+      aria-label='Report an issue'
     >
       <Bug size={20} />
     </a>

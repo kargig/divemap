@@ -147,7 +147,7 @@ const Home = () => {
         </Link>
         <Link
           to='/dive-trips'
-          className='bg-orange-600 hover:bg-orange-700 text-white px-8 sm:px-10 py-2 text-sm sm:text-base font-semibold flex-1 sm:flex-initial min-w-[160px] sm:min-w-[180px] whitespace-nowrap rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105'
+          className='bg-orange-700 hover:bg-orange-800 text-white px-8 sm:px-10 py-2 text-sm sm:text-base font-semibold flex-1 sm:flex-initial min-w-[160px] sm:min-w-[180px] whitespace-nowrap rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105'
         >
           <Calendar className='h-5 w-5' />
           Browse Dive Trips
@@ -161,7 +161,7 @@ const Home = () => {
           className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer'
         >
           <Map className='h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4' />
-          <h3 className='text-lg sm:text-xl font-semibold mb-2'>Discover Sites</h3>
+          <h2 className='text-lg sm:text-xl font-semibold mb-2'>Discover Sites</h2>
           <p className='text-sm sm:text-base text-gray-600'>
             Browse through our comprehensive database of dive sites with detailed information,
             difficulty levels, and access instructions.
@@ -173,7 +173,7 @@ const Home = () => {
           className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer'
         >
           <BookOpen className='h-10 w-10 sm:h-12 sm:w-12 text-green-600 mx-auto mb-3 sm:mb-4' />
-          <h3 className='text-lg sm:text-xl font-semibold mb-2'>Log Your Dives</h3>
+          <h2 className='text-lg sm:text-xl font-semibold mb-2'>Log Your Dives</h2>
           <p className='text-sm sm:text-base text-gray-600'>
             Record your diving experiences, track your progress, and share your adventures with the
             diving community.
@@ -182,7 +182,7 @@ const Home = () => {
 
         <div className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md'>
           <Star className='h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4' />
-          <h3 className='text-lg sm:text-xl font-semibold mb-2'>Rate & Review</h3>
+          <h2 className='text-lg sm:text-xl font-semibold mb-2'>Rate & Review</h2>
           <p className='text-sm sm:text-base text-gray-600'>
             Share your experiences by rating dive sites and leaving detailed reviews to help other
             divers make informed decisions.
@@ -194,7 +194,7 @@ const Home = () => {
           className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer'
         >
           <Anchor className='h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4' />
-          <h3 className='text-lg sm:text-xl font-semibold mb-2'>Find Centers</h3>
+          <h2 className='text-lg sm:text-xl font-semibold mb-2'>Find Centers</h2>
           <p className='text-sm sm:text-base text-gray-600'>
             Connect with professional diving centers, view their services, and get in touch for your
             next diving adventure.
@@ -210,40 +210,40 @@ const Home = () => {
               {animatedDives.toLocaleString()}
               {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
             </div>
-            <div className='text-blue-200'>Dives</div>
+            <div className='text-blue-100'>Dives</div>
           </Link>
           <Link to='/dive-sites' className='hover:bg-blue-700 p-4 rounded-lg transition-colors'>
             <div className='text-3xl font-bold mb-2'>
               {animatedDiveSites.toLocaleString()}
               {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
             </div>
-            <div className='text-blue-200'>Dive Sites</div>
+            <div className='text-blue-100'>Dive Sites</div>
           </Link>
           <div className='p-4'>
             <div className='text-3xl font-bold mb-2'>
               {animatedReviews.toLocaleString()}
               {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
             </div>
-            <div className='text-blue-200'>Reviews</div>
+            <div className='text-blue-100'>Reviews</div>
           </div>
           <Link to='/diving-centers' className='hover:bg-blue-700 p-4 rounded-lg transition-colors'>
             <div className='text-3xl font-bold mb-2'>
               {animatedDivingCenters.toLocaleString()}
               {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
             </div>
-            <div className='text-blue-200'>Diving Centers</div>
+            <div className='text-blue-100'>Diving Centers</div>
           </Link>
           <Link to='/dive-trips' className='hover:bg-blue-700 p-4 rounded-lg transition-colors'>
             <div className='text-3xl font-bold mb-2'>
               {animatedDiveTrips.toLocaleString()}
               {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
             </div>
-            <div className='text-blue-200'>Dive Trips</div>
+            <div className='text-blue-100'>Dive Trips</div>
           </Link>
         </div>
         {!isBackendAvailable && (
           <div className='text-center mt-4'>
-            <div className='text-blue-200 text-sm animate-pulse'>
+            <div className='text-blue-100 text-sm animate-pulse'>
               ✨ Live data loading... Our community is growing!
             </div>
           </div>
@@ -273,7 +273,7 @@ const Home = () => {
           </Link>
           <Link
             to='/dives'
-            className='px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-semibold'
+            className='px-8 py-3 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors text-lg font-semibold'
           >
             Browse Dives
           </Link>

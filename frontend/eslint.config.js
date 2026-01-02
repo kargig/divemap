@@ -1,4 +1,5 @@
 const js = require('@eslint/js');
+const path = require('path');
 const react = require('eslint-plugin-react');
 const reactHooks = require('eslint-plugin-react-hooks');
 const jsxA11y = require('eslint-plugin-jsx-a11y');
@@ -141,10 +142,14 @@ module.exports = [
       'jsx-a11y/no-noninteractive-element-to-interactive-role': 'warn',
     },
     settings: {
+      'import/core-modules': ['virtual:pwa-register'],
       react: {
         version: 'detect',
       },
       'import/resolver': {
+        vite: {
+          viteConfig: path.resolve(__dirname, 'vite.config.js'),
+        },
         node: {
           extensions: ['.js', '.jsx'],
         },
