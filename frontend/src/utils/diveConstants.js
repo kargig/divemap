@@ -1,6 +1,14 @@
 // Tank Definitions
 export const TANK_SIZES = [
   {
+    id: '3',
+    name: '3 Liters (Pony)',
+    size: 3,
+    defaultPressure: 232,
+    material: 'steel',
+    emptyWeight: 4,
+  },
+  {
     id: 'al40',
     name: 'AL40 (5.7L)',
     size: 5.7,
@@ -100,6 +108,24 @@ export const TANK_SIZES = [
     defaultPressure: 232,
     material: 'steel',
     emptyWeight: 28,
+    isDoubles: true,
+  },
+  {
+    id: '30',
+    name: 'Double 15s (30L)',
+    size: 30,
+    defaultPressure: 232,
+    material: 'steel',
+    emptyWeight: 33, // 2x16.5
+    isDoubles: true,
+  },
+  {
+    id: '36',
+    name: 'Double 18s (36L)',
+    size: 36,
+    defaultPressure: 232,
+    material: 'steel',
+    emptyWeight: 40, // 2x20
     isDoubles: true,
   },
 ];

@@ -5,15 +5,21 @@ import { useForm } from 'react-hook-form';
 
 import { gasPlanningSchema } from '../../utils/calculatorSchemas';
 import { TANK_SIZES } from '../../utils/diveConstants';
+import { calculatePressureFromVolume, SURFACE_PRESSURE_BAR } from '../../utils/physics';
 
 const GasPlanningCalculator = () => {
   const [planGasResult, setPlanGasResult] = useState({
     diveGasLiters: 0,
     reserveGasLiters: 0,
     totalGasLiters: 0,
-    totalPressure: 0,
+    idealPressure: 0,
+    realPressure: 0,
+    realDiveGasPressure: 0,
+    realReserveGasPressure: 0,
+    realBarPerMin: 0,
     isSafe: true,
-    remainingPressure: 0,
+    remainingPressureIdeal: 0,
+    remainingPressureReal: 0,
   });
   const [showDetails, setShowDetails] = useState(false);
 
@@ -62,17 +68,40 @@ const GasPlanningCalculator = () => {
       reserveGasLiters = 0;
     }
 
-    const totalPressure = totalGasLiters / tankSize;
-    const isSafe = totalPressure <= pressure;
-    const remainingPressure = pressure - totalPressure;
+    // Ideal Gas Law (PV = const)
+    const idealPressure = totalGasLiters / tankSize;
+
+    // Real Gas Law (Virial Z-factor)
+    // Assuming Air (21/0) as this simple calculator doesn't specify gas mix
+    const realPressure = calculatePressureFromVolume(totalGasLiters, tankSize, { o2: 21, he: 0 });
+    const realDiveGasPressure = calculatePressureFromVolume(diveGasLiters, tankSize, {
+      o2: 21,
+      he: 0,
+    });
+    const realReserveGasPressure = calculatePressureFromVolume(reserveGasLiters, tankSize, {
+      o2: 21,
+      he: 0,
+    });
+
+    const realBarPerMin = time > 0 ? realDiveGasPressure / time : 0;
+
+    // Safety checks
+    const isSafe = realPressure <= pressure; // Use Real pressure for safety as it's conservative (higher required P)
+    const remainingPressureIdeal = pressure - idealPressure;
+    const remainingPressureReal = pressure - realPressure;
 
     setPlanGasResult({
       diveGasLiters,
       reserveGasLiters,
       totalGasLiters,
-      totalPressure,
+      idealPressure,
+      realPressure,
+      realDiveGasPressure,
+      realReserveGasPressure,
+      realBarPerMin,
       isSafe,
-      remainingPressure,
+      remainingPressureIdeal,
+      remainingPressureReal,
     });
   }, [depth, time, sac, tankSize, pressure, values.isAdvanced]);
 
@@ -233,29 +262,40 @@ const GasPlanningCalculator = () => {
             <div className='flex justify-between'>
               <span>Ambient Pressure:</span>
               <span>
-                ({depth}m / 10) + 1 = {(depth / 10 + 1).toFixed(2)} ATA
+                ({depth}m / 10) + {SURFACE_PRESSURE_BAR} ={' '}
+                {(depth / 10 + SURFACE_PRESSURE_BAR).toFixed(2)} ATA
               </span>
+            </div>
+            <div className='text-[10px] text-gray-400 italic text-right mb-1'>
+              * {SURFACE_PRESSURE_BAR} bar is Standard Surface Pressure (1 atm).
             </div>
             <div className='flex justify-between'>
               <span>Consumption at Depth:</span>
               <span>
-                {sac.toFixed(1)} L/min * {(depth / 10 + 1).toFixed(2)} ATA ={' '}
-                {(sac * (depth / 10 + 1)).toFixed(1)} L/min
+                {sac.toFixed(1)} L/min * {(depth / 10 + SURFACE_PRESSURE_BAR).toFixed(2)} ATA ={' '}
+                {(sac * (depth / 10 + SURFACE_PRESSURE_BAR)).toFixed(1)} L/min
               </span>
             </div>
             <div className='flex justify-between border-t border-gray-200 pt-1'>
               <span>Total Volume:</span>
               <span>
                 {(sac * (depth / 10 + 1)).toFixed(1)} L/min * {time} min ={' '}
-                {planGasResult.diveGasLiters.toFixed(0)} L
+                {planGasResult.totalGasLiters.toFixed(0)} L
               </span>
             </div>
-            <div className='flex justify-between'>
-              <span>Pressure Required:</span>
+            <div className='flex justify-between text-gray-400'>
+              <span>Ideal (Linear) Pressure:</span>
               <span>
                 {planGasResult.totalGasLiters.toFixed(0)} L / {tankSize}L ={' '}
-                {planGasResult.totalPressure.toFixed(0)} bar
+                {planGasResult.idealPressure.toFixed(0)} bar
               </span>
+            </div>
+            <div className='flex justify-between font-bold text-gray-800 pt-1'>
+              <span>Required Pressure (Real):</span>
+              <span>{planGasResult.realPressure.toFixed(0)} bar</span>
+            </div>
+            <div className='text-[10px] text-gray-400 italic mt-1'>
+              Real Pressure accounts for gas becoming less compressible at high pressures.
             </div>
             {values.isAdvanced && (
               <div className='flex justify-between text-gray-400 border-t border-gray-100 pt-1'>
@@ -279,7 +319,7 @@ const GasPlanningCalculator = () => {
               planGasResult.isSafe ? 'text-emerald-800' : 'text-red-800'
             }`}
           >
-            Total Gas Consumed
+            Total Gas Consumed (Real)
           </span>
           <div className='flex items-baseline'>
             <span
@@ -287,7 +327,7 @@ const GasPlanningCalculator = () => {
                 planGasResult.isSafe ? 'text-emerald-600' : 'text-red-600'
               }`}
             >
-              {planGasResult.totalPressure.toFixed(0)}
+              {planGasResult.realPressure.toFixed(0)}
             </span>
             <span
               className={`ml-1 sm:ml-2 text-lg sm:text-xl font-bold ${
@@ -312,28 +352,34 @@ const GasPlanningCalculator = () => {
             </div>
           )}
 
-          {planGasResult.isSafe && !values.isAdvanced && planGasResult.remainingPressure < 50 && (
-            <div className='mt-2 sm:mt-3 flex items-center text-amber-600 bg-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-bold border border-amber-200 shadow-sm'>
-              <AlertTriangle className='h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2' />
-              WARNING: Low reserve
-            </div>
-          )}
+          {planGasResult.isSafe &&
+            !values.isAdvanced &&
+            planGasResult.remainingPressureReal < 50 && (
+              <div className='mt-2 sm:mt-3 flex items-center text-amber-600 bg-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-bold border border-amber-200 shadow-sm'>
+                <AlertTriangle className='h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2' />
+                WARNING: Low reserve
+              </div>
+            )}
 
-          {planGasResult.isSafe && (values.isAdvanced || planGasResult.remainingPressure >= 50) && (
-            <div className='mt-2 sm:mt-3 flex items-center text-emerald-600 bg-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium border border-emerald-200'>
-              <div className='w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 mr-1 sm:mr-2'></div>
-              Within safe limits
-            </div>
-          )}
+          {planGasResult.isSafe &&
+            (values.isAdvanced || planGasResult.remainingPressureReal >= 50) && (
+              <div className='mt-2 sm:mt-3 flex items-center text-emerald-600 bg-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium border border-emerald-200'>
+                <div className='w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 mr-1 sm:mr-2'></div>
+                Within safe limits
+              </div>
+            )}
 
           <div className='mt-2 sm:mt-4 w-full grid grid-cols-2 gap-2 text-xs'>
             <div className='bg-white p-2 rounded border border-gray-200'>
               <div className='font-bold text-gray-500'>Dive Gas</div>
               <div className='text-gray-900 font-bold text-sm sm:text-base'>
                 {planGasResult.diveGasLiters.toFixed(0)} L
-                <span className='text-gray-400 font-normal ml-1'>
-                  ({(planGasResult.diveGasLiters / tankSize).toFixed(0)} bar)
-                </span>
+                <div className='text-gray-400 font-normal ml-1 mt-0.5'>
+                  ~{planGasResult.realDiveGasPressure.toFixed(0)} bar
+                </div>
+                <div className='text-emerald-600 font-semibold ml-1 text-[10px]'>
+                  {planGasResult.realBarPerMin.toFixed(1)} bar/min
+                </div>
               </div>
             </div>
             {values.isAdvanced && (
@@ -341,8 +387,8 @@ const GasPlanningCalculator = () => {
                 <div className='font-bold text-gray-500'>Reserve (1/3)</div>
                 <div className='text-gray-900 font-bold text-sm sm:text-base'>
                   {planGasResult.reserveGasLiters.toFixed(0)} L
-                  <span className='text-gray-400 font-normal ml-1'>
-                    ({(planGasResult.reserveGasLiters / tankSize).toFixed(0)} bar)
+                  <span className='text-gray-400 font-normal ml-1 block'>
+                    (~{planGasResult.realReserveGasPressure.toFixed(0)} bar)
                   </span>
                 </div>
               </div>
@@ -355,8 +401,10 @@ const GasPlanningCalculator = () => {
         <Info className='h-4 w-4 mr-2 text-gray-400 flex-shrink-0' />
         <p>
           {values.isAdvanced
-            ? 'Total Gas = (SAC * ATA * Time) * 1.5. Uses Rule of Thirds to ensure you only use 2/3 of your gas for the planned dive profile.'
-            : 'Total Gas = SAC * ATA * Time. Calculates estimated total gas usage for your planned bottom time.'}
+            ? 'Total Gas = (SAC * ATA * Time) * 1.5. Uses Rule of Thirds.'
+            : 'Total Gas = SAC * ATA * Time.'}{' '}
+          Uses Real Gas Law (Z-Factor) for pressure calculation, accounting for non-ideal gas
+          behavior.
         </p>
       </div>
     </div>
