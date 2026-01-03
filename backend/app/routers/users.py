@@ -337,7 +337,7 @@ async def update_user(
         )
 
     # Update only provided fields
-    update_data = user_update.dict(exclude_unset=True)
+    update_data = user_update.model_dump(exclude_unset=True)
 
     for field, value in update_data.items():
         setattr(db_user, field, value)
@@ -390,7 +390,7 @@ async def update_current_user_profile(
     db: Session = Depends(get_db)
 ):
     # Update only provided fields
-    update_data = user_update.dict(exclude_unset=True)
+    update_data = user_update.model_dump(exclude_unset=True)
 
     # Handle password update separately
     if 'password' in update_data:
@@ -777,7 +777,7 @@ async def update_api_key(
         )
     
     # Update only provided fields
-    update_data = key_update.dict(exclude_unset=True)
+    update_data = key_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(api_key, field, value)
     

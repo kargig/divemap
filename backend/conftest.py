@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from app.main import app
 from app.database import get_db, Base
@@ -58,6 +58,18 @@ def db_engine():
         print(f"Warning: Could not drop tables at session end: {e}")
 
 @pytest.fixture(scope="session", autouse=True)
+def mock_detect_shore_direction():
+    """Mock detect_shore_direction globally to avoid network requests during tests."""
+    with patch("app.routers.dive_sites.detect_shore_direction") as mocked:
+        mocked.return_value = {
+            "shore_direction": 90.0,
+            "confidence": "high",
+            "method": "osm_coastline",
+            "distance_to_coastline_m": 100.0
+        }
+        yield mocked
+
+@pytest.fixture(scope="session", autouse=True)
 def populate_difficulty_levels(db_engine):
     """Auto-populate difficulty levels once per session."""
     from sqlalchemy import text
@@ -86,7 +98,8 @@ def db_session(db_engine):
         yield session
     finally:
         session.close()
-        transaction.rollback()  # Rollback instead of dropping tables
+        if transaction.is_active:
+            transaction.rollback()
         connection.close()
 
 @pytest.fixture

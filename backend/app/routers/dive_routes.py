@@ -337,7 +337,7 @@ async def update_route(
         )
     
     # Update fields with sanitization
-    update_data = route_data.dict(exclude_unset=True)
+    update_data = route_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         if field == "name" and value:
             sanitized_value = sanitize_input(value, MAX_ROUTE_NAME_LENGTH)

@@ -826,7 +826,7 @@ def calculate_growth_rate(start, end):
 
 @router.get("/growth", response_model=GrowthResponse)
 async def get_growth_data(
-    period: str = Query("3months", regex="^(week|month|3months|6months|year)$"),
+    period: str = Query("3months", pattern="^(week|month|3months|6months|year)$"),
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):

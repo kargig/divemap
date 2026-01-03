@@ -143,7 +143,7 @@ async def create_certification_level(
     if level_data.diving_organization_id != organization.id:
         level_data.diving_organization_id = organization.id
 
-    new_level = CertificationLevel(**level_data.dict())
+    new_level = CertificationLevel(**level_data.model_dump())
     db.add(new_level)
     db.commit()
     db.refresh(new_level)
@@ -170,7 +170,7 @@ async def update_certification_level(
     if not level:
         raise HTTPException(status_code=404, detail="Certification level not found for this organization")
 
-    update_data = level_data.dict(exclude_unset=True)
+    update_data = level_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(level, field, value)
 
@@ -223,7 +223,7 @@ async def create_diving_organization(
     if existing_org:
         raise HTTPException(status_code=400, detail="Organization with this name already exists")
 
-    db_organization = DivingOrganization(**organization.dict())
+    db_organization = DivingOrganization(**organization.model_dump())
     db.add(db_organization)
     db.commit()
     db.refresh(db_organization)
@@ -257,7 +257,7 @@ async def update_diving_organization(
             raise HTTPException(status_code=400, detail="Organization with this name already exists")
 
     # Update fields
-    update_data = organization.dict(exclude_unset=True)
+    update_data = organization.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_organization, field, value)
 

@@ -55,7 +55,8 @@ class TestLastAccessedAt:
         # but db update will be now() so it will definitely be > past_time
         
         # Refresh token
-        response = client.post("/api/v1/auth/refresh", cookies={"refresh_token": refresh_token})
+        client.cookies = {"refresh_token": refresh_token}
+        response = client.post("/api/v1/auth/refresh")
         assert response.status_code == status.HTTP_200_OK
         
         # Verify last_accessed_at was updated

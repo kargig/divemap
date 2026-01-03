@@ -88,7 +88,7 @@ async def create_my_certification(
     if query.first():
         raise HTTPException(status_code=400, detail="Certification already exists for this organization and level")
 
-    db_certification = UserCertification(**certification.dict(), user_id=current_user.id)
+    db_certification = UserCertification(**certification.model_dump(), user_id=current_user.id)
     db.add(db_certification)
     db.commit()
     db.refresh(db_certification)
@@ -136,7 +136,7 @@ async def update_my_certification(
             certification.certification_level = level.name
 
     # Update fields
-    update_data = certification.dict(exclude_unset=True)
+    update_data = certification.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_certification, field, value)
 

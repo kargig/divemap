@@ -1287,7 +1287,7 @@ def update_dive(
                 dive.name = generate_dive_name(dive_site.name, dive.dive_date)
 
     # Update other fields (exclude difficulty_code - handle separately)
-    update_data = dive_update.dict(exclude_unset=True)
+    update_data = dive_update.model_dump(exclude_unset=True)
     
     # Convert difficulty_code to difficulty_id if provided
     if 'difficulty_code' in update_data:

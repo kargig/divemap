@@ -1355,20 +1355,28 @@ class TestCacheSizeAndCleanup:
     def test_cache_size_limit_500_entries(self, mock_get, monkeypatch):
         """Test that cache size limit is 500 entries."""
         import app.services.open_meteo_service as oms
-        from app.services.open_meteo_service import _cleanup_cache
+        from app.services.open_meteo_service import _cleanup_cache, _generate_cache_key
         monkeypatch.setattr(oms, '_wind_cache', {})
         monkeypatch.setattr(oms, '_max_cache_size', 500)
         
         base_date = datetime(2025, 12, 7, 12, 0, 0)
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = self._create_hourly_response(base_date)
-        mock_get.return_value = mock_response
         
-        # Fill cache with 600 entries (25 locations × 24 hours = 600)
-        for loc_idx in range(25):
-            lat, lon = 37.0 + (loc_idx * 0.1), 24.0 + (loc_idx * 0.1)
-            fetch_wind_data_single_point(lat, lon, base_date.replace(hour=0))
+        # Directly populate cache with 600 entries (much faster than calling fetch function)
+        for loc_idx in range(600):
+            # Generate unique keys
+            lat, lon = 37.0 + (loc_idx * 0.001), 24.0 + (loc_idx * 0.001)
+            cache_key = _generate_cache_key(lat, lon, target_datetime=base_date)
+            
+            # Add dummy data
+            oms._wind_cache[cache_key] = {
+                'data': {
+                    'wind_speed_10m': 5.0, 
+                    'wind_direction_10m': 180.0, 
+                    'wind_gusts_10m': 6.0, 
+                    'timestamp': base_date
+                },
+                'timestamp': datetime.now()
+            }
         
         # Trigger cleanup
         _cleanup_cache()
