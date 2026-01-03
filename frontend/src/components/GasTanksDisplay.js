@@ -1,9 +1,65 @@
 import { Info } from 'lucide-react';
-import React from 'react';
+import React, { useMemo } from 'react';
 
 import { TANK_SIZES } from '../utils/diveConstants';
 
-const GasTanksDisplay = ({ gasData, averageDepth, duration }) => {
+const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
+  // Calculate gas usage statistics from profile data (Hook must be at top level)
+  const gasStats = useMemo(() => {
+    if (!profileData?.samples || !profileData?.events) return null;
+
+    const stats = {}; // Key: cylinderIndex (number), Value: { duration: 0, depthSum: 0 }
+
+    // Sort events by time
+    const gasChanges = profileData.events
+      .filter(e => e.name === 'gaschange')
+      .sort((a, b) => a.time_minutes - b.time_minutes);
+
+    let currentCylinder = 0; // Default to cylinder 0
+
+    // Check for gas change at very start (t=0)
+    const startGasEvent = gasChanges.find(e => e.time_minutes <= 0.05);
+    if (startGasEvent && startGasEvent.cylinder !== undefined) {
+      currentCylinder = parseInt(startGasEvent.cylinder, 10);
+    }
+
+    // Process samples to accumulate time and depth per gas
+    for (let i = 1; i < profileData.samples.length; i++) {
+      const prevSample = profileData.samples[i - 1];
+      const sample = profileData.samples[i];
+
+      const t0 = prevSample.time_minutes;
+      const t1 = sample.time_minutes;
+      const dt = t1 - t0;
+      if (dt <= 0) continue;
+
+      const avgDepthInterval = (prevSample.depth + sample.depth) / 2;
+
+      // Determine active gas at start of interval t0
+      const activeChange = [...gasChanges].reverse().find(e => e.time_minutes <= t0 + 0.001); // tolerance
+
+      if (activeChange && activeChange.cylinder !== undefined) {
+        currentCylinder = parseInt(activeChange.cylinder, 10);
+      }
+
+      if (isNaN(currentCylinder)) currentCylinder = 0; // Fallback
+
+      if (!stats[currentCylinder]) stats[currentCylinder] = { duration: 0, depthSum: 0 };
+
+      stats[currentCylinder].duration += dt;
+      stats[currentCylinder].depthSum += avgDepthInterval * dt;
+    }
+
+    // Calculate averages
+    Object.keys(stats).forEach(k => {
+      if (stats[k].duration > 0) {
+        stats[k].avgDepth = stats[k].depthSum / stats[k].duration;
+      }
+    });
+
+    return stats;
+  }, [profileData]);
+
   if (!gasData) return null;
 
   let data = null;
@@ -104,8 +160,23 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration }) => {
   };
 
   // Calculate SAC Rates
-  const calculateSAC = item => {
-    if (!averageDepth || !duration || duration <= 0) return null;
+  const calculateSAC = (item, cylinderIndex) => {
+    // Determine calculation parameters
+    let calcDuration = parseFloat(duration);
+    let calcAvgDepth = parseFloat(averageDepth);
+    let isSpecific = false;
+
+    // Try to find specific stats for this cylinder index
+    if (gasStats && cylinderIndex !== undefined) {
+      const stats = gasStats[cylinderIndex];
+      if (stats && stats.duration > 0) {
+        calcDuration = stats.duration;
+        calcAvgDepth = stats.avgDepth;
+        isSpecific = true;
+      }
+    }
+
+    if (!calcAvgDepth || !calcDuration || calcDuration <= 0) return null;
 
     const start = item.start_pressure || item.pressure;
     const end = item.end_pressure;
@@ -114,16 +185,19 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration }) => {
 
     // Ideal SAC
     const consumedLiters = calculateConsumption(item.tank, start, end);
-    const avgDepthATA = parseFloat(averageDepth) / 10 + 1;
-    const idealSAC = consumedLiters / parseFloat(duration) / avgDepthATA;
+    const avgDepthATA = calcAvgDepth / 10 + 1;
+    const idealSAC = consumedLiters / calcDuration / avgDepthATA;
 
     // Real SAC
     const realConsumedLiters = calculateRealGasConsumption(item.tank, start, end, item.gas);
-    const realSAC = realConsumedLiters / parseFloat(duration) / avgDepthATA;
+    const realSAC = realConsumedLiters / calcDuration / avgDepthATA;
 
     return {
       ideal: idealSAC.toFixed(1),
       real: realSAC.toFixed(1),
+      isSpecific,
+      duration: calcDuration,
+      avgDepth: calcAvgDepth,
     };
   };
 
@@ -144,13 +218,21 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration }) => {
     return <span>{start} bar</span>;
   };
 
-  // Render a single tank row
-  const renderTankRow = (label, item, colorClass, borderClass, bgClass, showSAC = false) => {
+  const renderTankRow = (
+    label,
+    item,
+    colorClass,
+    borderClass,
+    bgClass,
+    showSAC = false,
+    cylinderIndex,
+    showStats = true
+  ) => {
     const tankName = getTankInfo(item.tank)?.name || item.tank;
     const start = item.start_pressure || item.pressure;
     const end = item.end_pressure;
     const consumed = calculateConsumption(item.tank, start, end);
-    const sacData = showSAC ? calculateSAC(item) : null;
+    const sacData = showSAC ? calculateSAC(item, cylinderIndex) : null;
 
     return (
       <div className='flex items-center gap-2 flex-wrap'>
@@ -162,6 +244,10 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration }) => {
           <span className={`${borderClass.replace('border-', 'text-').replace('100', '400')}`}>
             |
           </span>
+          <span className='font-bold'>{formatGas(item.gas)}</span>
+          <span className={`${borderClass.replace('border-', 'text-').replace('100', '400')}`}>
+            |
+          </span>
           {getPressureDisplay(item)}
 
           {consumed !== null && (
@@ -169,43 +255,76 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration }) => {
               <span className={`${borderClass.replace('border-', 'text-').replace('100', '400')}`}>
                 |
               </span>
-              <span className='text-xs font-bold' title={`${consumed} Liters consumed (Ideal)`}>
+              <span className='text-xs' title={`${consumed} Liters consumed (Ideal)`}>
                 -{consumed} L
               </span>
             </>
           )}
-
-          <span className={`${borderClass.replace('border-', 'text-').replace('100', '400')}`}>
-            |
-          </span>
-          <span className='font-bold'>{formatGas(item.gas)}</span>
         </div>
 
         {sacData && (
           <div className='ml-2 flex items-center gap-2'>
-            <div className='px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md text-sm border border-gray-200 flex items-center gap-1'>
-              <span className='font-semibold'>SAC:</span>
-              <span className='hidden sm:inline text-xs text-gray-400 ml-1'>Ideal</span>
-              <span>{sacData.ideal}</span>
-              <span className='text-gray-400 text-xs mx-0.5'>/</span>
-              <span className='hidden sm:inline text-xs text-gray-400'>Real</span>
-              <span className='text-gray-500' title='Real Gas SAC (Subsurface style)'>
-                {sacData.real} L/min
-              </span>
+            <div className='flex items-center gap-2'>
+              <div className='px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md text-sm border border-gray-200 flex items-center gap-1'>
+                <span className='font-semibold'>SAC:</span>
+                <span className='hidden sm:inline text-xs text-gray-400 ml-1'>Ideal</span>
+                <span>{sacData.ideal}</span>
+                <span className='text-gray-400 text-xs mx-0.5'>/</span>
+                <span className='hidden sm:inline text-xs text-gray-400'>Real</span>
+                <span className='text-gray-500' title='Real Gas SAC (Subsurface style)'>
+                  {sacData.real} L/min
+                </span>
+              </div>
+
+              {showStats && (
+                <div className='px-3 py-1.5 bg-gray-50 text-gray-600 rounded-md text-sm border border-gray-200 flex items-center gap-2'>
+                  <span className='text-xs text-gray-500'>
+                    Time:{' '}
+                    <span className='font-medium text-gray-700'>
+                      {sacData.duration.toFixed(0)} min
+                    </span>
+                  </span>
+                  <span className='text-gray-300'>|</span>
+                  <span className='text-xs text-gray-500'>
+                    Avg. Depth:{' '}
+                    <span className='font-medium text-gray-700'>
+                      {sacData.avgDepth.toFixed(1)}m
+                    </span>
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className='group relative'>
-              <Info size={16} className='text-gray-400 hover:text-blue-500 cursor-help' />
+              {sacData.isSpecific ? (
+                <Info size={16} className='text-blue-500 cursor-help' />
+              ) : (
+                <Info size={16} className='text-gray-400 hover:text-blue-500 cursor-help' />
+              )}
               <div className='absolute left-1/2 bottom-full mb-2 -translate-x-1/2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50'>
                 <div className='font-semibold mb-1'>SAC Calculation Methods</div>
                 <div className='mb-1'>
                   <span className='text-gray-300'>Ideal ({sacData.ideal}):</span> Standard formula
                   (PV=nRT). Ignores gas compressibility.
                 </div>
-                <div>
+                <div className='mb-2'>
                   <span className='text-gray-300'>Real ({sacData.real}):</span> Accurate model used
                   by Subsurface (Virial Equation). Accounts for compressibility (Z-factor).
                 </div>
+                {sacData.isSpecific ? (
+                  <div className='pt-1 border-t border-gray-600 text-green-300'>
+                    Based on actual usage from profile:
+                    <br />
+                    Time: {sacData.duration.toFixed(1)} min
+                    <br />
+                    Avg Depth: {sacData.avgDepth.toFixed(1)} m
+                  </div>
+                ) : (
+                  <div className='pt-1 border-t border-gray-600 text-yellow-300'>
+                    Based on total dive averages (no specific usage data found for Cylinder{' '}
+                    {cylinderIndex}).
+                  </div>
+                )}
                 <div className='absolute left-1/2 top-full -mt-1 -ml-1 border-4 border-transparent border-t-gray-800'></div>
               </div>
             </div>
@@ -223,7 +342,9 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration }) => {
         'text-blue-800',
         'border-blue-100',
         'bg-blue-50',
-        true
+        true,
+        0,
+        data.stages && data.stages.length > 0
       )}
 
       {data.stages && data.stages.length > 0 && (
@@ -235,10 +356,95 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration }) => {
                 stage,
                 'text-purple-800',
                 'border-purple-100',
-                'bg-purple-50'
+                'bg-purple-50',
+                true,
+                idx + 1,
+                true
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Combined SAC for multiple tanks */}
+      {data.stages && data.stages.length > 0 && (
+        <div className='mt-4 pt-3 border-t border-gray-200'>
+          <div className='flex items-center gap-2 flex-wrap'>
+            <span className='text-sm font-bold text-gray-900 min-w-[70px]'>Combined SAC:</span>
+
+            <div className='flex items-center gap-2'>
+              <div className='px-3 py-1.5 bg-sky-50 text-sky-800 rounded-md text-sm border border-sky-100 flex items-center gap-1 shadow-sm'>
+                <span className='text-xs text-sky-400'>Ideal</span>
+                <span className='font-medium'>
+                  {(
+                    (calculateConsumption(
+                      data.back_gas.tank,
+                      data.back_gas.start_pressure || data.back_gas.pressure,
+                      data.back_gas.end_pressure
+                    ) +
+                      data.stages.reduce(
+                        (acc, stage) =>
+                          acc +
+                          (calculateConsumption(
+                            stage.tank,
+                            stage.start_pressure || stage.pressure,
+                            stage.end_pressure
+                          ) || 0),
+                        0
+                      )) /
+                    parseFloat(duration) /
+                    (parseFloat(averageDepth) / 10 + 1)
+                  ).toFixed(1)}
+                </span>
+                <span className='text-sky-200 text-xs mx-0.5'>/</span>
+                <span className='text-xs text-sky-400'>Real</span>
+                <span className='text-sky-600 font-bold'>
+                  {(
+                    (calculateRealGasConsumption(
+                      data.back_gas.tank,
+                      data.back_gas.start_pressure || data.back_gas.pressure,
+                      data.back_gas.end_pressure,
+                      data.back_gas.gas
+                    ) +
+                      data.stages.reduce(
+                        (acc, stage) =>
+                          acc +
+                          (calculateRealGasConsumption(
+                            stage.tank,
+                            stage.start_pressure || stage.pressure,
+                            stage.end_pressure,
+                            stage.gas
+                          ) || 0),
+                        0
+                      )) /
+                    parseFloat(duration) /
+                    (parseFloat(averageDepth) / 10 + 1)
+                  ).toFixed(1)}
+                  <span className='text-xs ml-0.5 font-normal text-sky-500'>L/min</span>
+                </span>
+              </div>
+
+              <div className='px-3 py-1.5 bg-sky-50/50 text-sky-700 rounded-md text-sm border border-sky-100 flex items-center gap-2'>
+                <span className='text-xs text-sky-500'>
+                  Time:{' '}
+                  <span className='font-medium text-sky-800'>
+                    {parseFloat(duration).toFixed(0)} min
+                  </span>
+                </span>
+                <span className='text-sky-200'>|</span>
+                <span className='text-xs text-sky-500'>
+                  Avg. Depth:{' '}
+                  <span className='font-medium text-sky-800'>
+                    {parseFloat(averageDepth).toFixed(1)}m
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            <div className='text-xs text-gray-500 ml-1 italic'>
+              (Total gas consumed / Total duration / Avg depth)
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -321,7 +321,7 @@ class TestDiveProfileIntegration:
                                  files=files, headers=auth_headers)
             
             assert response.status_code == status.HTTP_400_BAD_REQUEST
-            assert "Invalid dive profile data" in response.json()["detail"]
+            assert "Could not parse dive profile data" in response.json()["detail"]
         
         # Test 3: Profile deletion when no profile exists
         test_dive.profile_xml_path = None

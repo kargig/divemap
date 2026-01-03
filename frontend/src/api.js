@@ -413,6 +413,17 @@ export const addDiveMedia = async (diveId, mediaData) => {
   return response.data;
 };
 
+export const uploadDiveProfile = async (diveId, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(`/api/v1/dives/${diveId}/profile`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
 export const uploadDivePhoto = async (diveId, file, description = '', isPublic = true) => {
   const formData = new FormData();
   formData.append('file', file);

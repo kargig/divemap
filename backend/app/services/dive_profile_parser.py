@@ -44,10 +44,10 @@ class DiveProfileParser:
             return self._parse_dive_element(root)
         except ET.ParseError as e:
             logger.error(f"XML parsing error: {e}")
-            return None
+            raise
         except Exception as e:
             logger.error(f"Error parsing dive profile: {e}")
-            return None
+            raise ValueError(f"Error parsing dive profile: {str(e)}")
     
     def parse_xml_content(self, xml_content: str) -> Dict[str, Any]:
         """
@@ -79,7 +79,13 @@ class DiveProfileParser:
                 raise ValueError("No dive element found in XML")
         elif root.tag == 'divelog':
             # Subsurface divelog structure
+            # Try finding 'dive' directly (older versions?) or via 'dives' container
             dive = root.find('dive')
+            if dive is None:
+                dives = root.find('dives')
+                if dives is not None:
+                    dive = dives.find('dive')
+            
             if dive is None:
                 raise ValueError("No dive element found in XML")
         elif root.tag == 'dive':
@@ -155,17 +161,22 @@ class DiveProfileParser:
             metadata['suit'] = suit.text
         
         # Parse cylinder information
-        cylinder = dive.find('cylinder')
-        if cylinder is not None:
-            metadata['cylinder'] = {
-                'size': f"{cylinder.get('size')} l" if cylinder.get('size') else None,
-                'workpressure': f"{cylinder.get('workpressure')} bar" if cylinder.get('workpressure') else None,
-                'description': cylinder.get('description'),
-                'o2': f"{cylinder.get('o2')}%" if cylinder.get('o2') else None,
-                'start': f"{cylinder.get('start')} bar" if cylinder.get('start') else None,
-                'end': f"{cylinder.get('end')} bar" if cylinder.get('end') else None,
-                'depth': f"{cylinder.get('depth')} m" if cylinder.get('depth') else None
-            }
+        cylinders = dive.findall('cylinder')
+        if cylinders:
+            metadata['cylinders'] = []
+            for cylinder in cylinders:
+                metadata['cylinders'].append({
+                    'size': f"{cylinder.get('size')} l" if cylinder.get('size') else None,
+                    'workpressure': f"{cylinder.get('workpressure')} bar" if cylinder.get('workpressure') else None,
+                    'description': cylinder.get('description'),
+                    'o2': f"{cylinder.get('o2')}%" if cylinder.get('o2') else None,
+                    'he': f"{cylinder.get('he')}%" if cylinder.get('he') else None,
+                    'start': f"{cylinder.get('start')} bar" if cylinder.get('start') else None,
+                    'end': f"{cylinder.get('end')} bar" if cylinder.get('end') else None,
+                    'depth': f"{cylinder.get('depth')} m" if cylinder.get('depth') else None
+                })
+            # Keep 'cylinder' for backward compatibility (first one)
+            metadata['cylinder'] = metadata['cylinders'][0]
         
         # Parse weight system
         weightsystem = dive.find('weightsystem')
@@ -433,7 +444,8 @@ class DiveProfileParser:
             'flags': event.get('flags'),
             'name': event.get('name'),
             'cylinder': event.get('cylinder'),
-            'o2': event.get('o2')
+            'o2': event.get('o2'),
+            'he': event.get('he')
         }
     
     def _calculate_dive_statistics(self, samples: List[Dict[str, Any]]) -> Dict[str, Any]:

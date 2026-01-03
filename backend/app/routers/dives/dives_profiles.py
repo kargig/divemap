@@ -140,8 +140,11 @@ async def upload_dive_profile(
             parser = DiveProfileParser()
             profile_data = parser.parse_xml_file(temp_path)
             
-            if not profile_data or not profile_data.get('samples'):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid dive profile data")
+            if not profile_data:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not parse dive profile data")
+            
+            if not profile_data.get('samples'):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Dive profile has no sample data (is it a valid Subsurface log?)")
             
             # Upload to R2 or local storage
             stored_path = r2_storage.upload_profile(dive.user_id, filename, content)
