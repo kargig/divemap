@@ -9,6 +9,7 @@ import {
   Maximize,
   X,
   Contrast,
+  Upload,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
@@ -146,11 +147,11 @@ const performSmartSampling = (samples, showAllSamples) => {
       const isFirstOrLast = i === 0 || i === samples.length - 1;
       const hasImportantMetadata =
         sample.in_deco !== undefined ||
-        sample.ndl !== undefined ||
-        sample.cns !== undefined ||
-        sample.temp !== undefined ||
+        sample.ndl_minutes !== undefined ||
+        sample.cns_percent !== undefined ||
+        sample.temperature !== undefined ||
         sample.stopdepth !== undefined ||
-        sample.tts !== undefined;
+        sample.stoptime_minutes !== undefined;
 
       if (isFirstOrLast || hasImportantMetadata) {
         sampledSamples.push(sample);
@@ -161,11 +162,11 @@ const performSmartSampling = (samples, showAllSamples) => {
           const nearbySample = samples[j];
           if (
             nearbySample.in_deco !== undefined ||
-            nearbySample.ndl !== undefined ||
-            nearbySample.cns !== undefined ||
-            nearbySample.temp !== undefined ||
+            nearbySample.ndl_minutes !== undefined ||
+            nearbySample.cns_percent !== undefined ||
+            nearbySample.temperature !== undefined ||
             nearbySample.stopdepth !== undefined ||
-            nearbySample.tts !== undefined
+            nearbySample.stoptime_minutes !== undefined
           ) {
             hasNearbyImportantMetadata = true;
             break;
@@ -181,11 +182,11 @@ const performSmartSampling = (samples, showAllSamples) => {
             const nearbySample = samples[j];
             if (
               nearbySample.in_deco === undefined &&
-              nearbySample.ndl === undefined &&
-              nearbySample.cns === undefined &&
-              nearbySample.temp === undefined &&
+              nearbySample.ndl_minutes === undefined &&
+              nearbySample.cns_percent === undefined &&
+              nearbySample.temperature === undefined &&
               nearbySample.stopdepth === undefined &&
-              nearbySample.tts === undefined
+              nearbySample.stoptime_minutes === undefined
             ) {
               nearestIndex = j;
               break;
@@ -208,11 +209,11 @@ const performSmartSampling = (samples, showAllSamples) => {
     if (index === 0 || index === samples.length - 1) return true;
     return (
       sample.in_deco !== undefined ||
-      sample.ndl !== undefined ||
-      sample.cns !== undefined ||
-      sample.temp !== undefined ||
+      sample.ndl_minutes !== undefined ||
+      sample.cns_percent !== undefined ||
+      sample.temperature !== undefined ||
       sample.stopdepth !== undefined ||
-      sample.tts !== undefined ||
+      sample.stoptime_minutes !== undefined ||
       index % sampleRate === 0
     );
   });
@@ -229,6 +230,7 @@ const AdvancedDiveProfileChart = ({
   onDecoStatusChange,
   onMaximize,
   onClose,
+  onUpload,
 }) => {
   const [, setHoveredPoint] = useState(null);
   const [showTemperature, setShowTemperature] = useState(initialShowTemperature);
@@ -308,6 +310,10 @@ const AdvancedDiveProfileChart = ({
       }
       if (sample.ndl_minutes !== null && sample.ndl_minutes !== undefined) {
         lastKnownNDL = sample.ndl_minutes;
+        // If we have a positive NDL, we are likely not in deco anymore
+        if (lastKnownNDL > 0) {
+          lastKnownInDeco = false;
+        }
       }
       if (sample.in_deco !== null && sample.in_deco !== undefined) {
         lastKnownInDeco = sample.in_deco;
@@ -505,6 +511,15 @@ const AdvancedDiveProfileChart = ({
         <p className='text-sm'>
           {typeof error === 'string' ? error : error?.message || 'Unknown error'}
         </p>
+        {onUpload && (
+          <button
+            onClick={onUpload}
+            className='mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500'
+          >
+            <Upload className='mr-2 h-4 w-4' />
+            Upload New Profile
+          </button>
+        )}
       </div>
     );
   }
@@ -514,7 +529,16 @@ const AdvancedDiveProfileChart = ({
       <div className='text-center py-8 text-gray-600 bg-gray-50 rounded-lg'>
         <Activity className='h-12 w-12 mx-auto mb-4 text-gray-400' />
         <p className='font-semibold'>No dive profile data available</p>
-        <p className='text-sm'>Upload a dive profile to see the visualization</p>
+        <p className='text-sm mb-4'>Upload a dive profile to see the visualization</p>
+        {onUpload && (
+          <button
+            onClick={onUpload}
+            className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+          >
+            <Upload className='mr-2 h-4 w-4' />
+            Upload Profile (XML/UDDF)
+          </button>
+        )}
       </div>
     );
   }
@@ -920,6 +944,7 @@ AdvancedDiveProfileChart.propTypes = {
   onDecoStatusChange: PropTypes.func,
   onMaximize: PropTypes.func,
   onClose: PropTypes.func,
+  onUpload: PropTypes.func,
 };
 
 export default AdvancedDiveProfileChart;

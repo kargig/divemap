@@ -3,6 +3,7 @@ import tempfile
 import os
 from unittest.mock import patch, mock_open
 from xml.etree.ElementTree import Element
+import xml.etree.ElementTree as ET
 
 from app.services.dive_profile_parser import DiveProfileParser
 
@@ -372,8 +373,8 @@ class TestDiveProfileParser:
             temp_file.flush()
             
             try:
-                result = parser.parse_xml_file(temp_file.name)
-                assert result is None
+                with pytest.raises(ET.ParseError):
+                    parser.parse_xml_file(temp_file.name)
             finally:
                 os.unlink(temp_file.name)
 
@@ -388,8 +389,8 @@ class TestDiveProfileParser:
             temp_file.flush()
             
             try:
-                result = parser.parse_xml_file(temp_file.name)
-                assert result is None
+                with pytest.raises(ValueError, match="No dive element found"):
+                    parser.parse_xml_file(temp_file.name)
             finally:
                 os.unlink(temp_file.name)
 

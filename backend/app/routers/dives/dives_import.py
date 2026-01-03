@@ -766,6 +766,96 @@ def parse_suit_type(suit_str):
     print(f"Unknown suit type: {suit_str}")
     return None
 
+# Constants for tank matching (mirroring frontend/src/utils/diveConstants.js)
+TANK_DEFINITIONS = [
+    {'id': '3', 'size': 3.0},
+    {'id': 'al40', 'size': 5.7},
+    {'id': '7', 'size': 7.0},
+    {'id': '8.5', 'size': 8.5},
+    {'id': '10', 'size': 10.0},
+    {'id': 'al80', 'size': 11.1},
+    {'id': '12', 'size': 12.0},
+    {'id': '14', 'size': 14.0}, # Double 7
+    {'id': '15', 'size': 15.0},
+    {'id': '18', 'size': 18.0},
+    {'id': 'double_al80', 'size': 22.2},
+    {'id': '24', 'size': 24.0}, # Double 12
+]
+
+def match_tank_id(vol_liters):
+    """Find closest matching tank ID for a given volume"""
+    if not vol_liters:
+        return '12' # Default
+    
+    best_id = '12'
+    min_diff = float('inf')
+    
+    for tank in TANK_DEFINITIONS:
+        diff = abs(tank['size'] - vol_liters)
+        if diff < min_diff:
+            min_diff = diff
+            best_id = tank['id']
+            
+    return best_id
+
+def create_structured_gas_data(cylinders):
+    """Convert cylinder list to structured JSON string for GasTanksInput"""
+    if not cylinders:
+        return None
+        
+    structured = {
+        "mode": "structured",
+        "back_gas": {
+            "tank": "12",
+            "start_pressure": 200,
+            "end_pressure": 50,
+            "gas": {"o2": 21, "he": 0}
+        },
+        "stages": []
+    }
+    
+    for i, cyl in enumerate(cylinders):
+        # Parse size
+        size_val = cyl.get('size')
+        size_str = size_val.replace(' l', '').strip() if size_val else ''
+        vol = float(size_str) if size_str else 0.0
+        tank_id = match_tank_id(vol)
+        
+        # Parse pressures
+        start_val = cyl.get('start')
+        start_str = start_val.replace(' bar', '').strip() if start_val else ''
+        
+        end_val = cyl.get('end')
+        end_str = end_val.replace(' bar', '').strip() if end_val else ''
+        
+        # Parse gas
+        o2_val = cyl.get('o2')
+        o2_str = o2_val.replace('%', '').strip() if o2_val else ''
+        
+        he_val = cyl.get('he')
+        he_str = he_val.replace('%', '').strip() if he_val else ''
+        
+        o2 = int(float(o2_str)) if o2_str else 21
+        he = int(float(he_str)) if he_str else 0
+        
+        # Default pressures if missing
+        start_p = int(float(start_str)) if start_str else 200
+        end_p = int(float(end_str)) if end_str else 50
+        
+        tank_obj = {
+            "tank": tank_id,
+            "start_pressure": start_p,
+            "end_pressure": end_p,
+            "gas": {"o2": o2, "he": he}
+        }
+        
+        if i == 0:
+            structured["back_gas"] = tank_obj
+        else:
+            structured["stages"].append(tank_obj)
+            
+    return orjson.dumps(structured).decode('utf-8')
+
 def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, tags,
                              divesiteid, dive_date, dive_time, duration,
                              buddy, suit, cylinders, weights, computer_data,
@@ -902,45 +992,8 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
 
     dive_information = "\n".join(dive_info_parts) if dive_info_parts else None
 
-    # Build gas bottles information
-    gas_bottles_parts = []
-    for cylinder in cylinders:
-        cylinder_info = []
-
-        # Format: size + workpressure (e.g., "15.0l 232 bar")
-        size = cylinder.get('size', '').replace(' l', 'l')  # Remove space before 'l'
-        workpressure = cylinder.get('workpressure', '')
-
-        if size and workpressure:
-            # Extract numeric value from workpressure (e.g., "232.0 bar" -> "232")
-            wp_value = workpressure.replace(' bar', '').strip()
-            try:
-                wp_float = float(wp_value)
-                if wp_float.is_integer():
-                    wp_value = str(int(wp_float))
-                else:
-                    wp_value = str(wp_float)
-            except ValueError:
-                wp_value = workpressure
-
-            cylinder_info.append(f"{size} {wp_value} bar")
-        elif size:
-            cylinder_info.append(size)
-
-        # Add O2 percentage
-        if cylinder.get('o2'):
-            cylinder_info.append(f"O2: {cylinder['o2']}")
-
-        # Add pressure range
-        if cylinder.get('start') and cylinder.get('end'):
-            start_pressure = cylinder['start'].replace(' bar', '').strip()
-            end_pressure = cylinder['end'].replace(' bar', '').strip()
-            cylinder_info.append(f"{start_pressure} bar→{end_pressure} bar")
-
-        if cylinder_info:
-            gas_bottles_parts.append(" | ".join(cylinder_info))
-
-    gas_bottles_used = "\n".join(gas_bottles_parts) if gas_bottles_parts else None
+    # Build gas bottles information (Structured JSON)
+    gas_bottles_used = create_structured_gas_data(cylinders)
 
     # Find dive site
     dive_site_id = None

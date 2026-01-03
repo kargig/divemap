@@ -16,6 +16,7 @@ import { useMutation, useQueryClient } from 'react-query';
 
 import { importSubsurfaceXML, confirmImportDives, extractErrorMessage } from '../api';
 
+import GasTanksDisplay from './GasTanksDisplay';
 import Modal from './ui/Modal';
 
 const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
@@ -426,8 +427,13 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                     {dive.gas_bottles_used && (
                       <div className='md:col-span-2'>
                         <span className='font-medium text-gray-700'>Gas Bottles:</span>
-                        <div className='mt-1 text-gray-600 whitespace-pre-line'>
-                          {dive.gas_bottles_used}
+                        <div className='mt-1'>
+                          <GasTanksDisplay
+                            gasData={dive.gas_bottles_used}
+                            averageDepth={dive.average_depth}
+                            duration={dive.duration}
+                            profileData={dive.profile_data}
+                          />
                         </div>
                       </div>
                     )}
