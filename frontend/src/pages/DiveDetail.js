@@ -36,9 +36,18 @@ import Inline from 'yet-another-react-lightbox/plugins/inline';
 import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 
-import api, { getDive, getDiveMedia, deleteDive, deleteDiveMedia, removeBuddy } from '../api';
+import api, {
+  getDive,
+  getDiveMedia,
+  deleteDive,
+  deleteDiveMedia,
+  removeBuddy,
+  uploadDiveProfile,
+  extractErrorMessage,
+} from '../api';
 import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
 import DiveProfileModal from '../components/DiveProfileModal';
+import GasTanksDisplay from '../components/GasTanksDisplay';
 import Lightbox from '../components/Lightbox/Lightbox';
 import ReactImage from '../components/Lightbox/ReactImage';
 import RateLimitError from '../components/RateLimitError';
@@ -331,6 +340,41 @@ const DiveDetail = () => {
     zoom: 15,
   });
   const [currentZoom, setCurrentZoom] = useState(15);
+  const fileInputRef = useRef(null);
+
+  // Handle profile upload
+  const handleUploadProfile = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.xml') && !file.name.toLowerCase().endsWith('.uddf')) {
+      toast.error('Please select a valid XML/UDDF dive profile file');
+      return;
+    }
+
+    const toastId = toast.loading('Uploading dive profile...');
+    try {
+      await uploadDiveProfile(id, file);
+      toast.success('Dive profile uploaded successfully', { id: toastId });
+      queryClient.invalidateQueries(['dive-profile', id]);
+      // Also invalidate dive query to update metadata if needed
+      queryClient.invalidateQueries(['dive', id]);
+    } catch (error) {
+      console.error('Failed to upload profile:', error);
+      toast.error(extractErrorMessage(error, 'Failed to upload profile'), { id: toastId });
+    } finally {
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   // Handle map viewport changes
   const handleMapViewportChange = viewport => {
@@ -465,7 +509,7 @@ const DiveDetail = () => {
       return api.get(`/api/v1/dives/${id}/profile`).then(res => res.data);
     },
     {
-      enabled: !!id && activeTab === 'profile',
+      enabled: !!id && (activeTab === 'profile' || activeTab === 'details'),
       retry: false, // Don't retry on 404
     }
   );
@@ -1035,13 +1079,12 @@ const DiveDetail = () => {
                 {dive.gas_bottles_used && (
                   <div className='mt-4'>
                     <h3 className='text-sm font-medium text-gray-700 mb-1'>Gas Bottles Used</h3>
-                    <div className='text-gray-600'>
-                      {dive.gas_bottles_used.split('\n').map((bottle, index) => (
-                        <div key={index} className={index > 0 ? 'mt-1' : ''}>
-                          {bottle.trim()}
-                        </div>
-                      ))}
-                    </div>
+                    <GasTanksDisplay
+                      gasData={dive.gas_bottles_used}
+                      averageDepth={dive.average_depth}
+                      duration={dive.duration}
+                      profileData={profileData}
+                    />
                   </div>
                 )}
 
@@ -1143,7 +1186,7 @@ const DiveDetail = () => {
               <AdvancedDiveProfileChart
                 profileData={profileData}
                 isLoading={profileLoading}
-                error={profileError?.response?.data?.detail || profileError?.message}
+                error={profileError ? extractErrorMessage(profileError) : null}
                 showTemperature={true}
                 screenSize='desktop'
                 onDecoStatusChange={profileHasDeco => {
@@ -1153,6 +1196,16 @@ const DiveDetail = () => {
                   }
                 }}
                 onMaximize={handleOpenProfileModal}
+                onUpload={
+                  user && (user.id === dive.user_id || user.is_admin) ? handleUploadProfile : null
+                }
+              />
+              <input
+                type='file'
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept='.xml,.uddf'
+                className='hidden'
               />
             </div>
           )}

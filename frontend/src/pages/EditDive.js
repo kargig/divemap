@@ -1,7 +1,7 @@
 import { Button, Collapse, Image as AntdImage } from 'antd';
 import { Save, ArrowLeft, Plus, X, ChevronDown, Image, Video, FileText, Link } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -22,6 +22,7 @@ import {
 } from '../api';
 import DivingCenterSearchableDropdown from '../components/DivingCenterSearchableDropdown';
 import { FormField } from '../components/forms/FormField';
+import GasTanksInput from '../components/forms/GasTanksInput';
 import RouteSelection from '../components/RouteSelection';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import UserSearchInput from '../components/UserSearchInput';
@@ -1069,16 +1070,16 @@ const EditDive = () => {
             </div>
 
             <div className='md:col-span-2'>
-              <FormField name='gas_bottles_used' label='Gas Bottles Used'>
-                {({ register, name }) => (
-                  <textarea
-                    {...register(name)}
-                    className='w-full border border-gray-300 rounded-md px-3 py-2'
-                    rows='2'
-                    placeholder='e.g., 12L aluminum tank, 200 bar'
-                  />
+              <label className='block text-sm font-medium text-gray-700 mb-1'>
+                Gas Bottles Used
+              </label>
+              <Controller
+                name='gas_bottles_used'
+                control={methods.control}
+                render={({ field: { value, onChange }, fieldState: { error } }) => (
+                  <GasTanksInput value={value} onChange={onChange} error={error?.message} />
                 )}
-              </FormField>
+              />
             </div>
 
             <div className='md:col-span-2'>

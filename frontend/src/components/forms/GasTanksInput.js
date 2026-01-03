@@ -61,8 +61,7 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
     } catch {
       setMode('simple');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount to initialize
+  }, [value]); // Run when value changes to handle async data loading
 
   // Sync structured data to parent as JSON string
   const updateParent = data => {
@@ -71,7 +70,126 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
     onChange(JSON.stringify(payload));
   };
 
+  // Helper to parse free-form text into structured data
+  const parseTextToStructured = text => {
+    if (!text) return null;
+
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length === 0) return null;
+
+    const newStructured = {
+      back_gas: { ...structuredData.back_gas },
+      stages: [],
+    };
+
+    let validTanksCount = 0;
+
+    lines.forEach(line => {
+      const lineLower = line.toLowerCase();
+
+      // Skip common header lines or lines that are too short
+      if (lineLower.includes('gas bottles used') || lineLower.length < 5) return;
+
+      // 1. Try to match Tank Size numerically (best for "11.094l" -> 11.1)
+      let tankId = 'al80';
+      const sizeMatch = lineLower.match(/(\d+(?:\.\d+)?)\s*l/);
+      if (sizeMatch) {
+        const vol = parseFloat(sizeMatch[1]);
+        let minDiff = 2.0; // Maximum 2 liter difference allowed for a match
+        TANK_SIZES.forEach(t => {
+          const diff = Math.abs(t.size - vol);
+          if (diff < minDiff) {
+            minDiff = diff;
+            tankId = t.id;
+          }
+        });
+      } else {
+        // Fallback to string ID match (e.g. "al80" in text)
+        for (const t of TANK_SIZES) {
+          if (lineLower.includes(t.id.toLowerCase())) {
+            tankId = t.id;
+            break;
+          }
+        }
+      }
+
+      // 2. Extract Pressures
+      let startP = 200;
+      let endP = 50;
+      const pressureMatch = line.match(
+        /(\d+(?:\.\d+)?)\s*(?:bar)?\s*[→\->]\s*(\d+(?:\.\d+)?)\s*(?:bar)?/
+      );
+      if (pressureMatch) {
+        startP = Math.round(parseFloat(pressureMatch[1]));
+        endP = Math.round(parseFloat(pressureMatch[2]));
+      } else {
+        // If no pressure range, check for single pressure
+        const singlePressureMatch = line.match(/(\d+(?:\.\d+)?)\s*bar/);
+        if (singlePressureMatch) {
+          startP = Math.round(parseFloat(singlePressureMatch[1]));
+        }
+      }
+
+      // 3. Extract Gas Mix
+      let o2 = 21;
+      let he = 0;
+      const txMatch = line.match(/Tx\s*(\d+)\/(\d+)/i);
+      const eanMatch = line.match(/EAN(\d+)/i);
+      const o2Match = line.match(/O2:\s*(\d+(?:\.\d+)?)%/i);
+      const heMatch = line.match(/He:\s*(\d+(?:\.\d+)?)%/i);
+
+      if (txMatch) {
+        o2 = parseInt(txMatch[1]);
+        he = parseInt(txMatch[2]);
+      } else if (eanMatch) {
+        o2 = parseInt(eanMatch[1]);
+      } else if (o2Match) {
+        o2 = Math.round(parseFloat(o2Match[1]));
+      } else if (lineLower.includes('air')) {
+        o2 = 21;
+      }
+
+      if (heMatch) {
+        he = Math.round(parseFloat(heMatch[1]));
+      }
+
+      // Heuristic: If we found a tank size OR a pressure range, it's a valid tank
+      if (sizeMatch || pressureMatch) {
+        const tankObj = {
+          tank: tankId,
+          start_pressure: startP,
+          end_pressure: endP,
+          gas: { o2, he },
+        };
+
+        if (validTanksCount === 0) {
+          newStructured.back_gas = tankObj;
+        } else {
+          newStructured.stages.push({ ...tankObj, id: Date.now() + validTanksCount });
+        }
+        validTanksCount++;
+      }
+    });
+
+    return validTanksCount > 0 ? newStructured : null;
+  };
+
   const switchToStructured = () => {
+    // If in simple mode, try to parse current text value
+    if (mode === 'simple' && value && !value.trim().startsWith('{')) {
+      const parsed = parseTextToStructured(value);
+      if (parsed) {
+        setStructuredData(parsed);
+        // We need to update parent with this parsed data immediately
+        // The setMode('structured') will trigger re-render
+        // But we should update parent with JSON string
+        const payload = { ...parsed, mode: 'structured' };
+        onChange(JSON.stringify(payload));
+        setMode('structured');
+        return;
+      }
+    }
+
     setMode('structured');
     updateParent(structuredData);
   };
