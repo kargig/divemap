@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr, validator
+from pydantic import BaseModel, Field, EmailStr, field_validator, ConfigDict, ValidationInfo
 from typing import Optional, List, Union, Literal, Dict
 from datetime import datetime, date, time, timezone
 import re
@@ -8,7 +8,7 @@ import enum
 DifficultyCode = Optional[Literal['OPEN_WATER', 'ADVANCED_OPEN_WATER', 'DEEP_NITROX', 'TECHNICAL_DIVING']]
 
 
-def normalize_datetime_to_utc(cls, v):
+def normalize_datetime_to_utc(cls, v, info: ValidationInfo = None):
     """
     Pydantic validator to normalize datetime fields to UTC timezone-aware datetimes.
     Can be used as a validator for any datetime field in any schema.
@@ -65,15 +65,17 @@ SOCIAL_PLATFORM_DOMAINS = {
 }
 
 class UserSocialLinkCreate(UserSocialLinkBase):
-    @validator('platform')
-    def validate_platform(cls, v):
+    @field_validator('platform')
+    @classmethod
+    def validate_platform(cls, v: str, info: ValidationInfo):
         if v.lower() not in ALLOWED_SOCIAL_PLATFORMS:
             raise ValueError(f"Platform must be one of: {', '.join(ALLOWED_SOCIAL_PLATFORMS)}")
         return v.lower()
 
-    @validator('url')
-    def validate_url(cls, v, values):
-        platform = values.get('platform')
+    @field_validator('url')
+    @classmethod
+    def validate_url(cls, v: str, info: ValidationInfo):
+        platform = info.data.get('platform')
         if not platform:
             return v
         
@@ -102,12 +104,12 @@ class UserSocialLinkResponse(UserSocialLinkBase):
     created_at: datetime
     updated_at: datetime
 
-    @validator('created_at', 'updated_at', pre=True)
-    def normalize_datetime_to_utc(cls, v):
+    @field_validator('created_at', 'updated_at', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
         return normalize_datetime_to_utc(cls, v)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserResponse(UserBase):
     id: int
@@ -122,12 +124,12 @@ class UserResponse(UserBase):
     updated_at: datetime
     social_links: List[UserSocialLinkResponse] = []
 
-    @validator('created_at', 'updated_at', pre=True)
-    def normalize_datetime_to_utc(cls, v):
+    @field_validator('created_at', 'updated_at', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
         return normalize_datetime_to_utc(cls, v)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=255, description="Username or email address")
@@ -183,12 +185,12 @@ class UserListResponse(BaseModel):
     created_at: datetime
     last_accessed_at: Optional[datetime] = None
 
-    @validator('created_at', 'email_verified_at', 'last_accessed_at', pre=True)
-    def normalize_datetime_to_utc(cls, v):
+    @field_validator('created_at', 'email_verified_at', 'last_accessed_at', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
         return normalize_datetime_to_utc(cls, v)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Dive Site Schemas
 class DiveSiteBase(BaseModel):
@@ -240,12 +242,12 @@ class DiveSiteAliasResponse(DiveSiteAliasBase):
     dive_site_id: int
     created_at: datetime
 
-    @validator('created_at', pre=True)
-    def normalize_datetime_to_utc(cls, v):
+    @field_validator('created_at', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
         return normalize_datetime_to_utc(cls, v)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DiveSiteResponse(DiveSiteBase):
     id: int
@@ -265,12 +267,12 @@ class DiveSiteResponse(DiveSiteBase):
     shore_direction_method: Optional[str] = None  # Method used: 'osm_coastline', 'manual', 'ai', etc.
     shore_direction_distance_m: Optional[float] = None  # Distance to coastline in meters
 
-    @validator('created_at', 'updated_at', pre=True)
-    def normalize_datetime_to_utc(cls, v):
+    @field_validator('created_at', 'updated_at', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
         return normalize_datetime_to_utc(cls, v)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Site Rating Schemas
 class SiteRatingCreate(BaseModel):
@@ -283,12 +285,12 @@ class SiteRatingResponse(BaseModel):
     score: float
     created_at: datetime
 
-    @validator('created_at', pre=True)
-    def normalize_datetime_to_utc(cls, v):
+    @field_validator('created_at', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
         return normalize_datetime_to_utc(cls, v)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Comment Schemas
 class SiteCommentCreate(BaseModel):
@@ -308,12 +310,12 @@ class SiteCommentResponse(BaseModel):
     user_diving_certification: Optional[str] = None
     user_number_of_dives: Optional[int] = None
 
-    @validator('created_at', 'updated_at', pre=True)
-    def normalize_datetime_to_utc(cls, v):
+    @field_validator('created_at', 'updated_at', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
         return normalize_datetime_to_utc(cls, v)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Media Schemas
 class SiteMediaCreate(BaseModel):
@@ -336,8 +338,7 @@ class SiteMediaResponse(BaseModel):
     user_id: Optional[int] = None
     user_username: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Search Parameters
 class DiveSiteSearchParams(BaseModel):
@@ -403,8 +404,7 @@ class DivingCenterResponse(DivingCenterBase):
     ownership_status: Optional[str] = None
     owner_username: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Center Rating Schemas
 class CenterRatingCreate(BaseModel):
@@ -417,8 +417,7 @@ class CenterRatingResponse(BaseModel):
     score: float
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Center Comment Schemas
 class CenterCommentCreate(BaseModel):
@@ -438,8 +437,7 @@ class CenterCommentResponse(BaseModel):
     user_diving_certification: Optional[str] = None
     user_number_of_dives: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Center Search Parameters
 class DivingCenterSearchParams(BaseModel):
@@ -473,8 +471,7 @@ class AvailableTagResponse(AvailableTagBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Tag schemas with expected names for router compatibility
 class TagCreate(BaseModel):
@@ -492,8 +489,7 @@ class TagResponse(BaseModel):
     created_by: Optional[int] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TagWithCountResponse(BaseModel):
     id: int
@@ -503,8 +499,7 @@ class TagWithCountResponse(BaseModel):
     created_at: datetime
     dive_site_count: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DiveSiteTagCreate(BaseModel):
     tag_id: int
@@ -515,8 +510,7 @@ class DiveSiteTagResponse(BaseModel):
     tag_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Center-Dive Site Association
 class CenterDiveSiteCreate(BaseModel):
@@ -532,8 +526,7 @@ class CenterDiveSiteResponse(BaseModel):
     currency: str = "EUR"
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Certification Level Schemas
 class CertificationLevelBase(BaseModel):
@@ -563,8 +556,7 @@ class CertificationLevelResponse(CertificationLevelBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Gear Rental Cost Schemas
 class GearRentalCostCreate(BaseModel):
@@ -580,8 +572,7 @@ class GearRentalCostResponse(BaseModel):
     currency: str = "EUR"
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Diving Organization Schemas
 class DivingOrganizationBase(BaseModel):
@@ -611,8 +602,7 @@ class DivingOrganizationResponse(DivingOrganizationBase):
     updated_at: datetime
     certification_levels: List[CertificationLevelResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Diving Center Organization Schemas
 class DivingCenterOrganizationBase(BaseModel):
@@ -631,8 +621,7 @@ class DivingCenterOrganizationResponse(DivingCenterOrganizationBase):
     diving_organization: DivingOrganizationResponse
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # User Certification Schemas
 class UserCertificationBase(BaseModel):
@@ -658,15 +647,13 @@ class UserCertificationResponse(UserCertificationBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Updated User Response to include certifications
 class UserResponseWithCertifications(UserResponse):
     certifications: List[UserCertificationResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Public Profile Schemas
 class UserProfileStats(BaseModel):
@@ -680,8 +667,7 @@ class UserProfileStats(BaseModel):
     total_dives_claimed: int
     buddy_dives_count: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CertificationStats(BaseModel):
     max_depth: Optional[float] = None # Converted to meters
@@ -705,8 +691,7 @@ class UserPublicProfileResponse(BaseModel):
     stats: UserProfileStats
     certification_stats: Optional[CertificationStats] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # User Public Info for buddy lists
 class UserPublicInfo(BaseModel):
@@ -715,8 +700,7 @@ class UserPublicInfo(BaseModel):
     name: Optional[str] = None
     avatar_url: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # User Search Response
 class UserSearchResponse(BaseModel):
@@ -725,15 +709,13 @@ class UserSearchResponse(BaseModel):
     name: Optional[str] = None
     avatar_url: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Updated Diving Center Response to include organizations
 class DivingCenterResponseWithOrganizations(DivingCenterResponse):
     organizations: List[DivingCenterOrganizationResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Dive Schemas
 class DiveBase(BaseModel):
@@ -813,12 +795,12 @@ class DiveResponse(DiveBase):
     buddies: List[UserPublicInfo] = []  # List of buddy users
     user_username: Optional[str] = None  # For public dives
 
-    @validator('created_at', 'updated_at', pre=True)
-    def normalize_datetime_to_utc(cls, v):
+    @field_validator('created_at', 'updated_at', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
         return normalize_datetime_to_utc(cls, v)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DiveMediaCreate(BaseModel):
     media_type: str = Field(..., pattern=r"^(photo|video|dive_plan|external_link)$")
@@ -842,13 +824,12 @@ class DiveMediaResponse(BaseModel):
 
 # Buddy Management Schemas
 class AddBuddiesRequest(BaseModel):
-    buddy_ids: List[int] = Field(..., min_items=1, max_items=20, description="List of user IDs to add as buddies (max 20)")
+    buddy_ids: List[int] = Field(..., min_length=1, max_length=20, description="List of user IDs to add as buddies (max 20)")
 
 class ReplaceBuddiesRequest(BaseModel):
-    buddy_ids: List[int] = Field(..., max_items=20, description="List of user IDs to set as buddies (max 20, can be empty to remove all)")
+    buddy_ids: List[int] = Field(..., max_length=20, description="List of user IDs to set as buddies (max 20, can be empty to remove all)")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DiveTagCreate(BaseModel):
     tag_id: int
@@ -859,8 +840,7 @@ class DiveTagResponse(BaseModel):
     tag_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DiveSearchParams(BaseModel):
     dive_site_id: Optional[int] = None
@@ -901,8 +881,7 @@ class DivingCenterOwnershipResponse(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DivingCenterOwnershipRevocation(BaseModel):
     """Schema for revoking diving center ownership."""
@@ -926,8 +905,7 @@ class OwnershipRequestHistoryResponse(BaseModel):
     reason: Optional[str] = None
     notes: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # ParsedDiveResponse schemas
 class ParsedDiveResponse(BaseModel):
@@ -942,8 +920,7 @@ class ParsedDiveResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ParsedDiveCreate(BaseModel):
     trip_id: Optional[int] = None  # Optional when creating dives as part of a trip (backend sets it)
@@ -983,8 +960,7 @@ class ParsedDiveTripResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Newsletter and Parsed Dive Trip Schemas
 class NewsletterUploadResponse(BaseModel):
@@ -1005,14 +981,13 @@ class NewsletterResponse(BaseModel):
     received_at: datetime
     trips_count: int = 0
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class NewsletterUpdateRequest(BaseModel):
     content: Optional[str] = None
 
 class NewsletterDeleteRequest(BaseModel):
-    newsletter_ids: List[int] = Field(..., min_items=1, max_items=100)
+    newsletter_ids: List[int] = Field(..., min_length=1, max_length=100)
 
 class NewsletterDeleteResponse(BaseModel):
     deleted_count: int
@@ -1142,10 +1117,11 @@ class DiveRouteBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     route_data: dict = Field(..., description="Multi-segment GeoJSON FeatureCollection")
-    route_type: RouteType
+    route_type: RouteType = Field(default=RouteType.scuba, description="Type of route: scuba, walk, swim")
 
-    @validator('route_data')
-    def validate_route_data(cls, v):
+    @field_validator('route_data')
+    @classmethod
+    def validate_route_data(cls, v: dict, info: ValidationInfo = None):
         """Validate that route_data is valid multi-segment GeoJSON FeatureCollection"""
         if not isinstance(v, dict):
             raise ValueError('route_data must be a dictionary')
@@ -1236,12 +1212,13 @@ class DiveRouteUpdate(BaseModel):
     route_data: Optional[dict] = None
     route_type: Optional[RouteType] = None
 
-    @validator('route_data')
-    def validate_route_data(cls, v):
+    @field_validator('route_data')
+    @classmethod
+    def validate_route_data(cls, v: Optional[dict], info: ValidationInfo = None):
         """Validate that route_data is valid multi-segment GeoJSON FeatureCollection if provided"""
         if v is not None:
             # Reuse the same validation logic as DiveRouteBase
-            return DiveRouteBase.validate_route_data(v)
+            return DiveRouteBase.validate_route_data(v, info)
         return v
 
 
@@ -1254,8 +1231,7 @@ class DiveRouteResponse(DiveRouteBase):
     deleted_at: Optional[datetime] = None
     deleted_by: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DiveRouteWithDetails(DiveRouteResponse):
@@ -1303,8 +1279,9 @@ class NotificationResponse(BaseModel):
     email_sent_at: Optional[datetime] = None
     created_at: datetime
 
-    @validator('created_at', 'read_at', 'email_sent_at', pre=True)
-    def normalize_datetime_to_utc(cls, v):
+    @field_validator('created_at', 'read_at', 'email_sent_at', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
         """Normalize datetime fields to UTC timezone-aware datetimes."""
         if v is None:
             return v
@@ -1318,11 +1295,7 @@ class NotificationResponse(BaseModel):
             return v
         return v
 
-    class Config:
-        from_attributes = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v
-        }
+    model_config = ConfigDict(from_attributes=True)
 
 
 class NotificationPreferenceResponse(BaseModel):
@@ -1337,12 +1310,12 @@ class NotificationPreferenceResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    @validator('created_at', 'updated_at', pre=True)
-    def normalize_datetime_to_utc(cls, v):
+    @field_validator('created_at', 'updated_at', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
         return normalize_datetime_to_utc(cls, v)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class NotificationPreferenceCreate(BaseModel):
@@ -1374,8 +1347,7 @@ class EmailConfigResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EmailConfigCreate(BaseModel):
@@ -1413,8 +1385,7 @@ class SettingResponse(BaseModel):
     value: Union[str, int, float, bool, dict, list]  # JSON value (parsed)
     description: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class SettingUpdate(BaseModel):
     """Schema for updating a setting value"""
@@ -1430,8 +1401,7 @@ class GlobalSearchResult(BaseModel):
     icon_name: str = Field(..., description="Icon name for frontend rendering")
     metadata: Optional[dict] = Field(None, description="Additional metadata (location, date, etc.)")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class EntityTypeSearchResults(BaseModel):
     """Results for a specific entity type"""
@@ -1446,8 +1416,7 @@ class GlobalSearchResponse(BaseModel):
     results: List[EntityTypeSearchResults]
     total_count: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # API Key Schemas
@@ -1464,8 +1433,7 @@ class ApiKeyResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ApiKeyCreate(BaseModel):

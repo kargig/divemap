@@ -524,9 +524,9 @@ def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_to
             region="Test Region",
             difficulty_id=difficulty.id if difficulty else 2
         )
-        db_session.add(dive_site)
         dive_sites.append(dive_site)
 
+    db_session.add_all(dive_sites)
     db_session.commit()
 
     # Test page 1 with page_size 25
@@ -617,6 +617,7 @@ def test_get_dive_sites_pagination_with_filters(client, db_session, test_admin_u
     # Get a difficulty level for the dive sites
     difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
     # Create dive sites with different countries
+    dive_sites = []
     for i in range(50):
         dive_site = DiveSite(
             name=f"Test Dive Site {i+1}",
@@ -627,8 +628,9 @@ def test_get_dive_sites_pagination_with_filters(client, db_session, test_admin_u
             region="Test Region",
             difficulty_id=difficulty.id if difficulty else 2
         )
-        db_session.add(dive_site)
+        dive_sites.append(dive_site)
 
+    db_session.add_all(dive_sites)
     db_session.commit()
 
     # Test pagination with country filter
@@ -905,8 +907,20 @@ class TestDiveSitesDives:
 class TestDiveSitesAdvancedFeatures:
     """Test advanced dive site features and edge cases."""
 
-    def test_rate_limiting_on_endpoints(self, client, admin_headers):
+    @patch('requests.get')
+    def test_rate_limiting_on_endpoints(self, mock_get, client, admin_headers):
         """Test rate limiting on rate-limited endpoints."""
+        # Mock successful response to avoid external API calls
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "address": {
+                "country": "Test Country",
+                "state": "Test Region"
+            }
+        }
+        mock_get.return_value = mock_response
+
         # Test reverse geocoding rate limiting
         for _ in range(55):  # Try to exceed 50/minute limit
             response = client.get("/api/v1/dive-sites/reverse-geocode?latitude=0&longitude=0")

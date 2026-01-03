@@ -535,7 +535,7 @@ def update_dive_admin(
                 dive.name = generate_dive_name(dive_site.name, dive.dive_date)
 
     # Update other fields
-    for field, value in dive_update.dict(exclude_unset=True).items():
+    for field, value in dive_update.model_dump(exclude_unset=True).items():
         if field not in ['dive_date', 'dive_time', 'name', 'tags']:
             setattr(dive, field, value)
 

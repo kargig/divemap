@@ -7,11 +7,17 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta, timezone
+from contextlib import asynccontextmanager
 import os
 import logging
 import time
+import warnings
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from typing import Any
+
+# Suppress passlib deprecation warnings for crypt module
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="passlib")
 
 # Lazy imports for faster startup - only import when needed
 from app.database import engine, get_db
@@ -84,10 +90,34 @@ if not is_testing:
     else:
         print("✅ Database tables already exist, skipping creation")
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan event handler that runs on startup and shutdown.
+    Replaces the deprecated @app.on_event("startup") and @app.on_event("shutdown").
+    """
+    # Startup logic
+    startup_end_time = time.time()
+    total_startup_time = startup_end_time - startup_start_time
+    
+    print(f"🚀 Application startup completed in {total_startup_time:.2f}s")
+    print(f"🎯 FastAPI application fully started in {total_startup_time:.2f}s")
+    print(f"🔧 Environment: {os.getenv('ENVIRONMENT', 'production')}")
+    print(f"🔧 Log level: {log_level}")
+    print(f"🔧 Database URL configured: {'Yes' if os.getenv('DATABASE_URL') else 'No'}")
+    
+    # Warm database connections for better performance
+    from app.database import warm_database_connections
+    warm_database_connections()
+    
+    yield
+    # Shutdown logic (if any) can be added here
+
 app = FastAPI(
     title="Divemap API",
     description="Scuba diving site and center review platform",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Add rate limiter to app state
@@ -625,21 +655,3 @@ async def get_statistics(db: Session = Depends(get_db)):
             "diving_centers": 0,
             "dive_trips": 0
         }
-
-# Add startup performance monitoring
-startup_end_time = time.time()
-total_startup_time = startup_end_time - startup_start_time
-print(f"🚀 Application startup completed in {total_startup_time:.2f}s")
-
-# Add startup event handler for additional monitoring
-@app.on_event("startup")
-async def startup_event():
-    """Log startup completion with timing and warm database connections"""
-    print(f"🎯 FastAPI application fully started in {total_startup_time:.2f}s")
-    print(f"🔧 Environment: {os.getenv('ENVIRONMENT', 'production')}")
-    print(f"🔧 Log level: {log_level}")
-    print(f"🔧 Database URL configured: {'Yes' if os.getenv('DATABASE_URL') else 'No'}")
-    
-    # Warm database connections for better performance
-    from app.database import warm_database_connections
-    warm_database_connections()

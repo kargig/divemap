@@ -367,7 +367,8 @@ class TestAuthEndpoints:
         refresh_token = token_service.create_refresh_token(test_user, mock_request, db_session)
         
         # Set the refresh token as a cookie
-        response = client.post("/api/v1/auth/refresh", cookies={"refresh_token": refresh_token})
+        client.cookies = {"refresh_token": refresh_token}
+        response = client.post("/api/v1/auth/refresh")
         
         assert response.status_code == 200
         data = response.json()
@@ -389,7 +390,8 @@ class TestAuthEndpoints:
 
     def test_refresh_token_endpoint_invalid_token(self, client):
         """Test refresh endpoint with invalid refresh token"""
-        response = client.post("/api/v1/auth/refresh", cookies={"refresh_token": "invalid_token"})
+        client.cookies = {"refresh_token": "invalid_token"}
+        response = client.post("/api/v1/auth/refresh")
         
         assert response.status_code == 401
         data = response.json()
@@ -401,7 +403,8 @@ class TestAuthEndpoints:
         refresh_token = token_service.create_refresh_token(test_user, mock_request, db_session)
         
         # Set the refresh token as a cookie
-        response = client.post("/api/v1/auth/logout", cookies={"refresh_token": refresh_token})
+        client.cookies = {"refresh_token": refresh_token}
+        response = client.post("/api/v1/auth/logout")
         
         assert response.status_code == 200
         data = response.json()
@@ -627,9 +630,8 @@ class TestIntegration:
         assert me_response.status_code == 200
         
         # 3. Refresh token
-        refresh_response = client.post("/api/v1/auth/refresh", cookies={
-            "refresh_token": refresh_token
-        })
+        client.cookies = {"refresh_token": refresh_token}
+        refresh_response = client.post("/api/v1/auth/refresh")
         assert refresh_response.status_code == 200
         
         new_access_token = refresh_response.json()["access_token"]
@@ -641,9 +643,8 @@ class TestIntegration:
         assert me_response2.status_code == 200
         
         # 5. Logout
-        logout_response = client.post("/api/v1/auth/logout", cookies={
-            "refresh_token": refresh_token
-        })
+        client.cookies = {"refresh_token": refresh_token}
+        logout_response = client.post("/api/v1/auth/logout")
         assert logout_response.status_code == 200
 
     def test_multiple_device_sessions(self, client, test_user, db_session):
@@ -694,9 +695,8 @@ class TestIntegration:
         db_session.commit()
         
         # Try to refresh with expired token
-        response = client.post("/api/v1/auth/refresh", cookies={
-            "refresh_token": refresh_token
-        })
+        client.cookies = {"refresh_token": refresh_token}
+        response = client.post("/api/v1/auth/refresh")
         
         assert response.status_code == 401
         data = response.json()

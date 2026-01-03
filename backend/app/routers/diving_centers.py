@@ -1013,7 +1013,7 @@ async def create_diving_center(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    db_diving_center = DivingCenter(**diving_center.dict())
+    db_diving_center = DivingCenter(**diving_center.model_dump())
     db.add(db_diving_center)
     db.commit()
     db.refresh(db_diving_center)
@@ -1029,7 +1029,7 @@ async def create_diving_center(
         logger.warning(f"Failed to send notifications for new diving center: {e}")
 
     return {
-        **diving_center.dict(),
+        **diving_center.model_dump(),
         "id": db_diving_center.id,
         "created_at": db_diving_center.created_at,
         "updated_at": db_diving_center.updated_at,
@@ -1244,7 +1244,7 @@ async def update_diving_center(
             detail="You don't have permission to edit this diving center"
         )
 
-    update_data = diving_center_update.dict(exclude_unset=True)
+    update_data = diving_center_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(diving_center, field, value)
 
@@ -1743,7 +1743,7 @@ async def add_diving_center_organization(
 
     db_organization = DivingCenterOrganization(
         diving_center_id=diving_center_id,
-        **organization.dict()
+        **organization.model_dump()
     )
     db.add(db_organization)
     db.commit()
@@ -1798,7 +1798,7 @@ async def update_diving_center_organization(
         ).update({"is_primary": False})
 
     # Update fields
-    update_data = organization.dict(exclude_unset=True)
+    update_data = organization.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_organization, field, value)
 

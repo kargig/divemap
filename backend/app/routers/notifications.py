@@ -225,7 +225,7 @@ def get_notifications(
             if hasattr(n, 'model_dump'):
                 item = n.model_dump()
             else:
-                item = n.dict()
+                item = n.model_dump()
             # Ensure datetime fields are serializable with timezone info (UTC)
             for key, value in item.items():
                 if isinstance(value, datetime):
