@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, and_, or_, desc, asc
+from sqlalchemy import func, and_, or_, desc, asc, select
 from slowapi.util import get_remote_address
 from datetime import datetime, timedelta
 import difflib
@@ -172,15 +172,18 @@ def apply_tag_filtering(query, tag_ids, db):
     # Import required models
     from app.models import DiveSiteTag
     
-    # Use consistent subquery approach - dive site must have ALL selected tags
+    # If multiple tags are provided, ensure the site has ALL of them
     tag_count = len(tag_ids)
-    tag_subquery = db.query(DiveSiteTag.dive_site_id).filter(
+    
+    # Use select() construct explicitly to avoid SQLAlchemy warning
+    # "Coercing Subquery object into a select() for use in IN()"
+    stmt = select(DiveSiteTag.dive_site_id).where(
         DiveSiteTag.tag_id.in_(tag_ids)
     ).group_by(DiveSiteTag.dive_site_id).having(
         func.count(DiveSiteTag.tag_id) == tag_count
-    ).subquery()
+    )
     
-    return query.filter(DiveSite.id.in_(tag_subquery))
+    return query.filter(DiveSite.id.in_(stmt))
 
 
 def apply_search_filters(query, search, name, db):
@@ -1502,7 +1505,7 @@ async def create_dive_site(
     db: Session = Depends(get_db)
 ):
 
-    dive_site_data = dive_site.dict()
+    dive_site_data = dive_site.model_dump()
     dive_site_data['created_by'] = current_user.id
     
     # Convert difficulty_code to difficulty_id
@@ -1542,7 +1545,7 @@ async def create_dive_site(
 
     # Serialize response with difficulty_code and difficulty_label
     response_data = {
-        **dive_site.dict(),
+        **dive_site.model_dump(),
         "id": db_dive_site.id,
         "created_at": db_dive_site.created_at,
         "created_by": db_dive_site.created_by,
@@ -1883,7 +1886,7 @@ async def update_dive_site_media(
         )
 
     # Update fields if provided
-    update_data = media_update.dict(exclude_unset=True)
+    update_data = media_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(media, field, value)
 
@@ -2207,7 +2210,7 @@ async def update_dive_site(
         )
 
     # Update only provided fields
-    update_data = dive_site_update.dict(exclude_unset=True)
+    update_data = dive_site_update.model_dump(exclude_unset=True)
 
     # Convert difficulty_code to difficulty_id if provided
     if 'difficulty_code' in update_data:

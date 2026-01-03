@@ -262,7 +262,8 @@ class TestAuth:
             assert me_response.status_code == status.HTTP_200_OK
             
             # Test refresh token functionality
-            refresh_response = client.post("/api/v1/auth/refresh", cookies={"refresh_token": refresh_token})
+            client.cookies = {"refresh_token": refresh_token}
+            refresh_response = client.post("/api/v1/auth/refresh")
             assert refresh_response.status_code == status.HTTP_200_OK
             
             refresh_data = refresh_response.json()
@@ -293,7 +294,7 @@ class TestAuth:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         
         # Test with malformed JSON
-        response = client.post("/api/v1/auth/google-login", data="invalid json", headers={"Content-Type": "application/json"})
+        response = client.post("/api/v1/auth/google-login", content="invalid json", headers={"Content-Type": "application/json"})
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     def test_google_oauth_user_data_persistence(self, client, db_session):
