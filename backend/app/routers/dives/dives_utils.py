@@ -114,6 +114,25 @@ def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
             if site.name == import_site_id:
                 return {"id": site.id, "match_type": "exact_name"}
 
+        # Function to find matches
+        def find_potential_matches(search_term):
+            matches = []
+            threshold = 0.6  # Lower threshold to 60%
+            
+            for site in sites:
+                similarity = calculate_similarity(search_term, site.name)
+                if similarity >= threshold:
+                    matches.append({
+                        "id": site.id,
+                        "name": site.name,
+                        "similarity": similarity,
+                        "original_name": search_term
+                    })
+            
+            # Sort by similarity desc
+            matches.sort(key=lambda x: x['similarity'], reverse=True)
+            return matches
+
         # If we have a dive site name, try matching by name first
         if dive_site_name:
             # Check exact name match
@@ -122,43 +141,29 @@ def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
                     return {"id": site.id, "match_type": "exact_name"}
 
             # Try similarity matching with the dive site name
-            best_match = None
-            best_similarity = 0.0
-            similarity_threshold = 0.8  # 80% similarity threshold
-
-            for site in sites:
-                similarity = calculate_similarity(dive_site_name, site.name)
-                if similarity >= similarity_threshold and similarity > best_similarity:
-                    best_match = site
-                    best_similarity = similarity
-
-            if best_match:
-                print(f"Found similar dive site: '{dive_site_name}' matches '{best_match.name}' with {best_similarity:.2f} similarity")
+            matches = find_potential_matches(dive_site_name)
+            
+            if matches:
+                best_match = matches[0]
+                print(f"Found {len(matches)} similar dive sites for '{dive_site_name}'. Best: '{best_match['name']}' ({best_match['similarity']:.2f})")
                 return {
-                    "id": best_match.id,
+                    "id": best_match['id'],
                     "match_type": "similarity",
-                    "similarity": best_similarity,
-                    "proposed_sites": [{"id": best_match.id, "name": best_match.name, "similarity": best_similarity, "original_name": dive_site_name}]
+                    "similarity": best_match['similarity'],
+                    "proposed_sites": matches[:5]  # Return top 5 matches
                 }
 
         # If no match found with dive site name, try similarity matching with import ID
-        best_match = None
-        best_similarity = 0.0
-        similarity_threshold = 0.8  # 80% similarity threshold
-
-        for site in sites:
-            similarity = calculate_similarity(import_site_id, site.name)
-            if similarity >= similarity_threshold and similarity > best_similarity:
-                best_match = site
-                best_similarity = similarity
-
-        if best_match:
-            print(f"Found similar dive site: '{import_site_id}' matches '{best_match.name}' with {best_similarity:.2f} similarity")
+        matches = find_potential_matches(import_site_id)
+        
+        if matches:
+            best_match = matches[0]
+            print(f"Found {len(matches)} similar dive sites for '{import_site_id}'. Best: '{best_match['name']}' ({best_match['similarity']:.2f})")
             return {
-                "id": best_match.id,
+                "id": best_match['id'],
                 "match_type": "similarity",
-                "similarity": best_similarity,
-                "proposed_sites": [{"id": best_match.id, "name": best_match.name, "similarity": best_similarity, "original_name": import_site_id}]
+                "similarity": best_match['similarity'],
+                "proposed_sites": matches[:5]  # Return top 5 matches
             }
 
         return None

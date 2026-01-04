@@ -343,7 +343,7 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
         'border-blue-100',
         'bg-blue-50',
         true,
-        0,
+        data.back_gas.index !== undefined ? data.back_gas.index : 0,
         data.stages && data.stages.length > 0
       )}
 
@@ -358,7 +358,7 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
                 'border-purple-100',
                 'bg-purple-50',
                 true,
-                idx + 1,
+                stage.index !== undefined ? stage.index : idx + 1,
                 true
               )}
             </div>
