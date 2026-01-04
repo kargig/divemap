@@ -1234,10 +1234,19 @@ class DiveRouteResponse(DiveRouteBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class DiveSiteBasic(BaseModel):
+    id: int
+    name: str
+    country: Optional[str] = None
+    region: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
 class DiveRouteWithDetails(DiveRouteResponse):
     """Extended response with related data"""
-    dive_site: Optional[dict] = None  # Basic dive site info
-    creator: Optional[dict] = None    # Basic creator info
+    dive_site: Optional[DiveSiteBasic] = None  # Basic dive site info
+    creator: Optional[UserPublicInfo] = None    # Basic creator info
 
 
 class DiveRouteWithCreator(DiveRouteResponse):
@@ -1247,7 +1256,7 @@ class DiveRouteWithCreator(DiveRouteResponse):
 
 class DiveRouteListResponse(BaseModel):
     """Response for paginated route lists"""
-    routes: List[DiveRouteResponse]
+    routes: List[DiveRouteWithDetails]
     total: int
     page: int
     page_size: int

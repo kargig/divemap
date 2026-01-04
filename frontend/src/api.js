@@ -732,6 +732,12 @@ export const updateParsedTrip = async (tripId, tripData) => {
   return response.data;
 };
 
+// Dive Routes API functions
+export const getDiveRoutes = async (params = {}) => {
+  const response = await api.get('/api/v1/dive-routes/', { params });
+  return response.data;
+};
+
 // Subsurface XML Import API functions
 export const importSubsurfaceXML = async file => {
   const formData = new FormData();
