@@ -27,12 +27,15 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
 import api from '../api';
+import Breadcrumbs from '../components/Breadcrumbs';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import DiveSitesMap from '../components/DiveSitesMap';
+import EmptyState from '../components/EmptyState';
 import ErrorPage from '../components/ErrorPage';
 import HeroSection from '../components/HeroSection';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import MatchTypeBadge from '../components/MatchTypeBadge';
+import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
@@ -609,41 +612,30 @@ const DiveSites = () => {
     <div className='min-h-screen bg-gray-50'>
       {/* Mobile-First Responsive Container */}
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
-        {/* Hero Section */}
-        <HeroSection
+        <PageHeader
           title='Dive Sites'
-          subtitle='Discover amazing dive sites around the world'
-          background='ocean'
-          size='large'
-          showLogo={false}
-          logoBackground={true}
-          threeColumnLayout={true}
-        >
-          <div className='flex flex-col sm:flex-row gap-3 justify-center'>
-            <button
-              onClick={() => {
-                navigate('/map?type=dive-sites');
-              }}
-              className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-            >
-              <Compass className='w-5 h-5' />
-              Explore Map
-            </button>
-            <button
-              onClick={() => {
+          breadcrumbItems={[{ label: 'Dive Sites' }]}
+          actions={[
+            {
+              label: 'Explore on Map',
+              icon: Compass,
+              onClick: () => navigate('/map?type=dive-sites'),
+              variant: 'primary',
+            },
+            {
+              label: 'Suggest a New Site',
+              icon: Plus,
+              onClick: () => {
                 if (!user) {
-                  window.alert('You need an account for this action.\\nPlease Login or Register.');
+                  window.alert('You need an account for this action.\nPlease Login or Register.');
                   return;
                 }
                 navigate('/dive-sites/create');
-              }}
-              className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-            >
-              <Plus size={20} />
-              Add Dive Site
-            </button>
-          </div>
-        </HeroSection>
+              },
+              variant: 'secondary',
+            },
+          ]}
+        />
 
         {/* Desktop Search Bar - Only visible on desktop/tablet */}
         {!isMobile && (
@@ -805,396 +797,185 @@ const DiveSites = () => {
                   {diveSites.results.map(site => (
                     <div
                       key={site.id}
-                      className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow relative ${
-                        compactLayout ? 'p-3 sm:p-4' : 'p-4 sm:p-5'
-                      }`}
+                      className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200 relative ${compactLayout ? 'p-4' : 'p-6'}`}
                     >
-                      <div className='flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2'>
-                        {/* Mobile: View button in upper right corner */}
-                        <Link
-                          to={`/dive-sites/${site.id}`}
-                          state={{ from: window.location.pathname + window.location.search }}
-                          className='sm:hidden absolute top-2 right-2 inline-flex items-center justify-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors min-h-[32px] touch-manipulation'
-                        >
-                          <Eye className='w-3 h-3' />
-                          <span>View</span>
-                        </Link>
-
-                        <div className='flex-1 min-w-0'>
-                          {/* Title and match badge row */}
-                          <div className='flex items-start gap-2 mb-2'>
-                            <h3
-                              className={`font-semibold text-gray-900 line-clamp-2 flex-1 min-w-0 ${compactLayout ? 'text-base' : 'text-xl'}`}
-                            >
-                              <Link
-                                to={`/dive-sites/${site.id}`}
-                                state={{
-                                  from: window.location.pathname + window.location.search,
-                                }}
-                                className='text-blue-600 hover:text-blue-800 transition-colors block'
-                                title={site.name}
-                              >
-                                {site.name}
-                              </Link>
-                            </h3>
-                            {/* Route badge - similar to dives (only show if route_count field exists) */}
-                            {site.route_count !== undefined &&
-                              site.route_count !== null &&
-                              site.route_count > 0 && (
-                                <div
-                                  className='flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium flex-shrink-0'
-                                  title={`This dive site has ${site.route_count} route${site.route_count > 1 ? 's' : ''}`}
-                                >
-                                  <Route
-                                    className={`${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5'}`}
-                                  />
-                                  Route{site.route_count > 1 ? 's' : ''}
-                                </div>
-                              )}
-                            {/* Match Type Badge */}
-                            {matchTypes[site.id] && (
-                              <div className='flex-shrink-0'>
-                                <MatchTypeBadge
-                                  matchType={matchTypes[site.id].type}
-                                  score={matchTypes[site.id].score}
-                                />
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Stats and Geographic info row - matching diving-centers layout */}
-                          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-2'>
-                            {/* Stats section - difficulty, rating, comments */}
-                            <div
-                              className={`flex flex-wrap items-center ${compactLayout ? 'gap-2' : 'gap-2 sm:gap-3'}`}
-                            >
-                              {/* Difficulty badge with icon - clickable */}
-                              {site.difficulty_code ? (
-                                <div className='flex items-center gap-1.5 sm:gap-2'>
-                                  <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
-                                    Difficulty:
-                                  </span>
-                                  <button
-                                    type='button'
-                                    onClick={e => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      handleFilterChange('difficulty_code', site.difficulty_code);
-                                    }}
-                                    className={`inline-flex items-center rounded-full font-medium flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${getDifficultyColorClasses(site.difficulty_code)} ${
-                                      compactLayout
-                                        ? 'px-2 py-0.5 text-[11px]'
-                                        : 'px-3 py-1 text-xs sm:text-sm'
-                                    }`}
-                                    title={`Filter by ${site.difficulty_label || getDifficultyLabel(site.difficulty_code)}`}
-                                  >
-                                    <Award
-                                      className={`hidden sm:inline-block flex-shrink-0 ${compactLayout ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-1.5'}`}
-                                    />
-                                    {site.difficulty_label ||
-                                      getDifficultyLabel(site.difficulty_code)}
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className='flex items-center gap-1.5 sm:gap-2'>
-                                  <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
-                                    Difficulty:
-                                  </span>
-                                  <span
-                                    className={`inline-flex items-center rounded-full font-medium flex-shrink-0 ${getDifficultyColorClasses(site.difficulty_code)} ${
-                                      compactLayout
-                                        ? 'px-2 py-0.5 text-[11px]'
-                                        : 'px-3 py-1 text-xs sm:text-sm'
-                                    }`}
-                                  >
-                                    <Award
-                                      className={`hidden sm:inline-block flex-shrink-0 ${compactLayout ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-1.5'}`}
-                                    />
-                                    {site.difficulty_label ||
-                                      getDifficultyLabel(site.difficulty_code)}
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Rating with star - more spacious on desktop */}
-                              {site.average_rating !== undefined &&
-                                site.average_rating !== null && (
-                                  <div className='flex items-center gap-1.5 sm:gap-2'>
-                                    <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
-                                      Rating:
-                                    </span>
-                                    <div
-                                      className={`flex items-center bg-yellow-50 rounded-full flex-shrink-0 border border-yellow-200 shadow-sm ${
-                                        compactLayout
-                                          ? 'gap-1 px-2 py-0.5'
-                                          : 'gap-2 px-3 py-1.5 sm:px-4 sm:py-2'
-                                      }`}
-                                    >
-                                      <Star
-                                        className={`text-yellow-500 fill-current flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                                      />
-                                      <span
-                                        className={`font-semibold text-yellow-800 ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
-                                      >
-                                        {Number(site.average_rating).toFixed(1)}/10
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-
-                              {/* Comment count with icon - more spacious on desktop */}
-                              {site.comment_count !== undefined &&
-                                site.comment_count !== null &&
-                                site.comment_count > 0 && (
-                                  <div className='flex items-center gap-1.5 sm:gap-2'>
-                                    <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
-                                      Comments:
-                                    </span>
-                                    <div
-                                      className={`flex items-center bg-blue-50 rounded-full flex-shrink-0 border border-blue-200 ${
-                                        compactLayout
-                                          ? 'gap-1 px-2 py-0.5'
-                                          : 'gap-2 px-3 py-1.5 sm:px-4 sm:py-2'
-                                      }`}
-                                    >
-                                      <MessageCircle
-                                        className={`text-blue-600 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                                      />
-                                      <span
-                                        className={`font-semibold text-blue-800 ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
-                                      >
-                                        {site.comment_count}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-                            </div>
-
-                            {/* Additional stats - depth, creator */}
-                            <div
-                              className={`flex flex-wrap items-center ${compactLayout ? 'gap-2' : 'gap-2 sm:gap-3'}`}
-                            >
-                              {/* Max depth */}
-                              {site.max_depth !== undefined && site.max_depth !== null && (
-                                <div
-                                  className={`flex items-center text-gray-700 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5 sm:gap-2'}`}
-                                >
-                                  <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
-                                    Max Depth:
-                                  </span>
-                                  <TrendingUp
-                                    className={`text-gray-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                                  />
-                                  <span
-                                    className={`font-medium ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
-                                  >
-                                    {site.max_depth}m
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Creator */}
-                              {site.created_by_username && (
-                                <div
-                                  className={`flex items-center text-gray-600 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5 sm:gap-2'}`}
-                                >
-                                  <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
-                                    Created by:
-                                  </span>
-                                  <User
-                                    className={`text-gray-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                                  />
-                                  <span
-                                    className={`truncate ${compactLayout ? 'text-[11px] max-w-[80px] sm:max-w-[100px]' : 'text-xs sm:text-sm max-w-[100px] sm:max-w-[160px]'}`}
-                                    title={site.created_by_username}
-                                  >
-                                    {site.created_by_username}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Geographic fields - positioned on right like diving-centers */}
+                      <div className='flex flex-col space-y-4'>
+                        {/* HEADER ROW */}
+                        <div className='flex items-start justify-between gap-4'>
+                          <div className='flex-1 min-w-0'>
+                            {/* Kicker: Location */}
                             {(site.country || site.region) && (
-                              <div className='flex items-center gap-1.5 flex-wrap sm:flex-nowrap justify-end lg:justify-start'>
+                              <div className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-1.5'>
+                                <Globe className='w-3 h-3' />
                                 {site.country && (
                                   <button
-                                    type='button'
                                     onClick={e => {
                                       e.preventDefault();
-                                      e.stopPropagation();
                                       handleFilterChange('country', site.country);
                                     }}
-                                    className={`flex items-center bg-blue-50 rounded-full hover:bg-blue-100 transition-colors flex-shrink-0 ${
-                                      compactLayout
-                                        ? 'gap-1 px-2 py-0.5'
-                                        : 'gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5'
-                                    }`}
-                                    title={`Filter by country: ${site.country}`}
+                                    className='hover:underline hover:text-blue-800 transition-colors'
                                   >
-                                    <Globe
-                                      className={`text-blue-600 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5 sm:w-4 sm:h-4'}`}
-                                    />
-                                    <span
-                                      className={`font-medium text-blue-700 ${compactLayout ? 'text-[10px]' : 'text-xs sm:text-sm'}`}
-                                    >
-                                      {site.country}
-                                    </span>
+                                    {site.country}
                                   </button>
+                                )}
+                                {site.country && site.region && (
+                                  <span className='mx-1'>&rsaquo;</span>
                                 )}
                                 {site.region && (
                                   <button
-                                    type='button'
                                     onClick={e => {
                                       e.preventDefault();
-                                      e.stopPropagation();
                                       handleFilterChange('region', site.region);
                                     }}
-                                    className={`flex items-center bg-green-50 rounded-full hover:bg-green-100 transition-colors flex-shrink-0 ${
-                                      compactLayout
-                                        ? 'gap-1 px-2 py-0.5'
-                                        : 'gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5'
-                                    }`}
-                                    title={`Filter by region: ${site.region}`}
+                                    className='hover:underline hover:text-blue-800 transition-colors'
                                   >
-                                    <MapPin
-                                      className={`text-green-600 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5 sm:w-4 sm:h-4'}`}
-                                    />
-                                    <span
-                                      className={`font-medium text-green-700 ${compactLayout ? 'text-[10px]' : 'text-xs sm:text-sm'}`}
-                                    >
-                                      {site.region}
-                                    </span>
+                                    {site.region}
                                   </button>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Title: Site Name */}
+                            <h3
+                              className={`font-semibold text-gray-900 leading-snug flex items-center gap-2 flex-wrap ${compactLayout ? 'text-lg' : 'text-xl'}`}
+                            >
+                              <Link
+                                to={`/dive-sites/${site.id}`}
+                                state={{ from: window.location.pathname + window.location.search }}
+                                className='hover:text-blue-600 transition-colors'
+                              >
+                                {site.name}
+                              </Link>
+                              {site.route_count > 0 && (
+                                <span className='inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-[10px] font-bold uppercase tracking-wider'>
+                                  <Route className='w-2.5 h-2.5' />
+                                  {site.route_count} Route{site.route_count > 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </h3>
+                          </div>
+
+                          {/* Top Right: Rating */}
+                          {site.average_rating !== undefined && site.average_rating !== null && (
+                            <div className='flex flex-col items-end gap-1'>
+                              <div className='flex items-center gap-1.5 text-yellow-500'>
+                                <Star className='w-5 h-5 fill-current' />
+                                <span className='text-lg font-bold text-gray-900'>
+                                  {Number(site.average_rating).toFixed(1)}
+                                  <span className='text-xs font-normal text-gray-400 ml-0.5'>
+                                    /10
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Meta Byline (Creator) */}
+                        {site.created_by_username && (
+                          <div className='text-xs text-gray-500 flex items-center gap-1.5 mb-2'>
+                            <div className='flex items-center gap-1'>
+                              <User className='w-3.5 h-3.5' />
+                              <span>{site.created_by_username}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* BODY: Description */}
+                        {site.description && (
+                          <div
+                            className={`text-gray-600 leading-relaxed line-clamp-2 ${compactLayout ? 'text-xs' : 'text-sm'}`}
+                          >
+                            {renderTextWithLinks(site.description)}
+                          </div>
+                        )}
+
+                        {/* STATS STRIP (De-boxed) */}
+                        <div className='flex flex-wrap gap-x-8 gap-y-3 py-3 border-y border-gray-50'>
+                          {site.max_depth !== undefined && site.max_depth !== null && (
+                            <div className='flex flex-col'>
+                              <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                                Max Depth
+                              </span>
+                              <div className='flex items-center gap-1.5'>
+                                <TrendingUp className='w-4 h-4 text-gray-400' />
+                                <span className='text-sm font-bold text-gray-900'>
+                                  {site.max_depth}
+                                  <span className='text-xs font-normal text-gray-400 ml-0.5'>
+                                    m
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          {site.difficulty_code && site.difficulty_code !== 'unspecified' && (
+                            <div className='flex flex-col'>
+                              <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                                Level
+                              </span>
+                              <div className='flex items-center mt-0.5'>
+                                <span
+                                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getDifficultyColorClasses(site.difficulty_code)}`}
+                                >
+                                  {site.difficulty_label ||
+                                    getDifficultyLabel(site.difficulty_code)}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          {site.marine_life && (
+                            <div className='flex flex-col flex-1 min-w-[150px]'>
+                              <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                                Marine Life
+                              </span>
+                              <div className='flex items-center gap-1.5'>
+                                <Fish className='w-4 h-4 text-blue-400' />
+                                <span
+                                  className='text-sm text-gray-700 truncate max-w-[200px]'
+                                  title={site.marine_life}
+                                >
+                                  {site.marine_life}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* FOOTER: Tags & Actions */}
+                        <div className='flex items-center justify-between gap-4 mt-auto'>
+                          <div className='flex flex-wrap items-center gap-3'>
+                            {/* Tags */}
+                            {site.tags && site.tags.length > 0 && (
+                              <div className='flex flex-wrap gap-1.5'>
+                                {site.tags.slice(0, 3).map((tag, index) => {
+                                  const tagName = tag.name || tag;
+                                  return (
+                                    <span
+                                      key={index}
+                                      className={`px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors ${getTagColor(tagName)}`}
+                                    >
+                                      {tagName}
+                                    </span>
+                                  );
+                                })}
+                                {site.tags.length > 3 && (
+                                  <span className='text-xs font-medium text-gray-400'>
+                                    +{site.tags.length - 3}
+                                  </span>
                                 )}
                               </div>
                             )}
                           </div>
 
-                          {/* Additional info row - marine life, access, safety */}
-                          {(site.marine_life ||
-                            site.access_instructions ||
-                            site.safety_information) && (
-                            <div
-                              className={`flex flex-wrap items-center ${compactLayout ? 'gap-1.5 mb-2' : 'gap-2 sm:gap-3 mb-2'}`}
-                            >
-                              {/* Marine life indicator */}
-                              {site.marine_life && (
-                                <div
-                                  className={`flex items-center text-gray-600 flex-shrink-0 bg-blue-50 rounded-full ${compactLayout ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5'}`}
-                                  title={site.marine_life}
-                                >
-                                  <Fish
-                                    className={`text-blue-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                                  />
-                                  <span
-                                    className={`truncate ${compactLayout ? 'text-[10px] max-w-[80px] sm:max-w-[120px]' : 'text-xs sm:text-sm max-w-[120px] sm:max-w-[200px]'}`}
-                                  >
-                                    {site.marine_life.length > (compactLayout ? 15 : 30)
-                                      ? `${site.marine_life.substring(0, compactLayout ? 15 : 30)}...`
-                                      : site.marine_life}
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Access indicator */}
-                              {site.access_instructions && (
-                                <div
-                                  className={`flex items-center text-gray-600 flex-shrink-0 bg-green-50 rounded-full ${compactLayout ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5'}`}
-                                  title={site.access_instructions}
-                                >
-                                  <Navigation
-                                    className={`text-green-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                                  />
-                                  <span
-                                    className={compactLayout ? 'text-[10px]' : 'text-xs sm:text-sm'}
-                                  >
-                                    Access info
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Safety indicator */}
-                              {site.safety_information && (
-                                <div
-                                  className={`flex items-center text-gray-600 flex-shrink-0 bg-orange-50 rounded-full ${compactLayout ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5'}`}
-                                  title={site.safety_information}
-                                >
-                                  <Shield
-                                    className={`text-orange-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                                  />
-                                  <span
-                                    className={compactLayout ? 'text-[10px]' : 'text-xs sm:text-sm'}
-                                  >
-                                    Safety
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          )}
+                          <Link
+                            to={`/dive-sites/${site.id}`}
+                            className='inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors group'
+                          >
+                            View Details
+                            <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5' />
+                          </Link>
                         </div>
-                        {/* Desktop: View button in original position */}
-                        <Link
-                          to={`/dive-sites/${site.id}`}
-                          state={{ from: window.location.pathname + window.location.search }}
-                          className='hidden sm:inline-flex self-center flex-shrink-0 items-center justify-center gap-1 px-2 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors'
-                        >
-                          <Eye className='w-3 h-3' />
-                          <span>View</span>
-                        </Link>
                       </div>
-
-                      {site.description && (
-                        <p
-                          className={`text-gray-700 line-clamp-2 leading-relaxed ${compactLayout ? 'text-xs mb-2' : 'text-sm mb-3'}`}
-                        >
-                          {renderTextWithLinks(site.description)}
-                        </p>
-                      )}
-
-                      {/* Tags */}
-                      {site.tags && site.tags.length > 0 && (
-                        <div
-                          className={`flex flex-wrap items-center ${compactLayout ? 'gap-1.5' : 'gap-2'}`}
-                        >
-                          <span className='hidden lg:inline-block text-xs text-gray-600 font-medium mr-1'>
-                            Tags:
-                          </span>
-                          {site.tags.slice(0, compactLayout ? 4 : 5).map((tag, index) => {
-                            const tagName = tag.name || tag;
-                            const tagId = tag.id || tag;
-                            return (
-                              <button
-                                key={index}
-                                onClick={e => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  const currentTagIds = filters.tag_ids || [];
-                                  const newTagIds = currentTagIds.includes(tagId)
-                                    ? currentTagIds.filter(id => id !== tagId)
-                                    : [...currentTagIds, tagId];
-                                  handleFilterChange('tag_ids', newTagIds);
-                                }}
-                                className={`inline-flex items-center font-medium rounded-full cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tagName)} ${
-                                  compactLayout ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs'
-                                }`}
-                                title={`Filter by ${tagName}`}
-                              >
-                                {tagName}
-                              </button>
-                            );
-                          })}
-                          {site.tags.length > (compactLayout ? 4 : 5) && (
-                            <span
-                              className={`inline-flex items-center font-medium bg-gray-100 text-gray-600 rounded-full ${
-                                compactLayout ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs'
-                              }`}
-                            >
-                              +{site.tags.length - (compactLayout ? 4 : 5)}
-                            </span>
-                          )}
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -1203,353 +984,126 @@ const DiveSites = () => {
               {/* Dive Sites Grid */}
               {viewMode === 'grid' && !isMobile && diveSites?.results && (
                 <div
-                  className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${compactLayout ? 'view-mode-compact' : ''}`}
+                  className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${compactLayout ? 'view-mode-compact' : ''}`}
                 >
                   {diveSites.results.map(site => (
                     <div
                       key={site.id}
-                      className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
-                        compactLayout ? 'p-4' : 'p-5'
-                      }`}
+                      className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 ${compactLayout ? 'p-4' : 'p-6'}`}
                     >
-                      {/* Thumbnail removed */}
-
-                      <div className='p-3'>
-                        {/* Title and match badge row */}
-                        <div className='flex items-start gap-2 mb-2'>
-                          <h3
-                            className={`font-semibold text-gray-900 line-clamp-2 flex-1 min-w-0 ${compactLayout ? 'text-base' : 'text-xl'}`}
-                          >
-                            <Link
-                              to={`/dive-sites/${site.id}`}
-                              state={{ from: window.location.pathname + window.location.search }}
-                              className='text-blue-600 hover:text-blue-800 transition-colors block'
-                              title={site.name}
-                            >
-                              {site.name}
-                            </Link>
-                          </h3>
-                          {/* Match Type Badge */}
-                          {matchTypes[site.id] && (
-                            <div className='flex-shrink-0'>
-                              <MatchTypeBadge
-                                matchType={matchTypes[site.id].type}
-                                score={matchTypes[site.id].score}
-                              />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Geographic fields - separate row below title, matching diving-centers */}
-                        {(site.country || site.region) && (
-                          <div className='flex items-center gap-1.5 flex-wrap sm:flex-nowrap mb-2'>
-                            {site.country && (
-                              <button
-                                type='button'
-                                onClick={e => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleFilterChange('country', site.country);
-                                }}
-                                className={`flex items-center bg-blue-50 rounded-full hover:bg-blue-100 transition-colors flex-shrink-0 ${
-                                  compactLayout ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-2.5 py-1'
-                                }`}
-                                title={`Filter by country: ${site.country}`}
-                              >
-                                <Globe
-                                  className={`text-blue-600 ${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5'}`}
-                                />
-                                <span
-                                  className={`font-medium text-blue-700 ${compactLayout ? 'text-[10px]' : 'text-xs'}`}
+                      <div className='flex flex-col h-full'>
+                        {/* Header: Kicker & Title */}
+                        <div className='mb-3'>
+                          {(site.country || site.region) && (
+                            <div className='text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-1 flex items-center gap-1'>
+                              <Globe className='w-2.5 h-2.5' />
+                              {site.country && (
+                                <button
+                                  onClick={e => {
+                                    e.preventDefault();
+                                    handleFilterChange('country', site.country);
+                                  }}
+                                  className='hover:underline hover:text-blue-800 transition-colors'
                                 >
                                   {site.country}
-                                </span>
-                              </button>
-                            )}
-                            {site.region && (
-                              <button
-                                type='button'
-                                onClick={e => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleFilterChange('region', site.region);
-                                }}
-                                className={`flex items-center bg-green-50 rounded-full hover:bg-green-100 transition-colors flex-shrink-0 ${
-                                  compactLayout ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-2.5 py-1'
-                                }`}
-                                title={`Filter by region: ${site.region}`}
-                              >
-                                <MapPin
-                                  className={`text-green-600 ${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5'}`}
-                                />
-                                <span
-                                  className={`font-medium text-green-700 ${compactLayout ? 'text-[10px]' : 'text-xs'}`}
+                                </button>
+                              )}
+                              {site.country && site.region && (
+                                <span className='mx-1'>&rsaquo;</span>
+                              )}
+                              {site.region && (
+                                <button
+                                  onClick={e => {
+                                    e.preventDefault();
+                                    handleFilterChange('region', site.region);
+                                  }}
+                                  className='hover:underline hover:text-blue-800 transition-colors'
                                 >
                                   {site.region}
-                                </span>
-                              </button>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Horizontal stats row - improved spacing with icons */}
-                        <div
-                          className={`flex flex-wrap items-center ${compactLayout ? 'gap-2 mb-2' : 'gap-2.5 sm:gap-3 mb-3'}`}
-                        >
-                          {/* Difficulty badge with icon - clickable */}
-                          {site.difficulty_code ? (
-                            <div className='flex items-center gap-1.5'>
-                              <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
-                                Difficulty:
-                              </span>
-                              <button
-                                type='button'
-                                onClick={e => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleFilterChange('difficulty_code', site.difficulty_code);
-                                }}
-                                className={`inline-flex items-center rounded-full font-medium flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${getDifficultyColorClasses(site.difficulty_code)} ${
-                                  compactLayout ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'
-                                }`}
-                                title={`Filter by ${site.difficulty_label || getDifficultyLabel(site.difficulty_code)}`}
-                              >
-                                <Award className='hidden sm:inline-block w-3.5 h-3.5 mr-1.5 flex-shrink-0' />
-                                {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
-                              </button>
-                            </div>
-                          ) : (
-                            <div className='flex items-center gap-1.5'>
-                              <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
-                                Difficulty:
-                              </span>
-                              <span
-                                className={`inline-flex items-center rounded-full font-medium flex-shrink-0 ${getDifficultyColorClasses(site.difficulty_code)} ${
-                                  compactLayout ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'
-                                }`}
-                              >
-                                <Award className='hidden sm:inline-block w-3.5 h-3.5 mr-1.5 flex-shrink-0' />
-                                {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Rating - enhanced */}
-                          {site.average_rating !== undefined && site.average_rating !== null && (
-                            <div className='flex items-center gap-1.5'>
-                              <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
-                                Rating:
-                              </span>
-                              <div
-                                className={`flex items-center bg-yellow-50 rounded-full flex-shrink-0 border border-yellow-200 shadow-sm ${
-                                  compactLayout ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-3 py-1'
-                                }`}
-                              >
-                                <Star
-                                  className={`text-yellow-500 fill-current ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
-                                />
-                                <span
-                                  className={`font-semibold text-yellow-800 ${compactLayout ? 'text-[11px]' : 'text-xs'}`}
-                                >
-                                  {Number(site.average_rating).toFixed(1)}/10
-                                </span>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Max depth */}
-                          {site.max_depth !== undefined && site.max_depth !== null && (
-                            <div
-                              className={`flex items-center text-gray-700 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5'}`}
-                            >
-                              <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
-                                Max Depth:
-                              </span>
-                              <TrendingUp
-                                className={`text-gray-500 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
-                              />
-                              <span
-                                className={`font-medium ${compactLayout ? 'text-[11px]' : 'text-xs'}`}
-                              >
-                                {site.max_depth}m
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Comment count with icon - enhanced */}
-                          {site.comment_count !== undefined &&
-                            site.comment_count !== null &&
-                            site.comment_count > 0 && (
-                              <div className='flex items-center gap-1.5'>
-                                <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
-                                  Comments:
-                                </span>
-                                <div
-                                  className={`flex items-center bg-blue-50 rounded-full flex-shrink-0 border border-blue-200 ${compactLayout ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-2.5 py-1'}`}
-                                >
-                                  <MessageCircle
-                                    className={`text-blue-600 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
-                                  />
-                                  <span
-                                    className={`font-semibold text-blue-800 ${compactLayout ? 'text-[11px]' : 'text-xs'}`}
-                                  >
-                                    {site.comment_count}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-
-                          {/* Creator */}
-                          {site.created_by_username && (
-                            <div
-                              className={`flex items-center text-gray-600 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5'}`}
-                            >
-                              <span className='hidden lg:inline-block text-xs text-gray-600 font-medium'>
-                                Created by:
-                              </span>
-                              <User
-                                className={`text-gray-500 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
-                              />
-                              <span
-                                className={`truncate ${compactLayout ? 'text-[11px] max-w-[80px]' : 'text-xs max-w-[100px]'}`}
-                                title={site.created_by_username}
-                              >
-                                {site.created_by_username}
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Marine life */}
-                          {site.marine_life && (
-                            <div
-                              className={`flex items-center text-gray-600 flex-shrink-0 bg-blue-50 rounded-full ${compactLayout ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-2 py-1'}`}
-                              title={site.marine_life}
-                            >
-                              <Fish
-                                className={`text-blue-500 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
-                              />
-                              <span
-                                className={`truncate ${compactLayout ? 'text-[10px] max-w-[80px]' : 'text-xs max-w-[120px]'}`}
-                              >
-                                {site.marine_life.length > (compactLayout ? 15 : 20)
-                                  ? `${site.marine_life.substring(0, compactLayout ? 15 : 20)}...`
-                                  : site.marine_life}
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Access */}
-                          {site.access_instructions && (
-                            <div
-                              className={`flex items-center text-gray-600 flex-shrink-0 bg-green-50 rounded-full ${compactLayout ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-2 py-1'}`}
-                              title={site.access_instructions}
-                            >
-                              <Navigation
-                                className={`text-green-500 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
-                              />
-                              <span className={compactLayout ? 'text-[10px]' : 'text-xs'}>
-                                Access
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Safety */}
-                          {site.safety_information && (
-                            <div
-                              className={`flex items-center text-gray-600 flex-shrink-0 bg-orange-50 rounded-full ${compactLayout ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-2 py-1'}`}
-                              title={site.safety_information}
-                            >
-                              <Shield
-                                className={`text-orange-500 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4'}`}
-                              />
-                              <span className={compactLayout ? 'text-[10px]' : 'text-xs'}>
-                                Safety
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {site.description && (
-                          <p
-                            className={`text-gray-700 line-clamp-2 leading-relaxed ${compactLayout ? 'text-xs mb-2' : 'text-sm mb-3'}`}
-                          >
-                            {site.description.split(/(https?:\/\/[^\s]+)/).map((part, index) => {
-                              if (part.match(/^https?:\/\//)) {
-                                return (
-                                  <a
-                                    key={index}
-                                    href={part}
-                                    target='_blank'
-                                    rel='noopener noreferrer'
-                                    className='text-blue-600 hover:text-blue-800 underline break-all'
-                                  >
-                                    {part}
-                                  </a>
-                                );
-                              }
-                              return part;
-                            })}
-                          </p>
-                        )}
-
-                        {/* Tags */}
-                        {site.tags && site.tags.length > 0 && (
-                          <div className={compactLayout ? 'mb-3' : 'mb-4'}>
-                            <div
-                              className={`flex flex-wrap items-center ${compactLayout ? 'gap-1.5' : 'gap-2'}`}
-                            >
-                              <span className='hidden lg:inline-block text-xs text-gray-600 font-medium mr-1'>
-                                Tags:
-                              </span>
-                              {site.tags.slice(0, compactLayout ? 4 : 5).map((tag, index) => {
-                                const tagName = tag.name || tag;
-                                const tagId = tag.id || tag;
-                                return (
-                                  <button
-                                    key={index}
-                                    onClick={e => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      const currentTagIds = filters.tag_ids || [];
-                                      const newTagIds = currentTagIds.includes(tagId)
-                                        ? currentTagIds.filter(id => id !== tagId)
-                                        : [...currentTagIds, tagId];
-                                      handleFilterChange('tag_ids', newTagIds);
-                                    }}
-                                    className={`inline-flex items-center font-medium rounded-full cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tagName)} ${
-                                      compactLayout
-                                        ? 'px-2 py-0.5 text-[11px]'
-                                        : 'px-2.5 py-1 text-xs'
-                                    }`}
-                                    title={`Filter by ${tagName}`}
-                                  >
-                                    {tagName}
-                                  </button>
-                                );
-                              })}
-                              {site.tags.length > (compactLayout ? 4 : 5) && (
-                                <span
-                                  className={`inline-flex items-center font-medium bg-gray-100 text-gray-600 rounded-full ${
-                                    compactLayout
-                                      ? 'px-2 py-0.5 text-[11px]'
-                                      : 'px-2.5 py-1 text-xs'
-                                  }`}
-                                >
-                                  +{site.tags.length - (compactLayout ? 4 : 5)} more
-                                </span>
+                                </button>
                               )}
                             </div>
+                          )}
+                          <div className='flex items-start justify-between gap-2'>
+                            <h3 className='font-semibold text-gray-900 leading-snug line-clamp-1 flex-1'>
+                              <Link
+                                to={`/dive-sites/${site.id}`}
+                                className='hover:text-blue-600 transition-colors'
+                              >
+                                {site.name}
+                              </Link>
+                            </h3>
+                          </div>
+                        </div>
+
+                        {/* Meta Byline (Creator) */}
+                        {site.created_by_username && (
+                          <div className='text-xs text-gray-500 flex items-center gap-1.5 mb-2'>
+                            <div className='flex items-center gap-1'>
+                              <User className='w-3.5 h-3.5' />
+                              <span>{site.created_by_username}</span>
+                            </div>
                           </div>
                         )}
 
-                        <Link
-                          to={`/dive-sites/${site.id}`}
-                          state={{ from: window.location.pathname + window.location.search }}
-                          className='w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
-                        >
-                          <Eye className='w-4 h-4' />
-                          View Site
-                        </Link>
+                        {/* Body: Description */}
+                        {site.description && (
+                          <div className='text-xs text-gray-500 leading-relaxed line-clamp-2 mb-4'>
+                            {site.description}
+                          </div>
+                        )}
+
+                        {/* Stats Strip (Simplified for Grid) */}
+                        <div className='grid grid-cols-2 gap-4 py-3 border-y border-gray-50 mb-4'>
+                          <div className='flex items-center gap-2'>
+                            <Star className='w-4 h-4 text-yellow-500 fill-current' />
+                            <div>
+                              <p className='text-[10px] text-gray-400 uppercase font-medium leading-none mb-0.5'>
+                                Rating
+                              </p>
+                              <p className='text-sm font-semibold text-gray-700'>
+                                {Number(site.average_rating || 0).toFixed(1)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className='flex items-center gap-2'>
+                            <TrendingUp className='w-4 h-4 text-gray-400' />
+                            <div>
+                              <p className='text-[10px] text-gray-400 uppercase font-medium leading-none mb-0.5'>
+                                Depth
+                              </p>
+                              <p className='text-sm font-semibold text-gray-700'>
+                                {site.max_depth || '?'}m
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Footer: Tags & Badges */}
+                        <div className='mt-auto flex items-center justify-between'>
+                          <div className='flex gap-1.5'>
+                            {site.tags?.slice(0, 2).map((tag, i) => {
+                              const tagName = tag.name || tag;
+                              return (
+                                <span
+                                  key={i}
+                                  className={`text-[10px] font-medium px-1.5 py-0.5 rounded border border-transparent ${getTagColor(tagName)}`}
+                                >
+                                  {tagName}
+                                </span>
+                              );
+                            })}
+                          </div>
+                          <div className='flex gap-1.5'>
+                            {site.difficulty_code && site.difficulty_code !== 'unspecified' && (
+                              <span
+                                className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getDifficultyColorClasses(site.difficulty_code)}`}
+                              >
+                                {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1564,34 +1118,16 @@ const DiveSites = () => {
             diveSites?.results &&
             diveSites.results.length === 0 &&
             viewMode !== 'map' && (
-              <>
-                {/* Primary No Results Message */}
-                <div className='text-center py-8 sm:py-12'>
-                  <Map className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-                  <p className='text-sm sm:text-base text-gray-600'>
-                    {filters.search_query.trim()
-                      ? `No dive sites found matching "${filters.search_query}". Try adjusting your search terms.`
-                      : 'No dive sites found matching your criteria. Try adjusting your search or filters.'}
-                  </p>
-                </div>
-
-                {/* Did you mean? - Show fuzzy search suggestions when no exact matches */}
-                {filters.search_query && (
-                  <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6'>
-                    <h3 className='text-lg font-medium text-blue-900 mb-2'>Did you mean?</h3>
-                    <p className='text-blue-700 mb-3'>
-                      No exact matches found for "{filters.search_query}". Here are some similar
-                      dive sites:
-                    </p>
-                    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
-                      {/* This will be populated by backend fuzzy search results */}
-                      <div className='text-sm text-blue-600'>
-                        Try searching for similar terms or check the spelling.
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
+              <EmptyState
+                onClearFilters={clearFilters}
+                actionLink='/dive-sites/create'
+                actionText='Add Dive Site'
+                message={
+                  filters.search_query.trim()
+                    ? `No dive sites found matching "${filters.search_query}". Try different terms or add this site to our database.`
+                    : 'No dive sites found matching your criteria. Try adjusting your filters.'
+                }
+              />
             )}
 
           {/* Bottom Pagination Controls */}

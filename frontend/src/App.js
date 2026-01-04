@@ -18,6 +18,7 @@ const Admin = lazy(() => import('./pages/Admin'));
 const AdminDives = lazy(() => import('./pages/AdminDives'));
 const AdminDiveSiteAliases = lazy(() => import('./pages/AdminDiveSiteAliases'));
 const AdminDiveSites = lazy(() => import('./pages/AdminDiveSites'));
+const AdminDiveRoutes = lazy(() => import('./pages/AdminDiveRoutes'));
 const AdminDivingCenters = lazy(() => import('./pages/AdminDivingCenters'));
 const AdminDivingOrganizationCertifications = lazy(
   () => import('./pages/AdminDivingOrganizationCertifications')
@@ -41,6 +42,7 @@ const CreateDivingCenter = lazy(() => import('./pages/CreateDivingCenter'));
 const CreateTrip = lazy(() => import('./pages/CreateTrip'));
 const DiveDetail = lazy(() => import('./pages/DiveDetail'));
 const DiveRouteDrawing = lazy(() => import('./pages/DiveRouteDrawing'));
+const DiveRoutes = lazy(() => import('./pages/DiveRoutes'));
 const Dives = lazy(() => import('./pages/Dives'));
 const DiveSiteDetail = lazy(() => import('./pages/DiveSiteDetail'));
 const DiveSiteMap = lazy(() => import('./pages/DiveSiteMap'));
@@ -191,6 +193,7 @@ function App() {
                     <Route path='/dive-sites' element={<DiveSites />} />
                     <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />
                     <Route path='/dive-sites/:id/map' element={<DiveSiteMap />} />
+                    <Route path='/dive-routes' element={<DiveRoutes />} />
                     <Route
                       path='/dive-sites/:diveSiteId/dive-route'
                       element={
@@ -290,6 +293,14 @@ function App() {
                       element={
                         <ProtectedRoute requireAdmin={true}>
                           <AdminDiveSites />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path='/admin/dive-routes'
+                      element={
+                        <ProtectedRoute requireAdmin={true}>
+                          <AdminDiveRoutes />
                         </ProtectedRoute>
                       }
                     />

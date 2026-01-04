@@ -20,7 +20,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 
 import api from '../api';
 import MapLayersPanel from '../components/MapLayersPanel';
@@ -382,6 +382,7 @@ const RouteDisplay = ({ route, diveSite, showBearings, onToggleBearings }) => {
 const RouteDetail = () => {
   const { diveSiteId, routeId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -389,6 +390,15 @@ const RouteDetail = () => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportFormats, setExportFormats] = useState([]);
   const [showBearings, setShowBearings] = useState(true);
+
+  // Intelligent back navigation
+  const handleBack = () => {
+    if (location.state?.from) {
+      navigate(location.state.from);
+    } else {
+      navigate(`/dive-sites/${diveSiteId}`);
+    }
+  };
 
   usePageTitle('Route Details');
 
@@ -601,8 +611,9 @@ const RouteDetail = () => {
           <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4'>
             <div className='flex items-center gap-3'>
               <button
-                onClick={() => navigate(`/dive-sites/${diveSiteId}`)}
+                onClick={handleBack}
                 className='text-gray-600 hover:text-gray-800 p-1'
+                title={location.state?.from ? 'Back' : 'Back to Dive Site'}
               >
                 <ArrowLeft size={20} />
               </button>
@@ -616,8 +627,14 @@ const RouteDetail = () => {
                     {getRouteTypeLabel(route.route_type, null, route.route_data)}
                   </span>
                 </div>
-                <p className='text-sm text-gray-600'>
-                  Route for {diveSite?.name || 'Unknown Dive Site'}
+                <p className='text-sm text-gray-600 flex items-center gap-1'>
+                  Route for
+                  <Link
+                    to={`/dive-sites/${diveSiteId}`}
+                    className='text-blue-600 hover:underline font-medium'
+                  >
+                    {diveSite?.name || 'Unknown Dive Site'}
+                  </Link>
                 </p>
               </div>
             </div>

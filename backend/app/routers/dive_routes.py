@@ -475,7 +475,8 @@ async def list_routes(
     
     # Build query
     query = db.query(DiveRoute).options(
-        joinedload(DiveRoute.creator)
+        joinedload(DiveRoute.creator),
+        joinedload(DiveRoute.dive_site)
     ).filter(DiveRoute.deleted_at.is_(None))
     
     # Apply filters
@@ -517,15 +518,23 @@ async def list_routes(
     offset = (page - 1) * page_size
     routes = query.offset(offset).limit(page_size).all()
     
-    # Calculate pagination info
-    total_pages = (total + page_size - 1) // page_size
+    # Transform to DiveRouteWithDetails format manually to ensure nested dicts are populated
+    # Pydantic v2 usually handles ORM objects if from_attributes=True, but let's be explicit if needed.
+    # Actually, schema handles it. Let's return the objects directly.
+    # BUT, we need to make sure the Pydantic model DiveRouteWithDetails can serialize the SQLAlchemy objects.
+    # The schema has from_attributes=True.
+    
+    # We might need to manually construct the dicts if Pydantic doesn't auto-resolve relationships for us 
+    # in the way DiveRouteWithDetails expects (it expects 'dive_site' key, which exists on the ORM object).
+    
+    # Let's try returning routes directly first, as they are ORM objects with loaded relationships.
     
     return DiveRouteListResponse(
         routes=routes,
         total=total,
         page=page,
         page_size=page_size,
-        total_pages=total_pages
+        total_pages=(total + page_size - 1) // page_size
     )
 
 

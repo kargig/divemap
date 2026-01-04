@@ -128,154 +128,202 @@ const Home = () => {
       {/* Background Logo Watermark */}
       <BackgroundLogo opacity={0.02} size='xlarge' />
 
-      {/* Hero Section */}
-      <HeroSection
-        title='Discover Amazing Dive Sites'
-        subtitle="Explore the world's best scuba diving locations, read reviews from fellow divers, find diving centers, and discover organized dive trips for your next underwater adventure."
-        background='ocean'
-        size='large'
-        showLogo={false}
-        logoBackground={true}
-        threeColumnLayout={true}
-      >
+      {/* Mobile Hero with Gradient - Visible only on Mobile */}
+
+      <div className='block md:hidden w-full mb-8 rounded-2xl overflow-hidden shadow-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-8 text-center'>
+        <h1 className='text-3xl font-extrabold tracking-tight mb-4'>
+          Discover Amazing <span className='text-blue-200'>Dive Sites</span>
+        </h1>
+
+        <p className='text-lg text-blue-100 leading-relaxed'>
+          Explore the world's best scuba locations, read reviews from fellow divers, and find your
+          next underwater adventure.
+        </p>
+      </div>
+
+      {/* Visual Banner - Contained and Compact with Overlaid Headline - Visible only on Desktop */}
+
+      <div className='hidden md:block w-full mb-10 shadow-sm bg-white rounded-2xl overflow-hidden border border-gray-100 relative'>
+        <img
+          src='/divemap_logo_domain_top5_extend.jpg'
+          alt='Divemap Banner'
+          className='w-full h-auto object-contain max-h-[400px] mx-auto'
+        />
+
+        {/* Overlaid Headline on top part - Hidden on Mobile */}
+
+        <div className='hidden md:block absolute top-0 left-0 right-0 pt-6 md:pt-10 px-4 text-center pointer-events-none'>
+          <h1 className='text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 drop-shadow-sm'>
+            Discover Amazing <span className='text-blue-600'>Dive Sites</span>
+          </h1>
+        </div>
+      </div>
+
+      {/* Hero CTA Buttons Below Banner */}
+
+      <div className='flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 mb-10 px-4'>
         <Link
           to='/map'
-          className='bg-purple-600 hover:bg-purple-700 text-white px-8 sm:px-10 py-2 text-sm sm:text-base font-semibold flex-1 sm:flex-initial min-w-[160px] sm:min-w-[180px] whitespace-nowrap rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105'
+          className='w-full sm:w-auto h-12 md:h-14 px-8 md:px-10 bg-blue-600 text-white hover:bg-blue-700 text-base md:text-lg font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-1'
         >
-          <Map className='h-5 w-5' />
-          Interactive Map
+          <Map className='h-5 w-5 md:h-6 md:w-6' />
+          Explore Map
         </Link>
+
         <Link
           to='/dive-trips'
-          className='bg-orange-700 hover:bg-orange-800 text-white px-8 sm:px-10 py-2 text-sm sm:text-base font-semibold flex-1 sm:flex-initial min-w-[160px] sm:min-w-[180px] whitespace-nowrap rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105'
+          className='w-full sm:w-auto h-12 md:h-14 px-8 md:px-10 bg-white text-blue-600 border-2 border-blue-100 hover:border-blue-600 hover:bg-blue-50 text-base md:text-lg font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:-translate-y-1'
         >
-          <Calendar className='h-5 w-5' />
+          <Calendar className='h-5 w-5 md:h-6 md:w-6' />
           Browse Dive Trips
         </Link>
-      </HeroSection>
+      </div>
 
-      {/* Features Section */}
-      <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 py-8 sm:py-12 px-4'>
+      {/* Hero Content - Subtitle Below CTAs - Visible only on Desktop */}
+
+      <div className='hidden md:block w-full text-center mb-6 px-4'>
+        <p className='text-sm sm:text-base md:text-lg lg:text-xl text-gray-600 leading-relaxed max-w-none inline-block lg:whitespace-nowrap'>
+          Explore the world's best scuba locations, read reviews from fellow divers, and find your
+          next underwater adventure.
+        </p>
+      </div>
+      {/* Features Grid */}
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 pb-12 pt-2 px-4'>
         <Link
           to='/dive-sites'
-          className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer'
+          className='group relative p-8 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300'
         >
-          <Map className='h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4' />
-          <h2 className='text-lg sm:text-xl font-semibold mb-2'>Discover Sites</h2>
-          <p className='text-sm sm:text-base text-gray-600'>
-            Browse through our comprehensive database of dive sites with detailed information,
-            difficulty levels, and access instructions.
+          <div className='bg-blue-50 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 transition-colors'>
+            <Map className='h-8 w-8 text-blue-600 group-hover:text-white transition-colors' />
+          </div>
+          <h2 className='text-xl font-bold text-gray-900 mb-3'>Discover Sites</h2>
+          <p className='text-gray-500 leading-relaxed'>
+            Browse our comprehensive database of dive sites with detailed information, difficulty
+            levels, and access.
           </p>
         </Link>
 
         <Link
           to='/dives'
-          className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer'
+          className='group relative p-8 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300'
         >
-          <BookOpen className='h-10 w-10 sm:h-12 sm:w-12 text-green-600 mx-auto mb-3 sm:mb-4' />
-          <h2 className='text-lg sm:text-xl font-semibold mb-2'>Log Your Dives</h2>
-          <p className='text-sm sm:text-base text-gray-600'>
+          <div className='bg-green-50 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-green-600 transition-colors'>
+            <BookOpen className='h-8 w-8 text-green-600 group-hover:text-white transition-colors' />
+          </div>
+          <h2 className='text-xl font-bold text-gray-900 mb-3'>Log Your Dives</h2>
+          <p className='text-gray-500 leading-relaxed'>
             Record your diving experiences, track your progress, and share your adventures with the
-            diving community.
+            community.
           </p>
         </Link>
 
-        <div className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md'>
-          <Star className='h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4' />
-          <h2 className='text-lg sm:text-xl font-semibold mb-2'>Rate & Review</h2>
-          <p className='text-sm sm:text-base text-gray-600'>
+        <div className='group relative p-8 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300'>
+          <div className='bg-yellow-50 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-yellow-500 transition-colors'>
+            <Star className='h-8 w-8 text-yellow-600 group-hover:text-white transition-colors' />
+          </div>
+          <h2 className='text-xl font-bold text-gray-900 mb-3'>Rate & Review</h2>
+          <p className='text-gray-500 leading-relaxed'>
             Share your experiences by rating dive sites and leaving detailed reviews to help other
-            divers make informed decisions.
+            divers.
           </p>
         </div>
 
         <Link
-          to='/dive-trips'
-          className='text-center p-4 sm:p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer'
+          to='/diving-centers'
+          className='group relative p-8 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300'
         >
-          <Anchor className='h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4' />
-          <h2 className='text-lg sm:text-xl font-semibold mb-2'>Find Centers</h2>
-          <p className='text-sm sm:text-base text-gray-600'>
-            Connect with professional diving centers, view their services, and get in touch for your
-            next diving adventure.
+          <div className='bg-purple-50 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-purple-600 transition-colors'>
+            <Anchor className='h-8 w-8 text-purple-600 group-hover:text-white transition-colors' />
+          </div>
+          <h2 className='text-xl font-bold text-gray-900 mb-3'>Find Centers</h2>
+          <p className='text-gray-500 leading-relaxed'>
+            Connect with professional diving centers, view their services, and plan your next
+            underwater trip.
           </p>
         </Link>
       </div>
 
-      {/* Stats Section */}
-      <div className='bg-blue-600 text-white py-12 rounded-lg mb-12'>
-        <div className='grid md:grid-cols-5 gap-8 text-center'>
-          <Link to='/dives' className='hover:bg-blue-700 p-4 rounded-lg transition-colors'>
-            <div className='text-3xl font-bold mb-2'>
-              {animatedDives.toLocaleString()}
-              {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
-            </div>
-            <div className='text-blue-100'>Dives</div>
-          </Link>
-          <Link to='/dive-sites' className='hover:bg-blue-700 p-4 rounded-lg transition-colors'>
-            <div className='text-3xl font-bold mb-2'>
-              {animatedDiveSites.toLocaleString()}
-              {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
-            </div>
-            <div className='text-blue-100'>Dive Sites</div>
-          </Link>
-          <div className='p-4'>
-            <div className='text-3xl font-bold mb-2'>
-              {animatedReviews.toLocaleString()}
-              {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
-            </div>
-            <div className='text-blue-100'>Reviews</div>
+      {/* Stats Section (Integrated) */}
+      <div className='relative overflow-hidden bg-gradient-to-br from-blue-900 to-slate-900 rounded-3xl py-16 mb-16 shadow-2xl'>
+        <div className='absolute inset-0 opacity-10 bg-[url("https://www.transparenttextures.com/patterns/cubes.png")]'></div>
+        <div className='relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='text-center mb-12'>
+            <h3 className='text-sm font-bold uppercase tracking-widest text-blue-400 mb-3'>
+              Our Growing Community
+            </h3>
+            <p className='text-3xl font-bold text-white'>Real-time Dive Statistics</p>
           </div>
-          <Link to='/diving-centers' className='hover:bg-blue-700 p-4 rounded-lg transition-colors'>
-            <div className='text-3xl font-bold mb-2'>
-              {animatedDivingCenters.toLocaleString()}
-              {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
+          <div className='grid grid-cols-2 md:grid-cols-5 gap-8'>
+            <Link to='/dives' className='text-center group'>
+              <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
+                {animatedDives.toLocaleString()}
+                {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
+              </div>
+              <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
+                Dives Logged
+              </div>
+            </Link>
+            <Link to='/dive-sites' className='text-center group'>
+              <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
+                {animatedDiveSites.toLocaleString()}
+                {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
+              </div>
+              <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
+                Dive Sites
+              </div>
+            </Link>
+            <div className='text-center group'>
+              <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
+                {animatedReviews.toLocaleString()}
+                {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
+              </div>
+              <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
+                Reviews
+              </div>
             </div>
-            <div className='text-blue-100'>Diving Centers</div>
-          </Link>
-          <Link to='/dive-trips' className='hover:bg-blue-700 p-4 rounded-lg transition-colors'>
-            <div className='text-3xl font-bold mb-2'>
-              {animatedDiveTrips.toLocaleString()}
-              {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
-            </div>
-            <div className='text-blue-100'>Dive Trips</div>
-          </Link>
+            <Link to='/diving-centers' className='text-center group'>
+              <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
+                {animatedDivingCenters.toLocaleString()}
+                {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
+              </div>
+              <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
+                Centers
+              </div>
+            </Link>
+            <Link to='/dive-trips' className='text-center group'>
+              <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
+                {animatedDiveTrips.toLocaleString()}
+                {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
+              </div>
+              <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
+                Organized Trips
+              </div>
+            </Link>
+          </div>
         </div>
-        {!isBackendAvailable && (
-          <div className='text-center mt-4'>
-            <div className='text-blue-100 text-sm animate-pulse'>
-              ✨ Live data loading... Our community is growing!
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* CTA Section */}
-      <div className='text-center py-12'>
-        <h2 className='text-3xl font-bold text-gray-900 mb-4'>
+      {/* Final CTA */}
+      <div className='text-center py-20 bg-blue-50 rounded-3xl mb-12 px-6'>
+        <h2 className='text-4xl font-extrabold text-gray-900 mb-6'>
           Ready to Start Your Diving Journey?
         </h2>
-        <p className='text-xl text-gray-600 mb-8'>
-          Join our community of passionate divers and start exploring amazing underwater worlds.
+        <p className='text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed'>
+          Join our global community of passionate divers. Discover hidden gems, log your adventures,
+          and connect with dive centers worldwide.
         </p>
-        <div className='flex flex-col sm:flex-row gap-4 justify-center'>
+        <div className='flex flex-wrap gap-4 justify-center'>
           <Link
             to='/register'
-            className='px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold'
+            className='px-10 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 text-lg font-bold shadow-lg hover:shadow-blue-500/25 active:scale-95'
           >
-            Get Started
+            Get Started Free
           </Link>
           <Link
             to='/dive-sites'
-            className='px-8 py-3 bg-white text-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-lg font-semibold'
+            className='px-10 py-4 bg-white text-blue-600 border-2 border-blue-600 rounded-xl hover:bg-blue-50 transition-all duration-200 text-lg font-bold active:scale-95'
           >
-            Browse Sites
-          </Link>
-          <Link
-            to='/dives'
-            className='px-8 py-3 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors text-lg font-semibold'
-          >
-            Browse Dives
+            Explore Sites
           </Link>
         </div>
       </div>

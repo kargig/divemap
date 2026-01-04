@@ -27,6 +27,8 @@ import {
   BarChart3,
   Award,
   Calculator,
+  Compass,
+  Route,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -46,6 +48,7 @@ const Navbar = () => {
   const location = useLocation();
   const { isMobile, navbarVisible } = useResponsiveScroll();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showMobileDivingDropdown, setShowMobileDivingDropdown] = useState(false);
   const [showMobileResourcesDropdown, setShowMobileResourcesDropdown] = useState(false);
   const [showMobileInfoDropdown, setShowMobileInfoDropdown] = useState(false);
   const [showMobileAdminDropdown, setShowMobileAdminDropdown] = useState(false);
@@ -61,6 +64,7 @@ const Navbar = () => {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+    setShowMobileDivingDropdown(false);
     setShowMobileResourcesDropdown(false);
     setShowMobileInfoDropdown(false);
     setShowMobileAdminDropdown(false);
@@ -185,21 +189,35 @@ const Navbar = () => {
               <span>Map</span>
             </Link>
 
-            <Link
-              to='/dives'
-              className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
-            >
-              <Anchor className='h-5 w-5' />
-              <span>Dives</span>
-            </Link>
-
-            <Link
-              to='/dive-sites'
-              className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
-            >
-              <Map className='h-5 w-5' />
-              <span>Dive Sites</span>
-            </Link>
+            <DropdownMenu
+              trigger={
+                <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+                  <Compass className='h-5 w-5' />
+                  <span>Diving</span>
+                  <ChevronDown className='h-4 w-4' />
+                </button>
+              }
+              items={[
+                {
+                  type: 'item',
+                  label: 'Dive Log',
+                  icon: <Anchor className='h-4 w-4' />,
+                  onClick: () => navigate('/dives'),
+                },
+                {
+                  type: 'item',
+                  label: 'Dive Sites',
+                  icon: <Map className='h-4 w-4' />,
+                  onClick: () => navigate('/dive-sites'),
+                },
+                {
+                  type: 'item',
+                  label: 'Dive Routes',
+                  icon: <Route className='h-4 w-4' />,
+                  onClick: () => navigate('/dive-routes'),
+                },
+              ]}
+            />
 
             <Link
               to='/diving-centers'
@@ -500,23 +518,51 @@ const Navbar = () => {
                     <span>Map</span>
                   </Link>
 
-                  <Link
-                    to='/dives'
-                    className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                    onClick={closeMobileMenu}
-                  >
-                    <Anchor className='h-5 w-5 mr-3' />
-                    <span>Dives</span>
-                  </Link>
+                  <div className='px-3 py-2'>
+                    <button
+                      onClick={() => setShowMobileDivingDropdown(!showMobileDivingDropdown)}
+                      className='flex items-center justify-between w-full px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                    >
+                      <div className='flex items-center'>
+                        <Compass className='h-5 w-5 mr-3' />
+                        <span>Diving</span>
+                      </div>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform duration-200 ${
+                          showMobileDivingDropdown ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
 
-                  <Link
-                    to='/dive-sites'
-                    className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                    onClick={closeMobileMenu}
-                  >
-                    <Map className='h-5 w-5 mr-3' />
-                    <span>Dive Sites</span>
-                  </Link>
+                    {showMobileDivingDropdown && (
+                      <div className='ml-7 mt-1 space-y-1'>
+                        <Link
+                          to='/dives'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Anchor className='h-4 w-4 mr-3' />
+                          <span>Dive Log</span>
+                        </Link>
+                        <Link
+                          to='/dive-sites'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Map className='h-4 w-4 mr-3' />
+                          <span>Dive Sites</span>
+                        </Link>
+                        <Link
+                          to='/dive-routes'
+                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
+                          onClick={closeMobileMenu}
+                        >
+                          <Route className='h-4 w-4 mr-3' />
+                          <span>Dive Routes</span>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
 
                   <Link
                     to='/diving-centers'

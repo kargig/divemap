@@ -8,56 +8,48 @@ import React from 'react';
  * to improve perceived performance and user experience.
  */
 const LoadingSkeleton = ({ type = 'card', count = 1, className = '', compact = false }) => {
-  // Card skeleton for dive sites/diving centers
+  // Card skeleton for dives and dive sites (matching Rev. 8 layout)
   const CardSkeleton = () => (
     <div
-      className={`bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow ${
-        compact ? 'p-2 sm:p-3' : 'p-3 sm:p-4'
-      }`}
+      className={`bg-white rounded-xl shadow-sm border border-gray-100 ${compact ? 'p-4' : 'p-6'}`}
     >
-      <div className='animate-pulse'>
-        <div className='flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2'>
-          <div className='flex-1 min-w-0'>
-            <div className='flex items-start gap-2 mb-2'>
-              <div className='min-w-0 flex-1'>
-                <div className='flex flex-col gap-0'>
-                  {/* Title skeleton */}
-                  <div
-                    className={`h-4 bg-gray-200 rounded w-3/4 mb-2 ${compact ? 'h-3' : 'h-4'}`}
-                  ></div>
-                  {/* Subtitle skeleton */}
-                  <div
-                    className={`h-3 bg-gray-200 rounded w-1/2 mb-2 ${compact ? 'h-2' : 'h-3'}`}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Description skeleton */}
-            <div className='space-y-2 mb-3'>
-              <div className='h-3 bg-gray-200 rounded w-full'></div>
-              <div className='h-3 bg-gray-200 rounded w-5/6'></div>
-            </div>
-
-            {/* Tags skeleton */}
-            <div className='flex flex-wrap gap-1 mb-3'>
-              <div className='h-6 bg-gray-200 rounded-full w-16'></div>
-              <div className='h-6 bg-gray-200 rounded-full w-20'></div>
-              <div className='h-6 bg-gray-200 rounded-full w-14'></div>
-            </div>
-
-            {/* Stats skeleton */}
-            <div className='flex flex-wrap gap-3 text-sm text-gray-600'>
-              <div className='h-4 bg-gray-200 rounded w-12'></div>
-              <div className='h-4 bg-gray-200 rounded w-16'></div>
-              <div className='h-4 bg-gray-200 rounded w-14'></div>
-            </div>
+      <div className='animate-pulse flex flex-col space-y-4'>
+        {/* HEADER ROW */}
+        <div className='flex items-start justify-between'>
+          <div className='flex-1 space-y-2'>
+            {/* Kicker skeleton */}
+            <div className='h-3 bg-gray-100 rounded w-1/4'></div>
+            {/* Title skeleton */}
+            <div className='h-6 bg-gray-200 rounded w-3/4'></div>
+            {/* Meta skeleton */}
+            <div className='h-3 bg-gray-100 rounded w-1/2'></div>
           </div>
+          {/* Rating skeleton */}
+          <div className='h-8 bg-gray-100 rounded w-12'></div>
+        </div>
 
-          {/* Action button skeleton */}
-          <div className='sm:hidden'>
-            <div className='h-8 bg-gray-200 rounded w-16'></div>
+        {/* BODY/DESCRIPTION skeleton */}
+        {!compact && (
+          <div className='space-y-2'>
+            <div className='h-3 bg-gray-100 rounded w-full'></div>
+            <div className='h-3 bg-gray-100 rounded w-5/6'></div>
           </div>
+        )}
+
+        {/* STATS STRIP skeleton */}
+        <div className='flex gap-8 py-3 border-y border-gray-50'>
+          <div className='h-8 bg-gray-50 rounded w-16'></div>
+          <div className='h-8 bg-gray-50 rounded w-16'></div>
+          <div className='h-8 bg-gray-50 rounded w-16'></div>
+        </div>
+
+        {/* FOOTER skeleton */}
+        <div className='flex items-center justify-between'>
+          <div className='flex gap-2'>
+            <div className='h-6 bg-gray-100 rounded-full w-14'></div>
+            <div className='h-6 bg-gray-100 rounded-full w-14'></div>
+          </div>
+          <div className='h-4 bg-gray-100 rounded w-20'></div>
         </div>
       </div>
     </div>

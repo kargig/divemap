@@ -111,6 +111,19 @@ export const SEARCH_CONFIGS = {
     isCaseSensitive: false, // Ensure case-insensitive search
   },
 
+  // Dive Routes search configuration
+  diveRoutes: {
+    keys: [
+      { name: 'name', weight: 1.0 },
+      { name: 'description', weight: 0.7 },
+      { name: 'dive_site.name', weight: 0.9 },
+      { name: 'creator.username', weight: 0.6 },
+    ],
+    threshold: 0.6,
+    distance: 100,
+    isCaseSensitive: false,
+  },
+
   // Users search configuration
   users: {
     keys: [

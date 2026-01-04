@@ -1064,7 +1064,8 @@ const ResponsiveFilterBar = ({
               <div className='flex items-center gap-1'>
                 <button
                   onClick={() => onSortChange(sortBy, 'asc')}
-                  className={`px-3 py-2 text-sm rounded-l-md border transition-colors ${
+                  aria-label='Sort Ascending'
+                  className={`px-3 py-2 text-sm rounded-l-md border transition-colors min-h-[40px] sm:min-h-0 ${
                     sortOrder === 'asc'
                       ? 'bg-blue-600 text-white border-blue-600'
                       : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
@@ -1075,7 +1076,8 @@ const ResponsiveFilterBar = ({
                 </button>
                 <button
                   onClick={() => onSortChange(sortBy, 'desc')}
-                  className={`px-3 py-2 text-sm rounded-r-md border-l-0 border transition-colors ${
+                  aria-label='Sort Descending'
+                  className={`px-3 py-2 text-sm rounded-r-md border-l-0 border transition-colors min-h-[40px] sm:min-h-0 ${
                     sortOrder === 'desc'
                       ? 'bg-blue-600 text-white border-blue-600'
                       : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
@@ -1095,7 +1097,8 @@ const ResponsiveFilterBar = ({
                 <div className='flex rounded-md shadow-sm'>
                   <button
                     onClick={() => onViewModeChange('list')}
-                    className={`px-3 py-2 text-sm border transition-colors rounded-l-md ${
+                    aria-label='List View'
+                    className={`px-3 py-2 text-sm border transition-colors rounded-l-md min-h-[40px] sm:min-h-0 ${
                       viewMode === 'list'
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
@@ -1106,7 +1109,8 @@ const ResponsiveFilterBar = ({
                   </button>
                   <button
                     onClick={() => onViewModeChange('grid')}
-                    className={`px-3 py-2 text-sm border border-l-0 transition-colors ${
+                    aria-label='Grid View'
+                    className={`px-3 py-2 text-sm border border-l-0 transition-colors min-h-[40px] sm:min-h-0 ${
                       viewMode === 'grid'
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
@@ -1117,7 +1121,8 @@ const ResponsiveFilterBar = ({
                   </button>
                   <button
                     onClick={() => onViewModeChange('map')}
-                    className={`px-3 py-2 text-sm border border-l-0 transition-colors rounded-r-md ${
+                    aria-label='Map View'
+                    className={`px-3 py-2 text-sm border border-l-0 transition-colors rounded-r-md min-h-[40px] sm:min-h-0 ${
                       viewMode === 'map'
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
@@ -1774,6 +1779,7 @@ const ResponsiveFilterBar = ({
                   {user && user.id && (
                     <button
                       onClick={() => onQuickFilter('my_dives')}
+                      aria-label='My Dives'
                       className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
                         quickFilters.includes('my_dives')
                           ? 'bg-blue-100 text-blue-700 border border-blue-300'
@@ -1786,6 +1792,7 @@ const ResponsiveFilterBar = ({
                   )}
                   <button
                     onClick={() => onQuickFilter('wrecks')}
+                    aria-label='Wreck Dives'
                     className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
                       quickFilters.includes('wrecks')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
@@ -1797,17 +1804,19 @@ const ResponsiveFilterBar = ({
                   </button>
                   <button
                     onClick={() => onQuickFilter('reefs')}
+                    aria-label='Reef Dives'
                     className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
                       quickFilters.includes('reefs')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
                     }`}
-                    title='Wreck dives'
+                    title='Reef dives'
                   >
                     🐠
                   </button>
                   <button
                     onClick={() => onQuickFilter('boat_dive')}
+                    aria-label='Boat Dives'
                     className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
                       quickFilters.includes('boat_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
@@ -1819,6 +1828,7 @@ const ResponsiveFilterBar = ({
                   </button>
                   <button
                     onClick={() => onQuickFilter('shore_dive')}
+                    aria-label='Shore Dives'
                     className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
                       quickFilters.includes('shore_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'

@@ -30,14 +30,17 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
 import api, { deleteDive, getDiveSites, getDiveSite } from '../api';
+import Breadcrumbs from '../components/Breadcrumbs';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import DivesMap from '../components/DivesMap';
+import EmptyState from '../components/EmptyState';
 import ErrorPage from '../components/ErrorPage';
 import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
 import ImportDivesModal from '../components/ImportDivesModal';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import MatchTypeBadge from '../components/MatchTypeBadge';
+import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
@@ -893,54 +896,42 @@ const Dives = () => {
 
   return (
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
-      {/* Hero Section */}
-      <HeroSection
-        title='Dives'
-        subtitle='Track and explore your diving adventures'
-        background='ocean'
-        size='large'
-        showLogo={false}
-        logoBackground={true}
-        threeColumnLayout={true}
-      >
-        <div className='flex flex-col sm:flex-row gap-3 justify-center'>
-          <button
-            onClick={() => {
-              navigate('/map?type=dives');
-            }}
-            className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-          >
-            <Map className='w-5 h-5' />
-            Explore Map
-          </button>
-          <button
-            onClick={() => {
-              if (!user) {
-                window.alert('You need an account for this action.\nPlease Login or Register.');
-                return;
-              }
-              setShowImportModal(true);
-            }}
-            className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-          >
-            <Upload size={20} />
-            Import Dives
-          </button>
-          <button
-            onClick={() => {
+      <PageHeader
+        title='Dive Log'
+        breadcrumbItems={[{ label: 'Dive Log' }]}
+        actions={[
+          {
+            label: 'Log a New Dive',
+            icon: Plus,
+            onClick: () => {
               if (!user) {
                 window.alert('You need an account for this action.\nPlease Login or Register.');
                 return;
               }
               navigate('/dives/create');
-            }}
-            className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-          >
-            <Plus size={20} />
-            Add Dive
-          </button>
-        </div>
-      </HeroSection>
+            },
+            variant: 'primary',
+          },
+          {
+            label: 'Import Dives',
+            icon: Upload,
+            onClick: () => {
+              if (!user) {
+                window.alert('You need an account for this action.\nPlease Login or Register.');
+                return;
+              }
+              setShowImportModal(true);
+            },
+            variant: 'secondary',
+          },
+          {
+            label: 'View My Map',
+            icon: Map,
+            onClick: () => navigate('/map?type=dives'),
+            variant: 'ghost',
+          },
+        ]}
+      />
 
       {/* Desktop Search Bar - Only visible on desktop/tablet */}
       {!isMobile && (
@@ -1098,437 +1089,236 @@ const Dives = () => {
               {dives?.map(dive => (
                 <div
                   key={dive.id}
-                  className={`dive-item rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow ${
-                    dive.is_private ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-200'
+                  className={`dive-item rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200 ${
+                    dive.is_private ? 'bg-purple-50/30' : 'bg-white'
                   } ${compactLayout ? 'p-4' : 'p-6'}`}
                 >
-                  <div className='flex items-start justify-between mb-3 relative'>
-                    <div className='flex-1'>
-                      {/* Title and badges row */}
-                      <div className='flex items-start gap-2 mb-2'>
-                        <div className='flex-1 min-w-0'>
-                          <h3
-                            className={`font-semibold text-gray-900 flex-1 min-w-0 line-clamp-2 ${compactLayout ? 'text-base' : 'text-xl'}`}
-                          >
+                  <div className='flex flex-col space-y-4'>
+                    {/* HEADER ROW */}
+                    <div className='flex items-start justify-between'>
+                      <div className='flex-1 min-w-0'>
+                        {/* Kicker: Dive Site */}
+                        {dive.dive_site_info && dive.dive_site_info.name && (
+                          <div className='flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-blue-600 mb-1'>
+                            <MapPin className='w-3 h-3' />
                             <Link
-                              to={`/dives/${dive.id}`}
-                              state={{
-                                from: window.location.pathname + window.location.search,
-                              }}
-                              className='text-blue-600 hover:text-blue-800 transition-colors block'
-                              title={dive.name || `Dive #${dive.id}`}
+                              to={`/dive-sites/${dive.dive_site_info.id}`}
+                              className='hover:underline'
                             >
-                              {dive.name || `Dive #${dive.id}`}
+                              {dive.dive_site_info.name}
                             </Link>
-                          </h3>
-                          {/* Dive site name and user */}
-                          <div
-                            className={`mt-1 ${compactLayout ? 'text-xs' : 'text-sm'} flex flex-wrap items-center gap-1`}
-                          >
-                            {dive.dive_site_info && dive.dive_site_info.name && (
-                              <>
-                                <span className='text-gray-500'>at </span>
-                                <Link
-                                  to={`/dive-sites/${dive.dive_site_info.id}`}
-                                  onClick={e => e.stopPropagation()}
-                                  className='text-blue-600 hover:text-blue-800 hover:underline font-medium'
-                                  title={`View ${dive.dive_site_info.name}`}
-                                >
-                                  {dive.dive_site_info.name}
-                                </Link>
-                              </>
-                            )}
+                          </div>
+                        )}
 
-                            {dive.user_username && (
-                              <>
-                                <span className='text-gray-500 ml-1'>by </span>
-                                <Link
-                                  to={`/users/${dive.user_username}`}
-                                  className='text-blue-600 hover:text-blue-800 hover:underline font-medium'
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  {dive.user_username}
-                                </Link>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        {dive.selected_route_id && (
-                          <div
-                            className='flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium flex-shrink-0'
-                            title='This dive has a route'
+                        {/* Title: Dive Name */}
+                        <h3
+                          className={`font-semibold text-gray-900 leading-snug ${compactLayout ? 'text-lg' : 'text-xl'}`}
+                        >
+                          <Link
+                            to={`/dives/${dive.id}`}
+                            state={{ from: window.location.pathname + window.location.search }}
+                            className='hover:text-blue-600 transition-colors'
                           >
-                            <Route className={`${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
-                            Route
-                          </div>
-                        )}
-                        {matchTypes[dive.id] && (
-                          <div className='flex-shrink-0'>
-                            <MatchTypeBadge
-                              matchType={matchTypes[dive.id].type}
-                              score={matchTypes[dive.id].score}
-                            />
-                          </div>
-                        )}
-                        {dive.is_private && (
-                          <div className='flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium flex-shrink-0'>
-                            <Lock className={`${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
-                            Private
-                          </div>
-                        )}
+                            {dive.name || `Dive #${dive.id}`}
+                          </Link>
+                        </h3>
+
+                        {/* Meta Byline */}
+                        <div className='mt-1 text-sm text-gray-500 flex items-center gap-2 flex-wrap'>
+                          <span className='flex items-center gap-1'>
+                            <Calendar className='w-3.5 h-3.5' />
+                            {new Date(dive.dive_date).toLocaleDateString('en-GB')}
+                          </span>
+                          <span>&bull;</span>
+                          {dive.dive_time && (
+                            <>
+                              <span className='flex items-center gap-1'>
+                                <Clock className='w-3.5 h-3.5' />
+                                {formatTime(dive.dive_time)}
+                              </span>
+                              <span>&bull;</span>
+                            </>
+                          )}
+                          {dive.user_username && (
+                            <Link
+                              to={`/users/${dive.user_username}`}
+                              className='hover:text-blue-600 hover:underline inline-flex items-center gap-1'
+                            >
+                              <User className='w-3.5 h-3.5' />
+                              {dive.user_username}
+                            </Link>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Stats and Geographic info row - matching dive sites layout */}
-                      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-2'>
-                        {/* Stats section - difficulty, rating, depth, duration */}
-                        <div
-                          className={`flex flex-wrap items-center ${compactLayout ? 'gap-2' : 'gap-2 sm:gap-3'}`}
-                        >
-                          {/* Difficulty badge with icon */}
-                          <span
-                            className={`inline-flex items-center rounded-full font-medium flex-shrink-0 ${getDifficultyColorClasses(dive.difficulty_code)} ${
-                              compactLayout
-                                ? 'px-2 py-0.5 text-[11px]'
-                                : 'px-3 py-1 text-xs sm:text-sm'
-                            }`}
-                          >
-                            <Award
-                              className={`hidden sm:inline-block flex-shrink-0 ${compactLayout ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-1.5'}`}
-                            />
-                            {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
-                          </span>
-
-                          {/* Rating with star - more spacious on desktop */}
-                          {dive.user_rating !== undefined && dive.user_rating !== null && (
-                            <div
-                              className={`flex items-center bg-yellow-50 rounded-full flex-shrink-0 border border-yellow-200 shadow-sm ${
-                                compactLayout
-                                  ? 'gap-1 px-2 py-0.5'
-                                  : 'gap-2 px-3 py-1.5 sm:px-4 sm:py-2'
-                              }`}
-                            >
-                              <Star
-                                className={`text-yellow-500 fill-current flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                              />
-                              <span
-                                className={`font-semibold text-yellow-800 ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
-                              >
-                                {dive.user_rating}/10
-                              </span>
-                            </div>
+                      {/* Right Side: Rating & Privacy */}
+                      <div className='flex flex-col items-end gap-2'>
+                        {dive.user_rating !== undefined && dive.user_rating !== null && (
+                          <div className='flex items-center gap-1.5 text-yellow-600'>
+                            <Star className='w-5 h-5 fill-current' />
+                            <span className='text-lg font-bold text-gray-900'>
+                              {dive.user_rating}
+                              <span className='text-xs font-normal text-gray-400 ml-0.5'>/10</span>
+                            </span>
+                          </div>
+                        )}
+                        <div className='flex gap-2'>
+                          {dive.is_private && (
+                            <span className='flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-[10px] font-bold uppercase tracking-wider'>
+                              <Lock className='w-3 h-3' />
+                              Private
+                            </span>
                           )}
-
-                          {/* Max depth */}
-                          {dive.max_depth !== undefined && dive.max_depth !== null && (
-                            <div
-                              className={`flex items-center text-gray-700 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5 sm:gap-2'}`}
-                            >
-                              <TrendingUp
-                                className={`text-gray-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                              />
-                              <span
-                                className={`font-medium ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
-                              >
-                                {dive.max_depth}m max
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Duration */}
-                          {dive.duration !== undefined && dive.duration !== null && (
-                            <div
-                              className={`flex items-center text-gray-700 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5 sm:gap-2'}`}
-                            >
-                              <Clock
-                                className={`text-gray-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                              />
-                              <span
-                                className={`font-medium ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
-                              >
-                                {dive.duration}min
-                              </span>
-                            </div>
+                          {dive.selected_route_id && (
+                            <span className='flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[10px] font-bold uppercase tracking-wider'>
+                              <Route className='w-3 h-3' />
+                              Route
+                            </span>
                           )}
                         </div>
+                      </div>
+                    </div>
 
-                        {/* Additional stats - suit type, visibility, date */}
-                        <div
-                          className={`flex flex-wrap items-center ${compactLayout ? 'gap-2' : 'gap-2 sm:gap-3'}`}
-                        >
-                          {/* Suit type */}
-                          {dive.suit_type && (
-                            <div
-                              className={`flex items-center text-gray-700 flex-shrink-0 ${compactLayout ? 'gap-1' : 'gap-1.5 sm:gap-2'}`}
-                            >
-                              <span
-                                className={`inline-flex items-center bg-blue-50 rounded-full font-medium ${compactLayout ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs sm:text-sm'}`}
-                              >
-                                {dive.suit_type}
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Visibility rating - more visually pleasant on desktop */}
-                          {dive.visibility_rating !== undefined &&
-                            dive.visibility_rating !== null && (
-                              <div
-                                className={`flex items-center bg-blue-50 rounded-full flex-shrink-0 border border-blue-200 shadow-sm ${
-                                  compactLayout
-                                    ? 'gap-1 px-2 py-0.5'
-                                    : 'gap-2 px-3 py-1.5 sm:px-4 sm:py-2'
-                                }`}
-                              >
-                                <Eye
-                                  className={`text-blue-600 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                                />
-                                <span
-                                  className={`font-semibold text-blue-800 ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
-                                >
-                                  {dive.visibility_rating}/10
-                                </span>
-                              </div>
-                            )}
-
-                          {/* Date/Time - more visually pleasant on desktop */}
-                          <div
-                            className={`flex items-center bg-gray-50 rounded-full flex-shrink-0 border border-gray-200 shadow-sm ${
-                              compactLayout
-                                ? 'gap-1 px-2 py-0.5'
-                                : 'gap-2 px-3 py-1.5 sm:px-4 sm:py-2'
-                            }`}
-                          >
-                            <Calendar
-                              className={`text-gray-600 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                            />
-                            <span
-                              className={`font-medium text-gray-700 ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
-                            >
-                              {new Date(dive.dive_date).toLocaleDateString('en-GB')}
-                              {dive.dive_time && (
-                                <span
-                                  className={`ml-1.5 ${compactLayout ? 'text-[10px]' : 'text-xs'}`}
-                                >
-                                  {formatTime(dive.dive_time)}
-                                </span>
-                              )}
+                    {/* STATS STRIP */}
+                    <div className='flex flex-wrap gap-x-8 gap-y-3 py-3 border-y border-gray-50'>
+                      {dive.max_depth !== undefined && dive.max_depth !== null && (
+                        <div className='flex flex-col'>
+                          <span className='text-xs font-normal text-gray-400 uppercase tracking-tight'>
+                            Max Depth
+                          </span>
+                          <div className='flex items-center gap-1.5 mt-0.5'>
+                            <TrendingUp className='w-4 h-4 text-gray-400' />
+                            <span className='text-sm font-semibold text-gray-700'>
+                              {dive.max_depth}
+                              <span className='text-xs font-normal ml-0.5'>m</span>
                             </span>
                           </div>
                         </div>
+                      )}
+                      {dive.duration !== undefined && dive.duration !== null && (
+                        <div className='flex flex-col'>
+                          <span className='text-xs font-normal text-gray-400 uppercase tracking-tight'>
+                            Duration
+                          </span>
+                          <div className='flex items-center gap-1.5 mt-0.5'>
+                            <Clock className='w-4 h-4 text-gray-400' />
+                            <span className='text-sm font-semibold text-gray-700'>
+                              {dive.duration}
+                              <span className='text-xs font-normal ml-0.5'>min</span>
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {dive.water_temperature !== undefined && dive.water_temperature !== null && (
+                        <div className='flex flex-col'>
+                          <span className='text-xs font-normal text-gray-400 uppercase tracking-tight'>
+                            Temp
+                          </span>
+                          <div className='flex items-center gap-1.5 mt-0.5'>
+                            <Thermometer className='w-4 h-4 text-gray-400' />
+                            <span className='text-sm font-semibold text-gray-700'>
+                              {dive.water_temperature}
+                              <span className='text-xs font-normal ml-0.5'>°C</span>
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {dive.visibility_rating !== undefined && dive.visibility_rating !== null && (
+                        <div className='flex flex-col'>
+                          <span className='text-xs font-normal text-gray-400 uppercase tracking-tight'>
+                            Visibility
+                          </span>
+                          <div className='flex items-center gap-1.5 mt-0.5'>
+                            <Eye className='w-4 h-4 text-gray-400' />
+                            <span className='text-sm font-semibold text-gray-700'>
+                              {dive.visibility_rating}
+                              <span className='text-xs font-normal ml-0.5'>/10</span>
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {/* Difficulty Badge - promoted to stats strip for context */}
+                      <div className='flex flex-col'>
+                        <span className='text-xs font-normal text-gray-400 uppercase tracking-tight'>
+                          Level
+                        </span>
+                        <div className='flex items-center mt-0.5'>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
+                          >
+                            {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                        {/* Geographic fields - dive site country/region if available */}
-                        {dive.dive_site_info &&
-                          (dive.dive_site_info.country || dive.dive_site_info.region) && (
-                            <div className='flex items-center gap-1.5 flex-wrap sm:flex-nowrap justify-end lg:justify-start'>
-                              {dive.dive_site_info.country && (
-                                <button
-                                  type='button'
-                                  onClick={e => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    // Navigate to dive sites filtered by country
-                                    navigate(
-                                      `/dive-sites?country=${encodeURIComponent(dive.dive_site_info.country)}`
-                                    );
-                                  }}
-                                  className={`flex items-center bg-blue-50 rounded-full hover:bg-blue-100 transition-colors flex-shrink-0 ${
-                                    compactLayout
-                                      ? 'gap-1 px-2 py-0.5'
-                                      : 'gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5'
-                                  }`}
-                                  title={`View dive sites in ${dive.dive_site_info.country}`}
-                                >
-                                  <Globe
-                                    className={`text-blue-600 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5 sm:w-4 sm:h-4'}`}
+                    {/* FOOTER: Tags & Buddies */}
+                    <div className='flex items-center justify-between gap-4 mt-auto'>
+                      <div className='flex flex-wrap items-center gap-3'>
+                        {/* Tags */}
+                        {dive.tags && dive.tags.length > 0 && (
+                          <div className='flex flex-wrap gap-1.5'>
+                            {dive.tags.slice(0, 3).map(tag => (
+                              <span
+                                key={tag.id}
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors ${getTagColor(tag.name)}`}
+                              >
+                                {tag.name}
+                              </span>
+                            ))}
+                            {dive.tags.length > 3 && (
+                              <span className='text-xs font-medium text-gray-400'>
+                                +{dive.tags.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Separator if both tags and buddies exist */}
+                        {dive.tags?.length > 0 && dive.buddies?.length > 0 && (
+                          <span className='text-gray-300'>|</span>
+                        )}
+
+                        {/* Buddies (Avatars only to reduce noise) */}
+                        {dive.buddies && dive.buddies.length > 0 && (
+                          <div className='flex -space-x-2 overflow-hidden'>
+                            {dive.buddies.slice(0, 5).map(buddy => (
+                              <Link
+                                key={buddy.id}
+                                to={`/users/${buddy.username}`}
+                                title={`Buddy: ${buddy.username}`}
+                                className='inline-block h-6 w-6 rounded-full ring-2 ring-white'
+                              >
+                                {buddy.avatar_url ? (
+                                  <img
+                                    className='h-full w-full rounded-full object-cover'
+                                    src={buddy.avatar_url}
+                                    alt=''
                                   />
-                                  <span
-                                    className={`font-medium text-blue-700 ${compactLayout ? 'text-[10px]' : 'text-xs sm:text-sm'}`}
-                                  >
-                                    {dive.dive_site_info.country}
-                                  </span>
-                                </button>
-                              )}
-                              {dive.dive_site_info.region && (
-                                <button
-                                  type='button'
-                                  onClick={e => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    // Navigate to dive sites filtered by region
-                                    navigate(
-                                      `/dive-sites?region=${encodeURIComponent(dive.dive_site_info.region)}`
-                                    );
-                                  }}
-                                  className={`flex items-center bg-green-50 rounded-full hover:bg-green-100 transition-colors flex-shrink-0 ${
-                                    compactLayout
-                                      ? 'gap-1 px-2 py-0.5'
-                                      : 'gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5'
-                                  }`}
-                                  title={`View dive sites in ${dive.dive_site_info.region}`}
-                                >
-                                  <MapPin
-                                    className={`text-green-600 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-3.5 h-3.5 sm:w-4 sm:h-4'}`}
-                                  />
-                                  <span
-                                    className={`font-medium text-green-700 ${compactLayout ? 'text-[10px]' : 'text-xs sm:text-sm'}`}
-                                  >
-                                    {dive.dive_site_info.region}
-                                  </span>
-                                </button>
-                              )}
-                            </div>
-                          )}
+                                ) : (
+                                  <div className='h-full w-full rounded-full bg-blue-100 flex items-center justify-center'>
+                                    <span className='text-[10px] font-bold text-blue-600'>
+                                      {buddy.username.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                )}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      {/* Additional info row - tags, buddies */}
-                      {(dive.tags && dive.tags.length > 0) ||
-                      (dive.buddies && dive.buddies.length > 0) ? (
-                        <div
-                          className={`flex flex-wrap items-center ${compactLayout ? 'gap-1.5 mb-2' : 'gap-2 sm:gap-3 mb-2'}`}
+                      <div className='flex items-center gap-3'>
+                        <Link
+                          to={`/dives/${dive.id}`}
+                          className='text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 group'
                         >
-                          {/* Tags */}
-                          {dive.tags && dive.tags.length > 0 && (
-                            <div className='flex flex-wrap gap-1.5'>
-                              {dive.tags.slice(0, compactLayout ? 3 : 5).map(tag => (
-                                <button
-                                  key={tag.id}
-                                  onClick={e => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    const tagId = parseInt(tag.id);
-                                    const currentTagIds = filters.tag_ids || [];
-                                    const newTagIds = currentTagIds.includes(tagId)
-                                      ? currentTagIds.filter(id => id !== tagId)
-                                      : [...currentTagIds, tagId];
-                                    handleFilterChange('tag_ids', newTagIds);
-                                  }}
-                                  className={`inline-flex items-center font-medium rounded-full cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tag.name)} ${
-                                    compactLayout
-                                      ? 'px-2 py-0.5 text-[11px]'
-                                      : 'px-2.5 py-1 text-xs sm:text-sm'
-                                  }`}
-                                  title={`Filter by ${tag.name}`}
-                                >
-                                  {tag.name}
-                                </button>
-                              ))}
-                              {dive.tags.length > (compactLayout ? 3 : 5) && (
-                                <span
-                                  className={`inline-flex items-center font-medium bg-gray-100 text-gray-600 rounded-full ${
-                                    compactLayout
-                                      ? 'px-2 py-0.5 text-[11px]'
-                                      : 'px-2.5 py-1 text-xs sm:text-sm'
-                                  }`}
-                                >
-                                  +{dive.tags.length - (compactLayout ? 3 : 5)}
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Buddies */}
-                          {dive.buddies && dive.buddies.length > 0 && (
-                            <div
-                              className={`flex flex-wrap items-center ${compactLayout ? 'gap-1.5' : 'gap-2'}`}
-                            >
-                              <User
-                                className={`text-gray-500 flex-shrink-0 ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                              />
-                              <span
-                                className={`text-gray-500 ${compactLayout ? 'text-[11px]' : 'text-xs sm:text-sm'}`}
-                              >
-                                Buddies:
-                              </span>
-                              <div className='flex flex-wrap gap-1'>
-                                {dive.buddies.slice(0, 3).map(buddy => (
-                                  <Link
-                                    key={buddy.id}
-                                    to={`/users/${buddy.username}`}
-                                    onClick={e => e.stopPropagation()}
-                                    className={`inline-flex items-center gap-1 font-medium bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors ${
-                                      compactLayout
-                                        ? 'px-2 py-0.5 text-[11px]'
-                                        : 'px-2 py-1 text-xs sm:text-sm'
-                                    }`}
-                                    title={buddy.name || buddy.username}
-                                  >
-                                    {buddy.avatar_url ? (
-                                      <img
-                                        src={buddy.avatar_url}
-                                        alt={buddy.username}
-                                        className={`rounded-full object-cover ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                                      />
-                                    ) : (
-                                      <div
-                                        className={`rounded-full bg-blue-200 flex items-center justify-center ${compactLayout ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'}`}
-                                      >
-                                        <span
-                                          className={`font-medium text-blue-700 ${compactLayout ? 'text-[8px]' : 'text-[10px]'}`}
-                                        >
-                                          {buddy.username.charAt(0).toUpperCase()}
-                                        </span>
-                                      </div>
-                                    )}
-                                    <span>{buddy.username}</span>
-                                  </Link>
-                                ))}
-                                {dive.buddies.length > 3 && (
-                                  <span
-                                    className={`inline-flex items-center font-medium bg-gray-100 text-gray-600 rounded-full ${
-                                      compactLayout
-                                        ? 'px-2 py-0.5 text-[11px]'
-                                        : 'px-2 py-1 text-xs sm:text-sm'
-                                    }`}
-                                  >
-                                    +{dive.buddies.length - 3}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : null}
+                          View Details
+                          <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5' />
+                        </Link>
+                      </div>
                     </div>
-                    <Link
-                      to={`/dives/${dive.id}`}
-                      state={{ from: location.pathname + location.search }}
-                      className='hidden sm:inline-flex self-center flex-shrink-0 items-center justify-center gap-1 px-2 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors'
-                    >
-                      <Eye className='w-3 h-3' />
-                      <span>View</span>
-                    </Link>
                   </div>
-
-                  {dive.dive_information && dive.dive_information.trim() ? (
-                    <p className={`text-gray-700 ${compactLayout ? 'text-sm' : 'text-base'}`}>
-                      {dive.dive_information.replace(/\n/g, ' | ')}
-                    </p>
-                  ) : (
-                    <p className={`text-gray-700 ${compactLayout ? 'text-sm' : 'text-base'}`}>
-                      {(() => {
-                        const stats = [];
-
-                        // Only add fields that have values
-                        if (dive.buddy) stats.push(`Buddy: ${dive.buddy}`);
-                        if (dive.sac) stats.push(`SAC: ${dive.sac}`);
-                        if (dive.otu) stats.push(`OTU: ${dive.otu}`);
-                        if (dive.cns) stats.push(`CNS: ${dive.cns}`);
-                        if (dive.max_depth) stats.push(`Max Depth: ${dive.max_depth} m`);
-                        if (dive.average_depth) stats.push(`Avg Depth: ${dive.average_depth} m`);
-                        if (dive.water_temperature)
-                          stats.push(`Water Temp: ${dive.water_temperature}`);
-                        if (dive.deco_model) stats.push(`Deco Model: ${dive.deco_model}`);
-                        if (dive.weights) stats.push(`Weights: ${dive.weights}`);
-                        if (dive.duration) stats.push(`Duration: ${dive.duration} min`);
-                        if (dive.visibility_rating)
-                          stats.push(`Visibility: ${dive.visibility_rating}/10`);
-                        if (dive.user_rating) stats.push(`Rating: ${dive.user_rating}/10`);
-
-                        return stats.length > 0
-                          ? stats.join(' | ')
-                          : 'No additional dive statistics available';
-                      })()}
-                    </p>
-                  )}
                 </div>
               ))}
             </div>
@@ -1542,138 +1332,93 @@ const Dives = () => {
               {dives?.map(dive => (
                 <div
                   key={dive.id}
-                  className={`dive-item rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-shadow ${
-                    dive.is_private ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-200'
-                  } ${compactLayout ? 'p-4' : 'p-6'}`}
+                  className={`dive-item rounded-xl shadow-sm border border-gray-100 flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 ${
+                    dive.is_private ? 'bg-purple-50/30' : 'bg-white'
+                  }`}
                 >
-                  <div className='p-4'>
-                    <div className='flex items-center gap-2 mb-2'>
-                      <div className='flex items-center gap-2 flex-1 min-w-0'>
-                        <h3
-                          className={`font-semibold text-gray-900 flex-1 min-w-0 flex items-center gap-2 flex-wrap ${compactLayout ? 'text-base' : 'text-lg'}`}
-                        >
-                          <Link
-                            to={`/dives/${dive.id}`}
-                            state={{ from: location.pathname + location.search }}
-                            className='hover:text-blue-600 transition-colors whitespace-normal break-words'
-                          >
-                            {dive.name || `Dive #${dive.id}`}
-                          </Link>
-                          {dive.user_username && (
-                            <span className='text-gray-500 font-normal text-xs sm:text-sm whitespace-nowrap'>
-                              by{' '}
-                              <Link
-                                to={`/users/${dive.user_username}`}
-                                className='text-blue-600 hover:text-blue-800 hover:underline'
-                                onClick={e => e.stopPropagation()}
-                              >
-                                {dive.user_username}
-                              </Link>
-                            </span>
-                          )}
-                        </h3>
-                        {dive.selected_route_id && (
-                          <div
-                            className='flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium'
-                            title='This dive has a route'
-                          >
-                            <Route size={12} />
-                            Route
-                          </div>
-                        )}
-                        {matchTypes[dive.id] && (
-                          <div className='flex-shrink-0'>
-                            <MatchTypeBadge
-                              matchType={matchTypes[dive.id].type}
-                              score={matchTypes[dive.id].score}
-                            />
-                          </div>
-                        )}
-                      </div>
-                      {dive.is_private && (
-                        <div className='flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium'>
-                          <Lock size={12} />
-                          Private
+                  <div className='p-5 flex flex-col h-full'>
+                    {/* Header: Title & Site */}
+                    <div className='mb-3'>
+                      {dive.dive_site_info && (
+                        <div className='text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-0.5 flex items-center gap-1'>
+                          <MapPin className='w-2.5 h-2.5' />
+                          {dive.dive_site_info.name}
                         </div>
                       )}
+                      <h3 className='font-semibold text-gray-900 leading-snug line-clamp-1'>
+                        <Link
+                          to={`/dives/${dive.id}`}
+                          className='hover:text-blue-600 transition-colors'
+                        >
+                          {dive.name || `Dive #${dive.id}`}
+                        </Link>
+                      </h3>
+                      <div className='text-xs text-gray-500 mt-1 flex items-center gap-1.5'>
+                        <Calendar className='w-3 h-3' />
+                        {new Date(dive.dive_date).toLocaleDateString('en-GB')}
+                        {dive.user_username && (
+                          <>
+                            <span>&bull;</span>
+                            <span className='inline-flex items-center gap-1'>
+                              <User className='w-3 h-3' />
+                              {dive.user_username}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
 
-                    <p className={`text-gray-600 mb-3 ${compactLayout ? 'text-sm' : 'text-base'}`}>
-                      {new Date(dive.dive_date).toLocaleDateString('en-GB')}
-                      {dive.dive_time && ` at ${formatTime(dive.dive_time)}`}
-                    </p>
-
-                    <div className='space-y-2 mb-4'>
+                    {/* Stats Grid (Simplified for Grid layout) */}
+                    <div className='grid grid-cols-2 gap-4 py-3 border-y border-gray-50 mb-4'>
                       <div className='flex items-center gap-2'>
+                        <TrendingUp className='w-4 h-4 text-gray-400' />
+                        <div>
+                          <p className='text-[10px] text-gray-400 uppercase font-medium leading-none mb-0.5'>
+                            Depth
+                          </p>
+                          <p className='text-sm font-semibold text-gray-700'>{dive.max_depth}m</p>
+                        </div>
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <Clock className='w-4 h-4 text-gray-400' />
+                        <div>
+                          <p className='text-[10px] text-gray-400 uppercase font-medium leading-none mb-0.5'>
+                            Time
+                          </p>
+                          <p className='text-sm font-semibold text-gray-700'>{dive.duration}m</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer: Tags, Rating & Badges */}
+                    <div className='mt-auto flex items-center justify-between gap-2'>
+                      <div className='flex gap-1 overflow-hidden'>
+                        {dive.tags?.slice(0, 2).map(tag => (
+                          <span
+                            key={tag.id}
+                            className={`text-[10px] font-medium px-1.5 py-0.5 rounded border border-transparent ${getTagColor(tag.name)} truncate`}
+                          >
+                            {tag.name}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className='flex items-center gap-2 flex-shrink-0'>
+                        {dive.user_rating !== undefined && (
+                          <div className='flex items-center gap-1 text-yellow-600'>
+                            <Star className='w-3.5 h-3.5 fill-current' />
+                            <span className='text-xs font-bold text-gray-900'>
+                              {dive.user_rating}
+                            </span>
+                          </div>
+                        )}
                         <span
-                          className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
+                          className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getDifficultyColorClasses(dive.difficulty_code)}`}
                         >
                           {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
                         </span>
                       </div>
-                      <div className='flex items-center gap-2'>
-                        <span className='inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium bg-blue-100 text-blue-800'>
-                          {dive.suit_type || 'dry suit'}
-                        </span>
-                      </div>
                     </div>
-
-                    <div className='grid grid-cols-2 gap-3 mb-4'>
-                      <div className='flex items-center gap-2'>
-                        <TrendingUp className='w-4 h-4 text-gray-400' />
-                        <span className='text-[11px] text-gray-600'>{dive.max_depth}m</span>
-                      </div>
-                      <div className='flex items-center gap-2'>
-                        <Clock className='w-4 h-4 text-gray-400' />
-                        <span className='text-[11px] text-gray-600'>{dive.duration}min</span>
-                      </div>
-                    </div>
-
-                    <div className='flex items-center justify-between mb-4'>
-                      <div className='flex items-center gap-2'>
-                        <Star className='w-4 h-4 text-yellow-400' />
-                        <span className='text-[11px] text-gray-600'>{dive.user_rating}/10</span>
-                      </div>
-
-                      {/* Tags */}
-                      {dive.tags && dive.tags.length > 0 && (
-                        <div className='flex flex-wrap gap-1'>
-                          {dive.tags.slice(0, 2).map(tag => (
-                            <button
-                              key={tag.id}
-                              onClick={e => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                const tagId = parseInt(tag.id);
-                                const currentTagIds = filters.tag_ids || [];
-                                const newTagIds = currentTagIds.includes(tagId)
-                                  ? currentTagIds.filter(id => id !== tagId)
-                                  : [...currentTagIds, tagId];
-                                handleFilterChange('tag_ids', newTagIds);
-                              }}
-                              className={`inline-flex items-center px-2 py-1 text-[11px] font-medium rounded-full cursor-pointer hover:opacity-80 transition-opacity ${getTagColor(tag.name)}`}
-                              title={`Filter by ${tag.name}`}
-                            >
-                              {tag.name}
-                            </button>
-                          ))}
-                          {dive.tags.length > 2 && (
-                            <span className='inline-flex items-center px-2 py-1 text-[11px] font-medium bg-gray-100 text-gray-600 rounded-full'>
-                              +{dive.tags.length - 2}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <Link
-                      to={`/dives/${dive.id}`}
-                      state={{ from: location.pathname + location.search }}
-                      className='w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
-                    >
-                      <Eye className='w-4 h-4' />
-                      View Dive
-                    </Link>
                   </div>
                 </div>
               ))}
@@ -1695,12 +1440,12 @@ const Dives = () => {
       )}
 
       {dives?.length === 0 && (
-        <div className='text-center py-8 sm:py-12'>
-          <Map className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-          <p className='text-sm sm:text-base text-gray-600'>
-            No dives found matching your criteria.
-          </p>
-        </div>
+        <EmptyState
+          onClearFilters={clearFilters}
+          actionLink='/dives/create'
+          actionText='Add New Dive'
+          message='We couldn’t find any dives matching your current filters. Try broadening your search or log a new adventure.'
+        />
       )}
 
       {/* Bottom Pagination Controls */}

@@ -69,9 +69,7 @@ const HeroSection = ({
             {logoBackground && (
               <div className='absolute inset-0 flex items-center justify-center opacity-8 bg-white'>
                 <img
-                  src='/divemap_logo_domain_top4_extend.jpg'
-                  srcSet='/divemap_logo_domain_top4_extend_small.jpg 600w, /divemap_logo_domain_top4_extend.jpg 2801w'
-                  sizes='(max-width: 600px) 600px, 100vw'
+                  src='/divemap_logo_domain_top5_extend.jpg'
                   alt=''
                   className='h-full w-full object-contain'
                   fetchpriority='high'
@@ -82,13 +80,15 @@ const HeroSection = ({
             <div className='max-w-7xl mx-auto relative z-10 flex items-center justify-between w-full px-4'>
               {/* Left Column - Title (Vertical) */}
               <div className='flex flex-col items-center text-center max-w-[200px]'>
+                <h1 className='sr-only'>{title}</h1>
                 {title.split(' ').map((word, index) => (
-                  <h1
+                  <div
                     key={index}
-                    className={`text-2xl lg:text-3xl font-bold ${textColor} mb-2 leading-tight`}
+                    aria-hidden='true'
+                    className={`text-2xl lg:text-3xl font-bold ${textColor} mb-2 leading-tight uppercase tracking-tighter`}
                   >
                     {word}
-                  </h1>
+                  </div>
                 ))}
               </div>
 
