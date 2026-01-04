@@ -386,3 +386,62 @@ class TestDiveImportWithProfiles:
         assert len(result['samples']) == 1
         assert result['samples'][0]['time_minutes'] == 0
         assert result['samples'][0]['depth'] == 0
+
+    def test_create_structured_gas_data_backgas_index(self):
+        """Test backgas identification when first tank is smaller."""
+        from app.routers.dives.dives_import import create_structured_gas_data
+        
+        # Case 1: First tank smaller than second tank (0 < 1)
+        cylinders = [
+            {'size': '7.0 l', 'description': 'Stage'},
+            {'size': '12.0 l', 'description': 'Backgas'}
+        ]
+        result_json = create_structured_gas_data(cylinders)
+        result = json.loads(result_json)
+        
+        # Backgas should be cylinders[1] (12L)
+        assert result['back_gas']['tank'] == '12'
+        # Stage should be cylinders[0] (7L)
+        assert len(result['stages']) == 1
+        assert result['stages'][0]['tank'] == '7'
+
+    def test_create_structured_gas_data_gaschange_at_zero(self):
+        """Test backgas identification with gaschange event at time 0."""
+        from app.routers.dives.dives_import import create_structured_gas_data
+        
+        # Case 2: Gaschange at time 0 indicates cylinder 1 is backgas
+        cylinders = [
+            {'size': '12.0 l', 'description': 'Tank 0', 'start': '200 bar', 'end': '100 bar'},
+            {'size': '12.1 l', 'description': 'Tank 1', 'start': '210 bar', 'end': '110 bar'}
+        ]
+        events = [
+            {'type': 'gaschange', 'time_minutes': 0, 'cylinder': '1'}
+        ]
+        result_json = create_structured_gas_data(cylinders, events)
+        result = json.loads(result_json)
+        
+        # Backgas should be cylinders[1] (12.1L -> 12L tank ID)
+        assert result['back_gas']['tank'] == '12'
+        assert result['back_gas']['start_pressure'] == 210
+        
+        # Stage should be cylinders[0] (12.0L -> 12L tank ID)
+        assert len(result['stages']) == 1
+        assert result['stages'][0]['tank'] == '12'
+        assert result['stages'][0]['start_pressure'] == 200
+
+    def test_create_structured_gas_data_default(self):
+        """Test default backgas identification (first tank)."""
+        from app.routers.dives.dives_import import create_structured_gas_data
+        
+        # Case 3: Default (first tank is backgas if 0 >= 1)
+        cylinders = [
+            {'size': '15.0 l', 'description': 'Tank 0'},
+            {'size': '7.0 l', 'description': 'Tank 1'}
+        ]
+        result_json = create_structured_gas_data(cylinders)
+        result = json.loads(result_json)
+        
+        # Backgas should be cylinders[1] (12L)
+        assert result['back_gas']['tank'] == '15'
+        assert len(result['stages']) == 1
+        assert result['stages'][0]['tank'] == '7'
