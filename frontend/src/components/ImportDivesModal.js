@@ -15,7 +15,9 @@ import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
 
 import { importSubsurfaceXML, confirmImportDives, extractErrorMessage } from '../api';
+import { TANK_SIZES } from '../utils/diveConstants';
 
+import FuzzySearchInput from './FuzzySearchInput';
 import GasTanksDisplay from './GasTanksDisplay';
 import Modal from './ui/Modal';
 
@@ -27,12 +29,28 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
   const [availableDiveSites, setAvailableDiveSites] = useState([]);
   const [currentStep, setCurrentStep] = useState('upload'); // 'upload', 'review', 'importing'
   const [isProcessing, setIsProcessing] = useState(false);
+  const [diveSiteSearchStrings, setDiveSiteSearchStrings] = useState({});
 
   // Import mutation
   const importMutation = useMutation(importSubsurfaceXML, {
     onSuccess: data => {
-      setParsedDives(data.dives.map(dive => ({ ...dive, is_private: false })));
-      setAvailableDiveSites(data.available_dive_sites || []);
+      const dives = data.dives.map(dive => ({ ...dive, is_private: false }));
+      setParsedDives(dives);
+      const sites = data.available_dive_sites || [];
+      setAvailableDiveSites(sites);
+
+      // Pre-fill search strings for dives that already have a site selected
+      const initialSearchStrings = {};
+      dives.forEach((dive, index) => {
+        if (dive.dive_site_id) {
+          const site = sites.find(s => s.id === dive.dive_site_id);
+          if (site) {
+            initialSearchStrings[index] = site.name;
+          }
+        }
+      });
+      setDiveSiteSearchStrings(initialSearchStrings);
+
       setCurrentStep('review');
       setIsProcessing(false);
       toast.success(data.message);
@@ -106,23 +124,130 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
   };
 
   const handleDiveSiteChange = (index, diveSiteId) => {
+    const siteId = diveSiteId === '' ? null : parseInt(diveSiteId);
     setParsedDives(prev =>
       prev.map((dive, i) =>
         i === index
           ? {
               ...dive,
-              dive_site_id: diveSiteId === '' ? null : parseInt(diveSiteId),
-              unmatched_dive_site: diveSiteId === '' ? dive.unmatched_dive_site : null,
+              dive_site_id: siteId,
+              unmatched_dive_site: siteId === null ? dive.unmatched_dive_site : null,
             }
           : dive
       )
     );
+
+    // Update search string to match selected site name
+    if (siteId) {
+      const site = availableDiveSites.find(s => s.id === siteId);
+      if (site) {
+        setDiveSiteSearchStrings(prev => ({
+          ...prev,
+          [index]: site.name,
+        }));
+      }
+    } else {
+      setDiveSiteSearchStrings(prev => ({
+        ...prev,
+        [index]: '',
+      }));
+    }
+  };
+
+  const handleDiveSiteSearchChange = (index, value) => {
+    setDiveSiteSearchStrings(prev => ({
+      ...prev,
+      [index]: value,
+    }));
+  };
+
+  const handleDiveSiteSelect = (index, site) => {
+    handleDiveSiteChange(index, site.id);
+    handleDiveSiteSearchChange(index, site.name);
   };
 
   const handleSkipDive = index => {
     setParsedDives(prev =>
       prev.map((dive, i) => (i === index ? { ...dive, skip: !dive.skip } : dive))
     );
+  };
+
+  const handleBackGasChange = (diveIndex, selectedIndex) => {
+    setParsedDives(prev => {
+      const newDives = [...prev];
+      const dive = { ...newDives[diveIndex] };
+
+      try {
+        const data = JSON.parse(dive.gas_bottles_used);
+        const allTanks = [data.back_gas, ...(data.stages || [])];
+        const newBackGasIndex = parseInt(selectedIndex);
+        const newBackGas = allTanks.find(t => t.index === newBackGasIndex);
+
+        if (newBackGas) {
+          const newStages = allTanks
+            .filter(t => t.index !== newBackGasIndex)
+            .sort((a, b) => (a.index || 0) - (b.index || 0));
+
+          const newData = {
+            mode: 'structured',
+            back_gas: newBackGas,
+            stages: newStages,
+          };
+
+          dive.gas_bottles_used = JSON.stringify(newData);
+          newDives[diveIndex] = dive;
+        }
+      } catch (e) {
+        console.error('Failed to update back gas', e);
+      }
+      return newDives;
+    });
+  };
+
+  const renderBackGasSelector = (dive, index) => {
+    try {
+      if (!dive.gas_bottles_used || !dive.gas_bottles_used.trim().startsWith('{')) return null;
+
+      const data = JSON.parse(dive.gas_bottles_used);
+      if (!data.stages || data.stages.length === 0) return null;
+
+      const allTanks = [data.back_gas, ...data.stages].sort(
+        (a, b) => (a.index || 0) - (b.index || 0)
+      );
+
+      return (
+        <div className='flex items-center gap-2 mb-2'>
+          <span className='text-xs font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded'>
+            Select Back Gas:
+          </span>
+          <select
+            className='border-gray-300 rounded-md text-xs py-1 pl-2 pr-8 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white'
+            value={data.back_gas.index !== undefined ? data.back_gas.index : 0}
+            onChange={e => handleBackGasChange(index, e.target.value)}
+            onClick={e => e.stopPropagation()}
+          >
+            {allTanks.map(tank => {
+              const tankDef = TANK_SIZES.find(t => t.id === tank.tank);
+              const name = tankDef ? tankDef.name : tank.tank;
+              const gas = tank.gas
+                ? tank.gas.o2 === 21 && tank.gas.he === 0
+                  ? 'Air'
+                  : `EAN${tank.gas.o2}`
+                : 'Air';
+              // Use original index as value, fallback to 0 if missing (shouldn't happen with new import)
+              const val = tank.index !== undefined ? tank.index : 0;
+              return (
+                <option key={val} value={val}>
+                  {name} ({gas})
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      );
+    } catch (e) {
+      return null;
+    }
   };
 
   const handleConfirmImport = async () => {
@@ -186,6 +311,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
   const handleClose = () => {
     setSelectedFiles([]);
     setParsedDives([]);
+    setDiveSiteSearchStrings({});
     setCurrentStep('upload');
     setIsProcessing(false);
     if (fileInputRef.current) {
@@ -426,7 +552,10 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                     )}
                     {dive.gas_bottles_used && (
                       <div className='md:col-span-2'>
-                        <span className='font-medium text-gray-700'>Gas Bottles:</span>
+                        <div className='flex justify-between items-center'>
+                          <span className='font-medium text-gray-700'>Gas Bottles:</span>
+                          {renderBackGasSelector(dive, index)}
+                        </div>
                         <div className='mt-1'>
                           <GasTanksDisplay
                             gasData={dive.gas_bottles_used}
@@ -459,30 +588,26 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                                 database
                               </span>
                             </div>
-                            <div className='flex items-center gap-2'>
-                              <select
-                                value={dive.dive_site_id || ''}
-                                onChange={e => handleDiveSiteChange(index, e.target.value)}
-                                className='flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-                              >
-                                <option value=''>Select a dive site...</option>
-                                {availableDiveSites
-                                  .sort((a, b) => a.name.localeCompare(b.name))
-                                  .map(site => (
-                                    <option key={site.id} value={site.id}>
-                                      {site.name}{' '}
-                                      {site.country
-                                        ? `(${site.country}${site.region ? `, ${site.region}` : ''})`
-                                        : ''}
-                                    </option>
-                                  ))}
-                              </select>
-                              <button
-                                onClick={() => window.open('/dive-sites/create', '_blank')}
-                                className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
-                              >
-                                Create New
-                              </button>
+                            <div className='flex flex-col gap-2'>
+                              <div className='flex items-center gap-2'>
+                                <div className='flex-1'>
+                                  <FuzzySearchInput
+                                    data={availableDiveSites}
+                                    searchValue={diveSiteSearchStrings[index] || ''}
+                                    onSearchChange={val => handleDiveSiteSearchChange(index, val)}
+                                    onSearchSelect={site => handleDiveSiteSelect(index, site)}
+                                    placeholder='Search for a dive site...'
+                                    minQueryLength={3}
+                                    configType='diveSites'
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => window.open('/dive-sites/create', '_blank')}
+                                  className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10'
+                                >
+                                  Create New
+                                </button>
+                              </div>
                             </div>
                             <p className='text-xs text-gray-500'>
                               Please select an existing dive site or create a new one, then
@@ -538,30 +663,26 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                                 </div>
                               ))}
                             </div>
-                            <div className='flex items-center gap-2'>
-                              <select
-                                value={dive.dive_site_id || ''}
-                                onChange={e => handleDiveSiteChange(index, e.target.value)}
-                                className='flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-                              >
-                                <option value=''>Or select a different dive site...</option>
-                                {availableDiveSites
-                                  .sort((a, b) => a.name.localeCompare(b.name))
-                                  .map(site => (
-                                    <option key={site.id} value={site.id}>
-                                      {site.name}{' '}
-                                      {site.country
-                                        ? `(${site.country}${site.region ? `, ${site.region}` : ''})`
-                                        : ''}
-                                    </option>
-                                  ))}
-                              </select>
-                              <button
-                                onClick={() => window.open('/dive-sites/create', '_blank')}
-                                className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
-                              >
-                                Create New
-                              </button>
+                            <div className='flex flex-col gap-2'>
+                              <div className='flex items-center gap-2'>
+                                <div className='flex-1'>
+                                  <FuzzySearchInput
+                                    data={availableDiveSites}
+                                    searchValue={diveSiteSearchStrings[index] || ''}
+                                    onSearchChange={val => handleDiveSiteSearchChange(index, val)}
+                                    onSearchSelect={site => handleDiveSiteSelect(index, site)}
+                                    placeholder='Or search for a different site...'
+                                    minQueryLength={3}
+                                    configType='diveSites'
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => window.open('/dive-sites/create', '_blank')}
+                                  className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10'
+                                >
+                                  Create New
+                                </button>
+                              </div>
                             </div>
                             <p className='text-xs text-gray-500'>
                               Compare the original dive site name from your XML file with the

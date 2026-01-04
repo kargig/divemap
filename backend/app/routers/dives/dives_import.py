@@ -617,12 +617,15 @@ def parse_dive_element(dive_elem, dive_sites, db):
         if divecomputer_elem is not None:
             profile_data = parse_dive_profile_samples(divecomputer_elem)
 
+        # Extract events if available
+        events = profile_data.get('events') if profile_data else None
+
         # Convert to Divemap format
         divemap_dive = convert_to_divemap_format(
             dive_number, rating, visibility, sac, otu, cns, tags,
             divesiteid, dive_date, dive_time, duration,
             buddy, suit, cylinders, weights, computer_data,
-            dive_sites, db
+            dive_sites, db, events=events
         )
 
         # Add profile data to the dive
@@ -798,11 +801,44 @@ def match_tank_id(vol_liters):
             
     return best_id
 
-def create_structured_gas_data(cylinders):
+def create_structured_gas_data(cylinders, events=None):
     """Convert cylinder list to structured JSON string for GasTanksInput"""
     if not cylinders:
         return None
         
+    # Determine back gas index (default to 0)
+    back_gas_index = 0
+    
+    # 1. Check if first tank is smaller than second tank (typical for stage/backgas listing)
+    if len(cylinders) >= 2:
+        try:
+            size0_str = cylinders[0].get('size', '0').replace(' l', '').strip()
+            size1_str = cylinders[1].get('size', '0').replace(' l', '').strip()
+            size0 = float(size0_str) if size0_str else 0.0
+            size1 = float(size1_str) if size1_str else 0.0
+            
+            if size0 > 0 and size1 > 0 and size0 < size1:
+                back_gas_index = 1
+        except (ValueError, TypeError, AttributeError):
+            pass
+
+    # 2. Look at gaschange events to find starting tank (more accurate)
+    if events:
+        for event in events:
+            # Gas change at time 0 indicates the starting tank
+            if event.get('type') == 'gaschange' and event.get('time_minutes') == 0:
+                cyl_idx_str = event.get('cylinder')
+                if cyl_idx_str is not None:
+                    try:
+                        back_gas_index = int(cyl_idx_str)
+                        break
+                    except (ValueError, TypeError):
+                        pass
+    
+    # Ensure back_gas_index is valid
+    if back_gas_index >= len(cylinders):
+        back_gas_index = 0
+
     structured = {
         "mode": "structured",
         "back_gas": {
@@ -846,10 +882,11 @@ def create_structured_gas_data(cylinders):
             "tank": tank_id,
             "start_pressure": start_p,
             "end_pressure": end_p,
-            "gas": {"o2": o2, "he": he}
+            "gas": {"o2": o2, "he": he},
+            "index": i
         }
         
-        if i == 0:
+        if i == back_gas_index:
             structured["back_gas"] = tank_obj
         else:
             structured["stages"].append(tank_obj)
@@ -859,7 +896,7 @@ def create_structured_gas_data(cylinders):
 def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, tags,
                              divesiteid, dive_date, dive_time, duration,
                              buddy, suit, cylinders, weights, computer_data,
-                             dive_sites, db):
+                             dive_sites, db, events=None):
     """Convert Subsurface dive data to Divemap format"""
 
     # Parse date and time
@@ -993,7 +1030,7 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
     dive_information = "\n".join(dive_info_parts) if dive_info_parts else None
 
     # Build gas bottles information (Structured JSON)
-    gas_bottles_used = create_structured_gas_data(cylinders)
+    gas_bottles_used = create_structured_gas_data(cylinders, events)
 
     # Find dive site
     dive_site_id = None
