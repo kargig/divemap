@@ -50,13 +50,16 @@ export const linkifyUrls = (text, options = {}) => {
  * @param {Object} options - Configuration options
  * @param {string} options.linkClassName - CSS classes for links
  * @param {boolean} options.targetBlank - Whether to open links in new tab
+ * @param {boolean} options.shorten - Whether to shorten URL text (e.g. to [Link])
  * @returns {Array} Array of React elements and strings
  */
 export const renderTextWithLinks = (text, options = {}) => {
+  const { shorten = true } = options;
   const linkifiedParts = linkifyUrls(text, options);
 
   return linkifiedParts.map(part => {
     if (part.type === 'link') {
+      const displayText = shorten ? '[Link]' : part.text;
       return (
         <a
           key={part.key}
@@ -64,8 +67,9 @@ export const renderTextWithLinks = (text, options = {}) => {
           target={part.target}
           rel={part.rel}
           className={part.className}
+          title={part.text}
         >
-          {part.text}
+          {displayText}
         </a>
       );
     }

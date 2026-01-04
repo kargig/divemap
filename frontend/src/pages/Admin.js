@@ -10,6 +10,7 @@ import {
   Anchor,
   FileText,
   Bell,
+  Route,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -47,6 +48,14 @@ const Admin = () => {
       icon: <MapPin className='h-8 w-8 text-blue-600' />,
       href: '/admin/dive-sites',
       color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
+    },
+    {
+      id: 'dive-routes',
+      title: 'Dive Routes Management',
+      description: 'Manage all dive routes, view details, edit information, and delete routes.',
+      icon: <Route className='h-8 w-8 text-cyan-600' />,
+      href: '/admin/dive-routes',
+      color: 'bg-cyan-50 border-cyan-200 hover:bg-cyan-100',
     },
     {
       id: 'diving-centers',
