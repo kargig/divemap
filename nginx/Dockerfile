@@ -14,5 +14,6 @@ COPY dev.conf /etc/nginx/nginx.conf
 # Expose port 80
 EXPOSE 80
 
-# Start nginx directly (no pre-warming needed in dev)
+# Start nginx directly
 CMD ["nginx", "-g", "daemon off;"]
+

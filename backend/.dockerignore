@@ -25,6 +25,7 @@ coverage.xml
 htmlcov/
 divemap_venv/
 media/
+llm_content/
 .DS_Store
 .vscode/
 .idea/

@@ -67,6 +67,10 @@ done
 
 echo "🚀 Starting application..."
 
+# Generate LLM content (runs in background to not block startup)
+echo "🤖 Checking LLM content (background)..."
+python generate_llm_content.py > /tmp/llm_gen.log 2>&1 &
+
 # Check if we're in development mode
 if [ "$ENVIRONMENT" = "development" ]; then
     echo "🔄 Development mode detected - enabling auto-reload"

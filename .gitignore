@@ -150,6 +150,9 @@ dump.rdb
 # Local development
 .local/ 
 
+# LLM Generated Content
+backend/llm_content/
+
 # Temporary import scripts (agent-created)
 backend/import_kml_dive_sites.py
 backend/update_dive_site_tags.py

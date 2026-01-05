@@ -69,3 +69,10 @@ test-frontend:
 	@echo "🧪 Running frontend tests..."
 	@cd frontend && npm test
 	@echo "✅ Frontend tests completed!"
+
+# Generate content for AI crawlers (llms.txt)
+generate-llm-content:
+	@echo "🤖 Generating LLM content in backend..."
+	@docker-compose exec -T backend python generate_llm_content.py --force
+	@echo "✅ LLM content generated in backend/llm_content/"
+
