@@ -17,8 +17,8 @@ and review dive sites and diving centers.
   (PADI, SSI, GUE, etc.)
 - **User Certifications**: Comprehensive certification tracking system with
   organization associations
-- **Dive Logging**: Complete dive logging system with media uploads, tags, and
-  statistics
+- **Dive Logging**: Complete dive logging system with media uploads, tags,
+  advanced gas management (SAC rates, tank specifications), and statistics
 - **Dive Buddies**: Add registered users as dive buddies with privacy controls
   and filtering
 - **Dive Route Drawing**: Interactive route creation and editing on maps with
@@ -37,6 +37,29 @@ and review dive sites and diving centers.
   platforms
 - **Wind Overlay & Recommendations**: Real-time wind data overlay with
   intelligent dive site suitability recommendations based on weather conditions
+
+### **Mobile Experience**
+
+- **Progressive Web App (PWA)**: Installable application with offline capabilities
+  and native-like experience
+- **Responsive Design**: optimized UI/UX for mobile devices, tablets, and desktops
+- **Touch-Optimized Tools**: Calculators and map interactions designed for touch
+  interfaces
+
+### **Diving Calculators**
+
+> Powered by a high-precision physics engine for accurate technical diving calculations.
+
+- **Best Mix Calculator**: Calculate optimal Nitrox mix for a given depth
+- **Gas Fill Price Calculator**: Estimate cost for tank fills
+- **Gas Planning Calculator**: Comprehensive gas planning for dives
+- **ICD Calculator**: Isobaric Counterdiffusion risks analysis for technical
+  diving
+- **Min Gas Calculator**: Calculate minimum gas reserves required
+- **MOD Calculator**: Maximum Operating Depth calculations for different gases
+- **SAC Rate Calculator**: Surface Air Consumption rate estimation
+- **Weight Calculator**: Buoyancy weight estimation based on equipment and body
+  type
 
 ### **Advanced Search & Filtering**
 

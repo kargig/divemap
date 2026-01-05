@@ -341,6 +341,10 @@ async def enhanced_security_logging(request, call_next):
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
+# Mount LLM content directory
+os.makedirs("llm_content", exist_ok=True)
+app.mount("/llm_content", StaticFiles(directory="llm_content"), name="llm_content")
+
 # Lazy router loading for faster startup
 def load_routers():
     """Load routers lazily to improve startup time"""
