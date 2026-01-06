@@ -31,10 +31,10 @@ import ReactImage from '../components/Lightbox/ReactImage';
 import MaskedEmail from '../components/MaskedEmail';
 import MiniMap from '../components/MiniMap';
 import RateLimitError from '../components/RateLimitError';
+import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
@@ -111,13 +111,6 @@ const DiveSiteDetail = () => {
   useEffect(() => {
     handleRateLimitError(error, 'dive site details', () => window.location.reload());
   }, [error]);
-
-  // Set dynamic page title
-  const pageTitle = diveSite
-    ? `Divemap - Dive Site - ${diveSite.name}`
-    : 'Divemap - Dive Site Details';
-
-  usePageTitle(pageTitle, !isLoading);
 
   const { data: comments } = useQuery(
     ['dive-site-comments', id],
@@ -346,8 +339,105 @@ const DiveSiteDetail = () => {
     );
   }
 
+  const getMetaDescription = () => {
+    if (!diveSite) return '';
+
+    const parts = [
+      `${diveSite.name} is a ${
+        diveSite.difficulty_label || getDifficultyLabel(diveSite.difficulty_code)
+      } dive site in ${diveSite.country}.`,
+    ];
+
+    if (diveSite.max_depth) {
+      parts.push(`Max depth: ${diveSite.max_depth}m.`);
+    }
+
+    if (diveSite.total_ratings > 0) {
+      parts.push(`Read ${diveSite.total_ratings} reviews and see photos.`);
+    } else {
+      parts.push('Be the first to share your experience and photos!');
+    }
+
+    return parts.join(' ');
+  };
+
+  const getSchema = () => {
+    if (!diveSite) return null;
+
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': ['Place', 'BodyOfWater', 'TouristAttraction'],
+      name: diveSite.name,
+      description: diveSite.description,
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: diveSite.latitude,
+        longitude: diveSite.longitude,
+      },
+      address: {
+        '@type': 'PostalAddress',
+        addressCountry: diveSite.country,
+        addressRegion: diveSite.region,
+      },
+      breadcrumb: {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: window.location.origin,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Dive Sites',
+            item: `${window.location.origin}/dive-sites`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: diveSite.country,
+          },
+          {
+            '@type': 'ListItem',
+            position: 4,
+            name: diveSite.name,
+            item: window.location.href,
+          },
+        ],
+      },
+    };
+
+    if (diveSite.total_ratings > 0) {
+      schema.aggregateRating = {
+        '@type': 'AggregateRating',
+        ratingValue: diveSite.average_rating,
+        reviewCount: diveSite.total_ratings,
+        bestRating: '10',
+        worstRating: '1',
+      };
+    }
+
+    return schema;
+  };
+
   return (
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      {diveSite && (
+        <SEO
+          title={`Divemap - ${diveSite.name} - ${diveSite.region || ''} ${diveSite.country || ''}`}
+          description={getMetaDescription()}
+          type='place'
+          image={photos.length > 0 ? getImageUrl(photos[0].url) : undefined}
+          imageAlt={
+            photos.length > 0 ? photos[0].description || `Dive site ${diveSite.name}` : undefined
+          }
+          siteName='Divemap'
+          location={{ lat: diveSite.latitude, lon: diveSite.longitude }}
+          schema={getSchema()}
+        />
+      )}
       {/* Header */}
       <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6'>
         <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4'>

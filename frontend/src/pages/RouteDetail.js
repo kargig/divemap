@@ -24,10 +24,10 @@ import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 
 import api from '../api';
 import MapLayersPanel from '../components/MapLayersPanel';
+import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { CHART_COLORS, getRouteTypeColor } from '../utils/colorPalette';
 import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
@@ -400,8 +400,6 @@ const RouteDetail = () => {
     }
   };
 
-  usePageTitle('Route Details');
-
   // Fetch route details
   const {
     data: route,
@@ -421,6 +419,86 @@ const RouteDetail = () => {
       enabled: !!diveSiteId,
     }
   );
+
+  const getMetaDescription = () => {
+    if (!route) return '';
+
+    let desc = `Dive route: ${route.name}`;
+
+    if (diveSite) {
+      desc += ` at ${diveSite.name}`;
+    }
+
+    if (route.creator?.username) {
+      desc += `. Created by ${route.creator.username}`;
+    }
+
+    if (route.description) {
+      desc += `. ${decodeHtmlEntities(route.description).substring(0, 100)}`;
+    }
+
+    return desc;
+  };
+
+  const getSchema = () => {
+    if (!route) return null;
+
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': ['CreativeWork', 'Map'],
+      name: route.name,
+      description: route.description ? decodeHtmlEntities(route.description) : getMetaDescription(),
+      author: {
+        '@type': 'Person',
+        name: route.creator?.username || 'Unknown',
+      },
+      dateCreated: route.created_at,
+      dateModified: route.updated_at,
+      breadcrumb: {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: window.location.origin,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Dive Sites',
+            item: `${window.location.origin}/dive-sites`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: diveSite ? diveSite.name : 'Dive Site',
+            item: diveSite ? `${window.location.origin}/dive-sites/${diveSite.id}` : undefined,
+          },
+          {
+            '@type': 'ListItem',
+            position: 4,
+            name: route.name,
+            item: window.location.href,
+          },
+        ],
+      },
+    };
+
+    if (diveSite) {
+      schema.about = {
+        '@type': 'Place',
+        name: diveSite.name,
+        geo: {
+          '@type': 'GeoCoordinates',
+          latitude: diveSite.latitude,
+          longitude: diveSite.longitude,
+        },
+      };
+    }
+
+    return schema;
+  };
 
   // Fetch route analytics
   const { data: analytics } = useQuery(
@@ -605,6 +683,18 @@ const RouteDetail = () => {
 
   return (
     <div className='min-h-screen bg-gray-50'>
+      {route && (
+        <SEO
+          title={`Route: ${route.name} - ${diveSite?.name || 'Dive Site'}`}
+          description={getMetaDescription()}
+          type='article'
+          siteName='Divemap'
+          author={route.creator?.username}
+          publishedTime={route.created_at}
+          modifiedTime={route.updated_at}
+          schema={getSchema()}
+        />
+      )}
       <div className='max-w-6xl mx-auto px-4 sm:px-6 py-6'>
         {/* Header */}
         <div className='bg-white rounded-lg shadow-md p-6 mb-6'>

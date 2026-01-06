@@ -5,9 +5,9 @@ import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 
 import { getParsedTrip, getDiveSite, getDivingCenter } from '../api';
 import MaskedEmail from '../components/MaskedEmail';
+import SEO from '../components/SEO';
 import TripHeader from '../components/TripHeader';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { renderTextWithLinks } from '../utils/textHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
 const TripDetail = () => {
@@ -44,10 +44,86 @@ const TripDetail = () => {
     }
   );
 
-  // Set dynamic page title
-  const tripName = trip ? generateTripName(trip) : 'Trip Details';
-  const pageTitle = `Divemap - Dive Trip - ${tripName}`;
-  usePageTitle(pageTitle, !tripLoading);
+  const getMetaDescription = () => {
+    if (!trip) return '';
+
+    const tripName = generateTripName(trip);
+    const date = new Date(trip.trip_date).toLocaleDateString();
+
+    let desc = `Join the ${tripName} dive trip on ${date}.`;
+
+    if (divingCenter) {
+      desc += ` Organized by ${divingCenter.name}.`;
+    }
+
+    if (trip.dives && trip.dives.length > 0) {
+      desc += ` Includes ${trip.dives.length} dives.`;
+    }
+
+    return desc;
+  };
+
+  const getSchema = () => {
+    if (!trip) return null;
+
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'SportsEvent',
+      name: generateTripName(trip),
+      startDate: trip.trip_date,
+      description: trip.trip_description || getMetaDescription(),
+      eventStatus: 'https://schema.org/EventScheduled',
+      breadcrumb: {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: window.location.origin,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Dive Trips',
+            item: `${window.location.origin}/dive-trips`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: generateTripName(trip),
+            item: window.location.href,
+          },
+        ],
+      },
+    };
+
+    if (divingCenter) {
+      schema.organizer = {
+        '@type': 'Organization',
+        name: divingCenter.name,
+        url: divingCenter.website,
+      };
+    }
+
+    if (trip.dives && trip.dives.length > 0) {
+      // If single location/site, use it. If multiple, maybe just pick first or generic
+      // Schema.org Event location is usually singular.
+      const firstLocation = trip.dives[0];
+      if (firstLocation.dive_site_name) {
+        schema.location = {
+          '@type': 'Place',
+          name: firstLocation.dive_site_name,
+          address: {
+            '@type': 'PostalAddress',
+            addressCountry: firstLocation.country, // Assuming these fields exist or we'd need to fetch
+          },
+        };
+      }
+    }
+
+    return schema;
+  };
 
   if (tripLoading) {
     return (
@@ -135,6 +211,15 @@ const TripDetail = () => {
   }
   return (
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      {trip && (
+        <SEO
+          title={`Dive Trip - ${generateTripName(trip)}`}
+          description={getMetaDescription()}
+          type='event'
+          siteName='Divemap'
+          schema={getSchema()}
+        />
+      )}
       <TripHeader trip={trip} />
       {/* Tab Navigation */}
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 mb-6'>
