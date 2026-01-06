@@ -34,6 +34,7 @@ import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { useSetting } from '../hooks/useSettings';
 import useSorting from '../hooks/useSorting';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
 
@@ -837,7 +838,7 @@ const DivingCenters = () => {
                             <p
                               className={`text-gray-700 line-clamp-2 ${compactLayout ? 'text-xs' : 'text-sm'}`}
                             >
-                              {center.description}
+                              {decodeHtmlEntities(center.description)}
                             </p>
                           )}
                         </div>
@@ -1057,7 +1058,7 @@ const DivingCenters = () => {
                               expandedDescriptions[center.id] ? '' : 'line-clamp-3'
                             } ${compactLayout ? 'text-sm' : 'text-base'}`}
                           >
-                            {center.description || 'No description available'}
+                            {decodeHtmlEntities(center.description) || 'No description available'}
                           </p>
                           {center.description && center.description.length > 180 && (
                             <button
