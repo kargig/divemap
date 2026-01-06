@@ -76,3 +76,10 @@ generate-llm-content:
 	@docker-compose exec -T backend python generate_llm_content.py --force
 	@echo "✅ LLM content generated in backend/llm_content/"
 
+# Run frontend linting and formatting, saving errors to a log file
+lint-frontend:
+	@echo "🧹 Running frontend format and lint:fix..."
+	@docker exec divemap_frontend npm run format > /dev/null 2>&1 || true
+	@docker exec divemap_frontend npm run lint:fix -- --quiet > frontend-lint-errors.log 2>&1 || true
+	@echo "✅ Linting complete. Check 'frontend-lint-errors.log' for any remaining errors."
+
