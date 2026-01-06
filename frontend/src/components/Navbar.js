@@ -1,5 +1,6 @@
+import { Dropdown, Drawer, Menu as AntMenu, ConfigProvider } from 'antd';
 import {
-  Menu,
+  Menu as MenuIcon,
   X,
   Home,
   MapPin,
@@ -31,7 +32,6 @@ import {
   Route,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -40,7 +40,6 @@ import { useResponsiveScroll } from '../hooks/useResponsive';
 import GlobalSearchBar from './GlobalSearchBar';
 import Logo from './Logo';
 import NotificationBell from './NotificationBell';
-import DropdownMenu from './ui/DropdownMenu';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -48,10 +47,6 @@ const Navbar = () => {
   const location = useLocation();
   const { isMobile, navbarVisible } = useResponsiveScroll();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showMobileDivingDropdown, setShowMobileDivingDropdown] = useState(false);
-  const [showMobileResourcesDropdown, setShowMobileResourcesDropdown] = useState(false);
-  const [showMobileInfoDropdown, setShowMobileInfoDropdown] = useState(false);
-  const [showMobileAdminDropdown, setShowMobileAdminDropdown] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -64,10 +59,6 @@ const Navbar = () => {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
-    setShowMobileDivingDropdown(false);
-    setShowMobileResourcesDropdown(false);
-    setShowMobileInfoDropdown(false);
-    setShowMobileAdminDropdown(false);
   };
 
   return (
@@ -177,252 +168,264 @@ const Navbar = () => {
               to='/'
               className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
             >
-              <Home className='h-5 w-5' />
-              <span>Home</span>
+              <Home className='h-6 w-6' />
+              <span className='text-sm'>Home</span>
             </Link>
 
             <Link
               to='/map'
               className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
             >
-              <MapPin className='h-5 w-5' />
-              <span>Map</span>
+              <MapPin className='h-6 w-6' />
+              <span className='text-sm'>Map</span>
             </Link>
 
-            <DropdownMenu
-              trigger={
-                <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
-                  <Compass className='h-5 w-5' />
-                  <span>Diving</span>
-                  <ChevronDown className='h-4 w-4' />
-                </button>
-              }
-              items={[
-                {
-                  type: 'item',
-                  label: 'Dive Log',
-                  icon: <Anchor className='h-4 w-4' />,
-                  onClick: () => navigate('/dives'),
-                },
-                {
-                  type: 'item',
-                  label: 'Dive Sites',
-                  icon: <Map className='h-4 w-4' />,
-                  onClick: () => navigate('/dive-sites'),
-                },
-                {
-                  type: 'item',
-                  label: 'Dive Routes',
-                  icon: <Route className='h-4 w-4' />,
-                  onClick: () => navigate('/dive-routes'),
-                },
-              ]}
-            />
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'dive-log',
+                    label: 'Dive Log',
+                    icon: <Anchor className='h-4 w-4' />,
+                    onClick: () => navigate('/dives'),
+                  },
+                  {
+                    key: 'dive-sites',
+                    label: 'Dive Sites',
+                    icon: <Map className='h-4 w-4' />,
+                    onClick: () => navigate('/dive-sites'),
+                  },
+                  {
+                    key: 'dive-routes',
+                    label: 'Dive Routes',
+                    icon: <Route className='h-4 w-4' />,
+                    onClick: () => navigate('/dive-routes'),
+                  },
+                ],
+              }}
+              trigger={['click']}
+              placement='bottomRight'
+            >
+              <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+                <Compass className='h-6 w-6' />
+                <span className='text-sm'>Diving</span>
+                <ChevronDown className='h-4 w-4' />
+              </button>
+            </Dropdown>
 
             <Link
               to='/diving-centers'
               className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
             >
-              <Building className='h-5 w-5' />
-              <span>Diving Centers</span>
+              <Building className='h-6 w-6' />
+              <span className='text-sm'>Diving Centers</span>
             </Link>
 
             <Link
               to='/dive-trips'
               className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
             >
-              <Calendar className='h-5 w-5' />
-              <span>Dive Trips</span>
+              <Calendar className='h-6 w-6' />
+              <span className='text-sm'>Dive Trips</span>
             </Link>
 
-            <DropdownMenu
-              trigger={
-                <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
-                  <Award className='h-5 w-5' />
-                  <span>Resources</span>
-                  <ChevronDown className='h-4 w-4' />
-                </button>
-              }
-              items={[
-                {
-                  type: 'item',
-                  label: 'Diving Organizations',
-                  icon: <Award className='h-4 w-4' />,
-                  onClick: () => navigate('/resources/diving-organizations'),
-                },
-                {
-                  type: 'item',
-                  label: 'Tools',
-                  icon: <Calculator className='h-4 w-4' />,
-                  onClick: () => navigate('/resources/tools'),
-                },
-                {
-                  type: 'item',
-                  label: 'Tags',
-                  icon: <Tags className='h-4 w-4' />,
-                  onClick: () => navigate('/resources/tags'),
-                },
-              ]}
-            />
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'diving-organizations',
+                    label: 'Diving Organizations',
+                    icon: <Award className='h-4 w-4' />,
+                    onClick: () => navigate('/resources/diving-organizations'),
+                  },
+                  {
+                    key: 'tools',
+                    label: 'Tools',
+                    icon: <Calculator className='h-4 w-4' />,
+                    onClick: () => navigate('/resources/tools'),
+                  },
+                  {
+                    key: 'tags',
+                    label: 'Tags',
+                    icon: <Tags className='h-4 w-4' />,
+                    onClick: () => navigate('/resources/tags'),
+                  },
+                ],
+              }}
+              trigger={['click']}
+              placement='bottomRight'
+            >
+              <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+                <Award className='h-6 w-6' />
+                <span className='text-sm'>Resources</span>
+                <ChevronDown className='h-4 w-4' />
+              </button>
+            </Dropdown>
 
-            <DropdownMenu
-              trigger={
-                <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
-                  <Info className='h-5 w-5' />
-                  <span>Info</span>
-                  <ChevronDown className='h-4 w-4' />
-                </button>
-              }
-              items={[
-                {
-                  type: 'item',
-                  label: 'About',
-                  icon: <Info className='h-4 w-4' />,
-                  onClick: () => navigate('/about'),
-                },
-                {
-                  type: 'item',
-                  label: 'API',
-                  icon: <Code className='h-4 w-4' />,
-                  onClick: () => navigate('/api-docs'),
-                },
-                {
-                  type: 'item',
-                  label: 'Changelog',
-                  icon: <FileText className='h-4 w-4' />,
-                  onClick: () => navigate('/changelog'),
-                },
-                {
-                  type: 'item',
-                  label: 'Help',
-                  icon: <HelpCircle className='h-4 w-4' />,
-                  onClick: () => navigate('/help'),
-                },
-                {
-                  type: 'item',
-                  label: 'Privacy',
-                  icon: <Shield className='h-4 w-4' />,
-                  onClick: () => navigate('/privacy'),
-                },
-              ]}
-            />
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'about',
+                    label: 'About',
+                    icon: <Info className='h-4 w-4' />,
+                    onClick: () => navigate('/about'),
+                  },
+                  {
+                    key: 'api-docs',
+                    label: 'API',
+                    icon: <Code className='h-4 w-4' />,
+                    onClick: () => navigate('/api-docs'),
+                  },
+                  {
+                    key: 'changelog',
+                    label: 'Changelog',
+                    icon: <FileText className='h-4 w-4' />,
+                    onClick: () => navigate('/changelog'),
+                  },
+                  {
+                    key: 'help',
+                    label: 'Help',
+                    icon: <HelpCircle className='h-4 w-4' />,
+                    onClick: () => navigate('/help'),
+                  },
+                  {
+                    key: 'privacy',
+                    label: 'Privacy',
+                    icon: <Shield className='h-4 w-4' />,
+                    onClick: () => navigate('/privacy'),
+                  },
+                ],
+              }}
+              trigger={['click']}
+              placement='bottomRight'
+            >
+              <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+                <Info className='h-6 w-6' />
+                <span className='text-sm'>Info</span>
+                <ChevronDown className='h-4 w-4' />
+              </button>
+            </Dropdown>
 
             {user ? (
               <div className='flex items-center space-x-4'>
                 <NotificationBell />
 
                 {user.is_admin && (
-                  <DropdownMenu
-                    trigger={
-                      <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
-                        <Settings className='h-5 w-5' />
-                        <span>Admin</span>
-                        <ChevronDown className='h-4 w-4' />
-                      </button>
-                    }
-                    items={[
-                      {
-                        type: 'item',
-                        label: 'Dashboard',
-                        icon: <Settings className='h-4 w-4' />,
-                        onClick: () => navigate('/admin'),
-                      },
-                      {
-                        type: 'item',
-                        label: 'Dives',
-                        icon: <Anchor className='h-4 w-4' />,
-                        onClick: () => navigate('/admin/dives'),
-                      },
-                      {
-                        type: 'item',
-                        label: 'Dive Sites',
-                        icon: <MapPin className='h-4 w-4' />,
-                        onClick: () => navigate('/admin/dive-sites'),
-                      },
-                      {
-                        type: 'item',
-                        label: 'Diving Centers',
-                        icon: <Building className='h-4 w-4' />,
-                        onClick: () => navigate('/admin/diving-centers'),
-                      },
-                      {
-                        type: 'item',
-                        label: 'Diving Organizations',
-                        icon: <Award className='h-4 w-4' />,
-                        onClick: () => navigate('/admin/diving-organizations'),
-                      },
-                      {
-                        type: 'item',
-                        label: 'Tags',
-                        icon: <Tags className='h-4 w-4' />,
-                        onClick: () => navigate('/admin/tags'),
-                      },
-                      {
-                        type: 'item',
-                        label: 'Newsletters',
-                        icon: <FileText className='h-4 w-4' />,
-                        onClick: () => navigate('/admin/newsletters'),
-                      },
-                      {
-                        type: 'item',
-                        label: 'Ownership Requests',
-                        icon: <Crown className='h-4 w-4' />,
-                        onClick: () => navigate('/admin/ownership-requests'),
-                      },
-                      {
-                        type: 'item',
-                        label: 'System Metrics',
-                        icon: <Activity className='h-4 w-4' />,
-                        onClick: () => navigate('/admin/system-metrics'),
-                      },
-                      {
-                        type: 'item',
-                        label: 'General Statistics',
-                        icon: <BarChart3 className='h-4 w-4' />,
-                        onClick: () => navigate('/admin/general-statistics'),
-                      },
-                      {
-                        type: 'item',
-                        label: 'Growth Visualizations',
-                        icon: <BarChart3 className='h-4 w-4' />,
-                        onClick: () => navigate('/admin/growth-visualizations'),
-                      },
-                      {
-                        type: 'item',
-                        label: 'Recent Activity',
-                        icon: <Clock className='h-4 w-4' />,
-                        onClick: () => navigate('/admin/recent-activity'),
-                      },
-                      {
-                        type: 'item',
-                        label: 'Users',
-                        icon: <Users className='h-4 w-4' />,
-                        onClick: () => navigate('/admin/users'),
-                      },
-                      {
-                        type: 'item',
-                        label: 'Notification Preferences',
-                        icon: <Bell className='h-4 w-4' />,
-                        onClick: () => navigate('/admin/notification-preferences'),
-                      },
-                    ]}
-                  />
+                  <Dropdown
+                    menu={{
+                      items: [
+                        {
+                          key: 'dashboard',
+                          label: 'Dashboard',
+                          icon: <Settings className='h-4 w-4' />,
+                          onClick: () => navigate('/admin'),
+                        },
+                        {
+                          key: 'dives',
+                          label: 'Dives',
+                          icon: <Anchor className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/dives'),
+                        },
+                        {
+                          key: 'dive-sites',
+                          label: 'Dive Sites',
+                          icon: <MapPin className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/dive-sites'),
+                        },
+                        {
+                          key: 'diving-centers',
+                          label: 'Diving Centers',
+                          icon: <Building className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/diving-centers'),
+                        },
+                        {
+                          key: 'diving-organizations',
+                          label: 'Diving Organizations',
+                          icon: <Award className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/diving-organizations'),
+                        },
+                        {
+                          key: 'tags',
+                          label: 'Tags',
+                          icon: <Tags className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/tags'),
+                        },
+                        {
+                          key: 'newsletters',
+                          label: 'Newsletters',
+                          icon: <FileText className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/newsletters'),
+                        },
+                        {
+                          key: 'ownership-requests',
+                          label: 'Ownership Requests',
+                          icon: <Crown className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/ownership-requests'),
+                        },
+                        {
+                          key: 'system-metrics',
+                          label: 'System Metrics',
+                          icon: <Activity className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/system-metrics'),
+                        },
+                        {
+                          key: 'general-statistics',
+                          label: 'General Statistics',
+                          icon: <BarChart3 className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/general-statistics'),
+                        },
+                        {
+                          key: 'growth-visualizations',
+                          label: 'Growth Visualizations',
+                          icon: <BarChart3 className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/growth-visualizations'),
+                        },
+                        {
+                          key: 'recent-activity',
+                          label: 'Recent Activity',
+                          icon: <Clock className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/recent-activity'),
+                        },
+                        {
+                          key: 'users',
+                          label: 'Users',
+                          icon: <Users className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/users'),
+                        },
+                        {
+                          key: 'notification-preferences',
+                          label: 'Notification Preferences',
+                          icon: <Bell className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/notification-preferences'),
+                        },
+                      ],
+                    }}
+                    trigger={['click']}
+                    placement='bottomRight'
+                  >
+                    <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+                      <Settings className='h-6 w-6' />
+                      <span className='text-sm'>Admin</span>
+                      <ChevronDown className='h-4 w-4' />
+                    </button>
+                  </Dropdown>
                 )}
 
                 <Link
                   to='/profile'
                   className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
                 >
-                  <User className='h-5 w-5' />
-                  <span>{user.username}</span>
+                  <User className='h-6 w-6' />
+                  <span className='text-sm'>{user.username}</span>
                 </Link>
 
                 <button
                   onClick={handleLogout}
                   className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
                 >
-                  <LogOut className='h-5 w-5' />
-                  <span>Logout</span>
+                  <LogOut className='h-6 w-6' />
+                  <span className='text-sm'>Logout</span>
                 </button>
               </div>
             ) : (
@@ -444,435 +447,309 @@ const Navbar = () => {
           </div>
 
           {/* Mobile menu button */}
-          <div className='md:hidden'>
+          <div className='md:hidden flex items-center gap-4'>
+            {user && <NotificationBell />}
             <button
               onClick={toggleMobileMenu}
               className='text-white hover:text-blue-200 transition-colors'
               aria-label={isMobileMenuOpen ? 'Close mobile menu' : 'Open mobile menu'}
             >
-              {isMobileMenuOpen ? <X className='h-6 w-6' /> : <Menu className='h-6 w-6' />}
+              {isMobileMenuOpen ? <X className='h-6 w-6' /> : <MenuIcon className='h-6 w-6' />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation Menu Overlay - Rendered via Portal */}
-        {isMobileMenuOpen &&
-          createPortal(
-            <>
-              {/* Backdrop */}
-              <div
-                className='fixed inset-0 bg-black bg-opacity-50'
-                style={{ zIndex: 99998 }}
-                onClick={closeMobileMenu}
-              />
-
-              {/* Mobile Menu */}
-              <div
-                className='fixed top-0 left-0 right-0 bg-blue-700 max-h-screen overflow-y-auto'
-                style={{
-                  zIndex: 99999,
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  backgroundColor: '#1e40af',
-                  maxHeight: '100vh',
-                  overflowY: 'auto',
-                }}
-              >
-                <div className='px-2 pt-2 pb-3 space-y-1 mobile-menu-container'>
-                  {/* Mobile Search Bar with Close Button */}
-                  <div className='px-2 mb-3 flex items-center gap-2 relative'>
-                    <GlobalSearchBar
-                      className='flex-1'
-                      inputClassName='bg-white text-gray-900'
-                      placeholder='Search dives, sites, centers...'
-                      popoverClassName='z-[100000]'
-                    />
-                    <button
-                      onClick={closeMobileMenu}
-                      className='flex items-center justify-center w-11 h-11 text-white hover:text-blue-200 hover:bg-blue-800 rounded-lg transition-colors flex-shrink-0 bg-blue-600 border-2 border-white/50 shadow-xl relative'
-                      aria-label='Close menu'
-                      title='Close menu'
-                      style={{ zIndex: 100 }}
-                    >
-                      <X className='h-7 w-7 stroke-[3]' stroke='white' fill='none' />
-                    </button>
-                  </div>
-
-                  <Link
-                    to='/'
-                    className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                    onClick={closeMobileMenu}
-                  >
-                    <Home className='h-5 w-5 mr-3' />
-                    <span>Home</span>
-                  </Link>
-
-                  <Link
-                    to='/map'
-                    className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                    onClick={closeMobileMenu}
-                  >
-                    <MapPin className='h-5 w-5 mr-3' />
-                    <span>Map</span>
-                  </Link>
-
-                  <div className='px-3 py-2'>
-                    <button
-                      onClick={() => setShowMobileDivingDropdown(!showMobileDivingDropdown)}
-                      className='flex items-center justify-between w-full px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                    >
-                      <div className='flex items-center'>
-                        <Compass className='h-5 w-5 mr-3' />
-                        <span>Diving</span>
-                      </div>
-                      <ChevronDown
-                        className={`h-4 w-4 transition-transform duration-200 ${
-                          showMobileDivingDropdown ? 'rotate-180' : ''
-                        }`}
-                      />
-                    </button>
-
-                    {showMobileDivingDropdown && (
-                      <div className='ml-7 mt-1 space-y-1'>
-                        <Link
-                          to='/dives'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Anchor className='h-4 w-4 mr-3' />
-                          <span>Dive Log</span>
-                        </Link>
-                        <Link
-                          to='/dive-sites'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Map className='h-4 w-4 mr-3' />
-                          <span>Dive Sites</span>
-                        </Link>
-                        <Link
-                          to='/dive-routes'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Route className='h-4 w-4 mr-3' />
-                          <span>Dive Routes</span>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-
-                  <Link
-                    to='/diving-centers'
-                    className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                    onClick={closeMobileMenu}
-                  >
-                    <Building className='h-5 w-5 mr-3' />
-                    <span>Diving Centers</span>
-                  </Link>
-
-                  <Link
-                    to='/dive-trips'
-                    className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                    onClick={closeMobileMenu}
-                  >
-                    <Calendar className='h-5 w-5 mr-3' />
-                    <span>Dive Trips</span>
-                  </Link>
-
-                  <div className='px-3 py-2'>
-                    <button
-                      onClick={() => setShowMobileResourcesDropdown(!showMobileResourcesDropdown)}
-                      className='flex items-center justify-between w-full px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                    >
-                      <div className='flex items-center'>
-                        <Award className='h-4 w-4 mr-3' />
-                        <span>Resources</span>
-                      </div>
-                      <ChevronDown
-                        className={`h-4 w-4 transition-transform duration-200 ${
-                          showMobileResourcesDropdown ? 'rotate-180' : ''
-                        }`}
-                      />
-                    </button>
-
-                    {showMobileResourcesDropdown && (
-                      <div className='ml-7 mt-1 space-y-1'>
-                        <Link
-                          to='/resources/diving-organizations'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Award className='h-4 w-4 mr-3' />
-                          <span>Diving Organizations</span>
-                        </Link>
-                        <Link
-                          to='/resources/tools'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Calculator className='h-4 w-4 mr-3' />
-                          <span>Tools</span>
-                        </Link>
-                        <Link
-                          to='/resources/tags'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Tags className='h-4 w-4 mr-3' />
-                          <span>Tags</span>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className='px-3 py-2'>
-                    <button
-                      onClick={() => setShowMobileInfoDropdown(!showMobileInfoDropdown)}
-                      className='flex items-center justify-between w-full px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                    >
-                      <div className='flex items-center'>
-                        <Info className='h-4 w-4 mr-3' />
-                        <span>Info</span>
-                      </div>
-                      <ChevronDown
-                        className={`h-4 w-4 transition-transform duration-200 ${
-                          showMobileInfoDropdown ? 'rotate-180' : ''
-                        }`}
-                      />
-                    </button>
-
-                    {showMobileInfoDropdown && (
-                      <div className='ml-7 mt-1 space-y-1'>
-                        <Link
-                          to='/about'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Info className='h-4 w-4 mr-3' />
-                          <span>About</span>
-                        </Link>
-                        <Link
-                          to='/api-docs'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Code className='h-4 w-4 mr-3' />
-                          <span>API</span>
-                        </Link>
-                        <Link
-                          to='/changelog'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <FileText className='h-4 w-4 mr-3' />
-                          <span>Changelog</span>
-                        </Link>
-                        <Link
-                          to='/help'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <HelpCircle className='h-4 w-4 mr-3' />
-                          <span>Help</span>
-                        </Link>
-                        <Link
-                          to='/privacy'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <Shield className='h-4 w-4 mr-3' />
-                          <span>Privacy</span>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-
-                  {user ? (
-                    <>
-                      <div className='border-t border-blue-500 pt-2 mt-2'>
-                        <Link
-                          to='/profile'
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                          onClick={closeMobileMenu}
-                        >
-                          <User className='h-5 w-5 mr-3' />
-                          <span>{user.username}</span>
-                        </Link>
-
-                        {user.is_admin && (
-                          <div className='px-3 py-2'>
-                            <button
-                              onClick={() => setShowMobileAdminDropdown(!showMobileAdminDropdown)}
-                              className='flex items-center justify-between w-full px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                            >
-                              <div className='flex items-center'>
-                                <Settings className='h-4 w-4 mr-3' />
-                                <span>Admin</span>
-                              </div>
-                              <ChevronDown
-                                className={`h-4 w-4 transition-transform duration-200 ${
-                                  showMobileAdminDropdown ? 'rotate-180' : ''
-                                }`}
-                              />
-                            </button>
-
-                            {showMobileAdminDropdown && (
-                              <div className='ml-7 mt-1 space-y-1'>
-                                <Link
-                                  to='/admin'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <Settings className='h-4 w-4 mr-3' />
-                                  <span>Dashboard</span>
-                                </Link>
-                                <Link
-                                  to='/admin/dives'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <Anchor className='h-4 w-4 mr-3' />
-                                  <span>Dives</span>
-                                </Link>
-                                <Link
-                                  to='/admin/dive-sites'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <MapPin className='h-4 w-4 mr-3' />
-                                  <span>Dive Sites</span>
-                                </Link>
-                                <Link
-                                  to='/admin/diving-centers'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <Building className='h-4 w-4 mr-3' />
-                                  <span>Diving Centers</span>
-                                </Link>
-                                <Link
-                                  to='/admin/diving-organizations'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <Award className='h-4 w-4 mr-3' />
-                                  <span>Diving Organizations</span>
-                                </Link>
-                                <Link
-                                  to='/admin/tags'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <Tags className='h-4 w-4 mr-3' />
-                                  <span>Tags</span>
-                                </Link>
-                                <Link
-                                  to='/admin/newsletters'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <FileText className='h-4 w-4 mr-3' />
-                                  <span>Newsletter Management</span>
-                                </Link>
-                                <Link
-                                  to='/admin/ownership-requests'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <Crown className='h-4 w-4 mr-3' />
-                                  <span>Ownership Requests</span>
-                                </Link>
-                                <Link
-                                  to='/admin/system-metrics'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <Activity className='h-4 w-4 mr-3' />
-                                  <span>System Metrics</span>
-                                </Link>
-                                <Link
-                                  to='/admin/general-statistics'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <BarChart3 className='h-4 w-4 mr-3' />
-                                  <span>General Statistics</span>
-                                </Link>
-                                <Link
-                                  to='/admin/growth-visualizations'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <BarChart3 className='h-4 w-4 mr-3' />
-                                  <span>Growth Visualizations</span>
-                                </Link>
-                                <Link
-                                  to='/admin/recent-activity'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <Clock className='h-4 w-4 mr-3' />
-                                  <span>Recent Activity</span>
-                                </Link>
-                                <Link
-                                  to='/admin/users'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <Users className='h-4 w-4 mr-3' />
-                                  <span>Users</span>
-                                </Link>
-                                <Link
-                                  to='/admin/notification-preferences'
-                                  className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                                  onClick={closeMobileMenu}
-                                >
-                                  <Bell className='h-4 w-4 mr-3' />
-                                  <span>Notification Preferences</span>
-                                </Link>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        <button
-                          onClick={() => {
-                            handleLogout();
-                            closeMobileMenu();
-                          }}
-                          className='flex items-center px-3 py-2 text-white hover:text-blue-200 transition-colors w-full'
-                        >
-                          <LogOut className='h-5 w-5 mr-3' />
-                          <span>Logout</span>
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className='border-t border-blue-500 pt-2 mt-2 space-y-2'>
-                      <Link
-                        to='/login'
-                        className='block px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                        onClick={closeMobileMenu}
-                      >
-                        Login
-                      </Link>
-                      <Link
-                        to='/register'
-                        className='block px-3 py-2 text-white hover:text-blue-200 transition-colors'
-                        onClick={closeMobileMenu}
-                      >
-                        Register
-                      </Link>
-                    </div>
-                  )}
-                </div>
+        {/* Mobile Navigation Drawer */}
+        <ConfigProvider
+          theme={{
+            components: {
+              Drawer: {
+                colorBgElevated: '#1e40af', // blue-700
+                colorText: 'white',
+              },
+              Menu: {
+                colorItemBg: '#1e40af',
+                colorItemText: 'white',
+                colorItemTextHover: '#bfdbfe', // blue-200
+                colorItemBgHover: '#1e3a8a', // darker blue
+                colorItemTextSelected: 'white',
+                colorItemBgSelected: '#1e3a8a',
+                colorSubItemBg: '#172554', // blue-950
+              },
+            },
+          }}
+        >
+          <Drawer
+            title={
+              <div className='flex items-center gap-2'>
+                <Logo size='small' showText={true} textOnly={false} textClassName='text-white' />
               </div>
-            </>,
-            document.body
-          )}
+            }
+            placement='right'
+            onClose={closeMobileMenu}
+            open={isMobileMenuOpen}
+            closable={false}
+            extra={
+              <button
+                onClick={closeMobileMenu}
+                className='text-white hover:text-blue-200 transition-colors p-1'
+                aria-label='Close menu'
+              >
+                <X className='h-6 w-6' />
+              </button>
+            }
+            width='85%'
+            styles={{
+              header: { borderBottom: '1px solid rgba(255,255,255,0.1)' },
+              body: { padding: 0 },
+              mask: { backgroundColor: 'rgba(0, 0, 0, 0.5)' },
+            }}
+          >
+            <div className='flex flex-col h-full'>
+              <div className='p-4 border-b border-white/10'>
+                <GlobalSearchBar
+                  className='w-full'
+                  inputClassName='bg-white text-gray-900'
+                  placeholder='Search dives, sites, centers...'
+                  popoverClassName='z-[100000]'
+                />
+              </div>
+
+              <div className='flex-1 overflow-y-auto'>
+                <AntMenu
+                  mode='inline'
+                  onClick={({ key }) => {
+                    if (key) {
+                      navigate(key);
+                      closeMobileMenu();
+                    }
+                  }}
+                  items={[
+                    {
+                      key: '/',
+                      icon: <Home className='h-5 w-5' />,
+                      label: 'Home',
+                    },
+                    {
+                      key: '/map',
+                      icon: <MapPin className='h-5 w-5' />,
+                      label: 'Map',
+                    },
+                    {
+                      key: 'sub-diving',
+                      icon: <Compass className='h-5 w-5' />,
+                      label: 'Diving',
+                      children: [
+                        {
+                          key: '/dives',
+                          icon: <Anchor className='h-4 w-4' />,
+                          label: 'Dive Log',
+                        },
+                        {
+                          key: '/dive-sites',
+                          icon: <Map className='h-4 w-4' />,
+                          label: 'Dive Sites',
+                        },
+                        {
+                          key: '/dive-routes',
+                          icon: <Route className='h-4 w-4' />,
+                          label: 'Dive Routes',
+                        },
+                      ],
+                    },
+                    {
+                      key: '/diving-centers',
+                      icon: <Building className='h-5 w-5' />,
+                      label: 'Diving Centers',
+                    },
+                    {
+                      key: '/dive-trips',
+                      icon: <Calendar className='h-5 w-5' />,
+                      label: 'Dive Trips',
+                    },
+                    {
+                      key: 'sub-resources',
+                      icon: <Award className='h-5 w-5' />,
+                      label: 'Resources',
+                      children: [
+                        {
+                          key: '/resources/diving-organizations',
+                          icon: <Award className='h-4 w-4' />,
+                          label: 'Diving Organizations',
+                        },
+                        {
+                          key: '/resources/tools',
+                          icon: <Calculator className='h-4 w-4' />,
+                          label: 'Tools',
+                        },
+                        {
+                          key: '/resources/tags',
+                          icon: <Tags className='h-4 w-4' />,
+                          label: 'Tags',
+                        },
+                      ],
+                    },
+                    {
+                      key: 'sub-info',
+                      icon: <Info className='h-5 w-5' />,
+                      label: 'Info',
+                      children: [
+                        {
+                          key: '/about',
+                          icon: <Info className='h-4 w-4' />,
+                          label: 'About',
+                        },
+                        {
+                          key: '/api-docs',
+                          icon: <Code className='h-4 w-4' />,
+                          label: 'API',
+                        },
+                        {
+                          key: '/changelog',
+                          icon: <FileText className='h-4 w-4' />,
+                          label: 'Changelog',
+                        },
+                        {
+                          key: '/help',
+                          icon: <HelpCircle className='h-4 w-4' />,
+                          label: 'Help',
+                        },
+                        {
+                          key: '/privacy',
+                          icon: <Shield className='h-4 w-4' />,
+                          label: 'Privacy',
+                        },
+                      ],
+                    },
+                    ...(user
+                      ? [
+                          {
+                            type: 'divider',
+                            style: { borderColor: 'rgba(255,255,255,0.1)' },
+                          },
+                          {
+                            key: '/profile',
+                            icon: <User className='h-5 w-5' />,
+                            label: user.username,
+                          },
+                          ...(user.is_admin
+                            ? [
+                                {
+                                  key: 'sub-admin',
+                                  icon: <Settings className='h-5 w-5' />,
+                                  label: 'Admin',
+                                  children: [
+                                    {
+                                      key: '/admin',
+                                      icon: <Settings className='h-4 w-4' />,
+                                      label: 'Dashboard',
+                                    },
+                                    {
+                                      key: '/admin/dives',
+                                      icon: <Anchor className='h-4 w-4' />,
+                                      label: 'Dives',
+                                    },
+                                    {
+                                      key: '/admin/dive-sites',
+                                      icon: <MapPin className='h-4 w-4' />,
+                                      label: 'Dive Sites',
+                                    },
+                                    {
+                                      key: '/admin/diving-centers',
+                                      icon: <Building className='h-4 w-4' />,
+                                      label: 'Diving Centers',
+                                    },
+                                    {
+                                      key: '/admin/diving-organizations',
+                                      icon: <Award className='h-4 w-4' />,
+                                      label: 'Diving Organizations',
+                                    },
+                                    {
+                                      key: '/admin/tags',
+                                      icon: <Tags className='h-4 w-4' />,
+                                      label: 'Tags',
+                                    },
+                                    {
+                                      key: '/admin/newsletters',
+                                      icon: <FileText className='h-4 w-4' />,
+                                      label: 'Newsletters',
+                                    },
+                                    {
+                                      key: '/admin/ownership-requests',
+                                      icon: <Crown className='h-4 w-4' />,
+                                      label: 'Ownership Requests',
+                                    },
+                                    {
+                                      key: '/admin/system-metrics',
+                                      icon: <Activity className='h-4 w-4' />,
+                                      label: 'System Metrics',
+                                    },
+                                    {
+                                      key: '/admin/general-statistics',
+                                      icon: <BarChart3 className='h-4 w-4' />,
+                                      label: 'General Statistics',
+                                    },
+                                    {
+                                      key: '/admin/growth-visualizations',
+                                      icon: <BarChart3 className='h-4 w-4' />,
+                                      label: 'Growth Visualizations',
+                                    },
+                                    {
+                                      key: '/admin/recent-activity',
+                                      icon: <Clock className='h-4 w-4' />,
+                                      label: 'Recent Activity',
+                                    },
+                                    {
+                                      key: '/admin/users',
+                                      icon: <Users className='h-4 w-4' />,
+                                      label: 'Users',
+                                    },
+                                    {
+                                      key: '/admin/notification-preferences',
+                                      icon: <Bell className='h-4 w-4' />,
+                                      label: 'Notification Preferences',
+                                    },
+                                  ],
+                                },
+                              ]
+                            : []),
+                        ]
+                      : [
+                          {
+                            type: 'divider',
+                            style: { borderColor: 'rgba(255,255,255,0.1)' },
+                          },
+                          {
+                            key: '/login',
+                            label: 'Login',
+                            className: 'font-bold',
+                          },
+                          {
+                            key: '/register',
+                            label: 'Register',
+                          },
+                        ]),
+                  ]}
+                />
+              </div>
+
+              {user && (
+                <div className='p-4 border-t border-white/10'>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      closeMobileMenu();
+                    }}
+                    className='flex items-center w-full px-4 py-2 text-white hover:bg-blue-800 rounded-md transition-colors'
+                  >
+                    <LogOut className='h-5 w-5 mr-3' />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </Drawer>
+        </ConfigProvider>
       </div>
     </nav>
   );
