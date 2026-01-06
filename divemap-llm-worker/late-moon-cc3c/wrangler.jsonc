@@ -1,0 +1,37 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "divemap-llm-worker",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-01-01",
+	"observability": {
+		"enabled": true
+	},
+	"r2_buckets": [
+		{
+			"binding": "LLM_CONTENT",
+			"bucket_name": "divemap-prod"
+		}
+	],
+	"routes": [
+		{
+			"pattern": "divemap.gr/llms.txt",
+			"zone_name": "divemap.gr"
+		},
+		{
+			"pattern": "divemap.gr/dive-sites.md",
+			"zone_name": "divemap.gr"
+		},
+		{
+			"pattern": "divemap.gr/dive-routes.md",
+			"zone_name": "divemap.gr"
+		},
+		{
+			"pattern": "divemap.gr/diving-centers.md",
+			"zone_name": "divemap.gr"
+		},
+		{
+			"pattern": "divemap.gr/dives.md",
+			"zone_name": "divemap.gr"
+		}
+	]
+}
