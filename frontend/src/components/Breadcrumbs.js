@@ -6,24 +6,21 @@ const Breadcrumbs = ({ items }) => {
   if (!items || items.length === 0) return null;
 
   return (
-    <nav className='flex mb-4 text-sm text-gray-500 overflow-x-auto whitespace-nowrap pb-2 md:pb-0'>
-      <Link
-        to='/'
-        className='flex items-center hover:text-blue-600 transition-colors flex-shrink-0'
-      >
-        <Home className='h-4 w-4 mr-1' />
-        Home
+    <nav className='flex flex-wrap items-center mb-4 text-sm text-gray-500 gap-y-2'>
+      <Link to='/' className='flex items-center hover:text-blue-600 transition-colors'>
+        <Home className='h-3.5 w-3.5 mr-1' />
+        <span className='leading-tight mt-1'>Home</span>
       </Link>
 
       {items.map((item, index) => (
-        <div key={index} className='flex items-center flex-shrink-0'>
-          <ChevronRight className='h-4 w-4 mx-2 text-gray-400' />
+        <div key={index} className='flex items-center'>
+          <ChevronRight className='h-3.5 w-3.5 mx-2 text-gray-400 flex-shrink-0' />
           {item.to ? (
-            <Link to={item.to} className='hover:text-blue-600 transition-colors'>
-              {item.label}
+            <Link to={item.to} className='hover:text-blue-600 transition-colors flex items-center'>
+              <span className='leading-tight mt-1'>{item.label}</span>
             </Link>
           ) : (
-            <span className='font-medium text-gray-900'>{item.label}</span>
+            <span className='font-medium text-gray-900 leading-tight mt-1'>{item.label}</span>
           )}
         </div>
       ))}
