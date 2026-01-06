@@ -1,40 +1,43 @@
 import { ChevronRight, Home } from 'lucide-react';
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import PropTypes from 'prop-types';
+import { Link } from 'react-router-dom';
 
-/**
- * Breadcrumbs Component
- *
- * Provides hierarchical navigation links for better context.
- */
-const Breadcrumbs = ({ items = [] }) => {
+const Breadcrumbs = ({ items }) => {
+  if (!items || items.length === 0) return null;
+
   return (
-    <nav className='flex mb-6 overflow-x-auto whitespace-nowrap' aria-label='Breadcrumb'>
-      <ol className='flex items-center space-x-2 text-sm font-medium text-gray-500'>
-        <li className='flex items-center'>
-          <Link to='/' className='hover:text-blue-600 transition-colors flex items-center gap-1'>
-            <Home className='w-4 h-4' />
-            <span className='sr-only'>Home</span>
-          </Link>
-        </li>
+    <nav className='flex mb-4 text-sm text-gray-500 overflow-x-auto whitespace-nowrap pb-2 md:pb-0'>
+      <Link
+        to='/'
+        className='flex items-center hover:text-blue-600 transition-colors flex-shrink-0'
+      >
+        <Home className='h-4 w-4 mr-1' />
+        Home
+      </Link>
 
-        {items.map((item, index) => (
-          <li key={index} className='flex items-center'>
-            <ChevronRight className='w-4 h-4 text-gray-400 mx-1 flex-shrink-0' />
-            {item.to ? (
-              <Link to={item.to} className='hover:text-blue-600 transition-colors'>
-                {item.label}
-              </Link>
-            ) : (
-              <span className='text-gray-900 font-bold' aria-current='page'>
-                {item.label}
-              </span>
-            )}
-          </li>
-        ))}
-      </ol>
+      {items.map((item, index) => (
+        <div key={index} className='flex items-center flex-shrink-0'>
+          <ChevronRight className='h-4 w-4 mx-2 text-gray-400' />
+          {item.to ? (
+            <Link to={item.to} className='hover:text-blue-600 transition-colors'>
+              {item.label}
+            </Link>
+          ) : (
+            <span className='font-medium text-gray-900'>{item.label}</span>
+          )}
+        </div>
+      ))}
     </nav>
   );
+};
+
+Breadcrumbs.propTypes = {
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.string.isRequired,
+      to: PropTypes.string,
+    })
+  ).isRequired,
 };
 
 export default Breadcrumbs;

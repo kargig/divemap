@@ -3,146 +3,61 @@
 This document outlines a strategic plan to improve the Search Engine Optimization (SEO) of the Divemap platform. Currently, the application is a Client-Side Rendered (CSR) React app with limited metadata and no automated discovery mechanisms for search engines.
 
 ## Current State Analysis
-- **Framework:** React (Vite) with `react-helmet-async` installed but underutilized.
-- **Metadata:** Only `document.title` is dynamically updated via a custom hook (`usePageTitle`).
-- **Sitemap:** Missing.
-- **Social Sharing:** No Open Graph (OG) or Twitter Card tags are present.
-- **Structured Data:** No JSON-LD or Schema.org implementation.
-- **Discovery:** `robots.txt` exists but does not point to a sitemap.
+- **Framework:** React (Vite) with `react-helmet-async` installed.
+- **Metadata:** `SEO` component implemented for key pages.
+- **Sitemap:** `sitemap.xml` generation implemented via backend script and served via R2/Nginx.
+- **Social Sharing:** Open Graph and Twitter Cards implemented.
+- **Structured Data:** JSON-LD implemented for Dive Sites, Centers, Routes, Trips.
+- **Discovery:** `robots.txt` points to `sitemap.xml`.
 
 ---
 
-## Proposal 1: Static Sitemap Generation (Critical)
+## Proposal 1: Static Sitemap Generation (Completed)
 
-**Priority:** Critical | **Effort:** Low | **Location:** Backend (Python Script) & Cloudflare Worker
+**Priority:** Critical | **Status:** Done
 
-Instead of a dynamic endpoint (which hits the DB on every request), we will reuse and rename the "LLM Content" generation pattern to a more general "Static Content" generator. This is more performant and leverages your existing R2 integration.
-
-### Implementation Details:
-1. **Modify `backend/generate_static_content.py` (formerly `generate_llm_content.py`):**
-   - Add logic to generate a compliant `sitemap.xml` string.
-   - Include all public Dive Sites, Diving Centers, and static routes.
-   - Save it locally to `backend/llm_content/sitemap.xml`.
-   - Upload it to R2 (bucket: `divemap-content`, key: `sitemap.xml`) using the existing `upload_to_r2` function.
-
-2. **Serving Strategy (Hybrid):**
-   - **Cloudflare Worker Enhancement:** Update `divemap-llm-worker` to intercept requests for `/sitemap.xml` and serve them directly from R2. This completely offloads SEO traffic from the backend.
-   - **Nginx Fallback:** Maintain the proxy in `nginx/prod.conf` as a fallback for local development or if the worker fails.
-
-3. **Automation:**
-   - Ensure `generate_static_content.py` runs on a schedule (e.g., daily cron) or is triggered by a "Publish" event in the Admin UI.
-
-### Impact:
-- **Performance:** Zero database load for search engine crawlers.
-- **Reliability:** Sitemap is always available, even if the DB is under load.
-- **Consistency:** Follows the exact same architectural pattern as your `llms.txt` and `dive-sites.md` files.
+Reuse and rename the "LLM Content" generation pattern to a more general "Static Content" generator.
+- Implemented `backend/generate_static_content.py` to generate `sitemap.xml`.
+- Configured Nginx and Cloudflare Worker to serve it.
 
 ---
 
-## Proposal 2: Comprehensive Metadata & Social Tags (Critical)
+## Proposal 2: Comprehensive Metadata & Social Tags (Completed)
 
-**Priority:** Critical | **Effort:** Medium | **Location:** Frontend (React)
+**Priority:** Critical | **Status:** Done
 
-When a user shares a dive site on Facebook or Twitter, it currently looks like a generic link. Metadata is also the primary source for search result snippets.
-
-### Implementation Details:
-1. Create a centralized `SEO` component using `react-helmet-async`.
-2. Replace the current `usePageTitle` hook with this component.
-3. **Supported Meta Tags (Comprehensive):**
-   - **Standard:** `title`, `description`, `canonical`, `robots`.
-   - **Open Graph:** `og:site_name` ("Divemap"), `og:locale` ("en_US"), `og:type`, `og:title`, `og:description`, `og:url`, `og:image`, `og:image:width`, `og:image:height`.
-   - **Twitter:** `twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`.
-   - **Article (for content):** `article:published_time`, `article:modified_time`, `article:author`.
-4. **In Detail Pages:**
-   - **Dive Sites:** `Divemap - [Name] - [Region]` | Desc: "[Name], [Difficulty] site in [Country]..."
-   - **Diving Centers:** `[Center Name] - [City]` | Desc: "Dive center in [City] offering..."
-   - **Dive Routes:** `Route: [Route Name] at [Site Name]` | Desc: "Underwater navigation map for [Route Name]..."
-   - **Public Dives:** `Dive Log: [Site Name] by [User]` | Desc: "Dive log from [Date]. Max depth: [Depth]m..."
-   - **Dive Trips:** `Dive Trip: [Trip Name] - [Date]` | Desc: "Join the [Trip Name] at [Site Name] on [Date]. Organized by..."
+- Created `SEO` component using `react-helmet-async`.
+- Integrated into `DiveDetail`, `DiveSiteDetail`, `DivingCenterDetail`, `RouteDetail`, `TripDetail`.
+- Supported tags: Title, Description, Canonical, OG (Facebook), Twitter Cards.
 
 ---
 
-## Proposal 3: JSON-LD Structured Data (High)
+## Proposal 3: JSON-LD Structured Data (Completed)
 
-**Priority:** High | **Effort:** Medium | **Location:** Frontend (React)
+**Priority:** High | **Status:** Done
 
-Structured data helps search engines understand the *intent* of a page, enabling rich snippets like star ratings and location maps in search results.
-
-### Implementation Details:
-1. **Dive Sites (`/dive-sites/:id`):**
-   - Use **`Schema.org/TouristAttraction`** (for popular sites) or **`Schema.org/Place`** combined with **`BodyOfWater`**.
-   - **Key Properties:**
-     - `@type`: `["Place", "BodyOfWater", "TouristAttraction"]`
-     - `name`: Site Name
-     - `geo`: `{ "@type": "GeoCoordinates", "latitude": "...", "longitude": "..." }`
-     - `aggregateRating`: `{ "@type": "AggregateRating", "ratingValue": "...", "reviewCount": "..." }`
-     - `description`: Short description.
-     - `containsPlace`: If it contains sub-sites or routes.
-   - **Breadcrumbs:** Include a `BreadcrumbList` schema linking `Home > Dive Sites > [Region] > [Country] > [Site Name]`.
-
-2. **Diving Centers (`/diving-centers/:id`):**
-   - Use **`Schema.org/SportsActivityLocation`** or **`Schema.org/LocalBusiness`**. (Note: `DiveShop` does not exist).
-   - **Key Properties:**
-     - `@type`: `["SportsActivityLocation", "LocalBusiness"]`
-     - `priceRange`: `$$`
-     - `address`: Full postal address.
-     - `telephone`: Contact number.
-     - `geo`: Coordinates.
-   - **Breadcrumbs:** Include a `BreadcrumbList` schema linking `Home > Diving Centers > [City] > [Name]`.
-
-3. **Dive Routes (`/dive-sites/:id/route/:routeId`):**
-   - Use **`Schema.org/CreativeWork`** (as a Map/Guide).
-   - **Key Properties:**
-     - `@type`: `["CreativeWork", "Guide"]`
-     - `about`: Link to the *Dive Site* entity.
-     - `name`: Route Name.
-     - `description`: Navigation instructions.
-
-4. **Public Dives (`/dives/:id`):**
-   - Use **`Schema.org/Review`** (if it contains a rating) or **`Schema.org/CreativeWork`** (Log).
-   - **Key Properties:**
-     - `@type`: `Review`
-     - `itemReviewed`: Link to the *Dive Site* entity.
-     - `reviewRating`: `{ "@type": "Rating", "ratingValue": "..." }`
-     - `author`: `{ "@type": "Person", "name": "..." }`
-     - `datePublished`: Dive Date.
-
-5. **Dive Trips (`/dive-trips/:id`):**
-   - Use **`Schema.org/SportsEvent`**.
-   - **Key Properties:**
-     - `name`: Trip Name
-     - `startDate` / `endDate`
-     - `location`: The Dive Site or Center.
-   - **Breadcrumbs:** Include a `BreadcrumbList` schema linking `Home > Dive Trips > [Name]`.
+- **Dive Sites:** `Schema.org/Place`, `BodyOfWater`.
+- **Diving Centers:** `Schema.org/SportsActivityLocation`, `LocalBusiness`.
+- **Dive Routes:** `Schema.org/CreativeWork` (Map).
+- **Public Dives:** `Schema.org/Review`.
+- **Dive Trips:** `Schema.org/SportsEvent`.
 
 ---
 
-## Proposal 4: Canonical URLs (High)
+## Proposal 4: Canonical URLs (Completed)
 
-**Priority:** High | **Effort:** Low | **Location:** Frontend (React)
+**Priority:** High | **Status:** Done
 
-Prevent duplicate content penalties caused by tracking parameters or multiple URL patterns (e.g., `/map?type=dive-sites` vs `/dive-sites`).
-
-### Implementation Details:
-1. In the `SEO` component, always include a `<link rel="canonical" href="..." />` tag.
-2. Ensure it points to the clean, primary URL of the resource.
+- Implemented in `SEO` component.
+- Ensures all pages point to their clean, primary URL to prevent duplicate content issues.
 
 ---
 
-## Proposal 5: Robots.txt & Discovery (Medium)
+## Proposal 5: Robots.txt & Discovery (Completed)
 
-**Priority:** Medium | **Effort:** Low | **Location:** Frontend/Infrastructure
+**Priority:** Medium | **Status:** Done
 
-Direct crawlers efficiently and block them from low-value or private paths.
-
-### Implementation Details:
-1. Update `frontend/public/robots.txt` to include:
-   ```txt
-   Sitemap: https://divemap.com/sitemap.xml
-   User-agent: *
-   Disallow: /api/
-   Disallow: /admin/
-   ```
+- Updated `robots.txt` to include `Sitemap: https://divemap.gr/sitemap.xml` and block `/api/`, `/admin/`.
 
 ---
 
@@ -159,12 +74,69 @@ Image search is a major traffic driver for travel/recreational sites.
 
 ---
 
+## Proposal 7: User-Generated Content (UGC) Link Management (High)
+
+**Priority:** High | **Effort:** Low | **Location:** Frontend (React)
+
+To prevent spam penalties and follow Google's guidelines for untrusted content.
+
+### Implementation Details:
+1. **Comments & Reviews:** Any user-submitted links in comments (e.g., on Dive Sites) must have `rel="nofollow ugc"`.
+2. **Profile Links:** User profile website links should utilize `rel="nofollow"`.
+
+---
+
+## Proposal 8: Visual Breadcrumbs & Navigation (Medium)
+
+**Priority:** Medium | **Effort:** Medium | **Location:** Frontend (React)
+
+Enhance internal linking structure and user navigation, which Google uses to understand site hierarchy.
+
+### Implementation Details:
+1. **Visual Breadcrumbs:** Add visible breadcrumb navigation at the top of detail pages (e.g., `Home > Dive Sites > Greece > Crete > El Greco Cave`).
+2. **Internal Linking:** Add a "Nearby Dive Sites" or "Related Dives" section to detail pages to create a denser crawl graph.
+
+---
+
+## Proposal 9: Custom 404 Page (Medium)
+
+**Priority:** Medium | **Effort:** Low | **Location:** Frontend (React)
+
+Keep users engaged even when they hit a dead end.
+
+### Implementation Details:
+1. Create a custom `NotFound.js` page.
+2. Include:
+   - A friendly error message.
+   - Search bar.
+   - Links to popular pages (Home, Dive Sites Map, recent logs).
+3. Ensure the server returns a 404 HTTP status code (requires SSR or clever Nginx config for SPA fallback, though usually SPAs return 200 with 404 content; ensuring the *content* guides the user is key).
+
+---
+
+## Proposal 10: URL Structure Enhancement (Long Term)
+
+**Priority:** Low | **Effort:** High | **Location:** Backend & Frontend
+
+Google recommends descriptive words in URLs.
+
+### Implementation Details:
+1. Migrate from `/dive-sites/:id` to `/dive-sites/:id/:slug` (e.g., `/dive-sites/123/blue-hole-dahab`).
+2. Update backend to handle/ignore the slug or validate it.
+3. Update frontend router to support slugs.
+4. Implement 301 redirects from old URLs if structure changes drastically.
+
+---
+
 ## Summary Work Order
 
 | Step | Action | Impact |
 | :--- | :--- | :--- |
-| 1 | **Backend:** Implement `/sitemap.xml` | High discovery of deep links. |
-| 2 | **Frontend:** Deploy `SEO` component with Helmet | Better social sharing and CTR. |
-| 3 | **Frontend:** Implement JSON-LD for Dive Sites | Rich snippets (stars) in Google. |
-| 4 | **Frontend:** Self-referencing Canonical tags | SEO stability. |
-| 5 | **Frontend:** Global metadata audit (Home, About) | Professional brand appearance. |
+| 1 | **Backend:** Implement `/sitemap.xml` | High discovery of deep links. (Done) |
+| 2 | **Frontend:** Deploy `SEO` component with Helmet | Better social sharing and CTR. (Done) |
+| 3 | **Frontend:** Implement JSON-LD for Dive Sites | Rich snippets (stars) in Google. (Done) |
+| 4 | **Frontend:** Self-referencing Canonical tags | SEO stability. (Done) |
+| 5 | **Frontend:** Global metadata audit (Home, About) | Professional brand appearance. (Done) |
+| 6 | **Frontend:** UGC Link Attributes (`nofollow`) | Spam prevention. |
+| 7 | **Frontend:** Visual Breadcrumbs | Improved UX & Crawl depth. |
+| 8 | **Frontend:** Custom 404 Page | User retention. |

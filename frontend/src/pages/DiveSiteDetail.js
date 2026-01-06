@@ -25,6 +25,7 @@ import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 
 import api, { extractErrorMessage } from '../api';
+import Breadcrumbs from '../components/Breadcrumbs';
 import DiveSiteRoutes from '../components/DiveSiteRoutes';
 import Lightbox from '../components/Lightbox/Lightbox';
 import ReactImage from '../components/Lightbox/ReactImage';
@@ -436,6 +437,31 @@ const DiveSiteDetail = () => {
           siteName='Divemap'
           location={{ lat: diveSite.latitude, lon: diveSite.longitude }}
           schema={getSchema()}
+        />
+      )}
+      {/* Breadcrumbs */}
+      {diveSite && (
+        <Breadcrumbs
+          items={[
+            { label: 'Dive Sites', to: '/dive-sites' },
+            ...(diveSite.country
+              ? [
+                  {
+                    label: diveSite.country,
+                    to: `/dive-sites?country=${encodeURIComponent(diveSite.country)}`,
+                  },
+                ]
+              : []),
+            ...(diveSite.region
+              ? [
+                  {
+                    label: diveSite.region,
+                    to: `/dive-sites?country=${encodeURIComponent(diveSite.country || '')}&region=${encodeURIComponent(diveSite.region)}`,
+                  },
+                ]
+              : []),
+            { label: diveSite.name },
+          ]}
         />
       )}
       {/* Header */}
@@ -1085,7 +1111,9 @@ const DiveSiteDetail = () => {
                       {new Date(comment.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className='text-gray-700 text-sm sm:text-base'>{comment.comment_text}</p>
+                  <p className='text-gray-700 text-sm sm:text-base'>
+                    {renderTextWithLinks(comment.comment_text, { isUGC: true, shorten: false })}
+                  </p>
                 </div>
               ))}
 

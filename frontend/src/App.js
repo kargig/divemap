@@ -71,6 +71,7 @@ const TripDetail = lazy(() => import('./pages/TripDetail'));
 const Unsubscribe = lazy(() => import('./pages/Unsubscribe'));
 const UserProfile = lazy(() => import('./pages/UserProfile'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -461,6 +462,7 @@ function App() {
                       }
                     />
                     <Route path='/dive-trips/:id' element={<TripDetail />} />
+                    <Route path='*' element={<NotFound />} />
                   </Routes>
                 </Suspense>
                 <ReportIssueButton />
