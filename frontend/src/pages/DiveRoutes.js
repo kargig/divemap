@@ -28,6 +28,7 @@ import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getRouteTypeLabel } from '../utils/routeUtils';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
@@ -356,7 +357,7 @@ const DiveRoutes = () => {
                     <div
                       className={`text-gray-500 leading-relaxed line-clamp-2 mb-4 ${compactLayout ? 'text-xs' : 'text-sm'}`}
                     >
-                      {renderTextWithLinks(route.description)}
+                      {renderTextWithLinks(decodeHtmlEntities(route.description))}
                     </div>
                   )}
 

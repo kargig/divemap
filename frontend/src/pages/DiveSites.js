@@ -44,6 +44,7 @@ import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getSortOptions } from '../utils/sortOptions';
 import { getTagColor } from '../utils/tagHelpers';
@@ -886,7 +887,7 @@ const DiveSites = () => {
                           <div
                             className={`text-gray-600 leading-relaxed line-clamp-2 ${compactLayout ? 'text-xs' : 'text-sm'}`}
                           >
-                            {renderTextWithLinks(site.description)}
+                            {renderTextWithLinks(decodeHtmlEntities(site.description))}
                           </div>
                         )}
 
@@ -1049,7 +1050,7 @@ const DiveSites = () => {
                         {/* Body: Description */}
                         {site.description && (
                           <div className='text-xs text-gray-500 leading-relaxed line-clamp-2 mb-4'>
-                            {site.description}
+                            {decodeHtmlEntities(site.description)}
                           </div>
                         )}
 
