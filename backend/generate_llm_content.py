@@ -83,6 +83,26 @@ def should_generate_local():
         return False
     return True
 
+def download_from_r2(client):
+    """Download all required files from R2 to local directory."""
+    print("⬇️ Downloading LLM content from R2...")
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    success = True
+    for filename in REQUIRED_FILES:
+        try:
+            client.download_file(
+                Bucket=R2_BUCKET_NAME, 
+                Key=f"llm_content/{filename}", 
+                Filename=os.path.join(OUTPUT_DIR, filename)
+            )
+        except Exception as e:
+            print(f"⚠️ Failed to download {filename}: {e}")
+            success = False
+    
+    if success:
+        print(f"✅ All content downloaded to {OUTPUT_DIR}.")
+    return success
+
 def generate_content(db: Session, r2_client=None):
     # Data gathering
     sites = db.query(DiveSite).all()
@@ -232,6 +252,7 @@ if __name__ == "__main__":
     if not args.force:
         if r2:
             if check_r2_freshness(r2):
+                download_from_r2(r2)
                 sys.exit(0)
         else:
             # Local check
