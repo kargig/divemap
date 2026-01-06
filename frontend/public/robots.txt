@@ -1,3 +1,25 @@
 # https://www.robotstxt.org/robotstxt.html
+
+# 1. Point to the sitemap (CRITICAL for discovery)
+Sitemap: https://divemap.gr/sitemap.xml
+
+# 2. General bot optimization
 User-agent: *
-Disallow:
+# Block private/admin area
+Disallow: /admin/
+# Block raw API access (Prevents indexing of JSON data)
+Disallow: /api/
+# Block auth/account pages
+Disallow: /login
+Disallow: /register
+Disallow: /profile
+Disallow: /notifications
+# Allow everything else
+Allow: /
+
+# 3. Aggressive Bot Management
+User-agent: dotbot
+Crawl-delay: 10
+
+User-agent: AhrefsBot
+Crawl-delay: 10

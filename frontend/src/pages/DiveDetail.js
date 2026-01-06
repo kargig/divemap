@@ -51,11 +51,11 @@ import GasTanksDisplay from '../components/GasTanksDisplay';
 import Lightbox from '../components/Lightbox/Lightbox';
 import ReactImage from '../components/Lightbox/ReactImage';
 import RateLimitError from '../components/RateLimitError';
+import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
 import Modal from '../components/ui/Modal';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
@@ -519,11 +519,93 @@ const DiveDetail = () => {
     handleRateLimitError(error, 'dive details', () => window.location.reload());
   }, [error]);
 
-  const pageTitle = dive
-    ? `Divemap - Dive - ${dive.name || dive.dive_site?.name || 'Unnamed Dive Site'}`
-    : 'Divemap - Dive Details';
+  const getMetaDescription = () => {
+    if (!dive) return '';
 
-  usePageTitle(pageTitle, !isLoading);
+    const parts = [
+      `Dive log by ${dive.user_username || 'a user'}`,
+      `at ${dive.name || dive.dive_site?.name || 'an unnamed site'}`,
+      `on ${formatDate(dive.dive_date)}.`,
+    ];
+
+    if (dive.max_depth) {
+      parts.push(`Max depth: ${dive.max_depth}m.`);
+    }
+
+    if (dive.duration) {
+      parts.push(`Duration: ${dive.duration} min.`);
+    }
+
+    if (dive.dive_information) {
+      parts.push(
+        dive.dive_information.substring(0, 100) + (dive.dive_information.length > 100 ? '...' : '')
+      );
+    }
+
+    return parts.join(' ');
+  };
+
+  const getSchema = () => {
+    if (!dive) return null;
+
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': ['Review', 'CreativeWork'],
+      name: `Dive at ${dive.name || dive.dive_site?.name}`,
+      description: dive.dive_information,
+      author: {
+        '@type': 'Person',
+        name: dive.user_username || 'Unknown',
+      },
+      datePublished: dive.dive_date,
+      itemReviewed: {
+        '@type': 'Place',
+        name: dive.dive_site?.name || dive.name || 'Dive Site',
+        geo:
+          dive.dive_site?.latitude && dive.dive_site?.longitude
+            ? {
+                '@type': 'GeoCoordinates',
+                latitude: dive.dive_site.latitude,
+                longitude: dive.dive_site.longitude,
+              }
+            : undefined,
+      },
+      breadcrumb: {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: window.location.origin,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Public Dives',
+            item: `${window.location.origin}/dives`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: `Dive at ${dive.name || dive.dive_site?.name}`,
+            item: window.location.href,
+          },
+        ],
+      },
+    };
+
+    if (dive.user_rating) {
+      schema.reviewRating = {
+        '@type': 'Rating',
+        ratingValue: dive.user_rating,
+        bestRating: '10',
+        worstRating: '1',
+      };
+    }
+
+    return schema;
+  };
 
   // Delete dive mutation
   const deleteDiveMutation = useMutation(deleteDive, {
@@ -775,6 +857,19 @@ const DiveDetail = () => {
 
   return (
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      {dive && (
+        <SEO
+          title={`Dive Log - ${dive.name || dive.dive_site?.name || 'Unnamed Site'} - ${formatDate(dive.dive_date)}`}
+          description={getMetaDescription()}
+          type='article'
+          image={publicPhotoSlides.length > 0 ? publicPhotoSlides[0].src : undefined}
+          imageAlt={publicPhotoSlides.length > 0 ? publicPhotoSlides[0].alt : undefined}
+          siteName='Divemap'
+          author={dive.user_username}
+          publishedTime={dive.created_at}
+          schema={getSchema()}
+        />
+      )}
       {/* Header */}
       <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4'>
         <div className='flex items-center gap-3 sm:gap-4'>

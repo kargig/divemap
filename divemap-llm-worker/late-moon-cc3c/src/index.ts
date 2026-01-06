@@ -8,7 +8,7 @@ export default {
 		const filename = url.pathname.slice(1); // e.g. "llms.txt"
 
 		// 1. Only handle specific files, otherwise pass through to main site
-		if (filename !== 'llms.txt' && !filename.endsWith('.md')) {
+		if (filename !== 'llms.txt' && filename !== 'sitemap.xml' && !filename.endsWith('.md')) {
 			return fetch(request);
 		}
 
