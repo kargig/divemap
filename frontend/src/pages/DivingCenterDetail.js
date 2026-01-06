@@ -25,9 +25,9 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import api, { claimDivingCenterOwnership, getParsedTrips, extractErrorMessage } from '../api';
 import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
+import SEO from '../components/SEO';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { useSetting } from '../hooks/useSettings';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 
@@ -76,13 +76,6 @@ const DivingCenterDetail = () => {
   useEffect(() => {
     handleRateLimitError(error, 'diving center details', () => window.location.reload());
   }, [error]);
-
-  // Set dynamic page title
-  const pageTitle = center
-    ? `Divemap - Diving Centers - ${center.name}`
-    : 'Divemap - Diving Center Details';
-
-  usePageTitle(pageTitle, !isLoading);
 
   // Check if user has edit privileges
   const canEdit =
@@ -325,6 +318,103 @@ const DivingCenterDetail = () => {
     );
   };
 
+  const getMetaDescription = () => {
+    if (!center) return '';
+
+    const parts = [center.name];
+
+    if (center.city || center.country) {
+      parts.push(
+        `is a diving center in ${[center.city, center.country].filter(Boolean).join(', ')}.`
+      );
+    } else {
+      parts.push('is a diving center.');
+    }
+
+    if (center.average_rating) {
+      parts.push(
+        `Rated ${center.average_rating.toFixed(1)}/10 from ${center.total_ratings} reviews.`
+      );
+    }
+
+    if (center.description) {
+      parts.push(
+        center.description.substring(0, 100) + (center.description.length > 100 ? '...' : '')
+      );
+    }
+
+    return parts.join(' ');
+  };
+
+  const getSchema = () => {
+    if (!center) return null;
+
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': ['SportsActivityLocation', 'LocalBusiness'],
+      name: center.name,
+      description: center.description,
+      url: window.location.href,
+      address: {
+        '@type': 'PostalAddress',
+        addressCountry: center.country,
+        addressRegion: center.region,
+        addressLocality: center.city,
+      },
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: center.latitude,
+        longitude: center.longitude,
+      },
+      telephone: center.phone,
+      email: center.email,
+      breadcrumb: {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: window.location.origin,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Diving Centers',
+            item: `${window.location.origin}/diving-centers`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: center.city || center.country || 'Location',
+          },
+          {
+            '@type': 'ListItem',
+            position: 4,
+            name: center.name,
+            item: window.location.href,
+          },
+        ],
+      },
+    };
+
+    if (center.average_rating) {
+      schema.aggregateRating = {
+        '@type': 'AggregateRating',
+        ratingValue: center.average_rating,
+        reviewCount: center.total_ratings,
+        bestRating: '10',
+        worstRating: '1',
+      };
+    }
+
+    if (center.website) {
+      schema.sameAs = [center.website];
+    }
+
+    return schema;
+  };
+
   if (isLoading) {
     return (
       <div className='min-h-screen bg-gray-50 py-8'>
@@ -406,6 +496,16 @@ const DivingCenterDetail = () => {
 
   return (
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      {center && (
+        <SEO
+          title={`${center.name} - ${[center.city, center.country].filter(Boolean).join(', ')}`}
+          description={getMetaDescription()}
+          type='place' // Or 'business.business' but 'place' works well with our component
+          siteName='Divemap'
+          location={{ lat: center.latitude, lon: center.longitude }}
+          schema={getSchema()}
+        />
+      )}
       {/* Header */}
       <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
         <div className='flex justify-between items-start mb-4'>
