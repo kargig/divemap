@@ -241,7 +241,7 @@ const UserProfile = () => {
                     key={link.platform}
                     href={link.url}
                     target='_blank'
-                    rel='noopener noreferrer'
+                    rel='noopener noreferrer nofollow'
                     className='text-gray-500 hover:text-blue-600 transition-colors bg-gray-100 hover:bg-gray-200 p-2 rounded-full'
                     title={link.platform}
                   >

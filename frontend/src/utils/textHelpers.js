@@ -14,6 +14,7 @@ export const linkifyUrls = (text, options = {}) => {
   const {
     linkClassName = 'text-blue-600 hover:text-blue-800 underline break-all',
     targetBlank = true,
+    isUGC = false,
   } = options;
 
   if (!text || typeof text !== 'string') {
@@ -26,6 +27,11 @@ export const linkifyUrls = (text, options = {}) => {
   return parts.map((part, index) => {
     // Check if this part is a URL
     if (part.match(/^https?:\/\//)) {
+      let rel = targetBlank ? 'noopener noreferrer' : '';
+      if (isUGC) {
+        rel = rel ? `${rel} nofollow ugc` : 'nofollow ugc';
+      }
+
       return {
         type: 'link',
         key: index,
@@ -33,7 +39,7 @@ export const linkifyUrls = (text, options = {}) => {
         text: part,
         className: linkClassName,
         target: targetBlank ? '_blank' : '_self',
-        rel: targetBlank ? 'noopener noreferrer' : undefined,
+        rel: rel || undefined,
       };
     }
     return {
@@ -51,6 +57,7 @@ export const linkifyUrls = (text, options = {}) => {
  * @param {string} options.linkClassName - CSS classes for links
  * @param {boolean} options.targetBlank - Whether to open links in new tab
  * @param {boolean} options.shorten - Whether to shorten URL text (e.g. to [Link])
+ * @param {boolean} options.isUGC - Whether the content is user-generated (adds nofollow ugc)
  * @returns {Array} Array of React elements and strings
  */
 export const renderTextWithLinks = (text, options = {}) => {

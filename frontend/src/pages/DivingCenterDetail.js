@@ -23,6 +23,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 
 import api, { claimDivingCenterOwnership, getParsedTrips, extractErrorMessage } from '../api';
+import Breadcrumbs from '../components/Breadcrumbs';
 import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
@@ -30,6 +31,7 @@ import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { useSetting } from '../hooks/useSettings';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
+import { renderTextWithLinks } from '../utils/textHelpers';
 
 // Use extractErrorMessage from api.js
 const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
@@ -504,6 +506,31 @@ const DivingCenterDetail = () => {
           siteName='Divemap'
           location={{ lat: center.latitude, lon: center.longitude }}
           schema={getSchema()}
+        />
+      )}
+      {/* Breadcrumbs */}
+      {center && (
+        <Breadcrumbs
+          items={[
+            { label: 'Diving Centers', to: '/diving-centers' },
+            ...(center.country
+              ? [
+                  {
+                    label: center.country,
+                    to: `/diving-centers?country=${encodeURIComponent(center.country)}`,
+                  },
+                ]
+              : []),
+            ...(center.city
+              ? [
+                  {
+                    label: center.city,
+                    to: `/diving-centers?country=${encodeURIComponent(center.country || '')}&city=${encodeURIComponent(center.city)}`,
+                  },
+                ]
+              : []),
+            { label: center.name },
+          ]}
         />
       )}
       {/* Header */}
@@ -1028,7 +1055,9 @@ const DivingCenterDetail = () => {
                       </div>
                     </div>
                   ) : (
-                    <p className='text-gray-700'>{comment.comment_text}</p>
+                    <p className='text-gray-700'>
+                      {renderTextWithLinks(comment.comment_text, { isUGC: true, shorten: false })}
+                    </p>
                   )}
                 </div>
               ))}

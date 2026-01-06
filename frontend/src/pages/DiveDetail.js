@@ -46,6 +46,7 @@ import api, {
   extractErrorMessage,
 } from '../api';
 import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
+import Breadcrumbs from '../components/Breadcrumbs';
 import DiveProfileModal from '../components/DiveProfileModal';
 import GasTanksDisplay from '../components/GasTanksDisplay';
 import Lightbox from '../components/Lightbox/Lightbox';
@@ -868,6 +869,15 @@ const DiveDetail = () => {
           author={dive.user_username}
           publishedTime={dive.created_at}
           schema={getSchema()}
+        />
+      )}
+      {/* Breadcrumbs */}
+      {dive && (
+        <Breadcrumbs
+          items={[
+            { label: 'Public Dives', to: '/dives' },
+            { label: `Dive at ${dive.name || dive.dive_site?.name || 'Unnamed Site'}` },
+          ]}
         />
       )}
       {/* Header */}

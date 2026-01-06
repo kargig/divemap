@@ -305,17 +305,8 @@ const DiveRoutes = () => {
                   key={route.id}
                   className={`bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col ${compactLayout ? 'p-4' : 'p-6'}`}
                 >
-                  {/* Header: Site Kicker & Title */}
-                  <div className='mb-4'>
-                    {route.dive_site && (
-                      <div className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-1.5'>
-                        <MapPin className='w-3 h-3' />
-                        <Link to={`/dive-sites/${route.dive_site_id}`} className='hover:underline'>
-                          {route.dive_site.name}
-                        </Link>
-                      </div>
-                    )}
-
+                  {/* Header: Title & Type */}
+                  <div className='mb-2'>
                     <div className='flex items-start justify-between gap-3'>
                       <h3
                         className={`font-bold text-gray-900 leading-snug ${compactLayout ? 'text-base' : 'text-lg'}`}
@@ -342,13 +333,26 @@ const DiveRoutes = () => {
                         {detectedType.replace('_', ' ')}
                       </span>
                     </div>
+                  </div>
 
-                    {/* Meta Byline (Creator) */}
-                    <div className='text-xs text-gray-500 flex items-center gap-1.5 mt-1'>
-                      <div className='flex items-center gap-1'>
-                        <User className='w-3.5 h-3.5' />
-                        <span>{route.creator?.username || route.owner?.username || 'Unknown'}</span>
+                  {/* Meta Info: Site & Creator */}
+                  <div className='mb-4 flex flex-col gap-1.5'>
+                    {route.dive_site && (
+                      <div className='flex items-center gap-1.5 text-xs font-medium text-gray-600'>
+                        <MapPin className='w-3.5 h-3.5 text-blue-600' />
+                        <span className='text-gray-500'>at</span>
+                        <Link
+                          to={`/dive-sites/${route.dive_site_id}`}
+                          className='text-blue-600 hover:text-blue-800 hover:underline'
+                        >
+                          {route.dive_site.name}
+                        </Link>
                       </div>
+                    )}
+
+                    <div className='text-xs text-gray-500 flex items-center gap-1.5'>
+                      <User className='w-3.5 h-3.5' />
+                      <span>{route.creator?.username || route.owner?.username || 'Unknown'}</span>
                     </div>
                   </div>
 

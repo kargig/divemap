@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import BackgroundLogo from '../components/BackgroundLogo';
 import HeroSection from '../components/HeroSection';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 
 // Custom hook for animated counters with configurable growth patterns
 const useAnimatedCounter = (
@@ -70,9 +70,6 @@ const useAnimatedCounter = (
 };
 
 const Home = () => {
-  // Set page title
-  usePageTitle('Divemap - Home');
-
   // Fetch statistics
   const {
     data: stats,
@@ -123,17 +120,37 @@ const Home = () => {
     { speed: 250, minIncrement: 1, maxIncrement: 4 } // Medium growth, small increments
   );
 
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Divemap',
+    url: window.location.origin,
+    description:
+      'The ultimate scuba diving platform. Discover and rate dive sites, log your dives, plan trips, and share underwater routes.',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${window.location.origin}/dive-sites?search={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 relative'>
+      <SEO
+        title='Divemap - Discover and Rate Scuba Dive Sites Worldwide'
+        description='The ultimate scuba platform. Discover sites, log dives, plan trips, and connect with divers worldwide.'
+        type='website'
+        schema={schema}
+      />
       {/* Background Logo Watermark */}
       <BackgroundLogo opacity={0.02} size='xlarge' />
 
       {/* Mobile Hero with Gradient - Visible only on Mobile */}
 
       <div className='block md:hidden w-full mb-8 rounded-2xl overflow-hidden shadow-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-8 text-center'>
-        <h1 className='text-3xl font-extrabold tracking-tight mb-4'>
+        <h2 className='text-3xl font-extrabold tracking-tight mb-4'>
           Discover Amazing <span className='text-blue-200'>Dive Sites</span>
-        </h1>
+        </h2>
 
         <p className='text-lg text-blue-100 leading-relaxed'>
           Explore the world's best scuba locations, read reviews from fellow divers, and find your

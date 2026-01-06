@@ -4,6 +4,7 @@ import { useQuery } from 'react-query';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 
 import { getParsedTrip, getDiveSite, getDivingCenter } from '../api';
+import Breadcrumbs from '../components/Breadcrumbs';
 import MaskedEmail from '../components/MaskedEmail';
 import SEO from '../components/SEO';
 import TripHeader from '../components/TripHeader';
@@ -218,6 +219,11 @@ const TripDetail = () => {
           type='event'
           siteName='Divemap'
           schema={getSchema()}
+        />
+      )}
+      {trip && (
+        <Breadcrumbs
+          items={[{ label: 'Dive Trips', to: '/dive-trips' }, { label: generateTripName(trip) }]}
         />
       )}
       <TripHeader trip={trip} />
