@@ -919,12 +919,12 @@ const DiveDetail = () => {
               )}
               {dive.user_username && (
                 <div className='flex items-center gap-1 text-sm text-gray-600'>
-                  <span>Created by:</span>
+                  <span className='leading-tight mt-1'>Created by:</span>
                   <RouterLink
                     to={`/users/${dive.user_username}`}
-                    className='font-medium text-blue-600 hover:text-blue-800 hover:underline'
+                    className='font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center'
                   >
-                    {dive.user_username}
+                    <span className='leading-tight mt-1'>{dive.user_username}</span>
                   </RouterLink>
                 </div>
               )}

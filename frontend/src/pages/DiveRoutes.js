@@ -339,13 +339,13 @@ const DiveRoutes = () => {
                   <div className='mb-4 flex flex-col gap-1.5'>
                     {route.dive_site && (
                       <div className='flex items-center gap-1.5 text-xs font-medium text-gray-600'>
-                        <MapPin className='w-3.5 h-3.5 text-blue-600' />
-                        <span className='text-gray-500'>at</span>
+                        <MapPin className='w-3.5 h-3.5 text-blue-600 flex-shrink-0' />
+                        <span className='text-gray-500 leading-tight mt-1'>at</span>
                         <Link
                           to={`/dive-sites/${route.dive_site_id}`}
-                          className='text-blue-600 hover:text-blue-800 hover:underline'
+                          className='text-blue-600 hover:text-blue-800 hover:underline flex items-center'
                         >
-                          {route.dive_site.name}
+                          <span className='leading-tight mt-1'>{route.dive_site.name}</span>
                         </Link>
                       </div>
                     )}
