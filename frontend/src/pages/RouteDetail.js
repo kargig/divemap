@@ -718,12 +718,14 @@ const RouteDetail = () => {
                   </span>
                 </div>
                 <p className='text-sm text-gray-600 flex items-center gap-1'>
-                  Route for
+                  <span className='leading-tight mt-1'>Route for</span>
                   <Link
                     to={`/dive-sites/${diveSiteId}`}
-                    className='text-blue-600 hover:underline font-medium'
+                    className='text-blue-600 hover:underline font-medium flex items-center'
                   >
-                    {diveSite?.name || 'Unknown Dive Site'}
+                    <span className='leading-tight mt-1'>
+                      {diveSite?.name || 'Unknown Dive Site'}
+                    </span>
                   </Link>
                 </p>
               </div>

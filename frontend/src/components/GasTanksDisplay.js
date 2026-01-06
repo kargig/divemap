@@ -1,9 +1,15 @@
-import { Info } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { ChevronDown, ChevronUp, Info } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 
 import { TANK_SIZES } from '../utils/diveConstants';
 
 const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
+  const [expandedRows, setExpandedRows] = useState({});
+
+  const toggleRow = id => {
+    setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   // Calculate gas usage statistics from profile data (Hook must be at top level)
   const gasStats = useMemo(() => {
     if (!profileData?.samples || !profileData?.events) return null;
@@ -233,37 +239,24 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
     const end = item.end_pressure;
     const consumed = calculateConsumption(item.tank, start, end);
     const sacData = showSAC ? calculateSAC(item, cylinderIndex) : null;
+    const rowId = cylinderIndex !== undefined ? cylinderIndex : label;
+    const isExpanded = !!expandedRows[rowId];
 
     return (
-      <div className='flex items-center gap-2 flex-wrap'>
-        <span className='text-sm font-semibold text-gray-700 min-w-[70px]'>{label}:</span>
-        <div
-          className={`${bgClass} ${colorClass} px-3 py-1.5 rounded-md text-sm font-medium flex gap-3 items-center border ${borderClass}`}
-        >
-          <span>{tankName}</span>
-          <span className={`${borderClass.replace('border-', 'text-').replace('100', '400')}`}>
-            |
-          </span>
-          <span className='font-bold'>{formatGas(item.gas)}</span>
-          <span className={`${borderClass.replace('border-', 'text-').replace('100', '400')}`}>
-            |
-          </span>
-          {getPressureDisplay(item)}
+      <div className='flex flex-col gap-2'>
+        <div className='flex items-center gap-2 flex-wrap'>
+          <span className='text-sm font-semibold text-gray-700 min-w-[70px]'>{label}:</span>
+          <div
+            className={`${bgClass} ${colorClass} px-3 py-1.5 rounded-md text-sm font-medium flex gap-3 items-center border ${borderClass}`}
+          >
+            <span>{tankName}</span>
+            <span className={`${borderClass.replace('border-', 'text-').replace('100', '400')}`}>
+              |
+            </span>
+            <span className='font-bold'>{formatGas(item.gas)}</span>
+          </div>
 
-          {consumed !== null && (
-            <>
-              <span className={`${borderClass.replace('border-', 'text-').replace('100', '400')}`}>
-                |
-              </span>
-              <span className='text-xs' title={`${consumed} Liters consumed (Ideal)`}>
-                -{consumed} L
-              </span>
-            </>
-          )}
-        </div>
-
-        {sacData && (
-          <div className='ml-2 flex items-center gap-2'>
+          {sacData && (
             <div className='flex items-center gap-2'>
               <div className='px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md text-sm border border-gray-200 flex items-center gap-1'>
                 <span className='font-semibold'>SAC:</span>
@@ -271,63 +264,92 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
                 <span>{sacData.ideal}</span>
                 <span className='text-gray-400 text-xs mx-0.5'>/</span>
                 <span className='hidden sm:inline text-xs text-gray-400'>Real</span>
-                <span className='text-gray-500' title='Real Gas SAC (Subsurface style)'>
+                <span className='text-gray-500 font-bold' title='Real Gas SAC (Subsurface style)'>
                   {sacData.real} L/min
                 </span>
               </div>
 
-              {showStats && (
-                <div className='px-3 py-1.5 bg-gray-50 text-gray-600 rounded-md text-sm border border-gray-200 flex items-center gap-2'>
-                  <span className='text-xs text-gray-500'>
-                    Time:{' '}
-                    <span className='font-medium text-gray-700'>
-                      {sacData.duration.toFixed(0)} min
-                    </span>
-                  </span>
-                  <span className='text-gray-300'>|</span>
-                  <span className='text-xs text-gray-500'>
-                    Avg. Depth:{' '}
-                    <span className='font-medium text-gray-700'>
-                      {sacData.avgDepth.toFixed(1)}m
-                    </span>
-                  </span>
+              {/* Info Icon - Always visible next to SAC */}
+              <div className='group relative'>
+                {sacData.isSpecific ? (
+                  <Info size={16} className='text-blue-500 cursor-help' />
+                ) : (
+                  <Info size={16} className='text-gray-400 hover:text-blue-500 cursor-help' />
+                )}
+                <div className='absolute left-1/2 bottom-full mb-2 -translate-x-1/2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50'>
+                  <div className='font-semibold mb-1'>SAC Calculation Methods</div>
+                  <div className='mb-1'>
+                    <span className='text-gray-300'>Ideal ({sacData.ideal}):</span> Standard formula
+                    (PV=nRT). Ignores gas compressibility.
+                  </div>
+                  <div className='mb-2'>
+                    <span className='text-gray-300'>Real ({sacData.real}):</span> Accurate model
+                    used by Subsurface (Virial Equation). Accounts for compressibility (Z-factor).
+                  </div>
+                  {sacData.isSpecific ? (
+                    <div className='pt-1 border-t border-gray-600 text-green-300'>
+                      Based on actual usage from profile:
+                      <br />
+                      Time: {sacData.duration.toFixed(1)} min
+                      <br />
+                      Avg Depth: {sacData.avgDepth.toFixed(1)} m
+                    </div>
+                  ) : (
+                    <div className='pt-1 border-t border-gray-600 text-yellow-300'>
+                      Based on total dive averages (no specific usage data found for Cylinder{' '}
+                      {cylinderIndex}).
+                    </div>
+                  )}
+                  <div className='absolute left-1/2 top-full -mt-1 -ml-1 border-4 border-transparent border-t-gray-800'></div>
                 </div>
+              </div>
+
+              <button
+                onClick={() => toggleRow(rowId)}
+                className='p-1 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-full transition-colors'
+                title={isExpanded ? 'Show less' : 'Show details'}
+              >
+                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {isExpanded && (
+          <div className='ml-[78px] flex items-center gap-2 flex-wrap animate-in fade-in slide-in-from-left-2 duration-200'>
+            {/* Pressure & Consumption Pill */}
+            <div
+              className={`${bgClass} ${colorClass} px-3 py-1.5 rounded-md text-xs font-medium flex gap-3 items-center border ${borderClass} opacity-80`}
+            >
+              {getPressureDisplay(item)}
+              {consumed !== null && (
+                <>
+                  <span
+                    className={`${borderClass.replace('border-', 'text-').replace('100', '400')}`}
+                  >
+                    |
+                  </span>
+                  <span title={`${consumed} Liters consumed (Ideal)`}>-{consumed} L</span>
+                </>
               )}
             </div>
 
-            <div className='group relative'>
-              {sacData.isSpecific ? (
-                <Info size={16} className='text-blue-500 cursor-help' />
-              ) : (
-                <Info size={16} className='text-gray-400 hover:text-blue-500 cursor-help' />
-              )}
-              <div className='absolute left-1/2 bottom-full mb-2 -translate-x-1/2 w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50'>
-                <div className='font-semibold mb-1'>SAC Calculation Methods</div>
-                <div className='mb-1'>
-                  <span className='text-gray-300'>Ideal ({sacData.ideal}):</span> Standard formula
-                  (PV=nRT). Ignores gas compressibility.
-                </div>
-                <div className='mb-2'>
-                  <span className='text-gray-300'>Real ({sacData.real}):</span> Accurate model used
-                  by Subsurface (Virial Equation). Accounts for compressibility (Z-factor).
-                </div>
-                {sacData.isSpecific ? (
-                  <div className='pt-1 border-t border-gray-600 text-green-300'>
-                    Based on actual usage from profile:
-                    <br />
-                    Time: {sacData.duration.toFixed(1)} min
-                    <br />
-                    Avg Depth: {sacData.avgDepth.toFixed(1)} m
-                  </div>
-                ) : (
-                  <div className='pt-1 border-t border-gray-600 text-yellow-300'>
-                    Based on total dive averages (no specific usage data found for Cylinder{' '}
-                    {cylinderIndex}).
-                  </div>
-                )}
-                <div className='absolute left-1/2 top-full -mt-1 -ml-1 border-4 border-transparent border-t-gray-800'></div>
+            {/* Stats Pill */}
+            {showStats && sacData && (
+              <div className='px-3 py-1.5 bg-gray-50 text-gray-600 rounded-md text-xs border border-gray-200 flex items-center gap-2'>
+                <span>
+                  Time:{' '}
+                  <span className='font-medium text-gray-700'>
+                    {sacData.duration.toFixed(0)} min
+                  </span>
+                </span>
+                <span className='text-gray-300'>|</span>
+                <span>
+                  Avg. Depth:{' '}
+                  <span className='font-medium text-gray-700'>{sacData.avgDepth.toFixed(1)}m</span>
+                </span>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
