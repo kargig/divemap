@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import { z } from 'zod';
 
+import api, { healthCheck } from '../api';
 import { FormField } from '../components/forms/FormField';
 import Logo from '../components/Logo';
 import Turnstile from '../components/Turnstile';
@@ -37,6 +38,7 @@ const Register = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState(null);
   const [turnstileError, setTurnstileError] = useState(false);
+  const [isBackendReady, setIsBackendReady] = useState(false);
 
   const { register: authRegister, loginWithGoogle, user } = useAuth();
   const navigate = useNavigate();
@@ -110,6 +112,33 @@ const Register = () => {
     setTurnstileToken(null);
     setTurnstileError(true);
   };
+
+  useEffect(() => {
+    // Warm up the backend and wait for it to be ready
+    let mounted = true;
+    const waitForBackend = async () => {
+      // Try up to 10 times (approx 30-60s depending on timeouts)
+      for (let i = 0; i < 10; i++) {
+        const result = await healthCheck();
+        if (!mounted) return;
+        if (result) {
+          setIsBackendReady(true);
+          return;
+        }
+        // Wait 1s before retry
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (!mounted) return;
+      }
+      // Failsafe: enable buttons anyway if backend is stubbornly unreachable
+      if (mounted) setIsBackendReady(true);
+    };
+
+    waitForBackend();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     // Initialize Google Sign-In button only if client ID is configured
@@ -292,10 +321,14 @@ const Register = () => {
             <div>
               <button
                 type='submit'
-                disabled={loading}
+                disabled={loading || !isBackendReady}
                 className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
               >
-                {loading ? 'Creating account...' : 'Create account'}
+                {loading
+                  ? 'Creating account...'
+                  : !isBackendReady
+                    ? 'Connecting to server...'
+                    : 'Create account'}
               </button>
             </div>
 
@@ -311,7 +344,11 @@ const Register = () => {
                     </div>
                   </div>
 
-                  <div>
+                  <div
+                    className={`transition-opacity duration-200 ${
+                      !isBackendReady ? 'opacity-50 pointer-events-none' : ''
+                    }`}
+                  >
                     <div id='google-signup-button' className='w-full flex justify-center'></div>
                     {googleLoading && (
                       <div className='mt-2 text-center text-sm text-gray-600'>

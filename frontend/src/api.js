@@ -209,7 +209,7 @@ api.interceptors.response.use(
     }
 
     // Handle Retryable Errors (5xx, timeouts)
-    if (isRetryableError(error) && !originalRequest._gatewayRetry && !isAuthEndpoint) {
+    if (isRetryableError(error) && !originalRequest._gatewayRetry) {
       return handleRetryableError(error, originalRequest);
     }
 
@@ -227,6 +227,7 @@ api.interceptors.response.use(
 export const healthCheck = async () => {
   try {
     const response = await api.get('/health', {
+      params: { frontend: 'true' },
       timeout: 5000, // 5 second timeout
     });
     return response.data;
