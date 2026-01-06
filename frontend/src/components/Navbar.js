@@ -498,7 +498,7 @@ const Navbar = () => {
                 <X className='h-6 w-6' />
               </button>
             }
-            width='85%'
+            size='85%'
             styles={{
               header: { borderBottom: '1px solid rgba(255,255,255,0.1)' },
               body: { padding: 0 },

@@ -132,3 +132,6 @@ Documentation is consolidated in the `docs/` directory. Major changes should be 
   - **Membership Checks:** Use `set` or `dict` for checking existence (`item in collection`) instead of `list` when the collection is static or large, to achieve O(1) lookup performance.
 - **Memory Management:**
   - Be mindful of object creation overhead. Use `__slots__` for classes that will have many instances (thousands+) to reduce memory footprint, though this is less relevant for standard Pydantic/SQLAlchemy models which handle this internally or differently.
+
+## Testing & Linting
+-  Always run `make lint-frontend` instead of `docker exec divemap_frontend npm run lint` for frontend linting. Then check the contents of `frontend-lint-errors.log` for errors
