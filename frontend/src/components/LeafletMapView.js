@@ -676,6 +676,8 @@ const LeafletMapView = ({
   onWindFetchingChange,
   showWindLegend: externalShowWindLegend,
   setShowWindLegend: externalSetShowWindLegend,
+  windAnimationEnabled = false,
+  setWindAnimationEnabled,
 }) => {
   const [mapMetadata, setMapMetadata] = useState(null);
   const [internalWindOverlayEnabled, setInternalWindOverlayEnabled] = useState(false);
@@ -1219,6 +1221,7 @@ const LeafletMapView = ({
               windData={windData}
               isWindOverlayEnabled={windOverlayEnabled}
               maxArrows={200}
+              isAnimationEnabled={windAnimationEnabled}
             />
           )}
       </MapContainer>

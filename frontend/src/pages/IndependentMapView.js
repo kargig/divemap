@@ -177,6 +177,10 @@ const IndependentMapView = () => {
   const [windOverlayEnabled, setWindOverlayEnabled] = useState(() => {
     return searchParams.get('wind') === 'true';
   });
+  const [windAnimationEnabled, setWindAnimationEnabled] = useState(() => {
+    // Default to false unless explicitly enabled in URL
+    return searchParams.get('wind_animation') === 'true';
+  });
   // Track if user has dismissed the wind feature promotion banner
   const [windBannerDismissed, setWindBannerDismissed] = useState(() => {
     // Check localStorage for previous dismissal
@@ -399,6 +403,12 @@ const IndependentMapView = () => {
           newParams.set('wind', 'true');
         } else {
           newParams.delete('wind');
+        }
+
+        if (windAnimationEnabled) {
+          newParams.set('wind_animation', 'true');
+        } else {
+          newParams.delete('wind_animation');
         }
 
         if (windDateTime) {
@@ -637,6 +647,9 @@ const IndependentMapView = () => {
     // Add wind settings
     if (windOverlayEnabled) {
       params.set('wind', 'true');
+    }
+    if (windAnimationEnabled) {
+      params.set('wind_animation', 'true');
     }
     if (windDateTime) {
       params.set('time', windDateTime);
@@ -1106,6 +1119,8 @@ const IndependentMapView = () => {
               resetTrigger={resetTrigger}
               windOverlayEnabled={windOverlayEnabled}
               setWindOverlayEnabled={setWindOverlayEnabled}
+              windAnimationEnabled={windAnimationEnabled}
+              setWindAnimationEnabled={setWindAnimationEnabled}
               windDateTime={windDateTime}
               setWindDateTime={setWindDateTime}
               onWindFetchingChange={setIsWindFetching}
@@ -1135,6 +1150,9 @@ const IndependentMapView = () => {
                     isFetchingWind={isWindFetching}
                     onClose={() => setShowWindSlider(false)}
                     onPrefetch={prefetchWindHours}
+                    isAnimationEnabled={windAnimationEnabled}
+                    onToggleAnimation={setWindAnimationEnabled}
+                    zoomLevel={currentZoom}
                   />
                 </div>
               )}

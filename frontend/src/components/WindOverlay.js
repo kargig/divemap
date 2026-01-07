@@ -8,10 +8,16 @@ import { useMap } from 'react-leaflet';
  * Displays wind arrows on a Leaflet map showing wind speed and direction
  * Only visible at zoom levels 12-18 to avoid excessive API calls
  */
-const WindOverlay = ({ windData = null, isWindOverlayEnabled = false, maxArrows = 100 }) => {
+const WindOverlay = ({
+  windData = null,
+  isWindOverlayEnabled = false,
+  maxArrows = 100,
+  isAnimationEnabled = false,
+}) => {
   const map = useMap();
   const markersRef = useRef([]);
   const layerGroupRef = useRef(null);
+  const currentZoom = map.getZoom();
 
   // Filter and limit wind data points
   const displayData = useMemo(() => {
@@ -107,6 +113,10 @@ const WindOverlay = ({ windData = null, isWindOverlayEnabled = false, maxArrows 
       // Add a white outline/shadow for better visibility against water
       // Use a unique filter ID to avoid conflicts
       const filterId = `wind-arrow-shadow-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Determine if animation should be active (Zoom 13+ AND enabled by user)
+      const shouldAnimate = currentZoom >= 13 && isAnimationEnabled;
+
       const svg = `
         <svg width="${arrowSize}" height="${arrowSize}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -115,26 +125,49 @@ const WindOverlay = ({ windData = null, isWindOverlayEnabled = false, maxArrows 
             </filter>
           </defs>
           <g transform="rotate(${arrowDirection} 12 12)">
-            <!-- White outline for visibility -->
-            <path
-              d="M12 2 L12 18 M8 14 L12 18 L16 14"
-              stroke="white"
-              stroke-width="${strokeWidth + 3}"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              fill="none"
-              opacity="0.95"
-            />
-            <!-- Colored arrow on top -->
-            <path
-              d="M12 2 L12 18 M8 14 L12 18 L16 14"
-              stroke="${color}"
-              stroke-width="${strokeWidth}"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              fill="none"
-              filter="url(#${filterId})"
-            />
+            <!-- Animated group for flow effect (only active at zoom 13+) -->
+            <g>
+              ${
+                shouldAnimate
+                  ? `
+              <animateTransform
+                attributeName="transform"
+                type="translate"
+                values="0 -3; 0 3"
+                dur="1.5s"
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="opacity"
+                values="0;1;0"
+                dur="1.5s"
+                repeatCount="indefinite"
+              />
+              `
+                  : ''
+              }
+              
+              <!-- White outline for visibility -->
+              <path
+                d="M12 2 L12 18 M8 14 L12 18 L16 14"
+                stroke="white"
+                stroke-width="${strokeWidth + 3}"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                fill="none"
+                opacity="0.95"
+              />
+              <!-- Colored arrow on top -->
+              <path
+                d="M12 2 L12 18 M8 14 L12 18 L16 14"
+                stroke="${color}"
+                stroke-width="${strokeWidth}"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                fill="none"
+                filter="url(#${filterId})"
+              />
+            </g>
           </g>
         </svg>
       `;
@@ -148,7 +181,7 @@ const WindOverlay = ({ windData = null, isWindOverlayEnabled = false, maxArrows 
         className: 'wind-arrow-icon',
       });
     };
-  }, []);
+  }, [currentZoom, isAnimationEnabled]);
 
   // Format wind speed for display
   const formatWindSpeed = speed => {
@@ -274,7 +307,14 @@ const WindOverlay = ({ windData = null, isWindOverlayEnabled = false, maxArrows 
         }
       }
     };
-  }, [map, isWindOverlayEnabled, displayData, createWindArrowIcon]);
+  }, [
+    map,
+    isWindOverlayEnabled,
+    displayData,
+    createWindArrowIcon,
+    currentZoom,
+    isAnimationEnabled,
+  ]);
 
   // This component doesn't render anything directly
   return null;
@@ -298,6 +338,7 @@ WindOverlay.propTypes = {
   }),
   isWindOverlayEnabled: PropTypes.bool,
   maxArrows: PropTypes.number,
+  isAnimationEnabled: PropTypes.bool,
 };
 
 export default WindOverlay;

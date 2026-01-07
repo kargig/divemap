@@ -1004,7 +1004,11 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
     
     # Jitter range is 20% of base spacing to create visual variety without losing accuracy
     # Reduced from 40% to ensure jittered points stay within bounds
-    jitter_range = base_spacing * 0.2
+    # For lower zoom levels (10-12), use larger jitter to spread out arrows more
+    if zoom_level and zoom_level <= 12:
+        jitter_range = base_spacing * 0.4  # 40% for zoom 10-12
+    else:
+        jitter_range = base_spacing * 0.2  # 20% for zoom 13+
     
     total_jittered_attempts = 0
     total_jittered_success = 0
