@@ -138,7 +138,7 @@ const Home = () => {
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8 relative'>
       <SEO
         title='Divemap - Discover and Rate Scuba Dive Sites Worldwide'
-        description='The ultimate scuba platform. Discover sites, log dives, plan trips, and connect with divers worldwide.'
+        description='The ultimate scuba platform. Discover and rate dive sites, log your dives, plan trips, share underwater routes, find diving centers, see all of those on maps, use scuba calculators and connect with the global diving community.'
         type='website'
         schema={schema}
       />
@@ -148,9 +148,9 @@ const Home = () => {
       {/* Mobile Hero with Gradient - Visible only on Mobile */}
 
       <div className='block md:hidden w-full mb-8 rounded-2xl overflow-hidden shadow-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-8 text-center'>
-        <h2 className='text-3xl font-extrabold tracking-tight mb-4'>
+        <h1 className='text-3xl font-extrabold tracking-tight mb-4'>
           Discover Amazing <span className='text-blue-200'>Dive Sites</span>
-        </h2>
+        </h1>
 
         <p className='text-lg text-blue-100 leading-relaxed'>
           Explore the world's best scuba locations, read reviews from fellow divers, and find your
