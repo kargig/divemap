@@ -270,8 +270,11 @@ const AdminDivingOrganizationCertifications = () => {
                   </td>
                 </tr>
               ) : (
-                filteredCertifications.map(cert => (
-                  <tr key={cert.id} className='hover:bg-gray-50'>
+                filteredCertifications.map((cert, index) => (
+                  <tr
+                    key={cert.id}
+                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
+                  >
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <div className='text-sm font-medium text-gray-900'>{cert.name}</div>
                     </td>

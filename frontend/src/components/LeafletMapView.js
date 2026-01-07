@@ -80,7 +80,7 @@ const clusterStyles = `
     color: white;
     font-weight: bold;
   }
-  
+
   /* Hide attribution completely */
   .leaflet-control-attribution {
     display: none !important;
@@ -355,7 +355,7 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                     : marker.entityType === 'dive'
                       ? 'dives'
                       : 'dive-trips'
-              }/${marker.data.id}" 
+              }/${marker.data.id}"
                  class="text-blue-600 hover:text-blue-800 hover:underline">
                 ${marker.entityType === 'dive_site' ? marker.data.name || `Dive Site #${marker.data.id}` : ''}
                 ${marker.entityType === 'diving_center' ? marker.data.name : ''}
@@ -1259,7 +1259,9 @@ const LeafletMapView = ({
                 ></path>
               </svg>
             </div>
-            <span className='text-sm font-medium'>Loading wind data...</span>
+            <span className='text-sm font-medium'>
+              Loading wind data... Lower zoom levels (10-12) take longer
+            </span>
           </div>
         )}
 

@@ -300,8 +300,11 @@ const AdminDivingOrganizations = () => {
                   </td>
                 </tr>
               ) : (
-                filteredOrganizations.map(org => (
-                  <tr key={org.id} className='hover:bg-gray-50'>
+                filteredOrganizations.map((org, index) => (
+                  <tr
+                    key={org.id}
+                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
+                  >
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <input
                         type='checkbox'
@@ -366,7 +369,7 @@ const AdminDivingOrganizations = () => {
                         <button
                           onClick={() =>
                             navigate(
-                              `/admin/diving-organizations/${encodeURIComponent(org.name)}/certifications`
+                              `/admin/diving-organizations/${encodeURIComponent(org.acronym)}/certifications`
                             )
                           }
                           className='text-indigo-600 hover:text-indigo-900 p-1 rounded'
