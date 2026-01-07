@@ -533,12 +533,16 @@ class TestWindDataFetching:
         # Function returns None when no data is available
         assert result is None
 
+    @patch('app.services.open_meteo_service._get_batch_from_database_cache')
+    @patch('app.services.open_meteo_service._get_from_database_cache')
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-01 12:00:00')
-    def test_fetch_wind_data_single_point_forecast_hour_not_found(self, mock_get, monkeypatch):
+    def test_fetch_wind_data_single_point_forecast_hour_not_found(self, mock_get, mock_db_cache, mock_batch_db_cache, monkeypatch):
         """Test forecast when exact hour is not found in response."""
         import app.services.open_meteo_service as oms
         monkeypatch.setattr(oms, '_wind_cache', {})  # Clear cache
+        mock_db_cache.return_value = None
+        mock_batch_db_cache.return_value = {}
         
         target_datetime = datetime(2025, 12, 1, 14, 0, 0)
         
