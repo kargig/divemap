@@ -11,6 +11,9 @@ import TripHeader from '../components/TripHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { renderTextWithLinks } from '../utils/textHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
+
+import NotFound from './NotFound';
+
 const TripDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,7 +27,10 @@ const TripDetail = () => {
     error: tripError,
   } = useQuery(['parsedTrip', id], () => getParsedTrip(id), {
     enabled: !!id,
-    retry: 1,
+    retry: (failureCount, error) => {
+      if (error.response?.status === 404) return false;
+      return failureCount < 1;
+    },
   });
   // Fetch dive site data if trip has dive sites
   const { data: diveSite } = useQuery(
@@ -32,7 +38,10 @@ const TripDetail = () => {
     () => getDiveSite(trip?.dive_site_id),
     {
       enabled: !!trip?.dive_site_id,
-      retry: 1,
+      retry: (failureCount, error) => {
+        if (error.response?.status === 404) return false;
+        return failureCount < 1;
+      },
     }
   );
   // Fetch diving center data
@@ -41,7 +50,10 @@ const TripDetail = () => {
     () => getDivingCenter(trip?.diving_center_id),
     {
       enabled: !!trip?.diving_center_id,
-      retry: 1,
+      retry: (failureCount, error) => {
+        if (error.response?.status === 404) return false;
+        return failureCount < 1;
+      },
     }
   );
 
@@ -185,6 +197,9 @@ const TripDetail = () => {
   }
 
   if (tripError) {
+    if (tripError.response?.status === 404) {
+      return <NotFound />;
+    }
     return (
       <div className='text-center py-8'>
         <div className='text-red-600 text-lg mb-4'>Error loading trip details</div>
@@ -198,17 +213,7 @@ const TripDetail = () => {
     );
   }
   if (!trip) {
-    return (
-      <div className='text-center py-8'>
-        <div className='text-gray-600 text-lg mb-4'>Trip not found</div>
-        <button
-          onClick={() => navigate('/dive-trips')}
-          className='bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
-        >
-          Back to Trips
-        </button>
-      </div>
-    );
+    return <NotFound />;
   }
   return (
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>

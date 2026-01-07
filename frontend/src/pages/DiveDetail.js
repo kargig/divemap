@@ -65,6 +65,8 @@ import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
+import NotFound from './NotFound';
+
 // Custom zoom control component for dive detail page
 const ZoomControl = ({ currentZoom }) => {
   return (
@@ -420,6 +422,10 @@ const DiveDetail = () => {
     },
     {
       enabled: !!id,
+      retry: (failureCount, error) => {
+        if (error.response?.status === 404) return false;
+        return failureCount < 3;
+      },
     }
   );
 
@@ -824,6 +830,10 @@ const DiveDetail = () => {
       );
     }
 
+    if (error.response?.status === 404) {
+      return <NotFound />;
+    }
+
     let errorMessage = 'Unknown error occurred';
     if (error.response?.data?.detail) {
       if (Array.isArray(error.response.data.detail)) {
@@ -849,11 +859,7 @@ const DiveDetail = () => {
   }
 
   if (!dive) {
-    return (
-      <div className='text-center py-8'>
-        <p className='text-gray-600'>Dive not found</p>
-      </div>
-    );
+    return <NotFound />;
   }
 
   return (
