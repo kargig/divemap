@@ -13,6 +13,7 @@ const WindOverlayToggle = ({
   zoomLevel,
   isLoading = false,
   disabled = false,
+  className = '',
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -89,6 +90,7 @@ const WindOverlayToggle = ({
                 : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
           }
           ${isLoading ? 'opacity-50 cursor-wait' : ''}
+          ${className}
         `}
         title={getTooltipText()}
         aria-label={getTooltipText()}
@@ -125,6 +127,7 @@ WindOverlayToggle.propTypes = {
   zoomLevel: PropTypes.number.isRequired,
   isLoading: PropTypes.bool,
   disabled: PropTypes.bool,
+  className: PropTypes.string,
 };
 
 export default WindOverlayToggle;
