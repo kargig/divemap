@@ -272,7 +272,6 @@ const Profile = () => {
     },
     {
       enabled: !!user,
-      refetchInterval: 30000,
     }
   );
 

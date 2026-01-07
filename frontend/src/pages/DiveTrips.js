@@ -95,6 +95,17 @@ const DiveTrips = () => {
   const { sortBy, sortOrder, handleSortChange, resetSorting, getSortParams } =
     useSorting('dive-trips');
 
+  // Wrappers to ensure pagination resets on sort change
+  const handleSortChangeWrapper = (newSortBy, newSortOrder) => {
+    handleSortChange(newSortBy, newSortOrder);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const resetSortingWrapper = () => {
+    resetSorting();
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
   // Get sort options based on user permissions
   const getAvailableSortOptions = () => {
     return getSortOptions('dive-trips', user?.is_admin);
@@ -268,7 +279,14 @@ const DiveTrips = () => {
     isLoading,
     error,
   } = useQuery(
-    ['parsedTrips', filters, sortBy, sortOrder, userLocation, pagination],
+    [
+      'parsedTrips',
+      filters,
+      sortBy,
+      sortOrder,
+      sortBy === 'distance' ? userLocation : null,
+      pagination,
+    ],
     () => {
       // Route search terms intelligently (only for authenticated users)
       const { search_query, location_query } = user
@@ -309,7 +327,7 @@ const DiveTrips = () => {
       return getParsedTrips(params);
     },
     {
-      refetchInterval: 30000, // Refetch every 30 seconds
+      enabled: !loading, // Only fetch when auth check is complete
     }
   );
 
@@ -403,10 +421,7 @@ const DiveTrips = () => {
     return allDiveSites.filter(site => uniqueSiteIds.has(site.id));
   }, [allDiveSites, uniqueSiteIds]);
 
-  // Reset to page 1 when filters or sort options change
-  useEffect(() => {
-    setPagination(prev => ({ ...prev, page: 1 }));
-  }, [filters, sortBy, sortOrder]);
+  // Reset to page 1 when filters or sort options change - REMOVED (handled in handlers)
 
   // Show toast notifications for rate limiting errors
   useEffect(() => {
@@ -838,8 +853,8 @@ const DiveTrips = () => {
             sortBy={sortBy}
             sortOrder={sortOrder}
             sortOptions={getAvailableSortOptions()}
-            onSortChange={handleSortChange}
-            onReset={resetSorting}
+            onSortChange={handleSortChangeWrapper}
+            onReset={resetSortingWrapper}
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
             compactLayout={compactLayout}

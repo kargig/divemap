@@ -148,8 +148,11 @@ const AdminDiveSitesTable = ({
                   </td>
                 </tr>
               ) : (
-                table.getRowModel().rows.map(row => (
-                  <tr key={row.id} className='hover:bg-gray-50'>
+                table.getRowModel().rows.map((row, index) => (
+                  <tr
+                    key={row.id}
+                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
+                  >
                     {row.getVisibleCells().map(cell => {
                       const columnId = cell.column.id;
                       // Allow wrapping for name column (description), tags, and aliases

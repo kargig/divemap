@@ -33,7 +33,7 @@ const WindOverlayToggle = ({
 
   const getTooltipText = () => {
     if (isLoading) {
-      return 'Loading wind data...';
+      return 'Loading wind data...Lower zoom levels (10-12) take longer';
     }
     if (zoomLevel < 10) {
       return 'Zoom in to level 10 or higher to enable wind overlay';
@@ -47,7 +47,7 @@ const WindOverlayToggle = ({
   const getDetailedTooltip = () => {
     if (isLoading) {
       return {
-        title: 'Loading wind data...',
+        title: 'Loading wind data...Lower zoom levels (10-12) take longer',
         description: 'Fetching current wind conditions from weather service',
       };
     }

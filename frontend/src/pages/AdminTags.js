@@ -251,8 +251,11 @@ const AdminTags = () => {
               </tr>
             </thead>
             <tbody className='bg-white divide-y divide-gray-200'>
-              {tags?.map(tag => (
-                <tr key={tag.id} className='hover:bg-gray-50'>
+              {tags?.map((tag, index) => (
+                <tr
+                  key={tag.id}
+                  className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
+                >
                   <td className='px-6 py-4 whitespace-nowrap'>
                     <input
                       type='checkbox'

@@ -853,7 +853,9 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
               ></path>
             </svg>
           </div>
-          <span className='text-sm font-medium'>Loading wind data...</span>
+          <span className='text-sm font-medium'>
+            Loading wind data...Lower zoom levels (10-12) take longer
+          </span>
         </div>
       )}
 
