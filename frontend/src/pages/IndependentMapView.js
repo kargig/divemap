@@ -13,6 +13,7 @@ import {
   Wrench,
   Wind,
   Info,
+  Waves,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGeolocated } from 'react-geolocated';
@@ -427,7 +428,7 @@ const IndependentMapView = () => {
       },
       { replace: true }
     );
-  }, [windOverlayEnabled, windDateTime, selectedLayer, setSearchParams]);
+  }, [windOverlayEnabled, windAnimationEnabled, windDateTime, selectedLayer, setSearchParams]);
 
   // Set default date range for dive-trips when entity type changes
   useEffect(() => {
@@ -907,16 +908,42 @@ const IndependentMapView = () => {
 
                     {/* Wind Overlay Toggle - only show for dive sites */}
                     {selectedEntityType === 'dive-sites' && (
-                      <>
+                      <div className='flex items-center bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden'>
                         <WindOverlayToggle
                           isOverlayEnabled={windOverlayEnabled}
                           onToggle={handleWindOverlayToggle}
                           zoomLevel={currentZoom}
                           isLoading={isWindLoading}
                           disabled={false}
+                          className='!rounded-none !border-none !shadow-none'
                         />
-                        {/* Wind DateTime Picker is now floating on top of map - handled separately below */}
-                      </>
+                        <div className='w-px h-5 bg-gray-200 my-auto'></div>
+                        <button
+                          onClick={() => setWindAnimationEnabled(!windAnimationEnabled)}
+                          disabled={!windOverlayEnabled || currentZoom < 13}
+                          className={`
+                            p-2 transition-colors
+                            ${
+                              !windOverlayEnabled || currentZoom < 13
+                                ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                                : windAnimationEnabled
+                                  ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                                  : 'bg-white text-gray-600 hover:bg-gray-100'
+                            }
+                          `}
+                          title={
+                            !windOverlayEnabled
+                              ? 'Enable wind overlay first'
+                              : currentZoom < 13
+                                ? 'Zoom in to level 13+ to enable animation'
+                                : windAnimationEnabled
+                                  ? 'Disable wind animation'
+                                  : 'Enable wind animation'
+                          }
+                        >
+                          <Waves className='w-4 h-4' />
+                        </button>
+                      </div>
                     )}
 
                     {/* Geolocation button - Smaller on mobile */}
@@ -1150,9 +1177,6 @@ const IndependentMapView = () => {
                     isFetchingWind={isWindFetching}
                     onClose={() => setShowWindSlider(false)}
                     onPrefetch={prefetchWindHours}
-                    isAnimationEnabled={windAnimationEnabled}
-                    onToggleAnimation={setWindAnimationEnabled}
-                    zoomLevel={currentZoom}
                   />
                 </div>
               )}

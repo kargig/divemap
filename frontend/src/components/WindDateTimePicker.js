@@ -1,4 +1,4 @@
-import { X, Waves } from 'lucide-react';
+import { X } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactSlider from 'react-slider';
@@ -22,9 +22,6 @@ const WindDateTimePicker = ({
   isFetchingWind = false,
   onClose = null,
   onPrefetch = null,
-  onToggleAnimation = null,
-  isAnimationEnabled = false,
-  zoomLevel = 0,
 }) => {
   const [sliderValue, setSliderValue] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -293,30 +290,7 @@ const WindDateTimePicker = ({
                 <span className='ml-0.5'>▶</span>
               )}
             </button>
-
-            {/* Animation Toggle Button */}
-            {onToggleAnimation && (
-              <button
-                type='button'
-                onClick={() => onToggleAnimation(!isAnimationEnabled)}
-                disabled={disabled || zoomLevel < 13}
-                className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg transition-colors flex-shrink-0 shadow-sm ${
-                  isAnimationEnabled && zoomLevel >= 13
-                    ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
-                    : 'bg-white text-gray-400 hover:bg-gray-100 border border-gray-200'
-                } ${zoomLevel < 13 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title={
-                  zoomLevel < 13
-                    ? 'Zoom in to level 13+ to enable animation'
-                    : isAnimationEnabled
-                      ? 'Disable wind animation'
-                      : 'Enable wind animation'
-                }
-              >
-                <Waves className='w-3.5 h-3.5 sm:w-4 sm:h-4' />
-              </button>
-            )}
-
+            {/* Close button */}{' '}
             <button
               type='button'
               onClick={handleNowClick}
@@ -445,9 +419,6 @@ WindDateTimePicker.propTypes = {
   isFetchingWind: PropTypes.bool,
   onClose: PropTypes.func,
   onPrefetch: PropTypes.func,
-  onToggleAnimation: PropTypes.func,
-  isAnimationEnabled: PropTypes.bool,
-  zoomLevel: PropTypes.number,
 };
 
 export default WindDateTimePicker;
