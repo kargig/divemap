@@ -29,7 +29,22 @@ const WindOverlay = ({ windData = null, isWindOverlayEnabled = false, maxArrows 
     });
 
     // Limit to maxArrows to prevent performance issues
-    return validPoints.slice(0, maxArrows);
+    if (validPoints.length > maxArrows) {
+      // Use systematic sampling to ensure even distribution across the map area
+      // This prevents the "only bottom half of map" issue caused by simple slicing
+      // since backend returns points ordered by latitude (South -> North)
+      const sampled = [];
+      const step = validPoints.length / maxArrows;
+      for (let i = 0; i < maxArrows; i++) {
+        const index = Math.floor(i * step);
+        if (index < validPoints.length) {
+          sampled.push(validPoints[index]);
+        }
+      }
+      return sampled;
+    }
+
+    return validPoints;
   }, [windData, maxArrows]);
 
   // Create wind arrow icon

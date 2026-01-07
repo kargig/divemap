@@ -865,10 +865,10 @@ const LeafletMapView = ({
     return () => clearTimeout(timer);
   }, [mapMetadata?.bounds]);
 
-  // Fetch wind data when overlay is enabled and zoom >= 12
+  // Fetch wind data when overlay is enabled and zoom >= 10
   const shouldFetchWindData = !!(
     windOverlayEnabled &&
-    mapMetadata?.zoom >= 12 &&
+    mapMetadata?.zoom >= 10 &&
     mapMetadata?.zoom <= 18 &&
     debouncedBounds &&
     selectedEntityType === 'dive-sites'
@@ -941,17 +941,17 @@ const LeafletMapView = ({
     }
   );
 
-  // Auto-disable wind overlay when zoom drops below 12
+  // Auto-disable wind overlay when zoom drops below 10
   useEffect(() => {
-    if (windOverlayEnabled && mapMetadata?.zoom < 12) {
+    if (windOverlayEnabled && mapMetadata?.zoom < 10) {
       setWindOverlayEnabled(false);
     }
   }, [windOverlayEnabled, mapMetadata?.zoom]);
 
-  // Fetch wind recommendations when overlay is enabled and zoom >= 12
+  // Fetch wind recommendations when overlay is enabled and zoom >= 10
   const shouldFetchRecommendations = !!(
     windOverlayEnabled &&
-    mapMetadata?.zoom >= 12 &&
+    mapMetadata?.zoom >= 10 &&
     mapMetadata?.zoom <= 18 &&
     debouncedBounds &&
     selectedEntityType === 'dive-sites'
@@ -1032,10 +1032,10 @@ const LeafletMapView = ({
     const allMarkers = [];
 
     // Determine if suitability indicators should be shown
-    // Only show at zoom 12+ when wind overlay is enabled
+    // Only show at zoom 10+ when wind overlay is enabled
     const showSuitability =
       windOverlayEnabled &&
-      mapMetadata?.zoom >= 12 &&
+      mapMetadata?.zoom >= 10 &&
       mapMetadata?.zoom <= 18 &&
       selectedEntityType === 'dive-sites' &&
       Object.keys(recommendationsMap).length > 0;
@@ -1212,13 +1212,13 @@ const LeafletMapView = ({
         {/* Wind Overlay - only show for dive sites */}
         {selectedEntityType === 'dive-sites' &&
           windOverlayEnabled &&
-          mapMetadata?.zoom >= 12 &&
+          mapMetadata?.zoom >= 10 &&
           mapMetadata?.zoom <= 18 &&
           windData && (
             <WindOverlay
               windData={windData}
               isWindOverlayEnabled={windOverlayEnabled}
-              maxArrows={100}
+              maxArrows={200}
             />
           )}
       </MapContainer>
@@ -1231,8 +1231,8 @@ const LeafletMapView = ({
       {/* Wind loading indicator - show when fetching wind data (initial load or refetch) */}
       {selectedEntityType === 'dive-sites' &&
         windOverlayEnabled &&
-        mapMetadata?.zoom >= 12 &&
-        (isLoadingWind || (isFetchingWind && !windData)) && (
+        mapMetadata?.zoom >= 10 &&
+        (isLoadingWind || isFetchingWind) && (
           <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] bg-white/95 text-gray-800 px-4 py-3 rounded-lg shadow-lg border border-gray-300 flex items-center gap-3'>
             <div className='animate-spin'>
               <svg
@@ -1263,7 +1263,7 @@ const LeafletMapView = ({
       {/* Wind data error indicator */}
       {selectedEntityType === 'dive-sites' &&
         windOverlayEnabled &&
-        mapMetadata?.zoom >= 12 &&
+        mapMetadata?.zoom >= 10 &&
         isWindDataError &&
         windDataError && (
           <WindDataError
@@ -1290,7 +1290,7 @@ const LeafletMapView = ({
       {/* Button to show wind legend - positioned below Map Info button */}
       {selectedEntityType === 'dive-sites' &&
         windOverlayEnabled &&
-        mapMetadata?.zoom >= 12 &&
+        mapMetadata?.zoom >= 10 &&
         !showWindLegend && (
           <button
             onClick={() => setShowWindLegend(true)}
@@ -1306,7 +1306,7 @@ const LeafletMapView = ({
       {/* Wind Overlay Legend - full screen on mobile (below navbar), positioned overlay on desktop */}
       {selectedEntityType === 'dive-sites' &&
         windOverlayEnabled &&
-        mapMetadata?.zoom >= 12 &&
+        mapMetadata?.zoom >= 10 &&
         showWindLegend && (
           <>
             {/* Backdrop for mobile - click to close */}

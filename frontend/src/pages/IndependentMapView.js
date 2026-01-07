@@ -39,16 +39,63 @@ const IndependentMapView = () => {
   const { isMobile } = useResponsive();
   const { navbarVisible } = useResponsiveScroll();
 
+  const MAP_LAYERS = [
+    {
+      id: 'street',
+      name: 'Street Map',
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    {
+      id: 'satellite',
+      name: 'Satellite',
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      attribution: '&copy; <a href="https://www.esri.com/">Esri</a>',
+    },
+    {
+      id: 'terrain',
+      name: 'Terrain',
+      url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+      attribution: '&copy; <a href="https://opentopomap.org/">OpenTopoMap</a>',
+    },
+    {
+      id: 'navigation',
+      name: 'Navigation',
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+  ];
+
   // Viewport state for map
-  const [viewport, setViewport] = useState({
-    longitude: 0,
-    latitude: 0,
-    zoom: 2,
-    bounds: null,
+  const [viewport, setViewport] = useState(() => {
+    // Parse viewport from URL params on mount
+    const lat = parseFloat(searchParams.get('lat'));
+    const lng = parseFloat(searchParams.get('lng'));
+    const zoom = parseFloat(searchParams.get('zoom'));
+
+    if (!isNaN(lat) && !isNaN(lng) && !isNaN(zoom)) {
+      return {
+        longitude: lng,
+        latitude: lat,
+        zoom: zoom,
+        bounds: null,
+      };
+    }
+    return {
+      longitude: 0,
+      latitude: 0,
+      zoom: 2,
+      bounds: null,
+    };
   });
 
   // Track current zoom from map instance for accurate zoom level checks
-  const [currentZoom, setCurrentZoom] = useState(2);
+  const [currentZoom, setCurrentZoom] = useState(() => {
+    const zoom = parseFloat(searchParams.get('zoom'));
+    return !isNaN(zoom) ? zoom : 2;
+  });
 
   // Geolocation using react-geolocated hook
   const { coords, isGeolocationAvailable, isGeolocationEnabled, positionError, getPosition } =
@@ -127,14 +174,18 @@ const IndependentMapView = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMobileControls, setShowMobileControls] = useState(!isMobile);
   const [selectedEntityType, setSelectedEntityType] = useState('dive-sites'); // 'dive-sites', 'diving-centers', 'dives', 'dive-trips'
-  const [windOverlayEnabled, setWindOverlayEnabled] = useState(false);
+  const [windOverlayEnabled, setWindOverlayEnabled] = useState(() => {
+    return searchParams.get('wind') === 'true';
+  });
   // Track if user has dismissed the wind feature promotion banner
   const [windBannerDismissed, setWindBannerDismissed] = useState(() => {
     // Check localStorage for previous dismissal
     const dismissed = localStorage.getItem('windBannerDismissed');
     return dismissed === 'true';
   });
-  const [windDateTime, setWindDateTime] = useState(null); // null = current time, ISO string = specific datetime
+  const [windDateTime, setWindDateTime] = useState(() => {
+    return searchParams.get('time') || null;
+  }); // null = current time, ISO string = specific datetime
   const [isWindLoading, setIsWindLoading] = useState(false);
   const [isWindFetching, setIsWindFetching] = useState(false);
   const [showWindSlider, setShowWindSlider] = useState(true);
@@ -145,7 +196,7 @@ const IndependentMapView = () => {
   // This is called immediately when play is pressed to prefetch upcoming hours
   const prefetchWindHours = useCallback(
     startDateTime => {
-      if (!startDateTime || !viewport.bounds || currentZoom < 12) return;
+      if (!startDateTime || !viewport.bounds || currentZoom < 10) return;
 
       // OPTIMIZATION: Only prefetch one hour per day (not every 3 hours)
       // The backend caches all 24 hours when fetching any hour, so we only need one request per day
@@ -223,12 +274,9 @@ const IndependentMapView = () => {
   const [mapInstance, setMapInstance] = useState(null);
   const [resetTrigger, setResetTrigger] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
-  const [selectedLayer, setSelectedLayer] = useState({
-    id: 'street',
-    name: 'Street Map',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  const [selectedLayer, setSelectedLayer] = useState(() => {
+    const layerId = searchParams.get('layer');
+    return MAP_LAYERS.find(l => l.id === layerId) || MAP_LAYERS[0];
   });
 
   // Filter state
@@ -332,15 +380,44 @@ const IndependentMapView = () => {
     }
 
     // Parse viewport from URL
-    const urlViewport = parseViewportFromURL();
-    if (urlViewport) {
-      setViewport(urlViewport);
-    }
+    // Viewport is already initialized in useState, no need to update it here
+    // unless we want to respond to subsequent URL changes (popstate)
+    // But for now, we only initialize on mount.
 
     // Parse filters from URL
     const urlFilters = parseFiltersFromURL();
     setFilters(prevFilters => ({ ...prevFilters, ...urlFilters }));
   }, [searchParams, parseViewportFromURL, parseFiltersFromURL]); // Only run on mount
+
+  // Sync state to URL (Wind, Time, Layer)
+  useEffect(() => {
+    setSearchParams(
+      prev => {
+        const newParams = new URLSearchParams(prev);
+
+        if (windOverlayEnabled) {
+          newParams.set('wind', 'true');
+        } else {
+          newParams.delete('wind');
+        }
+
+        if (windDateTime) {
+          newParams.set('time', windDateTime);
+        } else {
+          newParams.delete('time');
+        }
+
+        if (selectedLayer && selectedLayer.id !== 'street') {
+          newParams.set('layer', selectedLayer.id);
+        } else {
+          newParams.delete('layer');
+        }
+
+        return newParams;
+      },
+      { replace: true }
+    );
+  }, [windOverlayEnabled, windDateTime, selectedLayer, setSearchParams]);
 
   // Set default date range for dive-trips when entity type changes
   useEffect(() => {
@@ -557,6 +634,19 @@ const IndependentMapView = () => {
       params.set('zoom', shareZoom.toFixed(1));
     }
 
+    // Add wind settings
+    if (windOverlayEnabled) {
+      params.set('wind', 'true');
+    }
+    if (windDateTime) {
+      params.set('time', windDateTime);
+    }
+
+    // Add layer
+    if (selectedLayer && selectedLayer.id !== 'street') {
+      params.set('layer', selectedLayer.id);
+    }
+
     // Add filters
     Object.entries(filters).forEach(([key, value]) => {
       if (key === 'exclude_unspecified_difficulty' && value) {
@@ -734,7 +824,7 @@ const IndependentMapView = () => {
                       <p className='text-xs text-gray-700 mb-2'>
                         View live wind speed, direction, and forecasts on the map. Plan your dives
                         based on current and future weather conditions with interactive wind arrows
-                        and dive site suitability indicators. View a location on Zoom level 12+ and
+                        and dive site suitability indicators. View a location on Zoom level 10+ and
                         activate wind overlay to see the wind conditions.
                       </p>
                       <button
@@ -1034,7 +1124,7 @@ const IndependentMapView = () => {
             {/* Wind DateTime Picker - floating on top of map (hidden when legend is open) */}
             {selectedEntityType === 'dive-sites' &&
               windOverlayEnabled &&
-              currentZoom >= 12 &&
+              currentZoom >= 10 &&
               showWindSlider &&
               !showWindLegend && (
                 <div style={{ zIndex: 30 }}>
@@ -1052,7 +1142,7 @@ const IndependentMapView = () => {
             {/* Button to re-open wind slider when it's hidden */}
             {selectedEntityType === 'dive-sites' &&
               windOverlayEnabled &&
-              currentZoom >= 12 &&
+              currentZoom >= 10 &&
               !showWindSlider && (
                 <button
                   onClick={() => setShowWindSlider(true)}

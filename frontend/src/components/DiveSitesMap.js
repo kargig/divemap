@@ -502,9 +502,9 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
     return () => clearTimeout(timer);
   }, [mapMetadata?.bounds]);
 
-  // Fetch wind data when overlay is enabled and zoom >= 12
+  // Fetch wind data when overlay is enabled and zoom >= 10
   const shouldFetchWindData =
-    windOverlayEnabled && mapMetadata?.zoom >= 12 && mapMetadata?.zoom <= 18 && debouncedBounds;
+    windOverlayEnabled && mapMetadata?.zoom >= 10 && mapMetadata?.zoom <= 18 && debouncedBounds;
   const queryClient = useQueryClient();
 
   const {
@@ -625,9 +625,9 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
     }
   );
 
-  // Fetch wind recommendations when overlay is enabled and zoom >= 12
+  // Fetch wind recommendations when overlay is enabled and zoom >= 11
   const shouldFetchRecommendations =
-    windOverlayEnabled && mapMetadata?.zoom >= 12 && mapMetadata?.zoom <= 18 && debouncedBounds;
+    windOverlayEnabled && mapMetadata?.zoom >= 11 && mapMetadata?.zoom <= 18 && debouncedBounds;
 
   const { data: windRecommendations } = useQuery(
     ['wind-recommendations', debouncedBounds, windDateTime],
@@ -701,7 +701,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
             recommendationsMap={recommendationsMap}
             showSuitability={
               windOverlayEnabled &&
-              mapMetadata?.zoom >= 12 &&
+              mapMetadata?.zoom >= 11 &&
               mapMetadata?.zoom <= 18 &&
               Object.keys(recommendationsMap).length > 0
             }
@@ -711,7 +711,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
             // Get suitability for this dive site if available
             const showSuitability =
               windOverlayEnabled &&
-              mapMetadata?.zoom >= 12 &&
+              mapMetadata?.zoom >= 11 &&
               mapMetadata?.zoom <= 18 &&
               Object.keys(recommendationsMap).length > 0;
             const recommendation = showSuitability ? recommendationsMap[site.id] : null;
@@ -814,50 +814,51 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
           })
         )}
 
-        {/* Wind Overlay - only show when enabled and zoom >= 12 */}
-        {windOverlayEnabled && mapMetadata?.zoom >= 12 && mapMetadata?.zoom <= 18 && windData && (
+        {/* Wind Overlay - only show when enabled and zoom >= 10 */}
+
+        {windOverlayEnabled && mapMetadata?.zoom >= 10 && mapMetadata?.zoom <= 18 && windData && (
           <WindOverlay
             windData={windData}
             isWindOverlayEnabled={windOverlayEnabled}
-            maxArrows={100}
+            maxArrows={200}
           />
         )}
       </MapContainer>
 
       {/* Wind loading indicator - show when fetching wind data (initial load or refetch) */}
+
       {/* OPTIMIZATION: Only show loading if data is not in cache AND is currently fetching */}
-      {windOverlayEnabled &&
-        currentZoom >= 12 &&
-        (isLoadingWind || (isFetchingWind && !windData)) && (
-          <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] bg-white/95 text-gray-800 px-4 py-3 rounded-lg shadow-lg border border-gray-300 flex items-center gap-3'>
-            <div className='animate-spin'>
-              <svg
-                className='w-5 h-5 text-blue-600'
-                xmlns='http://www.w3.org/2000/svg'
-                fill='none'
-                viewBox='0 0 24 24'
-              >
-                <circle
-                  className='opacity-25'
-                  cx='12'
-                  cy='12'
-                  r='10'
-                  stroke='currentColor'
-                  strokeWidth='4'
-                ></circle>
-                <path
-                  className='opacity-75'
-                  fill='currentColor'
-                  d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                ></path>
-              </svg>
-            </div>
-            <span className='text-sm font-medium'>Loading wind data...</span>
+
+      {windOverlayEnabled && currentZoom >= 10 && (isLoadingWind || isFetchingWind) && (
+        <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] bg-white/95 text-gray-800 px-4 py-3 rounded-lg shadow-lg border border-gray-300 flex items-center gap-3'>
+          <div className='animate-spin'>
+            <svg
+              className='w-5 h-5 text-blue-600'
+              xmlns='http://www.w3.org/2000/svg'
+              fill='none'
+              viewBox='0 0 24 24'
+            >
+              <circle
+                className='opacity-25'
+                cx='12'
+                cy='12'
+                r='10'
+                stroke='currentColor'
+                strokeWidth='4'
+              ></circle>
+              <path
+                className='opacity-75'
+                fill='currentColor'
+                d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+              ></path>
+            </svg>
           </div>
-        )}
+          <span className='text-sm font-medium'>Loading wind data...</span>
+        </div>
+      )}
 
       {/* Wind data error indicator */}
-      {windOverlayEnabled && currentZoom >= 12 && isWindDataError && windDataError && (
+      {windOverlayEnabled && currentZoom >= 10 && isWindDataError && windDataError && (
         <WindDataError
           error={windDataError}
           onRetry={() => refetchWindData()}
@@ -885,7 +886,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
       </div>
 
       {/* Button to show wind legend - positioned below zoom info (since DiveSitesMap doesn't have Map Info button) */}
-      {windOverlayEnabled && currentZoom >= 12 && !showWindLegend && (
+      {windOverlayEnabled && currentZoom >= 10 && !showWindLegend && (
         <button
           onClick={() => setShowWindLegend(true)}
           className='absolute left-2 top-20 sm:left-4 sm:top-24 z-40 bg-white/90 backdrop-blur-sm hover:bg-white text-gray-700 text-[10px] sm:text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-sm border border-gray-200 transition-colors flex items-center gap-1'
@@ -898,7 +899,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
       )}
 
       {/* Wind DateTime Picker - floating on top of map (hidden when legend is open on mobile) */}
-      {windOverlayEnabled && currentZoom >= 12 && !showWindLegend && (
+      {windOverlayEnabled && currentZoom >= 10 && !showWindLegend && (
         <WindDateTimePicker
           value={windDateTime}
           onChange={setWindDateTime}
@@ -908,7 +909,7 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
       )}
 
       {/* Wind Overlay Legend - full screen on mobile (below navbar), positioned overlay on desktop */}
-      {windOverlayEnabled && currentZoom >= 12 && showWindLegend && (
+      {windOverlayEnabled && currentZoom >= 10 && showWindLegend && (
         <>
           {/* Backdrop for mobile - click to close */}
           <div
