@@ -33,6 +33,8 @@ import { useSetting } from '../hooks/useSettings';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
+import NotFound from './NotFound';
+
 // Use extractErrorMessage from api.js
 const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
 
@@ -66,7 +68,10 @@ const DivingCenterDetail = () => {
     () => api.get(`/api/v1/diving-centers/${id}`).then(response => response.data),
     {
       enabled: !!id,
-      retry: 3,
+      retry: (failureCount, error) => {
+        if (error.response?.status === 404) return false;
+        return failureCount < 3;
+      },
       retryDelay: 1000,
       staleTime: 5 * 60 * 1000, // 5 minutes
       cacheTime: 10 * 60 * 1000, // 10 minutes,
@@ -92,8 +97,11 @@ const DivingCenterDetail = () => {
     ['diving-center-organizations', id],
     () => api.get(`/api/v1/diving-centers/${id}/organizations`).then(res => res.data),
     {
-      enabled: !!id,
-      retry: 3,
+      enabled: !!id && !!center,
+      retry: (failureCount, error) => {
+        if (error.response?.status === 404) return false;
+        return failureCount < 3;
+      },
       retryDelay: 1000,
       keepPreviousData: true, // Keep previous data while refetching
     }
@@ -121,8 +129,11 @@ const DivingCenterDetail = () => {
     () => api.get(`/api/v1/diving-centers/${id}/comments`),
     {
       select: response => response.data,
-      enabled: !!id,
-      retry: 3,
+      enabled: !!id && !!center,
+      retry: (failureCount, error) => {
+        if (error.response?.status === 404) return false;
+        return failureCount < 3;
+      },
       retryDelay: 1000,
       keepPreviousData: true, // Keep previous data while refetching
     }
@@ -182,8 +193,11 @@ const DivingCenterDetail = () => {
         sort_order: 'desc',
       }),
     {
-      enabled: !!id, // Fetch for all users to show preview
-      retry: 2,
+      enabled: !!id && !!center, // Fetch for all users to show preview
+      retry: (failureCount, error) => {
+        if (error.response?.status === 404) return false;
+        return failureCount < 2;
+      },
       staleTime: 2 * 60 * 1000, // 2 minutes
     }
   );
@@ -455,6 +469,10 @@ const DivingCenterDetail = () => {
       );
     }
 
+    if (error.response?.status === 404) {
+      return <NotFound />;
+    }
+
     return (
       <div className='min-h-screen bg-gray-50 py-8'>
         <div className='max-w-4xl mx-auto px-4'>
@@ -468,28 +486,22 @@ const DivingCenterDetail = () => {
   }
 
   // Don't render the main content if center is not loaded, if there's an error, or if center data is invalid
-  if (!center || error || !center.name) {
+  if (!center || !center.name) {
+    if (!isLoading) {
+      return <NotFound />;
+    }
     return (
       <div className='min-h-screen bg-gray-50 py-8'>
         <div className='max-w-4xl mx-auto px-4'>
           <div className='bg-white rounded-lg shadow-md p-6'>
-            {error ? (
-              <div>
-                <h1 className='text-2xl font-bold text-red-600 mb-4'>Error</h1>
-                <p className='text-gray-600'>
-                  Failed to load diving center: {getErrorMessage(error)}
-                </p>
+            <div className='animate-pulse'>
+              <div className='h-8 bg-gray-200 rounded w-1/4 mb-4'></div>
+              <div className='space-y-3'>
+                <div className='h-4 bg-gray-200 rounded'></div>
+                <div className='h-4 bg-gray-200 rounded w-5/6'></div>
+                <div className='h-4 bg-gray-200 rounded w-4/6'></div>
               </div>
-            ) : (
-              <div className='animate-pulse'>
-                <div className='h-8 bg-gray-200 rounded w-1/4 mb-4'></div>
-                <div className='space-y-3'>
-                  <div className='h-4 bg-gray-200 rounded'></div>
-                  <div className='h-4 bg-gray-200 rounded w-5/6'></div>
-                  <div className='h-4 bg-gray-200 rounded w-4/6'></div>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

@@ -43,6 +43,8 @@ import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
+import NotFound from './NotFound';
+
 // Use extractErrorMessage from api.js
 const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
 
@@ -102,6 +104,10 @@ const DiveSiteDetail = () => {
     error,
   } = useQuery(['dive-site', id], () => api.get(`/api/v1/dive-sites/${id}`), {
     select: response => response.data,
+    retry: (failureCount, error) => {
+      if (error.response?.status === 404) return false;
+      return failureCount < 3;
+    },
     onSuccess: _data => {},
     onError: _error => {
       // Error handled by error state
@@ -118,6 +124,7 @@ const DiveSiteDetail = () => {
     () => api.get(`/api/v1/dive-sites/${id}/comments`),
     {
       select: response => response.data,
+      enabled: !!id && !!diveSite,
     }
   );
 
@@ -126,6 +133,7 @@ const DiveSiteDetail = () => {
     () => api.get(`/api/v1/dive-sites/${id}/media`),
     {
       select: response => response.data,
+      enabled: !!id && !!diveSite,
     }
   );
 
@@ -134,6 +142,7 @@ const DiveSiteDetail = () => {
     () => api.get(`/api/v1/dive-sites/${id}/diving-centers`),
     {
       select: response => response.data,
+      enabled: !!id && !!diveSite,
     }
   );
 
@@ -323,6 +332,10 @@ const DiveSiteDetail = () => {
       );
     }
 
+    if (error.response?.status === 404) {
+      return <NotFound />;
+    }
+
     return (
       <div className='text-center py-12'>
         <p className='text-red-600'>Error loading dive site. Please try again.</p>
@@ -332,12 +345,7 @@ const DiveSiteDetail = () => {
   }
 
   if (!diveSite) {
-    return (
-      <div className='text-center py-12'>
-        <p className='text-gray-600'>Dive site not found.</p>
-        <p className='text-sm text-gray-500 mt-2'>ID: {id}</p>
-      </div>
-    );
+    return <NotFound />;
   }
 
   const getMetaDescription = () => {
