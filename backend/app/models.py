@@ -4,6 +4,7 @@ from app.database import Base
 import enum
 import sqlalchemy as sa
 from sqlalchemy import event, text
+from sqlalchemy.dialects.mysql import LONGTEXT
 WKTElement = None  # Avoid geoalchemy2 dependency in tests/CI
 
 # Helper functions for difficulty code conversion
@@ -390,6 +391,7 @@ class ParsedDiveTrip(Base):
     diving_center = relationship("DivingCenter", back_populates="dive_trips")
     dives = relationship("ParsedDive", back_populates="trip", cascade="all, delete-orphan")
 
+
 class ParsedDive(Base):
     __tablename__ = "parsed_dives"
 
@@ -411,7 +413,7 @@ class Newsletter(Base):
     __tablename__ = "newsletters"
 
     id = Column(Integer, primary_key=True)
-    content = Column(Text, nullable=False)
+    content = Column(LONGTEXT, nullable=False)
     received_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 class AvailableTag(Base):
