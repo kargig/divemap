@@ -512,7 +512,8 @@ const DiveSiteDetail = () => {
             {(() => {
               const isOwner = user?.id === diveSite?.created_by;
               const isAdmin = user?.is_admin;
-              const shouldShowEdit = isOwner || isAdmin;
+              const isModerator = user?.is_moderator;
+              const shouldShowEdit = isOwner || isAdmin || isModerator;
 
               return (
                 shouldShowEdit && (
