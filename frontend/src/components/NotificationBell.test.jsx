@@ -1,7 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import NotificationBell from './NotificationBell';
 import { BrowserRouter } from 'react-router-dom';
+import { describe, it, expect, vi } from 'vitest';
+
+import NotificationBell from './NotificationBell';
 
 // Mock dependencies
 vi.mock('../contexts/NotificationContext', () => ({
@@ -10,10 +11,16 @@ vi.mock('../contexts/NotificationContext', () => ({
 }));
 
 vi.mock('react-query', () => ({
-  useQuery: () => ({ 
+  useQuery: () => ({
     data: [
-      { id: 1, title: 'Test Notification', message: 'Test Message', is_read: false, created_at: new Date().toISOString() }
-    ] 
+      {
+        id: 1,
+        title: 'Test Notification',
+        message: 'Test Message',
+        is_read: false,
+        created_at: new Date().toISOString(),
+      },
+    ],
   }),
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
@@ -48,17 +55,23 @@ describe('NotificationBell', () => {
 
     // Find the dropdown container by inspecting the parent of a known element or by role if applicable
     // The dropdown has "fixed left-2 right-2..."
-    // Let's find the text "Notifications" which is in the header of the dropdown, 
+    // Let's find the text "Notifications" which is in the header of the dropdown,
     // and traverse up to the container.
     const headerTitle = screen.getByText('Notifications');
     // The structure is: div(dropdown) > div(header) > div > Link(Title)
     const dropdownContainer = headerTitle.closest('.fixed'); // searching for the fixed class we added
 
     expect(dropdownContainer).toBeInTheDocument();
-    
+
     // Check for the specific classes we added
     expect(dropdownContainer).toHaveClass('fixed', 'left-2', 'right-2', 'top-16', 'mt-2', 'w-auto');
-    expect(dropdownContainer).toHaveClass('sm:absolute', 'sm:right-0', 'sm:top-full', 'sm:left-auto', 'sm:w-80');
+    expect(dropdownContainer).toHaveClass(
+      'sm:absolute',
+      'sm:right-0',
+      'sm:top-full',
+      'sm:left-auto',
+      'sm:w-80'
+    );
     expect(dropdownContainer).toHaveClass('max-h-[70vh]', 'sm:max-h-96');
   });
 });
