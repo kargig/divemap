@@ -97,8 +97,15 @@ Migrations are handled by Alembic.
     ```bash
     sudo chown $USER:$USER backend/migrations/versions/0053_...
     ```
+5.  **Validation:** After creating and renaming the migration, verify that it (and all previous migrations) can run successfully from scratch against a temporary database:
+    ```bash
+    cd backend
+    ./docker-test-github-actions.sh
+    ```
+    This prevents broken migrations from reaching production.
+6.  **Debugging:** Agents should inspect `backend/test-failures.txt` to identify issues without reading thousands of lines of build output.
 
-**Running Migrations:**
+**Running Migrations (Local Dev):**
 ```bash
 docker-compose exec backend python run_migrations.py
 ```
