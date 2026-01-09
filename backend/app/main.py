@@ -612,8 +612,29 @@ async def lazy_router_loading(request: Request, call_next):
     if (path.startswith("/api/v1/weather") or is_docs) and not hasattr(app, '_weather_router_loaded'):
         load_weather_router()
     
+    # Load short links router
+    if (path.startswith("/l/") or path.startswith("/api/v1/short-links") or is_docs) and not hasattr(app, '_short_links_router_loaded'):
+        load_short_links_router()
+    
     response = await call_next(request)
     return response
+
+def load_short_links_router():
+    """Load short links router lazily when first accessed"""
+    if not hasattr(app, '_short_links_router_loaded'):
+        print("🔧 Loading short links router lazily...")
+        router_start = time.time()
+        
+        from app.routers import short_links
+        # Mount the creation endpoint under API
+        app.include_router(short_links.api_router, prefix="/api/v1/short-links", tags=["Short Links"])
+        # Mount the redirection endpoint at /l
+        app.include_router(short_links.redirect_router, prefix="/l", tags=["Short Links Redirection"])
+        
+        app._short_links_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Short links router loaded lazily in {router_time:.2f}s")
+
 
 @app.get("/")
 async def root():

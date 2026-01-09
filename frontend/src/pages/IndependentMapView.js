@@ -276,6 +276,7 @@ const IndependentMapView = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [mapInstance, setMapInstance] = useState(null);
   const [resetTrigger, setResetTrigger] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
@@ -680,11 +681,21 @@ const IndependentMapView = () => {
   }, [selectedEntityType, viewport, filters, mapInstance]);
 
   // Handle share button click
-  const handleShareClick = () => {
-    const url = generateShareUrl();
-    setShareUrl(url);
-    setShowShareModal(true);
-    setCopySuccess(false);
+  const handleShareClick = async () => {
+    const longUrl = generateShareUrl();
+    setIsGeneratingLink(true);
+    try {
+      const response = await api.post('/api/v1/short-links/create', { url: longUrl });
+      setShareUrl(response.data.short_url);
+    } catch (error) {
+      console.error("Failed to generate short link", error);
+      // Fallback to long URL if shortening fails
+      setShareUrl(longUrl);
+    } finally {
+      setIsGeneratingLink(false);
+      setShowShareModal(true);
+      setCopySuccess(false);
+    }
   };
 
   // Handle copy to clipboard
@@ -990,10 +1001,15 @@ const IndependentMapView = () => {
                     {/* Share button - Smaller on mobile */}
                     <button
                       onClick={handleShareClick}
-                      className='p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600'
+                      disabled={isGeneratingLink}
+                      className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600 ${isGeneratingLink ? 'opacity-50 cursor-not-allowed' : ''}`}
                       title='Share current map view'
                     >
-                      <Share2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                      {isGeneratingLink ? (
+                        <Loader2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 animate-spin' />
+                      ) : (
+                        <Share2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                      )}
                     </button>
 
                     {/* Fullscreen button - Smaller on mobile */}

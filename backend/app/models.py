@@ -100,6 +100,14 @@ class CertificationLevel(Base):
     diving_organization = relationship("DivingOrganization", back_populates="certification_levels")
     user_certifications = relationship("UserCertification", back_populates="certification_level_link")
 
+class ShortLink(Base):
+    __tablename__ = "short_links"
+
+    id = Column(String(10), primary_key=True, index=True)
+    original_url = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+
 class User(Base):
     __tablename__ = "users"
 
@@ -665,7 +673,7 @@ class Setting(Base):
 class WindDataCache(Base):
     """
     Database cache for Open-Meteo wind data.
-    
+
     Provides persistent caching across server restarts and enables shared cache
     across multiple backend instances. Cache entries automatically expire after TTL.
     """
@@ -680,7 +688,7 @@ class WindDataCache(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     expires_at = Column(DateTime(timezone=True), nullable=False, index=True)  # TTL expiration time (created_at + 15 minutes)
     last_accessed_at = Column(DateTime(timezone=True), nullable=True, index=True)  # Last time this cache entry was accessed
-    
+
     # Composite index for efficient lookups by location and datetime
     __table_args__ = (
         sa.Index('idx_wind_cache_lat_lon_datetime', 'latitude', 'longitude', 'target_datetime'),
