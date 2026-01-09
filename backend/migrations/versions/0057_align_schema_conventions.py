@@ -31,26 +31,38 @@ def upgrade() -> None:
         except Exception as e:
             print(f"Warning: Could not create index '{index_name}' on table '{table_name}'. It might already exist. Error: {e}")
 
+    def safe_drop_constraint(constraint_name, table_name, type_='foreignkey'):
+        try:
+            op.drop_constraint(constraint_name, table_name, type_=type_)
+        except Exception as e:
+            print(f"Warning: Could not drop constraint '{constraint_name}' on table '{table_name}'. It might not exist. Error: {e}")
+
+    def safe_create_foreign_key(constraint_name, source_table, referent_table, local_cols, remote_cols, **kw):
+        try:
+            op.create_foreign_key(constraint_name, source_table, referent_table, local_cols, remote_cols, **kw)
+        except Exception as e:
+            print(f"Warning: Could not create foreign key '{constraint_name}' on table '{source_table}'. It might already exist. Error: {e}")
+
     # 1. Drop Foreign Keys
-    op.drop_constraint('center_comments_ibfk_2', 'center_comments', type_='foreignkey')
-    op.drop_constraint('center_comments_ibfk_1', 'center_comments', type_='foreignkey')
-    op.drop_constraint('center_dive_sites_ibfk_2', 'center_dive_sites', type_='foreignkey')
-    op.drop_constraint('center_dive_sites_ibfk_1', 'center_dive_sites', type_='foreignkey')
-    op.drop_constraint('center_ratings_ibfk_1', 'center_ratings', type_='foreignkey')
-    op.drop_constraint('center_ratings_ibfk_2', 'center_ratings', type_='foreignkey')
-    op.drop_constraint('dive_buddies_ibfk_1', 'dive_buddies', type_='foreignkey')
-    op.drop_constraint('dive_buddies_ibfk_2', 'dive_buddies', type_='foreignkey')
-    op.drop_constraint('fk_dive_sites_difficulty_id', 'dive_sites', type_='foreignkey')
-    op.drop_constraint('fk_dives_difficulty_id', 'dives', type_='foreignkey')
-    op.drop_constraint('gear_rental_costs_ibfk_1', 'gear_rental_costs', type_='foreignkey')
-    op.drop_constraint('parsed_dive_trips_ibfk_1', 'parsed_dive_trips', type_='foreignkey')
-    op.drop_constraint('fk_parsed_dive_trips_difficulty_id', 'parsed_dive_trips', type_='foreignkey')
-    op.drop_constraint('refresh_tokens_ibfk_1', 'refresh_tokens', type_='foreignkey')
-    op.drop_constraint('site_comments_ibfk_1', 'site_comments', type_='foreignkey')
-    op.drop_constraint('site_comments_ibfk_2', 'site_comments', type_='foreignkey')
-    op.drop_constraint('site_media_ibfk_1', 'site_media', type_='foreignkey')
-    op.drop_constraint('site_ratings_ibfk_2', 'site_ratings', type_='foreignkey')
-    op.drop_constraint('site_ratings_ibfk_1', 'site_ratings', type_='foreignkey')
+    safe_drop_constraint('center_comments_ibfk_2', 'center_comments', type_='foreignkey')
+    safe_drop_constraint('center_comments_ibfk_1', 'center_comments', type_='foreignkey')
+    safe_drop_constraint('center_dive_sites_ibfk_2', 'center_dive_sites', type_='foreignkey')
+    safe_drop_constraint('center_dive_sites_ibfk_1', 'center_dive_sites', type_='foreignkey')
+    safe_drop_constraint('center_ratings_ibfk_1', 'center_ratings', type_='foreignkey')
+    safe_drop_constraint('center_ratings_ibfk_2', 'center_ratings', type_='foreignkey')
+    safe_drop_constraint('dive_buddies_ibfk_1', 'dive_buddies', type_='foreignkey')
+    safe_drop_constraint('dive_buddies_ibfk_2', 'dive_buddies', type_='foreignkey')
+    safe_drop_constraint('fk_dive_sites_difficulty_id', 'dive_sites', type_='foreignkey')
+    safe_drop_constraint('fk_dives_difficulty_id', 'dives', type_='foreignkey')
+    safe_drop_constraint('gear_rental_costs_ibfk_1', 'gear_rental_costs', type_='foreignkey')
+    safe_drop_constraint('parsed_dive_trips_ibfk_1', 'parsed_dive_trips', type_='foreignkey')
+    safe_drop_constraint('fk_parsed_dive_trips_difficulty_id', 'parsed_dive_trips', type_='foreignkey')
+    safe_drop_constraint('refresh_tokens_ibfk_1', 'refresh_tokens', type_='foreignkey')
+    safe_drop_constraint('site_comments_ibfk_1', 'site_comments', type_='foreignkey')
+    safe_drop_constraint('site_comments_ibfk_2', 'site_comments', type_='foreignkey')
+    safe_drop_constraint('site_media_ibfk_1', 'site_media', type_='foreignkey')
+    safe_drop_constraint('site_ratings_ibfk_2', 'site_ratings', type_='foreignkey')
+    safe_drop_constraint('site_ratings_ibfk_1', 'site_ratings', type_='foreignkey')
 
     # 2. Drop Old Indexes
     safe_drop_index('idx_center_id', table_name='center_comments')
@@ -327,26 +339,26 @@ def upgrade() -> None:
     safe_create_index(op.f('ix_wind_data_cache_target_datetime'), 'wind_data_cache', ['target_datetime'], unique=False)
 
     # 5. Recreate Foreign Keys
-    op.create_foreign_key(None, 'center_comments', 'users', ['user_id'], ['id'])
-    op.create_foreign_key(None, 'center_comments', 'diving_centers', ['diving_center_id'], ['id'])
-    op.create_foreign_key(None, 'center_dive_sites', 'dive_sites', ['dive_site_id'], ['id'])
-    op.create_foreign_key(None, 'center_dive_sites', 'diving_centers', ['diving_center_id'], ['id'])
-    op.create_foreign_key(None, 'center_ratings', 'users', ['user_id'], ['id'])
-    op.create_foreign_key(None, 'center_ratings', 'diving_centers', ['diving_center_id'], ['id'])
-    op.create_foreign_key(None, 'dive_buddies', 'dives', ['dive_id'], ['id'])
-    op.create_foreign_key(None, 'dive_buddies', 'users', ['user_id'], ['id'])
-    op.create_foreign_key(None, 'dive_sites', 'difficulty_levels', ['difficulty_id'], ['id'])
-    op.create_foreign_key(None, 'dives', 'difficulty_levels', ['difficulty_id'], ['id'])
-    op.create_foreign_key(None, 'gear_rental_costs', 'diving_centers', ['diving_center_id'], ['id'])
-    op.create_foreign_key(None, 'parsed_dive_trips', 'difficulty_levels', ['trip_difficulty_id'], ['id'])
-    op.create_foreign_key(None, 'parsed_dive_trips', 'newsletters', ['source_newsletter_id'], ['id'])
-    op.create_foreign_key(None, 'parsed_dive_trips', 'diving_centers', ['diving_center_id'], ['id'])
-    op.create_foreign_key(None, 'refresh_tokens', 'users', ['user_id'], ['id'])
-    op.create_foreign_key(None, 'site_comments', 'users', ['user_id'], ['id'])
-    op.create_foreign_key(None, 'site_comments', 'dive_sites', ['dive_site_id'], ['id'])
-    op.create_foreign_key(None, 'site_media', 'dive_sites', ['dive_site_id'], ['id'])
-    op.create_foreign_key(None, 'site_ratings', 'users', ['user_id'], ['id'])
-    op.create_foreign_key(None, 'site_ratings', 'dive_sites', ['dive_site_id'], ['id'])
+    safe_create_foreign_key(None, 'center_comments', 'users', ['user_id'], ['id'])
+    safe_create_foreign_key(None, 'center_comments', 'diving_centers', ['diving_center_id'], ['id'])
+    safe_create_foreign_key(None, 'center_dive_sites', 'dive_sites', ['dive_site_id'], ['id'])
+    safe_create_foreign_key(None, 'center_dive_sites', 'diving_centers', ['diving_center_id'], ['id'])
+    safe_create_foreign_key(None, 'center_ratings', 'users', ['user_id'], ['id'])
+    safe_create_foreign_key(None, 'center_ratings', 'diving_centers', ['diving_center_id'], ['id'])
+    safe_create_foreign_key(None, 'dive_buddies', 'dives', ['dive_id'], ['id'])
+    safe_create_foreign_key(None, 'dive_buddies', 'users', ['user_id'], ['id'])
+    safe_create_foreign_key(None, 'dive_sites', 'difficulty_levels', ['difficulty_id'], ['id'])
+    safe_create_foreign_key(None, 'dives', 'difficulty_levels', ['difficulty_id'], ['id'])
+    safe_create_foreign_key(None, 'gear_rental_costs', 'diving_centers', ['diving_center_id'], ['id'])
+    safe_create_foreign_key(None, 'parsed_dive_trips', 'difficulty_levels', ['trip_difficulty_id'], ['id'])
+    safe_create_foreign_key(None, 'parsed_dive_trips', 'newsletters', ['source_newsletter_id'], ['id'])
+    safe_create_foreign_key(None, 'parsed_dive_trips', 'diving_centers', ['diving_center_id'], ['id'])
+    safe_create_foreign_key(None, 'refresh_tokens', 'users', ['user_id'], ['id'])
+    safe_create_foreign_key(None, 'site_comments', 'users', ['user_id'], ['id'])
+    safe_create_foreign_key(None, 'site_comments', 'dive_sites', ['dive_site_id'], ['id'])
+    safe_create_foreign_key(None, 'site_media', 'dive_sites', ['dive_site_id'], ['id'])
+    safe_create_foreign_key(None, 'site_ratings', 'users', ['user_id'], ['id'])
+    safe_create_foreign_key(None, 'site_ratings', 'dive_sites', ['dive_site_id'], ['id'])
     # ### end Alembic commands ###
 
 
@@ -404,6 +416,7 @@ def downgrade() -> None:
                type_=mysql.TIMESTAMP(),
                existing_nullable=True,
                existing_server_default=sa.text('CURRENT_TIMESTAMP'))
+    op.create_index(op.f('_user_platform_uc'), 'user_social_links', ['user_id', 'platform'], unique=True)
     op.drop_index(op.f('ix_unsubscribe_tokens_user_id'), table_name='unsubscribe_tokens')
     op.drop_index(op.f('ix_unsubscribe_tokens_token'), table_name='unsubscribe_tokens')
     op.drop_index(op.f('ix_unsubscribe_tokens_id'), table_name='unsubscribe_tokens')
