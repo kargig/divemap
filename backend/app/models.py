@@ -164,6 +164,11 @@ class UserSocialLink(Base):
     # Relationships
     user = relationship("User", back_populates="social_links")
 
+    # Unique constraint to prevent duplicate platforms for the same user
+    __table_args__ = (
+        sa.UniqueConstraint('user_id', 'platform', name='_user_platform_uc'),
+   )
+
 class DiveSite(Base):
     __tablename__ = "dive_sites"
 
@@ -388,7 +393,7 @@ class ParsedDiveTrip(Base):
 class ParsedDive(Base):
     __tablename__ = "parsed_dives"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     trip_id = Column(Integer, ForeignKey("parsed_dive_trips.id"), nullable=False, index=True)
     dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), index=True)
     dive_number = Column(Integer, nullable=False)  # 1 for first dive, 2 for second dive, etc.
@@ -405,14 +410,14 @@ class ParsedDive(Base):
 class Newsletter(Base):
     __tablename__ = "newsletters"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     content = Column(Text, nullable=False)
     received_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 class AvailableTag(Base):
     __tablename__ = "available_tags"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     name = Column(String(100), unique=True, nullable=False, index=True)
     description = Column(Text)
     created_by = Column(Integer, ForeignKey("users.id"))
@@ -425,7 +430,7 @@ class AvailableTag(Base):
 class DiveSiteTag(Base):
     __tablename__ = "dive_site_tags"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), nullable=False, index=True)
     tag_id = Column(Integer, ForeignKey("available_tags.id"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -437,7 +442,7 @@ class DiveSiteTag(Base):
 class DivingCenterOrganization(Base):
     __tablename__ = "diving_center_organizations"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
     diving_organization_id = Column(Integer, ForeignKey("diving_organizations.id"), nullable=False, index=True)
     is_primary = Column(Boolean, default=False)
@@ -451,10 +456,10 @@ class OwnershipRequest(Base):
     __tablename__ = "ownership_requests"
 
     id = Column(Integer, primary_key=True, index=True)
-    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    request_status = Column(Enum(OwnershipStatus), nullable=False)  # claimed, approved, denied, revoked
-    request_date = Column(DateTime(timezone=True), server_default=func.now())
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    request_status = Column(Enum(OwnershipStatus), nullable=False, index=True)  # claimed, approved, denied, revoked
+    request_date = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     processed_date = Column(DateTime(timezone=True), nullable=True)
     processed_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # admin who processed the request
     reason = Column(Text, nullable=True)  # reason for approval/denial/revocation
