@@ -46,12 +46,16 @@ docker-compose up -d
 ⚠️ **CRITICAL SAFETY WARNING:** NEVER run tests inside the `divemap_backend` container (e.g., `docker-compose exec backend pytest`). It connects to the live development database, and the test suite's teardown process WILL WIPE THE DATABASE.
 
 **Correct Testing Methods:**
-1.  **Isolated Docker (Recommended):**
+1.  **Isolated Docker (Recommended - Token Efficient):**
+    This script sets up a separate, ephemeral test environment. By default, it runs in **silent mode**, suppressing build and setup logs to save context tokens.
     ```bash
     cd backend
-    ./docker-test-github-actions.sh
+    ./docker-test-github-actions.sh [tests/test_file.py]
     ```
-    *This script sets up a separate, ephemeral test environment.*
+    - **Success:** Returns `All tests passed!`.
+    - **Failure:** Returns `Tests failed!` and saves the error log to `test-failures.txt`.
+    - **Debugging:** Agents should inspect `backend/test-failures.txt` to identify issues without reading thousands of lines of build output.
+    - **Verbose Mode:** Use `-v` (e.g., `./docker-test-github-actions.sh -v`) for full output (not recommended for agents).
 
 2.  **Host Venv (Alternative):**
     ```bash
