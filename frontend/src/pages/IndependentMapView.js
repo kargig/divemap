@@ -688,7 +688,7 @@ const IndependentMapView = () => {
       const response = await api.post('/api/v1/short-links/create', { url: longUrl });
       setShareUrl(response.data.short_url);
     } catch (error) {
-      console.error("Failed to generate short link", error);
+      console.error('Failed to generate short link', error);
       // Fallback to long URL if shortening fails
       setShareUrl(longUrl);
     } finally {
