@@ -607,6 +607,20 @@ const DiveSites = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
+  const getMediaLink = site => {
+    let link = `/dive-sites/${site.id}?tab=media`;
+    if (site.thumbnail_id) {
+      link += `&mediaId=${site.thumbnail_id}`;
+      if (site.thumbnail_source) {
+        link += `&source=${site.thumbnail_source}`;
+      }
+      if (site.thumbnail_type) {
+        link += `&type=${site.thumbnail_type}`;
+      }
+    }
+    return link;
+  };
+
   // Error handling is now done within the content area to preserve hero section
 
   return (
@@ -803,7 +817,7 @@ const DiveSites = () => {
                       <div className='flex gap-4 sm:gap-6'>
                         {site.thumbnail && (
                           <Link
-                            to={`/dive-sites/${site.id}?tab=media`}
+                            to={getMediaLink(site)}
                             className='shrink-0 w-24 h-24 sm:w-40 sm:h-32 rounded-lg overflow-hidden bg-gray-100 hidden sm:block'
                           >
                             <img
@@ -814,7 +828,7 @@ const DiveSites = () => {
                             />
                           </Link>
                         )}
-                        <div className='flex flex-col space-y-4 flex-1 min-w-0'>
+                        <div className='flex flex-col space-y-3 sm:space-y-4 flex-1 min-w-0'>
                           {/* HEADER ROW */}
                           <div className='flex items-start justify-between gap-4'>
                             <div className='flex-1 min-w-0'>
@@ -888,27 +902,47 @@ const DiveSites = () => {
                             )}
                           </div>
 
-                          {/* Meta Byline (Creator) */}
-                          {site.created_by_username && (
-                            <div className='text-xs text-gray-500 flex items-center gap-1.5 mb-2'>
-                              <div className='flex items-center gap-1'>
-                                <User className='w-3.5 h-3.5' />
-                                <span>{site.created_by_username}</span>
-                              </div>
-                            </div>
-                          )}
+                          {/* Content Row: Byline, Description, and Mobile Thumbnail */}
+                          <div className='flex gap-4 items-start'>
+                            <div className='flex-1 min-w-0'>
+                              {/* Meta Byline (Creator) */}
+                              {site.created_by_username && (
+                                <div className='text-xs text-gray-500 flex items-center gap-1.5 mb-2'>
+                                  <div className='flex items-center gap-1'>
+                                    <User className='w-3.5 h-3.5' />
+                                    <span>{site.created_by_username}</span>
+                                  </div>
+                                </div>
+                              )}
 
-                          {/* BODY: Description */}
-                          {site.description && (
-                            <div
-                              className={`text-gray-600 leading-relaxed line-clamp-2 ${compactLayout ? 'text-xs' : 'text-sm'}`}
-                            >
-                              {renderTextWithLinks(decodeHtmlEntities(site.description), {
-                                shorten: false,
-                                isUGC: true,
-                              })}
+                              {/* BODY: Description */}
+                              {site.description && (
+                                <div
+                                  className={`text-gray-600 leading-relaxed line-clamp-3 ${compactLayout ? 'text-xs' : 'text-sm'}`}
+                                >
+                                  {renderTextWithLinks(decodeHtmlEntities(site.description), {
+                                    shorten: false,
+                                    isUGC: true,
+                                  })}
+                                </div>
+                              )}
                             </div>
-                          )}
+
+                            {/* Mobile Thumbnail */}
+                            {site.thumbnail && (
+                              <Link
+                                to={getMediaLink(site)}
+                                className='sm:hidden shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-gray-100'
+                              >
+                                <img
+                                  src={site.thumbnail}
+                                  alt={site.name}
+                                  className='w-full h-full object-cover'
+                                  loading='lazy'
+                                />
+                              </Link>
+                            )}
+                          </div>
 
                           {/* STATS STRIP (De-boxed) */}
                           <div className='flex flex-wrap gap-x-8 gap-y-3 py-3 border-y border-gray-50'>
@@ -1014,7 +1048,7 @@ const DiveSites = () => {
                     >
                       {site.thumbnail && (
                         <Link
-                          to={`/dive-sites/${site.id}?tab=media`}
+                          to={getMediaLink(site)}
                           className='block w-full aspect-video overflow-hidden bg-gray-100'
                         >
                           <img

@@ -70,6 +70,9 @@ const DiveSiteDetail = () => {
   const [activeMediaTab, setActiveMediaTab] = useState('photos');
   const [activeContentTab, setActiveContentTab] = useState('description');
   const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(new Map());
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [autoOpenVideoId, setAutoOpenVideoId] = useState(null);
 
   // Handle route drawing button click with authentication check
   const handleDrawRouteClick = () => {
@@ -319,6 +322,48 @@ const DiveSiteDetail = () => {
       }
     }
   }, [diveSite, media, location.search]);
+
+  // Handle deep linking to specific media
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const mediaId = searchParams.get('mediaId');
+    const source = searchParams.get('source'); // 'site_media' or 'dive_media'
+    const type = searchParams.get('type');
+    const autoPlay = searchParams.get('autoPlay') === 'true';
+
+    // Ensure media data is loaded and we are on the media tab
+    if (media && media.length > 0 && mediaId && activeContentTab === 'media') {
+      if (type === 'photo') {
+        // ... (existing photo logic)
+        // ...
+      } else if (type === 'video') {
+        // Find video item to construct ID
+        const video = videos.find(v => {
+          const isDiveMedia = !!v.dive_id;
+          const vSource = isDiveMedia ? 'dive_media' : 'site_media';
+          if (source) {
+            return String(v.id) === String(mediaId) && vSource === source;
+          }
+          return String(v.id) === String(mediaId);
+        });
+
+        if (video) {
+          setActiveMediaTab('videos');
+          if (autoPlay) {
+            setAutoOpenVideoId(`${video.dive_id ? `dive-${video.dive_id}-` : 'site-'}${video.id}`);
+          }
+          // Scroll to video
+          setTimeout(() => {
+            const elementId = `video-${video.dive_id ? `dive-${video.dive_id}-` : 'site-'}${video.id}`;
+            const element = document.getElementById(elementId);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 500); // Delay to ensure tab content is rendered
+        }
+      }
+    }
+  }, [media, activeContentTab, location.search, photos, videos]);
 
   if (isLoading) {
     return (
@@ -710,8 +755,10 @@ const DiveSiteDetail = () => {
                   {activeMediaTab === 'photos' && photos.length > 0 && (
                     <div>
                       <Lightbox
-                        open={false}
-                        close={() => {}}
+                        open={isLightboxOpen}
+                        close={() => setIsLightboxOpen(false)}
+                        index={lightboxIndex}
+                        on={{ view: ({ index }) => setLightboxIndex(index) }}
                         slides={photoSlides}
                         plugins={[Captions, Slideshow, Fullscreen, Thumbnails]}
                         render={{ slide: ReactImage, thumbnail: ReactImage }}
@@ -725,6 +772,7 @@ const DiveSiteDetail = () => {
                       {videos.map(item => (
                         <div
                           key={`video-${item.dive_id ? `dive-${item.dive_id}-` : 'site-'}${item.id}`}
+                          id={`video-${item.dive_id ? `dive-${item.dive_id}-` : 'site-'}${item.id}`}
                           className='border rounded-lg overflow-hidden'
                         >
                           <div className='relative'>
@@ -732,7 +780,15 @@ const DiveSiteDetail = () => {
                               url={item.url}
                               description={item.description}
                               className='w-full'
-                              openInNewTab={true}
+                              openInNewTab={false}
+                              autoOpen={
+                                autoOpenVideoId ===
+                                `${item.dive_id ? `dive-${item.dive_id}-` : 'site-'}${item.id}`
+                              }
+                              autoPlay={
+                                autoOpenVideoId ===
+                                `${item.dive_id ? `dive-${item.dive_id}-` : 'site-'}${item.id}`
+                              }
                             />
                           </div>
                         </div>
