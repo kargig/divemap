@@ -31,6 +31,7 @@ import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { useSetting } from '../hooks/useSettings';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
+import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 import NotFound from './NotFound';
@@ -39,7 +40,7 @@ import NotFound from './NotFound';
 const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
 
 const DivingCenterDetail = () => {
-  const { id } = useParams();
+  const { id, slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -78,6 +79,16 @@ const DivingCenterDetail = () => {
       keepPreviousData: true, // Keep previous data while refetching
     }
   );
+
+  // Redirect to canonical URL with slug
+  useEffect(() => {
+    if (center && center.name) {
+      const expectedSlug = slugify(center.name);
+      if (!slug || slug !== expectedSlug) {
+        navigate(`/diving-centers/${id}/${expectedSlug}${location.search}`, { replace: true });
+      }
+    }
+  }, [center, id, slug, navigate, location.search]);
 
   // Show toast notifications for rate limiting errors
   useEffect(() => {

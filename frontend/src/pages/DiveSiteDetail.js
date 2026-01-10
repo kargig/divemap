@@ -46,6 +46,7 @@ import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
+import { slugify } from '../utils/slugify';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
@@ -55,7 +56,7 @@ import NotFound from './NotFound';
 const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
 
 const DiveSiteDetail = () => {
-  const { id } = useParams();
+  const { id, slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -123,6 +124,16 @@ const DiveSiteDetail = () => {
       // Error handled by error state
     },
   });
+
+  // Redirect to canonical URL with slug
+  useEffect(() => {
+    if (diveSite && diveSite.name) {
+      const expectedSlug = slugify(diveSite.name);
+      if (!slug || slug !== expectedSlug) {
+        navigate(`/dive-sites/${id}/${expectedSlug}${location.search}`, { replace: true });
+      }
+    }
+  }, [diveSite, id, slug, navigate, location.search]);
 
   // Show toast notifications for rate limiting errors
   useEffect(() => {

@@ -63,6 +63,7 @@ import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpe
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { calculateRouteBearings, formatBearing } from '../utils/routeUtils';
+import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 import NotFound from './NotFound';
@@ -320,7 +321,7 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
 };
 
 const DiveDetail = () => {
-  const { id } = useParams();
+  const { id, slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -428,6 +429,17 @@ const DiveDetail = () => {
       },
     }
   );
+
+  // Redirect to canonical URL with slug
+  useEffect(() => {
+    if (dive) {
+      const name = dive.name || dive.dive_site?.name || 'unnamed-dive-site';
+      const expectedSlug = slugify(name);
+      if (!slug || slug !== expectedSlug) {
+        navigate(`/dives/${id}/${expectedSlug}${location.search}`, { replace: true });
+      }
+    }
+  }, [dive, id, slug, navigate, location.search]);
 
   // Fetch dive media separately (not included in main dive response)
   const { data: diveMedia = [] } = useQuery(['dive-media', id], () => getDiveMedia(id), {
@@ -1530,7 +1542,7 @@ const DiveDetail = () => {
                   </p>
                 )}
                 <RouterLink
-                  to={`/dive-sites/${dive.dive_site.id}`}
+                  to={`/dive-sites/${dive.dive_site.id}/${slugify(dive.dive_site.name)}`}
                   state={{ from: window.location.pathname + window.location.search }}
                   className='text-blue-600 hover:text-blue-800 text-sm'
                 >
