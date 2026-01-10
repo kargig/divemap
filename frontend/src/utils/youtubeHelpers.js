@@ -36,13 +36,24 @@ export const extractYouTubeVideoId = url => {
 /**
  * Generate YouTube embed URL from video ID
  * @param {string} videoId - YouTube video ID
+ * @param {Object} options - Embed options (e.g., autoplay)
  * @returns {string} - YouTube embed URL
  */
-export const getYouTubeEmbedUrl = videoId => {
+export const getYouTubeEmbedUrl = (videoId, options = {}) => {
   if (!videoId) {
     return null;
   }
-  return `https://www.youtube.com/embed/${videoId}`;
+  const url = `https://www.youtube.com/embed/${videoId}`;
+  const params = new URLSearchParams();
+
+  if (options.autoplay) {
+    params.set('autoplay', '1');
+    // For autoplay to work in many browsers, you also need to mute it
+    params.set('mute', '1');
+  }
+
+  const queryString = params.toString();
+  return queryString ? `${url}?${queryString}` : url;
 };
 
 /**

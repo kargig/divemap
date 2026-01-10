@@ -267,6 +267,9 @@ class DiveSiteResponse(DiveSiteBase):
     shore_direction_method: Optional[str] = None  # Method used: 'osm_coastline', 'manual', 'ai', etc.
     shore_direction_distance_m: Optional[float] = None  # Distance to coastline in meters
     thumbnail: Optional[str] = None  # Thumbnail URL for the dive site
+    thumbnail_type: Optional[str] = None  # 'video' or 'photo'
+    thumbnail_source: Optional[str] = None  # 'site_media' or 'dive_media'
+    thumbnail_id: Optional[int] = None  # ID of the media item
 
     @field_validator('created_at', 'updated_at', mode='before')
     @classmethod

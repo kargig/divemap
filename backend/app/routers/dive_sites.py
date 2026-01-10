@@ -1159,23 +1159,39 @@ async def get_dive_sites(
 
         # Get thumbnail
         thumbnail = None
+        thumbnail_type = None
+        thumbnail_source = None
+        thumbnail_id = None
+
         if detail_level in ['basic', 'full']:
-            # Get all media from SiteMedia
-            site_media_urls = [r[0] for r in db.query(SiteMedia.url).filter(
+            # Get all media from SiteMedia (id, media_type, url)
+            site_media = db.query(SiteMedia.id, SiteMedia.media_type, SiteMedia.url).filter(
                 SiteMedia.dive_site_id == site.id
-            ).all()]
+            ).all()
             
-            # Get all media from DiveMedia
-            dive_media_urls = [r[0] for r in db.query(DiveMedia.url).join(Dive).filter(
+            # Get all media from DiveMedia (id, media_type, url)
+            dive_media = db.query(DiveMedia.id, DiveMedia.media_type, DiveMedia.url).join(Dive).filter(
                 Dive.dive_site_id == site.id
-            ).all()]
+            ).all()
             
-            # Combine all media URLs
-            all_media_urls = site_media_urls + dive_media_urls
+            # Combine all media items with source info
+            # Format: (media_object, source_string)
+            all_media = [(m, 'site_media') for m in site_media] + [(m, 'dive_media') for m in dive_media]
             
             # Pick one randomly if available
-            if all_media_urls:
-                thumbnail = random.choice(all_media_urls)
+            if all_media:
+                selected_media, source = random.choice(all_media)
+                thumbnail = selected_media.url
+                thumbnail_id = selected_media.id
+                thumbnail_source = source
+                
+                # Determine media type
+                # Handle Enum or string value for media_type
+                media_type_val = selected_media.media_type
+                if hasattr(media_type_val, 'value'):
+                    thumbnail_type = media_type_val.value
+                else:
+                    thumbnail_type = str(media_type_val)
 
             if thumbnail:
                 if thumbnail.startswith('user_'):
@@ -1189,6 +1205,10 @@ async def get_dive_sites(
                     if match:
                         video_id = match.group(1)
                         thumbnail = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
+                    
+                    # Ensure type is video for YouTube links
+                    if thumbnail_type != 'video':
+                        thumbnail_type = 'video'
 
         # Get tags and aliases only for full detail level
         tags_dict = []
@@ -1246,6 +1266,9 @@ async def get_dive_sites(
                 "difficulty_label": site.difficulty.label if site.difficulty else None,
                 "average_rating": float(avg_rating) if avg_rating else None,
                 "thumbnail": thumbnail,
+                "thumbnail_type": thumbnail_type,
+                "thumbnail_source": thumbnail_source,
+                "thumbnail_id": thumbnail_id,
             }
         else:
             # Full: all fields
@@ -1280,6 +1303,9 @@ async def get_dive_sites(
                 "tags": tags_dict,
                 "aliases": aliases_dict,
                 "thumbnail": thumbnail,
+                "thumbnail_type": thumbnail_type,
+                "thumbnail_source": thumbnail_source,
+                "thumbnail_id": thumbnail_id,
             }
 
             # Only include view_count for admin users
