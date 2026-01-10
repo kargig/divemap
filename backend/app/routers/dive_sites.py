@@ -1644,9 +1644,16 @@ async def get_dive_site(
             detail="Dive site not found"
         )
 
-    # Increment view count
-    dive_site.view_count += 1
+    # Increment view count without updating updated_at
+    db.query(DiveSite).filter(DiveSite.id == dive_site.id).update(
+        {
+            DiveSite.view_count: DiveSite.view_count + 1,
+            DiveSite.updated_at: DiveSite.updated_at
+        },
+        synchronize_session=False
+    )
     db.commit()
+    db.refresh(dive_site)
 
     # Calculate average rating
     avg_rating = db.query(func.avg(SiteRating.score)).filter(
