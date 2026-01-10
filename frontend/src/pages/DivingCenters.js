@@ -36,6 +36,7 @@ import { useSetting } from '../hooks/useSettings';
 import useSorting from '../hooks/useSorting';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
+import { slugify } from '../utils/slugify';
 import { getSortOptions } from '../utils/sortOptions';
 
 // Use extractErrorMessage from api.js
@@ -729,7 +730,7 @@ const DivingCenters = () => {
                             <div className='flex items-center gap-2 flex-1 min-w-0'>
                               <h3 className='font-semibold text-gray-900 text-sm flex-1 min-w-0'>
                                 <Link
-                                  to={`/diving-centers/${center.id}`}
+                                  to={`/diving-centers/${center.id}/${slugify(center.name)}`}
                                   state={{
                                     from: window.location.pathname + window.location.search,
                                   }}
@@ -846,7 +847,7 @@ const DivingCenters = () => {
                         {/* Right side - Actions */}
                         <div className='flex flex-col gap-2 flex-shrink-0'>
                           <Link
-                            to={`/diving-centers/${center.id}`}
+                            to={`/diving-centers/${center.id}/${slugify(center.name)}`}
                             state={{ from: location.pathname + location.search }}
                             className='hidden sm:inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors'
                           >
@@ -894,7 +895,7 @@ const DivingCenters = () => {
                                 className={`font-bold text-gray-900 line-clamp-2 flex-1 min-w-0 ${compactLayout ? 'text-sm' : 'text-lg'}`}
                               >
                                 <Link
-                                  to={`/diving-centers/${center.id}`}
+                                  to={`/diving-centers/${center.id}/${slugify(center.name)}`}
                                   state={{
                                     from: window.location.pathname + window.location.search,
                                   }}
@@ -1080,7 +1081,7 @@ const DivingCenters = () => {
                         {/* Action buttons */}
                         <div className='flex gap-2'>
                           <Link
-                            to={`/diving-centers/${center.id}`}
+                            to={`/diving-centers/${center.id}/${slugify(center.name)}`}
                             state={{ from: location.pathname + location.search }}
                             className='hidden sm:flex-1 sm:inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors hover:shadow-md'
                           >

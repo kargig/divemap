@@ -1513,7 +1513,9 @@ const DiveDetail = () => {
                 <div className='flex gap-2 pt-4 border-t border-gray-200'>
                   <button
                     onClick={() =>
-                      navigate(`/dive-sites/${dive.dive_site_id}/route/${dive.selected_route.id}`)
+                      navigate(
+                        `/dive-sites/${dive.dive_site_id}/route/${dive.selected_route.id}/${slugify(dive.selected_route.name)}`
+                      )
                     }
                     className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700'
                   >
@@ -1567,7 +1569,7 @@ const DiveDetail = () => {
                   </p>
                 )}
                 <RouterLink
-                  to={`/diving-centers/${dive.diving_center.id}`}
+                  to={`/diving-centers/${dive.diving_center.id}/${slugify(dive.diving_center.name)}`}
                   state={{ from: window.location.pathname + window.location.search }}
                   className='text-blue-600 hover:text-blue-800 text-sm'
                 >

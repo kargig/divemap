@@ -541,7 +541,7 @@ const DiveTrips = () => {
       <div className='flex items-center gap-1.5 sm:gap-2'>
         {diveSiteId ? (
           <Link
-            to={`/dive-sites/${diveSiteId}`}
+            to={`/dive-sites/${diveSiteId}/${slugify(diveSiteName)}`}
             state={{ from: window.location.pathname + window.location.search }}
             className='text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors truncate leading-tight'
           >
@@ -1076,7 +1076,7 @@ const DiveTrips = () => {
                         <span className='text-sm text-gray-600'>
                           {trip.diving_center_id && trip.diving_center_name ? (
                             <Link
-                              to={`/diving-centers/${trip.diving_center_id}`}
+                              to={`/diving-centers/${trip.diving_center_id}/${slugify(trip.diving_center_name)}`}
                               state={{ from: window.location.pathname + window.location.search }}
                               className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
                             >
@@ -1432,7 +1432,7 @@ const DiveTrips = () => {
                             {trip.diving_center_id && trip.diving_center_name ? (
                               user ? (
                                 <Link
-                                  to={`/diving-centers/${trip.diving_center_id}`}
+                                  to={`/diving-centers/${trip.diving_center_id}/${slugify(trip.diving_center_name)}`}
                                   className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
                                 >
                                   {trip.diving_center_name}

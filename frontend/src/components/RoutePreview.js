@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { formatDate } from '../utils/dateHelpers';
 import { getSmartRouteColor, getRouteTypeLabel } from '../utils/routeUtils';
+import { slugify } from '../utils/slugify';
 
 import Modal from './ui/Modal';
 
@@ -63,7 +64,7 @@ const RoutePreview = ({
     if (onRouteClick) {
       onRouteClick(route);
     } else {
-      navigate(`/dive-sites/${diveSiteId}/route/${route.id}`);
+      navigate(`/dive-sites/${diveSiteId}/route/${route.id}/${slugify(route.name)}`);
     }
   };
 

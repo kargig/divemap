@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { formatDate } from '../utils/dateHelpers';
 import { getRouteTypeLabel } from '../utils/routeUtils';
+import { slugify } from '../utils/slugify';
 
 const PopularRoutes = ({ limit = 10 }) => {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ const PopularRoutes = ({ limit = 10 }) => {
   );
 
   const handleRouteClick = route => {
-    navigate(`/dive-sites/${route.dive_site_id}/route/${route.id}`);
+    navigate(`/dive-sites/${route.dive_site_id}/route/${route.id}/${slugify(route.name)}`);
   };
 
   if (isLoading) {

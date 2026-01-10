@@ -34,6 +34,7 @@ import {
   createResolver,
   getErrorMessage,
 } from '../utils/formHelpers';
+import { slugify } from '../utils/slugify';
 
 const Profile = () => {
   // Set page title
@@ -589,7 +590,7 @@ const Profile = () => {
                         {ownedDivingCenters.map(center => (
                           <Link
                             key={center.id}
-                            to={`/diving-centers/${center.id}`}
+                            to={`/diving-centers/${center.id}/${slugify(center.name)}`}
                             className='block text-blue-600 hover:text-blue-800 font-medium text-sm'
                           >
                             {center.name}
