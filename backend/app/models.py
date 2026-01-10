@@ -240,8 +240,8 @@ class SiteRating(Base):
     __tablename__ = "site_ratings"
 
     id = Column(Integer, primary_key=True, index=True)
-    dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     score = Column(Integer, nullable=False)  # 1-10
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -253,7 +253,7 @@ class SiteComment(Base):
     __tablename__ = "site_comments"
 
     id = Column(Integer, primary_key=True, index=True)
-    dive_site_id = Column(Integer, ForeignKey("dive_sites.id"), nullable=False, index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     comment_text = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -382,7 +382,7 @@ class ParsedDiveTrip(Base):
     trip_description = Column(Text, nullable=True)
     special_requirements = Column(Text, nullable=True)
     trip_status = Column(Enum(TripStatus), default=TripStatus.scheduled, nullable=False, index=True)
-    source_newsletter_id = Column(Integer, ForeignKey("newsletters.id"))
+    source_newsletter_id = Column(Integer, ForeignKey("newsletters.id", ondelete="SET NULL"))
     view_count = Column(Integer, default=0, nullable=False)  # Number of views
     extracted_at = Column(DateTime(timezone=True), server_default=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -581,7 +581,7 @@ class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
     id = Column(String(255), primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     token_hash = Column(String(255), nullable=False)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
