@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import difflib
 import orjson
 import uuid
+import random
 from pathlib import Path
 from app.services.r2_storage_service import get_r2_storage
 from app.database import get_db
@@ -1156,6 +1157,39 @@ async def get_dive_sites(
                 SiteComment.dive_site_id == site.id
             ).scalar()
 
+        # Get thumbnail
+        thumbnail = None
+        if detail_level in ['basic', 'full']:
+            # Get all media from SiteMedia
+            site_media_urls = [r[0] for r in db.query(SiteMedia.url).filter(
+                SiteMedia.dive_site_id == site.id
+            ).all()]
+            
+            # Get all media from DiveMedia
+            dive_media_urls = [r[0] for r in db.query(DiveMedia.url).join(Dive).filter(
+                Dive.dive_site_id == site.id
+            ).all()]
+            
+            # Combine all media URLs
+            all_media_urls = site_media_urls + dive_media_urls
+            
+            # Pick one randomly if available
+            if all_media_urls:
+                thumbnail = random.choice(all_media_urls)
+
+            if thumbnail:
+                if thumbnail.startswith('user_'):
+                     r2_storage = get_r2_storage()
+                     thumbnail = r2_storage.get_photo_url(thumbnail)
+                elif 'youtube.com' in thumbnail or 'youtu.be' in thumbnail:
+                    # Extract YouTube video ID and convert to thumbnail
+                    import re
+                    youtube_regex = r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^?&]+)'
+                    match = re.search(youtube_regex, thumbnail)
+                    if match:
+                        video_id = match.group(1)
+                        thumbnail = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
+
         # Get tags and aliases only for full detail level
         tags_dict = []
         aliases_dict = []
@@ -1211,6 +1245,7 @@ async def get_dive_sites(
                 "difficulty_code": site.difficulty.code if site.difficulty else None,
                 "difficulty_label": site.difficulty.label if site.difficulty else None,
                 "average_rating": float(avg_rating) if avg_rating else None,
+                "thumbnail": thumbnail,
             }
         else:
             # Full: all fields
@@ -1243,7 +1278,8 @@ async def get_dive_sites(
                 "created_by": site.created_by,
                 "created_by_username": creator_username,
                 "tags": tags_dict,
-                "aliases": aliases_dict
+                "aliases": aliases_dict,
+                "thumbnail": thumbnail,
             }
 
             # Only include view_count for admin users

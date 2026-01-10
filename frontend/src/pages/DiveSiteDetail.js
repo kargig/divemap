@@ -17,7 +17,13 @@ import {
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useNavigate, useParams, useLocation, Link as RouterLink } from 'react-router-dom';
+import {
+  useNavigate,
+  useParams,
+  useLocation,
+  useSearchParams,
+  Link as RouterLink,
+} from 'react-router-dom';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
 import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
 import Inline from 'yet-another-react-lightbox/plugins/inline';
@@ -52,6 +58,7 @@ const DiveSiteDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -297,17 +304,21 @@ const DiveSiteDetail = () => {
     description: item.description || '',
   }));
 
-  // Set initial content tab based on available content
+  // Set initial content tab based on available content or URL param
   useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab');
+
     if (diveSite && media) {
-      // Default to description if available, otherwise media
-      if (diveSite.description) {
+      if (tabParam === 'media' && media.length > 0) {
+        setActiveContentTab('media');
+      } else if (diveSite.description) {
         setActiveContentTab('description');
       } else if (media && media.length > 0) {
         setActiveContentTab('media');
       }
     }
-  }, [diveSite, media]);
+  }, [diveSite, media, location.search]);
 
   if (isLoading) {
     return (
@@ -618,7 +629,12 @@ const DiveSiteDetail = () => {
                 <nav className='flex space-x-8'>
                   {diveSite.description && (
                     <button
-                      onClick={() => setActiveContentTab('description')}
+                      onClick={() =>
+                        setSearchParams(prev => {
+                          prev.set('tab', 'description');
+                          return prev;
+                        })
+                      }
                       className={`py-2 px-1 border-b-2 font-medium text-sm ${
                         activeContentTab === 'description'
                           ? 'border-blue-500 text-blue-600'
@@ -630,7 +646,12 @@ const DiveSiteDetail = () => {
                   )}
                   {media && media.length > 0 && (
                     <button
-                      onClick={() => setActiveContentTab('media')}
+                      onClick={() =>
+                        setSearchParams(prev => {
+                          prev.set('tab', 'media');
+                          return prev;
+                        })
+                      }
                       className={`py-2 px-1 border-b-2 font-medium text-sm ${
                         activeContentTab === 'media'
                           ? 'border-blue-500 text-blue-600'

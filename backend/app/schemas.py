@@ -266,6 +266,7 @@ class DiveSiteResponse(DiveSiteBase):
     shore_direction_confidence: Optional[str] = None  # Confidence level: 'high', 'medium', 'low'
     shore_direction_method: Optional[str] = None  # Method used: 'osm_coastline', 'manual', 'ai', etc.
     shore_direction_distance_m: Optional[float] = None  # Distance to coastline in meters
+    thumbnail: Optional[str] = None  # Thumbnail URL for the dive site
 
     @field_validator('created_at', 'updated_at', mode='before')
     @classmethod
