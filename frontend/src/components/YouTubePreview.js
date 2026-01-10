@@ -14,16 +14,31 @@ import Modal from './ui/Modal';
  * YouTube video preview component that shows thumbnail with play button
  * and opens video in modal or new tab on click
  */
-const YouTubePreview = ({ url, description, className = '', onPlay, openInNewTab = true }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+const YouTubePreview = ({
+  url,
+  description,
+  className = '',
+  onPlay,
+  openInNewTab = true,
+  autoOpen = false,
+  autoPlay = false,
+}) => {
+  const [isModalOpen, setIsModalOpen] = useState(autoOpen);
   const videoId = extractYouTubeVideoId(url);
+
+  // Sync isModalOpen with autoOpen if it changes
+  React.useEffect(() => {
+    if (autoOpen) {
+      setIsModalOpen(true);
+    }
+  }, [autoOpen]);
 
   if (!videoId) {
     return null;
   }
 
   const thumbnailUrl = getYouTubeThumbnailUrl(videoId, 'maxres');
-  const embedUrl = getYouTubeEmbedUrl(videoId);
+  const embedUrl = getYouTubeEmbedUrl(videoId, { autoplay: autoPlay || isModalOpen });
   const watchUrl = getYouTubeWatchUrl(videoId);
 
   const handleClick = () => {
