@@ -7,6 +7,7 @@ import {
   Activity,
   Users,
   FileText,
+  Edit,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -61,6 +62,8 @@ const AdminRecentActivity = () => {
         return <User className='h-4 w-4' />;
       case 'content_creation':
         return <FileText className='h-4 w-4' />;
+      case 'content_update':
+        return <Edit className='h-4 w-4' />;
       case 'engagement':
         return <MessageSquare className='h-4 w-4' />;
       default:
@@ -74,6 +77,8 @@ const AdminRecentActivity = () => {
         return 'text-blue-600 bg-blue-100';
       case 'content_creation':
         return 'text-green-600 bg-green-100';
+      case 'content_update':
+        return 'text-yellow-600 bg-yellow-100';
       case 'engagement':
         return 'text-purple-600 bg-purple-100';
       default:
@@ -119,6 +124,7 @@ const AdminRecentActivity = () => {
     total: activities?.length || 0,
     user_registrations: activities?.filter(a => a.type === 'user_registration').length || 0,
     content_creation: activities?.filter(a => a.type === 'content_creation').length || 0,
+    content_update: activities?.filter(a => a.type === 'content_update').length || 0,
     engagement: activities?.filter(a => a.type === 'engagement').length || 0,
   };
 
@@ -161,7 +167,7 @@ const AdminRecentActivity = () => {
       </div>
 
       {/* Activity Statistics */}
-      <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-8'>
+      <div className='grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8'>
         <div className='bg-white p-6 rounded-lg border shadow-sm'>
           <div className='flex items-center justify-between'>
             <div>
@@ -189,6 +195,16 @@ const AdminRecentActivity = () => {
               <p className='text-2xl font-bold text-gray-900'>{activityStats.content_creation}</p>
             </div>
             <FileText className='h-8 w-8 text-purple-600' />
+          </div>
+        </div>
+
+        <div className='bg-white p-6 rounded-lg border shadow-sm'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <p className='text-sm font-medium text-gray-600'>Content Updated</p>
+              <p className='text-2xl font-bold text-gray-900'>{activityStats.content_update}</p>
+            </div>
+            <Edit className='h-8 w-8 text-yellow-600' />
           </div>
         </div>
 
@@ -234,6 +250,7 @@ const AdminRecentActivity = () => {
               <option value='all'>All Activities</option>
               <option value='user_registration'>User Registrations</option>
               <option value='content_creation'>Content Creation</option>
+              <option value='content_update'>Content Updates</option>
               <option value='engagement'>Engagement</option>
             </select>
           </div>

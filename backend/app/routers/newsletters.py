@@ -2118,6 +2118,17 @@ async def get_parsed_trip(
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
 
+    # Increment view count without updating updated_at
+    db.query(ParsedDiveTrip).filter(ParsedDiveTrip.id == trip.id).update(
+        {
+            ParsedDiveTrip.view_count: ParsedDiveTrip.view_count + 1,
+            ParsedDiveTrip.updated_at: ParsedDiveTrip.updated_at
+        },
+        synchronize_session=False
+    )
+    db.commit()
+    db.refresh(trip)
+
     return ParsedDiveTripResponse(
         id=trip.id,
         diving_center_id=trip.diving_center_id,

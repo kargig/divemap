@@ -74,6 +74,7 @@ class DivingOrganization(Base):
     description = Column(Text)
     country = Column(String(100))
     founded_year = Column(Integer)
+    view_count = Column(Integer, default=0, nullable=False)  # Number of views
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -382,6 +383,7 @@ class ParsedDiveTrip(Base):
     special_requirements = Column(Text, nullable=True)
     trip_status = Column(Enum(TripStatus), default=TripStatus.scheduled, nullable=False, index=True)
     source_newsletter_id = Column(Integer, ForeignKey("newsletters.id"))
+    view_count = Column(Integer, default=0, nullable=False)  # Number of views
     extracted_at = Column(DateTime(timezone=True), server_default=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -618,6 +620,7 @@ class DiveRoute(Base):
     description = Column(Text)
     route_data = Column(sa.JSON, nullable=False)  # Multi-segment GeoJSON FeatureCollection
     route_type = Column(Enum(RouteType), nullable=False)
+    view_count = Column(Integer, default=0, nullable=False)  # Number of views
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     # Soft delete fields
