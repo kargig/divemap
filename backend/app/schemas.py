@@ -599,6 +599,7 @@ class DivingOrganizationUpdate(BaseModel):
 
 class DivingOrganizationResponse(DivingOrganizationBase):
     id: int
+    view_count: int = 0
     created_at: datetime
     updated_at: datetime
     certification_levels: List[CertificationLevelResponse] = []
@@ -953,6 +954,7 @@ class ParsedDiveTripResponse(BaseModel):
     trip_description: Optional[str] = None
     special_requirements: Optional[str] = None
     trip_status: str = "scheduled"
+    view_count: int = 0
     diving_center_name: Optional[str] = None
     dives: List[ParsedDiveResponse] = []  # List of dives in this trip
     source_newsletter_id: Optional[int] = None  # ID of the source newsletter
@@ -1227,6 +1229,7 @@ class DiveRouteResponse(DiveRouteBase):
     id: int
     dive_site_id: int
     created_by: int
+    view_count: int = 0
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None

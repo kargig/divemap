@@ -48,6 +48,11 @@ pages**
 - [Node.js 20 Upgrade Guide](./nodejs-20-upgrade-guide.md) -
   **Complete guide to Node.js 20 upgrade and frontend improvements**
 
+### Architecture & Database Patterns
+
+- [View Count Architecture](./view-count-architecture.md) -
+  **Explanation of the "silent update" pattern and future scaling strategies**
+
 ## Recent Updates
 
 ### August 2025

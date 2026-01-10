@@ -291,6 +291,17 @@ async def get_route(
             detail="Route not found"
         )
     
+    # Increment view count without updating updated_at
+    db.query(DiveRoute).filter(DiveRoute.id == route.id).update(
+        {
+            DiveRoute.view_count: DiveRoute.view_count + 1,
+            DiveRoute.updated_at: DiveRoute.updated_at
+        },
+        synchronize_session=False
+    )
+    db.commit()
+    db.refresh(route)
+    
     # Add related data
     route_dict = route.__dict__.copy()
     route_dict['dive_site'] = {

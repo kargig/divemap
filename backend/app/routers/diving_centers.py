@@ -1158,9 +1158,16 @@ async def get_diving_center(
             detail="Diving center not found"
         )
 
-    # Increment view count
-    diving_center.view_count += 1
+    # Increment view count without updating updated_at
+    db.query(DivingCenter).filter(DivingCenter.id == diving_center.id).update(
+        {
+            DivingCenter.view_count: DivingCenter.view_count + 1,
+            DivingCenter.updated_at: DivingCenter.updated_at
+        },
+        synchronize_session=False
+    )
     db.commit()
+    db.refresh(diving_center)
 
     # Check if reviews are enabled
     reviews_enabled = is_diving_center_reviews_enabled(db)

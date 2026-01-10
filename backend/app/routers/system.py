@@ -677,6 +677,137 @@ async def get_recent_activity(
             "details": f"New dive logged: {dive.name or 'Unnamed dive'}",
             "status": "success"
         })
+
+    # Content creation - Dive Trips
+    new_trips = db.query(ParsedDiveTrip).filter(
+        ParsedDiveTrip.created_at >= start_time
+    ).order_by(desc(ParsedDiveTrip.created_at)).limit(limit).all()
+
+    for trip in new_trips:
+        activities.append({
+            "timestamp": trip.created_at.isoformat(),
+            "type": "content_creation",
+            "user_id": None, # Trip is associated with a center, not directly a user
+            "username": None,
+            "action": "Dive trip created",
+            "details": f"New trip on {trip.trip_date}",
+            "status": "success"
+        })
+
+    # Content updates - Dive Sites
+    updated_dive_sites = db.query(DiveSite).filter(
+        and_(
+            DiveSite.updated_at >= start_time,
+            DiveSite.updated_at > DiveSite.created_at
+        )
+    ).order_by(desc(DiveSite.updated_at)).limit(limit).all()
+
+    for site in updated_dive_sites:
+        activities.append({
+            "timestamp": site.updated_at.isoformat(),
+            "type": "content_update",
+            "user_id": site.created_by if hasattr(site, 'created_by') else None,
+            "username": None,
+            "action": "Dive site updated",
+            "details": f"Updated dive site: {site.name}",
+            "status": "success"
+        })
+
+    # Content updates - Diving Centers
+    updated_diving_centers = db.query(DivingCenter).filter(
+        and_(
+            DivingCenter.updated_at >= start_time,
+            DivingCenter.updated_at > DivingCenter.created_at
+        )
+    ).order_by(desc(DivingCenter.updated_at)).limit(limit).all()
+
+    for center in updated_diving_centers:
+        activities.append({
+            "timestamp": center.updated_at.isoformat(),
+            "type": "content_update",
+            "user_id": center.created_by if hasattr(center, 'created_by') else None,
+            "username": None,
+            "action": "Diving center updated",
+            "details": f"Updated diving center: {center.name}",
+            "status": "success"
+        })
+
+    # Content updates - Dives
+    updated_dives = db.query(Dive).filter(
+        and_(
+            Dive.updated_at >= start_time,
+            Dive.updated_at > Dive.created_at
+        )
+    ).order_by(desc(Dive.updated_at)).limit(limit).all()
+
+    for dive in updated_dives:
+        activities.append({
+            "timestamp": dive.updated_at.isoformat(),
+            "type": "content_update",
+            "user_id": dive.user_id,
+            "username": None,
+            "action": "Dive updated",
+            "details": f"Updated dive: {dive.name or 'Unnamed dive'}",
+            "status": "success"
+        })
+
+    # Content updates - Dive Trips
+    updated_trips = db.query(ParsedDiveTrip).filter(
+        and_(
+            ParsedDiveTrip.updated_at >= start_time,
+            ParsedDiveTrip.updated_at > ParsedDiveTrip.created_at
+        )
+    ).order_by(desc(ParsedDiveTrip.updated_at)).limit(limit).all()
+
+    for trip in updated_trips:
+        activities.append({
+            "timestamp": trip.updated_at.isoformat(),
+            "type": "content_update",
+            "user_id": None,
+            "username": None,
+            "action": "Dive trip updated",
+            "details": f"Updated trip on {trip.trip_date}",
+            "status": "success"
+        })
+
+    # Content creation - Dive Routes
+    new_routes = db.query(DiveRoute).filter(
+        and_(
+            DiveRoute.created_at >= start_time,
+            DiveRoute.deleted_at.is_(None)
+        )
+    ).order_by(desc(DiveRoute.created_at)).limit(limit).all()
+
+    for route in new_routes:
+        activities.append({
+            "timestamp": route.created_at.isoformat(),
+            "type": "content_creation",
+            "user_id": route.created_by,
+            "username": None,
+            "action": "Dive route created",
+            "details": f"New dive route: {route.name}",
+            "status": "success"
+        })
+
+    # Content updates - Dive Routes
+    updated_routes = db.query(DiveRoute).filter(
+        and_(
+            DiveRoute.updated_at >= start_time,
+            DiveRoute.updated_at > DiveRoute.created_at,
+            DiveRoute.deleted_at.is_(None)
+        )
+    ).order_by(desc(DiveRoute.updated_at)).limit(limit).all()
+
+    for route in updated_routes:
+        activities.append({
+            "timestamp": route.updated_at.isoformat(),
+            "type": "content_update",
+            "user_id": route.created_by,
+            "username": None,
+            "action": "Dive route updated",
+            "details": f"Updated dive route: {route.name}",
+            "status": "success"
+        })
     
     # Comments
     new_comments = db.query(SiteComment).filter(
