@@ -102,6 +102,18 @@ async def get_diving_organization(
     organization = get_org_by_id_or_name(db, identifier)
     if not organization:
         raise HTTPException(status_code=404, detail="Diving organization not found")
+    
+    # Increment view count without updating updated_at
+    db.query(DivingOrganization).filter(DivingOrganization.id == organization.id).update(
+        {
+            DivingOrganization.view_count: DivingOrganization.view_count + 1,
+            DivingOrganization.updated_at: DivingOrganization.updated_at
+        },
+        synchronize_session=False
+    )
+    db.commit()
+    db.refresh(organization)
+    
     return organization
 
 @router.get("/{identifier}/levels", response_model=List[CertificationLevelResponse])
