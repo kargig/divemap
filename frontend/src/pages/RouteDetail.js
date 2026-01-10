@@ -32,6 +32,7 @@ import { CHART_COLORS, getRouteTypeColor } from '../utils/colorPalette';
 import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getRouteTypeLabel, calculateRouteBearings, formatBearing } from '../utils/routeUtils';
+import { slugify } from '../utils/slugify';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -380,7 +381,7 @@ const RouteDisplay = ({ route, diveSite, showBearings, onToggleBearings }) => {
 };
 
 const RouteDetail = () => {
-  const { diveSiteId, routeId } = useParams();
+  const { diveSiteId, routeId, slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -409,6 +410,18 @@ const RouteDetail = () => {
     select: response => response.data,
     enabled: !!routeId,
   });
+
+  // Redirect to canonical URL with slug
+  useEffect(() => {
+    if (route && route.name) {
+      const expectedSlug = slugify(route.name);
+      if (!slug || slug !== expectedSlug) {
+        navigate(`/dive-sites/${diveSiteId}/route/${routeId}/${expectedSlug}${location.search}`, {
+          replace: true,
+        });
+      }
+    }
+  }, [route, diveSiteId, routeId, slug, navigate, location.search]);
 
   // Fetch dive site details
   const { data: diveSite } = useQuery(
