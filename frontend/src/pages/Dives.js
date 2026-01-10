@@ -50,8 +50,15 @@ import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
+import { slugify } from '../utils/slugify';
 import { getSortOptions } from '../utils/sortOptions';
 import { getTagColor } from '../utils/tagHelpers';
+
+const getDiveSlug = dive => {
+  const slugText = dive.name || (dive.dive_site_info ? dive.dive_site_info.name : 'dive');
+  const datePart = dive.dive_date;
+  return slugify(`${slugText}-${datePart}-dive-${dive.id}`);
+};
 
 const Dives = () => {
   const { user, isAdmin } = useAuth();
@@ -1115,7 +1122,7 @@ const Dives = () => {
                           className={`font-semibold text-gray-900 leading-snug ${compactLayout ? 'text-lg' : 'text-xl'}`}
                         >
                           <Link
-                            to={`/dives/${dive.id}`}
+                            to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
                             state={{ from: window.location.pathname + window.location.search }}
                             className='hover:text-blue-600 transition-colors'
                           >
@@ -1310,7 +1317,7 @@ const Dives = () => {
 
                       <div className='flex items-center gap-3'>
                         <Link
-                          to={`/dives/${dive.id}`}
+                          to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
                           className='text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 group'
                         >
                           View Details
@@ -1347,7 +1354,7 @@ const Dives = () => {
                       )}
                       <h3 className='font-semibold text-gray-900 leading-snug line-clamp-1'>
                         <Link
-                          to={`/dives/${dive.id}`}
+                          to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
                           className='hover:text-blue-600 transition-colors'
                         >
                           {dive.name || `Dive #${dive.id}`}

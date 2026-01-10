@@ -1,3 +1,5 @@
+import { slugify } from './slugify';
+
 /**
  * Share utilities for generating shareable URLs and platform-specific share links
  * Supports multiple social media platforms and communication channels
@@ -15,19 +17,21 @@ export function generateShareUrl(entityType, entityId, params = {}, baseUrl = nu
   const base = baseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
 
   let path = '';
+  const slug = params.slug ? `/${params.slug}` : '';
+
   switch (entityType) {
     case 'dive':
-      path = `/dives/${entityId}`;
+      path = `/dives/${entityId}${slug}`;
       break;
     case 'dive-site':
-      path = `/dive-sites/${entityId}`;
+      path = `/dive-sites/${entityId}${slug}`;
       break;
     case 'route':
       // Routes need dive_site_id from params
       if (params.diveSiteId) {
-        path = `/dive-sites/${params.diveSiteId}/route/${entityId}`;
+        path = `/dive-sites/${params.diveSiteId}/route/${entityId}${slug}`;
       } else {
-        path = `/routes/${entityId}`;
+        path = `/routes/${entityId}${slug}`;
       }
       break;
     default:
@@ -37,7 +41,7 @@ export function generateShareUrl(entityType, entityId, params = {}, baseUrl = nu
   // Add query parameters if provided
   const queryParams = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
-    if (key !== 'diveSiteId' && value !== null && value !== undefined) {
+    if (key !== 'diveSiteId' && key !== 'slug' && value !== null && value !== undefined) {
       queryParams.append(key, value.toString());
     }
   });
@@ -369,7 +373,9 @@ export function generateShareContent(entityType, entityData) {
         }
       }
 
-      url = generateShareUrl('dive', entityData.id);
+      url = generateShareUrl('dive', entityData.id, {
+        slug: slugify(entityData.name || entityData.dive_site?.name || 'dive'),
+      });
       break;
 
     case 'dive-site':
@@ -394,7 +400,9 @@ export function generateShareContent(entityType, entityData) {
         description += location ? `\n📍 ${location}` : '';
       }
 
-      url = generateShareUrl('dive-site', entityData.id);
+      url = generateShareUrl('dive-site', entityData.id, {
+        slug: slugify(entityData.name),
+      });
       break;
 
     case 'route':
@@ -416,6 +424,7 @@ export function generateShareContent(entityType, entityData) {
 
       url = generateShareUrl('route', entityData.id, {
         diveSiteId: entityData.dive_site_id,
+        slug: slugify(entityData.name),
       });
       break;
 

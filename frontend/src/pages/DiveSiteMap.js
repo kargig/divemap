@@ -13,6 +13,7 @@ import usePageTitle from '../hooks/usePageTitle';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getSmartRouteColor, calculateRouteBearings, formatBearing } from '../utils/routeUtils';
+import { slugify } from '../utils/slugify';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -156,7 +157,7 @@ const RouteLayer = ({ routes, diveSiteId }) => {
       // Add click handler to route
       routeLayer.on('click', () => {
         // Navigate to route detail page
-        window.open(`/dive-sites/${diveSiteId}/route/${route.id}`, '_blank');
+        window.open(`/dive-sites/${diveSiteId}/route/${route.id}/${slugify(route.name)}`, '_blank');
       });
 
       // Add popup to route
@@ -172,7 +173,7 @@ const RouteLayer = ({ routes, diveSiteId }) => {
             <span>by ${route.creator?.username || 'Unknown'}</span>
           </div>
           <button 
-            onclick="window.open('/dive-sites/${diveSiteId}/route/${route.id}', '_blank')"
+            onclick="window.open('/dive-sites/${diveSiteId}/route/${route.id}/${slugify(route.name)}', '_blank')"
             class="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
           >
             View Details
@@ -494,7 +495,7 @@ const DiveSiteMap = () => {
                       : 'N/A'}
                   </div>
                   <a
-                    href={`/dive-sites/${m.data.id}`}
+                    href={`/dive-sites/${m.data.id}/${slugify(m.data.name)}`}
                     className='block w-full text-center px-3 py-2 bg-blue-600 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm'
                     style={{ color: 'white !important' }}
                   >

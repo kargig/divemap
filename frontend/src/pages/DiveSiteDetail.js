@@ -917,7 +917,7 @@ const DiveSiteDetail = () => {
                   {nearbyDiveSites.slice(0, 6).map(site => (
                     <button
                       key={site.id}
-                      onClick={() => navigate(`/dive-sites/${site.id}`)}
+                      onClick={() => navigate(`/dive-sites/${site.id}/${slugify(site.name)}`)}
                       className='flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left w-full'
                     >
                       <MapPin className='w-4 h-4 mr-2 flex-shrink-0 text-blue-600' />
@@ -946,7 +946,7 @@ const DiveSiteDetail = () => {
                   >
                     <div className='flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2'>
                       <RouterLink
-                        to={`/dives/${dive.id}`}
+                        to={`/dives/${dive.id}/${slugify(`${dive.name || dive.dive_site?.name || diveSite?.name || 'dive'}-${dive.dive_date}-dive-${dive.id}`)}`}
                         className='font-medium text-blue-600 hover:text-blue-800 hover:underline text-sm sm:text-base'
                       >
                         {dive.name || dive.dive_site?.name || 'Unnamed Dive'}
@@ -1325,7 +1325,7 @@ const DiveSiteDetail = () => {
                 {nearbyDiveSites.slice(0, 6).map(site => (
                   <button
                     key={site.id}
-                    onClick={() => navigate(`/dive-sites/${site.id}`)}
+                    onClick={() => navigate(`/dive-sites/${site.id}/${slugify(site.name)}`)}
                     className='flex items-center p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left w-full'
                   >
                     <MapPin className='w-4 h-4 mr-2 flex-shrink-0 text-blue-600' />

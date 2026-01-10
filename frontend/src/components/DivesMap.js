@@ -9,6 +9,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { Link, useLocation } from 'react-router-dom';
 
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { slugify } from '../utils/slugify';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -186,7 +187,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
                 : ''
             }
           </div>
-          <a href="/dives/${marker.id}" class="block w-full text-center px-3 py-2 bg-blue-600 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm" style="color: white !important;">
+          <a href="/dives/${marker.id}/${slugify(marker.name || marker.dive_site?.name || 'dive')}-${marker.dive_date}-dive-${marker.id}" class="block w-full text-center px-3 py-2 bg-blue-600 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm" style="color: white !important;">
             View Details
           </a>
         </div>
@@ -234,7 +235,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
                     `
                         : ''
                     }
-                    <a href="/dives/${markerData.id}" class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" style="color: white !important;">
+                    <a href="/dives/${markerData.id}/${slugify(markerData.name || markerData.dive_site?.name || 'dive')}-${markerData.dive_date}-dive-${markerData.id}" class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" style="color: white !important;">
                       View
                     </a>
                   </div>
@@ -484,7 +485,7 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
                   </div>
 
                   <Link
-                    to={`/dives/${dive.id}`}
+                    to={`/dives/${dive.id}/${slugify(dive.name || dive.dive_site?.name || 'dive')}-${dive.dive_date}-dive-${dive.id}`}
                     state={{ from: window.location.pathname + window.location.search }}
                     className='block w-full text-center px-3 py-2 bg-blue-600 text-white !text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm'
                   >

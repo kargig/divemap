@@ -30,6 +30,7 @@ import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getRouteTypeLabel } from '../utils/routeUtils';
+import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 const DiveRoutes = () => {
@@ -312,7 +313,7 @@ const DiveRoutes = () => {
                         className={`font-bold text-gray-900 leading-snug ${compactLayout ? 'text-base' : 'text-lg'}`}
                       >
                         <Link
-                          to={`/dive-sites/${route.dive_site_id}/route/${route.id}`}
+                          to={`/dive-sites/${route.dive_site_id}/route/${route.id}/${slugify(route.name)}`}
                           className='hover:text-blue-600 transition-colors'
                         >
                           {route.name}
@@ -387,7 +388,7 @@ const DiveRoutes = () => {
                   {/* Footer: Creator & Actions */}
                   <div className='flex items-center justify-end'>
                     <Link
-                      to={`/dive-sites/${route.dive_site_id}/route/${route.id}`}
+                      to={`/dive-sites/${route.dive_site_id}/route/${route.id}/${slugify(route.name)}`}
                       className='inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors group'
                     >
                       View Route

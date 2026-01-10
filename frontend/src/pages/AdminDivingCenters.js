@@ -9,6 +9,7 @@ import AdminDivingCentersTable from '../components/tables/AdminDivingCentersTabl
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetting, useUpdateSetting } from '../hooks/useSettings';
+import { slugify } from '../utils/slugify';
 
 const AdminDivingCenters = () => {
   const { user } = useAuth();
@@ -241,7 +242,7 @@ const AdminDivingCenters = () => {
 
   // Action handlers
   const handleViewDivingCenter = divingCenter => {
-    navigate(`/diving-centers/${divingCenter.id}`);
+    navigate(`/diving-centers/${divingCenter.id}/${slugify(divingCenter.name)}`);
   };
 
   const handleEditDivingCenter = divingCenter => {

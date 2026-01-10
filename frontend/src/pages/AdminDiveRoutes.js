@@ -10,6 +10,7 @@ import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getRouteTypeLabel } from '../utils/routeUtils';
+import { slugify } from '../utils/slugify';
 
 const AdminDiveRoutes = () => {
   const { user } = useAuth();
@@ -212,7 +213,7 @@ const AdminDiveRoutes = () => {
   // Action handlers
   const handleViewDiveRoute = useCallback(
     route => {
-      navigate(`/dive-sites/${route.dive_site_id}/route/${route.id}`);
+      navigate(`/dive-sites/${route.dive_site_id}/route/${route.id}/${slugify(route.name)}`);
     },
     [navigate]
   );
