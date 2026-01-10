@@ -193,6 +193,7 @@ function App() {
                     <Route path='/users/:username' element={<UserProfile />} />
                     <Route path='/dive-sites' element={<DiveSites />} />
                     <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />
+                    <Route path='/dive-sites/:id/:slug' element={<DiveSiteDetail />} />
                     <Route path='/dive-sites/:id/map' element={<DiveSiteMap />} />
                     <Route path='/dive-routes' element={<DiveRoutes />} />
                     <Route
@@ -205,6 +206,10 @@ function App() {
                     />
                     <Route
                       path='/dive-sites/:diveSiteId/route/:routeId'
+                      element={<RouteDetail />}
+                    />
+                    <Route
+                      path='/dive-sites/:diveSiteId/route/:routeId/:slug'
                       element={<RouteDetail />}
                     />
                     <Route
@@ -233,6 +238,7 @@ function App() {
                     />
                     <Route path='/diving-centers' element={<DivingCenters />} />
                     <Route path='/diving-centers/:id' element={<DivingCenterDetail />} />
+                    <Route path='/diving-centers/:id/:slug' element={<DivingCenterDetail />} />
                     <Route
                       path='/diving-centers/create'
                       element={
@@ -373,6 +379,7 @@ function App() {
                       }
                     />
                     <Route path='/dives/:id' element={<DiveDetail />} />
+                    <Route path='/dives/:id/:slug' element={<DiveDetail />} />
                     <Route
                       path='/dives/:id/edit'
                       element={
@@ -462,6 +469,10 @@ function App() {
                       }
                     />
                     <Route path='/dive-trips/:id' element={<TripDetail />} />
+                    <Route path='/dive-trips/:id/:slug' element={<TripDetail />} />
+
+                    <Route path='/index.html' element={<Navigate to='/' replace />} />
+                    <Route path='/index.htm' element={<Navigate to='/' replace />} />
                     <Route path='*' element={<NotFound />} />
                   </Routes>
                 </Suspense>

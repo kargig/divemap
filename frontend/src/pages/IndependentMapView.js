@@ -395,7 +395,7 @@ const IndependentMapView = () => {
     setFilters(prevFilters => ({ ...prevFilters, ...urlFilters }));
   }, [searchParams, parseViewportFromURL, parseFiltersFromURL]); // Only run on mount
 
-  // Sync state to URL (Wind, Time, Layer)
+  // Sync state to URL (Wind, Time, Layer, Viewport)
   useEffect(() => {
     setSearchParams(
       prev => {
@@ -425,11 +425,27 @@ const IndependentMapView = () => {
           newParams.delete('layer');
         }
 
+        // Sync viewport
+        if (viewport.latitude && viewport.longitude && viewport.zoom) {
+          newParams.set('lat', viewport.latitude.toFixed(6));
+          newParams.set('lng', viewport.longitude.toFixed(6));
+          newParams.set('zoom', viewport.zoom.toFixed(1));
+        }
+
         return newParams;
       },
       { replace: true }
     );
-  }, [windOverlayEnabled, windAnimationEnabled, windDateTime, selectedLayer, setSearchParams]);
+  }, [
+    windOverlayEnabled,
+    windAnimationEnabled,
+    windDateTime,
+    selectedLayer,
+    viewport.latitude,
+    viewport.longitude,
+    viewport.zoom,
+    setSearchParams,
+  ]);
 
   // Set default date range for dive-trips when entity type changes
   useEffect(() => {
@@ -602,12 +618,30 @@ const IndependentMapView = () => {
     setShowWindSlider(true); // Show slider when enabling wind feature
 
     // Zoom to the specified location with appropriate zoom level (12+ for wind overlay)
+    const newLat = 37.66948;
+    const newLng = 23.955173;
+    const newZoom = 13.0;
+
+    setHasRequestedGeolocation(true); // Prevent geolocation from overriding this manual zoom
     setViewport({
-      longitude: 23.9643,
-      latitude: 37.7135,
-      zoom: 13, // Zoom level 13 to show wind overlay
+      longitude: newLng,
+      latitude: newLat,
+      zoom: newZoom,
       bounds: null,
     });
+    setCurrentZoom(newZoom);
+
+    // Explicitly update URL parameters to match the requested URL (without satellite layer)
+    setSearchParams(
+      {
+        type: 'dive-sites',
+        lat: newLat.toFixed(6),
+        lng: newLng.toFixed(6),
+        zoom: newZoom.toFixed(1),
+        wind: 'true',
+      },
+      { replace: true }
+    );
   };
 
   // Check if any filters are active

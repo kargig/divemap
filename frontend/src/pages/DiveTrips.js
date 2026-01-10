@@ -41,6 +41,7 @@ import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
+import { slugify } from '../utils/slugify';
 import { getSortOptions } from '../utils/sortOptions';
 import { generateTripName } from '../utils/tripNameGenerator';
 
@@ -1013,7 +1014,7 @@ const DiveTrips = () => {
                             >
                               {user ? (
                                 <Link
-                                  to={`/dive-trips/${trip.id}`}
+                                  to={`/dive-trips/${trip.id}/${slugify(generateTripName(trip))}`}
                                   state={{
                                     from: window.location.pathname + window.location.search,
                                   }}
@@ -1035,7 +1036,7 @@ const DiveTrips = () => {
                       </div>
                       {user && (
                         <Link
-                          to={`/dive-trips/${trip.id}`}
+                          to={`/dive-trips/${trip.id}/${slugify(generateTripName(trip))}`}
                           state={{ from: window.location.pathname + window.location.search }}
                           className='inline-flex items-center gap-2 px-4 py-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
                         >
@@ -1380,7 +1381,7 @@ const DiveTrips = () => {
                       >
                         {user ? (
                           <Link
-                            to={`/dive-trips/${trip.id}`}
+                            to={`/dive-trips/${trip.id}/${slugify(generateTripName(trip))}`}
                             state={{ from: window.location.pathname + window.location.search }}
                             className='text-blue-600 hover:text-blue-800 transition-colors'
                           >

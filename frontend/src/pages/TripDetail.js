@@ -1,5 +1,5 @@
 import { MapPin, Phone, Mail, Globe, Navigation, Eye, Heart, LogIn } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 
@@ -9,13 +9,14 @@ import MaskedEmail from '../components/MaskedEmail';
 import SEO from '../components/SEO';
 import TripHeader from '../components/TripHeader';
 import { useAuth } from '../contexts/AuthContext';
+import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
 
 import NotFound from './NotFound';
 
 const TripDetail = () => {
-  const { id } = useParams();
+  const { id, slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -32,6 +33,18 @@ const TripDetail = () => {
       return failureCount < 1;
     },
   });
+
+  // Redirect to canonical URL with slug
+  useEffect(() => {
+    if (trip) {
+      const name = generateTripName(trip);
+      const expectedSlug = slugify(name);
+      if (!slug || slug !== expectedSlug) {
+        navigate(`/dive-trips/${id}/${expectedSlug}${location.search}`, { replace: true });
+      }
+    }
+  }, [trip, id, slug, navigate, location.search]);
+
   // Fetch dive site data if trip has dive sites
   const { data: diveSite } = useQuery(
     ['diveSite', trip?.dive_site_id],

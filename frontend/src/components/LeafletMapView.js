@@ -176,6 +176,41 @@ const MapInstanceCapture = ({ onMapInstance }) => {
   return null;
 };
 
+// Component to handle programmatic viewport updates
+const MapViewUpdater = ({ viewport }) => {
+  const map = useMap();
+  const lastSetViewportRef = useRef(null);
+
+  useEffect(() => {
+    if (!viewport || !map) return;
+
+    const { latitude, longitude, zoom } = viewport;
+    if (!latitude || !longitude || !zoom) return;
+
+    // Check if this viewport is different from the last one we explicitly set
+    // to avoid fighting with user interactions
+    const viewportKey = `${latitude}-${longitude}-${zoom}`;
+    if (lastSetViewportRef.current === viewportKey) return;
+
+    const currentCenter = map.getCenter();
+    const currentZoom = map.getZoom();
+
+    // Check if map is significantly different from target
+    const dist = Math.sqrt(
+      Math.pow(currentCenter.lat - latitude, 2) + Math.pow(currentCenter.lng - longitude, 2)
+    );
+    const zoomDiff = Math.abs(currentZoom - zoom);
+
+    // If change is significant (likely programmatic), move the map
+    if (dist > 0.001 || zoomDiff > 0.1) {
+      map.setView([latitude, longitude], zoom, { animate: true });
+      lastSetViewportRef.current = viewportKey;
+    }
+  }, [viewport, map]);
+
+  return null;
+};
+
 const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, resetTrigger }) => {
   const map = useMap();
   const clusterRef = useRef();
@@ -653,6 +688,11 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
   return null;
 };
 
+// Helper to normalize longitude to -180 to 180 range
+const normalizeLongitude = lng => {
+  return ((((lng - 180) % 360) + 360) % 360) - 180;
+};
+
 const LeafletMapView = ({
   data,
   selectedEntityType,
@@ -725,8 +765,8 @@ const LeafletMapView = ({
             ? {
                 north: Math.round(bounds.north * 10) / 10,
                 south: Math.round(bounds.south * 10) / 10,
-                east: Math.round(bounds.east * 10) / 10,
-                west: Math.round(bounds.west * 10) / 10,
+                east: Math.round(normalizeLongitude(bounds.east) * 10) / 10,
+                west: Math.round(normalizeLongitude(bounds.west) * 10) / 10,
               }
             : null,
           zoom,
@@ -739,8 +779,8 @@ const LeafletMapView = ({
           const params = {
             north: bounds.north + latMargin,
             south: bounds.south - latMargin,
-            east: bounds.east + lonMargin,
-            west: bounds.west - lonMargin,
+            east: normalizeLongitude(bounds.east + lonMargin),
+            west: normalizeLongitude(bounds.west - lonMargin),
             zoom_level: Math.round(zoom),
             datetime_str: futureDateTimeStr,
           };
@@ -894,8 +934,8 @@ const LeafletMapView = ({
             // Round bounds to 0.1° to match backend cache key generation
             north: Math.round(debouncedBounds.north * 10) / 10,
             south: Math.round(debouncedBounds.south * 10) / 10,
-            east: Math.round(debouncedBounds.east * 10) / 10,
-            west: Math.round(debouncedBounds.west * 10) / 10,
+            east: Math.round(normalizeLongitude(debouncedBounds.east) * 10) / 10,
+            west: Math.round(normalizeLongitude(debouncedBounds.west) * 10) / 10,
           }
         : null,
       mapMetadata?.zoom,
@@ -912,10 +952,14 @@ const LeafletMapView = ({
       const params = {
         north: debouncedBounds.north + latMargin,
         south: debouncedBounds.south - latMargin,
-        east: debouncedBounds.east + lonMargin,
-        west: debouncedBounds.west - lonMargin,
+        east: normalizeLongitude(debouncedBounds.east + lonMargin),
+        west: normalizeLongitude(debouncedBounds.west - lonMargin),
         zoom_level: Math.round(mapMetadata.zoom),
       };
+
+      // Skip request if bounds are invalid (west > east) after normalization
+      // This happens during world-wrapping transitions or antimeridian crossing
+      if (params.west >= params.east) return null;
 
       // Add datetime_str if specified (null means current time, so don't include it)
       if (windDateTime) {
@@ -945,10 +989,20 @@ const LeafletMapView = ({
 
   // Auto-disable wind overlay when zoom drops below 10
   useEffect(() => {
-    if (windOverlayEnabled && mapMetadata?.zoom < 10) {
+    // Check both current map zoom AND target viewport zoom
+    // If target viewport zoom is sufficient (>= 10), don't disable yet (we might be animating there)
+    const currentZoom = mapMetadata?.zoom;
+    const targetZoom = viewport?.zoom;
+
+    // Only disable if we have a valid current zoom, and it's too low,
+    // AND we don't have a pending target zoom that is sufficient.
+    if (windOverlayEnabled && currentZoom !== undefined && currentZoom < 10) {
+      if (targetZoom !== undefined && targetZoom >= 10) {
+        return; // We are likely zooming in, don't disable
+      }
       setWindOverlayEnabled(false);
     }
-  }, [windOverlayEnabled, mapMetadata?.zoom]);
+  }, [windOverlayEnabled, mapMetadata?.zoom, viewport?.zoom]);
 
   // Fetch wind recommendations when overlay is enabled and zoom >= 10
   const shouldFetchRecommendations = !!(
@@ -971,10 +1025,13 @@ const LeafletMapView = ({
       const params = {
         north: debouncedBounds.north,
         south: debouncedBounds.south,
-        east: debouncedBounds.east,
-        west: debouncedBounds.west,
+        east: normalizeLongitude(debouncedBounds.east),
+        west: normalizeLongitude(debouncedBounds.west),
         include_unknown: true, // Include sites without shore_direction
       };
+
+      // Skip request if bounds are invalid after normalization
+      if (params.west >= params.east) return null;
 
       // Add datetime_str if specified (null means current time, so don't include it)
       if (windDateTime) {
@@ -1202,6 +1259,7 @@ const LeafletMapView = ({
           url={selectedLayer?.url || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
         />
 
+        <MapViewUpdater viewport={viewport} />
         <MapMetadata onMetadataChange={setMapMetadata} />
         <MapInstanceCapture onMapInstance={onMapInstance} />
         <MapContent

@@ -7,20 +7,94 @@
     <meta name="theme-color" content="#2563eb" />
     <link rel="apple-touch-icon" href="/favicons/apple-touch-icon.png" />
     <title>Divemap - Discover and Rate Scuba Dive Sites Worldwide</title>
+    <style>
+      /* Critical CSS for the initial loading state */
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        background-color: #f8fafc; /* slate-50 */
+        color: #334155; /* slate-700 */
+      }
+      /* Only apply these styles to the direct children for the loading state. 
+         Once React mounts, these classes won't exist/matter. */
+      .initial-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+        text-align: center;
+        max-width: 600px;
+        margin: 0 auto; /* Ensure it centers horizontally if max-width is hit */
+        animation: fadeIn 0.5s ease-in;
+      }
+      .initial-loading h1 {
+        color: #1e40af; /* blue-800 */
+        font-size: 1.875rem;
+        line-height: 2.25rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+      }
+      .initial-loading p {
+        font-size: 1.125rem;
+        line-height: 1.75rem;
+        margin-bottom: 2rem;
+        color: #475569; /* slate-600 */
+      }
+      .initial-loading nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem;
+        font-size: 0.875rem;
+      }
+      .initial-loading nav a {
+        color: #2563eb; /* blue-600 */
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .initial-loading nav a:hover {
+        text-decoration: underline;
+      }
+      .loader-spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #e2e8f0;
+        border-bottom-color: #2563eb;
+        border-radius: 50%;
+        display: inline-block;
+        box-sizing: border-box;
+        animation: rotation 1s linear infinite;
+        margin-bottom: 1.5rem;
+      }
+
+      @keyframes rotation {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+    </style>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root">
-      <h1>Divemap - Discover Amazing Dive Sites</h1>
-      <p>The ultimate scuba diving platform. Discover and rate dive sites, log your dives, plan trips, share underwater routes, and connect with the global diving community.</p>
-      <nav>
-        <a href="/dive-sites">Dive Sites</a>
-        <a href="/diving-centers">Diving Centers</a>
-        <a href="/dives">Public Dives</a>
-        <a href="/dive-trips">Dive Trips</a>
-        <a href="/login">Login</a>
-        <a href="/register">Register</a>
-      </nav>
+      <div class="initial-loading">
+        <span class="loader-spinner"></span>
+        <h1>Divemap - Discover Amazing Dive Sites</h1>
+        <p>The ultimate scuba diving platform. Discover and rate dive sites, log your dives, plan trips, share underwater routes, and connect with the global diving community.</p>
+        <nav>
+          <a href="/dive-sites">Dive Sites</a>
+          <a href="/diving-centers">Diving Centers</a>
+          <a href="/dives">Public Dives</a>
+          <a href="/dive-trips">Dive Trips</a>
+          <a href="/login">Login</a>
+          <a href="/register">Register</a>
+        </nav>
+      </div>
     </div>
     <script type="module" src="/src/index.js"></script>
   </body>

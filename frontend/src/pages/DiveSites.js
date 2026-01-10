@@ -46,6 +46,7 @@ import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
+import { slugify } from '../utils/slugify';
 import { getSortOptions } from '../utils/sortOptions';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
@@ -869,7 +870,7 @@ const DiveSites = () => {
                                 className={`font-semibold text-gray-900 leading-snug flex items-center gap-2 flex-wrap ${compactLayout ? 'text-lg' : 'text-xl'}`}
                               >
                                 <Link
-                                  to={`/dive-sites/${site.id}`}
+                                  to={`/dive-sites/${site.id}/${slugify(site.name)}`}
                                   state={{
                                     from: window.location.pathname + window.location.search,
                                   }}
@@ -1022,7 +1023,7 @@ const DiveSites = () => {
                             </div>
 
                             <Link
-                              to={`/dive-sites/${site.id}`}
+                              to={`/dive-sites/${site.id}/${slugify(site.name)}`}
                               className='inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors group'
                             >
                               View Details
@@ -1095,7 +1096,7 @@ const DiveSites = () => {
                           <div className='flex items-start justify-between gap-2'>
                             <h3 className='font-semibold text-gray-900 leading-snug line-clamp-1 flex-1'>
                               <Link
-                                to={`/dive-sites/${site.id}`}
+                                to={`/dive-sites/${site.id}/${slugify(site.name)}`}
                                 className='hover:text-blue-600 transition-colors'
                               >
                                 {site.name}

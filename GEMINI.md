@@ -16,6 +16,15 @@ Divemap is a comprehensive web application designed for scuba diving enthusiasts
 - **Node.js Operations:** Use `docker exec` for frontend commands (e.g., `docker exec divemap_frontend npm install`).
 - **Security:** Never install packages globally. Use `.env` files and never commit secrets.
 
+### Frontend Verification Standards
+- **Browser Verification:** Every frontend modification MUST be verified by visiting the affected page(s) using the browser MCP tools (`navigate_page`, `take_snapshot`).
+- **Console Errors:** You MUST check the browser console for errors after every navigation or interaction using `list_console_messages` or `get_console_message`. Zero console errors are the target.
+- **Routing & Navigation:** When modifying routes (e.g., adding slugs):
+  - Verify the **New URL** loads correctly.
+  - Verify the **Old URL** redirects correctly (backward compatibility).
+  - Verify **Links** pointing to these routes are updated and working.
+- **Global Styles:** Changes to global CSS or HTML (e.g., `index.html`, `App.js` layout) MUST be verified across multiple diverse pages (e.g., Home, List Views, Detail Views) to ensure no unintended layout regressions.
+
 ## Git Workflow & Standards
 - **Feature Branches:** ALWAYS create a feature branch for changes: `feature/[task-name-kebab-case]`.
 - **No Direct Commits:** NEVER work directly on `main` or `master`.
