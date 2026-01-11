@@ -1,4 +1,12 @@
 import {
+  Dropdown,
+  Menu,
+  Checkbox,
+  Button as AntdButton,
+  Select as AntdSelect,
+  ConfigProvider,
+} from 'antd';
+import {
   Trash2,
   Edit,
   Search,
@@ -18,8 +26,6 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import AdminDivesTable from '../components/tables/AdminDivesTable';
-import Combobox from '../components/ui/Combobox';
-import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
@@ -67,11 +73,10 @@ const AdminDives = () => {
   const [diveSiteSearchTerm, setDiveSiteSearchTerm] = useState('');
   const [diveSiteSearchResults, setDiveSiteSearchResults] = useState([]);
   const [isDiveSiteLoading, setIsDiveSiteLoading] = useState(false);
-  const [selectedDiveSite, setSelectedDiveSite] = useState(null);
   const [filters, setFilters] = useState({
     search: '',
     user_id: '',
-    dive_site_id: '',
+    dive_site_ids: [],
     difficulty_code: '',
     suit_type: '',
     min_depth: '',
@@ -90,7 +95,13 @@ const AdminDives = () => {
     () => {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
+        if (key === 'dive_site_ids') {
+          if (value && value.length > 0) {
+            params.append('dive_site_ids', value.join(','));
+          }
+        } else if (value) {
+          params.append(key, value);
+        }
       });
       return api.get(`/api/v1/dives/admin/dives/count?${params.toString()}`);
     },
@@ -103,11 +114,20 @@ const AdminDives = () => {
   const mapColumnIdToSortField = columnId => {
     const fieldMapping = {
       id: 'id',
+      dive: 'name',
+      name: 'name',
+      user: 'user_username',
+      user_username: 'user_username',
+      dive_site: 'dive_site_name',
+      'dive_site.name': 'dive_site_name',
+      date: 'dive_date',
       dive_date: 'dive_date',
       max_depth: 'max_depth',
       duration: 'duration',
+      rating: 'user_rating',
       user_rating: 'user_rating',
       visibility_rating: 'visibility_rating',
+      views: 'view_count',
       view_count: 'view_count',
       created_at: 'created_at',
       updated_at: 'updated_at',
@@ -158,7 +178,13 @@ const AdminDives = () => {
     () => {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
+        if (key === 'dive_site_ids') {
+          if (value && value.length > 0) {
+            params.append('dive_site_ids', value.join(','));
+          }
+        } else if (value) {
+          params.append(key, value);
+        }
       });
 
       // Add sorting
@@ -181,6 +207,9 @@ const AdminDives = () => {
   // Fetch dive sites for combobox (async)
   useEffect(() => {
     const timer = setTimeout(async () => {
+      // Always fetch something initially or when term changes
+      // If term is empty, maybe fetch recent? For now, we rely on user typing.
+      // Antd select needs options.
       if (diveSiteSearchTerm.trim().length >= 2) {
         setIsDiveSiteLoading(true);
         try {
@@ -193,13 +222,13 @@ const AdminDives = () => {
         } finally {
           setIsDiveSiteLoading(false);
         }
-      } else {
+      } else if (diveSiteSearchTerm.length === 0 && filters.dive_site_ids.length === 0) {
         setDiveSiteSearchResults([]);
       }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [diveSiteSearchTerm]);
+  }, [diveSiteSearchTerm, filters.dive_site_ids.length]);
 
   // Fetch users for dropdown
   const { data: users } = useQuery(['admin-users'], () => api.get('/api/v1/users/admin/users'), {
@@ -267,7 +296,7 @@ const AdminDives = () => {
     setFilters({
       search: '',
       user_id: '',
-      dive_site_id: '',
+      dive_site_ids: [],
       difficulty_code: '',
       suit_type: '',
       min_depth: '',
@@ -282,7 +311,6 @@ const AdminDives = () => {
     setSearchInput('');
     setDiveSiteSearchTerm('');
     setDiveSiteSearchResults([]);
-    setSelectedDiveSite(null);
     const newPagination = { ...pagination, pageIndex: 0 };
     updateURL(newPagination);
     setPagination(newPagination);
@@ -390,7 +418,7 @@ const AdminDives = () => {
             <span className='text-sm text-gray-500'>No dive site</span>
           );
         },
-        enableSorting: false,
+        enableSorting: true,
         size: 180,
       },
       {
@@ -507,21 +535,24 @@ const AdminDives = () => {
     [pagination, paginationInfo]
   );
 
+  // Close custom dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = event => {
+      const container = document.getElementById('dive-site-filter-container');
+      if (container && !container.contains(event.target)) {
+        setDiveSiteSearchTerm('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const diveSiteOptions = useMemo(() => {
-    const opts = diveSiteSearchResults.map(s => ({
+    return diveSiteSearchResults.map(s => ({
       value: s.id.toString(),
       label: s.name,
     }));
-    // Ensure currently selected site is in options so label shows
-    if (
-      filters.dive_site_id &&
-      selectedDiveSite &&
-      !opts.some(o => o.value === filters.dive_site_id)
-    ) {
-      opts.unshift({ value: filters.dive_site_id, label: selectedDiveSite.name });
-    }
-    return opts;
-  }, [diveSiteSearchResults, filters.dive_site_id, selectedDiveSite]);
+  }, [diveSiteSearchResults]);
 
   if (!user?.is_admin) {
     return (
@@ -570,63 +601,170 @@ const AdminDives = () => {
           </button>
         </div>
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-          <Select
-            id='user-filter'
-            label='User'
-            value={filters.user_id || 'all'}
-            onValueChange={value => handleFilterChange('user_id', value === 'all' ? '' : value)}
-            options={[
-              { value: 'all', label: 'All Users' },
-              ...(users?.map(u => ({ value: u.id.toString(), label: u.username })) || []),
-            ]}
-          />
-          <Combobox
-            id='dive-site-filter'
-            label='Dive Site'
-            placeholder='Search dive site...'
-            searchPlaceholder='Type to filter...'
-            value={filters.dive_site_id}
-            onValueChange={value => {
-              const selected = diveSiteSearchResults.find(s => s.id.toString() === value);
-              setSelectedDiveSite(selected || null);
-              handleFilterChange('dive_site_id', value);
-            }}
-            onSearchChange={setDiveSiteSearchTerm}
-            searchTerm={diveSiteSearchTerm}
-            isLoading={isDiveSiteLoading}
-            options={diveSiteOptions}
-            emptyMessage={
-              diveSiteSearchTerm.length >= 2
-                ? `No sites found matching "${diveSiteSearchTerm}"`
-                : 'Type at least 2 characters to search...'
-            }
-          />
-          <Select
-            id='difficulty-filter'
-            label='Difficulty'
-            value={filters.difficulty_code || 'all'}
-            onValueChange={value =>
-              handleFilterChange('difficulty_code', value === 'all' ? '' : value)
-            }
-            options={[
-              { value: 'all', label: 'All Difficulties' },
-              ...getDifficultyOptions()
-                .filter(option => option.value !== null)
-                .map(opt => ({ value: opt.value, label: opt.label })),
-            ]}
-          />
-          <Select
-            id='suit-type-filter'
-            label='Suit Type'
-            value={filters.suit_type || 'all'}
-            onValueChange={value => handleFilterChange('suit_type', value === 'all' ? '' : value)}
-            options={[
-              { value: 'all', label: 'All Suit Types' },
-              { value: 'wet_suit', label: 'Wet Suit' },
-              { value: 'dry_suit', label: 'Dry Suit' },
-              { value: 'shortie', label: 'Shortie' },
-            ]}
-          />
+          <div className='flex flex-col gap-1'>
+            <label htmlFor='user-filter-select' className='text-sm font-medium text-gray-700'>
+              User
+            </label>
+            <AntdSelect
+              id='user-filter-select'
+              showSearch
+              placeholder='All Users'
+              value={filters.user_id || undefined}
+              onChange={value => handleFilterChange('user_id', value || '')}
+              filterOption={(input, option) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={[
+                { value: '', label: 'All Users' },
+                ...(users?.map(u => ({ value: u.id.toString(), label: u.username })) || []),
+              ]}
+              allowClear
+              className='w-full'
+              style={{ height: '40px' }}
+            />
+          </div>
+
+          <div className='flex flex-col gap-1 relative' id='dive-site-filter-container'>
+            <label htmlFor='dive-site-input' className='text-sm font-medium text-gray-700'>
+              Dive Site
+            </label>
+            <div className='relative'>
+              <div
+                className='flex flex-wrap gap-1 p-1 border border-gray-300 rounded-md bg-white min-h-[40px] items-center cursor-text'
+                onClick={() => document.getElementById('dive-site-input')?.focus()}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    document.getElementById('dive-site-input')?.focus();
+                  }
+                }}
+                role='button'
+                tabIndex={0}
+              >
+                {filters.dive_site_ids &&
+                  filters.dive_site_ids.length > 0 &&
+                  filters.dive_site_ids.map(id => {
+                    // Find label in options or results (best effort)
+                    const option = diveSiteOptions.find(o => o.value === id) || { label: id };
+                    return (
+                      <span
+                        key={id}
+                        className='bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full flex items-center'
+                      >
+                        {option.label}
+                        <X
+                          className='h-3 w-3 ml-1 cursor-pointer hover:text-blue-900'
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleFilterChange(
+                              'dive_site_ids',
+                              filters.dive_site_ids.filter(sid => sid !== id)
+                            );
+                          }}
+                        />
+                      </span>
+                    );
+                  })}
+                <input
+                  id='dive-site-input'
+                  type='text'
+                  className='flex-1 min-w-[120px] outline-none text-sm px-2 py-1'
+                  placeholder={filters.dive_site_ids?.length > 0 ? '' : 'Search dive sites...'}
+                  value={diveSiteSearchTerm}
+                  onChange={e => {
+                    setDiveSiteSearchTerm(e.target.value);
+                  }}
+                  autoComplete='off'
+                />
+                {isDiveSiteLoading && (
+                  <Loader className='h-4 w-4 animate-spin text-gray-400 mr-2' />
+                )}
+              </div>
+
+              {/* Custom Dropdown */}
+              {(diveSiteSearchResults.length > 0 || isDiveSiteLoading) &&
+                diveSiteSearchTerm.length > 0 && (
+                  <div className='absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto'>
+                    {diveSiteSearchResults.map(site => {
+                      const isSelected = filters.dive_site_ids?.includes(site.id.toString());
+                      return (
+                        <div
+                          key={site.id}
+                          className={`px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 flex items-center justify-between ${isSelected ? 'bg-blue-50' : ''}`}
+                          onClick={() => {
+                            const currentIds = filters.dive_site_ids || [];
+                            const newIds = isSelected
+                              ? currentIds.filter(id => id !== site.id.toString())
+                              : [...currentIds, site.id.toString()];
+                            handleFilterChange('dive_site_ids', newIds);
+                            setDiveSiteSearchTerm(''); // Clear search on select
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              const currentIds = filters.dive_site_ids || [];
+                              const newIds = isSelected
+                                ? currentIds.filter(id => id !== site.id.toString())
+                                : [...currentIds, site.id.toString()];
+                              handleFilterChange('dive_site_ids', newIds);
+                              setDiveSiteSearchTerm('');
+                            }
+                          }}
+                          role='button'
+                          tabIndex={0}
+                        >
+                          <span>{site.name}</span>
+                          {isSelected && <Checkbox checked />}
+                        </div>
+                      );
+                    })}
+                    {!isDiveSiteLoading && diveSiteSearchResults.length === 0 && (
+                      <div className='px-4 py-2 text-sm text-gray-500'>No results found</div>
+                    )}
+                  </div>
+                )}
+            </div>
+          </div>
+
+          <div className='flex flex-col gap-1'>
+            <label htmlFor='difficulty-filter-select' className='text-sm font-medium text-gray-700'>
+              Difficulty
+            </label>
+            <AntdSelect
+              id='difficulty-filter-select'
+              placeholder='All Difficulties'
+              value={filters.difficulty_code || undefined}
+              onChange={value => handleFilterChange('difficulty_code', value || '')}
+              options={[
+                { value: '', label: 'All Difficulties' },
+                ...getDifficultyOptions()
+                  .filter(option => option.value !== null)
+                  .map(opt => ({ value: opt.value, label: opt.label })),
+              ]}
+              allowClear
+              className='w-full'
+              style={{ height: '40px' }}
+            />
+          </div>
+
+          <div className='flex flex-col gap-1'>
+            <label htmlFor='suit-type-filter-select' className='text-sm font-medium text-gray-700'>
+              Suit Type
+            </label>
+            <AntdSelect
+              id='suit-type-filter-select'
+              placeholder='All Suit Types'
+              value={filters.suit_type || undefined}
+              onChange={value => handleFilterChange('suit_type', value || '')}
+              options={[
+                { value: '', label: 'All Suit Types' },
+                { value: 'wet_suit', label: 'Wet Suit' },
+                { value: 'dry_suit', label: 'Dry Suit' },
+                { value: 'shortie', label: 'Shortie' },
+              ]}
+              allowClear
+              className='w-full'
+              style={{ height: '40px' }}
+            />
+          </div>
           <div>
             <label
               htmlFor='min-rating-filter'
@@ -726,65 +864,44 @@ const AdminDives = () => {
 
       {/* Table Toolbar */}
       <div className='mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3'>
-        {/* Column Visibility Toggle */}
-        <div className='relative'>
-          <button
-            className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700 w-full sm:w-auto'
-            onClick={e => {
-              e.stopPropagation();
-              const menu = document.getElementById('column-visibility-menu');
-              if (menu) {
-                menu.classList.toggle('hidden');
-              }
-            }}
-          >
-            <Columns className='h-4 w-4' />
-            Columns
-          </button>
-          <div
-            id='column-visibility-menu'
-            className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50'
-            onClick={e => e.stopPropagation()}
-          >
-            <div className='p-2'>
-              <div className='text-xs font-semibold text-gray-500 uppercase mb-2 px-2'>
-                Toggle Columns
-              </div>
-              {columns
-                .filter(col => {
-                  const colId = col.id || col.accessorKey;
-                  return colId !== 'select' && colId !== 'actions';
-                })
-                .map(column => {
-                  const columnId = column.id || column.accessorKey;
-                  const isVisible = columnVisibility[columnId] !== false;
-                  return (
-                    <label
-                      key={columnId}
-                      className='flex items-center px-2 py-1.5 hover:bg-gray-50 cursor-pointer rounded'
+        {/* Column Visibility Toggle (Ant Design) */}
+        <Dropdown
+          trigger={['click']}
+          menu={{
+            items: columns
+              .filter(col => {
+                const colId = col.id || col.accessorKey;
+                return colId !== 'select' && colId !== 'actions';
+              })
+              .map(column => {
+                const columnId = column.id || column.accessorKey;
+                const isVisible = columnVisibility[columnId] !== false;
+                return {
+                  key: columnId,
+                  label: (
+                    <Checkbox
+                      checked={isVisible}
+                      onClick={e => e.stopPropagation()} // Prevent menu close on click
+                      onChange={e => {
+                        setColumnVisibility(prev => ({
+                          ...prev,
+                          [columnId]: e.target.checked,
+                        }));
+                      }}
                     >
-                      <input
-                        type='checkbox'
-                        checked={isVisible}
-                        onChange={e => {
-                          setColumnVisibility(prev => ({
-                            ...prev,
-                            [columnId]: e.target.checked,
-                          }));
-                        }}
-                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                      />
-                      <span className='text-sm text-gray-700'>
-                        {typeof column.header === 'string'
-                          ? column.header
-                          : columnId.charAt(0).toUpperCase() + columnId.slice(1).replace(/_/g, ' ')}
-                      </span>
-                    </label>
-                  );
-                })}
-            </div>
-          </div>
-        </div>
+                      {typeof column.header === 'string'
+                        ? column.header
+                        : columnId.charAt(0).toUpperCase() + columnId.slice(1).replace(/_/g, ' ')}
+                    </Checkbox>
+                  ),
+                };
+              }),
+          }}
+        >
+          <AntdButton icon={<Columns className='h-4 w-4' />} className='flex items-center gap-2'>
+            Columns
+          </AntdButton>
+        </Dropdown>
 
         {/* Export Buttons */}
         <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
