@@ -5,42 +5,64 @@ import { useState, useEffect, useCallback } from 'react';
  * Provides viewport detection, scroll direction, and scroll position tracking
  */
 export const useResponsive = () => {
-  const [isMobile, setIsMobile] = useState(false);
-  const [isTablet, setIsTablet] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
-  const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  // Initialize state based on window if available to prevent flash of wrong content
+  const getInitialState = () => {
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      return {
+        width,
+        height,
+        isMobile: width <= 768 || height <= 650,
+        isTablet: width > 768 && width < 1024,
+        isDesktop: width >= 1024,
+      };
+    }
+    // Default fallback for SSR or initial render if window not available
+    return {
+      width: 0,
+      height: 0,
+      isMobile: false,
+      isTablet: false,
+      isDesktop: false,
+    };
+  };
+
+  const [state, setState] = useState(getInitialState);
 
   // Check viewport size and device type
   const checkViewport = useCallback(() => {
     const width = window.innerWidth;
     const height = window.innerHeight;
 
-    // Set viewport dimensions
-    setViewport({ width, height });
-
-    // Determine device type
-    const mobile = width <= 768 || height <= 650;
-    const tablet = width > 768 && width < 1024;
-    const desktop = width >= 1024;
-
-    setIsMobile(mobile);
-    setIsTablet(tablet);
-    setIsDesktop(desktop);
+    setState({
+      width,
+      height,
+      isMobile: width <= 768 || height <= 650,
+      isTablet: width > 768 && width < 1024,
+      isDesktop: width >= 1024,
+    });
   }, []);
 
   useEffect(() => {
-    checkViewport();
+    // Ensure we sync on mount just in case (e.g. hydration mismatch, though rare with window init)
+    // Actually, initializing with window.innerWidth causes hydration mismatch in SSR (Next.js),
+    // but this project seems to be Client-Side React (Vite).
+    // If CSR, this is fine. If SSR, we should default to false and useLayoutEffect/useEffect.
+    // Assuming CSR given 'vite' and 'index.html'.
+
+    // We add listener
     window.addEventListener('resize', checkViewport);
     return () => window.removeEventListener('resize', checkViewport);
   }, [checkViewport]);
 
   return {
-    isMobile,
-    isTablet,
-    isDesktop,
-    viewport,
+    isMobile: state.isMobile,
+    isTablet: state.isTablet,
+    isDesktop: state.isDesktop,
+    viewport: { width: state.width, height: state.height },
     // Helper for specific mobile viewport (355x605)
-    isTargetMobile: isMobile && viewport.width <= 400 && viewport.height <= 650,
+    isTargetMobile: state.isMobile && state.width <= 400 && state.height <= 650,
   };
 };
 

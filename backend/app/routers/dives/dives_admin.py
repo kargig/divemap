@@ -36,6 +36,7 @@ def get_all_dives_count_admin(
     current_user: User = Depends(get_current_admin_user),
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
     dive_site_id: Optional[int] = Query(None),
+    dive_site_ids: Optional[str] = Query(None, description="Comma-separated list of dive site IDs"),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
     search: Optional[str] = Query(None, description="Unified search across dive name, user username, dive site name, and dive information"),
     difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
@@ -63,6 +64,17 @@ def get_all_dives_count_admin(
     # Apply filters
     if dive_site_id:
         query = query.filter(Dive.dive_site_id == dive_site_id)
+
+    if dive_site_ids:
+        try:
+            ds_id_list = [int(ds_id.strip()) for ds_id in dive_site_ids.split(",") if ds_id.strip().isdigit()]
+            if ds_id_list:
+                query = query.filter(Dive.dive_site_id.in_(ds_id_list))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid dive_site_ids format"
+            )
 
     if dive_site_name:
         # Join with DiveSite table to filter by dive site name
@@ -171,6 +183,7 @@ def get_all_dives_admin(
     current_user: User = Depends(get_current_admin_user),
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
     dive_site_id: Optional[int] = Query(None),
+    dive_site_ids: Optional[str] = Query(None, description="Comma-separated list of dive site IDs"),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
     search: Optional[str] = Query(None, description="Unified search across dive name, user username, dive site name, and dive information"),
     difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
@@ -214,6 +227,17 @@ def get_all_dives_admin(
     # Apply filters
     if dive_site_id:
         query = query.filter(Dive.dive_site_id == dive_site_id)
+
+    if dive_site_ids:
+        try:
+            ds_id_list = [int(ds_id.strip()) for ds_id in dive_site_ids.split(",") if ds_id.strip().isdigit()]
+            if ds_id_list:
+                query = query.filter(Dive.dive_site_id.in_(ds_id_list))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid dive_site_ids format"
+            )
 
     if dive_site_name:
         # Join with DiveSite table to filter by dive site name
@@ -318,7 +342,8 @@ def get_all_dives_admin(
     if sort_by:
         valid_sort_fields = {
             'id', 'dive_date', 'max_depth', 'duration', 'user_rating',
-            'visibility_rating', 'view_count', 'created_at', 'updated_at'
+            'visibility_rating', 'view_count', 'created_at', 'updated_at',
+            'name', 'user_username', 'dive_site_name'
         }
         if sort_by not in valid_sort_fields:
             raise HTTPException(
@@ -351,6 +376,16 @@ def get_all_dives_admin(
             sort_field = Dive.created_at
         elif sort_by == 'updated_at':
             sort_field = Dive.updated_at
+        elif sort_by == 'name':
+            sort_field = Dive.name
+        elif sort_by == 'user_username':
+            sort_field = User.username
+        elif sort_by == 'dive_site_name':
+            # Ensure DiveSite is joined
+            is_joined = dive_site_name is not None or search is not None
+            if not is_joined:
+                query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id, isouter=True)
+            sort_field = DiveSite.name
 
         if sort_order == 'desc':
             query = query.order_by(sort_field.desc())
