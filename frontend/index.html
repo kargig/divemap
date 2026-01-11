@@ -5,7 +5,7 @@
     <link rel="icon" href="/favicons/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#2563eb" />
-    <meta name="description" content="The ultimate scuba diving platform. Discover and rate dive sites, log your dives, plan trips, share underwater routes, and connect with the global diving community." />
+    <meta name="description" content="The ultimate scuba diving platform. Discover and rate dive sites, log your dives, plan trips, share underwater routes, and connect with the global diving community." data-rh="true" />
     <link rel="apple-touch-icon" href="/favicons/apple-touch-icon.png" />
     <title>Divemap - Discover and Rate Scuba Dive Sites Worldwide</title>
     <style>
@@ -30,7 +30,7 @@
         margin: 0 auto; /* Ensure it centers horizontally if max-width is hit */
         animation: fadeIn 0.5s ease-in;
       }
-      .initial-loading h1 {
+      .initial-loading .loading-title {
         color: #1e40af; /* blue-800 */
         font-size: 1.875rem;
         line-height: 2.25rem;
@@ -85,7 +85,7 @@
     <div id="root">
       <div class="initial-loading">
         <span class="loader-spinner"></span>
-        <h1>Divemap - Discover Amazing Dive Sites</h1>
+        <div class="loading-title">Divemap - Discover Amazing Dive Sites</div>
         <p>The ultimate scuba diving platform. Discover and rate dive sites, log your dives, plan trips, share underwater routes, and connect with the global diving community.</p>
         <nav>
           <a href="/dive-sites">Dive Sites</a>
