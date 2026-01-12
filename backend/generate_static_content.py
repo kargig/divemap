@@ -2,6 +2,8 @@ import os
 import sys
 import time
 import boto3
+import re
+import unicodedata
 from botocore.exceptions import ClientError
 from datetime import datetime, timezone
 
@@ -22,6 +24,32 @@ R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
 
 OUTPUT_DIR = os.path.join(current_dir, "llm_content")
 REQUIRED_FILES = ["dive-sites.md", "dive-routes.md", "diving-centers.md", "dives.md", "llms.txt", "sitemap.xml"]
+
+def slugify(text):
+    """
+    Generate a URL-friendly slug from text.
+    Mirrors the intent of the frontend slugify but handles unicode normalization.
+    """
+    if not text:
+        return ""
+    text = str(text)
+    # Normalize unicode characters (e.g. é -> e, Greek -> Latin equivalent if desired, 
+    # but frontend doesn't seem to transliterate, so we stick to simple normalization 
+    # and ASCII encoding to strip accents/non-ascii if necessary, or keep them if standard allowed.
+    # Standard slugify usually strips non-ASCII.
+    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
+    text = text.lower().strip()
+    text = re.sub(r'[\s\W-]+', '-', text)
+    text = text.strip('-')
+    return text
+
+def generate_trip_name(trip):
+    """Generate trip name for slug creation."""
+    center_name = trip.diving_center.name if trip.diving_center else "Unknown Center"
+    if trip.trip_date:
+        date_str = trip.trip_date.strftime("%d/%m/%Y")
+        return f"{center_name} - {date_str}"
+    return center_name
 
 def get_r2_client():
     if R2_ACCOUNT_ID and R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY and R2_BUCKET_NAME:
@@ -240,23 +268,33 @@ def generate_content(db: Session, r2_client=None):
     # Dive Sites
     for site in sites:
         lastmod = site.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(site, 'updated_at') and site.updated_at else now
-        sitemap_entries.append(f"  <url>\n    <loc>{BASE_URL}/dive-sites/{site.id}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
+        slug = slugify(site.name)
+        url = f"{BASE_URL}/dive-sites/{site.id}/{slug}" if slug else f"{BASE_URL}/dive-sites/{site.id}"
+        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
 
     # Diving Centers
     for center in centers:
         lastmod = center.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(center, 'updated_at') and center.updated_at else now
-        sitemap_entries.append(f"  <url>\n    <loc>{BASE_URL}/diving-centers/{center.id}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
+        slug = slugify(center.name)
+        url = f"{BASE_URL}/diving-centers/{center.id}/{slug}" if slug else f"{BASE_URL}/diving-centers/{center.id}"
+        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
 
     # Public Dives
     for dive in dives:
         lastmod = dive.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(dive, 'updated_at') and dive.updated_at else now
-        sitemap_entries.append(f"  <url>\n    <loc>{BASE_URL}/dives/{dive.id}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>")
+        name_candidate = dive.name or (dive.dive_site.name if dive.dive_site else "dive")
+        slug = slugify(name_candidate)
+        url = f"{BASE_URL}/dives/{dive.id}/{slug}" if slug else f"{BASE_URL}/dives/{dive.id}"
+        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>")
 
     # Dive Trips
     trips = db.query(ParsedDiveTrip).all()
     for trip in trips:
         lastmod = trip.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(trip, 'updated_at') and trip.updated_at else now
-        sitemap_entries.append(f"  <url>\n    <loc>{BASE_URL}/dive-trips/{trip.id}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>")
+        trip_name = generate_trip_name(trip)
+        slug = slugify(trip_name)
+        url = f"{BASE_URL}/dive-trips/{trip.id}/{slug}" if slug else f"{BASE_URL}/dive-trips/{trip.id}"
+        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>")
 
     sitemap_xml = [
         '<?xml version="1.0" encoding="UTF-8"?>',
