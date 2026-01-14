@@ -318,6 +318,17 @@ const DiveSiteDetail = () => {
     description: item.description || '',
   }));
 
+  // Auto-select media tab based on availability
+  useEffect(() => {
+    if (media && media.length > 0) {
+      if (photos.length === 0 && videos.length > 0) {
+        setActiveMediaTab('videos');
+      } else if (photos.length > 0 && videos.length === 0) {
+        setActiveMediaTab('photos');
+      }
+    }
+  }, [media, photos.length, videos.length]);
+
   // Set initial content tab based on available content or URL param
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);

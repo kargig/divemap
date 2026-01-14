@@ -1,4 +1,4 @@
-import { Plus, Loader2, MapPin, AlertCircle } from 'lucide-react';
+import { Plus, Loader2, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery } from 'react-query';
@@ -66,7 +66,9 @@ const DiveSiteRoutes = ({ diveSiteId }) => {
 
   return (
     <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-      <div className='flex items-center justify-between mb-4'>
+      <div
+        className={`flex items-center justify-between ${routes && routes.length > 0 ? 'mb-4' : ''}`}
+      >
         <h2 className='text-lg font-semibold text-gray-900'>
           Available Routes ({routes?.length || 0})
         </h2>
@@ -79,7 +81,7 @@ const DiveSiteRoutes = ({ diveSiteId }) => {
         </button>
       </div>
 
-      {routes && routes.length > 0 ? (
+      {routes && routes.length > 0 && (
         <div className='space-y-3'>
           {displayedRoutes.map(route => (
             <RoutePreview key={route.id} route={route} diveSiteId={diveSiteId} showActions={true} />
@@ -102,19 +104,6 @@ const DiveSiteRoutes = ({ diveSiteId }) => {
               Show Less
             </button>
           )}
-        </div>
-      ) : (
-        <div className='text-center py-8 text-gray-500'>
-          <MapPin className='w-12 h-12 mx-auto mb-4 text-gray-300' />
-          <p className='text-lg font-medium mb-2'>No routes available</p>
-          <p className='text-sm mb-4'>Be the first to create a route for this dive site.</p>
-          <button
-            onClick={handleDrawNewRoute}
-            className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors mx-auto'
-          >
-            <Plus className='w-4 h-4' />
-            Draw First Route
-          </button>
         </div>
       )}
     </div>
