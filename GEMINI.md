@@ -120,6 +120,7 @@ docker-compose exec backend python run_migrations.py
 ```
 
 ## Key Directories & Files
+- **`REPO_MAP.md`**: **START HERE** for an overview of the codebase structure and module purposes.
 - **`backend/`**: Contains the FastAPI application.
     - `app/`: Main application logic.
     - `divemap_venv/`: Required Python virtual environment.
