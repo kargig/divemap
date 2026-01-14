@@ -344,6 +344,9 @@ class SiteMediaResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class DiveSiteMediaOrderRequest(BaseModel):
+    order: List[str] = Field(..., description="Ordered list of media identifiers (e.g., ['site_1', 'dive_5'])")
+
 # Search Parameters
 class DiveSiteSearchParams(BaseModel):
     name: Optional[str] = None

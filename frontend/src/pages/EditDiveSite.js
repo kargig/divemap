@@ -1,5 +1,32 @@
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Collapse, Image } from 'antd';
-import { ArrowLeft, Save, Trash2, Upload, X, Tag, Building, Plus, Edit } from 'lucide-react';
+import {
+  ArrowLeft,
+  Save,
+  Trash2,
+  Upload,
+  X,
+  Tag,
+  Building,
+  Plus,
+  Edit,
+  GripVertical,
+} from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -13,6 +40,7 @@ import api, {
   updateDiveSiteMedia,
   uploadDiveSitePhotoToR2Only,
   addDiveSiteMedia,
+  updateMediaOrder,
 } from '../api';
 import { FormField } from '../components/forms/FormField';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
@@ -24,6 +52,94 @@ import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/curre
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 import { diveSiteSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
+
+const SortableMediaItem = ({
+  item,
+  mediaDescriptions,
+  setMediaDescriptions,
+  handleDeleteMedia,
+  getImageUrl,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.uniqueId, // Use the composite ID (e.g., "site_123")
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 1,
+    position: 'relative',
+  };
+
+  const isPending =
+    item.isPending || (typeof item.id === 'string' && item.id.startsWith('pending-'));
+  const containerClass = `border rounded-lg p-4 bg-white ${isPending ? 'border-yellow-400 bg-yellow-50' : ''}`;
+
+  return (
+    <div ref={setNodeRef} style={style} className={containerClass}>
+      <div className='flex items-center justify-between mb-2'>
+        <div className='flex items-center space-x-2'>
+          <div
+            {...attributes}
+            {...listeners}
+            className='cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600'
+          >
+            <GripVertical className='w-5 h-5' />
+          </div>
+          <span className='text-sm font-medium text-gray-700 capitalize'>
+            {item.media_type}{' '}
+            {isPending && <span className='text-xs text-yellow-700'>(Pending)</span>}
+          </span>
+        </div>
+        {!item.dive_id && (
+          <button
+            type='button' // Prevent form submission
+            onClick={() => handleDeleteMedia(item.id)}
+            className='text-red-600 hover:text-red-800'
+            title='Delete media'
+          >
+            <Trash2 className='w-4 h-4' />
+          </button>
+        )}
+      </div>
+      <div className='space-y-2'>
+        {item.media_type === 'photo' ? (
+          <Image
+            src={getImageUrl(item.url)}
+            alt={item.description || 'Media'}
+            className='w-full object-cover h-48 rounded'
+            preview={{
+              mask: 'Preview',
+            }}
+          />
+        ) : (
+          <YouTubePreview
+            url={item.url}
+            description={item.description}
+            className='w-full'
+            openInNewTab={true}
+          />
+        )}
+        <input
+          type='text'
+          value={mediaDescriptions[item.id] || ''}
+          onChange={e => {
+            setMediaDescriptions(prev => ({
+              ...prev,
+              [item.id]: e.target.value,
+            }));
+          }}
+          disabled={!!item.dive_id}
+          placeholder={item.dive_id ? 'Description from dive (not editable)' : 'Add description...'}
+          className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed'
+        />
+      </div>
+    </div>
+  );
+};
+
+const EMPTY_ARRAY = [];
 
 const EditDiveSite = () => {
   // Set page title
@@ -266,7 +382,7 @@ const EditDiveSite = () => {
 
   // Fetch media
   const {
-    data: media = [],
+    data: media = EMPTY_ARRAY,
     isLoading: mediaLoading,
     error: mediaError,
   } = useQuery(
@@ -297,6 +413,64 @@ const EditDiveSite = () => {
       },
     }
   );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const [mediaItems, setMediaItems] = useState([]);
+
+  useEffect(() => {
+    if (Array.isArray(media)) {
+      // Process media items to add unique identifiers for DnD
+      const processedMedia = media.map(item => ({
+        ...item,
+        uniqueId: item.dive_id ? `dive_${item.id}` : `site_${item.id}`,
+      }));
+
+      // Combine with pending media
+      const processedPending = pendingMedia.map(item => ({
+        ...item,
+        uniqueId: item.id, // pending items already have unique temp IDs
+      }));
+
+      // If backend sends sorted list, this preserves it.
+      // Appending pending items at the end.
+      setMediaItems([...processedMedia, ...processedPending]);
+    }
+  }, [media, pendingMedia]);
+
+  const handleDragEnd = async event => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      setMediaItems(items => {
+        const oldIndex = items.findIndex(item => item.uniqueId === active.id);
+        const newIndex = items.findIndex(item => item.uniqueId === over.id);
+
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+
+        // Extract only persisted items (non-pending) to save order
+        // Pending items can't be saved in order yet as they don't have DB IDs
+        const persistedItemsOrder = newOrder
+          .filter(item => !item.uniqueId.toString().startsWith('pending-'))
+          .map(item => item.uniqueId);
+
+        // Call API to save order
+        if (persistedItemsOrder.length > 0) {
+          updateMediaOrder(id, persistedItemsOrder).catch(err => {
+            console.error('Failed to save media order:', err);
+            toast.error('Failed to save media order');
+          });
+        }
+
+        return newOrder;
+      });
+    }
+  };
 
   // Convert Flickr URLs to direct image URLs
   useEffect(() => {
@@ -653,7 +827,7 @@ const EditDiveSite = () => {
     const dbCreationPromises = [];
     const unsavedR2Photos = unsavedR2PhotosRef.current;
 
-    for (const unsavedPhoto of unsavedR2Photos) {
+    const photoUploadPromises = unsavedR2Photos.map(async unsavedPhoto => {
       if (unsavedPhoto.originFileObj) {
         // This is a photo from create/edit flow - upload to R2 first
         try {
@@ -666,25 +840,23 @@ const EditDiveSite = () => {
             description: unsavedPhoto.description || '',
           };
 
-          dbCreationPromises.push(
-            addDiveSiteMedia(id, mediaData)
-              .then(createdMedia => {
-                // Update photoMediaUrls with the new DB ID
-                setPhotoMediaUrls(prev =>
-                  prev.map(item =>
-                    item.temp_uid === unsavedPhoto.uid
-                      ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
-                      : item
-                  )
-                );
-                // Track this UID as saved so component can clear it from unsaved list
-                setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
-                return createdMedia;
-              })
-              .catch(_error => {
-                toast.error(`Failed to save photo ${unsavedPhoto.file_name} to database`);
-              })
-          );
+          return addDiveSiteMedia(id, mediaData)
+            .then(createdMedia => {
+              // Update photoMediaUrls with the new DB ID
+              setPhotoMediaUrls(prev =>
+                prev.map(item =>
+                  item.temp_uid === unsavedPhoto.uid
+                    ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
+                    : item
+                )
+              );
+              // Track this UID as saved so component can clear it from unsaved list
+              setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
+              return createdMedia;
+            })
+            .catch(_error => {
+              toast.error(`Failed to save photo ${unsavedPhoto.file_name} to database`);
+            });
         } catch (error) {
           console.error('Failed to upload photo to R2:', error);
           toast.error(`Failed to upload photo ${unsavedPhoto.file_name} to R2`);
@@ -697,29 +869,27 @@ const EditDiveSite = () => {
           description: unsavedPhoto.description || '',
         };
 
-        dbCreationPromises.push(
-          addDiveSiteMedia(id, mediaData)
-            .then(createdMedia => {
-              setPhotoMediaUrls(prev =>
-                prev.map(item =>
-                  item.temp_uid === unsavedPhoto.uid
-                    ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
-                    : item
-                )
-              );
-              setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
-              return createdMedia;
-            })
-            .catch(_error => {
-              toast.error(`Failed to save photo ${unsavedPhoto.file_name} to database`);
-            })
-        );
+        return addDiveSiteMedia(id, mediaData)
+          .then(createdMedia => {
+            setPhotoMediaUrls(prev =>
+              prev.map(item =>
+                item.temp_uid === unsavedPhoto.uid
+                  ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
+                  : item
+              )
+            );
+            setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
+            return createdMedia;
+          })
+          .catch(_error => {
+            toast.error(`Failed to save photo ${unsavedPhoto.file_name} to database`);
+          });
       }
-    }
+    });
 
-    // Wait for all DB records to be created
-    if (dbCreationPromises.length > 0) {
-      await Promise.all(dbCreationPromises);
+    // Wait for all uploads and DB records to be created
+    if (photoUploadPromises.length > 0) {
+      await Promise.all(photoUploadPromises);
       // Invalidate media query to refresh the list
       await queryClient.invalidateQueries(['dive-site-media', id]);
     }
@@ -734,27 +904,32 @@ const EditDiveSite = () => {
         // Handle tag changes
         const currentTagIds = diveSite?.tags?.map(tag => tag.id) || [];
         const newTagIds = selectedTags;
+        const tagPromises = [];
 
         // Add new tags
         for (const tagId of newTagIds) {
           if (!currentTagIds.includes(tagId)) {
-            try {
-              await api.post(`/api/v1/tags/dive-sites/${id}/tags`, { tag_id: tagId });
-            } catch (error) {
-              console.error('Failed to add tag:', error);
-            }
+            tagPromises.push(
+              api
+                .post(`/api/v1/tags/dive-sites/${id}/tags`, { tag_id: tagId })
+                .catch(error => console.error('Failed to add tag:', error))
+            );
           }
         }
 
         // Remove tags that are no longer selected
         for (const tagId of currentTagIds) {
           if (!newTagIds.includes(tagId)) {
-            try {
-              await api.delete(`/api/v1/tags/dive-sites/${id}/tags/${tagId}`);
-            } catch (error) {
-              console.error('Failed to remove tag:', error);
-            }
+            tagPromises.push(
+              api
+                .delete(`/api/v1/tags/dive-sites/${id}/tags/${tagId}`)
+                .catch(error => console.error('Failed to remove tag:', error))
+            );
           }
+        }
+
+        if (tagPromises.length > 0) {
+          await Promise.all(tagPromises);
         }
 
         // Save pending media to database
@@ -1500,143 +1675,48 @@ const EditDiveSite = () => {
                     <p className='text-red-600'>Failed to load media</p>
                   </div>
                 )}
-                {!mediaLoading &&
-                  !mediaError &&
-                  Array.isArray(media) &&
-                  media.filter(item => !item.dive_id).length === 0 &&
-                  pendingMedia.length === 0 && (
-                    <div className='col-span-full text-center py-4'>
-                      <p className='text-gray-500'>No media added yet.</p>
-                    </div>
-                  )}
-                {!mediaLoading &&
-                  !mediaError &&
-                  ((Array.isArray(media) && media.filter(item => !item.dive_id).length > 0) ||
-                    pendingMedia.length > 0) && (
-                    <div className='mb-3'>
-                      <Collapse
-                        items={[
-                          {
-                            key: '1',
-                            label: 'Manage Media',
-                            children: (
-                              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                                {/* Show saved media */}
-                                {media
-                                  .filter(item => !item.dive_id)
-                                  .map(item => (
-                                    <div key={item.id} className='border rounded-lg p-4'>
-                                      <div className='flex items-center justify-between mb-2'>
-                                        <span className='text-sm font-medium text-gray-700 capitalize'>
-                                          {item.media_type}
-                                        </span>
-                                        {!item.dive_id && (
-                                          <button
-                                            onClick={() => handleDeleteMedia(item.id)}
-                                            className='text-red-600 hover:text-red-800'
-                                            title='Delete media'
-                                          >
-                                            <Trash2 className='w-4 h-4' />
-                                          </button>
-                                        )}
-                                      </div>
-                                      <div className='space-y-2'>
-                                        {item.media_type === 'photo' ? (
-                                          <Image
-                                            src={getImageUrl(item.url)}
-                                            alt={item.description || 'Media'}
-                                            className='w-full'
-                                            preview={{
-                                              mask: 'Preview',
-                                            }}
-                                          />
-                                        ) : (
-                                          <YouTubePreview
-                                            url={item.url}
-                                            description={item.description}
-                                            className='w-full'
-                                            openInNewTab={true}
-                                          />
-                                        )}
-                                        <input
-                                          type='text'
-                                          value={mediaDescriptions[item.id] || ''}
-                                          onChange={e => {
-                                            setMediaDescriptions(prev => ({
-                                              ...prev,
-                                              [item.id]: e.target.value,
-                                            }));
-                                          }}
-                                          disabled={!!item.dive_id}
-                                          placeholder={
-                                            item.dive_id
-                                              ? 'Description from dive (not editable)'
-                                              : 'Add description...'
-                                          }
-                                          className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed'
-                                        />
-                                      </div>
-                                    </div>
+                {!mediaLoading && !mediaError && mediaItems.length === 0 && (
+                  <div className='col-span-full text-center py-4'>
+                    <p className='text-gray-500'>No media added yet.</p>
+                  </div>
+                )}
+                {!mediaLoading && !mediaError && mediaItems.length > 0 && (
+                  <div className='mb-3'>
+                    <Collapse
+                      items={[
+                        {
+                          key: '1',
+                          label: 'Manage Media',
+                          children: (
+                            <DndContext
+                              sensors={sensors}
+                              collisionDetection={closestCenter}
+                              onDragEnd={handleDragEnd}
+                            >
+                              <SortableContext
+                                items={mediaItems.map(item => item.uniqueId)}
+                                strategy={rectSortingStrategy}
+                              >
+                                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                                  {mediaItems.map(item => (
+                                    <SortableMediaItem
+                                      key={item.uniqueId}
+                                      item={item}
+                                      mediaDescriptions={mediaDescriptions}
+                                      setMediaDescriptions={setMediaDescriptions}
+                                      handleDeleteMedia={handleDeleteMedia}
+                                      getImageUrl={getImageUrl}
+                                    />
                                   ))}
-                                {/* Show pending media */}
-                                {pendingMedia.map(item => (
-                                  <div
-                                    key={item.id}
-                                    className='border rounded-lg p-4 border-yellow-400 bg-yellow-50'
-                                  >
-                                    <div className='flex items-center justify-between mb-2'>
-                                      <span className='text-sm font-medium text-gray-700 capitalize'>
-                                        {item.media_type}{' '}
-                                        <span className='text-xs text-yellow-700'>(Pending)</span>
-                                      </span>
-                                      <button
-                                        onClick={() => handleDeleteMedia(item.id)}
-                                        className='text-red-600 hover:text-red-800'
-                                        title='Remove media'
-                                      >
-                                        <Trash2 className='w-4 h-4' />
-                                      </button>
-                                    </div>
-                                    <div className='space-y-2'>
-                                      {item.media_type === 'photo' ? (
-                                        <Image
-                                          src={getImageUrl(item.url)}
-                                          alt={item.description || 'Media'}
-                                          className='w-full'
-                                          preview={{
-                                            mask: 'Preview',
-                                          }}
-                                        />
-                                      ) : (
-                                        <YouTubePreview
-                                          url={item.url}
-                                          description={item.description}
-                                          className='w-full'
-                                          openInNewTab={true}
-                                        />
-                                      )}
-                                      <input
-                                        type='text'
-                                        value={mediaDescriptions[item.id] || ''}
-                                        onChange={e => {
-                                          setMediaDescriptions(prev => ({
-                                            ...prev,
-                                            [item.id]: e.target.value,
-                                          }));
-                                        }}
-                                        placeholder='Add description...'
-                                        className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
-                                      />
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ),
-                          },
-                        ]}
-                      />
-                    </div>
-                  )}
+                                </div>
+                              </SortableContext>
+                            </DndContext>
+                          ),
+                        },
+                      ]}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Tags Management */}
