@@ -20,7 +20,7 @@ from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse,
     SiteRatingCreate, SiteRatingResponse,
     SiteCommentCreate, SiteCommentUpdate, SiteCommentResponse,
-    SiteMediaCreate, SiteMediaUpdate, SiteMediaResponse,
+    SiteMediaCreate, SiteMediaUpdate, SiteMediaResponse, DiveSiteMediaOrderRequest,
     DiveSiteSearchParams, CenterDiveSiteCreate, DiveResponse,
     DiveSiteAliasCreate, DiveSiteAliasUpdate, DiveSiteAliasResponse,
     DiveRouteCreate, DiveRouteResponse, DiveRouteWithCreator
@@ -1556,6 +1556,33 @@ async def _send_dive_site_notifications(dive_site_id: int):
     except Exception as e:
         logger.error(f"Failed to send notifications for new dive site {dive_site_id}: {e}")
 
+async def _update_shore_direction_background(dive_site_id: int):
+    """Background task to detect and update shore direction."""
+    from app.database import SessionLocal
+    db = SessionLocal()
+    try:
+        dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+        if not dive_site or dive_site.latitude is None or dive_site.longitude is None:
+            return
+
+        result = detect_shore_direction(float(dive_site.latitude), float(dive_site.longitude))
+        if result:
+            dive_site.shore_direction = result.get('shore_direction')
+            dive_site.shore_direction_confidence = result.get('confidence')
+            dive_site.shore_direction_method = result.get('method')
+            dive_site.shore_direction_distance_m = result.get('distance_to_coastline_m')
+            logger.info(f"Background auto-detected shore direction {result.get('shore_direction')}° for site {dive_site_id}")
+        else:
+            # Mark as failed so we don't keep retrying these exact coordinates
+            dive_site.shore_direction_method = 'osm_failed'
+            logger.info(f"Background shore detection failed for site {dive_site_id}")
+        
+        db.commit()
+    except Exception as e:
+        logger.error(f"Error in background shore direction detection for site {dive_site_id}: {e}")
+    finally:
+        db.close()
+
 
 @router.post("/", response_model=DiveSiteResponse)
 @skip_rate_limit_for_admin("15/minute")
@@ -1575,26 +1602,14 @@ async def create_dive_site(
         difficulty_code = dive_site_data.pop('difficulty_code')
         dive_site_data['difficulty_id'] = get_difficulty_id_by_code(db, difficulty_code)
     
-    # Auto-detect shore direction if not provided and coordinates are available
-    if dive_site_data.get('shore_direction') is None and dive_site_data.get('latitude') and dive_site_data.get('longitude'):
-        try:
-            result = detect_shore_direction(
-                float(dive_site_data['latitude']),
-                float(dive_site_data['longitude'])
-            )
-            if result:
-                dive_site_data['shore_direction'] = result.get('shore_direction')
-                dive_site_data['shore_direction_confidence'] = result.get('confidence')
-                dive_site_data['shore_direction_method'] = result.get('method')
-                dive_site_data['shore_direction_distance_m'] = result.get('distance_to_coastline_m')
-        except Exception as e:
-            # Log error but don't fail dive site creation
-            logger.warning(f"Failed to auto-detect shore direction for new dive site: {e}")
-    
     db_dive_site = DiveSite(**dive_site_data)
     db.add(db_dive_site)
     db.commit()
     db.refresh(db_dive_site)
+
+    # Trigger background shore detection if coordinates are provided but shore_direction is not
+    if db_dive_site.latitude and db_dive_site.longitude and db_dive_site.shore_direction is None:
+        background_tasks.add_task(_update_shore_direction_background, db_dive_site.id)
     
     # Re-query with eager loading for response
     db_dive_site = db.query(DiveSite).options(
@@ -1809,13 +1824,18 @@ async def get_dive_site_media(
     # The frontend will need to handle both types
     result = []
     r2_storage = get_r2_storage()
+    
+    # Map for easy access by composite ID (e.g. "site_123", "dive_456")
+    media_map = {}
+    
     # Add site media (admin-uploaded)
     for media in site_media:
         # If URL is an R2 path (starts with 'user_'), generate presigned URL
         media_url = media.url
         if media_url.startswith('user_'):
             media_url = r2_storage.get_photo_url(media_url)
-        result.append(SiteMediaResponse(
+        
+        response_obj = SiteMediaResponse(
             id=media.id,
             dive_site_id=media.dive_site_id,
             media_type=media.media_type.value if hasattr(media.media_type, 'value') else str(media.media_type),
@@ -1825,7 +1845,8 @@ async def get_dive_site_media(
             dive_id=None,
             user_id=None,
             user_username=None
-        ))
+        )
+        media_map[f"site_{media.id}"] = response_obj
 
     
     for media in dive_media:
@@ -1850,7 +1871,7 @@ async def get_dive_site_media(
         if media_url.startswith('user_'):
             media_url = r2_storage.get_photo_url(media_url)
         
-        result.append(SiteMediaResponse(
+        response_obj = SiteMediaResponse(
             id=media.id,
             dive_site_id=dive_site_id,
             media_type=media.media_type.value if hasattr(media.media_type, 'value') else str(media.media_type),
@@ -1860,9 +1881,73 @@ async def get_dive_site_media(
             dive_id=media.dive_id if media.dive_id else None,
             user_id=dive.user_id if dive else None,
             user_username=user_username
-        ))
+        )
+        media_map[f"dive_{media.id}"] = response_obj
+    
+    # Apply ordering if exists
+    if dive_site.media_order:
+        try:
+            # First add items in the specified order
+            for media_key in dive_site.media_order:
+                if media_key in media_map:
+                    result.append(media_map[media_key])
+                    # Remove from map so we know it's been handled
+                    del media_map[media_key]
+        except Exception as e:
+            logger.error(f"Error applying media order: {e}")
+            # Continue with remaining items if ordering fails
+    
+    # Add any remaining items (newly uploaded or not in order list)
+    # Sort them by ID/created_at implicitly (or could sort explicitly here)
+    remaining_keys = sorted(media_map.keys()) # Sort keys for consistent fallback order
+    for key in remaining_keys:
+        result.append(media_map[key])
     
     return result
+
+@router.put("/{dive_site_id}/media/order")
+@skip_rate_limit_for_admin("30/minute")
+async def update_media_order(
+    request: Request,
+    dive_site_id: int,
+    order_data: DiveSiteMediaOrderRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update the display order of media for a dive site.
+    Requester must be admin, moderator, or the creator of the dive site.
+    """
+    # Check if dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+
+    # Check permissions
+    can_edit = (
+        current_user.is_admin or
+        current_user.is_moderator or
+        dive_site.created_by == current_user.id
+    )
+    
+    if not can_edit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to edit this dive site"
+        )
+
+    # Update order
+    # Note: We don't validate that every ID exists here, as that would be expensive
+    # and "ghost" IDs are handled gracefully by the GET endpoint.
+    # However, basic validation of format is handled by Pydantic model.
+    
+    dive_site.media_order = order_data.order
+    db.commit()
+    
+    return {"message": "Media order updated successfully", "order": dive_site.media_order}
 
 @router.post("/{dive_site_id}/media", response_model=SiteMediaResponse)
 @skip_rate_limit_for_admin("30/minute")
@@ -2002,6 +2087,14 @@ async def delete_dive_site_media(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Media not found"
         )
+    
+    # Remove from media_order if present
+    if dive_site.media_order:
+        media_key = f"site_{media_id}"
+        if media_key in dive_site.media_order:
+            # Create a copy to modify
+            new_order = [key for key in dive_site.media_order if key != media_key]
+            dive_site.media_order = new_order
 
     db.delete(media)
     db.commit()
@@ -2254,6 +2347,7 @@ async def update_dive_site(
     request: Request,
     dive_site_id: int,
     dive_site_update: DiveSiteUpdate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -2312,31 +2406,32 @@ async def update_dive_site(
             )
     
     # Auto-detect shore direction if:
-    # 1. Coordinates changed and shore_direction not provided, OR
+    # 1. Coordinates actually changed and shore_direction not provided, OR
     # 2. Shore direction is currently NULL in database and not being explicitly set
-    coordinates_changed = ('latitude' in update_data or 'longitude' in update_data)
+    
+    actual_coords_changed = False
+    if 'latitude' in update_data and dive_site.latitude is not None:
+        if abs(float(update_data['latitude']) - float(dive_site.latitude)) > 1e-7:
+            actual_coords_changed = True
+    elif 'latitude' in update_data:
+        actual_coords_changed = True
+
+    if 'longitude' in update_data and dive_site.longitude is not None:
+        if abs(float(update_data['longitude']) - float(dive_site.longitude)) > 1e-7:
+            actual_coords_changed = True
+    elif 'longitude' in update_data:
+        actual_coords_changed = True
+
     shore_direction_not_provided = 'shore_direction' not in update_data or update_data.get('shore_direction') is None
-    shore_direction_is_null = dive_site.shore_direction is None
     
-    should_detect = (coordinates_changed and shore_direction_not_provided) or (shore_direction_is_null and shore_direction_not_provided)
+    # Check if we should trigger detection
+    # Only if coordinates changed OR (missing AND hasn't failed before)
+    shore_direction_is_missing = dive_site.shore_direction is None and dive_site.shore_direction_method != 'osm_failed'
     
-    if should_detect:
-        # Use updated coordinates if provided, otherwise use existing
-        lat = update_data.get('latitude', dive_site.latitude)
-        lon = update_data.get('longitude', dive_site.longitude)
-        
-        if lat and lon:
-            try:
-                result = detect_shore_direction(float(lat), float(lon))
-                if result:
-                    update_data['shore_direction'] = result.get('shore_direction')
-                    update_data['shore_direction_confidence'] = result.get('confidence')
-                    update_data['shore_direction_method'] = result.get('method')
-                    update_data['shore_direction_distance_m'] = result.get('distance_to_coastline_m')
-                    logger.info(f"Auto-detected shore direction {result.get('shore_direction')}° for dive site {dive_site_id}")
-            except Exception as e:
-                # Log error but don't fail dive site update
-                logger.warning(f"Failed to auto-detect shore direction for dive site {dive_site_id}: {e}")
+    if (actual_coords_changed or shore_direction_is_missing) and shore_direction_not_provided:
+        # Schedule background detection
+        background_tasks.add_task(_update_shore_direction_background, dive_site_id)
+        logger.info(f"Scheduled background shore direction detection for dive site {dive_site_id}")
 
     for field, value in update_data.items():
         setattr(dive_site, field, value)

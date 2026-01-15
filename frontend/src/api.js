@@ -966,3 +966,9 @@ export const addDiveSiteMedia = async (diveSiteId, mediaData) => {
   const response = await api.post(`/api/v1/dive-sites/${diveSiteId}/media`, mediaData);
   return response.data;
 };
+
+// Update media order
+export const updateMediaOrder = async (diveSiteId, order) => {
+  const response = await api.put(`/api/v1/dive-sites/${diveSiteId}/media/order`, { order });
+  return response.data;
+};
