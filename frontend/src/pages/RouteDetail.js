@@ -456,6 +456,39 @@ const RouteDetail = () => {
   const getSchema = () => {
     if (!route) return null;
 
+    const itemListElement = [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: window.location.origin,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Dive Sites',
+        item: `${window.location.origin}/dive-sites`,
+      },
+    ];
+
+    let currentPosition = 3;
+
+    if (diveSite) {
+      itemListElement.push({
+        '@type': 'ListItem',
+        position: currentPosition++,
+        name: diveSite.name,
+        item: `${window.location.origin}/dive-sites/${diveSite.id}`,
+      });
+    }
+
+    itemListElement.push({
+      '@type': 'ListItem',
+      position: currentPosition,
+      name: route.name,
+      item: window.location.href,
+    });
+
     const schema = {
       '@context': 'https://schema.org',
       '@type': ['CreativeWork', 'Map'],
@@ -469,32 +502,7 @@ const RouteDetail = () => {
       dateModified: route.updated_at,
       breadcrumb: {
         '@type': 'BreadcrumbList',
-        itemListElement: [
-          {
-            '@type': 'ListItem',
-            position: 1,
-            name: 'Home',
-            item: window.location.origin,
-          },
-          {
-            '@type': 'ListItem',
-            position: 2,
-            name: 'Dive Sites',
-            item: `${window.location.origin}/dive-sites`,
-          },
-          {
-            '@type': 'ListItem',
-            position: 3,
-            name: diveSite ? diveSite.name : 'Dive Site',
-            item: diveSite ? `${window.location.origin}/dive-sites/${diveSite.id}` : undefined,
-          },
-          {
-            '@type': 'ListItem',
-            position: 4,
-            name: route.name,
-            item: window.location.href,
-          },
-        ],
+        itemListElement: itemListElement,
       },
     };
 
