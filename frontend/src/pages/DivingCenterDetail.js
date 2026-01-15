@@ -376,6 +376,50 @@ const DivingCenterDetail = () => {
   const getSchema = () => {
     if (!center) return null;
 
+    const itemListElement = [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: window.location.origin,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Diving Centers',
+        item: `${window.location.origin}/diving-centers`,
+      },
+    ];
+
+    let currentPosition = 3;
+
+    if (center.country) {
+      itemListElement.push({
+        '@type': 'ListItem',
+        position: currentPosition++,
+        name: center.country,
+        item: `${window.location.origin}/diving-centers?country=${encodeURIComponent(center.country)}`,
+      });
+    }
+
+    if (center.city) {
+      itemListElement.push({
+        '@type': 'ListItem',
+        position: currentPosition++,
+        name: center.city,
+        item: `${window.location.origin}/diving-centers?country=${encodeURIComponent(
+          center.country || ''
+        )}&city=${encodeURIComponent(center.city)}`,
+      });
+    }
+
+    itemListElement.push({
+      '@type': 'ListItem',
+      position: currentPosition,
+      name: center.name,
+      item: window.location.href,
+    });
+
     const schema = {
       '@context': 'https://schema.org',
       '@type': ['SportsActivityLocation', 'LocalBusiness'],
@@ -397,31 +441,7 @@ const DivingCenterDetail = () => {
       email: center.email,
       breadcrumb: {
         '@type': 'BreadcrumbList',
-        itemListElement: [
-          {
-            '@type': 'ListItem',
-            position: 1,
-            name: 'Home',
-            item: window.location.origin,
-          },
-          {
-            '@type': 'ListItem',
-            position: 2,
-            name: 'Diving Centers',
-            item: `${window.location.origin}/diving-centers`,
-          },
-          {
-            '@type': 'ListItem',
-            position: 3,
-            name: center.city || center.country || 'Location',
-          },
-          {
-            '@type': 'ListItem',
-            position: 4,
-            name: center.name,
-            item: window.location.href,
-          },
-        ],
+        itemListElement: itemListElement,
       },
     };
 

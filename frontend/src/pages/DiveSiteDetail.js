@@ -451,6 +451,50 @@ const DiveSiteDetail = () => {
   const getSchema = () => {
     if (!diveSite) return null;
 
+    const itemListElement = [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: window.location.origin,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Dive Sites',
+        item: `${window.location.origin}/dive-sites`,
+      },
+    ];
+
+    let currentPosition = 3;
+
+    if (diveSite.country) {
+      itemListElement.push({
+        '@type': 'ListItem',
+        position: currentPosition++,
+        name: diveSite.country,
+        item: `${window.location.origin}/dive-sites?country=${encodeURIComponent(diveSite.country)}`,
+      });
+    }
+
+    if (diveSite.region) {
+      itemListElement.push({
+        '@type': 'ListItem',
+        position: currentPosition++,
+        name: diveSite.region,
+        item: `${window.location.origin}/dive-sites?country=${encodeURIComponent(
+          diveSite.country || ''
+        )}&region=${encodeURIComponent(diveSite.region)}`,
+      });
+    }
+
+    itemListElement.push({
+      '@type': 'ListItem',
+      position: currentPosition,
+      name: diveSite.name,
+      item: window.location.href,
+    });
+
     const schema = {
       '@context': 'https://schema.org',
       '@type': ['Place', 'BodyOfWater', 'TouristAttraction'],
@@ -468,31 +512,7 @@ const DiveSiteDetail = () => {
       },
       breadcrumb: {
         '@type': 'BreadcrumbList',
-        itemListElement: [
-          {
-            '@type': 'ListItem',
-            position: 1,
-            name: 'Home',
-            item: window.location.origin,
-          },
-          {
-            '@type': 'ListItem',
-            position: 2,
-            name: 'Dive Sites',
-            item: `${window.location.origin}/dive-sites`,
-          },
-          {
-            '@type': 'ListItem',
-            position: 3,
-            name: diveSite.country,
-          },
-          {
-            '@type': 'ListItem',
-            position: 4,
-            name: diveSite.name,
-            item: window.location.href,
-          },
-        ],
+        itemListElement: itemListElement,
       },
     };
 
