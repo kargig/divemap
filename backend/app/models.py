@@ -192,6 +192,7 @@ class DiveSite(Base):
     shore_direction_confidence = Column(Enum('high', 'medium', 'low', name='shore_direction_confidence'), nullable=True)  # Confidence level of automatic detection
     shore_direction_method = Column(String(50), nullable=True, default='osm_coastline')  # Method used to determine shore direction (e.g., 'osm_coastline', 'manual', 'ai')
     shore_direction_distance_m = Column(DECIMAL(8, 2), nullable=True)  # Distance to coastline in meters (for reference/debugging)
+    media_order = Column(sa.JSON, nullable=True)  # JSON array for custom media ordering ['site_1', 'dive_5']
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
