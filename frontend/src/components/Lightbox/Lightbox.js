@@ -70,13 +70,13 @@ export default function Lightbox(props) {
   useEffect(() => {
     const styleId = 'lightbox-active-thumbnail';
     let styleElement = document.getElementById(styleId);
-    
+
     if (!styleElement) {
       styleElement = document.createElement('style');
       styleElement.id = styleId;
       document.head.appendChild(styleElement);
     }
-    
+
     styleElement.textContent = `
       .yarl__thumbnails .yarl__thumbnail.yarl__thumbnail_active,
       .yarl__thumbnails .yarl__thumbnail_active,
@@ -87,7 +87,7 @@ export default function Lightbox(props) {
         border: 4px solid #2d6b8a !important;
       }
     `;
-    
+
     return () => {
       const element = document.getElementById(styleId);
       if (element) {
@@ -141,14 +141,14 @@ export default function Lightbox(props) {
     },
     thumbnailsNext: {
       display: 'none',
-    }
+    },
   };
 
   // Counter config
   const counterConfig = {
     container: {
       style: {
-        color: '#2563eb' //blue
+        color: '#2563eb', //blue
       },
     },
     ...propsCounter,
@@ -161,7 +161,7 @@ export default function Lightbox(props) {
       }}
       carousel={{
         // finite: true,
-        preload: 4
+        preload: 4,
       }}
       plugins={pluginsConfig}
       render={{ slide: ReactImage, thumbnail: ReactImage }}
