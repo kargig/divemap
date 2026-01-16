@@ -144,11 +144,11 @@ export default function Lightbox(props) {
     }
   };
 
-  // Counter config - always blue
+  // Counter config
   const counterConfig = {
     container: {
       style: {
-        color: '#2563eb', // blue-600 (like links)
+        color: '#2563eb' //blue
       },
     },
     ...propsCounter,
