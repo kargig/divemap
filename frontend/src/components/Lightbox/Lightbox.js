@@ -1,8 +1,8 @@
 import { useRef, useEffect } from 'react';
 import LightboxComponent from 'yet-another-react-lightbox';
+import Counter from 'yet-another-react-lightbox/plugins/counter';
 import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
 import Inline from 'yet-another-react-lightbox/plugins/inline';
-import Counter from 'yet-another-react-lightbox/plugins/counter';
 import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
 
 import 'yet-another-react-lightbox/styles.css';
