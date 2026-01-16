@@ -141,13 +141,7 @@ export default function Lightbox(props) {
     },
     thumbnailsNext: {
       display: 'none',
-    },
-    // // Highlight active thumbnail with border matching navbar color
-    // thumbnailActive: {
-    //   borderColor: '#2d6b8a', // navbar background color
-    //   borderWidth: '4px',
-    //   borderStyle: 'solid',
-    // },
+    }
   };
 
   // Counter config - always blue
