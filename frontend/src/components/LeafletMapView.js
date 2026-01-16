@@ -1248,6 +1248,7 @@ const LeafletMapView = ({
       <MapContainer
         center={mapCenter}
         zoom={viewport?.zoom || (markers.length > 0 ? 10 : 8)}
+        maxZoom={20}
         className='w-full h-full'
         style={{
           zIndex: 1,
@@ -1257,6 +1258,8 @@ const LeafletMapView = ({
         <TileLayer
           attribution=''
           url={selectedLayer?.url || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
+          maxZoom={20}
+          maxNativeZoom={selectedLayer?.id === 'satellite' ? 19 : 18}
         />
 
         <MapViewUpdater viewport={viewport} />
