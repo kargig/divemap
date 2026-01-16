@@ -370,9 +370,9 @@ const DiveRouteDrawing = () => {
 
       {/* Compact Form - Fixed Position */}
       <div className='bg-white border-b fixed top-28 left-0 right-0 z-40 pointer-events-none'>
-        <div className='px-4 py-1'>
-          <div className='max-w-6xl mx-auto'>
-            {/* Single Row - All Fields */}
+        <div className='px-4 py-3'>
+          <div className='max-w-6xl mx-auto flex flex-col gap-3'>
+            {/* Row 1: Route Name, Type, Status, Buttons */}
             <div className='flex gap-3 items-end'>
               <div className='pointer-events-auto flex-1'>
                 <label className='block text-xs font-medium text-gray-700 mb-1'>Route Name *</label>
@@ -381,7 +381,7 @@ const DiveRouteDrawing = () => {
                   value={routeName}
                   onChange={e => setRouteName(e.target.value)}
                   placeholder='Enter route name...'
-                  className='w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+                  className='w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
                   required
                 />
               </div>
@@ -391,7 +391,7 @@ const DiveRouteDrawing = () => {
                 <select
                   value={routeType}
                   onChange={e => setRouteType(e.target.value)}
-                  className='w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+                  className='w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
                 >
                   <option value='scuba'>Scuba</option>
                   <option value='walk'>Walk</option>
@@ -399,20 +399,9 @@ const DiveRouteDrawing = () => {
                 </select>
               </div>
 
-              <div className='pointer-events-auto flex-1'>
-                <label className='block text-xs font-medium text-gray-700 mb-1'>Description</label>
-                <input
-                  type='text'
-                  value={routeDescription}
-                  onChange={e => setRouteDescription(e.target.value)}
-                  placeholder='Optional description...'
-                  className='w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
-                />
-              </div>
-
               {/* Route Status Indicator */}
               <div className='pointer-events-auto w-32'>
-                <div className='px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs text-gray-600'>
+                <div className='px-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm text-gray-600 flex items-center justify-center h-[34px]'>
                   {routeData ? (
                     <span className='text-green-600'>✓ Ready</span>
                   ) : (
@@ -424,14 +413,14 @@ const DiveRouteDrawing = () => {
               <div className='pointer-events-auto flex gap-2'>
                 <button
                   onClick={handleCancel}
-                  className='px-3 py-1 text-gray-600 hover:text-gray-800 transition-colors text-sm border border-gray-300 rounded hover:bg-gray-50'
+                  className='px-3 py-1.5 text-gray-600 hover:text-gray-800 transition-colors text-sm border border-gray-300 rounded hover:bg-gray-50 h-[34px]'
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => handleSave(routeData)}
                   disabled={isSaving || !routeName.trim() || !routeData}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors h-[34px] flex items-center ${
                     isSaving || !routeName.trim() || !routeData
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -451,12 +440,24 @@ const DiveRouteDrawing = () => {
                 </button>
               </div>
             </div>
+
+            {/* Row 2: Description */}
+            <div className='pointer-events-auto w-full'>
+              <label className='block text-xs font-medium text-gray-700 mb-1'>Description</label>
+              <textarea
+                value={routeDescription}
+                onChange={e => setRouteDescription(e.target.value)}
+                placeholder='Optional description...'
+                rows={3}
+                className='w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-y'
+              />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Full-Screen Drawing Canvas - With Top Padding */}
-      <div className='flex-1 pt-32' style={{ height: 'calc(100vh - 160px)' }}>
+      <div className='flex-1 pt-64' style={{ height: 'calc(100vh - 160px)' }}>
         <RouteCanvas
           diveSite={diveSite}
           onSave={handleSave}

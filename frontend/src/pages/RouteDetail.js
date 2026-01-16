@@ -16,13 +16,15 @@ import {
   Layers,
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { toast } from 'react-hot-toast';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 
 import api from '../api';
+import Breadcrumbs from '../components/Breadcrumbs';
 import MapLayersPanel from '../components/MapLayersPanel';
 import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
@@ -31,6 +33,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { CHART_COLORS, getRouteTypeColor } from '../utils/colorPalette';
 import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
+import { MARKER_TYPES } from '../utils/markerTypes';
 import { getRouteTypeLabel, calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
 
@@ -83,7 +86,7 @@ const RouteLayer = ({ route, diveSite, showBearings = true }) => {
   // Function to update bearing markers visibility based on zoom and toggle state
   const updateBearingMarkersVisibility = useCallback(() => {
     const currentZoom = map.getZoom();
-    const shouldShow = showBearings && currentZoom >= 16 && currentZoom <= 18;
+    const shouldShow = showBearings && currentZoom >= 16 && currentZoom <= 20;
 
     bearingMarkersRef.current.forEach(marker => {
       if (shouldShow) {
@@ -169,6 +172,42 @@ const RouteLayer = ({ route, diveSite, showBearings = true }) => {
         };
       },
       pointToLayer: (feature, latlng) => {
+        // Handle custom markers
+        if (feature.geometry.type === 'Point') {
+          const markerType = feature.properties?.markerType || 'generic';
+          const markerConfig = MARKER_TYPES[markerType] || MARKER_TYPES.generic;
+          const IconComponent = markerConfig.icon;
+
+          const iconHtml = renderToStaticMarkup(
+            <div
+              style={{
+                backgroundColor: markerConfig.color,
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid white',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+              }}
+            >
+              <IconComponent size={16} color='white' />
+            </div>
+          );
+
+          return L.marker(latlng, {
+            icon: L.divIcon({
+              className: 'custom-div-icon',
+              html: iconHtml,
+              iconSize: [28, 28],
+              iconAnchor: [14, 14],
+              popupAnchor: [0, -14],
+            }),
+          });
+        }
+
+        // Fallback for points that are NOT custom markers (though logic above catches all points)
         // For multi-segment routes, use individual segment colors
         // For single-segment routes, use the route type color
         let routeColor;
@@ -191,6 +230,24 @@ const RouteLayer = ({ route, diveSite, showBearings = true }) => {
           opacity: 0.8,
           fillOpacity: 0.6,
         });
+      },
+      onEachFeature: (feature, layer) => {
+        // Bind popups to markers
+        if (feature.geometry.type === 'Point') {
+          const markerType = feature.properties?.markerType || 'generic';
+          const markerConfig = MARKER_TYPES[markerType] || MARKER_TYPES.generic;
+          const comment = feature.properties?.comment || '';
+
+          if (comment || markerConfig.name) {
+            const popupContent = `
+               <div class="text-sm">
+                 <div class="font-semibold mb-1">${markerConfig.name}</div>
+                 ${comment ? `<div>${comment}</div>` : ''}
+               </div>
+             `;
+            layer.bindPopup(popupContent);
+          }
+        }
       },
     });
 
@@ -246,7 +303,7 @@ const RouteLayer = ({ route, diveSite, showBearings = true }) => {
     if (diveSite?.latitude && diveSite?.longitude && !hasSetInitialViewRef.current) {
       const diveSiteLat = parseFloat(diveSite.latitude);
       const diveSiteLng = parseFloat(diveSite.longitude);
-      map.setView([diveSiteLat, diveSiteLng], 15);
+      map.setView([diveSiteLat, diveSiteLng], 17);
       hasSetInitialViewRef.current = true;
     }
 
@@ -283,7 +340,7 @@ const RouteLayer = ({ route, diveSite, showBearings = true }) => {
 
 // Route display component
 const RouteDisplay = ({ route, diveSite, showBearings, onToggleBearings }) => {
-  const [currentZoom, setCurrentZoom] = useState(15);
+  const [currentZoom, setCurrentZoom] = useState(17);
   const [showLayers, setShowLayers] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState({
     id: 'satellite',
@@ -294,14 +351,20 @@ const RouteDisplay = ({ route, diveSite, showBearings, onToggleBearings }) => {
   });
 
   return (
-    <div className='w-full h-96 rounded-lg overflow-hidden border border-gray-200 relative'>
+    <div className='w-full h-[600px] rounded-lg overflow-hidden border border-gray-200 relative'>
       <MapContainer
         center={[diveSite?.latitude || 0, diveSite?.longitude || 0]}
-        zoom={15}
+        zoom={17}
+        maxZoom={20}
         className='w-full h-full'
         style={{ height: '100%' }}
       >
-        <TileLayer attribution={selectedLayer?.attribution || ''} url={selectedLayer?.url} />
+        <TileLayer
+          attribution={selectedLayer?.attribution || ''}
+          url={selectedLayer?.url}
+          maxZoom={20}
+          maxNativeZoom={selectedLayer?.id === 'satellite' ? 19 : 18}
+        />
 
         {/* Dive site marker */}
         {diveSite && (
@@ -390,14 +453,15 @@ const RouteDetail = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportFormats, setExportFormats] = useState([]);
-  const [showBearings, setShowBearings] = useState(true);
+  const [showBearings, setShowBearings] = useState(false);
 
   // Intelligent back navigation
   const handleBack = () => {
     if (location.state?.from) {
       navigate(location.state.from);
     } else {
-      navigate(`/dive-sites/${diveSiteId}`);
+      // Default to dive routes listing if no previous state is found
+      navigate('/dive-routes');
     }
   };
 
@@ -530,6 +594,30 @@ const RouteDetail = () => {
       enabled: !!routeId,
     }
   );
+
+  // Calculate route statistics (markers and lines)
+  const routeStats = useMemo(() => {
+    if (!route?.route_data?.features) return { markers: 0, lines: 0 };
+
+    let markers = 0;
+    let lines = 0;
+
+    route.route_data.features.forEach(feature => {
+      const type = feature.geometry?.type;
+      if (type === 'Point') {
+        markers++;
+      } else if (
+        type === 'LineString' ||
+        type === 'Polygon' ||
+        type === 'MultiLineString' ||
+        type === 'MultiPolygon'
+      ) {
+        lines++;
+      }
+    });
+
+    return { markers, lines };
+  }, [route?.route_data]);
 
   // Fetch export formats
   useEffect(() => {
@@ -716,17 +804,28 @@ const RouteDetail = () => {
           schema={getSchema()}
         />
       )}
-      <div className='max-w-6xl mx-auto px-4 sm:px-6 py-6'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-4 sm:px-6 py-6'>
+        {/* Breadcrumbs */}
+        <Breadcrumbs
+          items={[
+            { label: 'Dive Sites', to: '/dive-sites' },
+            ...(diveSite ? [{ label: diveSite.name, to: `/dive-sites/${diveSite.id}` }] : []),
+            { label: 'Dive Routes', to: '/dive-routes' },
+            { label: route?.name || 'Route Detail' },
+          ]}
+        />
+
         {/* Header */}
         <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
           <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4'>
             <div className='flex items-center gap-3'>
               <button
                 onClick={handleBack}
-                className='text-gray-600 hover:text-gray-800 p-1'
-                title={location.state?.from ? 'Back' : 'Back to Dive Site'}
+                className='text-gray-600 hover:text-gray-800 p-1 flex items-center gap-1'
+                title='Go back'
               >
                 <ArrowLeft size={20} />
+                <span className='hidden sm:inline text-sm font-medium'>Back</span>
               </button>
               <div className='min-w-0 flex-1'>
                 <div className='flex items-center gap-2 mb-2'>
@@ -738,17 +837,26 @@ const RouteDetail = () => {
                     {getRouteTypeLabel(route.route_type, null, route.route_data)}
                   </span>
                 </div>
-                <p className='text-sm text-gray-600 flex items-center gap-1'>
-                  <span className='leading-tight mt-1'>Route for</span>
+                <div className='flex flex-wrap items-center gap-x-4 gap-y-1'>
+                  <p className='text-sm text-gray-600 flex items-center gap-1'>
+                    <span className='leading-tight mt-1'>Route for</span>
+                    <Link
+                      to={`/dive-sites/${diveSiteId}`}
+                      className='text-blue-600 hover:underline font-medium flex items-center'
+                    >
+                      <span className='leading-tight mt-1'>
+                        {diveSite?.name || 'Unknown Dive Site'}
+                      </span>
+                    </Link>
+                  </p>
                   <Link
-                    to={`/dive-sites/${diveSiteId}`}
-                    className='text-blue-600 hover:underline font-medium flex items-center'
+                    to='/dive-routes'
+                    className='text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-colors'
                   >
-                    <span className='leading-tight mt-1'>
-                      {diveSite?.name || 'Unknown Dive Site'}
-                    </span>
+                    <Route size={14} />
+                    <span>Back to all routes</span>
                   </Link>
-                </p>
+                </div>
               </div>
             </div>
 
@@ -811,14 +919,18 @@ const RouteDetail = () => {
           </div>
 
           {/* Route Info */}
-          <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-gray-200'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-200'>
             <div className='flex items-center text-sm text-gray-600'>
               <User className='w-4 h-4 mr-2' />
               <span>Created by {route.creator?.username || 'Unknown'}</span>
             </div>
             <div className='flex items-center text-sm text-gray-600'>
               <Calendar className='w-4 h-4 mr-2' />
-              <span>{formatDate(route.created_at)}</span>
+              <span>Created: {formatDate(route.created_at)}</span>
+            </div>
+            <div className='flex items-center text-sm text-gray-600'>
+              <Calendar className='w-4 h-4 mr-2' />
+              <span>Updated: {formatDate(route.updated_at)}</span>
             </div>
             <div className='flex items-center text-sm text-gray-600'>
               <MapPin className='w-4 h-4 mr-2' />
@@ -837,34 +949,56 @@ const RouteDetail = () => {
           </div>
         )}
 
-        {/* Route Analytics */}
+        {/* Route Statistics */}
         {analytics && (
           <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-            <h2 className='text-lg font-semibold text-gray-900 mb-3'>Community Statistics</h2>
-            <div className='grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm'>
-              <div className='text-center p-3 bg-gray-50 rounded-lg'>
-                <div className='text-2xl font-bold text-blue-600'>
-                  {analytics.community_stats?.total_dives_using_route || 0}
+            <h2 className='text-base font-semibold text-gray-900 mb-3'>Statistics</h2>
+            <div className='flex flex-col lg:flex-row gap-6'>
+              {/* Community Stats Group */}
+              <div className='flex-1'>
+                <h3 className='text-xs font-medium text-gray-500 uppercase tracking-wider mb-2'>
+                  Usage
+                </h3>
+                <div className='grid grid-cols-3 gap-4 text-sm'>
+                  <div className='text-center p-2 bg-gray-50 rounded-lg'>
+                    <div className='text-xl font-bold text-blue-600'>
+                      {analytics.community_stats?.total_dives_using_route || 0}
+                    </div>
+                    <div className='text-gray-600'>Total Dives</div>
+                  </div>
+                  <div className='text-center p-2 bg-gray-50 rounded-lg'>
+                    <div className='text-xl font-bold text-green-600'>
+                      {analytics.community_stats?.unique_users_used_route || 0}
+                    </div>
+                    <div className='text-gray-600'>Unique Users</div>
+                  </div>
+                  <div className='text-center p-2 bg-gray-50 rounded-lg'>
+                    <div className='text-xl font-bold text-orange-600'>
+                      {analytics.community_stats?.recent_dives_7_days || 0}
+                    </div>
+                    <div className='text-gray-600'>Recent (7d)</div>
+                  </div>
                 </div>
-                <div className='text-gray-600'>Total Dives</div>
               </div>
-              <div className='text-center p-3 bg-gray-50 rounded-lg'>
-                <div className='text-2xl font-bold text-green-600'>
-                  {analytics.community_stats?.unique_users_used_route || 0}
+
+              {/* Separator for mobile/desktop */}
+              <div className='hidden lg:block w-px bg-gray-200'></div>
+
+              {/* Route Elements Group */}
+              <div className='flex-1 lg:flex-none lg:w-1/3'>
+                <h3 className='text-xs font-medium text-gray-500 uppercase tracking-wider mb-2'>
+                  Composition
+                </h3>
+                <div className='grid grid-cols-2 gap-4 text-sm'>
+                  <div className='text-center p-2 bg-gray-50 rounded-lg'>
+                    <div className='text-xl font-bold text-purple-600'>{routeStats.lines}</div>
+                    <div className='text-gray-600'>Lines</div>
+                  </div>
+                  <div className='text-center p-2 bg-gray-50 rounded-lg'>
+                    <div className='text-xl font-bold text-indigo-600'>{routeStats.markers}</div>
+                    <div className='text-gray-600'>Markers</div>
+                  </div>
                 </div>
-                <div className='text-gray-600'>Unique Users</div>
-              </div>
-              <div className='text-center p-3 bg-gray-50 rounded-lg'>
-                <div className='text-2xl font-bold text-orange-600'>
-                  {analytics.community_stats?.recent_dives_7_days || 0}
-                </div>
-                <div className='text-gray-600'>Recent (7 days)</div>
-              </div>
-              <div className='text-center p-3 bg-gray-50 rounded-lg'>
-                <div className='text-2xl font-bold text-purple-600'>
-                  {analytics.community_stats?.waypoint_count || 0}
-                </div>
-                <div className='text-gray-600'>Waypoints</div>
               </div>
             </div>
           </div>
@@ -916,31 +1050,6 @@ const RouteDetail = () => {
             showBearings={showBearings}
             onToggleBearings={() => setShowBearings(!showBearings)}
           />
-        </div>
-
-        {/* Route Data Info */}
-        <div className='bg-white rounded-lg shadow-md p-6'>
-          <h2 className='text-lg font-semibold text-gray-900 mb-4'>Route Information</h2>
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm'>
-            <div>
-              <span className='font-medium text-gray-700'>Route Type:</span>
-              <span className='ml-2'>
-                {getRouteTypeLabel(route.route_type, route.drawing_type, route.route_data)}
-              </span>
-            </div>
-            <div>
-              <span className='font-medium text-gray-700'>Created:</span>
-              <span className='ml-2'>{formatDate(route.created_at)}</span>
-            </div>
-            <div>
-              <span className='font-medium text-gray-700'>Last Updated:</span>
-              <span className='ml-2'>{formatDate(route.updated_at)}</span>
-            </div>
-            <div>
-              <span className='font-medium text-gray-700'>Dive Site:</span>
-              <span className='ml-2'>{diveSite?.name || 'Unknown'}</span>
-            </div>
-          </div>
         </div>
       </div>
 
