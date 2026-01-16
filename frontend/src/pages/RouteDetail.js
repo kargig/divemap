@@ -595,12 +595,12 @@ const RouteDetail = () => {
     }
   );
 
-  // Calculate route statistics (markers and lines)
+  // Calculate route statistics (markers and segments)
   const routeStats = useMemo(() => {
-    if (!route?.route_data?.features) return { markers: 0, lines: 0 };
+    if (!route?.route_data?.features) return { markers: 0, segments: 0 };
 
     let markers = 0;
-    let lines = 0;
+    let segments = 0;
 
     route.route_data.features.forEach(feature => {
       const type = feature.geometry?.type;
@@ -612,11 +612,11 @@ const RouteDetail = () => {
         type === 'MultiLineString' ||
         type === 'MultiPolygon'
       ) {
-        lines++;
+        segments++;
       }
     });
 
-    return { markers, lines };
+    return { markers, segments };
   }, [route?.route_data]);
 
   // Fetch export formats
@@ -991,8 +991,8 @@ const RouteDetail = () => {
                 </h3>
                 <div className='grid grid-cols-2 gap-4 text-sm'>
                   <div className='text-center p-2 bg-gray-50 rounded-lg'>
-                    <div className='text-xl font-bold text-purple-600'>{routeStats.lines}</div>
-                    <div className='text-gray-600'>Lines</div>
+                    <div className='text-xl font-bold text-purple-600'>{routeStats.segments}</div>
+                    <div className='text-gray-600'>Segments</div>
                   </div>
                   <div className='text-center p-2 bg-gray-50 rounded-lg'>
                     <div className='text-xl font-bold text-indigo-600'>{routeStats.markers}</div>
