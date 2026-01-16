@@ -8,6 +8,7 @@ import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { formatDate } from '../utils/dateHelpers';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getSmartRouteColor, getRouteTypeLabel } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
 
@@ -148,7 +149,10 @@ const RoutePreview = ({
 
   return (
     <>
-      <div className='border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors'>
+      <div
+        className='border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer group'
+        onClick={handleViewRoute}
+      >
         <div className='flex items-start justify-between'>
           <div className='flex-1 min-w-0'>
             <div className='flex items-center gap-2 mb-2'>
@@ -157,14 +161,18 @@ const RoutePreview = ({
                 style={{ backgroundColor: getRouteColor(route.route_type, route.route_data) }}
               />
               {getRouteTypeIcon(route.route_type)}
-              <h3 className='font-medium text-gray-900 truncate'>{route.name}</h3>
+              <h3 className='font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors'>
+                {route.name}
+              </h3>
               <span className='px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full'>
                 {getRouteTypeLabel(route.route_type, null, route.route_data)}
               </span>
             </div>
 
             {route.description && (
-              <p className='text-sm text-gray-600 mb-2 line-clamp-2'>{route.description}</p>
+              <p className='text-sm text-gray-600 mb-2 line-clamp-2'>
+                {decodeHtmlEntities(route.description)}
+              </p>
             )}
 
             <div className='flex items-center gap-4 text-xs text-gray-500'>
@@ -188,7 +196,10 @@ const RoutePreview = ({
           {showActions && (
             <div className='flex items-center gap-1 ml-4'>
               <button
-                onClick={handleViewRoute}
+                onClick={e => {
+                  e.stopPropagation();
+                  handleViewRoute();
+                }}
                 className='p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
                 title='View Route'
               >
@@ -198,7 +209,10 @@ const RoutePreview = ({
               {canEdit && (
                 <>
                   <button
-                    onClick={handleEditRoute}
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleEditRoute();
+                    }}
                     className='p-2 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors'
                     title='Edit Route'
                   >
@@ -206,7 +220,10 @@ const RoutePreview = ({
                   </button>
 
                   <button
-                    onClick={() => setShowDeleteConfirm(true)}
+                    onClick={e => {
+                      e.stopPropagation();
+                      setShowDeleteConfirm(true);
+                    }}
                     className='p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors'
                     title='Delete Route'
                   >

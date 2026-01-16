@@ -51,8 +51,37 @@ const ZoomIndicator = () => {
   }, [map]);
 
   return (
-    <div className='absolute top-[12px] left-[46px] z-[1000] bg-white/90 backdrop-blur-sm text-gray-800 text-[10px] sm:text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-sm border border-gray-200 pointer-events-none'>
+    <div className='absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-white/90 backdrop-blur-sm text-gray-800 text-[10px] sm:text-xs font-medium px-2 py-1 rounded shadow-sm border border-gray-200 pointer-events-none'>
       Zoom: {zoom.toFixed(1)}
+    </div>
+  );
+};
+
+// Route Type Control Component
+const RouteTypeControl = ({ routeType, setRouteType }) => {
+  return (
+    <div className='absolute top-4 left-[320px] z-[1000] bg-white rounded-md shadow-md border border-gray-200 p-1 flex pointer-events-auto'>
+      {[
+        { id: 'scuba', label: 'Scuba' },
+        { id: 'swim', label: 'Swim' },
+        { id: 'walk', label: 'Walk' },
+      ].map(type => (
+        <button
+          key={type.id}
+          onClick={() => setRouteType(type.id)}
+          className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
+            routeType === type.id
+              ? type.id === 'scuba'
+                ? 'bg-blue-100 text-blue-700'
+                : type.id === 'swim'
+                  ? 'bg-cyan-100 text-cyan-700'
+                  : 'bg-green-100 text-green-700'
+              : 'text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          {type.label}
+        </button>
+      ))}
     </div>
   );
 };
@@ -556,6 +585,7 @@ const DrawingMap = ({
   segments,
   setSegments,
   routeType,
+  setRouteType,
   existingRouteData,
   onEditMarker,
   onToggleInstructions,
@@ -601,6 +631,7 @@ const DrawingMap = ({
         )}
 
         <ZoomIndicator />
+        <RouteTypeControl routeType={routeType} setRouteType={setRouteType} />
 
         <MapInitializer
           diveSite={diveSite}
@@ -777,6 +808,7 @@ const RouteCanvas = ({
   routeDescription = '',
   setRouteDescription,
   routeType = 'scuba',
+  setRouteType,
   showForm = true,
   onSegmentsChange,
   existingRouteData = null,
@@ -969,6 +1001,7 @@ const RouteCanvas = ({
           segments={segments}
           setSegments={setSegments}
           routeType={routeType}
+          setRouteType={setRouteType}
           existingRouteData={existingRouteData}
           onEditMarker={handleEditMarker}
           showInstructions={showInstructions}
