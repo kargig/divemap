@@ -105,6 +105,7 @@ const EditDive = () => {
   const [savedPhotoUids, setSavedPhotoUids] = useState([]);
   // Store converted Flickr URLs (Map: original URL -> direct image URL)
   const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(new Map());
+  const [submitStatus, setSubmitStatus] = useState('');
 
   // Fetch dive data
   const {
@@ -566,6 +567,7 @@ const EditDive = () => {
   };
 
   const onSubmit = async data => {
+    setSubmitStatus('Processing...');
     // Data is already validated and transformed by Zod schema
     // Format dive_time to include seconds (HH:MM -> HH:MM:00) for backend
     const diveData = {
@@ -580,6 +582,10 @@ const EditDive = () => {
       const dbCreationPromises = [];
       const unsavedR2Photos = unsavedR2PhotosRef.current;
 
+      if (unsavedR2Photos.length > 0) {
+        setSubmitStatus('Uploading photos...');
+      }
+
       for (const unsavedPhoto of unsavedR2Photos) {
         if (unsavedPhoto.originFileObj) {
           // This is a photo from create/edit flow - upload to R2 first
@@ -592,6 +598,8 @@ const EditDive = () => {
               url: r2UploadResult.r2_path, // Use R2 path for storage
               description: unsavedPhoto.description || '',
               title: '',
+              medium_url: r2UploadResult.medium_path,
+              thumbnail_url: r2UploadResult.thumbnail_path,
             };
 
             dbCreationPromises.push(
@@ -615,7 +623,9 @@ const EditDive = () => {
             );
           } catch (error) {
             console.error('Failed to upload photo to R2:', error);
-            toast.error(`Failed to upload photo ${unsavedPhoto.file_name} to R2`);
+            toast.error(
+              `Failed to upload photo ${unsavedPhoto.file_name}: ${extractErrorMessage(error)}`
+            );
           }
         } else if (unsavedPhoto.r2_path) {
           // Photo was already uploaded to R2 (from previous edit session), just create DB record
@@ -657,6 +667,8 @@ const EditDive = () => {
       // Note: savedPhotoUids is set above when each photo is saved
       // The component will clear these from its unsaved list via useEffect
       // We'll reset it after navigation to prepare for next use
+
+      setSubmitStatus('Saving details...');
 
       // Now update the dive with all other data
       await updateDiveMutation.mutateAsync({ diveId: id, diveData });
@@ -756,6 +768,7 @@ const EditDive = () => {
       }
     } catch (error) {
       // Error handling is done in mutation's onError
+      setSubmitStatus('');
     }
   };
 
@@ -1478,7 +1491,7 @@ const EditDive = () => {
             </button>
             <button
               type='submit'
-              disabled={updateDiveMutation.isLoading}
+              disabled={updateDiveMutation.isLoading || !!submitStatus}
               className='px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
               style={{ backgroundColor: UI_COLORS.primary }}
               onMouseEnter={e =>
@@ -1489,12 +1502,17 @@ const EditDive = () => {
                 (e.currentTarget.style.backgroundColor = UI_COLORS.primary)
               }
             >
-              {updateDiveMutation.isLoading ? (
-                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+              {updateDiveMutation.isLoading || submitStatus ? (
+                <>
+                  <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+                  {submitStatus || 'Saving...'}
+                </>
               ) : (
-                <Save size={16} />
+                <>
+                  <Save size={16} />
+                  Update Dive
+                </>
               )}
-              Update Dive
             </button>
           </div>
         </form>
