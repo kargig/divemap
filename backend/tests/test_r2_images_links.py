@@ -165,10 +165,18 @@ class TestR2ImagesLinks:
                 
                 result = service.delete_photo(r2_path)
                 
-                mock_client.delete_object.assert_called_once_with(
-                    Bucket='test_bucket',
-                    Key=r2_path
-                )
+                # Should attempt to delete original and variants
+                assert mock_client.delete_object.call_count == 3
+                
+                # Check calls (order matters in implementation, but we can verify any order)
+                # Implementation deletes original, then medium, then thumbnail
+                from unittest.mock import call
+                expected_calls = [
+                    call(Bucket='test_bucket', Key='user_123/photos/dive_1/img.jpg'),
+                    call(Bucket='test_bucket', Key='user_123/photos/dive_1/img_medium.webp'),
+                    call(Bucket='test_bucket', Key='user_123/photos/dive_1/img_thumbnail.webp')
+                ]
+                mock_client.delete_object.assert_has_calls(expected_calls)
                 assert result is True
 
     def test_delete_photo_local(self, r2_service):
@@ -182,4 +190,12 @@ class TestR2ImagesLinks:
             result = r2_service.delete_photo(local_path)
             
             assert result is True
-            mock_remove.assert_called_once_with(local_path)
+            assert mock_remove.call_count == 3
+            
+            from unittest.mock import call
+            expected_calls = [
+                call('uploads/user_123/photos/img.jpg'),
+                call('uploads/user_123/photos/img_medium.webp'),
+                call('uploads/user_123/photos/img_thumbnail.webp')
+            ]
+            mock_remove.assert_has_calls(expected_calls)
