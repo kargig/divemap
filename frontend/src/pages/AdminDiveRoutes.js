@@ -9,6 +9,7 @@ import AdminDiveRoutesTable from '../components/tables/AdminDiveRoutesTable';
 import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getRouteTypeLabel } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
 
@@ -282,7 +283,7 @@ const AdminDiveRoutes = () => {
             <div className='text-sm font-medium text-gray-900 break-words'>{row.original.name}</div>
             {row.original.description && (
               <div className='text-xs text-gray-500 break-words line-clamp-2 mt-1'>
-                {row.original.description}
+                {decodeHtmlEntities(row.original.description)}
               </div>
             )}
           </div>
@@ -576,7 +577,7 @@ const AdminDiveRoutes = () => {
                 const rows = (diveRoutes?.routes || []).map(route => [
                   route.id,
                   route.name || '',
-                  route.description || '',
+                  route.description ? decodeHtmlEntities(route.description) : '',
                   route.dive_site?.name || 'Unknown',
                   route.creator?.username || 'Unknown',
                   getRouteTypeLabel(route.route_type),

@@ -34,6 +34,7 @@ import {
   getDifficultyColorClasses,
   getDifficultyOptions,
 } from '../utils/difficultyHelpers';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 const AdminDiveSites = () => {
   const { user } = useAuth();
@@ -334,7 +335,7 @@ const AdminDiveSites = () => {
             <div className='text-sm font-medium text-gray-900 break-words'>{row.original.name}</div>
             {row.original.description && (
               <div className='text-xs text-gray-500 break-words line-clamp-2 mt-1'>
-                {row.original.description}
+                {decodeHtmlEntities(row.original.description)}
               </div>
             )}
           </div>
@@ -807,7 +808,7 @@ const AdminDiveSites = () => {
                 const rows = (diveSites || []).map(site => [
                   site.id,
                   site.name || '',
-                  site.description || '',
+                  site.description ? decodeHtmlEntities(site.description) : '',
                   site.created_by_username || 'Unknown',
                   site.difficulty_label || getDifficultyLabel(site.difficulty_code) || '',
                   site.average_rating ? site.average_rating.toFixed(1) : 'No ratings',
@@ -927,7 +928,7 @@ const AdminDiveSites = () => {
                 const rows = allDiveSites.map(site => [
                   site.id,
                   site.name || '',
-                  site.description || '',
+                  site.description ? decodeHtmlEntities(site.description) : '',
                   site.created_by_username || 'Unknown',
                   site.difficulty_label || getDifficultyLabel(site.difficulty_code) || '',
                   site.average_rating ? site.average_rating.toFixed(1) : 'No ratings',

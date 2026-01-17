@@ -9,6 +9,7 @@ import AdminDivingCentersTable from '../components/tables/AdminDivingCentersTabl
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetting, useUpdateSetting } from '../hooks/useSettings';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify } from '../utils/slugify';
 
 const AdminDivingCenters = () => {
@@ -313,7 +314,7 @@ const AdminDivingCenters = () => {
             <div className='text-sm font-medium text-gray-900 break-words'>{row.original.name}</div>
             {row.original.description && (
               <div className='text-xs text-gray-500 break-words line-clamp-2 mt-1'>
-                {row.original.description}
+                {decodeHtmlEntities(row.original.description)}
               </div>
             )}
           </div>
@@ -696,7 +697,7 @@ const AdminDivingCenters = () => {
                 const rows = (divingCenters || []).map(center => [
                   center.id,
                   center.name || '',
-                  center.description || '',
+                  center.description ? decodeHtmlEntities(center.description) : '',
                   center.email || '',
                   center.phone || '',
                   center.website || '',
@@ -820,7 +821,7 @@ const AdminDivingCenters = () => {
                 const rows = allDivingCenters.map(center => [
                   center.id,
                   center.name || '',
-                  center.description || '',
+                  center.description ? decodeHtmlEntities(center.description) : '',
                   center.email || '',
                   center.phone || '',
                   center.website || '',

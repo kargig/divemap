@@ -229,13 +229,10 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
     });
 
     // Add popup to route
-    const decodedDescription = route.description
-      ? decodeHtmlEntities(route.description)
-      : 'No description';
     routeLayer.bindPopup(`
       <div class="p-2">
         <h3 class="font-semibold text-gray-800 mb-1">${route.name}</h3>
-        <p class="text-sm text-gray-600 mb-2">${decodedDescription}</p>
+        <p class="text-sm text-gray-600 mb-2">${route.description || 'No description'}</p>
         <div class="flex items-center gap-2 text-xs text-gray-500">
           <span class="px-2 py-1 bg-gray-100 rounded">${route.route_type}</span>
           <span>by ${route.creator_username || 'Unknown'}</span>
@@ -1289,7 +1286,9 @@ const DiveDetail = () => {
                               </button>
                             </div>
                             {media.description && (
-                              <p className='text-xs text-gray-600 mt-1'>{media.description}</p>
+                              <p className='text-xs text-gray-600 mt-1'>
+                                {decodeHtmlEntities(media.description)}
+                              </p>
                             )}
                           </div>
                         ))}
@@ -1540,7 +1539,7 @@ const DiveDetail = () => {
                 </div>
                 {dive.dive_site.description && (
                   <p className='text-sm text-gray-600'>
-                    {renderTextWithLinks(dive.dive_site.description)}
+                    {renderTextWithLinks(decodeHtmlEntities(dive.dive_site.description))}
                   </p>
                 )}
                 <RouterLink
@@ -1565,7 +1564,7 @@ const DiveDetail = () => {
                 </div>
                 {dive.diving_center.description && (
                   <p className='text-sm text-gray-600'>
-                    {renderTextWithLinks(dive.diving_center.description)}
+                    {renderTextWithLinks(decodeHtmlEntities(dive.diving_center.description))}
                   </p>
                 )}
                 <RouterLink
@@ -1622,7 +1621,9 @@ const DiveDetail = () => {
             <video src={selectedMedia.url} controls className='max-w-full max-h-[70vh]' />
           )}
           {selectedMedia?.description && (
-            <p className='mt-4 text-gray-600 text-center w-full'>{selectedMedia.description}</p>
+            <p className='mt-4 text-gray-600 text-center w-full'>
+              {decodeHtmlEntities(selectedMedia.description)}
+            </p>
           )}
         </div>
       </Modal>

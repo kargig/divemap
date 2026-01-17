@@ -4,6 +4,8 @@ import PropTypes from 'prop-types';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
 
+import { decodeHtmlEntities } from '../utils/htmlDecode';
+
 // Photos are stored locally (base64 previews) and uploaded to R2 on form submission (handled in parent components)
 // deleteDiveMedia is handled via onMediaRemove callback for saved photos
 
@@ -278,7 +280,7 @@ const UploadPhotosComponent = ({
     const mediaItem = mediaUrls.find(
       m => m.type === 'photo' && (m.id?.toString() === file.uid || m.temp_uid === file.uid)
     );
-    const description = mediaItem?.description || '';
+    const description = mediaItem?.description ? decodeHtmlEntities(mediaItem.description) : '';
 
     // Wrap originNode and controls in a Card
     return (

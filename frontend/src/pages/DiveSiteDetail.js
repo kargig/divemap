@@ -45,6 +45,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
 import { getTagColor } from '../utils/tagHelpers';
@@ -314,8 +315,8 @@ const DiveSiteDetail = () => {
     src: getImageUrl(item.url),
     width: 1920,
     height: 1080,
-    alt: item.description || 'Dive site photo',
-    description: item.description || '',
+    alt: decodeHtmlEntities(item.description) || 'Dive site photo',
+    description: decodeHtmlEntities(item.description) || '',
   }));
 
   // Auto-select media tab based on availability
@@ -499,7 +500,7 @@ const DiveSiteDetail = () => {
       '@context': 'https://schema.org',
       '@type': ['Place', 'BodyOfWater', 'TouristAttraction'],
       name: diveSite.name,
-      description: diveSite.description,
+      description: decodeHtmlEntities(diveSite.description),
       geo: {
         '@type': 'GeoCoordinates',
         latitude: diveSite.latitude,
@@ -538,7 +539,9 @@ const DiveSiteDetail = () => {
           type='place'
           image={photos.length > 0 ? getImageUrl(photos[0].url) : undefined}
           imageAlt={
-            photos.length > 0 ? photos[0].description || `Dive site ${diveSite.name}` : undefined
+            photos.length > 0
+              ? decodeHtmlEntities(photos[0].description) || `Dive site ${diveSite.name}`
+              : undefined
           }
           siteName='Divemap'
           location={{ lat: diveSite.latitude, lon: diveSite.longitude }}
@@ -755,7 +758,7 @@ const DiveSiteDetail = () => {
               {activeContentTab === 'description' && diveSite.description && (
                 <div>
                   <p className='text-gray-700 text-sm sm:text-base'>
-                    {renderTextWithLinks(diveSite.description)}
+                    {renderTextWithLinks(decodeHtmlEntities(diveSite.description))}
                   </p>
                 </div>
               )}
@@ -820,7 +823,7 @@ const DiveSiteDetail = () => {
                           <div className='relative'>
                             <YouTubePreview
                               url={item.url}
-                              description={item.description}
+                              description={decodeHtmlEntities(item.description)}
                               className='w-full'
                               openInNewTab={false}
                               autoOpen={
@@ -1046,7 +1049,7 @@ const DiveSiteDetail = () => {
 
                     {dive.dive_information && (
                       <p className='text-sm text-gray-700 mt-2 line-clamp-2'>
-                        {dive.dive_information}
+                        {decodeHtmlEntities(dive.dive_information)}
                       </p>
                     )}
 
@@ -1083,7 +1086,9 @@ const DiveSiteDetail = () => {
               <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
                 Access Instructions
               </h2>
-              <p className='text-gray-700 text-sm sm:text-base'>{diveSite.access_instructions}</p>
+              <p className='text-gray-700 text-sm sm:text-base'>
+                {decodeHtmlEntities(diveSite.access_instructions)}
+              </p>
             </div>
           )}
 
@@ -1093,7 +1098,9 @@ const DiveSiteDetail = () => {
               <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
                 Safety Information
               </h2>
-              <p className='text-gray-700 text-sm sm:text-base'>{diveSite.safety_information}</p>
+              <p className='text-gray-700 text-sm sm:text-base'>
+                {decodeHtmlEntities(diveSite.safety_information)}
+              </p>
             </div>
           )}
 
@@ -1103,7 +1110,9 @@ const DiveSiteDetail = () => {
               <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
                 Marine Life
               </h2>
-              <p className='text-gray-700 text-sm sm:text-base'>{diveSite.marine_life}</p>
+              <p className='text-gray-700 text-sm sm:text-base'>
+                {decodeHtmlEntities(diveSite.marine_life)}
+              </p>
             </div>
           )}
 
@@ -1127,7 +1136,9 @@ const DiveSiteDetail = () => {
                       )}
                     </div>
                     {center.description && (
-                      <p className='text-gray-600 text-xs sm:text-sm mb-2'>{center.description}</p>
+                      <p className='text-gray-600 text-xs sm:text-sm mb-2'>
+                        {decodeHtmlEntities(center.description)}
+                      </p>
                     )}
                     <div className='flex flex-wrap gap-2 text-xs sm:text-sm'>
                       {center.email && (
@@ -1344,7 +1355,9 @@ const DiveSiteDetail = () => {
           {diveSite.access_instructions && (
             <div className='hidden lg:block bg-white p-4 sm:p-6 rounded-lg shadow-md'>
               <h3 className='text-lg font-semibold text-gray-900 mb-4'>Access Instructions</h3>
-              <p className='text-gray-700 text-sm'>{diveSite.access_instructions}</p>
+              <p className='text-gray-700 text-sm'>
+                {decodeHtmlEntities(diveSite.access_instructions)}
+              </p>
             </div>
           )}
 

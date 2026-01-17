@@ -4,6 +4,7 @@ import { useQuery } from 'react-query';
 
 import { getTagsWithCounts } from '../api';
 import usePageTitle from '../hooks/usePageTitle';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getTagColor } from '../utils/tagHelpers';
 
 const DivingTagsPage = () => {
@@ -82,7 +83,9 @@ const DivingTagsPage = () => {
                       </span>
                     </div>
                     {tag.description && (
-                      <p className='mt-3 text-sm text-gray-500 line-clamp-3'>{tag.description}</p>
+                      <p className='mt-3 text-sm text-gray-500 line-clamp-3'>
+                        {decodeHtmlEntities(tag.description)}
+                      </p>
                     )}
                   </div>
                 ))}

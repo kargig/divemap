@@ -52,6 +52,7 @@ import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/curre
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 import { diveSiteSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 const SortableMediaItem = ({
   item,
@@ -234,7 +235,7 @@ const EditDiveSite = () => {
     onSuccess: data => {
       reset({
         name: data.name || '',
-        description: data.description || '',
+        description: data.description ? decodeHtmlEntities(data.description) : '',
         latitude: data.latitude?.toString() || '',
         longitude: data.longitude?.toString() || '',
 
@@ -406,7 +407,7 @@ const EditDiveSite = () => {
         data.forEach(item => {
           // Only initialize descriptions for SiteMedia (without dive_id)
           if (!item.dive_id) {
-            descriptions[item.id] = item.description || '';
+            descriptions[item.id] = item.description ? decodeHtmlEntities(item.description) : '';
           }
         });
         setMediaDescriptions(descriptions);
