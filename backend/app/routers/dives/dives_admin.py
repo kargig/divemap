@@ -21,6 +21,13 @@ import json
 import os
 import tempfile
 import uuid
+import orjson
+from fastapi.responses import Response
+
+class ORJSONResponse(Response):
+    media_type = "application/json"
+    def render(self, content: any) -> bytes:
+        return orjson.dumps(content, default=str)
 
 from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
@@ -475,8 +482,7 @@ def get_all_dives_admin(
     has_prev_page = offset > 0
 
     # Return response with pagination headers
-    from fastapi.responses import JSONResponse
-    response = JSONResponse(content=dive_list)
+    response = ORJSONResponse(content=dive_list)
     response.headers["X-Total-Count"] = str(total_count)
     response.headers["X-Total-Pages"] = str(total_pages)
     response.headers["X-Current-Page"] = str((offset // limit) + 1)

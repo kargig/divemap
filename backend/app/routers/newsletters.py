@@ -1643,7 +1643,6 @@ async def get_parsed_trips(
 
     # Return response with match type headers if available
     from fastapi.responses import Response
-    import json
     
     # Create response with custom headers if match types are available
     if match_types:
