@@ -20,6 +20,7 @@ import re
 from urllib.parse import quote
 from pathlib import Path
 from app.services.r2_storage_service import get_r2_storage
+from app.services.image_processing import image_processing
 from .dives_shared import router, get_db, get_current_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
 from app.schemas import DeleteR2PhotoRequest, DiveMediaCreate, DiveMediaResponse, DiveMediaUpdate, DiveTagResponse, DiveTagCreate
 
@@ -58,7 +59,8 @@ def add_dive_media(
         url=media.url,
         description=media.description,
         title=media.title,
-        thumbnail_url=media.thumbnail_url
+        thumbnail_url=media.thumbnail_url,
+        medium_url=media.medium_url
     )
 
     db.add(db_media)
@@ -113,25 +115,44 @@ async def upload_dive_photo(
 
     # Generate unique filename
     file_ext = Path(file.filename).suffix if file.filename else '.jpg'
+    # Default to .jpg if extension is missing or weird, ImageProcessing will sanitize format anyway
+    if not file_ext or file_ext.lower() not in ['.jpg', '.jpeg', '.png', '.webp']:
+        file_ext = '.jpg'
     unique_filename = f"{uuid.uuid4()}{file_ext}"
+
+    # Process image (Generate variants)
+    try:
+        image_streams = image_processing.process_image(file_content, file.filename or "unknown")
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
     # Upload to R2 or local storage
     try:
-        photo_path = r2_storage.upload_photo(
+        uploaded_paths = r2_storage.upload_photo_set(
             user_id=current_user.id,
-            filename=unique_filename,
-            content=file_content,
+            original_filename=unique_filename,
+            image_streams=image_streams,
             dive_id=dive_id
         )
         
-        # For R2 photos, store the path and generate presigned URL on-demand
-        # For local storage, get the static URL
-        if photo_path.startswith('user_'):
-            # R2 path - store as-is, will generate presigned URL when serving
-            photo_url = photo_path
-        else:
-            # Local storage - get static URL
-            photo_url = r2_storage.get_photo_url(photo_path)
+        # Get paths
+        photo_path = uploaded_paths.get("original")
+        medium_path = uploaded_paths.get("medium")
+        thumbnail_path = uploaded_paths.get("thumbnail")
+        
+        # Helper to generate URL
+        def get_url(path):
+            if not path: return None
+            if path.startswith('user_'):
+                return path # Store path for R2, generate URL on read
+            return r2_storage.get_photo_url(path) # Local storage static URL
+
+        photo_url = get_url(photo_path)
+        medium_url = get_url(medium_path)
+        thumbnail_url = get_url(thumbnail_path)
         
         # Create media record
         db_media = DiveMedia(
@@ -140,7 +161,8 @@ async def upload_dive_photo(
             url=photo_url,
             description=description or '',
             title='',
-            thumbnail_url=None
+            thumbnail_url=thumbnail_url,
+            medium_url=medium_url
         )
 
         db.add(db_media)
@@ -148,21 +170,29 @@ async def upload_dive_photo(
         db.refresh(db_media)
 
         # Generate presigned URL for response if it's an R2 photo
-        if db_media.url.startswith('user_'):
-            presigned_url = r2_storage.get_photo_url(db_media.url)
-            # Return response with presigned URL
-            return DiveMediaResponse(
-                id=db_media.id,
-                dive_id=db_media.dive_id,
-                media_type=db_media.media_type.value if hasattr(db_media.media_type, 'value') else str(db_media.media_type),
-                url=presigned_url,
-                description=db_media.description,
-                title=db_media.title,
-                thumbnail_url=db_media.thumbnail_url,
-                created_at=db_media.created_at
-            )
+        response_url = db_media.url
+        response_thumb = db_media.thumbnail_url
+        response_medium = db_media.medium_url
+
+        if response_url and response_url.startswith('user_'):
+            response_url = r2_storage.get_photo_url(response_url)
+        if response_thumb and response_thumb.startswith('user_'):
+            response_thumb = r2_storage.get_photo_url(response_thumb)
+        if response_medium and response_medium.startswith('user_'):
+            response_medium = r2_storage.get_photo_url(response_medium)
+
+        return DiveMediaResponse(
+            id=db_media.id,
+            dive_id=db_media.dive_id,
+            media_type=db_media.media_type.value if hasattr(db_media.media_type, 'value') else str(db_media.media_type),
+            url=response_url,
+            description=db_media.description,
+            title=db_media.title,
+            thumbnail_url=response_thumb,
+            medium_url=response_medium,
+            created_at=db_media.created_at
+        )
         
-        return db_media
     except Exception as e:
         logger.error(f"Failed to upload photo: {e}")
         raise HTTPException(
@@ -214,29 +244,52 @@ async def upload_photo_r2_only(
 
     # Generate unique filename
     file_ext = Path(file.filename).suffix if file.filename else '.jpg'
+    # Default to .jpg if extension is missing or weird, ImageProcessing will sanitize format anyway
+    if not file_ext or file_ext.lower() not in ['.jpg', '.jpeg', '.png', '.webp']:
+        file_ext = '.jpg'
     unique_filename = f"{uuid.uuid4()}{file_ext}"
+
+    # Process image (Generate variants)
+    try:
+        image_streams = image_processing.process_image(file_content, file.filename or "unknown")
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
     # Upload to R2 or local storage only (no database record)
     try:
-        photo_path = r2_storage.upload_photo(
+        uploaded_paths = r2_storage.upload_photo_set(
             user_id=current_user.id,
-            filename=unique_filename,
-            content=file_content,
+            original_filename=unique_filename,
+            image_streams=image_streams,
             dive_id=dive_id
         )
         
-        # Generate presigned URL for preview
-        if photo_path.startswith('user_'):
-            # R2 path - generate presigned URL
-            presigned_url = r2_storage.get_photo_url(photo_path)
-        else:
-            # Local storage - get static URL
-            presigned_url = photo_path
+        response_data = {}
         
-        return {
-            "r2_path": photo_path,
-            "url": presigned_url
-        }
+        # Helper to generate URL
+        def get_url(path):
+            if not path: return None
+            if path.startswith('user_'):
+                return r2_storage.get_photo_url(path)
+            return r2_storage.get_photo_url(path) # Local storage static URL, handled by get_photo_url
+
+        # Populate response with paths and signed URLs
+        response_data["r2_path"] = uploaded_paths.get("original")
+        response_data["url"] = get_url(uploaded_paths.get("original"))
+        
+        if uploaded_paths.get("medium"):
+            response_data["medium_path"] = uploaded_paths.get("medium")
+            response_data["medium_url"] = get_url(uploaded_paths.get("medium"))
+            
+        if uploaded_paths.get("thumbnail"):
+            response_data["thumbnail_path"] = uploaded_paths.get("thumbnail")
+            response_data["thumbnail_url"] = get_url(uploaded_paths.get("thumbnail"))
+        
+        return response_data
+
     except Exception as e:
         logger.error(f"Failed to upload photo to R2: {e}")
         raise HTTPException(
@@ -347,24 +400,33 @@ def get_dive_media(
     
     result = []
     for item in media:
-        # If URL is an R2 path (starts with 'user_'), generate presigned URL
-        if item.url.startswith('user_'):
-            presigned_url = r2_storage.get_photo_url(item.url)
-            # Create a copy with updated URL
-            media_dict = {
-                "id": item.id,
-                "dive_id": item.dive_id,
-                "media_type": item.media_type.value if hasattr(item.media_type, 'value') else str(item.media_type),
-                "url": presigned_url,
-                "description": item.description,
-                "title": item.title,
-                "thumbnail_url": item.thumbnail_url,
-                "created_at": item.created_at
-            }
-            result.append(DiveMediaResponse(**media_dict))
-        else:
-            # Local storage or external URL - use as-is
-            result.append(item)
+        # Create a dictionary from the ORM object
+        media_dict = {
+            "id": item.id,
+            "dive_id": item.dive_id,
+            "media_type": item.media_type.value if hasattr(item.media_type, 'value') else str(item.media_type),
+            "url": item.url,
+            "description": item.description,
+            "title": item.title,
+            "thumbnail_url": item.thumbnail_url,
+            "medium_url": item.medium_url,
+            "created_at": item.created_at,
+            "download_url": None
+        }
+
+        # Generate presigned URLs for R2 paths
+        if media_dict["url"] and media_dict["url"].startswith('user_'):
+            # Generate download URL for the original
+            media_dict["download_url"] = r2_storage.get_photo_url(media_dict["url"], download=True)
+            media_dict["url"] = r2_storage.get_photo_url(media_dict["url"])
+            
+        if media_dict["thumbnail_url"] and media_dict["thumbnail_url"].startswith('user_'):
+            media_dict["thumbnail_url"] = r2_storage.get_photo_url(media_dict["thumbnail_url"])
+            
+        if media_dict["medium_url"] and media_dict["medium_url"].startswith('user_'):
+            media_dict["medium_url"] = r2_storage.get_photo_url(media_dict["medium_url"])
+            
+        result.append(DiveMediaResponse(**media_dict))
     
     return result
 

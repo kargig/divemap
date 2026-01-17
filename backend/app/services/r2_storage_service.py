@@ -387,6 +387,114 @@ class R2StorageService:
         except Exception as e:
             logger.warning(f"R2 photo upload failed, falling back to local: {e}")
             return self._upload_photo_local(user_id, filename, content, dive_id=dive_id, dive_site_id=dive_site_id)
+
+    def upload_photo_set(
+        self, 
+        user_id: int, 
+        original_filename: str, 
+        image_streams: dict, 
+        dive_id: int | None = None, 
+        dive_site_id: int | None = None
+    ) -> dict:
+        """
+        Upload a set of photo variants (original, medium, thumbnail) to R2/Local.
+        
+        Args:
+            user_id: User ID for path organization
+            original_filename: Original filename (used for base path)
+            image_streams: Dict of {variant_name: BytesIO} from ImageProcessingService
+            dive_id: Optional dive ID
+            dive_site_id: Optional dive site ID
+            
+        Returns:
+            Dict of {variant_name: path}
+        """
+        results = {}
+        
+        # Base logic to get the directory path
+        # We use _get_photo_path but need to manipulate the filename part
+        base_path_full = self._get_photo_path(user_id, original_filename, dive_id=dive_id, dive_site_id=dive_site_id)
+        directory = os.path.dirname(base_path_full)
+        base_name = os.path.splitext(original_filename)[0]
+        original_ext = os.path.splitext(original_filename)[1] # e.g. .jpg
+
+        for variant, stream in image_streams.items():
+            if variant == 'original_format':
+                continue
+                
+            if stream is None:
+                results[variant] = None
+                continue
+
+            # Construct filename
+            if variant == 'original':
+                # Use original extension (sanitized)
+                # But wait, image_processing might have changed format if we stripped it
+                # We assume the caller or stream metadata knows.
+                # For simplicity, we use the original_filename passed in, assuming it matches the stream content roughly
+                # Or better: construct it.
+                # Since 'original' is the main file, let's keep the name as intended by the user upload
+                filename = original_filename
+            else:
+                # Variants are WebP
+                filename = f"{base_name}_{variant}.webp"
+            
+            # Construct full path manually to reuse the directory logic
+            if self.r2_available:
+                full_path = f"{directory}/{filename}"
+                try:
+                    stream.seek(0)
+                    self.s3_client.put_object(
+                        Bucket=os.getenv('R2_BUCKET_NAME'),
+                        Key=full_path,
+                        Body=stream
+                    )
+                    results[variant] = full_path
+                    logger.info(f"Uploaded {variant} to R2: {full_path}")
+                except Exception as e:
+                    logger.error(f"Failed to upload {variant} to R2: {e}")
+                    # Fallback to local? 
+                    # If R2 fails partially, we have a problem. 
+                    # For now, let's assume if R2 is configured, it should work.
+                    # Implementing mixed fallback is complex.
+                    raise e
+            else:
+                # Local storage
+                # Re-implement local logic briefly or call helper
+                # Helper _upload_photo_local expects 'content' bytes, not stream
+                # We can read the stream
+                stream.seek(0)
+                content = stream.read()
+                # We need to trick the helper to use our specific filename
+                # Actually, simpler to just write it directly here reusing logic
+                if dive_id:
+                    local_dir = os.path.join("uploads", f"user_{user_id}", "photos", f"dive_{dive_id}")
+                elif dive_site_id:
+                    local_dir = os.path.join("uploads", f"user_{user_id}", "photos", f"dive_site_{dive_site_id}")
+                else:
+                    raise ValueError("No context provided")
+                
+                # Add year/month if we want to match R2 structure locally?
+                # The existing _upload_photo_local DOES NOT seem to add year/month?
+                # Let's check _upload_photo_local implementation...
+                # It does: "uploads/user_{user_id}/photos/dive_{dive_id}/{filename}"
+                # BUT _get_photo_path adds year/month!
+                # This is an inconsistency in the existing code.
+                # R2 path: user_1/photos/dive_7/2024/01/file.jpg
+                # Local path: uploads/user_1/photos/dive_7/file.jpg
+                # We should stick to existing behavior to avoid breaking things.
+                
+                full_local_path = os.path.join(local_dir, filename)
+                self._ensure_local_directory(full_local_path)
+                with open(full_local_path, 'wb') as f:
+                    f.write(content)
+                
+                # Return relative path for DB
+                # Local storage mapping expects "uploads/..."
+                results[variant] = full_local_path
+                logger.info(f"Uploaded {variant} locally: {full_local_path}")
+
+        return results
     
     def _upload_photo_local(self, user_id: int, filename: str, content: bytes, dive_id: int | None = None, dive_site_id: int | None = None) -> str:
         """Upload photo to local filesystem."""
@@ -420,6 +528,7 @@ class R2StorageService:
     def delete_photo(self, photo_path: str) -> bool:
         """
         Delete a photo from R2 or local storage.
+        Also attempts to delete associated variants (medium, thumbnail) if they exist.
         
         Args:
             photo_path: Path to the photo (R2 key or local path)
@@ -427,39 +536,62 @@ class R2StorageService:
         Returns:
             bool: True if deletion was successful, False otherwise
         """
-        if not self.r2_available or not photo_path.startswith('user_'):
-            # Local storage deletion
-            if photo_path.startswith('uploads/'):
-                local_path = photo_path
-            else:
-                local_path = f"uploads/{photo_path}"
-            
-            try:
-                if os.path.exists(local_path):
-                    os.remove(local_path)
-                    logger.info(f"Successfully deleted photo from local storage: {local_path}")
-                    return True
-                else:
-                    logger.warning(f"Photo not found in local storage: {local_path}")
-                    return False
-            except Exception as e:
-                logger.error(f"Failed to delete photo from local storage {local_path}: {e}")
-                return False
+        # Determine variants to delete
+        paths_to_delete = [photo_path]
         
-        # R2 deletion
-        bucket_name = os.getenv('R2_BUCKET_NAME')
-        try:
-            self.s3_client.delete_object(
-                Bucket=bucket_name,
-                Key=photo_path
-            )
-            logger.info(f"Successfully deleted photo from R2: {photo_path}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to delete photo from R2 {photo_path}: {e}")
-            return False
+        # Check if this is an "original" file (not a variant itself)
+        # We assume original doesn't end in _medium.webp or _thumb.webp
+        # A simple check: split extension
+        base, ext = os.path.splitext(photo_path)
+        
+        if not base.endswith('_medium') and not base.endswith('_thumbnail'):
+            # It's likely an original. Try to identify variants.
+            # Variant format: {base}_medium.webp, {base}_thumbnail.webp
+            paths_to_delete.append(f"{base}_medium.webp")
+            paths_to_delete.append(f"{base}_thumbnail.webp")
+            # Also legacy formats if we ever used them (we haven't yet, but good for future)
+        
+        success_all = True
+        
+        for path in paths_to_delete:
+            if not self.r2_available or not path.startswith('user_'):
+                # Local storage deletion
+                if path.startswith('uploads/'):
+                    local_path = path
+                else:
+                    local_path = f"uploads/{path}"
+                
+                try:
+                    if os.path.exists(local_path):
+                        os.remove(local_path)
+                        logger.info(f"Successfully deleted photo from local storage: {local_path}")
+                    else:
+                        # Only warn for the main file, variants might not exist (e.g. small images)
+                        if path == photo_path:
+                            logger.warning(f"Photo not found in local storage: {local_path}")
+                            success_all = False
+                except Exception as e:
+                    logger.error(f"Failed to delete photo from local storage {local_path}: {e}")
+                    if path == photo_path:
+                        success_all = False
+            
+            else:
+                # R2 deletion
+                bucket_name = os.getenv('R2_BUCKET_NAME')
+                try:
+                    self.s3_client.delete_object(
+                        Bucket=bucket_name,
+                        Key=path
+                    )
+                    logger.info(f"Successfully deleted photo from R2: {path}")
+                except Exception as e:
+                    logger.error(f"Failed to delete photo from R2 {path}: {e}")
+                    if path == photo_path:
+                        success_all = False
+        
+        return success_all
     
-    def get_photo_url(self, photo_path: str, expires_in: int = 3600) -> str:
+    def get_photo_url(self, photo_path: str, expires_in: int = 3600, download: bool = False) -> str:
         """
         Get URL for a photo stored in R2 or local storage.
         For R2, generates a presigned URL for secure access to private buckets.
@@ -467,6 +599,7 @@ class R2StorageService:
         Args:
             photo_path: Path to the photo (R2 key or local path)
             expires_in: Expiration time in seconds for presigned URLs (default: 1 hour)
+            download: If True, adds Content-Disposition: attachment to force download
             
         Returns:
             str: URL to access the photo (presigned URL for R2, static URL for local)
@@ -489,13 +622,21 @@ class R2StorageService:
             custom_domain = os.getenv('R2_PUBLIC_DOMAIN')
             if custom_domain:
                 # If custom domain is set, assume bucket is public
+                # Public buckets don't support response headers override easily without Workers
                 return f"https://{custom_domain}/{photo_path}"
             
             # Generate presigned URL for private bucket access
             # Presigned URLs are temporary and secure, allowing access without exposing credentials
+            params = {'Bucket': bucket_name, 'Key': photo_path}
+            
+            if download:
+                # Extract filename for Content-Disposition
+                filename = os.path.basename(photo_path)
+                params['ResponseContentDisposition'] = f'attachment; filename="{filename}"'
+            
             presigned_url = self.s3_client.generate_presigned_url(
                 'get_object',
-                Params={'Bucket': bucket_name, 'Key': photo_path},
+                Params=params,
                 ExpiresIn=expires_in
             )
             logger.debug(f"Generated presigned URL for {photo_path} (expires in {expires_in}s)")

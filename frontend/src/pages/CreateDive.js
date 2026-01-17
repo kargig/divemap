@@ -96,6 +96,7 @@ const CreateDive = () => {
   const [mediaDescriptions, setMediaDescriptions] = useState({}); // Track media descriptions
   // Store converted Flickr URLs (Map: original URL -> direct image URL)
   const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(() => new Map());
+  const [submitStatus, setSubmitStatus] = useState('');
 
   // Fetch dive sites for dropdown
   const { data: diveSites = [] } = useQuery(['dive-sites'], () => getDiveSites({ page_size: 100 }));
@@ -408,6 +409,7 @@ const CreateDive = () => {
   };
 
   const onSubmit = async data => {
+    setSubmitStatus('Processing...');
     // Data is already validated and transformed by Zod schema
     // Transform dive_time format if provided
     const diveData = {
@@ -418,10 +420,17 @@ const CreateDive = () => {
     };
 
     try {
+      // First, check for photo uploads
+      const unsavedR2Photos = unsavedR2PhotosRef.current;
+      if (unsavedR2Photos.length > 0) {
+        setSubmitStatus('Uploading photos...');
+      }
+
       const createdDive = await createDiveMutation.mutateAsync(diveData);
 
+      setSubmitStatus('Saving media...');
+
       const mediaPromises = [];
-      const unsavedR2Photos = unsavedR2PhotosRef.current;
 
       // First, upload photos to R2 and create DB records for them
       for (const unsavedPhoto of unsavedR2Photos) {
@@ -439,6 +448,8 @@ const CreateDive = () => {
               url: r2UploadResult.r2_path, // Use R2 path for storage
               description: unsavedPhoto.description || '',
               title: '',
+              medium_url: r2UploadResult.medium_path,
+              thumbnail_url: r2UploadResult.thumbnail_path,
             };
 
             mediaPromises.push(
@@ -449,7 +460,9 @@ const CreateDive = () => {
             );
           } catch (error) {
             console.error('Failed to upload photo to R2:', error);
-            toast.error(`Failed to upload photo ${unsavedPhoto.file_name} to R2`);
+            toast.error(
+              `Failed to upload photo ${unsavedPhoto.file_name}: ${extractErrorMessage(error)}`
+            );
           }
         }
       }
@@ -483,6 +496,7 @@ const CreateDive = () => {
     } catch (error) {
       // Error handling is done in mutation onError callback
       // which uses setError to set field-specific errors
+      setSubmitStatus('');
     }
   };
 
@@ -1116,15 +1130,20 @@ const CreateDive = () => {
             </button>
             <button
               type='submit'
-              disabled={createDiveMutation.isLoading}
+              disabled={createDiveMutation.isLoading || !!submitStatus}
               className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
             >
-              {createDiveMutation.isLoading ? (
-                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+              {createDiveMutation.isLoading || submitStatus ? (
+                <>
+                  <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+                  {submitStatus || 'Saving...'}
+                </>
               ) : (
-                <Save size={16} />
+                <>
+                  <Save size={16} />
+                  Log Dive
+                </>
               )}
-              Log Dive
             </button>
           </div>
         </form>

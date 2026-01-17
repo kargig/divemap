@@ -10,6 +10,7 @@ import uuid
 import random
 from pathlib import Path
 from app.services.r2_storage_service import get_r2_storage
+from app.services.image_processing import image_processing
 from app.database import get_db
 from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus
 from app.services.osm_coastline_service import detect_shore_direction
@@ -1164,13 +1165,13 @@ async def get_dive_sites(
         thumbnail_id = None
 
         if detail_level in ['basic', 'full']:
-            # Get all media from SiteMedia (id, media_type, url)
-            site_media = db.query(SiteMedia.id, SiteMedia.media_type, SiteMedia.url).filter(
+            # Get all media from SiteMedia (id, media_type, url, thumbnail_url)
+            site_media = db.query(SiteMedia.id, SiteMedia.media_type, SiteMedia.url, SiteMedia.thumbnail_url).filter(
                 SiteMedia.dive_site_id == site.id
             ).all()
             
-            # Get all media from DiveMedia (id, media_type, url)
-            dive_media = db.query(DiveMedia.id, DiveMedia.media_type, DiveMedia.url).join(Dive).filter(
+            # Get all media from DiveMedia (id, media_type, url, thumbnail_url)
+            dive_media = db.query(DiveMedia.id, DiveMedia.media_type, DiveMedia.url, DiveMedia.thumbnail_url).join(Dive).filter(
                 Dive.dive_site_id == site.id
             ).all()
             
@@ -1179,9 +1180,34 @@ async def get_dive_sites(
             all_media = [(m, 'site_media') for m in site_media] + [(m, 'dive_media') for m in dive_media]
             
             # Pick one randomly if available
+            # Note: Ideally we should pick the 'first' one based on media_order or creation date
+            # But the current logic is random, so we stick to it or improve it?
+            # Sticking to existing random logic to minimize scope creep, but making it "smart" about thumbnails
             if all_media:
-                selected_media, source = random.choice(all_media)
-                thumbnail = selected_media.url
+                # If there's a defined media order, try to respect it
+                if site.media_order and len(site.media_order) > 0:
+                    ordered_media = []
+                    media_map = {f"{src}_{m.id}": (m, src) for m, src in all_media}
+                    
+                    # Add ordered items first
+                    for key in site.media_order:
+                        if key in media_map:
+                            ordered_media.append(media_map[key])
+                    
+                    # If we found ordered items, pick the first one
+                    if ordered_media:
+                        selected_media, source = ordered_media[0]
+                    else:
+                        selected_media, source = random.choice(all_media)
+                else:
+                    selected_media, source = random.choice(all_media)
+                
+                # Use thumbnail_url if available, otherwise fallback to url (original)
+                if selected_media.thumbnail_url:
+                    thumbnail = selected_media.thumbnail_url
+                else:
+                    thumbnail = selected_media.url
+                    
                 thumbnail_id = selected_media.id
                 thumbnail_source = source
                 
@@ -1832,19 +1858,33 @@ async def get_dive_site_media(
     for media in site_media:
         # If URL is an R2 path (starts with 'user_'), generate presigned URL
         media_url = media.url
-        if media_url.startswith('user_'):
+        thumbnail_url = media.thumbnail_url
+        medium_url = media.medium_url
+        download_url = None
+        
+        if media_url and media_url.startswith('user_'):
+            # Generate download URL from the original path
+            download_url = r2_storage.get_photo_url(media_url, download=True)
             media_url = r2_storage.get_photo_url(media_url)
+        
+        if thumbnail_url and thumbnail_url.startswith('user_'):
+            thumbnail_url = r2_storage.get_photo_url(thumbnail_url)
+        if medium_url and medium_url.startswith('user_'):
+            medium_url = r2_storage.get_photo_url(medium_url)
         
         response_obj = SiteMediaResponse(
             id=media.id,
             dive_site_id=media.dive_site_id,
             media_type=media.media_type.value if hasattr(media.media_type, 'value') else str(media.media_type),
-            url=media_url,  # Use media_url (presigned URL) instead of media.url
+            url=media_url,  # Use media_url (presigned URL)
             description=media.description,
             created_at=media.created_at,
             dive_id=None,
             user_id=None,
-            user_username=None
+            user_username=None,
+            thumbnail_url=thumbnail_url,
+            medium_url=medium_url,
+            download_url=download_url
         )
         media_map[f"site_{media.id}"] = response_obj
 
@@ -1868,8 +1908,18 @@ async def get_dive_site_media(
         
         # If URL is an R2 path (starts with 'user_'), generate presigned URL
         media_url = media.url
-        if media_url.startswith('user_'):
+        thumbnail_url = media.thumbnail_url
+        medium_url = media.medium_url
+        download_url = None
+        
+        if media_url and media_url.startswith('user_'):
+            download_url = r2_storage.get_photo_url(media_url, download=True)
             media_url = r2_storage.get_photo_url(media_url)
+            
+        if thumbnail_url and thumbnail_url.startswith('user_'):
+            thumbnail_url = r2_storage.get_photo_url(thumbnail_url)
+        if medium_url and medium_url.startswith('user_'):
+            medium_url = r2_storage.get_photo_url(medium_url)
         
         response_obj = SiteMediaResponse(
             id=media.id,
@@ -1880,7 +1930,10 @@ async def get_dive_site_media(
             created_at=media.created_at,
             dive_id=media.dive_id if media.dive_id else None,
             user_id=dive.user_id if dive else None,
-            user_username=user_username
+            user_username=user_username,
+            thumbnail_url=thumbnail_url,
+            medium_url=medium_url,
+            download_url=download_url
         )
         media_map[f"dive_{media.id}"] = response_obj
     
@@ -1991,7 +2044,9 @@ async def add_dive_site_media(
         dive_site_id=dive_site_id,
         media_type=media.media_type,
         url=media.url,
-        description=media.description
+        description=media.description,
+        thumbnail_url=media.thumbnail_url,
+        medium_url=media.medium_url
     )
     db.add(db_media)
     db.commit()
@@ -2134,48 +2189,65 @@ async def upload_dive_site_photo_r2_only(
             detail="You don't have permission to edit this dive site"
         )
 
-    # Validate file type
-    allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file type. Allowed types: {', '.join(allowed_types)}"
-        )
-
-    # Validate file size (max 10MB)
+    # Validate file size (max 15MB) - ImageProcessingService has its own check too
     file_content = await file.read()
-    if len(file_content) > 10 * 1024 * 1024:  # 10MB
+    if len(file_content) > 15 * 1024 * 1024:  # 15MB
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds 10MB limit"
+            detail="File size exceeds 15MB limit"
         )
 
     # Generate unique filename
     file_ext = Path(file.filename).suffix if file.filename else '.jpg'
+    # Default to .jpg if extension is missing or weird, ImageProcessing will sanitize format anyway
+    if not file_ext or file_ext.lower() not in ['.jpg', '.jpeg', '.png', '.webp']:
+        file_ext = '.jpg'
+        
     unique_filename = f"{uuid.uuid4()}{file_ext}"
+
+    # Process image (Generate variants)
+    try:
+        image_streams = image_processing.process_image(file_content, file.filename or "unknown")
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
     # Upload to R2 or local storage only (no database record)
     r2_storage = get_r2_storage()
     try:
-        photo_path = r2_storage.upload_photo(
+        # Use upload_photo_set for all variants
+        uploaded_paths = r2_storage.upload_photo_set(
             user_id=current_user.id,
-            filename=unique_filename,
-            content=file_content,
+            original_filename=unique_filename,
+            image_streams=image_streams,
             dive_site_id=dive_site_id
         )
         
-        # Generate presigned URL for preview
-        if photo_path.startswith('user_'):
-            # R2 path - generate presigned URL
-            presigned_url = r2_storage.get_photo_url(photo_path)
-        else:
-            # Local storage - get static URL
-            presigned_url = photo_path
+        response_data = {}
         
-        return {
-            "r2_path": photo_path,
-            "url": presigned_url
-        }
+        # Helper to generate URL
+        def get_url(path):
+            if not path: return None
+            if path.startswith('user_'):
+                return r2_storage.get_photo_url(path)
+            return path # Local storage path is already a URL suffix usually
+
+        # Populate response with paths and signed URLs
+        response_data["r2_path"] = uploaded_paths.get("original")
+        response_data["url"] = get_url(uploaded_paths.get("original"))
+        
+        if uploaded_paths.get("medium"):
+            response_data["medium_path"] = uploaded_paths.get("medium")
+            response_data["medium_url"] = get_url(uploaded_paths.get("medium"))
+            
+        if uploaded_paths.get("thumbnail"):
+            response_data["thumbnail_path"] = uploaded_paths.get("thumbnail")
+            response_data["thumbnail_url"] = get_url(uploaded_paths.get("thumbnail"))
+        
+        return response_data
+
     except Exception as e:
         logger.error(f"Failed to upload photo to R2: {e}")
         raise HTTPException(

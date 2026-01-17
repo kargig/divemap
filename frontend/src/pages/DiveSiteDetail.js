@@ -25,6 +25,7 @@ import {
   Link as RouterLink,
 } from 'react-router-dom';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
+import Download from 'yet-another-react-lightbox/plugins/download';
 import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
 import Inline from 'yet-another-react-lightbox/plugins/inline';
 import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
@@ -312,11 +313,15 @@ const DiveSiteDetail = () => {
   const photos = publicPhotos;
 
   const photoSlides = photos.map(item => ({
-    src: getImageUrl(item.url),
+    src: getImageUrl(item.medium_url || item.url),
+    thumbnail: getImageUrl(item.thumbnail_url || item.medium_url || item.url),
     width: 1920,
     height: 1080,
     alt: decodeHtmlEntities(item.description) || 'Dive site photo',
     description: decodeHtmlEntities(item.description) || '',
+    // Store original URL for potential future use (e.g. download)
+    // Use explicit download_url if available (signed for attachment), otherwise fallback to viewing URL
+    download: getImageUrl(item.download_url || item.url),
   }));
 
   // Auto-select media tab based on availability
@@ -805,7 +810,7 @@ const DiveSiteDetail = () => {
                         index={lightboxIndex}
                         on={{ view: ({ index }) => setLightboxIndex(index) }}
                         slides={photoSlides}
-                        plugins={[Captions, Slideshow, Fullscreen, Thumbnails]}
+                        plugins={[Captions, Download, Slideshow, Fullscreen, Thumbnails]}
                         render={{ slide: ReactImage, thumbnail: ReactImage }}
                         thumbnails={{ position: 'bottom' }}
                       />

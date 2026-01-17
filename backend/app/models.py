@@ -232,6 +232,8 @@ class SiteMedia(Base):
     media_type = Column(Enum(MediaType), nullable=False)
     url = Column(String(500), nullable=False)
     description = Column(Text)
+    thumbnail_url = Column(String(500))
+    medium_url = Column(String(500))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
@@ -542,6 +544,7 @@ class DiveMedia(Base):
     description = Column(Text)
     title = Column(String(255))  # For external links
     thumbnail_url = Column(String(500))  # For external links
+    medium_url = Column(String(500))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

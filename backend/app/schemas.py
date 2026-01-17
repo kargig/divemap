@@ -326,6 +326,8 @@ class SiteMediaCreate(BaseModel):
     media_type: str = Field(..., pattern=r"^(photo|video)$")
     url: str = Field(..., min_length=1, max_length=500)
     description: Optional[str] = None
+    thumbnail_url: Optional[str] = Field(None, max_length=500)
+    medium_url: Optional[str] = Field(None, max_length=500)
 
 class SiteMediaUpdate(BaseModel):
     description: Optional[str] = None
@@ -341,6 +343,9 @@ class SiteMediaResponse(BaseModel):
     dive_id: Optional[int] = None
     user_id: Optional[int] = None
     user_username: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    medium_url: Optional[str] = None
+    download_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -815,7 +820,8 @@ class DiveMediaCreate(BaseModel):
     url: str = Field(..., min_length=1, max_length=500)
     description: Optional[str] = None
     title: Optional[str] = Field(None, max_length=255)  # For external links
-    thumbnail_url: Optional[str] = Field(None, max_length=500)  # For external links
+    thumbnail_url: Optional[str] = Field(None, max_length=500)  # For external links or photo thumbnails
+    medium_url: Optional[str] = Field(None, max_length=500)  # For medium sized photos
 
 class DiveMediaUpdate(BaseModel):
     description: Optional[str] = None
@@ -828,6 +834,8 @@ class DiveMediaResponse(BaseModel):
     description: Optional[str] = None
     title: Optional[str] = None
     thumbnail_url: Optional[str] = None
+    medium_url: Optional[str] = None
+    download_url: Optional[str] = None
     created_at: datetime
 
 # Buddy Management Schemas

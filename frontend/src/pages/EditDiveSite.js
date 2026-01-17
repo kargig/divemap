@@ -224,6 +224,7 @@ const EditDiveSite = () => {
   const [newAlias, setNewAlias] = useState({ alias: '', language: '' });
   const [editingAlias, setEditingAlias] = useState(null);
   const [showAliasForm, setShowAliasForm] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState('');
 
   // Fetch dive site data (load first to check ownership)
   const {
@@ -776,6 +777,7 @@ const EditDiveSite = () => {
   };
 
   const onSubmit = async data => {
+    setSubmitStatus('Processing...');
     // Prepare the update data
     const updateData = {
       ...data,
@@ -824,26 +826,66 @@ const EditDiveSite = () => {
       delete updateData.shore_direction_distance_m;
     }
 
-    // First, upload photos to R2 and create database records for them
-    const dbCreationPromises = [];
-    const unsavedR2Photos = unsavedR2PhotosRef.current;
+    try {
+      // First, upload photos to R2 and create database records for them
+      const dbCreationPromises = [];
+      const unsavedR2Photos = unsavedR2PhotosRef.current;
 
-    const photoUploadPromises = unsavedR2Photos.map(async unsavedPhoto => {
-      if (unsavedPhoto.originFileObj) {
-        // This is a photo from create/edit flow - upload to R2 first
-        try {
-          const r2UploadResult = await uploadDiveSitePhotoToR2Only(id, unsavedPhoto.originFileObj);
+      if (unsavedR2Photos.length > 0) {
+        setSubmitStatus('Uploading photos...');
+      }
 
-          // Create database record
+      const photoUploadPromises = unsavedR2Photos.map(async unsavedPhoto => {
+        if (unsavedPhoto.originFileObj) {
+          // This is a photo from create/edit flow - upload to R2 first
+          try {
+            const r2UploadResult = await uploadDiveSitePhotoToR2Only(
+              id,
+              unsavedPhoto.originFileObj
+            );
+
+            // Create database record
+            const mediaData = {
+              media_type: 'photo',
+              url: r2UploadResult.r2_path, // Use R2 path for storage
+              description: unsavedPhoto.description || '',
+              medium_url: r2UploadResult.medium_path,
+              thumbnail_url: r2UploadResult.thumbnail_path,
+            };
+
+            return addDiveSiteMedia(id, mediaData)
+              .then(createdMedia => {
+                // Update photoMediaUrls with the new DB ID
+                setPhotoMediaUrls(prev =>
+                  prev.map(item =>
+                    item.temp_uid === unsavedPhoto.uid
+                      ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
+                      : item
+                  )
+                );
+                // Track this UID as saved so component can clear it from unsaved list
+                setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
+                return createdMedia;
+              })
+              .catch(_error => {
+                toast.error(`Failed to save photo ${unsavedPhoto.file_name} to database`);
+              });
+          } catch (error) {
+            console.error('Failed to upload photo to R2:', error);
+            toast.error(
+              `Failed to upload photo ${unsavedPhoto.file_name}: ${extractErrorMessage(error)}`
+            );
+          }
+        } else if (unsavedPhoto.r2_path) {
+          // Photo was already uploaded to R2 (from previous edit session), just create DB record
           const mediaData = {
             media_type: 'photo',
-            url: r2UploadResult.r2_path, // Use R2 path for storage
+            url: unsavedPhoto.r2_path,
             description: unsavedPhoto.description || '',
           };
 
           return addDiveSiteMedia(id, mediaData)
             .then(createdMedia => {
-              // Update photoMediaUrls with the new DB ID
               setPhotoMediaUrls(prev =>
                 prev.map(item =>
                   item.temp_uid === unsavedPhoto.uid
@@ -851,158 +893,132 @@ const EditDiveSite = () => {
                     : item
                 )
               );
-              // Track this UID as saved so component can clear it from unsaved list
               setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
               return createdMedia;
             })
             .catch(_error => {
               toast.error(`Failed to save photo ${unsavedPhoto.file_name} to database`);
             });
-        } catch (error) {
-          console.error('Failed to upload photo to R2:', error);
-          toast.error(`Failed to upload photo ${unsavedPhoto.file_name} to R2`);
         }
-      } else if (unsavedPhoto.r2_path) {
-        // Photo was already uploaded to R2 (from previous edit session), just create DB record
-        const mediaData = {
-          media_type: 'photo',
-          url: unsavedPhoto.r2_path,
-          description: unsavedPhoto.description || '',
-        };
+      });
 
-        return addDiveSiteMedia(id, mediaData)
-          .then(createdMedia => {
-            setPhotoMediaUrls(prev =>
-              prev.map(item =>
-                item.temp_uid === unsavedPhoto.uid
-                  ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
-                  : item
-              )
-            );
-            setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
-            return createdMedia;
-          })
-          .catch(_error => {
-            toast.error(`Failed to save photo ${unsavedPhoto.file_name} to database`);
-          });
+      // Wait for all uploads and DB records to be created
+      if (photoUploadPromises.length > 0) {
+        await Promise.all(photoUploadPromises);
+        // Invalidate media query to refresh the list
+        await queryClient.invalidateQueries(['dive-site-media', id]);
       }
-    });
 
-    // Wait for all uploads and DB records to be created
-    if (photoUploadPromises.length > 0) {
-      await Promise.all(photoUploadPromises);
-      // Invalidate media query to refresh the list
-      await queryClient.invalidateQueries(['dive-site-media', id]);
-    }
+      // Clear unsaved photos ref since they're now saved
+      unsavedR2PhotosRef.current = [];
+      setSavedPhotoUids([]);
 
-    // Clear unsaved photos ref since they're now saved
-    unsavedR2PhotosRef.current = [];
-    setSavedPhotoUids([]);
+      setSubmitStatus('Saving details...');
 
-    // Update the dive site first
-    updateMutation.mutate(updateData, {
-      onSuccess: async updatedDiveSite => {
-        // Handle tag changes
-        const currentTagIds = diveSite?.tags?.map(tag => tag.id) || [];
-        const newTagIds = selectedTags;
-        const tagPromises = [];
+      // Update the dive site first
+      await updateMutation.mutateAsync(updateData);
 
-        // Add new tags
-        for (const tagId of newTagIds) {
-          if (!currentTagIds.includes(tagId)) {
-            tagPromises.push(
-              api
-                .post(`/api/v1/tags/dive-sites/${id}/tags`, { tag_id: tagId })
-                .catch(error => console.error('Failed to add tag:', error))
-            );
-          }
+      // Handle tag changes
+      const currentTagIds = diveSite?.tags?.map(tag => tag.id) || [];
+      const newTagIds = selectedTags;
+      const tagPromises = [];
+
+      // Add new tags
+      for (const tagId of newTagIds) {
+        if (!currentTagIds.includes(tagId)) {
+          tagPromises.push(
+            api
+              .post(`/api/v1/tags/dive-sites/${id}/tags`, { tag_id: tagId })
+              .catch(error => console.error('Failed to add tag:', error))
+          );
         }
+      }
 
-        // Remove tags that are no longer selected
-        for (const tagId of currentTagIds) {
-          if (!newTagIds.includes(tagId)) {
-            tagPromises.push(
-              api
-                .delete(`/api/v1/tags/dive-sites/${id}/tags/${tagId}`)
-                .catch(error => console.error('Failed to remove tag:', error))
-            );
-          }
+      // Remove tags that are no longer selected
+      for (const tagId of currentTagIds) {
+        if (!newTagIds.includes(tagId)) {
+          tagPromises.push(
+            api
+              .delete(`/api/v1/tags/dive-sites/${id}/tags/${tagId}`)
+              .catch(error => console.error('Failed to remove tag:', error))
+          );
         }
+      }
 
-        if (tagPromises.length > 0) {
-          await Promise.all(tagPromises);
+      if (tagPromises.length > 0) {
+        await Promise.all(tagPromises);
+      }
+
+      // Save pending media to database
+      const pendingMediaPromises = [];
+      for (const pendingItem of pendingMedia) {
+        const mediaData = {
+          media_type: pendingItem.media_type,
+          url: pendingItem.url,
+          description: mediaDescriptions[pendingItem.id] || pendingItem.description || '',
+        };
+        pendingMediaPromises.push(
+          addDiveSiteMedia(id, mediaData).catch(error => {
+            console.error(`Failed to save media ${pendingItem.url}:`, error);
+            toast.error(`Failed to save media: ${pendingItem.url}`);
+          })
+        );
+      }
+      if (pendingMediaPromises.length > 0) {
+        await Promise.all(pendingMediaPromises);
+      }
+
+      // Update media descriptions that have changed
+      // Only update SiteMedia (dive site media), not DiveMedia (dive media)
+      // Dive media has dive_id set, so we skip those
+      const mediaUpdatePromises = [];
+      for (const mediaItem of media) {
+        // Skip media from dives (has dive_id) - only update direct dive site media
+        if (mediaItem.dive_id) {
+          continue;
         }
-
-        // Save pending media to database
-        const pendingMediaPromises = [];
-        for (const pendingItem of pendingMedia) {
-          const mediaData = {
-            media_type: pendingItem.media_type,
-            url: pendingItem.url,
-            description: mediaDescriptions[pendingItem.id] || pendingItem.description || '',
-          };
-          pendingMediaPromises.push(
-            addDiveSiteMedia(id, mediaData).catch(error => {
-              console.error(`Failed to save media ${pendingItem.url}:`, error);
-              toast.error(`Failed to save media: ${pendingItem.url}`);
+        const currentDescription = mediaItem.description || '';
+        const newDescription = mediaDescriptions[mediaItem.id] || '';
+        if (currentDescription !== newDescription) {
+          mediaUpdatePromises.push(
+            updateDiveSiteMedia(id, mediaItem.id, newDescription || null).catch(error => {
+              console.error(`Failed to update media description for media ${mediaItem.id}:`, error);
+              toast.error(`Failed to update media description`);
             })
           );
         }
-        if (pendingMediaPromises.length > 0) {
-          await Promise.all(pendingMediaPromises);
-        }
+      }
+      if (mediaUpdatePromises.length > 0) {
+        await Promise.all(mediaUpdatePromises);
+      }
 
-        // Update media descriptions that have changed
-        // Only update SiteMedia (dive site media), not DiveMedia (dive media)
-        // Dive media has dive_id set, so we skip those
-        const mediaUpdatePromises = [];
-        for (const mediaItem of media) {
-          // Skip media from dives (has dive_id) - only update direct dive site media
-          if (mediaItem.dive_id) {
-            continue;
-          }
-          const currentDescription = mediaItem.description || '';
-          const newDescription = mediaDescriptions[mediaItem.id] || '';
-          if (currentDescription !== newDescription) {
-            mediaUpdatePromises.push(
-              updateDiveSiteMedia(id, mediaItem.id, newDescription || null).catch(error => {
-                console.error(
-                  `Failed to update media description for media ${mediaItem.id}:`,
-                  error
-                );
-                toast.error(`Failed to update media description`);
-              })
-            );
-          }
-        }
-        if (mediaUpdatePromises.length > 0) {
-          await Promise.all(mediaUpdatePromises);
-        }
+      // Clear pending media after successful save
+      setPendingMedia([]);
 
-        // Clear pending media after successful save
-        setPendingMedia([]);
+      // Invalidate media query to refresh the list
+      await queryClient.invalidateQueries(['dive-site-media', id]);
 
-        // Invalidate media query to refresh the list
-        await queryClient.invalidateQueries(['dive-site-media', id]);
+      // Update the cache with the new data immediately (updateData might not have all fields, but good enough for optimistic)
+      // queryClient.setQueryData(['dive-site', id], updatedDiveSite); // We don't have updatedDiveSite here from mutateAsync result easily unless we capture it
 
-        // Update the cache with the new data immediately
-        queryClient.setQueryData(['dive-site', id], updatedDiveSite);
+      // Invalidate related queries
+      await queryClient.invalidateQueries(['admin-dive-sites']);
+      await queryClient.invalidateQueries(['dive-sites']);
+      await queryClient.invalidateQueries(['available-tags']);
 
-        // Invalidate related queries
-        await queryClient.invalidateQueries(['admin-dive-sites']);
-        await queryClient.invalidateQueries(['dive-sites']);
-        await queryClient.invalidateQueries(['available-tags']);
+      // Wait a moment for cache updates to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Wait a moment for cache updates to complete
-        await new Promise(resolve => setTimeout(resolve, 100));
+      // Show success message
+      toast.success('Dive site updated successfully');
 
-        // Show success message
-        toast.success('Dive site updated successfully');
-
-        // Navigate to the dive site detail page
-        navigate(`/dive-sites/${id}`);
-      },
-    });
+      // Navigate to the dive site detail page
+      navigate(`/dive-sites/${id}`);
+    } catch (error) {
+      console.error('Submit failed:', error);
+      // Detailed error handling is already in mutation onError or caught here
+      setSubmitStatus('');
+    }
   };
 
   const handleAddMedia = e => {
@@ -1878,15 +1894,29 @@ const EditDiveSite = () => {
                 </button>
                 <button
                   type='submit'
-                  disabled={updateMutation.isLoading}
-                  className='flex items-center px-6 py-2 text-white rounded-md disabled:opacity-50'
+                  disabled={updateMutation.isLoading || !!submitStatus}
+                  className='flex items-center px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
                   style={{ backgroundColor: UI_COLORS.primary, color: 'white' }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#005a8a')}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.primary)}
+                  onMouseEnter={e =>
+                    !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#005a8a')
+                  }
+                  onMouseLeave={e =>
+                    !e.currentTarget.disabled &&
+                    (e.currentTarget.style.backgroundColor = UI_COLORS.primary)
+                  }
                 >
-                  <Save className='w-4 h-4 mr-2' />
-                  {updateMutation.isLoading ? 'Saving...' : 'Save Changes'}
-                </button>
+                  {updateMutation.isLoading || submitStatus ? (
+                    <>
+                      <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>
+                      {submitStatus || 'Saving...'}
+                    </>
+                  ) : (
+                    <>
+                      <Save className='w-4 h-4 mr-2' />
+                      Save Changes
+                    </>
+                  )}
+                </button>{' '}
               </div>
             </form>
           </FormProvider>
