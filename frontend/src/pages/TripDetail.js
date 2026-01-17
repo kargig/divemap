@@ -9,6 +9,7 @@ import MaskedEmail from '../components/MaskedEmail';
 import SEO from '../components/SEO';
 import TripHeader from '../components/TripHeader';
 import { useAuth } from '../contexts/AuthContext';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
@@ -97,7 +98,7 @@ const TripDetail = () => {
       '@type': 'SportsEvent',
       name: generateTripName(trip),
       startDate: trip.trip_date,
-      description: trip.trip_description || getMetaDescription(),
+      description: decodeHtmlEntities(trip.trip_description) || getMetaDescription(),
       eventStatus: 'https://schema.org/EventScheduled',
       breadcrumb: {
         '@type': 'BreadcrumbList',
@@ -280,7 +281,9 @@ const TripDetail = () => {
               {trip.special_requirements && (
                 <div>
                   <h3 className='text-lg font-semibold text-gray-900 mb-3'>Special Requirements</h3>
-                  <p className='text-gray-700 leading-relaxed'>{trip.special_requirements}</p>
+                  <p className='text-gray-700 leading-relaxed'>
+                    {decodeHtmlEntities(trip.special_requirements)}
+                  </p>
                 </div>
               )}
 
@@ -327,12 +330,13 @@ const TripDetail = () => {
                         <div className='text-sm text-gray-600'>
                           <p className='mb-2'>
                             {diveSite.description
-                              ? renderTextWithLinks(diveSite.description)
+                              ? renderTextWithLinks(decodeHtmlEntities(diveSite.description))
                               : 'No description available'}
                           </p>
                           {dive.dive_description && (
                             <p className='mb-2 text-gray-700'>
-                              <strong>Dive Description:</strong> {dive.dive_description}
+                              <strong>Dive Description:</strong>{' '}
+                              {decodeHtmlEntities(dive.dive_description)}
                             </p>
                           )}
                           {dive.dive_duration && (
@@ -366,7 +370,8 @@ const TripDetail = () => {
                         {divingCenter.name}
                       </h4>
                       <p className='text-gray-600 mb-4'>
-                        {divingCenter.description || 'Professional diving center'}
+                        {decodeHtmlEntities(divingCenter.description) ||
+                          'Professional diving center'}
                       </p>
                       <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
                         {divingCenter.phone && (

@@ -27,6 +27,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 
 import { useAuth } from '../contexts/AuthContext';
 import { getRouteTypeColor } from '../utils/colorPalette';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { MARKER_TYPES } from '../utils/markerTypes';
 
 import MapLayersPanel from './MapLayersPanel';
@@ -426,7 +427,6 @@ const MapInitializer = ({
         console.warn('Error cleaning up map controls:', error);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, diveSite]);
 
   // Render segments from the segments state (only when segments actually change)
@@ -817,7 +817,9 @@ const RouteCanvas = ({
 
   // Use passed setters if provided, otherwise use local state
   const [localRouteName, setLocalRouteName] = useState(routeName);
-  const [localRouteDescription, setLocalRouteDescription] = useState(routeDescription);
+  const [localRouteDescription, setLocalRouteDescription] = useState(
+    routeDescription ? decodeHtmlEntities(routeDescription) : ''
+  );
 
   // Use external setters if provided, otherwise use local setters
   const currentRouteName = setRouteName ? routeName : localRouteName;

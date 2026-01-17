@@ -8,6 +8,8 @@ import {
 import { Edit, Trash2, Eye, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import PropTypes from 'prop-types';
 
+import { decodeHtmlEntities } from '../../utils/htmlDecode';
+
 /**
  * AdminDivingCentersTable - TanStack Table implementation for diving centers
  */
@@ -196,7 +198,7 @@ const AdminDivingCentersTable = ({
                       </h3>
                       {center.description && (
                         <p className='text-xs text-gray-500 mt-1 line-clamp-2'>
-                          {center.description}
+                          {decodeHtmlEntities(center.description)}
                         </p>
                       )}
                     </div>

@@ -8,6 +8,7 @@ import api from '../api';
 import RouteCanvas from '../components/RouteCanvas';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 const DiveRouteDrawing = () => {
   const { diveSiteId, routeId } = useParams();
@@ -110,7 +111,9 @@ const DiveRouteDrawing = () => {
 
       // Populate form fields
       setRouteName(existingRoute.name || '');
-      setRouteDescription(existingRoute.description || '');
+      setRouteDescription(
+        existingRoute.description ? decodeHtmlEntities(existingRoute.description) : ''
+      );
       setRouteType(existingRoute.route_type || 'scuba');
 
       // Set the route data for editing
@@ -231,7 +234,9 @@ const DiveRouteDrawing = () => {
   useEffect(() => {
     if (existingRoute) {
       setRouteName(existingRoute.name || '');
-      setRouteDescription(existingRoute.description || '');
+      setRouteDescription(
+        existingRoute.description ? decodeHtmlEntities(existingRoute.description) : ''
+      );
       setRouteType(existingRoute.route_type || 'line');
     }
   }, [existingRoute]);

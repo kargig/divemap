@@ -30,6 +30,7 @@ import SEO from '../components/SEO';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { useSetting } from '../hooks/useSettings';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
@@ -365,9 +366,8 @@ const DivingCenterDetail = () => {
     }
 
     if (center.description) {
-      parts.push(
-        center.description.substring(0, 100) + (center.description.length > 100 ? '...' : '')
-      );
+      const decodedDesc = decodeHtmlEntities(center.description);
+      parts.push(decodedDesc.substring(0, 100) + (decodedDesc.length > 100 ? '...' : ''));
     }
 
     return parts.join(' ');
@@ -625,7 +625,7 @@ const DivingCenterDetail = () => {
         </div>
         {center?.description && (
           <div className='mb-4'>
-            <p className='text-gray-600'>{center.description}</p>
+            <p className='text-gray-600'>{decodeHtmlEntities(center.description)}</p>
           </div>
         )}
 
@@ -905,7 +905,9 @@ const DivingCenterDetail = () => {
                       </div>
                     )}
                     {trip.trip_description && (
-                      <p className='text-sm text-gray-700 line-clamp-2'>{trip.trip_description}</p>
+                      <p className='text-sm text-gray-700 line-clamp-2'>
+                        {decodeHtmlEntities(trip.trip_description)}
+                      </p>
                     )}
                   </div>
                   {user && (

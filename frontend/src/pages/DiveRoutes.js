@@ -316,7 +316,7 @@ const DiveRoutes = () => {
                           to={`/dive-sites/${route.dive_site_id}/route/${route.id}/${slugify(route.name)}`}
                           className='hover:text-blue-600 transition-colors'
                         >
-                          {route.name}
+                          {decodeHtmlEntities(route.name)}
                         </Link>
                       </h3>
                       {/* Route Type Badge */}
