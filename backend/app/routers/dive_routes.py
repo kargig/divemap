@@ -52,17 +52,15 @@ def sanitize_input(text: str, max_length: int = None) -> str:
     """Sanitize user input to prevent XSS and other security issues"""
     if not text:
         return text
-    
-    # HTML escape to prevent XSS
-    sanitized = html.escape(text)
-    
-    # Remove potentially dangerous characters
-    sanitized = re.sub(r'[<>"\']', '', sanitized)
-    
+
+    # First unescape to handle any existing entities (prevents double-encoding)
+    # Then escape to ensure a consistent single level of encoding
+    sanitized = html.escape(html.unescape(text))
+
     # Limit length if specified
     if max_length and len(sanitized) > max_length:
         sanitized = sanitized[:max_length]
-    
+
     return sanitized.strip()
 
 

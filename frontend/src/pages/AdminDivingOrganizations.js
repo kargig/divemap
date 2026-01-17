@@ -8,6 +8,7 @@ import api from '../api';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 const AdminDivingOrganizations = () => {
   const { user } = useAuth();
@@ -158,7 +159,7 @@ const AdminDivingOrganizations = () => {
       acronym: org.acronym,
       website: org.website || '',
       logo_url: org.logo_url || '',
-      description: org.description || '',
+      description: org.description ? decodeHtmlEntities(org.description) : '',
       country: org.country || '',
       founded_year: org.founded_year ? org.founded_year.toString() : '',
     });
@@ -332,7 +333,7 @@ const AdminDivingOrganizations = () => {
                           <div className='text-sm font-medium text-gray-900'>{org.name}</div>
                           {org.description && (
                             <div className='text-sm text-gray-500 truncate max-w-xs'>
-                              {org.description}
+                              {decodeHtmlEntities(org.description)}
                             </div>
                           )}
                         </div>

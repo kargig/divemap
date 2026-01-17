@@ -111,7 +111,9 @@ const RoutePreview = ({
                 backgroundColor: getRouteColor(route.route_type, route.route_data),
               }}
             />
-            <span className='font-medium text-gray-900 truncate text-sm'>{route.name}</span>
+            <span className='font-medium text-gray-900 truncate text-sm'>
+              {decodeHtmlEntities(route.name)}
+            </span>
             <span className='px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full flex-shrink-0'>
               {getRouteTypeLabel(route.route_type, null, route.route_data)}
             </span>
@@ -162,7 +164,7 @@ const RoutePreview = ({
               />
               {getRouteTypeIcon(route.route_type)}
               <h3 className='font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors'>
-                {route.name}
+                {decodeHtmlEntities(route.name)}
               </h3>
               <span className='px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full'>
                 {getRouteTypeLabel(route.route_type, null, route.route_data)}

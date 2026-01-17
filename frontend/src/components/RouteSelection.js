@@ -5,6 +5,7 @@ import { useQuery } from 'react-query';
 
 import api from '../api';
 import { formatDate } from '../utils/dateHelpers';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getRouteTypeLabel, getSmartRouteColor } from '../utils/routeUtils';
 
 import Combobox from './ui/Combobox';
@@ -77,7 +78,9 @@ const RouteSelection = ({ diveSiteId, selectedRouteId, onRouteSelect, disabled =
             </span>
           </div>
           {route.description && (
-            <p className='text-[11px] text-gray-500 line-clamp-1 mt-0.5'>{route.description}</p>
+            <p className='text-[11px] text-gray-500 line-clamp-1 mt-0.5'>
+              {decodeHtmlEntities(route.description)}
+            </p>
           )}
         </div>
       </div>
@@ -120,7 +123,7 @@ const RouteSelection = ({ diveSiteId, selectedRouteId, onRouteSelect, disabled =
               </div>
               {selectedRoute.description && (
                 <p className='text-sm text-gray-600 mt-1 leading-relaxed'>
-                  {selectedRoute.description}
+                  {decodeHtmlEntities(selectedRoute.description)}
                 </p>
               )}
               <div className='flex items-center text-[11px] text-gray-500 mt-2 space-x-3'>

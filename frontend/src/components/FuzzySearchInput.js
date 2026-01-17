@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { fuzzySearch, createDebouncedSearch, SEARCH_CONFIGS } from '../utils/fuzzySearch';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 import Combobox from './ui/Combobox';
 
@@ -92,7 +93,11 @@ const FuzzySearchInput = ({
   const options = useMemo(() => {
     return suggestions.map((suggestion, index) => ({
       value: `${suggestion.item.id || suggestion.refIndex}-${index}`,
-      label: suggestion.item.name || suggestion.item.title || suggestion.item.description || '',
+      label:
+        (suggestion.item.name ? decodeHtmlEntities(suggestion.item.name) : '') ||
+        (suggestion.item.title ? decodeHtmlEntities(suggestion.item.title) : '') ||
+        decodeHtmlEntities(suggestion.item.description) ||
+        '',
       suggestion: suggestion,
     }));
   }, [suggestions]);
@@ -153,7 +158,7 @@ const FuzzySearchInput = ({
         )}
         {suggestion.item.description && (
           <div className='text-xs text-gray-400 line-clamp-1 mt-0.5'>
-            {suggestion.item.description}
+            {decodeHtmlEntities(suggestion.item.description)}
           </div>
         )}
       </div>

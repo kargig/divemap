@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import { formatDate } from '../utils/dateHelpers';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getRouteTypeLabel } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
 
@@ -97,7 +98,9 @@ const PopularRoutes = ({ limit = 10 }) => {
                 </div>
 
                 {route.description && (
-                  <p className='text-sm text-gray-600 line-clamp-2'>{route.description}</p>
+                  <p className='text-sm text-gray-600 line-clamp-2'>
+                    {decodeHtmlEntities(route.description)}
+                  </p>
                 )}
               </div>
 

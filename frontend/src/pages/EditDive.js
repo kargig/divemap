@@ -33,6 +33,7 @@ import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 import { createDiveSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 const EditDive = () => {
   // Set page title
@@ -162,7 +163,7 @@ const EditDive = () => {
         // Initialize media descriptions
         const descriptions = {};
         existingMedia.forEach(media => {
-          descriptions[media.id] = media.description || '';
+          descriptions[media.id] = media.description ? decodeHtmlEntities(media.description) : '';
         });
         setMediaDescriptions(descriptions);
       } else {
@@ -211,7 +212,7 @@ const EditDive = () => {
       // Initialize media descriptions when media loads (for all media including photos)
       const descriptions = {};
       data.forEach(media => {
-        descriptions[media.id] = media.description || '';
+        descriptions[media.id] = media.description ? decodeHtmlEntities(media.description) : '';
       });
       setMediaDescriptions(prev => ({ ...prev, ...descriptions }));
     },

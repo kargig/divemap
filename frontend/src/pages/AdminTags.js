@@ -7,6 +7,7 @@ import api from '../api';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 const AdminTags = () => {
   const { user } = useAuth();
@@ -135,7 +136,7 @@ const AdminTags = () => {
     setEditingTag(tag);
     setTagForm({
       name: tag.name,
-      description: tag.description || '',
+      description: tag.description ? decodeHtmlEntities(tag.description) : '',
     });
     setShowEditTagModal(true);
   };
@@ -270,7 +271,7 @@ const AdminTags = () => {
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap'>
                     <div className='text-sm text-gray-500'>
-                      {tag.description || 'No description'}
+                      {tag.description ? decodeHtmlEntities(tag.description) : 'No description'}
                     </div>
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>

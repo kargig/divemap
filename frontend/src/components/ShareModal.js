@@ -2,6 +2,7 @@ import { Copy, Check, Mail, Share2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 import {
   copyToClipboard,
   openNativeShare,
@@ -34,6 +35,10 @@ const ShareModal = ({ isOpen, onClose, entityType, entityData, additionalParams 
     if (isOpen && entityData) {
       try {
         const content = generateShareContent(entityType, entityData);
+        // Decode HTML entities in description for clean display and sharing
+        if (content.description) {
+          content.description = decodeHtmlEntities(content.description);
+        }
         setShareContent(content);
         setShareUrl(content.url);
       } catch (error) {

@@ -8,6 +8,7 @@ import {
 import { Edit, Trash2, Eye, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import PropTypes from 'prop-types';
 
+import { decodeHtmlEntities } from '../../utils/htmlDecode';
 import { getRouteTypeLabel } from '../../utils/routeUtils';
 
 /**
@@ -196,7 +197,7 @@ const AdminDiveRoutesTable = ({
                       <h3 className='text-sm font-semibold text-gray-900 truncate'>{route.name}</h3>
                       {route.description && (
                         <p className='text-xs text-gray-500 mt-1 line-clamp-2'>
-                          {route.description}
+                          {decodeHtmlEntities(route.description)}
                         </p>
                       )}
                     </div>

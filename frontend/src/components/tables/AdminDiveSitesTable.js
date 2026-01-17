@@ -9,6 +9,7 @@ import { Edit, Trash2, Eye, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } 
 import PropTypes from 'prop-types';
 
 import { getDifficultyLabel, getDifficultyColorClasses } from '../../utils/difficultyHelpers';
+import { decodeHtmlEntities } from '../../utils/htmlDecode';
 
 /**
  * AdminDiveSitesTable - TanStack Table implementation
@@ -200,7 +201,7 @@ const AdminDiveSitesTable = ({
                       <h3 className='text-sm font-semibold text-gray-900 truncate'>{site.name}</h3>
                       {site.description && (
                         <p className='text-xs text-gray-500 mt-1 line-clamp-2'>
-                          {site.description}
+                          {decodeHtmlEntities(site.description)}
                         </p>
                       )}
                     </div>
