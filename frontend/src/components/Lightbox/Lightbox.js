@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import LightboxComponent from 'yet-another-react-lightbox';
+import Counter from 'yet-another-react-lightbox/plugins/counter';
 import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
 import Inline from 'yet-another-react-lightbox/plugins/inline';
 import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
@@ -7,6 +8,7 @@ import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
 import 'yet-another-react-lightbox/styles.css';
 import 'yet-another-react-lightbox/plugins/thumbnails.css';
 import 'yet-another-react-lightbox/plugins/captions.css';
+import 'yet-another-react-lightbox/plugins/counter.css';
 import ReactImage from './ReactImage';
 
 /**
@@ -14,14 +16,15 @@ import ReactImage from './ReactImage';
  * its CSS dynamically only when the lightbox becomes interactive
  */
 // Default plugins configuration - available for children to extend
-export const defaultPlugins = [Inline];
+export const defaultPlugins = [Inline, Counter];
 
 export default function Lightbox(props) {
-  // Extract styles, thumbnails, and plugins from props to merge them properly
+  // Extract styles, thumbnails, plugins, and counter from props to merge them properly
   const {
     styles: propsStyles,
     thumbnails: propsThumbnails,
     plugins: propsPlugins,
+    counter: propsCounter,
     ...restProps
   } = props;
 
@@ -63,6 +66,36 @@ export default function Lightbox(props) {
     return () => clearTimeout(timer);
   }, []);
 
+  // CSS for active thumbnail
+  useEffect(() => {
+    const styleId = 'lightbox-active-thumbnail';
+    let styleElement = document.getElementById(styleId);
+
+    if (!styleElement) {
+      styleElement = document.createElement('style');
+      styleElement.id = styleId;
+      document.head.appendChild(styleElement);
+    }
+
+    styleElement.textContent = `
+      .yarl__thumbnails .yarl__thumbnail.yarl__thumbnail_active,
+      .yarl__thumbnails .yarl__thumbnail_active,
+      .yarl__thumbnail.yarl__thumbnail_active,
+      .yarl__thumbnails .yarl__thumbnail[aria-current="true"],
+      [class*="yarl__thumbnail"][class*="active"],
+      [class*="thumbnail"][class*="active"] {
+        border: 4px solid #2d6b8a !important;
+      }
+    `;
+
+    return () => {
+      const element = document.getElementById(styleId);
+      if (element) {
+        element.remove();
+      }
+    };
+  }, []);
+
   // Merge plugins config - default plugins are merged with children plugins
   const pluginsConfig =
     propsPlugins !== undefined ? [...defaultPlugins, ...propsPlugins] : defaultPlugins;
@@ -86,7 +119,7 @@ export default function Lightbox(props) {
   };
   const mergedStyles = {
     container: {
-      background: 'linear-gradient(to bottom, rgba(164, 204, 255, 0.98), rgba(76, 123, 253, 0.98))', // White crystal to beige gradient
+      background: 'transparent',
     },
     ...propsStyles,
     thumbnail: {
@@ -94,7 +127,7 @@ export default function Lightbox(props) {
       ...(propsStyles?.thumbnail || {}),
     },
     thumbnailsContainer: {
-      background: 'linear-gradient(to right, rgba(164, 204, 255, 0.98), rgba(76, 123, 253, 0.98))',
+      background: 'transparent',
       padding: '2x', // Reduced from default 16px to decrease container height
       paddingTop: '2px',
       paddingBottom: '2px',
@@ -111,19 +144,29 @@ export default function Lightbox(props) {
     },
   };
 
+  // Counter config
+  const counterConfig = {
+    container: {
+      style: {
+        color: '#2563eb', //blue
+      },
+    },
+    ...propsCounter,
+  };
+
   return (
     <LightboxComponent
-      // add plugins here
-      // plugins={[]}
       inline={{
         style: { width: '100%', maxWidth: '900px', aspectRatio: '16 / 9' },
       }}
       carousel={{
-        finite: true,
+        // finite: true,
+        preload: 4,
       }}
       plugins={pluginsConfig}
       render={{ slide: ReactImage, thumbnail: ReactImage }}
       thumbnails={thumbnailsConfig}
+      counter={counterConfig}
       styles={mergedStyles}
       captions={{
         ref: captionsRef,
