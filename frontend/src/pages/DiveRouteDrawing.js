@@ -6,6 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import api from '../api';
 import RouteCanvas from '../components/RouteCanvas';
+import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
@@ -403,33 +404,24 @@ const DiveRouteDrawing = () => {
               </div>
 
               <div className='flex gap-2'>
-                <button
-                  onClick={handleCancel}
-                  className='px-3 py-1.5 text-gray-600 hover:text-gray-800 transition-colors text-sm border border-gray-300 rounded hover:bg-gray-50 h-[34px]'
-                >
+                <Button onClick={handleCancel} variant='secondary' size='sm'>
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => handleSave(routeData)}
                   disabled={isSaving || !routeName.trim() || !routeData}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors h-[34px] flex items-center ${
-                    isSaving || !routeName.trim() || !routeData
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
+                  variant='primary'
+                  size='sm'
+                  icon={
+                    isSaving ? (
+                      <Loader2 className='w-3 h-3 animate-spin' />
+                    ) : (
+                      <Save className='w-3 h-3' />
+                    )
+                  }
                 >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className='w-3 h-3 mr-1 animate-spin inline' />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className='w-3 h-3 mr-1 inline' />
-                      Save
-                    </>
-                  )}
-                </button>
+                  {isSaving ? 'Saving...' : 'Save'}
+                </Button>
               </div>
             </div>
 

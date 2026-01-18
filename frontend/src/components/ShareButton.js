@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { useState } from 'react';
 
 import ShareModal from './ShareModal';
+import Button from './ui/Button';
 
 /**
  * ShareButton Component
@@ -39,38 +40,32 @@ const ShareButton = ({
     setIsModalOpen(false);
   };
 
-  // Default button styles based on variant
-  const getButtonClassName = () => {
-    const baseClass = 'flex items-center transition-colors';
-
+  // Map internal variant to Button props
+  const getButtonProps = () => {
     switch (variant) {
       case 'icon-only':
-        return `${baseClass} px-2 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md ${className}`;
+        return { variant: 'secondary', size: 'md', className: `px-2 ${className}` };
       case 'small':
-        return `${baseClass} px-2 py-1 text-xs text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md ${className}`;
+        return { variant: 'secondary', size: 'xs', className };
       case 'default':
       default:
-        return `${baseClass} px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md ${className}`;
+        return { variant: 'secondary', size: 'md', className };
     }
   };
 
   // Default button content
   const defaultContent = (
     <>
-      <Share2 className='w-4 h-4 mr-1' />
-      <span>Share</span>
+      <Share2 className={`w-4 h-4 ${variant === 'icon-only' ? '' : 'mr-1.5'}`} />
+      {variant !== 'icon-only' && <span>Share</span>}
     </>
   );
 
   return (
     <>
-      <button
-        onClick={handleClick}
-        className={getButtonClassName()}
-        aria-label={`Share ${entityType}`}
-      >
+      <Button onClick={handleClick} aria-label={`Share ${entityType}`} {...getButtonProps()}>
         {children || defaultContent}
-      </button>
+      </Button>
 
       <ShareModal
         isOpen={isModalOpen}

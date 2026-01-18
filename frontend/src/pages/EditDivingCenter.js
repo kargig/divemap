@@ -1,11 +1,12 @@
 import { ArrowLeft, Trash2, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import api, { extractErrorMessage } from '../api';
 import DivingCenterForm from '../components/DivingCenterForm';
+import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { UI_COLORS } from '../utils/colorPalette';
@@ -47,23 +48,27 @@ const EditDivingCenter = () => {
     () => api.get(`/api/v1/diving-centers/${id}`).then(res => res.data),
     {
       enabled: !!id,
-      onSuccess: data => {
-        setFormData({
-          name: data.name || '',
-          description: data.description || '',
-          email: data.email || '',
-          phone: data.phone || '',
-          website: data.website || '',
-          latitude: data.latitude ?? '',
-          longitude: data.longitude ?? '',
-          country: data.country || '',
-          region: data.region || '',
-          city: data.city || '',
-          address: data.address || '',
-        });
-      },
     }
   );
+
+  // Update form data when diving center data is loaded
+  useEffect(() => {
+    if (divingCenter) {
+      setFormData({
+        name: divingCenter.name || '',
+        description: divingCenter.description || '',
+        email: divingCenter.email || '',
+        phone: divingCenter.phone || '',
+        website: divingCenter.website || '',
+        latitude: divingCenter.latitude ?? '',
+        longitude: divingCenter.longitude ?? '',
+        country: divingCenter.country || '',
+        region: divingCenter.region || '',
+        city: divingCenter.city || '',
+        address: divingCenter.address || '',
+      });
+    }
+  }, [divingCenter]);
 
   // Check if user has edit privileges
   const canEdit =

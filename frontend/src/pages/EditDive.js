@@ -1,4 +1,4 @@
-import { Button, Collapse, Image as AntdImage } from 'antd';
+import { Collapse, Image as AntdImage } from 'antd';
 import { Save, ArrowLeft, Plus, X, ChevronDown, Image, Video, FileText, Link } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
@@ -24,6 +24,7 @@ import DivingCenterSearchableDropdown from '../components/DivingCenterSearchable
 import { FormField } from '../components/forms/FormField';
 import GasTanksInput from '../components/forms/GasTanksInput';
 import RouteSelection from '../components/RouteSelection';
+import Button from '../components/ui/Button';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import UserSearchInput from '../components/UserSearchInput';
 import YouTubePreview from '../components/YouTubePreview';
@@ -1479,41 +1480,24 @@ const EditDive = () => {
 
           {/* Submit Button */}
           <div className='mt-8 flex justify-end gap-4'>
-            <button
-              type='button'
-              onClick={() => navigate(`/dives/${id}`)}
-              className='px-6 py-2 text-white rounded-md'
-              style={{ backgroundColor: UI_COLORS.neutral }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)}
-            >
+            <Button onClick={() => navigate(`/dives/${id}`)} variant='secondary'>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type='submit'
               disabled={updateDiveMutation.isLoading || !!submitStatus}
-              className='px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
-              style={{ backgroundColor: UI_COLORS.primary }}
-              onMouseEnter={e =>
-                !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#005a8a')
-              }
-              onMouseLeave={e =>
-                !e.currentTarget.disabled &&
-                (e.currentTarget.style.backgroundColor = UI_COLORS.primary)
-              }
+              variant='primary'
+              icon={!(updateDiveMutation.isLoading || submitStatus) && <Save className='w-4 h-4' />}
             >
               {updateDiveMutation.isLoading || submitStatus ? (
                 <>
-                  <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+                  <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>
                   {submitStatus || 'Saving...'}
                 </>
               ) : (
-                <>
-                  <Save size={16} />
-                  Update Dive
-                </>
+                'Update Dive'
               )}
-            </button>
+            </Button>
           </div>
         </form>
       </FormProvider>

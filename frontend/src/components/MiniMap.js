@@ -34,6 +34,7 @@ const MiniMap = ({
   isMaximized = false,
   onClose,
   showMaximizeButton = true,
+  height = 'h-48 md:h-80', // Default increased heights
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showLayers, setShowLayers] = useState(false);
@@ -85,11 +86,7 @@ const MiniMap = ({
   }
 
   return (
-    <div
-      className={`relative ${
-        isExpanded ? 'h-64 md:h-96' : 'h-32 md:h-48'
-      } transition-all duration-300`}
-    >
+    <div className={`relative ${isExpanded ? 'h-64 md:h-96' : height} transition-all duration-300`}>
       <div className='absolute top-2 right-2 z-10 flex gap-2'>
         <button
           onClick={() => setShowLayers(!showLayers)}
@@ -142,6 +139,7 @@ MiniMap.propTypes = {
   isMaximized: PropTypes.bool,
   onClose: PropTypes.func.isRequired,
   showMaximizeButton: PropTypes.bool,
+  height: PropTypes.string,
 };
 
 export default MiniMap;
