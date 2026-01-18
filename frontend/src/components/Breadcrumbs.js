@@ -6,7 +6,7 @@ const Breadcrumbs = ({ items }) => {
   if (!items || items.length === 0) return null;
 
   return (
-    <nav className='flex flex-wrap items-center mb-4 text-sm text-gray-500 gap-y-2'>
+    <nav className='flex flex-wrap items-center text-sm text-gray-500 gap-y-2'>
       <Link to='/' className='flex items-center hover:text-blue-600 transition-colors'>
         <Home className='h-3.5 w-3.5 mr-1' />
         <span className='leading-tight mt-1'>Home</span>

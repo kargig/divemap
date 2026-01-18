@@ -27,6 +27,8 @@ import Breadcrumbs from '../components/Breadcrumbs';
 import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
+import ShareButton from '../components/ShareButton';
+import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { useSetting } from '../hooks/useSettings';
@@ -600,15 +602,24 @@ const DivingCenterDetail = () => {
             </div>
           </div>
           <div className='flex items-center space-x-4'>
-            {canEdit && (
-              <button
-                onClick={() => navigate(`/diving-centers/${id}/edit`)}
-                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
-              >
-                <Edit className='w-4 h-4 mr-2' />
-                Edit
-              </button>
-            )}
+            {(() => {
+              const isOwner = user?.id === center?.created_by;
+              const isAdmin = user?.is_admin;
+              const isModerator = user?.is_moderator;
+              const shouldShowEdit = isOwner || isAdmin || isModerator;
+
+              return (
+                shouldShowEdit && (
+                  <Button
+                    to={`/diving-centers/${id}/edit`}
+                    variant='primary'
+                    icon={<Edit className='h-4 w-4' />}
+                  >
+                    Edit
+                  </Button>
+                )
+              );
+            })()}
             {center?.average_rating && (
               <div className='text-right'>
                 <div className='flex items-center space-x-2 mb-2'>

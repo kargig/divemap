@@ -891,7 +891,11 @@ const DiveSites = () => {
                             {site.average_rating !== undefined && site.average_rating !== null && (
                               <div className='flex flex-col items-end gap-1'>
                                 <div className='flex items-center gap-1.5 text-yellow-500'>
-                                  <Star className='w-5 h-5 fill-current' />
+                                  <img
+                                    src='/arts/divemap_shell.png'
+                                    alt='Rating'
+                                    className='w-5 h-5 object-contain'
+                                  />
                                   <span className='text-lg font-bold text-gray-900'>
                                     {Number(site.average_rating).toFixed(1)}
                                     <span className='text-xs font-normal text-gray-400 ml-0.5'>
@@ -1131,7 +1135,11 @@ const DiveSites = () => {
                           <div className='grid grid-cols-2 gap-4 py-3 border-y border-gray-50 mb-4'>
                             {site.average_rating !== undefined && site.average_rating !== null && (
                               <div className='flex items-center gap-2'>
-                                <Star className='w-4 h-4 text-yellow-500 fill-current' />
+                                <img
+                                  src='/arts/divemap_shell.png'
+                                  alt='Rating'
+                                  className='w-4 h-4 object-contain'
+                                />
                                 <div>
                                   <p className='text-[10px] text-gray-400 uppercase font-medium leading-none mb-0.5'>
                                     Rating

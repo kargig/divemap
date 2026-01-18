@@ -2,7 +2,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { z } from 'zod';
 
 import api, { healthCheck } from '../api';
@@ -22,6 +22,19 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+// Validate redirect URL to prevent open redirects
+const getSafeRedirect = path => {
+  if (!path) return '/';
+  // If path is an object (location object), extract pathname
+  const redirectPath = typeof path === 'object' ? path.pathname : String(path);
+
+  // Check if path is relative (starts with / and not //)
+  if (redirectPath.startsWith('/') && !redirectPath.startsWith('//')) {
+    return redirectPath;
+  }
+  return '/';
+};
+
 const Login = () => {
   // Set page title
   usePageTitle('Divemap - Login');
@@ -37,6 +50,8 @@ const Login = () => {
 
   const { login: authLogin, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || location.state?.from || '/';
 
   const methods = useForm({
     resolver: createResolver(loginSchema),
@@ -72,14 +87,14 @@ const Login = () => {
       try {
         const success = await loginWithGoogle(credential);
         if (success) {
-          navigate('/');
+          navigate(getSafeRedirect(from), { replace: true });
         }
       } catch (error) {
       } finally {
         setGoogleLoading(false);
       }
     },
-    [loginWithGoogle, navigate]
+    [loginWithGoogle, navigate, from]
   );
 
   const handleGoogleError = useCallback(_error => {
@@ -171,7 +186,7 @@ const Login = () => {
         ),
       ]);
       if (success) {
-        navigate('/');
+        navigate(getSafeRedirect(from), { replace: true });
       } else {
         // Check if error is due to unverified email
         if (error?.requiresEmailVerification) {

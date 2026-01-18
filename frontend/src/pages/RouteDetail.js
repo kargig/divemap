@@ -1,4 +1,5 @@
 import L from 'leaflet';
+import escape from 'lodash/escape';
 import {
   ArrowLeft,
   Edit,
@@ -28,6 +29,7 @@ import Breadcrumbs from '../components/Breadcrumbs';
 import MapLayersPanel from '../components/MapLayersPanel';
 import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
+import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { CHART_COLORS, getRouteTypeColor } from '../utils/colorPalette';
@@ -241,8 +243,8 @@ const RouteLayer = ({ route, diveSite, showBearings = true }) => {
           if (comment || markerConfig.name) {
             const popupContent = `
                <div class="text-sm">
-                 <div class="font-semibold mb-1">${markerConfig.name}</div>
-                 ${comment ? `<div>${comment}</div>` : ''}
+                 <div class="font-semibold mb-1">${escape(markerConfig.name)}</div>
+                 ${comment ? `<div>${escape(comment)}</div>` : ''}
                </div>
              `;
             layer.bindPopup(popupContent);
@@ -877,40 +879,40 @@ const RouteDetail = () => {
               {/* Actions that require authentication */}
               {user && (
                 <>
-                  <button
+                  <Button
                     onClick={handleCopyRoute}
                     disabled={copyRouteMutation.isLoading}
-                    className='flex items-center px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50'
+                    variant='secondary'
+                    icon={<Copy className='w-4 h-4' />}
                   >
-                    <Copy className='w-4 h-4 mr-1' />
                     Copy
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
                     onClick={() => setShowExportModal(true)}
-                    className='flex items-center px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors'
+                    variant='secondary'
+                    icon={<Download className='w-4 h-4' />}
                   >
-                    <Download className='w-4 h-4 mr-1' />
                     Export
-                  </button>
+                  </Button>
 
                   {canEdit && (
                     <>
-                      <button
+                      <Button
                         onClick={handleEditRoute}
-                        className='flex items-center px-3 py-2 text-white bg-yellow-600 hover:bg-yellow-700 rounded-md transition-colors'
+                        variant='primary'
+                        icon={<Edit className='w-4 h-4' />}
                       >
-                        <Edit className='w-4 h-4 mr-1' />
                         Edit
-                      </button>
+                      </Button>
 
-                      <button
+                      <Button
                         onClick={() => setShowDeleteConfirm(true)}
-                        className='flex items-center px-3 py-2 text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors'
+                        variant='danger'
+                        icon={<Trash2 className='w-4 h-4' />}
                       >
-                        <Trash2 className='w-4 h-4 mr-1' />
                         Delete
-                      </button>
+                      </Button>
                     </>
                   )}
                 </>
