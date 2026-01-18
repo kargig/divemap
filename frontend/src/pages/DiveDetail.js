@@ -1,4 +1,5 @@
 import L from 'leaflet';
+import escape from 'lodash/escape';
 import {
   ArrowLeft,
   Edit,
@@ -18,6 +19,7 @@ import {
   X,
   Image,
   Video,
+  TrendingUp,
 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
@@ -54,6 +56,7 @@ import ReactImage from '../components/Lightbox/ReactImage';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
+import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
@@ -64,6 +67,7 @@ import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
+import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 import NotFound from './NotFound';
@@ -178,7 +182,7 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
 
       diveSiteMarker.bindPopup(`
         <div class="p-2">
-          <h3 class="font-semibold text-gray-800 mb-1">${diveSite.name}</h3>
+          <h3 class="font-semibold text-gray-800 mb-1">${escape(diveSite.name)}</h3>
           <p class="text-sm text-gray-600">Dive Site</p>
         </div>
       `);
@@ -231,11 +235,11 @@ const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
     // Add popup to route
     routeLayer.bindPopup(`
       <div class="p-2">
-        <h3 class="font-semibold text-gray-800 mb-1">${route.name}</h3>
-        <p class="text-sm text-gray-600 mb-2">${route.description || 'No description'}</p>
+        <h3 class="font-semibold text-gray-800 mb-1">${escape(route.name)}</h3>
+        <p class="text-sm text-gray-600 mb-2">${escape(route.description || 'No description')}</p>
         <div class="flex items-center gap-2 text-xs text-gray-500">
-          <span class="px-2 py-1 bg-gray-100 rounded">${route.route_type}</span>
-          <span>by ${route.creator_username || 'Unknown'}</span>
+          <span class="px-2 py-1 bg-gray-100 rounded">${escape(route.route_type)}</span>
+          <span>by ${escape(route.creator_username || 'Unknown')}</span>
         </div>
       </div>
     `);
@@ -957,21 +961,21 @@ const DiveDetail = () => {
           )}
           {(user?.id === dive?.user_id || user?.is_admin) && (
             <>
-              <RouterLink
+              <Button
                 to={`/dives/${id}/edit`}
-                className='inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                variant='primary'
+                icon={<Edit className='h-4 w-4' />}
               >
-                <Edit className='h-4 w-4 mr-1' />
                 Edit
-              </RouterLink>
-              <button
+              </Button>
+              <Button
                 onClick={handleDelete}
                 disabled={deleteDiveMutation.isLoading}
-                className='inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50'
+                variant='danger'
+                icon={<Trash2 className='h-4 w-4' />}
               >
-                <Trash2 className='h-4 w-4 mr-1' />
                 Delete
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -1048,17 +1052,97 @@ const DiveDetail = () => {
             <>
               {/* Basic Information */}
               <div className='bg-white rounded-lg shadow p-6'>
-                <div className='flex items-center gap-2 mb-4'>
+                <div className='flex items-center gap-2 mb-6'>
                   <h2 className='text-xl font-semibold'>Dive Information</h2>
-                  {hasDeco && <span className='text-red-500 font-medium'>Deco dive</span>}
+                  {hasDeco && (
+                    <span className='text-red-500 font-medium text-sm border border-red-200 bg-red-50 px-2 py-0.5 rounded'>
+                      Deco
+                    </span>
+                  )}
                 </div>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <div className='flex items-center gap-2'>
-                    <Calendar size={15} className='text-gray-500' />
-                    <span className='text-sm text-gray-600'>Date:</span>
-                    <span className='font-medium'>{formatDate(dive.dive_date)}</span>
+
+                {/* Primary Metadata Row (Standardized) */}
+                <div className='flex flex-col sm:flex-row sm:items-start gap-6 sm:gap-8 mb-6 pb-6 border-b border-gray-100'>
+                  {/* Difficulty */}
+                  <div className='flex flex-col'>
+                    <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                      Difficulty
+                    </span>
+                    <div className='flex items-center mt-0.5'>
+                      {dive.difficulty_code ? (
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
+                        >
+                          {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
+                        </span>
+                      ) : (
+                        <span className='text-sm text-gray-500'>-</span>
+                      )}
+                    </div>
                   </div>
 
+                  {/* Max Depth */}
+                  <div className='flex flex-col'>
+                    <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                      Max Depth
+                    </span>
+                    <div className='flex items-center gap-1.5'>
+                      <TrendingUp className='w-4 h-4 text-gray-400' />
+                      <span className='text-sm font-bold text-gray-900'>
+                        {dive.max_depth || '-'}
+                        <span className='text-xs font-normal text-gray-400 ml-0.5'>m</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Duration */}
+                  <div className='flex flex-col'>
+                    <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                      Duration
+                    </span>
+                    <div className='flex items-center gap-1.5'>
+                      <Clock className='w-4 h-4 text-gray-400' />
+                      <span className='text-sm font-bold text-gray-900'>
+                        {dive.duration || '-'}
+                        <span className='text-xs font-normal text-gray-400 ml-0.5'>min</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Date */}
+                  <div className='flex flex-col'>
+                    <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                      Date
+                    </span>
+                    <span className='text-sm font-medium text-gray-900'>
+                      {formatDate(dive.dive_date)}
+                    </span>
+                  </div>
+
+                  {/* Tags */}
+                  <div className='flex flex-col'>
+                    <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                      Tags
+                    </span>
+                    {dive.tags && dive.tags.length > 0 ? (
+                      <div className='flex flex-wrap gap-2 mt-0.5'>
+                        {dive.tags.map(tag => (
+                          <span
+                            key={tag.id}
+                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${getTagColor(tag.name)}`}
+                          >
+                            {tag.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className='text-sm text-gray-400'>-</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Secondary Information Grid */}
+                <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4'>
                   {dive.dive_time && (
                     <div className='flex items-center gap-2'>
                       <Clock size={15} className='text-gray-500' />
@@ -1067,25 +1151,9 @@ const DiveDetail = () => {
                     </div>
                   )}
 
-                  {dive.duration && (
-                    <div className='flex items-center gap-2'>
-                      <Clock size={15} className='text-gray-500' />
-                      <span className='text-sm text-gray-600'>Duration:</span>
-                      <span className='font-medium'>{dive.duration} minutes</span>
-                    </div>
-                  )}
-
-                  {dive.max_depth && (
-                    <div className='flex items-center gap-2'>
-                      <Thermometer size={15} className='text-gray-500' />
-                      <span className='text-sm text-gray-600'>Max Depth:</span>
-                      <span className='font-medium'>{dive.max_depth}m</span>
-                    </div>
-                  )}
-
                   {dive.average_depth && (
                     <div className='flex items-center gap-2'>
-                      <Thermometer size={15} className='text-gray-500' />
+                      <TrendingUp size={15} className='text-gray-500' />
                       <span className='text-sm text-gray-600'>Avg Depth:</span>
                       <span className='font-medium'>{dive.average_depth}m</span>
                     </div>
@@ -1101,48 +1169,26 @@ const DiveDetail = () => {
 
                   {dive.user_rating && (
                     <div className='flex items-center gap-2'>
-                      <Star size={15} className='text-yellow-500' />
-                      <span className='text-sm text-gray-600'>Your Rating:</span>
+                      <img
+                        src='/arts/divemap_shell.png'
+                        alt='Rating'
+                        className='w-4 h-4 object-contain'
+                      />
+                      <span className='text-sm text-gray-600'>Rating:</span>
                       <span className='font-medium'>{dive.user_rating}/10</span>
                     </div>
                   )}
-                </div>
 
-                {dive.difficulty_code && (
-                  <div className='mt-4'>
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
-                    >
-                      {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
-                    </span>
-                  </div>
-                )}
-
-                {dive.suit_type && (
-                  <div className='mt-2'>
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${getSuitTypeColor(dive.suit_type)}`}
-                    >
-                      {dive.suit_type.replace('_', ' ')}
-                    </span>
-                  </div>
-                )}
-
-                {/* Tags */}
-                {dive.tags && dive.tags.length > 0 && (
-                  <div className='mt-2'>
-                    <div className='flex flex-wrap gap-2'>
-                      {dive.tags.map(tag => (
-                        <span
-                          key={tag.id}
-                          className='px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full'
-                        >
-                          {tag.name}
-                        </span>
-                      ))}
+                  {dive.suit_type && (
+                    <div className='flex items-center gap-2'>
+                      <User size={15} className='text-gray-500' />
+                      <span className='text-sm text-gray-600'>Suit:</span>
+                      <span className='font-medium capitalize'>
+                        {dive.suit_type.replace('_', ' ')}
+                      </span>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Buddies */}
                 <div className='mt-4'>

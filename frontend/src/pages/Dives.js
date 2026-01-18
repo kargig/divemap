@@ -1162,7 +1162,11 @@ const Dives = () => {
                       <div className='flex flex-col items-end gap-2'>
                         {dive.user_rating !== undefined && dive.user_rating !== null && (
                           <div className='flex items-center gap-1.5 text-yellow-600'>
-                            <Star className='w-5 h-5 fill-current' />
+                            <img
+                              src='/arts/divemap_shell.png'
+                              alt='Rating'
+                              className='w-5 h-5 object-contain'
+                            />
                             <span className='text-lg font-bold text-gray-900'>
                               {dive.user_rating}
                               <span className='text-xs font-normal text-gray-400 ml-0.5'>/10</span>
@@ -1413,7 +1417,11 @@ const Dives = () => {
                       <div className='flex items-center gap-2 flex-shrink-0'>
                         {dive.user_rating !== undefined && (
                           <div className='flex items-center gap-1 text-yellow-600'>
-                            <Star className='w-3.5 h-3.5 fill-current' />
+                            <img
+                              src='/arts/divemap_shell.png'
+                              alt='Rating'
+                              className='w-3.5 h-3.5 object-contain'
+                            />
                             <span className='text-xs font-bold text-gray-900'>
                               {dive.user_rating}
                             </span>

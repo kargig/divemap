@@ -4,6 +4,7 @@ import { useForm, FormProvider } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { z } from 'zod';
 
+import Button from '../components/ui/Button';
 import { UI_COLORS } from '../utils/colorPalette';
 import { commonSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 
@@ -108,11 +109,23 @@ const DivingCenterForm = ({
 
   // Sync form with initialValues when not in controlled mode
   useEffect(() => {
-    if (!isControlled && initialValues && !isInitializedRef.current) {
-      reset(normalizeFormValues(initialValues));
-      isInitializedRef.current = true;
+    if (!isControlled && initialValues) {
+      const normalized = normalizeFormValues(initialValues);
+      // In edit mode, only initialize if we have data (e.g. a name)
+      // In create mode, initialize immediately (empty is fine)
+      const hasData = normalized.name || mode === 'create';
+
+      if (
+        hasData &&
+        (!isInitializedRef.current || (mode === 'edit' && !methods.formState.isDirty))
+      ) {
+        reset(normalized);
+        if (normalized.name) {
+          isInitializedRef.current = true;
+        }
+      }
     }
-  }, [initialValues, isControlled, reset]);
+  }, [initialValues, isControlled, reset, mode, methods.formState.isDirty]);
 
   // Sync form values back to parent in controlled mode
   // Debounce to avoid triggering parent updates on every keystroke
@@ -476,25 +489,12 @@ const DivingCenterForm = ({
 
         {/* Actions: consumer pages will render their own submit buttons with loading states if needed */}
         <div className='flex justify-end space-x-4 pt-6 border-t'>
-          <button
-            type='button'
-            onClick={onCancel}
-            className='flex items-center px-4 py-2 text-white rounded-md'
-            style={{ backgroundColor: UI_COLORS.neutral }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)}
-          >
+          <Button onClick={onCancel} variant='secondary'>
             Cancel
-          </button>
-          <button
-            type='submit'
-            className='flex items-center px-4 py-2 text-white rounded-md'
-            style={{ backgroundColor: UI_COLORS.primary }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#005a8a')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.primary)}
-          >
+          </Button>
+          <Button type='submit' variant='primary'>
             {mode === 'create' ? 'Create Diving Center' : 'Save Changes'}
-          </button>
+          </Button>
         </div>
       </form>
     </FormProvider>
