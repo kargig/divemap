@@ -19,16 +19,25 @@ import {
   AlertTriangle,
   Edit,
   HelpCircle,
+  Image,
+  Link,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { useQuery } from 'react-query';
 
+import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { MARKER_TYPES } from '../utils/markerTypes';
+import {
+  extractYouTubeVideoId,
+  getYouTubeThumbnailUrl,
+  isYouTubeUrl,
+} from '../utils/youtubeHelpers';
 
 import MapLayersPanel from './MapLayersPanel';
 
@@ -477,28 +486,44 @@ const MapInitializer = ({
             }),
           });
 
-          // Bind Popup with comment and edit button
+          // Bind Popup with comment, media and edit button
+          let popupContent = `<div class="text-sm min-w-[200px]">
+            <div class="font-semibold mb-1">${markerConfig.name}</div>`;
+
           if (segment.properties.comment) {
-            layer.bindPopup(`
-              <div class="text-sm">
-                <div class="font-semibold mb-1">${markerConfig.name}</div>
-                <div class="mb-2">${segment.properties.comment}</div>
-                <button class="text-blue-600 hover:underline text-xs" onclick="window.dispatchEvent(new CustomEvent('edit-marker', { detail: ${segment.id} }))">
-                  Edit Marker
-                </button>
-              </div>
-            `);
-          } else {
-            // Even without comment, allow editing
-            layer.bindPopup(`
-              <div class="text-sm">
-                <div class="font-semibold mb-1">${markerConfig.name}</div>
-                <button class="text-blue-600 hover:underline text-xs" onclick="window.dispatchEvent(new CustomEvent('edit-marker', { detail: ${segment.id} }))">
-                  Edit Marker
-                </button>
-              </div>
-            `);
+            popupContent += `<div class="mb-2">${segment.properties.comment}</div>`;
           }
+
+          if (segment.properties.mediaUrl) {
+            if (
+              segment.properties.mediaType === 'youtube' ||
+              segment.properties.mediaUrl.includes('youtube') ||
+              segment.properties.mediaUrl.includes('youtu.be')
+            ) {
+              // Simple convert to embed if needed, or just link
+              // For now, just a link for safety/simplicity in edit mode, or small preview?
+              // Let's try to embed if possible
+              let embedUrl = segment.properties.mediaUrl;
+              if (embedUrl.includes('watch?v=')) {
+                embedUrl = embedUrl.replace('watch?v=', 'embed/');
+              } else if (embedUrl.includes('youtu.be/')) {
+                embedUrl = embedUrl.replace('youtu.be/', 'www.youtube.com/embed/');
+              }
+              popupContent += `<div class="mb-2 aspect-video"><iframe src="${embedUrl}" class="w-full h-full" frameborder="0" allowfullscreen></iframe></div>`;
+            } else if (segment.properties.mediaType === 'video') {
+              popupContent += `<div class="mb-2"><video src="${segment.properties.mediaUrl}" controls class="w-full rounded"></video></div>`;
+            } else {
+              // Assume photo
+              popupContent += `<div class="mb-2"><img src="${segment.properties.mediaThumbnailUrl || segment.properties.mediaUrl}" class="w-full rounded" /></div>`;
+            }
+          }
+
+          popupContent += `<button class="text-blue-600 hover:underline text-xs mt-1" onclick="window.dispatchEvent(new CustomEvent('edit-marker', { detail: ${segment.id} }))">
+              Edit Marker
+            </button>
+          </div>`;
+
+          layer.bindPopup(popupContent);
 
           // Handle click to edit (if not dragging)
 
@@ -719,66 +744,335 @@ const DrawingMap = ({
 };
 
 // Marker Modal Component
-const MarkerModal = ({ isOpen, onClose, markerData, onSave }) => {
-  const [type, setType] = useState(markerData?.type || 'generic');
-  const [comment, setComment] = useState(markerData?.comment || '');
+const MarkerModal = ({ isOpen, onClose, markerData, onSave, diveSiteId }) => {
+  const [activeTab, setActiveTab] = useState('details');
+  const [type, setType] = useState('generic');
+  const [comment, setComment] = useState('');
+
+  // Media state
+  const [mediaSource, setMediaSource] = useState('none'); // 'none', 'internal', 'external'
+  const [externalUrl, setExternalUrl] = useState('');
+  const [selectedMediaId, setSelectedMediaId] = useState(null);
+  const [selectedMediaItem, setSelectedMediaItem] = useState(null);
+
+  // Fetch site media
+  const { data: siteMedia, isLoading: isLoadingMedia } = useQuery(
+    ['site-media', diveSiteId],
+    () => api.get(`/api/v1/dive-sites/${diveSiteId}/media`).then(res => res.data),
+    {
+      enabled: isOpen && !!diveSiteId,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
 
   useEffect(() => {
     if (isOpen && markerData) {
       setType(markerData.type || 'generic');
       setComment(markerData.comment || '');
+
+      // Initialize media state from marker data
+      if (markerData.mediaSource) {
+        setMediaSource(markerData.mediaSource);
+        setExternalUrl(markerData.mediaUrl || '');
+        setSelectedMediaId(markerData.mediaId || null);
+        // We can't easily restore selectedMediaItem without searching the list,
+        // but checking ID is enough for selection logic
+      } else {
+        setMediaSource('none');
+        setExternalUrl('');
+        setSelectedMediaId(null);
+        setSelectedMediaItem(null);
+      }
     }
   }, [isOpen, markerData]);
+
+  // When siteMedia loads, if we have a selectedMediaId, find the item
+  useEffect(() => {
+    if (siteMedia && selectedMediaId && mediaSource === 'internal') {
+      const item = siteMedia.find(m => m.id === selectedMediaId);
+      if (item) setSelectedMediaItem(item);
+    }
+  }, [siteMedia, selectedMediaId, mediaSource]);
+
+  const handleSave = () => {
+    const data = {
+      type,
+      comment,
+      mediaSource,
+      mediaUrl: null,
+      mediaThumbnailUrl: null,
+      mediaId: null,
+      mediaType: null, // 'photo', 'video', 'youtube'
+    };
+
+    if (mediaSource === 'external') {
+      data.mediaUrl = externalUrl;
+      data.mediaType = 'external'; // Generalized external type
+      // Simple YouTube detection
+      if (externalUrl.includes('youtube.com') || externalUrl.includes('youtu.be')) {
+        data.mediaType = 'youtube';
+      } else if (externalUrl.match(/\.(jpeg|jpg|gif|png)$/) != null) {
+        data.mediaType = 'photo';
+      }
+    } else if (mediaSource === 'internal' && selectedMediaItem) {
+      data.mediaUrl = selectedMediaItem.url;
+      data.mediaThumbnailUrl = selectedMediaItem.thumbnail_url || selectedMediaItem.url;
+      data.mediaId = selectedMediaItem.id;
+      data.mediaType = selectedMediaItem.media_type; // 'photo' or 'video'
+    }
+
+    onSave(data);
+  };
 
   if (!isOpen) return null;
 
   return (
     <div className='fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50'>
-      <div className='bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4 animate-in fade-in zoom-in duration-200'>
-        <div className='flex justify-between items-center mb-4'>
+      <div className='bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4 animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]'>
+        <div className='flex justify-between items-center mb-4 flex-shrink-0'>
           <h3 className='text-lg font-semibold text-gray-900'>Marker Details</h3>
           <button onClick={onClose} className='text-gray-400 hover:text-gray-600'>
             <X className='w-5 h-5' />
           </button>
         </div>
 
-        <div className='mb-6'>
-          <label className='block text-sm font-medium text-gray-700 mb-2'>Marker Type</label>
-          <div className='grid grid-cols-3 gap-3'>
-            {Object.entries(MARKER_TYPES).map(([key, config]) => {
-              const Icon = config.icon;
-              return (
-                <button
-                  key={key}
-                  onClick={() => setType(key)}
-                  className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
-                    type === key
-                      ? 'border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-500'
-                      : 'border-gray-200 hover:bg-gray-50 text-gray-600'
-                  }`}
-                >
-                  <div className='mb-2' style={{ color: config.color }}>
-                    <Icon className='w-6 h-6' />
-                  </div>
-                  <span className='text-xs font-medium'>{config.name}</span>
-                </button>
-              );
-            })}
-          </div>
+        {/* Tabs */}
+        <div className='flex border-b border-gray-200 mb-4 flex-shrink-0'>
+          <button
+            className={`flex-1 py-2 text-sm font-medium border-b-2 ${
+              activeTab === 'details'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('details')}
+          >
+            Details
+          </button>
+          <button
+            className={`flex-1 py-2 text-sm font-medium border-b-2 ${
+              activeTab === 'media'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('media')}
+          >
+            Media
+          </button>
         </div>
 
-        <div className='mb-6'>
-          <label className='block text-sm font-medium text-gray-700 mb-2'>Comment</label>
-          <textarea
-            value={comment}
-            onChange={e => setComment(e.target.value)}
-            className='w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
-            rows={3}
-            placeholder='Add a note about this location...'
-          />
+        <div className='flex-1 overflow-y-auto min-h-0'>
+          {activeTab === 'details' ? (
+            <div className='space-y-6'>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>Marker Type</label>
+                <div className='grid grid-cols-3 gap-3'>
+                  {Object.entries(MARKER_TYPES).map(([key, config]) => {
+                    const Icon = config.icon;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setType(key)}
+                        className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
+                          type === key
+                            ? 'border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-500'
+                            : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                        }`}
+                      >
+                        <div className='mb-2' style={{ color: config.color }}>
+                          <Icon className='w-6 h-6' />
+                        </div>
+                        <span className='text-xs font-medium'>{config.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>Comment</label>
+                <textarea
+                  value={comment}
+                  onChange={e => setComment(e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
+                  rows={3}
+                  placeholder='Add a note about this location...'
+                />
+              </div>
+            </div>
+          ) : (
+            <div className='space-y-4'>
+              <div className='space-y-2'>
+                <label className='block text-sm font-medium text-gray-700'>Attachment Source</label>
+                <div className='flex gap-2'>
+                  <button
+                    onClick={() => setMediaSource('none')}
+                    className={`flex-1 py-2 px-3 text-sm rounded-md border ${
+                      mediaSource === 'none'
+                        ? 'bg-gray-100 border-gray-300 text-gray-900 font-medium'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    None
+                  </button>
+                  <button
+                    onClick={() => setMediaSource('internal')}
+                    className={`flex-1 py-2 px-3 text-sm rounded-md border flex items-center justify-center gap-1 ${
+                      mediaSource === 'internal'
+                        ? 'bg-blue-50 border-blue-300 text-blue-700 font-medium'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Image className='w-4 h-4' />
+                    Site Photos
+                  </button>
+                  <button
+                    onClick={() => setMediaSource('external')}
+                    className={`flex-1 py-2 px-3 text-sm rounded-md border flex items-center justify-center gap-1 ${
+                      mediaSource === 'external'
+                        ? 'bg-blue-50 border-blue-300 text-blue-700 font-medium'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Link className='w-4 h-4' />
+                    External
+                  </button>
+                </div>
+              </div>
+
+              {mediaSource === 'external' && (
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>Media URL</label>
+                  <input
+                    type='text'
+                    value={externalUrl}
+                    onChange={e => setExternalUrl(e.target.value)}
+                    placeholder='https://youtube.com/...'
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'
+                  />
+                  <p className='mt-1 text-xs text-gray-500'>
+                    Paste a link to a YouTube video or an image URL.
+                  </p>
+                </div>
+              )}
+
+              {mediaSource === 'internal' && (
+                <div>
+                  {isLoadingMedia ? (
+                    <div className='flex justify-center py-8'>
+                      <Loader2 className='w-6 h-6 animate-spin text-blue-500' />
+                    </div>
+                  ) : siteMedia && siteMedia.length > 0 ? (
+                    <div className='grid grid-cols-3 gap-2'>
+                      {siteMedia.map(media => {
+                        const isYoutube = media.url && isYouTubeUrl(media.url);
+                        let thumbnailUrl = media.thumbnail_url || media.url;
+
+                        if (isYoutube && !media.thumbnail_url) {
+                          const videoId = extractYouTubeVideoId(media.url);
+                          if (videoId) {
+                            thumbnailUrl = getYouTubeThumbnailUrl(videoId, 'hq'); // Use 'hq' (hqdefault.jpg) which is always available
+                          }
+                        }
+
+                        return (
+                          <button
+                            key={media.id}
+                            onClick={() => {
+                              setSelectedMediaId(media.id);
+                              setSelectedMediaItem(media);
+                            }}
+                            title={
+                              media.description
+                                ? `${media.description} (${media.media_type})`
+                                : media.media_type
+                            }
+                            className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all group ${
+                              selectedMediaId === media.id
+                                ? 'border-blue-500 ring-2 ring-blue-200'
+                                : 'border-transparent hover:border-gray-300'
+                            }`}
+                          >
+                            {media.media_type === 'video' && !isYoutube ? (
+                              <div className='w-full h-full flex items-center justify-center bg-gray-100 relative'>
+                                <video
+                                  src={media.url}
+                                  poster={media.thumbnail_url}
+                                  className='w-full h-full object-contain'
+                                  preload='auto'
+                                  playsInline
+                                  muted
+                                  loop
+                                  onLoadedData={e => {
+                                    // Force render of first frame
+                                    e.target.currentTime = 0.1;
+                                  }}
+                                  onMouseOver={e => {
+                                    const playPromise = e.target.play();
+                                    if (playPromise !== undefined) {
+                                      playPromise.catch(error => {
+                                        console.debug('Video preview autoplay prevented:', error);
+                                      });
+                                    }
+                                  }}
+                                  onMouseOut={e => {
+                                    e.target.pause();
+                                    e.target.currentTime = 0.1;
+                                  }}
+                                />
+                                {/* Small video indicator */}
+                                <div className='absolute top-2 right-2 bg-black/60 text-white p-1 rounded-full pointer-events-none'>
+                                  <div className='w-0 h-0 border-t-[4px] border-t-transparent border-l-[8px] border-l-white border-b-[4px] border-b-transparent ml-0.5'></div>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <img
+                                  src={thumbnailUrl}
+                                  alt={media.description || 'Site media'}
+                                  className='w-full h-full object-cover'
+                                  onError={e => {
+                                    // Fallback for youtube maxres if it fails (some videos don't have maxres)
+                                    if (isYoutube && thumbnailUrl.includes('maxresdefault')) {
+                                      e.target.src = thumbnailUrl.replace(
+                                        'maxresdefault',
+                                        'hqdefault'
+                                      );
+                                    }
+                                  }}
+                                />
+                                {/* Show play icon for YouTube videos rendered as images */}
+                                {(media.media_type === 'video' || isYoutube) && (
+                                  <div className='absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors'>
+                                    <div className='w-10 h-10 rounded-full bg-red-600 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform'>
+                                      <div className='w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1'></div>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+
+                            {/* Always visible description overlay */}
+                            <div className='absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent pt-6 pb-1 px-2 flex items-end justify-center pointer-events-none'>
+                              <span className='text-white text-[10px] font-medium truncate w-full text-center'>
+                                {media.description || media.media_type}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}{' '}
+                    </div>
+                  ) : (
+                    <div className='text-center py-8 text-gray-500 text-sm bg-gray-50 rounded-md border border-dashed border-gray-300'>
+                      No photos available for this dive site.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className='flex justify-end space-x-3'>
+        <div className='flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100 flex-shrink-0'>
           <button
             onClick={onClose}
             className='px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
@@ -786,7 +1080,7 @@ const MarkerModal = ({ isOpen, onClose, markerData, onSave }) => {
             Cancel
           </button>
           <button
-            onClick={() => onSave({ type, comment })}
+            onClick={handleSave}
             className='px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
           >
             Save Marker
@@ -866,6 +1160,11 @@ const RouteCanvas = ({
                 ...segment.properties,
                 markerType: data.type,
                 comment: data.comment,
+                mediaSource: data.mediaSource,
+                mediaUrl: data.mediaUrl,
+                mediaThumbnailUrl: data.mediaThumbnailUrl,
+                mediaId: data.mediaId,
+                mediaType: data.mediaType,
               },
             };
           }
@@ -897,6 +1196,11 @@ const RouteCanvas = ({
             getRouteTypeColor(feature.properties?.segmentType || 'walk'),
           markerType: feature.properties?.markerType || 'generic',
           comment: feature.properties?.comment || '',
+          mediaSource: feature.properties?.mediaSource,
+          mediaUrl: feature.properties?.mediaUrl,
+          mediaThumbnailUrl: feature.properties?.mediaThumbnailUrl,
+          mediaId: feature.properties?.mediaId,
+          mediaType: feature.properties?.mediaType,
         },
       }));
       setSegments(restoredSegments);
@@ -918,6 +1222,11 @@ const RouteCanvas = ({
             color: segment.properties.color,
             markerType: segment.properties.markerType,
             comment: segment.properties.comment,
+            mediaSource: segment.properties.mediaSource,
+            mediaUrl: segment.properties.mediaUrl,
+            mediaThumbnailUrl: segment.properties.mediaThumbnailUrl,
+            mediaId: segment.properties.mediaId,
+            mediaType: segment.properties.mediaType,
           },
         })),
       };
@@ -953,6 +1262,11 @@ const RouteCanvas = ({
             color: segment.properties.color,
             markerType: segment.properties.markerType,
             comment: segment.properties.comment,
+            mediaSource: segment.properties.mediaSource,
+            mediaUrl: segment.properties.mediaUrl,
+            mediaThumbnailUrl: segment.properties.mediaThumbnailUrl,
+            mediaId: segment.properties.mediaId,
+            mediaType: segment.properties.mediaType,
           },
         })),
       };
@@ -1185,8 +1499,17 @@ const RouteCanvas = ({
           setShowMarkerModal(false);
           setActiveMarkerId(null);
         }}
+        diveSiteId={diveSite?.id}
         markerData={
-          activeMarker ? { type: activeMarker.markerType, comment: activeMarker.comment } : null
+          activeMarker
+            ? {
+                type: activeMarker.markerType,
+                comment: activeMarker.comment,
+                mediaSource: activeMarker.mediaSource,
+                mediaUrl: activeMarker.mediaUrl,
+                mediaId: activeMarker.mediaId,
+              }
+            : null
         }
         onSave={handleMarkerSave}
       />

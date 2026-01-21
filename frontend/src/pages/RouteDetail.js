@@ -239,11 +239,37 @@ const RouteLayer = ({ route, diveSite, showBearings = true }) => {
           const markerType = feature.properties?.markerType || 'generic';
           const markerConfig = MARKER_TYPES[markerType] || MARKER_TYPES.generic;
           const comment = feature.properties?.comment || '';
+          const mediaUrl = feature.properties?.mediaUrl;
+          const mediaType = feature.properties?.mediaType;
 
-          if (comment || markerConfig.name) {
+          if (comment || markerConfig.name || mediaUrl) {
+            let mediaHtml = '';
+            if (mediaUrl) {
+              if (
+                mediaType === 'youtube' ||
+                mediaUrl.includes('youtube') ||
+                mediaUrl.includes('youtu.be')
+              ) {
+                let embedUrl = mediaUrl;
+                if (embedUrl.includes('watch?v=')) {
+                  embedUrl = embedUrl.replace('watch?v=', 'embed/');
+                } else if (embedUrl.includes('youtu.be/')) {
+                  embedUrl = embedUrl.replace('youtu.be/', 'www.youtube.com/embed/');
+                }
+                mediaHtml = `<div class="mb-2 aspect-video"><iframe src="${embedUrl}" class="w-full h-full" frameborder="0" allowfullscreen></iframe></div>`;
+              } else if (mediaType === 'video') {
+                mediaHtml = `<div class="mb-2"><video src="${mediaUrl}" controls class="w-full rounded"></video></div>`;
+              } else {
+                // Photo
+                const thumbUrl = feature.properties?.mediaThumbnailUrl || mediaUrl;
+                mediaHtml = `<div class="mb-2"><img src="${thumbUrl}" class="w-full rounded" /></div>`;
+              }
+            }
+
             const popupContent = `
-               <div class="text-sm">
+               <div class="text-sm min-w-[200px]">
                  <div class="font-semibold mb-1">${escape(markerConfig.name)}</div>
+                 ${mediaHtml}
                  ${comment ? `<div>${escape(comment)}</div>` : ''}
                </div>
              `;
