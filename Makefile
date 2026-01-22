@@ -8,11 +8,16 @@
 #   make test           - Run all tests (backend and frontend)
 #   make test-backend   - Run backend tests
 #   make test-frontend  - Run frontend tests
+#   make purge-cache    - Purge Cloudflare cache for divemap.gr
 #   make help           - Show this help message
+
+# Load environment variables from .env
+-include .env
+export
 
 SHELL := /bin/bash
 
-.PHONY: help deploy deploy-backend deploy-frontend deploy-nginx test test-backend test-frontend
+.PHONY: help deploy deploy-backend deploy-frontend deploy-nginx test test-backend test-frontend purge-cache
 
 # Default target
 help:
@@ -26,6 +31,7 @@ help:
 	@echo "  test            - Run all tests (backend and frontend)"
 	@echo "  test-backend    - Run backend tests"
 	@echo "  test-frontend   - Run frontend tests"
+	@echo "  purge-cache     - Purge Cloudflare cache for divemap.gr"
 	@echo "  help            - Show this help message"
 	@echo ""
 
@@ -82,4 +88,19 @@ lint-frontend:
 	@docker exec divemap_frontend npm run format > /dev/null 2>&1 || true
 	@docker exec divemap_frontend npm run lint:fix -- --quiet > frontend-lint-errors.log 2>&1 || true
 	@echo "✅ Linting complete. Check 'frontend-lint-errors.log' for any remaining errors."
+
+# Purge Cloudflare cache
+purge-cache:
+	@echo "🧹 Purging Cloudflare cache for divemap.gr..."
+	@RESPONSE=$$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$(CLOUDFLARE_ZONE_ID)/purge_cache" \
+		-H "Authorization: Bearer $(CLOUDFLARE_API_KEY)" \
+		-H "Content-Type: application/json" \
+		--data '{"purge_everything":true}'); \
+	if echo "$$RESPONSE" | tr -d '[:space:]' | grep -q '"success":true'; then \
+		echo "✅ Cache purged!"; \
+	else \
+		echo "❌ Failed to purge cache:"; \
+		echo "$$RESPONSE"; \
+		exit 1; \
+	fi
 
