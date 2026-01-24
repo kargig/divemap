@@ -1,457 +1,363 @@
-import { ExternalLink, FileText, Github, Calendar, Users, Code, Shield } from 'lucide-react';
+import {
+  RocketOutlined,
+  ToolOutlined,
+  BugOutlined,
+  DatabaseOutlined,
+  GithubOutlined,
+  FileTextOutlined,
+  SafetyCertificateOutlined,
+  GlobalOutlined,
+  BgColorsOutlined,
+  ThunderboltOutlined,
+} from '@ant-design/icons';
+import { Typography, Timeline, Card, Tag, Button, Row, Col, Divider, Space } from 'antd';
 import React from 'react';
 
 import usePageTitle from '../hooks/usePageTitle';
 
+const { Title, Paragraph, Text } = Typography;
+
 const Changelog = () => {
-  // Set page title
   usePageTitle('Divemap - Changelog');
+
+  const getIcon = type => {
+    switch (type) {
+      case 'feature':
+        return <RocketOutlined style={{ color: '#1890ff' }} />;
+      case 'improvement':
+        return <ToolOutlined style={{ color: '#52c41a' }} />;
+      case 'bugfix':
+        return <BugOutlined style={{ color: '#f5222d' }} />;
+      case 'database':
+        return <DatabaseOutlined style={{ color: '#722ed1' }} />;
+      case 'ux':
+        return <BgColorsOutlined style={{ color: '#fa8c16' }} />;
+      case 'security':
+        return <SafetyCertificateOutlined style={{ color: '#faad14' }} />;
+      case 'infra':
+        return <ThunderboltOutlined style={{ color: '#13c2c2' }} />;
+      default:
+        return <FileTextOutlined />;
+    }
+  };
+
+  const renderSection = (title, iconType, items, color = 'blue') => (
+    <Card
+      type='inner'
+      title={
+        <Space>
+          {getIcon(iconType)}
+          {title}
+        </Space>
+      }
+      className='mb-4 shadow-sm'
+      styles={{ header: { backgroundColor: `var(--ant-${color}-1)` } }}
+    >
+      <ul className='list-disc pl-5 space-y-1'>
+        {items.map((item, idx) => (
+          <li key={idx}>
+            <Text>{item}</Text>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+
+  const timelineItems = [
+    {
+      label: 'January 22, 2026',
+      dot: <RocketOutlined style={{ fontSize: '16px', color: '#1890ff' }} />,
+      children: (
+        <Card
+          title={
+            <Space>
+              <Tag color='blue'>Latest Release</Tag>New Features & Infrastructure Overhaul
+            </Space>
+          }
+          variant='borderless'
+          className='shadow-md mb-8'
+        >
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              {renderSection(
+                'Major Features',
+                'feature',
+                [
+                  'Media Gallery Enhancements: Route markers media, deep linking, lightbox improvements.',
+                  'Diving Tools: High-precision physics engine, Min Gas, MOD, Best Mix calculators.',
+                  'Certifications System: Full CRUD for diving certifications, social media links.',
+                  'PWA Support: Installable mobile experience.',
+                ],
+                'blue'
+              )}
+            </Col>
+            <Col xs={24} md={12}>
+              {renderSection(
+                'Improvements',
+                'improvement',
+                [
+                  'Vite Migration: Faster builds and development.',
+                  'TanStack Table: Server-side admin tables.',
+                  'Comprehensive SEO: Sitemap, Metadata, Schema.org.',
+                  'Performance: `orjson` serialization, image optimization (WebP).',
+                  'Ant Design Refactor: Navbar and Admin pages.',
+                ],
+                'green'
+              )}
+            </Col>
+            <Col xs={24} md={12}>
+              {renderSection(
+                'Bug Fixes',
+                'bugfix',
+                [
+                  'Fixed HTML entity double-encoding.',
+                  'Fixed Google Search Console schema errors.',
+                  'Resolved database schema drift.',
+                  'Fixed backend cold start timeouts.',
+                ],
+                'red'
+              )}
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+    {
+      label: 'December 19, 2025',
+      children: (
+        <Card
+          title='Notification System & Dive Buddies'
+          variant='borderless'
+          className='shadow-md mb-8'
+        >
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              {renderSection('Major Features', 'feature', [
+                'Comprehensive Notification System with AWS Integration.',
+                'Real-Time In-App Notifications.',
+                'Dive Buddies Functionality with Privacy Controls.',
+                'Wind Overlay with Real-Time Weather Data.',
+                'Intelligent Dive Site Suitability Recommendations.',
+              ])}
+            </Col>
+            <Col xs={24} md={12}>
+              {renderSection(
+                'Improvements',
+                'improvement',
+                [
+                  'Database Backup Script using mysqldump.',
+                  'Enhanced Auth Resilience.',
+                  'Dynamic Dive Site Search with Attiki Prefetch.',
+                  'Time-Based Forecast Caching Strategy.',
+                  'Optimized Wind Data Caching.',
+                ],
+                'green'
+              )}
+            </Col>
+            <Col xs={24} md={12}>
+              {renderSection(
+                'Bug Fixes',
+                'bugfix',
+                [
+                  'Fixed HTML Entity Encoding in Route Descriptions.',
+                  'Fixed Security Issues in Dive Buddies.',
+                  'Fixed Wind Arrow Direction and Display.',
+                ],
+                'red'
+              )}
+            </Col>
+            <Col xs={24} md={12}>
+              {renderSection(
+                'Database',
+                'database',
+                [
+                  'New Notification System Tables.',
+                  'Dive Buddies Junction Table.',
+                  'Shore Direction Field in Dive Sites.',
+                ],
+                'purple'
+              )}
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+    {
+      label: 'November 03, 2025',
+      children: (
+        <Card
+          title='Dive Routes, Sharing & Global Search'
+          variant='borderless'
+          className='shadow-md mb-8'
+        >
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              {renderSection('Major Features', 'feature', [
+                'Comprehensive Dive Route Drawing and Selection System.',
+                'Share/Social Media Integration.',
+                'Global Navbar Search.',
+                'Settings System for Runtime Configuration.',
+                'Diving Center Reviews Control.',
+              ])}
+            </Col>
+            <Col xs={24} md={12}>
+              {renderSection(
+                'Improvements',
+                'improvement',
+                [
+                  'Route Map Enhancements (Compass, Layers).',
+                  'Multi-Platform Social Sharing.',
+                  'Real-Time Global Search.',
+                  'Enhanced Phone Number Validation.',
+                ],
+                'green'
+              )}
+            </Col>
+            <Col xs={24} md={12}>
+              {renderSection(
+                'Bug Fixes',
+                'bugfix',
+                [
+                  'Fixed HTTPS Protocol Issues.',
+                  'Fixed Search Endpoint Redirects.',
+                  'Fixed Route Canvas Callbacks.',
+                ],
+                'red'
+              )}
+            </Col>
+            <Col xs={24} md={12}>
+              {renderSection(
+                'Database',
+                'database',
+                [
+                  'New Settings Table.',
+                  'Difficulty Levels Lookup Table.',
+                  'MySQL POINT Geometry for Spatial Queries.',
+                ],
+                'purple'
+              )}
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+    {
+      label: 'September 27, 2025',
+      children: (
+        <Card
+          title='Dive Profiles & Map System Migration'
+          variant='borderless'
+          className='shadow-md mb-8'
+        >
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              {renderSection('Major Features', 'feature', [
+                'Interactive Dive Profile Charts with Touch Support.',
+                'OpenLayers to Leaflet Migration.',
+                'Enhanced Mobile Experience.',
+              ])}
+            </Col>
+            <Col xs={24} md={12}>
+              {renderSection(
+                'Security',
+                'security',
+                [
+                  'Enhanced Data Protection.',
+                  'Secure Profile Storage (R2).',
+                  'Mobile Security Improvements.',
+                ],
+                'orange'
+              )}
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+    {
+      label: 'August 24, 2025',
+      children: (
+        <Card
+          title='Reverse Proxy, Turnstile & Geocoding'
+          variant='borderless'
+          className='shadow-md mb-8'
+        >
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              {renderSection('Major Features', 'feature', [
+                'Nginx Reverse Proxy Architecture.',
+                'Cloudflare Turnstile Integration.',
+                'Diving Center Reverse Geocoding.',
+                'Greek Date Support in Newsletter Parsing.',
+              ])}
+            </Col>
+            <Col xs={24} md={12}>
+              {renderSection(
+                'Infrastructure',
+                'infra',
+                ['Fly.io Production Deployment.', 'Docker Optimization.'],
+                'cyan'
+              )}
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+  ];
+
   return (
-    <div className='min-h-screen bg-gray-50 pt-20'>
-      <div className='max-w-4xl mx-auto px-4 py-8'>
+    <div className='min-h-screen bg-gray-50 pt-20 pb-12'>
+      <div className='max-w-5xl mx-auto px-4'>
         {/* Header */}
         <div className='text-center mb-12'>
-          <div className='flex justify-center mb-4'>
-            <FileText className='h-16 w-16 text-blue-600' />
-          </div>
-          <h1 className='text-4xl font-bold text-gray-900 mb-4'>Changelog</h1>
-          <p className='text-xl text-gray-600 max-w-2xl mx-auto'>
-            Track all recent changes, improvements, and bug fixes to the Divemap application
-          </p>
+          <FileTextOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
+          <Title level={1} style={{ marginTop: '16px', marginBottom: '8px' }}>
+            Changelog
+          </Title>
+          <Paragraph
+            type='secondary'
+            style={{ fontSize: '18px', maxWidth: '600px', margin: '0 auto' }}
+          >
+            Track all recent changes, improvements, and bug fixes to the Divemap application.
+          </Paragraph>
         </div>
 
-        {/* Main Content */}
-        <div className='bg-white rounded-lg shadow-lg p-8 mb-8'>
-          <div className='prose prose-lg max-w-none'>
-            <h2 className='text-2xl font-semibold text-gray-900 mb-6 flex items-center'>
-              <Calendar className='h-6 w-6 mr-3 text-blue-600' />
-              Latest Release - December 19, 2025
-            </h2>
+        <Timeline mode='left' items={timelineItems} />
 
-            <div className='grid md:grid-cols-2 gap-6 mb-8'>
-              <div className='bg-blue-50 p-6 rounded-lg border border-blue-200'>
-                <h3 className='text-lg font-semibold text-blue-900 mb-3 flex items-center'>
-                  🚀 Major Features
-                </h3>
-                <ul className='text-blue-800 space-y-2'>
-                  <li>• Comprehensive Notification System with AWS Integration</li>
-                  <li>• In-App Notifications with Real-Time Polling</li>
-                  <li>• Email Notifications via AWS SQS, Lambda, and SES</li>
-                  <li>• Dive Buddies Functionality with Privacy Controls</li>
-                  <li>• Wind Overlay with Real-Time Weather Data</li>
-                  <li>• Intelligent Dive Site Suitability Recommendations</li>
-                  <li>• Admin Notification Preferences Management</li>
-                  <li>• Dive Trips Promotion and Access Controls</li>
-                </ul>
-              </div>
+        <Divider />
 
-              <div className='bg-green-50 p-6 rounded-lg border border-green-200'>
-                <h3 className='text-lg font-semibold text-green-900 mb-3 flex items-center'>
-                  🔧 Improvements
-                </h3>
-                <ul className='text-green-800 space-y-2'>
-                  <li>• Database Backup Script Using mysqldump</li>
-                  <li>• Enhanced Auth Resilience to Backend Downtime</li>
-                  <li>• Dynamic Dive Site Search with Attiki Prefetch</li>
-                  <li>• Time-Based Forecast Caching Strategy</li>
-                  <li>• Wind Overlay UI Enhancements with Tooltips and Legends</li>
-                  <li>• Wind Date/Time Picker with Interactive Slider</li>
-                  <li>• Optimized Wind Data Caching and API Calls</li>
-                  <li>• Error Handling with Retry for Wind Data Fetching</li>
-                  <li>• Dive Site Clustering Disabled at High Zoom Levels (13+)</li>
-                  <li>• Improved Dive Import Validation and Mobile UX</li>
-                  <li>• Enhanced Nginx Timeouts for Specific Endpoints</li>
-                  <li>• Standardized Font Sizes and Search Bar UX</li>
-                  <li>• Improved Mobile Filter Bar Attachment</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className='grid md:grid-cols-2 gap-6 mb-8'>
-              <div className='bg-orange-50 p-6 rounded-lg border border-orange-200'>
-                <h3 className='text-lg font-semibold text-orange-900 mb-3 flex items-center'>
-                  🐛 Bug Fixes
-                </h3>
-                <ul className='text-orange-800 space-y-2'>
-                  <li>• Fixed HTML Entity Encoding/Decoding in Route Descriptions</li>
-                  <li>• Fixed Security Issues in Dive Buddies Feature</li>
-                  <li>• Fixed Duplicate Key Database Errors</li>
-                  <li>• Fixed Wind Arrow Direction and Display Issues</li>
-                  <li>• Fixed Datetime Validation and Display Format</li>
-                  <li>• Fixed Viewport Issues in Wind Overlay</li>
-                  <li>• Fixed Form Validation UX and Admin Permissions</li>
-                </ul>
-              </div>
-
-              <div className='bg-purple-50 p-6 rounded-lg border border-purple-200'>
-                <h3 className='text-lg font-semibold text-purple-900 mb-3 flex items-center'>
-                  🗄️ Database Changes
-                </h3>
-                <ul className='text-purple-800 space-y-2'>
-                  <li>
-                    • Notification System Tables (notifications, notification_preferences,
-                    email_queue)
-                  </li>
-                  <li>• Dive Buddies Junction Table (dive_buddies)</li>
-                  <li>• Buddy Visibility Field in Users Table</li>
-                  <li>• Shore Direction Field in Dive Sites Table</li>
-                  <li>• Enhanced User Profile Settings for Buddy Visibility</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className='bg-gray-50 p-6 rounded-lg border border-gray-200 mb-8'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-3 flex items-center'>
-                🎨 User Experience
-              </h3>
-              <ul className='text-gray-800 space-y-2'>
-                <li>• Real-Time Notification Bell with Unread Count Badge</li>
-                <li>• User-Configurable Notification Preferences per Category</li>
-                <li>• Search and Add Dive Buddies from User Directory</li>
-                <li>• Filter Dives by Buddy (ID or Username)</li>
-                <li>• Interactive Wind Overlay with Visual Arrows and Indicators</li>
-                <li>• Color-Coded Dive Site Markers Based on Wind Suitability</li>
-                <li>• Wind Suitability Filter for Dive Sites</li>
-                <li>• Enhanced Dive Site Popups with Wind Conditions</li>
-                <li>• Improved Mobile Experience for Dive Profile Charts</li>
-                <li>• Better Search Bar Positioning and Mobile Responsiveness</li>
-                <li>• Unauthenticated User Restrictions for Dive Trips</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Previous Release */}
-        <div className='bg-white rounded-lg shadow-lg p-8 mb-8'>
-          <div className='prose prose-lg max-w-none'>
-            <h2 className='text-2xl font-semibold text-gray-900 mb-6 flex items-center'>
-              <Calendar className='h-6 w-6 mr-3 text-blue-600' />
-              Previous Release - November 03, 2025
-            </h2>
-
-            <div className='grid md:grid-cols-2 gap-6 mb-8'>
-              <div className='bg-blue-50 p-6 rounded-lg border border-blue-200'>
-                <h3 className='text-lg font-semibold text-blue-900 mb-3 flex items-center'>
-                  🚀 Major Features
-                </h3>
-                <ul className='text-blue-800 space-y-2'>
-                  <li>• Comprehensive Dive Route Drawing and Selection System</li>
-                  <li>• Share/Social Media Integration for Dives, Sites, and Routes</li>
-                  <li>• Global Navbar Search Across All Entity Types</li>
-                  <li>• Enhanced Newsletter Management and Trip Creation</li>
-                  <li>• Settings System for Runtime Configuration Management</li>
-                  <li>• Diving Center Reviews Control (Admin Toggle)</li>
-                  <li>• Difficulty Taxonomy Migration to Lookup Table System</li>
-                  <li>• MySQL Spatial Search for Nearby Diving Centers</li>
-                </ul>
-              </div>
-
-              <div className='bg-green-50 p-6 rounded-lg border border-green-200'>
-                <h3 className='text-lg font-semibold text-green-900 mb-3 flex items-center'>
-                  🔧 Improvements
-                </h3>
-                <ul className='text-green-800 space-y-2'>
-                  <li>• Route Map Enhancements (Compass Bearings, Map Layers, Snapping)</li>
-                  <li>
-                    • Multi-Platform Social Sharing (Twitter, Facebook, WhatsApp, Viber, Reddit,
-                    Email)
-                  </li>
-                  <li>• Real-Time Global Search with Keyboard Navigation</li>
-                  <li>• Multi-Segment Route Drawing with Mobile Touch Support</li>
-                  <li>• Route Export in GPX and KML Formats</li>
-                  <li>• Bottom Pagination Controls on All List Pages</li>
-                  <li>• Google Maps Directions from Coordinates</li>
-                  <li>• Enhanced Phone Number Validation (E.164 Format)</li>
-                  <li>• Improved Link Visibility with Visual Indicators</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className='grid md:grid-cols-2 gap-6 mb-8'>
-              <div className='bg-orange-50 p-6 rounded-lg border border-orange-200'>
-                <h3 className='text-lg font-semibold text-orange-900 mb-3 flex items-center'>
-                  🐛 Bug Fixes
-                </h3>
-                <ul className='text-orange-800 space-y-2'>
-                  <li>• Fixed HTTPS Protocol Issues in Production</li>
-                  <li>• Fixed Search Endpoint Redirect Issues</li>
-                  <li>• Fixed Route Canvas Callback Initialization Errors</li>
-                  <li>• Fixed Back Navigation When Opening Links in New Tabs</li>
-                  <li>• Fixed Duplicate Warning Messages on Dive Sites Page</li>
-                  <li>• Fixed Login Failure Feedback Messages</li>
-                  <li>• Fixed URL Parameter Loss During Navigation</li>
-                  <li>• Improved Search Keyword Persistence</li>
-                </ul>
-              </div>
-
-              <div className='bg-purple-50 p-6 rounded-lg border border-purple-200'>
-                <h3 className='text-lg font-semibold text-purple-900 mb-3 flex items-center'>
-                  🗄️ Database Changes
-                </h3>
-                <ul className='text-purple-800 space-y-2'>
-                  <li>• New Settings Table for Runtime Configuration</li>
-                  <li>• Difficulty Levels Lookup Table System</li>
-                  <li>• Removed Address Field from Dive Sites</li>
-                  <li>• MySQL POINT Geometry for Spatial Queries</li>
-                  <li>• Users Enabled by Default on Registration</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className='bg-gray-50 p-6 rounded-lg border border-gray-200 mb-8'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-3 flex items-center'>
-                🎨 User Experience
-              </h3>
-              <ul className='text-gray-800 space-y-2'>
-                <li>• Global Search Available from Any Page in Navbar</li>
-                <li>• Share Dive Experiences on Social Media Platforms</li>
-                <li>• Compass Bearings on Route Maps for Navigation</li>
-                <li>• Multiple Map Layers (Street, Satellite, Terrain, Navigation)</li>
-                <li>• Navigation Now Remembers Filters, Search, and Pagination</li>
-                <li>• Consistent Pagination Layout Across All List Pages</li>
-                <li>• Clear Visual Indicators for Clickable Links</li>
-                <li>• Phone Numbers Automatically Formatted to International Standard</li>
-                <li>• One-Click Directions to Diving Centers via Google Maps</li>
-                <li>• Major Backend Refactoring: Dives Router Split into Focused Modules</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Previous Release */}
-        <div className='bg-white rounded-lg shadow-lg p-8 mb-8'>
-          <div className='prose prose-lg max-w-none'>
-            <h2 className='text-2xl font-semibold text-gray-900 mb-6 flex items-center'>
-              <Calendar className='h-6 w-6 mr-3 text-blue-600' />
-              Previous Release - September 27, 2025
-            </h2>
-
-            <div className='grid md:grid-cols-2 gap-6 mb-8'>
-              <div className='bg-blue-50 p-6 rounded-lg border border-blue-200'>
-                <h3 className='text-lg font-semibold text-blue-900 mb-3 flex items-center'>
-                  🚀 Major Features
-                </h3>
-                <ul className='text-blue-800 space-y-2'>
-                  <li>• Interactive Dive Profile Charts with Mobile Touch Support</li>
-                  <li>• Complete Map System Upgrade for Better Performance</li>
-                  <li>• Enhanced Mobile Experience with Landscape Optimization</li>
-                  <li>• Multiple Filter Selection (Wreck AND Reef filters)</li>
-                  <li>• Decompression Stop Visualization</li>
-                </ul>
-              </div>
-
-              <div className='bg-green-50 p-6 rounded-lg border border-green-200'>
-                <h3 className='text-lg font-semibold text-green-900 mb-3 flex items-center'>
-                  🔧 Improvements
-                </h3>
-                <ul className='text-green-800 space-y-2'>
-                  <li>• Enhanced Search with Better Results</li>
-                  <li>• Improved Mobile Interface</li>
-                  <li>• Better Page Navigation with Dynamic Titles</li>
-                  <li>• Comprehensive Help System</li>
-                  <li>• Public Dive Profile Sharing</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className='grid md:grid-cols-2 gap-6 mb-8'>
-              <div className='bg-orange-50 p-6 rounded-lg border border-orange-200'>
-                <h3 className='text-lg font-semibold text-orange-900 mb-3 flex items-center'>
-                  🐛 Bug Fixes
-                </h3>
-                <ul className='text-orange-800 space-y-2'>
-                  <li>• Fixed Mobile Modal Scrolling Issues</li>
-                  <li>• Resolved Google Login Problems</li>
-                  <li>• Fixed Dive Information Display</li>
-                  <li>• Improved Import Date Handling</li>
-                  <li>• Enhanced Map Performance</li>
-                </ul>
-              </div>
-
-              <div className='bg-purple-50 p-6 rounded-lg border border-purple-200'>
-                <h3 className='text-lg font-semibold text-purple-900 mb-3 flex items-center'>
-                  🔒 Security & Privacy
-                </h3>
-                <ul className='text-purple-800 space-y-2'>
-                  <li>• Enhanced Data Protection</li>
-                  <li>• Secure Profile Storage</li>
-                  <li>• Better Privacy Controls</li>
-                  <li>• Mobile Security Improvements</li>
-                  <li>• Safe Public Profile Sharing</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className='bg-gray-50 p-6 rounded-lg border border-gray-200 mb-8'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-3 flex items-center'>
-                🚀 Performance & Infrastructure
-              </h3>
-              <ul className='text-gray-800 space-y-2'>
-                <li>• Faster Map Loading and Rendering</li>
-                <li>• Better Mobile Experience Across All Devices</li>
-                <li>• Improved App Performance and Speed</li>
-                <li>• Enhanced Compatibility with All Browsers</li>
-                <li>• Touch-Optimized Mobile Interactions</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Previous Release */}
-        <div className='bg-white rounded-lg shadow-lg p-8 mb-8'>
-          <div className='prose prose-lg max-w-none'>
-            <h2 className='text-2xl font-semibold text-gray-900 mb-6 flex items-center'>
-              <Calendar className='h-6 w-6 mr-3 text-blue-600' />
-              Previous Release - August 24, 2025
-            </h2>
-
-            <div className='grid md:grid-cols-2 gap-6 mb-8'>
-              <div className='bg-blue-50 p-6 rounded-lg border border-blue-200'>
-                <h3 className='text-lg font-semibold text-blue-900 mb-3 flex items-center'>
-                  🚀 Major Features
-                </h3>
-                <ul className='text-blue-800 space-y-2'>
-                  <li>• Nginx Reverse Proxy Architecture with Refresh Token Authentication</li>
-                  <li>• Enhanced Newsletter Parsing System with Greek Date Support</li>
-                  <li>• Diving Center Reverse Geocoding System</li>
-                  <li>• Comprehensive Hero Section and Logo Integration</li>
-                </ul>
-              </div>
-
-              <div className='bg-green-50 p-6 rounded-lg border border-green-200'>
-                <h3 className='text-lg font-semibold text-green-900 mb-3 flex items-center'>
-                  🔧 API Changes
-                </h3>
-                <ul className='text-green-800 space-y-2'>
-                  <li>• Rate Limiting Enhancements (1.5x multiplier)</li>
-                  <li>• Dive Sites API Improvements</li>
-                  <li>• Diving Centers API Enhancements</li>
-                  <li>• Enhanced Authorization System</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className='grid md:grid-cols-2 gap-6 mb-8'>
-              <div className='bg-orange-50 p-6 rounded-lg border border-orange-200'>
-                <h3 className='text-lg font-semibold text-orange-900 mb-3 flex items-center'>
-                  🐛 Bug Fixes
-                </h3>
-                <ul className='text-orange-800 space-y-2'>
-                  <li>• Frontend Linting and Code Quality</li>
-                  <li>• UI/UX Issues Resolution</li>
-                  <li>• Nginx and Infrastructure Fixes</li>
-                  <li>• Database and Backend Fixes</li>
-                </ul>
-              </div>
-
-              <div className='bg-purple-50 p-6 rounded-lg border border-purple-200'>
-                <h3 className='text-lg font-semibold text-purple-900 mb-3 flex items-center'>
-                  🔒 Security Enhancements
-                </h3>
-                <ul className='text-purple-800 space-y-2'>
-                  <li>• Comprehensive Authentication System</li>
-                  <li>• Token Rotation & Audit Logging</li>
-                  <li>• Enhanced Authorization Controls</li>
-                  <li>• Security Monitoring & Logging</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className='bg-gray-50 p-6 rounded-lg border border-gray-200 mb-8'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-3 flex items-center'>
-                🚀 Infrastructure Changes
-              </h3>
-              <ul className='text-gray-800 space-y-2'>
-                <li>• Nginx Reverse Proxy Architecture for Development & Production</li>
-                <li>• Docker and Container Updates with Optimized Builds</li>
-                <li>• Fly.io Production Deployment with SSL Termination</li>
-                <li>• Enhanced Environment Management and Configuration</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* GitHub Link Section */}
-        <div className='bg-white rounded-lg shadow-lg p-8 mb-8'>
-          <div className='text-center'>
-            <div className='flex justify-center mb-4'>
-              <Github className='h-12 w-12 text-gray-800' />
-            </div>
-            <h2 className='text-2xl font-semibold text-gray-900 mb-4'>View Complete Changelog</h2>
-            <p className='text-gray-600 mb-6 max-w-2xl mx-auto'>
-              For detailed information about all changes, bug fixes, and improvements, visit our
-              complete changelog on GitHub. This includes comprehensive technical details, file
-              changes, and implementation specifics.
-            </p>
-            <a
-              href='https://github.com/kargig/divemap/blob/main/docs/maintenance/changelog.md'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl'
-            >
-              <FileText className='h-5 w-5 mr-2' />
-              View Full Changelog
-              <ExternalLink className='h-4 w-4 ml-2' />
-            </a>
-          </div>
-        </div>
-
-        {/* Additional Information */}
-        <div className='bg-white rounded-lg shadow-lg p-8'>
-          <h2 className='text-2xl font-semibold text-gray-900 mb-6 text-center'>
-            What&apos;s in the Changelog?
-          </h2>
-
-          <div className='grid md:grid-cols-3 gap-6'>
-            <div className='text-center'>
-              <div className='flex justify-center mb-3'>
-                <Users className='h-8 w-8 text-blue-600' />
-              </div>
-              <h3 className='font-semibold text-gray-900 mb-2'>User Experience</h3>
-              <p className='text-gray-600 text-sm'>
-                New features, UI improvements, and mobile optimizations that enhance how you
-                interact with Divemap.
-              </p>
-            </div>
-
-            <div className='text-center'>
-              <div className='flex justify-center mb-3'>
-                <Code className='h-8 w-8 text-green-600' />
-              </div>
-              <h3 className='font-semibold text-gray-900 mb-2'>Technical Improvements</h3>
-              <p className='text-gray-600 text-sm'>
-                API enhancements, performance optimizations, and backend improvements that make the
-                platform faster and more reliable.
-              </p>
-            </div>
-
-            <div className='text-center'>
-              <div className='flex justify-center mb-3'>
-                <Shield className='h-8 w-8 text-purple-600' />
-              </div>
-              <h3 className='font-semibold text-gray-900 mb-2'>Security & Stability</h3>
-              <p className='text-gray-600 text-sm'>
-                Security enhancements, bug fixes, and infrastructure updates that keep your data
-                safe and the platform stable.
-              </p>
-            </div>
-          </div>
-
-          <div className='mt-8 text-center'>
-            <p className='text-gray-600 mb-4'>
-              The changelog follows the{' '}
-              <a
-                href='https://keepachangelog.com/en/1.1.0/'
+        <div className='text-center mt-12'>
+          <Card className='bg-gray-50 border-none shadow-none'>
+            <Space direction='vertical' size='large'>
+              <GithubOutlined style={{ fontSize: '32px' }} />
+              <Title level={3}>View Complete Changelog</Title>
+              <Paragraph>
+                For detailed information about all changes, visit our complete changelog on GitHub.
+              </Paragraph>
+              <Button
+                type='primary'
+                icon={<GithubOutlined />}
+                size='large'
+                href='https://github.com/kargig/divemap/blob/main/docs/maintenance/changelog.md'
                 target='_blank'
-                rel='noopener noreferrer'
-                className='text-blue-600 hover:text-blue-800 underline'
               >
-                Keep a Changelog
-              </a>{' '}
-              standard for clear, user-friendly documentation of all changes.
-            </p>
-            <p className='text-sm text-gray-500'>Last updated: December 19, 2025</p>
-          </div>
+                View on GitHub
+              </Button>
+              <Space split={<Divider type='vertical' />}>
+                <Space>
+                  <GlobalOutlined /> User Experience
+                </Space>
+                <Space>
+                  <ToolOutlined /> Technical Improvements
+                </Space>
+                <Space>
+                  <SafetyCertificateOutlined /> Security & Stability
+                </Space>
+              </Space>
+              <Paragraph type='secondary' style={{ marginTop: '16px' }}>
+                Last updated: January 22, 2026
+              </Paragraph>
+            </Space>
+          </Card>
         </div>
       </div>
     </div>

@@ -3,7 +3,87 @@
 This document tracks all recent changes, improvements, and bug fixes to the
 Divemap application.
 
-## [Latest Release] - November 03, 2025
+## [Latest Release] - January 22, 2026
+
+### ⚙️ New Features
+
+#### **Media Gallery Enhancements - ✅ COMPLETE**
+
+A suite of improvements to the media management system, enhancing discoverability, performance, and user interaction.
+
+**Core Features:**
+
+- **Route Markers Media**: Added support for attaching media directly to dive route markers.
+- **Deep Linking**: Enabled direct links to specific media items in the gallery.
+- **Optimized Thumbnails**: Mobile-optimized thumbnails for faster loading and better bandwidth usage.
+- **Lightbox Improvements**: Enhanced lightbox with transparent background, counter, and active thumbnail borders.
+- **Media Reordering**: Users can now reorder media items with drag-and-drop functionality.
+
+**Technical Implementation:**
+
+- **Image Optimization**: Implemented WebP conversion and thumbnail generation.
+- **Performance**: Optimized media save performance.
+
+#### **Diving Tools & Calculators - ✅ COMPLETE**
+
+A comprehensive set of diving calculators and tools for technical and recreational divers.
+
+**Core Features:**
+
+- **High-Precision Physics Engine**: Implemented for accurate calculations.
+- **ICD Check Tool**: Isobaric Counter-Diffusion check for mixed gas diving.
+- **Gas Planning**: Min Gas calculator (Tech/Rec modes), MOD, Best Mix, and Gas Planning tools.
+- **SAC Calculations**: Surface Air Consumption rate calculations and gas tank management.
+- **Gas Fill Price**: Calculator for estimating gas fill costs.
+
+#### **Diving Certifications System - ✅ COMPLETE**
+
+Full CRUD system for managing diving organization certifications.
+
+**Core Features:**
+
+- **Certification Management**: Users can add, edit, and remove their diving certifications.
+- **Rich Details**: Searchable certifications with logos and detailed information.
+- **Social Media Links**: Users can now add social media links to their public profiles.
+- **Public Profile**: Enhanced public profile showing diving stats and certifications.
+
+**API Endpoints:**
+
+- `GET /api/v1/diving-organizations/certifications`
+- `POST /api/v1/users/certifications`
+
+### 🔧 Improvements
+
+#### **Admin & Infrastructure**
+
+- **Vite Migration**: Migrated frontend build system to Vite for faster development and builds.
+- **TanStack Table**: Migrated all admin tables to TanStack Table for better performance and server-side operations.
+- **PWA Support**: Implemented Progressive Web App capabilities for installable mobile experience.
+- **Email Verification**: Added email verification system for new registrations.
+- **Admin Dashboard**: Enhanced with growth visualizations and user registration notifications.
+
+#### **SEO & Performance**
+
+- **Comprehensive SEO**: implemented Sitemap generation, Metadata, and Schema.org structured data.
+- **URL Slugs**: Added slug support for cleaner URLs (diving centers, dives, routes).
+- **Performance**: Switched to `orjson` for faster JSON serialization in backend.
+- **Image Optimization**: Automatic WebP conversion and thumbnail generation.
+
+#### **UI/UX Refactors**
+
+- **Ant Design**: Refactored Navbar and Admin pages to use Ant Design components for consistent look and feel.
+- **Modal System**: Standardized modal system using Radix UI.
+- **Mobile UX**: Improved mobile layouts for calculators, map popups, and listing pages.
+
+### 🐛 Bug Fixes
+
+- **HTML Entities**: Fixed double-encoding issues in route descriptions.
+- **Google Search Console**: Fixed schema errors.
+- **Database Drift**: Resolved various schema drift issues and foreign key integrity.
+- **Cold Start**: Fixed backend timeouts during cold starts on login/register.
+- **Route Creation**: Fixed 500 error during route creation.
+
+## [Previous Release] - November 03, 2025
 
 ### ⚙️ New Features
 
