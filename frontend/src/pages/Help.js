@@ -36,7 +36,9 @@ import {
   Alert,
   Tag,
   Button,
+  Grid,
 } from 'antd';
+import { SideBar } from 'antd-mobile';
 import React, { useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 
@@ -44,6 +46,7 @@ import usePageTitle from '../hooks/usePageTitle';
 
 const { Title, Paragraph, Text } = Typography;
 const { Step } = Steps;
+const { useBreakpoint } = Grid;
 
 // Helper icons defined outside component scope
 const WeightIcon = props => (
@@ -79,9 +82,12 @@ const Help = () => {
   usePageTitle('Divemap - Help & User Guide');
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'start';
+  const screens = useBreakpoint();
 
   const handleTabChange = key => {
-    setSearchParams({ tab: key });
+    if (key) {
+      setSearchParams({ tab: Array.isArray(key) ? key[0] : key });
+    }
   };
 
   const FeatureCard = ({ icon, title, description, tags = [], link }) => (
@@ -456,27 +462,29 @@ const Help = () => {
                     </List.Item>
                   )}
                 />
-                
+
                 <Divider dashed />
-                
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <Title level={5} className="mb-2">For Business Owners</Title>
-                  <Paragraph className="text-sm mb-2">
+
+                <div className='bg-blue-50 p-4 rounded-lg'>
+                  <Title level={5} className='mb-2'>
+                    For Business Owners
+                  </Title>
+                  <Paragraph className='text-sm mb-2'>
                     Do you own a diving center? Take control of your listing!
                   </Paragraph>
-                   <List
-                  size='small'
-                  dataSource={[
-                    'Claim Ownership: Click "Claim Ownership" on your center\'s page.',
-                    'Manage Services: Update your contact info, services, and rental gear.',
-                    'Promote Trips: Add upcoming dive trips to the global calendar.',
-                  ]}
-                  renderItem={item => (
-                    <List.Item>
-                      <CheckCircleOutlined className='text-blue-500 mr-2' /> {item}
-                    </List.Item>
-                  )}
-                />
+                  <List
+                    size='small'
+                    dataSource={[
+                      'Claim Ownership: Click "Claim Ownership" on your center\'s page.',
+                      'Manage Services: Update your contact info, services, and rental gear.',
+                      'Promote Trips: Add upcoming dive trips to the global calendar.',
+                    ]}
+                    renderItem={item => (
+                      <List.Item>
+                        <CheckCircleOutlined className='text-blue-500 mr-2' /> {item}
+                      </List.Item>
+                    )}
+                  />
                 </div>
 
                 <Button type='primary' className='mt-4' href='/diving-centers'>
@@ -484,13 +492,13 @@ const Help = () => {
                 </Button>
               </Col>
               <Col xs={24} md={10}>
-                <Space direction="vertical" size="middle" className="w-full">
+                <Space direction='vertical' size='middle' className='w-full'>
                   <Image
                     src='/help-screenshots/diving-centers-list.png'
                     className='rounded-lg border border-gray-100'
                   />
                   <div className='rounded-lg overflow-hidden border border-gray-200'>
-                     <Image
+                    <Image
                       src='/help-screenshots/diving-center-claim.png'
                       alt='Diving Center Claim Button'
                       fallback='https://placehold.co/800x200?text=Claim+Center'
@@ -634,9 +642,9 @@ const Help = () => {
 
           <Divider />
 
-           <Row gutter={[32, 32]}>
+          <Row gutter={[32, 32]}>
             <Col xs={24} lg={14}>
-               <div className='rounded-xl overflow-hidden shadow-lg border border-gray-200'>
+              <div className='rounded-xl overflow-hidden shadow-lg border border-gray-200'>
                 <Image
                   src='/help-screenshots/media-gallery-lightbox.png'
                   alt='Media Gallery Lightbox'
@@ -644,29 +652,27 @@ const Help = () => {
                 />
               </div>
             </Col>
-             <Col xs={24} lg={10}>
-               <Title level={3}>Media Gallery</Title>
-              <Paragraph>
-                Relive your dives with our immersive media gallery.
-              </Paragraph>
+            <Col xs={24} lg={10}>
+              <Title level={3}>Media Gallery</Title>
+              <Paragraph>Relive your dives with our immersive media gallery.</Paragraph>
               <ul className='list-disc pl-5 space-y-2 text-gray-700'>
                 <li>
                   <strong>Lightbox View:</strong> Full-screen browsing of photos and videos.
                 </li>
-                 <li>
+                <li>
                   <strong>Deep Linking:</strong> Share direct links to specific photos or videos.
                 </li>
-                 <li>
+                <li>
                   <strong>Reordering:</strong> Organize your memories exactly how you want them.
                 </li>
               </ul>
-             </Col>
-           </Row>
+            </Col>
+          </Row>
 
           <Divider />
 
           <Row gutter={[32, 32]}>
-             <Col xs={24} md={12}>
+            <Col xs={24} md={12}>
               <Title level={4}>
                 <ImportOutlined /> Import from Subsurface
               </Title>
@@ -694,48 +700,48 @@ const Help = () => {
                 <CompassOutlined /> Dive Routes
               </Title>
               <Paragraph>Visualize your underwater journey with multi-segment routes.</Paragraph>
-              
-              <Space direction="vertical" size="middle" className="w-full mb-4">
+
+              <Space direction='vertical' size='middle' className='w-full mb-4'>
                 <div className='rounded-lg overflow-hidden border border-gray-100 shadow-sm'>
                   <Image
                     src='/help-screenshots/dive-route-details.png'
-                    alt="View Detailed Dive Route"
+                    alt='View Detailed Dive Route'
                   />
-                  <div className="bg-gray-50 p-2 text-center text-xs text-gray-500 border-t">
+                  <div className='bg-gray-50 p-2 text-center text-xs text-gray-500 border-t'>
                     Explore routes with swim, walk, and scuba segments + points of interest.
                   </div>
                 </div>
-                
+
                 <div className='rounded-lg overflow-hidden border border-gray-100 shadow-sm'>
                   <Image
                     src='/help-screenshots/dive-route-drawing.png'
-                    alt="Dive Route Drawing Interface"
+                    alt='Dive Route Drawing Interface'
                   />
-                   <div className="bg-gray-50 p-2 text-center text-xs text-gray-500 border-t">
+                  <div className='bg-gray-50 p-2 text-center text-xs text-gray-500 border-t'>
                     Intuitive drawing tools to map your own dives.
                   </div>
                 </div>
               </Space>
 
               <Paragraph type='secondary'>
-                On any Dive Site page, click <strong>Draw Route</strong> to map your path, or browse 
+                On any Dive Site page, click <strong>Draw Route</strong> to map your path, or browse
                 community routes to plan your next dive.
               </Paragraph>
-               <List
-                  size='small'
-                  dataSource={[
-                    'Mixed Segments: Walk (shore entry), Swim (surface), or Scuba (underwater).',
-                    'Interactive Map: View compass bearings and distances.',
-                    'Points of Interest: Add markers for caves, wrecks, or specific marine life.',
-                    'Sharing & Export: Share with friends or export to GPX/KML formats.',
-                  ]}
-                  renderItem={item => (
-                    <List.Item>
-                      <CheckCircleOutlined className='text-blue-500 mr-2' /> {item}
-                    </List.Item>
-                  )}
-                />
-              <Button type='primary' ghost href='/dive-sites' className="mt-2">
+              <List
+                size='small'
+                dataSource={[
+                  'Mixed Segments: Walk (shore entry), Swim (surface), or Scuba (underwater).',
+                  'Interactive Map: View compass bearings and distances.',
+                  'Points of Interest: Add markers for caves, wrecks, or specific marine life.',
+                  'Sharing & Export: Share with friends or export to GPX/KML formats.',
+                ]}
+                renderItem={item => (
+                  <List.Item>
+                    <CheckCircleOutlined className='text-blue-500 mr-2' /> {item}
+                  </List.Item>
+                )}
+              />
+              <Button type='primary' ghost href='/dive-sites' className='mt-2'>
                 Find a Site to Map
               </Button>
             </Col>
@@ -853,11 +859,10 @@ const Help = () => {
               </Card>
 
               <Card title='Share Your Adventures' size='small' className='mb-4'>
-                <Paragraph>
-                  Share your dives, routes, and favorite sites on social media.
-                </Paragraph>
-                <Paragraph type="secondary" className="text-sm">
-                  Look for the <strong>Share</strong> button on any detail page to post to Facebook, Twitter, WhatsApp, and more.
+                <Paragraph>Share your dives, routes, and favorite sites on social media.</Paragraph>
+                <Paragraph type='secondary' className='text-sm'>
+                  Look for the <strong>Share</strong> button on any detail page to post to Facebook,
+                  Twitter, WhatsApp, and more.
                 </Paragraph>
               </Card>
 
@@ -901,14 +906,29 @@ const Help = () => {
           </Paragraph>
         </div>
 
-        <Tabs
-          activeKey={activeTab}
-          onChange={handleTabChange}
-          items={items}
-          size='large'
-          type='line'
-          className='bg-white rounded-xl shadow-sm p-6'
-        />
+        {screens.xs ? (
+          <div className='flex bg-white rounded-xl shadow-sm overflow-hidden min-h-[500px]'>
+            <div className='flex-none border-r border-gray-100 bg-gray-50'>
+              <SideBar activeKey={activeTab} onChange={handleTabChange} className='h-full'>
+                {items.map(item => (
+                  <SideBar.Item key={item.key} title={item.label} />
+                ))}
+              </SideBar>
+            </div>
+            <div className='flex-1 p-4 overflow-y-auto'>
+              {items.find(item => item.key === activeTab)?.children}
+            </div>
+          </div>
+        ) : (
+          <Tabs
+            activeKey={activeTab}
+            onChange={handleTabChange}
+            items={items}
+            size='large'
+            type='line'
+            className='bg-white rounded-xl shadow-sm p-6'
+          />
+        )}
 
         <Divider />
         <div className='text-center'>

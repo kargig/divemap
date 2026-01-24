@@ -1,3 +1,5 @@
+import { Grid, Button, Typography, Space } from 'antd';
+import { Grid as MobileGrid } from 'antd-mobile';
 import { Map, Star, Anchor, BookOpen, Calendar, HelpCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
@@ -69,7 +71,63 @@ const useAnimatedCounter = (
   return currentValue;
 };
 
+const { useBreakpoint } = Grid;
+const { Title, Paragraph, Text } = Typography;
+
 const Home = () => {
+  const screens = useBreakpoint();
+
+  const features = [
+    {
+      title: 'Discover Sites',
+      description:
+        'Browse our comprehensive database of dive sites with detailed information, difficulty levels, and access.',
+      shortDescription: 'Browse our global database of dive sites.',
+      icon: Map,
+      link: '/dive-sites',
+      color: 'blue',
+      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+      hoverBg: 'group-hover:bg-blue-600',
+    },
+    {
+      title: 'Log Your Dives',
+      description:
+        'Record your diving experiences, track your progress, and share your adventures with the community.',
+      shortDescription: 'Record dives, track progress, and share.',
+      icon: BookOpen,
+      link: '/dives',
+      color: 'green',
+      bgColor: 'bg-green-50',
+      iconColor: 'text-green-600',
+      hoverBg: 'group-hover:bg-green-600',
+    },
+    {
+      title: 'Rate & Review',
+      description:
+        'Share your experiences by rating dive sites and leaving detailed reviews to help other divers.',
+      shortDescription: 'Rate sites and leave reviews to help others.',
+      icon: Star,
+      link: null, // No link for this one in original code
+      color: 'yellow',
+      bgColor: 'bg-yellow-50',
+      iconColor: 'text-yellow-600',
+      hoverBg: 'group-hover:bg-yellow-500',
+    },
+    {
+      title: 'Find Centers',
+      description:
+        'Connect with professional diving centers, view their services, and plan your next underwater trip.',
+      shortDescription: 'Find professional centers and plan trips.',
+      icon: Anchor,
+      link: '/diving-centers',
+      color: 'purple',
+      bgColor: 'bg-purple-50',
+      iconColor: 'text-purple-600',
+      hoverBg: 'group-hover:bg-purple-600',
+    },
+  ];
+
   // Fetch statistics
   const {
     data: stats,
@@ -177,30 +235,36 @@ const Home = () => {
       </div>
 
       {/* Hero CTA Buttons Below Banner */}
-
-      <div className='flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 mb-10 px-4'>
-        <Link
-          to='/map'
-          className='w-full sm:w-auto h-12 md:h-14 px-8 md:px-10 bg-blue-600 text-white hover:bg-blue-700 text-base md:text-lg font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-1'
-        >
-          <Map className='h-5 w-5 md:h-6 md:w-6' />
-          Explore Map
+      <div className='flex flex-wrap items-center justify-center gap-4 md:gap-6 mb-10 px-4'>
+        <Link to='/map' className='w-full sm:w-auto'>
+          <Button
+            type='primary'
+            size='large'
+            icon={<Map className='h-5 w-5' />}
+            className='w-full h-12 md:h-14 px-8 md:px-10 text-base md:text-lg font-bold rounded-xl shadow-lg flex items-center justify-center'
+          >
+            Explore Map
+          </Button>
         </Link>
 
-        <Link
-          to='/dive-trips'
-          className='w-full sm:w-auto h-12 md:h-14 px-8 md:px-10 bg-white text-blue-600 border-2 border-blue-100 hover:border-blue-600 hover:bg-blue-50 text-base md:text-lg font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:-translate-y-1'
-        >
-          <Calendar className='h-5 w-5 md:h-6 md:w-6' />
-          Browse Dive Trips
+        <Link to='/dive-trips' className='w-full sm:w-auto'>
+          <Button
+            size='large'
+            icon={<Calendar className='h-5 w-5' />}
+            className='w-full h-12 md:h-14 px-8 md:px-10 text-base md:text-lg font-bold rounded-xl shadow-md flex items-center justify-center border-blue-100 hover:border-blue-600'
+          >
+            Browse Dive Trips
+          </Button>
         </Link>
 
-        <Link
-          to='/help'
-          className='w-full sm:w-auto h-12 md:h-14 px-8 md:px-10 bg-white text-gray-600 border-2 border-gray-200 hover:border-gray-400 hover:bg-gray-50 text-base md:text-lg font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:-translate-y-1'
-        >
-          <HelpCircle className='h-5 w-5 md:h-6 md:w-6' />
-          Getting Started
+        <Link to='/help' className='w-full sm:w-auto'>
+          <Button
+            size='large'
+            icon={<HelpCircle className='h-5 w-5' />}
+            className='w-full h-12 md:h-14 px-8 md:px-10 text-base md:text-lg font-bold rounded-xl shadow-md flex items-center justify-center border-gray-200 hover:border-gray-400'
+          >
+            Getting Started
+          </Button>
         </Link>
       </div>
 
@@ -213,60 +277,70 @@ const Home = () => {
         </p>
       </div>
       {/* Features Grid */}
-      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 pb-12 pt-2 px-4'>
-        <Link
-          to='/dive-sites'
-          className='group relative p-8 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300'
-        >
-          <div className='bg-blue-50 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 transition-colors'>
-            <Map className='h-8 w-8 text-blue-600 group-hover:text-white transition-colors' />
-          </div>
-          <h2 className='text-xl font-bold text-gray-900 mb-3'>Discover Sites</h2>
-          <p className='text-gray-500 leading-relaxed'>
-            Browse our comprehensive database of dive sites with detailed information, difficulty
-            levels, and access.
-          </p>
-        </Link>
+      {screens.xs ? (
+        <div className='px-4 pb-8'>
+          <MobileGrid columns={2} gap={8}>
+            {features.map((feature, index) => {
+              const Content = (
+                <div className='bg-white p-3 rounded-xl shadow-sm border border-gray-100 h-full flex flex-col items-center text-center'>
+                  <div
+                    className={`${feature.bgColor} w-10 h-10 rounded-lg flex items-center justify-center mb-2`}
+                  >
+                    <feature.icon className={`h-5 w-5 ${feature.iconColor}`} />
+                  </div>
+                  <h3 className='text-sm font-bold text-gray-900 mb-1 leading-tight'>
+                    {feature.title}
+                  </h3>
+                  <p className='text-xs text-gray-500 leading-snug'>{feature.shortDescription}</p>
+                </div>
+              );
 
-        <Link
-          to='/dives'
-          className='group relative p-8 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300'
-        >
-          <div className='bg-green-50 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-green-600 transition-colors'>
-            <BookOpen className='h-8 w-8 text-green-600 group-hover:text-white transition-colors' />
-          </div>
-          <h2 className='text-xl font-bold text-gray-900 mb-3'>Log Your Dives</h2>
-          <p className='text-gray-500 leading-relaxed'>
-            Record your diving experiences, track your progress, and share your adventures with the
-            community.
-          </p>
-        </Link>
-
-        <div className='group relative p-8 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300'>
-          <div className='bg-yellow-50 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-yellow-500 transition-colors'>
-            <Star className='h-8 w-8 text-yellow-600 group-hover:text-white transition-colors' />
-          </div>
-          <h2 className='text-xl font-bold text-gray-900 mb-3'>Rate & Review</h2>
-          <p className='text-gray-500 leading-relaxed'>
-            Share your experiences by rating dive sites and leaving detailed reviews to help other
-            divers.
-          </p>
+              return (
+                <MobileGrid.Item key={index}>
+                  {feature.link ? (
+                    <Link to={feature.link} className='block h-full'>
+                      {Content}
+                    </Link>
+                  ) : (
+                    <div className='h-full'>{Content}</div>
+                  )}
+                </MobileGrid.Item>
+              );
+            })}
+          </MobileGrid>
         </div>
+      ) : (
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 pb-12 pt-2 px-4'>
+          {features.map((feature, index) => {
+            const content = (
+              <>
+                <div
+                  className={`${feature.bgColor} w-16 h-16 rounded-2xl flex items-center justify-center mb-6 ${feature.hoverBg} transition-colors`}
+                >
+                  <feature.icon
+                    className={`h-8 w-8 ${feature.iconColor} group-hover:text-white transition-colors`}
+                  />
+                </div>
+                <h2 className='text-xl font-bold text-gray-900 mb-3'>{feature.title}</h2>
+                <p className='text-gray-500 leading-relaxed'>{feature.description}</p>
+              </>
+            );
 
-        <Link
-          to='/diving-centers'
-          className='group relative p-8 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300'
-        >
-          <div className='bg-purple-50 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-purple-600 transition-colors'>
-            <Anchor className='h-8 w-8 text-purple-600 group-hover:text-white transition-colors' />
-          </div>
-          <h2 className='text-xl font-bold text-gray-900 mb-3'>Find Centers</h2>
-          <p className='text-gray-500 leading-relaxed'>
-            Connect with professional diving centers, view their services, and plan your next
-            underwater trip.
-          </p>
-        </Link>
-      </div>
+            const className =
+              'group relative p-8 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 block h-full';
+
+            return feature.link ? (
+              <Link to={feature.link} className={className} key={index}>
+                {content}
+              </Link>
+            ) : (
+              <div className={className} key={index}>
+                {content}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Stats Section (Integrated) */}
       <div className='relative overflow-hidden bg-gradient-to-br from-blue-900 to-slate-900 rounded-3xl py-16 mb-16 shadow-2xl'>
@@ -338,17 +412,22 @@ const Home = () => {
           and connect with dive centers worldwide.
         </p>
         <div className='flex flex-wrap gap-4 justify-center'>
-          <Link
-            to='/register'
-            className='px-10 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 text-lg font-bold shadow-lg hover:shadow-blue-500/25 active:scale-95'
-          >
-            Get Started Free
+          <Link to='/register'>
+            <Button
+              type='primary'
+              size='large'
+              className='h-14 px-10 text-lg font-bold rounded-xl shadow-lg'
+            >
+              Get Started Free
+            </Button>
           </Link>
-          <Link
-            to='/dive-sites'
-            className='px-10 py-4 bg-white text-blue-600 border-2 border-blue-600 rounded-xl hover:bg-blue-50 transition-all duration-200 text-lg font-bold active:scale-95'
-          >
-            Explore Sites
+          <Link to='/dive-sites'>
+            <Button
+              size='large'
+              className='h-14 px-10 text-lg font-bold rounded-xl border-2 border-blue-600 text-blue-600 hover:text-blue-700'
+            >
+              Explore Sites
+            </Button>
           </Link>
         </div>
       </div>
