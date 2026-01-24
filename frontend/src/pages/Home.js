@@ -1,4 +1,4 @@
-import { Map, Star, Anchor, BookOpen, Calendar } from 'lucide-react';
+import { Map, Star, Anchor, BookOpen, Calendar, HelpCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
@@ -193,6 +193,14 @@ const Home = () => {
         >
           <Calendar className='h-5 w-5 md:h-6 md:w-6' />
           Browse Dive Trips
+        </Link>
+
+        <Link
+          to='/help'
+          className='w-full sm:w-auto h-12 md:h-14 px-8 md:px-10 bg-white text-gray-600 border-2 border-gray-200 hover:border-gray-400 hover:bg-gray-50 text-base md:text-lg font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:-translate-y-1'
+        >
+          <HelpCircle className='h-5 w-5 md:h-6 md:w-6' />
+          Getting Started
         </Link>
       </div>
 
