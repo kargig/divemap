@@ -668,8 +668,8 @@ const DiveSites = () => {
         )}
 
         {/* Responsive Filter Bar */}
-        {/* Hide on mobile when scrolling up (searchBarVisible is false) */}
-        {(!isMobile || searchBarVisible) && (
+        {/* Always visible to support sticky behavior */}
+        {true && (
           <>
             {isLoading ? (
               <LoadingSkeleton type='filter' />

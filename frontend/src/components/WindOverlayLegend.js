@@ -236,8 +236,8 @@ const WindOverlayLegend = ({ onClose }) => {
                     <div>• Avoid: Wind &gt; 10 m/s OR Waves &gt; 1.5m</div>
                   </div>
                   <p className='text-xs sm:text-[10px] text-gray-500 mt-3 sm:mt-2'>
-                    Suitability uses the worst-case scenario between wind and waves. 
-                    Wind blowing directly onto shore also downgrades suitability.
+                    Suitability uses the worst-case scenario between wind and waves. Wind blowing
+                    directly onto shore also downgrades suitability.
                   </p>
                 </div>
               </div>

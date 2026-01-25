@@ -773,19 +773,22 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
                                 {formatWindDirection(recommendation.wind_direction).cardinal}
                               </div>
                             )}
-                            {recommendation.wave_height !== undefined && recommendation.wave_height !== null && (
-                              <div>
-                                <strong>Waves:</strong>{' '}
-                                {recommendation.wave_height.toFixed(1)}m{' '}
-                                {recommendation.wave_period ? `(${recommendation.wave_period.toFixed(1)}s)` : ''}
-                              </div>
-                            )}
-                            {recommendation.sea_surface_temperature !== undefined && recommendation.sea_surface_temperature !== null && (
-                              <div>
-                                <strong>Water:</strong>{' '}
-                                {recommendation.sea_surface_temperature.toFixed(1)}°C
-                              </div>
-                            )}
+                            {recommendation.wave_height !== undefined &&
+                              recommendation.wave_height !== null && (
+                                <div>
+                                  <strong>Waves:</strong> {recommendation.wave_height.toFixed(1)}m{' '}
+                                  {recommendation.wave_period
+                                    ? `(${recommendation.wave_period.toFixed(1)}s)`
+                                    : ''}
+                                </div>
+                              )}
+                            {recommendation.sea_surface_temperature !== undefined &&
+                              recommendation.sea_surface_temperature !== null && (
+                                <div>
+                                  <strong>Water:</strong>{' '}
+                                  {recommendation.sea_surface_temperature.toFixed(1)}°C
+                                </div>
+                              )}
                           </div>
                           {recommendation.reasoning && (
                             <div className='text-xs text-gray-700 mt-1 italic'>
