@@ -47,7 +47,6 @@ import api, {
   deleteDiveMedia,
   removeBuddy,
   uploadDiveProfile,
-  extractErrorMessage,
 } from '../api';
 import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
 import Breadcrumbs from '../components/Breadcrumbs';
@@ -64,6 +63,7 @@ import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import useFlickrImages from '../hooks/useFlickrImages';
 import { useResponsive } from '../hooks/useResponsive';
+import { extractErrorMessage } from '../utils/apiErrors';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';

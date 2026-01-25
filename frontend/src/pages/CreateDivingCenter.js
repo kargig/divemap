@@ -4,10 +4,13 @@ import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient, useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
-import api, { extractErrorMessage } from '../api';
+import api from '../api';
 import DivingCenterForm from '../components/DivingCenterForm';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { extractErrorMessage } from '../utils/apiErrors';
+import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
+import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 // Use extractErrorMessage from api.js with custom default message
 const getErrorMessage = error => extractErrorMessage(error, 'Failed to create diving center');

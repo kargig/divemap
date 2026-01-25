@@ -12,11 +12,9 @@ import {
   getDiveSites,
   getAvailableTags,
   addDiveMedia,
-  deleteDiveMedia,
   updateDiveMedia,
+  deleteDiveMedia,
   getDivingCenters,
-  extractErrorMessage,
-  extractFieldErrors,
   uploadPhotoToR2Only,
   getDiveMedia,
 } from '../api';
@@ -30,6 +28,7 @@ import UserSearchInput from '../components/UserSearchInput';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { extractErrorMessage, extractFieldErrors } from '../utils/apiErrors';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';

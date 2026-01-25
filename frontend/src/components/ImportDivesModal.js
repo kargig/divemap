@@ -14,7 +14,8 @@ import { useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
 
-import { importSubsurfaceXML, confirmImportDives, extractErrorMessage } from '../api';
+import { importSubsurfaceXML, confirmImportDives } from '../api';
+import { extractErrorMessage } from '../utils/apiErrors';
 import { TANK_SIZES } from '../utils/diveConstants';
 
 import FuzzySearchInput from './FuzzySearchInput';

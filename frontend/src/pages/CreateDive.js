@@ -6,10 +6,8 @@ import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient, useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
-import {
+import api, {
   createDive,
-  extractErrorMessage,
-  extractFieldErrors,
   getDiveSites,
   getAvailableTags,
   addDiveMedia,
@@ -23,7 +21,9 @@ import RouteSelection from '../components/RouteSelection';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import UserSearchInput from '../components/UserSearchInput';
 import YouTubePreview from '../components/YouTubePreview';
+import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { extractErrorMessage, extractFieldErrors } from '../utils/apiErrors';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';

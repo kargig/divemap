@@ -33,7 +33,7 @@ import Inline from 'yet-another-react-lightbox/plugins/inline';
 import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 
-import api, { extractErrorMessage } from '../api';
+import api from '../api';
 import Breadcrumbs from '../components/Breadcrumbs';
 import CommunityVerdict from '../components/CommunityVerdict';
 import DiveSiteRoutes from '../components/DiveSiteRoutes';
@@ -51,6 +51,7 @@ import ShellRating from '../components/ui/ShellRating';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import useFlickrImages from '../hooks/useFlickrImages';
+import { extractErrorMessage } from '../utils/apiErrors';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
