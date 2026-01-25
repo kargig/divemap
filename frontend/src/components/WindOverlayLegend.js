@@ -198,7 +198,7 @@ const WindOverlayLegend = ({ onClose }) => {
                 <div className='pb-3 sm:pb-2 border-b border-gray-200'>
                   <p className='text-sm sm:text-xs text-gray-700'>
                     Colored borders on dive site markers indicate suitability based on current wind
-                    conditions and shore direction.
+                    conditions, wave height, and shore direction.
                   </p>
                 </div>
 
@@ -227,17 +227,17 @@ const WindOverlayLegend = ({ onClose }) => {
                 {/* Wind Speed Reference */}
                 <div className='pt-3 sm:pt-2 border-t border-gray-200'>
                   <div className='text-base sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1'>
-                    Wind Speed Thresholds:
+                    Conditions Thresholds:
                   </div>
                   <div className='text-sm sm:text-xs text-gray-600 space-y-1'>
-                    <div>• Good: &lt; 6.2 m/s (&lt; 12 knots)</div>
-                    <div>• Caution: 6.2-7.7 m/s (12-15 knots)</div>
-                    <div>• Difficult: 7.7-10 m/s (15-20 knots)</div>
-                    <div>• Avoid: &gt; 10 m/s (&gt; 20 knots)</div>
+                    <div>• Good: Wind &lt; 6.2 m/s, Waves &lt; 0.5m</div>
+                    <div>• Caution: Wind 6.2-7.7 m/s OR Waves 0.5-1.0m</div>
+                    <div>• Difficult: Wind 7.7-10 m/s OR Waves 1.0-1.5m</div>
+                    <div>• Avoid: Wind &gt; 10 m/s OR Waves &gt; 1.5m</div>
                   </div>
                   <p className='text-xs sm:text-[10px] text-gray-500 mt-3 sm:mt-2'>
-                    Suitability also considers wind direction relative to shore direction. Wind
-                    blowing directly onto shore makes entry/exit dangerous.
+                    Suitability uses the worst-case scenario between wind and waves. Wind blowing
+                    directly onto shore also downgrades suitability.
                   </p>
                 </div>
               </div>

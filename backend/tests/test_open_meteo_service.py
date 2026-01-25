@@ -330,9 +330,9 @@ class TestWindDataFetching:
                 wind_directions.append(180.0)
                 wind_gusts.append(6.0)
         
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
+        mock_wind_response = MagicMock()
+        mock_wind_response.status_code = 200
+        mock_wind_response.json.return_value = {
             'hourly': {
                 'time': times,
                 'wind_speed_10m': wind_speeds,
@@ -340,7 +340,13 @@ class TestWindDataFetching:
                 'wind_gusts_10m': wind_gusts
             }
         }
-        mock_get.return_value = mock_response
+
+        # Mock marine response
+        mock_marine_response = MagicMock()
+        mock_marine_response.status_code = 200
+        mock_marine_response.json.return_value = {'hourly': {}}
+
+        mock_get.side_effect = [mock_wind_response, mock_marine_response]
         
         result = fetch_wind_data_single_point(37.7, 24.0, None)
         
@@ -348,13 +354,20 @@ class TestWindDataFetching:
         assert result['wind_speed_10m'] == 5.5
         assert result['wind_direction_10m'] == 270.0
         assert result['wind_gusts_10m'] == 7.0
-        # Verify wind_speed_unit=ms was requested
-        call_args = mock_get.call_args
-        assert call_args is not None
-        assert 'params' in call_args.kwargs
-        assert call_args.kwargs['params']['wind_speed_unit'] == 'ms'
-        # Verify hourly API is used (not current)
-        assert 'hourly' in call_args.kwargs['params']
+        
+        # Verify both APIs called
+        assert mock_get.call_count == 2
+
+        # Find the call with wind_speed_unit (forecast API)
+        wind_call_found = False
+        for call in mock_get.call_args_list:
+            params = call.kwargs.get('params', {})
+            if 'wind_speed_unit' in params:
+                assert params['wind_speed_unit'] == 'ms'
+                assert 'hourly' in params
+                wind_call_found = True
+                break
+        assert wind_call_found
 
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time("2025-12-01 12:00:00")  # Freeze time to 2 hours before target
@@ -688,7 +701,8 @@ class TestWindDataFetching:
         # First call
         result1 = fetch_wind_data_single_point(lat, lon, None)
         assert result1 is not None
-        assert mock_get.call_count == 1
+        # Should be 2 calls (Wind + Marine)
+        assert mock_get.call_count == 2
         
         # Second call should use cache (mock_get should not be called again)
         result2 = fetch_wind_data_single_point(lat, lon, None)
@@ -696,7 +710,7 @@ class TestWindDataFetching:
         assert result1['wind_speed_10m'] == result2['wind_speed_10m']
         
         # Verify API was only called once (cached on second call)
-        assert mock_get.call_count == 1
+        assert mock_get.call_count == 2
 
     @patch('app.services.open_meteo_service.fetch_wind_data_single_point')
     def test_fetch_wind_data_grid_empty_bounds(self, mock_fetch):
@@ -834,7 +848,8 @@ class Test24HourBulkCaching:
         # Fetch hour 12:00 (should cache all 24 hours)
         result = fetch_wind_data_single_point(lat, lon, base_date)
         assert result is not None
-        assert mock_get.call_count == 1
+        # Should be 2 calls (Wind + Marine)
+        assert mock_get.call_count == 2
         
         # Verify all 24 hours are cached
         for hour in range(24):
@@ -866,18 +881,19 @@ class Test24HourBulkCaching:
         # First call: fetch hour 05:00 (caches all 24 hours)
         result1 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=5))
         assert result1 is not None
-        assert mock_get.call_count == 1
+        # Should be 2 calls (Wind + Marine)
+        assert mock_get.call_count == 2
         
         # Second call: fetch hour 14:00 (should use cache)
         result2 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=14))
         assert result2 is not None
-        assert mock_get.call_count == 1  # No new API call
+        assert mock_get.call_count == 2  # No new API call
         assert result2['wind_speed_10m'] == (5.0 + (14 % 5))
         
         # Third call: fetch hour 22:00 (should use cache)
         result3 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=22))
         assert result3 is not None
-        assert mock_get.call_count == 1  # Still no new API call
+        assert mock_get.call_count == 2  # Still no new API call
         assert result3['wind_speed_10m'] == (5.0 + (22 % 5))
 
     @patch('app.services.open_meteo_service._get_from_database_cache')
@@ -903,7 +919,8 @@ class Test24HourBulkCaching:
         # Fetch tomorrow 12:00 (should cache all 24 hours for that date)
         result = fetch_wind_data_single_point(lat, lon, future_date)
         assert result is not None
-        assert mock_get.call_count == 1
+        # Should be 2 calls (Wind + Marine)
+        assert mock_get.call_count == 2
         
         # Verify all 24 hours for tomorrow are cached
         for hour in range(24):
@@ -914,7 +931,7 @@ class Test24HourBulkCaching:
         # Fetch different hours from same date (should use cache)
         result2 = fetch_wind_data_single_point(lat, lon, future_date.replace(hour=18))
         assert result2 is not None
-        assert mock_get.call_count == 1  # No new API call
+        assert mock_get.call_count == 2  # No new API call
 
 
 class TestSmartCacheLookup:
@@ -964,7 +981,8 @@ class TestSmartCacheLookup:
         # Cache hour 00:00 (this caches all 24 hours)
         result1 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=0))
         assert result1 is not None
-        assert mock_get.call_count == 1
+        # Expect 2 calls (Wind + Marine)
+        assert mock_get.call_count == 2
         
         # Reset mock to track if it's called again
         mock_get.reset_mock()
@@ -996,7 +1014,8 @@ class TestSmartCacheLookup:
         # Cache hour 12:00 (this caches all 24 hours)
         result1 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=12))
         assert result1 is not None
-        assert mock_get.call_count == 1
+        # Expect 2 calls (Wind + Marine)
+        assert mock_get.call_count == 2
         
         # Reset mock
         mock_get.reset_mock()
@@ -1028,7 +1047,8 @@ class TestSmartCacheLookup:
         # Cache hour 05:00 (this caches all 24 hours)
         result1 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=5))
         assert result1 is not None
-        assert mock_get.call_count == 1
+        # Expect 2 calls (Wind + Marine)
+        assert mock_get.call_count == 2
         
         # Reset mock
         mock_get.reset_mock()
@@ -1076,8 +1096,8 @@ class TestSmartCacheLookup:
         
         # Should have logged warning about cache inconsistency
         assert '[CACHE INCONSISTENCY]' in caplog.text
-        # Should have made API call to refetch and cache all 24 hours
-        assert mock_get.call_count == 1
+        # Should have made API call to refetch and cache all 24 hours (2 calls: Wind + Marine)
+        assert mock_get.call_count == 2
         assert result is not None
 
 
@@ -1296,8 +1316,8 @@ class TestSkipValidation:
         
         # Should not log warning about date limit
         assert 'more than 2 days ahead' not in caplog.text
-        # Should proceed with the request
-        assert mock_get.call_count == 1
+        # Should proceed with the request (Wind + Marine)
+        assert mock_get.call_count == 2
 
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-07 12:00:00')
@@ -1506,14 +1526,14 @@ class TestCacheLogging:
         # First call (cache miss)
         fetch_wind_data_single_point(lat, lon, base_date)
         
-        # Should have called API
-        assert mock_get.call_count == 1
+        # Should have called API (Wind + Marine)
+        assert mock_get.call_count == 2
         
         # Second call (cache hit)
         fetch_wind_data_single_point(lat, lon, base_date)
         
         # Should NOT have called API again (proving cache hit)
-        assert mock_get.call_count == 1
+        assert mock_get.call_count == 2
 
     @patch('app.services.open_meteo_service._get_from_database_cache')
     @patch('app.services.open_meteo_service.requests.get')
@@ -1531,11 +1551,10 @@ class TestCacheLogging:
         mock_get.return_value = mock_response
         
         lat, lon = 37.555, 24.555
-        
         fetch_wind_data_single_point(lat, lon, base_date)
         
-        # Should call API
-        assert mock_get.call_count == 1
+        # Should call API (Wind + Marine)
+        assert mock_get.call_count == 2
 
     @patch('app.services.open_meteo_service._get_from_database_cache')
     @patch('app.services.open_meteo_service.requests.get')
@@ -1556,8 +1575,8 @@ class TestCacheLogging:
         
         fetch_wind_data_single_point(lat, lon, base_date)
         
-        # Should call API
-        assert mock_get.call_count == 1
+        # Should call API (Wind + Marine)
+        assert mock_get.call_count == 2
 
 
 class TestIntegrationCacheOptimizations:
@@ -1607,7 +1626,7 @@ class TestIntegrationCacheOptimizations:
         # Simulate slider playback: fetch hour 00:00 (caches all 24 hours)
         result1 = fetch_wind_data_single_point(lat, lon, base_date.replace(hour=0))
         assert result1 is not None
-        assert mock_get.call_count == 1
+        assert mock_get.call_count == 2
         
         # Simulate advancing slider: fetch hours 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, 21:00
         hours_to_fetch = [3, 6, 9, 12, 15, 18, 21]
@@ -1616,8 +1635,8 @@ class TestIntegrationCacheOptimizations:
             assert result is not None
             assert result['wind_speed_10m'] == (5.0 + (hour % 5))
         
-        # Should still be only 1 API call (all subsequent hours used cache)
-        assert mock_get.call_count == 1
+        # Should still be only 1 API interaction (2 calls: Wind+Marine) (all subsequent hours used cache)
+        assert mock_get.call_count == 2
 
     @patch('app.services.open_meteo_service.requests.get')
     @freeze_time('2025-12-07 12:00:00')
@@ -1762,7 +1781,7 @@ class TestEdgeCases:
         # Request should detect expired entry and make new API call
         result = fetch_wind_data_single_point(lat, lon, base_date)
         assert result is not None
-        assert mock_get.call_count == 1  # Should have made API call
+        assert mock_get.call_count == 2  # Should have made API call (Wind + Marine)
 
     @patch('app.services.open_meteo_service._get_from_database_cache')
     @patch('app.services.open_meteo_service.requests.get')
@@ -1793,7 +1812,7 @@ class TestEdgeCases:
         
         result1 = fetch_wind_data_single_point(lat, lon, base_date)
         assert result1 is not None
-        assert mock_get.call_count == 1
+        assert mock_get.call_count == 2
         
         # Reset mock
         mock_get.reset_mock()

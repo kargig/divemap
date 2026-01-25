@@ -805,6 +805,23 @@ def create_structured_gas_data(cylinders, events=None):
     """Convert cylinder list to structured JSON string for GasTanksInput"""
     if not cylinders:
         return None
+    
+    # Filter out invalid/ghost cylinders
+    # A cylinder is valid if it has size, pressure data, gas data, or a known description
+    valid_cylinders = []
+    for cyl in cylinders:
+        has_size = bool(cyl.get('size'))
+        has_pressure = bool(cyl.get('start') or cyl.get('end'))
+        has_gas = bool(cyl.get('o2') or cyl.get('he'))
+        has_desc = bool(cyl.get('description') and cyl.get('description') != 'unknown')
+        
+        if has_size or has_pressure or has_gas or has_desc:
+            valid_cylinders.append(cyl)
+    
+    cylinders = valid_cylinders
+
+    if not cylinders:
+        return None
         
     # Determine back gas index (default to 0)
     back_gas_index = 0

@@ -65,11 +65,12 @@ const NavbarMobileControls = () => {
   const customTheme = {
     '--adm-color-background': '#2d6b8a',
     '--adm-color-box': '#2d6b8a', // Ensures list background is blue
-    '--adm-color-text': '#f0f0f0', // White-ish for better contrast
+    '--adm-color-text': '#ffffff', // White-ish for better contrast
+    '--adm-color-weak': '#ffffff', // Force weak text to white
     '--adm-color-text-secondary': '#bfdbfe', // blue-200 for secondary text
     '--adm-border-color': 'rgba(255, 255, 255, 0.1)',
     '--adm-list-item-content-active': 'rgba(0, 0, 0, 0.2)', // Darken on click instead of lighten
-    color: '#f0f0f0', // Force text color inheritance
+    color: '#ffffff', // Force text color inheritance
   };
 
   return (
@@ -140,10 +141,18 @@ const NavbarMobileControls = () => {
                     </div>
                   }
                 >
-                  <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>
+                  <List
+                    style={{
+                      '--border-top': 'none',
+                      '--border-bottom': 'none',
+                      '--adm-color-text': '#ffffff',
+                      '--adm-color-weak': '#ffffff',
+                    }}
+                  >
                     <List.Item
                       prefix={<Anchor className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/dives')}
+                      className='text-white'
                       arrow={false}
                     >
                       Dive Log
@@ -151,6 +160,7 @@ const NavbarMobileControls = () => {
                     <List.Item
                       prefix={<Map className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/dive-sites')}
+                      className='text-white'
                       arrow={false}
                     >
                       Dive Sites
@@ -158,6 +168,7 @@ const NavbarMobileControls = () => {
                     <List.Item
                       prefix={<Route className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/dive-routes')}
+                      className='text-white'
                       arrow={false}
                     >
                       Dive Routes
@@ -191,10 +202,18 @@ const NavbarMobileControls = () => {
                     </div>
                   }
                 >
-                  <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>
+                  <List
+                    style={{
+                      '--border-top': 'none',
+                      '--border-bottom': 'none',
+                      '--adm-color-text': '#ffffff',
+                      '--adm-color-weak': '#ffffff',
+                    }}
+                  >
                     <List.Item
                       prefix={<Award className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/resources/diving-organizations')}
+                      className='text-white'
                       arrow={false}
                     >
                       Diving Organizations
@@ -202,6 +221,7 @@ const NavbarMobileControls = () => {
                     <List.Item
                       prefix={<Calculator className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/resources/tools')}
+                      className='text-white'
                       arrow={false}
                     >
                       Tools
@@ -209,6 +229,7 @@ const NavbarMobileControls = () => {
                     <List.Item
                       prefix={<Tags className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/resources/tags')}
+                      className='text-white'
                       arrow={false}
                     >
                       Tags
@@ -225,10 +246,18 @@ const NavbarMobileControls = () => {
                     </div>
                   }
                 >
-                  <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>
+                  <List
+                    style={{
+                      '--border-top': 'none',
+                      '--border-bottom': 'none',
+                      '--adm-color-text': '#ffffff',
+                      '--adm-color-weak': '#ffffff',
+                    }}
+                  >
                     <List.Item
                       prefix={<Info className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/about')}
+                      className='text-white'
                       arrow={false}
                     >
                       About
@@ -236,6 +265,7 @@ const NavbarMobileControls = () => {
                     <List.Item
                       prefix={<Code className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/api-docs')}
+                      className='text-white'
                       arrow={false}
                     >
                       API
@@ -243,6 +273,7 @@ const NavbarMobileControls = () => {
                     <List.Item
                       prefix={<FileText className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/changelog')}
+                      className='text-white'
                       arrow={false}
                     >
                       Changelog
@@ -250,6 +281,7 @@ const NavbarMobileControls = () => {
                     <List.Item
                       prefix={<HelpCircle className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/help')}
+                      className='text-white'
                       arrow={false}
                     >
                       Help
@@ -257,6 +289,7 @@ const NavbarMobileControls = () => {
                     <List.Item
                       prefix={<Shield className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/privacy')}
+                      className='text-white'
                       arrow={false}
                     >
                       Privacy
@@ -274,10 +307,18 @@ const NavbarMobileControls = () => {
                       </div>
                     }
                   >
-                    <List style={{ '--border-top': 'none', '--border-bottom': 'none' }}>
+                    <List
+                      style={{
+                        '--border-top': 'none',
+                        '--border-bottom': 'none',
+                        '--adm-color-text': '#ffffff',
+                        '--adm-color-weak': '#ffffff',
+                      }}
+                    >
                       <List.Item
                         prefix={<Settings className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin')}
+                        className='text-white'
                         arrow={false}
                       >
                         Dashboard
@@ -285,6 +326,7 @@ const NavbarMobileControls = () => {
                       <List.Item
                         prefix={<Anchor className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin/dives')}
+                        className='text-white'
                         arrow={false}
                       >
                         Dives
@@ -292,6 +334,7 @@ const NavbarMobileControls = () => {
                       <List.Item
                         prefix={<MapPin className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin/dive-sites')}
+                        className='text-white'
                         arrow={false}
                       >
                         Dive Sites
@@ -299,6 +342,7 @@ const NavbarMobileControls = () => {
                       <List.Item
                         prefix={<Building className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin/diving-centers')}
+                        className='text-white'
                         arrow={false}
                       >
                         Diving Centers
@@ -306,6 +350,7 @@ const NavbarMobileControls = () => {
                       <List.Item
                         prefix={<Award className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin/diving-organizations')}
+                        className='text-white'
                         arrow={false}
                       >
                         Diving Organizations
@@ -313,6 +358,7 @@ const NavbarMobileControls = () => {
                       <List.Item
                         prefix={<Tags className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin/tags')}
+                        className='text-white'
                         arrow={false}
                       >
                         Tags
@@ -320,6 +366,7 @@ const NavbarMobileControls = () => {
                       <List.Item
                         prefix={<FileText className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin/newsletters')}
+                        className='text-white'
                         arrow={false}
                       >
                         Newsletters
@@ -327,6 +374,7 @@ const NavbarMobileControls = () => {
                       <List.Item
                         prefix={<Crown className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin/ownership-requests')}
+                        className='text-white'
                         arrow={false}
                       >
                         Ownership Requests
@@ -334,6 +382,7 @@ const NavbarMobileControls = () => {
                       <List.Item
                         prefix={<Activity className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin/system-metrics')}
+                        className='text-white'
                         arrow={false}
                       >
                         System Metrics
@@ -341,6 +390,7 @@ const NavbarMobileControls = () => {
                       <List.Item
                         prefix={<BarChart3 className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin/general-statistics')}
+                        className='text-white'
                         arrow={false}
                       >
                         General Statistics
@@ -348,6 +398,7 @@ const NavbarMobileControls = () => {
                       <List.Item
                         prefix={<BarChart3 className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin/growth-visualizations')}
+                        className='text-white'
                         arrow={false}
                       >
                         Growth Visualizations
@@ -355,6 +406,7 @@ const NavbarMobileControls = () => {
                       <List.Item
                         prefix={<Clock className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin/recent-activity')}
+                        className='text-white'
                         arrow={false}
                       >
                         Recent Activity
@@ -362,6 +414,7 @@ const NavbarMobileControls = () => {
                       <List.Item
                         prefix={<Users className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin/users')}
+                        className='text-white'
                         arrow={false}
                       >
                         Users
@@ -369,6 +422,7 @@ const NavbarMobileControls = () => {
                       <List.Item
                         prefix={<Bell className='h-4 w-4 text-blue-200' />}
                         onClick={() => handleNavigate('/admin/notification-preferences')}
+                        className='text-white'
                         arrow={false}
                       >
                         Notifications

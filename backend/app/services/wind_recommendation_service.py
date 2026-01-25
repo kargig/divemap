@@ -14,6 +14,12 @@ WIND_SPEED_CAUTION_THRESHOLD = 7.7  # ~15 knots
 WIND_SPEED_DIFFICULT_THRESHOLD = 10.0  # ~20 knots
 WIND_GUST_UPGRADE_THRESHOLD = 13.0  # ~25 knots
 
+# Marine thresholds
+WAVE_HEIGHT_CAUTION = 0.5  # meters
+WAVE_HEIGHT_DIFFICULT = 1.0  # meters
+WAVE_HEIGHT_AVOID = 1.5  # meters
+WAVE_PERIOD_SURGE = 8.0  # seconds
+
 # Conversion factors
 KNOTS_TO_MS = 0.514444  # 1 knot = 0.514444 m/s
 KMH_TO_MS = 0.277778  # 1 km/h = 0.277778 m/s
@@ -78,10 +84,12 @@ def calculate_wind_suitability(
     wind_speed: float,
     shore_direction: Optional[float],
     wind_gusts: Optional[float] = None,
-    wind_speed_unit: str = "m/s"
+    wind_speed_unit: str = "m/s",
+    wave_height: Optional[float] = None,
+    wave_period: Optional[float] = None
 ) -> Dict[str, any]:
     """
-    Calculate wind suitability for a dive site.
+    Calculate suitability for a dive site based on wind and marine conditions.
     
     Args:
         wind_direction: Wind direction in degrees (0-360, where wind is coming FROM)
@@ -89,6 +97,8 @@ def calculate_wind_suitability(
         shore_direction: Shore direction in degrees (0-360, direction shore faces) or None
         wind_gusts: Wind gusts (optional, in same unit as wind_speed)
         wind_speed_unit: Unit of wind_speed and wind_gusts ('m/s', 'km/h', 'knots')
+        wave_height: Wave height in meters (optional)
+        wave_period: Wave period in seconds (optional)
     
     Returns:
         Dictionary with:
@@ -114,136 +124,193 @@ def calculate_wind_suitability(
     
     wind_speed_category = get_wind_speed_category(effective_wind_speed)
     
+    # --- Wind Suitability Calculation ---
+    
     # If no shore direction, can't determine direction-based suitability
     if shore_direction is None:
         # Still check wind speed alone
-        base_suitability = None
-        reasoning = None
+        wind_suitability = None
+        wind_reasoning = None
         
         if effective_wind_speed >= WIND_SPEED_DIFFICULT_THRESHOLD:
-            base_suitability = "avoid"
-            reasoning = f"Wind speed {effective_wind_speed:.1f} m/s ({effective_wind_speed / KNOTS_TO_MS:.1f} knots) is too dangerous for shore diving regardless of direction"
+            wind_suitability = "avoid"
+            wind_reasoning = f"Wind speed {effective_wind_speed:.1f} m/s ({effective_wind_speed / KNOTS_TO_MS:.1f} knots) is too dangerous for shore diving regardless of direction"
         else:
-            base_suitability = "unknown"
-            reasoning = "Shore direction unknown - cannot determine direction-based suitability"
+            wind_suitability = "unknown"
+            wind_reasoning = "Shore direction unknown - cannot determine direction-based suitability"
         
         # Apply gust upgrade if applicable
-        suitability = base_suitability
-        if gusts_upgrade_severity and base_suitability != "avoid":
+        if gusts_upgrade_severity and wind_suitability != "avoid":
             # Upgrade unknown -> caution if gusts are strong
-            if base_suitability == "unknown":
-                suitability = "caution"
-                reasoning += f" (strong gusts detected)"
+            if wind_suitability == "unknown":
+                wind_suitability = "caution"
+                wind_reasoning += f" (strong gusts detected)"
         
-        # Add gust information
-        if wind_gusts_ms:
-            reasoning += f" (gusts up to {wind_gusts_ms / KNOTS_TO_MS:.1f} knots)"
+    else:
+        # Calculate angle difference between wind and shore direction
+        angle_diff = calculate_angle_difference(wind_direction, shore_direction)
         
-        return {
-            "suitability": suitability,
-            "reasoning": reasoning,
-            "wind_speed_category": wind_speed_category
-        }
-    
-    # Calculate angle difference between wind and shore direction
-    angle_diff = calculate_angle_difference(wind_direction, shore_direction)
-    
-    # Determine base direction suitability
-    if angle_diff <= 45:
-        direction_status = "unfavorable"  # Wind blowing onto shore
-    elif angle_diff <= 90:
-        direction_status = "somewhat_unfavorable"
-    else:
-        direction_status = "favorable"
-    
-    # Calculate base suitability based on speed and direction (using sustained wind speed)
-    if effective_wind_speed >= WIND_SPEED_DIFFICULT_THRESHOLD:
-        # > 20 knots: Too dangerous regardless of direction
-        base_suitability = "avoid"
-        reasoning = (
-            f"Wind speed {effective_wind_speed:.1f} m/s ({effective_wind_speed / KNOTS_TO_MS:.1f} knots) "
-            f"is too dangerous for shore diving regardless of direction"
-        )
-    elif effective_wind_speed >= WIND_SPEED_CAUTION_THRESHOLD:
-        # 15-20 knots: Challenging conditions
-        if direction_status == "unfavorable":
-            base_suitability = "avoid"
-            reasoning = (
-                f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
-                f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) blowing onto shore facing {shore_direction:.0f}° - "
-                f"AVOID (dangerous conditions)"
-            )
-        elif direction_status == "somewhat_unfavorable":
-            base_suitability = "difficult"
-            reasoning = (
-                f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
-                f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) - DIFFICULT (strong winds, experienced divers only)"
-            )
-        else:  # favorable
-            base_suitability = "difficult"
-            reasoning = (
-                f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
-                f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) - DIFFICULT (strong winds, experienced divers only)"
-            )
-    elif effective_wind_speed >= WIND_SPEED_GOOD_THRESHOLD:
-        # 6.2-7.7 m/s (12-15 knots): Moderate conditions
-        if direction_status == "unfavorable":
-            base_suitability = "caution"
-            reasoning = (
-                f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
-                f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) - CAUTION (moderate winds with unfavorable direction)"
-            )
-        elif direction_status == "somewhat_unfavorable":
-            base_suitability = "caution"
-            reasoning = (
-                f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
-                f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) - CAUTION (moderate winds with somewhat unfavorable direction)"
-            )
-        else:  # favorable
-            base_suitability = "good"
-            reasoning = (
-                f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
-                f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) favorable for shore facing {shore_direction:.0f}° - "
-                f"GOOD conditions"
-            )
-    else:
-        # < 6.2 m/s (~12 knots): Safe conditions
-        if direction_status == "unfavorable":
-            base_suitability = "caution"
-            reasoning = (
-                f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
-                f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) - CAUTION (light winds with unfavorable direction)"
-            )
+        # Determine base direction suitability
+        if angle_diff <= 45:
+            direction_status = "unfavorable"  # Wind blowing onto shore
+        elif angle_diff <= 90:
+            direction_status = "somewhat_unfavorable"
         else:
-            base_suitability = "good"
-            reasoning = (
-                f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
-                f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) favorable for shore facing {shore_direction:.0f}° - "
-                f"GOOD conditions (safe for diving)"
+            direction_status = "favorable"
+        
+        # Calculate base suitability based on speed and direction
+        if effective_wind_speed >= WIND_SPEED_DIFFICULT_THRESHOLD:
+            # > 20 knots: Too dangerous regardless of direction
+            wind_suitability = "avoid"
+            wind_reasoning = (
+                f"Wind speed {effective_wind_speed:.1f} m/s ({effective_wind_speed / KNOTS_TO_MS:.1f} knots) "
+                f"is too dangerous for shore diving regardless of direction"
             )
+        elif effective_wind_speed >= WIND_SPEED_CAUTION_THRESHOLD:
+            # 15-20 knots: Challenging conditions
+            if direction_status == "unfavorable":
+                wind_suitability = "avoid"
+                wind_reasoning = (
+                    f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
+                    f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) blowing onto shore facing {shore_direction:.0f}° - "
+                    f"AVOID (dangerous conditions)"
+                )
+            elif direction_status == "somewhat_unfavorable":
+                wind_suitability = "difficult"
+                wind_reasoning = (
+                    f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
+                    f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) - DIFFICULT (strong winds, experienced divers only)"
+                )
+            else:  # favorable
+                wind_suitability = "difficult"
+                wind_reasoning = (
+                    f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
+                    f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) - DIFFICULT (strong winds, experienced divers only)"
+                )
+        elif effective_wind_speed >= WIND_SPEED_GOOD_THRESHOLD:
+            # 6.2-7.7 m/s (12-15 knots): Moderate conditions
+            if direction_status == "unfavorable":
+                wind_suitability = "caution"
+                wind_reasoning = (
+                    f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
+                    f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) - CAUTION (moderate winds with unfavorable direction)"
+                )
+            elif direction_status == "somewhat_unfavorable":
+                wind_suitability = "caution"
+                wind_reasoning = (
+                    f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
+                    f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) - CAUTION (moderate winds with somewhat unfavorable direction)"
+                )
+            else:  # favorable
+                wind_suitability = "good"
+                wind_reasoning = (
+                    f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
+                    f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) favorable for shore facing {shore_direction:.0f}° - "
+                    f"GOOD conditions"
+                )
+        else:
+            # < 6.2 m/s (~12 knots): Safe conditions
+            if direction_status == "unfavorable":
+                wind_suitability = "caution"
+                wind_reasoning = (
+                    f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
+                    f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) - CAUTION (light winds with unfavorable direction)"
+                )
+            else:
+                wind_suitability = "good"
+                wind_reasoning = (
+                    f"Wind from {wind_direction:.0f}° at {effective_wind_speed:.1f} m/s "
+                    f"({effective_wind_speed / KNOTS_TO_MS:.1f} knots) favorable for shore facing {shore_direction:.0f}° - "
+                    f"GOOD conditions (safe for diving)"
+                )
+        
+        # Apply gust upgrade to wind suitability
+        if gusts_upgrade_severity:
+            if wind_suitability == "good":
+                wind_suitability = "caution"
+                wind_reasoning = wind_reasoning.replace("GOOD", "CAUTION (upgraded due to strong gusts)")
+            elif wind_suitability == "caution":
+                wind_suitability = "difficult"
+                wind_reasoning = wind_reasoning.replace("CAUTION", "DIFFICULT (upgraded due to strong gusts)")
+            elif wind_suitability == "difficult":
+                wind_suitability = "avoid"
+                wind_reasoning = wind_reasoning.replace("DIFFICULT", "AVOID (upgraded due to strong gusts)")
     
-    # Apply gust upgrade if applicable (upgrade severity by one level)
-    suitability = base_suitability
-    if gusts_upgrade_severity:
-        # Upgrade severity: good -> caution, caution -> difficult, difficult -> avoid, avoid stays avoid
-        if base_suitability == "good":
-            suitability = "caution"
-            reasoning = reasoning.replace("GOOD", "CAUTION (upgraded due to strong gusts)")
-        elif base_suitability == "caution":
-            suitability = "difficult"
-            reasoning = reasoning.replace("CAUTION", "DIFFICULT (upgraded due to strong gusts)")
-        elif base_suitability == "difficult":
-            suitability = "avoid"
-            reasoning = reasoning.replace("DIFFICULT", "AVOID (upgraded due to strong gusts)")
-        # "avoid" stays "avoid" - can't get worse
+    # --- Marine Suitability Calculation ---
     
-    # Add gust information to reasoning
+    marine_suitability = "good"
+    marine_reasoning_parts = []
+    
+    if wave_height is not None:
+        if wave_height >= WAVE_HEIGHT_AVOID:
+            marine_suitability = "avoid"
+            marine_reasoning_parts.append(f"Waves {wave_height:.1f}m - AVOID (dangerous shore break)")
+        elif wave_height >= WAVE_HEIGHT_DIFFICULT:
+            marine_suitability = "difficult"
+            marine_reasoning_parts.append(f"Waves {wave_height:.1f}m - DIFFICULT (challenging entry)")
+        elif wave_height >= WAVE_HEIGHT_CAUTION:
+            marine_suitability = "caution"
+            marine_reasoning_parts.append(f"Waves {wave_height:.1f}m - CAUTION (moderate chop)")
+    
+    # Check for surge (long period waves)
+    if wave_period is not None and wave_period >= WAVE_PERIOD_SURGE:
+        # Surge makes entry/exit harder, especially if there are waves
+        if marine_suitability == "good":
+            # Only downgrade to caution if waves are minimal but period is long
+            # (though usually long period implies swell)
+            if wave_height is not None and wave_height >= 0.3:
+                marine_suitability = "caution"
+                marine_reasoning_parts.append(f"Period {wave_period:.1f}s - CAUTION (surge risk)")
+        elif marine_suitability == "caution":
+            marine_suitability = "difficult"
+            marine_reasoning_parts.append(f"Period {wave_period:.1f}s - DIFFICULT (strong surge)")
+        # If already difficult or avoid, surge just adds to the reasoning but doesn't change category
+        elif marine_suitability == "difficult":
+             marine_reasoning_parts.append(f"Period {wave_period:.1f}s (strong surge)")
+
+    # --- Combine Suitabilities ---
+    
+    # Determine overall suitability: worst case wins
+    # Order: unknown < good < caution < difficult < avoid
+    # (Using numeric values for comparison)
+    suitability_rank = {
+        "unknown": 0,
+        "good": 1,
+        "caution": 2,
+        "difficult": 3,
+        "avoid": 4
+    }
+    
+    final_suitability = wind_suitability
+    current_rank = suitability_rank.get(wind_suitability, 0)
+    
+    # Marine data can override if worse
+    marine_rank = suitability_rank.get(marine_suitability, 0)
+    
+    if marine_rank > current_rank:
+        final_suitability = marine_suitability
+        # If wind was unknown, take marine directly
+        if current_rank == 0:
+            wind_reasoning = "" # Clear "unknown" message if we have definitive marine data? 
+            # Or keep it? "Shore direction unknown... BUT Waves 1.6m - AVOID"
+            pass
+    
+    # Combine reasoning
+    final_reasoning = wind_reasoning
+    if marine_reasoning_parts:
+        if final_reasoning:
+            final_reasoning += ". " + ". ".join(marine_reasoning_parts)
+        else:
+            final_reasoning = ". ".join(marine_reasoning_parts)
+            
+    # Add gust info if not already added
     if wind_gusts_ms:
-        reasoning += f" (gusts up to {wind_gusts_ms / KNOTS_TO_MS:.1f} knots)"
+        if f"gusts up to {wind_gusts_ms / KNOTS_TO_MS:.1f} knots" not in (final_reasoning or ""):
+             final_reasoning += f" (gusts up to {wind_gusts_ms / KNOTS_TO_MS:.1f} knots)"
     
     return {
-        "suitability": suitability,
-        "reasoning": reasoning,
+        "suitability": final_suitability,
+        "reasoning": final_reasoning,
         "wind_speed_category": wind_speed_category
     }
 

@@ -39,7 +39,7 @@ describe('MinGasCalculator', () => {
     fireEvent.change(safetyStopInput, { target: { value: '3' } });
 
     await waitFor(() => {
-      expect(screen.getByText('40')).toBeInTheDocument();
+      expect(screen.getByText('41')).toBeInTheDocument();
     });
   });
 
@@ -55,18 +55,14 @@ describe('MinGasCalculator', () => {
     const tankSizeSelect = screen.getByLabelText(/Cylinder Size/i);
 
     // 40m, Target 21m. 60 L/min SAC. 1 min solve. 10 m/min ascent. 24L doubles.
-    // 1. Solve: 5 ATA * 1 min * 60 = 300L
-    // 2. Ascent to 21m: Avg 30.5m = 4.05 ATA. Time = 1.9 min. 4.05 * 1.9 * 60 = 461.7L
-    // Total = 300 + 461.7 = 761.7 L
-    // Pressure = 761.7 / 24 = 31.73 bar -> Math.ceil(31.73) = 32 bar
-
+    // Updated with precise surface pressure and Z-Factor
     fireEvent.change(depthInput, { target: { value: '40' } });
     fireEvent.change(targetDepthInput, { target: { value: '21' } });
     fireEvent.change(sacInput, { target: { value: '60' } });
     fireEvent.change(tankSizeSelect, { target: { value: '24' } });
 
     await waitFor(() => {
-      expect(screen.getByText('32')).toBeInTheDocument();
+      expect(screen.getByText('33')).toBeInTheDocument();
     });
   });
 });

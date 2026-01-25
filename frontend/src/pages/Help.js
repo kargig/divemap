@@ -38,7 +38,7 @@ import {
   Button,
   Grid,
 } from 'antd';
-import { SideBar } from 'antd-mobile';
+import { Collapse, Steps as MobileSteps } from 'antd-mobile';
 import React, { useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 
@@ -96,7 +96,7 @@ const Help = () => {
       size='small'
       onClick={() => link && window.location.assign(link)}
     >
-      <Space direction='vertical' className='w-full'>
+      <Space orientation='vertical' className='w-full'>
         <Space className='mb-2'>
           {React.cloneElement(icon, { style: { fontSize: '24px', color: '#1890ff' } })}
           <Text strong style={{ fontSize: '16px' }}>
@@ -121,20 +121,36 @@ const Help = () => {
 
   const StepGuide = ({ steps }) => (
     <div className='bg-gray-50 p-6 rounded-lg border border-gray-100 h-full'>
-      <Steps
-        direction='vertical'
-        size='small'
-        current={-1}
-        items={steps.map((step, index) => ({
-          title: <Text strong>{step.title}</Text>,
-          description: <Text type='secondary'>{step.description}</Text>,
-          icon: (
-            <div className='bg-white border-2 border-blue-500 text-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold'>
-              {index + 1}
-            </div>
-          ),
-        }))}
-      />
+      {screens.xs ? (
+        <MobileSteps
+          orientation='vertical'
+          items={steps.map((step, index) => ({
+            title: <Text strong>{step.title}</Text>,
+            description: <Text type='secondary'>{step.description}</Text>,
+            status: 'wait',
+            icon: (
+              <div className='bg-white border-2 border-blue-500 text-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold'>
+                {index + 1}
+              </div>
+            ),
+          }))}
+        />
+      ) : (
+        <Steps
+          orientation='vertical'
+          size='small'
+          current={-1}
+          items={steps.map((step, index) => ({
+            title: <Text strong>{step.title}</Text>,
+            content: <Text type='secondary'>{step.description}</Text>,
+            icon: (
+              <div className='bg-white border-2 border-blue-500 text-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold'>
+                {index + 1}
+              </div>
+            ),
+          }))}
+        />
+      )}
     </div>
   );
 
@@ -147,7 +163,7 @@ const Help = () => {
         </span>
       ),
       children: (
-        <Space direction='vertical' size='large' className='w-full py-4'>
+        <Space orientation='vertical' size='large' className='w-full py-4'>
           <div className='text-center max-w-4xl mx-auto mb-8'>
             <Title level={2}>Welcome to Divemap</Title>
             <Paragraph className='text-lg text-gray-600'>
@@ -206,7 +222,7 @@ const Help = () => {
               </Card>
             </Col>
             <Col xs={24} lg={12}>
-              <Space direction='vertical' size='large' className='w-full'>
+              <Space orientation='vertical' size='large' className='w-full'>
                 <Card
                   title={
                     <Space>
@@ -301,7 +317,7 @@ const Help = () => {
         </span>
       ),
       children: (
-        <Space direction='vertical' size='large' className='w-full py-4'>
+        <Space orientation='vertical' size='large' className='w-full py-4'>
           <Row gutter={[32, 32]}>
             <Col xs={24} lg={14}>
               <div className='rounded-xl overflow-hidden shadow-lg border border-gray-200'>
@@ -382,7 +398,7 @@ const Help = () => {
         </span>
       ),
       children: (
-        <Space direction='vertical' size='large' className='w-full py-4'>
+        <Space orientation='vertical' size='large' className='w-full py-4'>
           <Title level={2}>Discover the World of Diving</Title>
           <Paragraph className='text-lg text-gray-600'>
             Explore our curated databases of sites, centers, and organized trips.
@@ -492,7 +508,7 @@ const Help = () => {
                 </Button>
               </Col>
               <Col xs={24} md={10}>
-                <Space direction='vertical' size='middle' className='w-full'>
+                <Space orientation='vertical' size='middle' className='w-full'>
                   <Image
                     src='/help-screenshots/diving-centers-list.png'
                     className='rounded-lg border border-gray-100'
@@ -563,7 +579,7 @@ const Help = () => {
         </span>
       ),
       children: (
-        <Space direction='vertical' size='large' className='w-full py-4'>
+        <Space orientation='vertical' size='large' className='w-full py-4'>
           <Row gutter={[32, 32]}>
             <Col xs={24} lg={10}>
               <Title level={3}>Deep Dive Analysis</Title>
@@ -679,21 +695,29 @@ const Help = () => {
               <Paragraph>
                 Migrating from Subsurface? You can import your entire logbook in seconds.
               </Paragraph>
-              <Steps direction='vertical' size='small' current={1}>
-                <Step title='Export XML' description='In Subsurface, go to File > Export > XML.' />
-                <Step
-                  title='Upload'
-                  description={
-                    <span>
-                      Go to <Link to='/dives'>My Dives</Link> and click 'Import Dives'.
-                    </span>
-                  }
-                />
-                <Step
-                  title='Review'
-                  description="We'll match sites automatically. Confirm and save."
-                />
-              </Steps>
+              <Steps
+                orientation='vertical'
+                size='small'
+                current={1}
+                items={[
+                  {
+                    title: 'Export XML',
+                    content: 'In Subsurface, go to File > Export > XML.',
+                  },
+                  {
+                    title: 'Upload',
+                    content: (
+                      <span>
+                        Go to <Link to='/dives'>My Dives</Link> and click 'Import Dives'.
+                      </span>
+                    ),
+                  },
+                  {
+                    title: 'Review',
+                    content: "We'll match sites automatically. Confirm and save.",
+                  },
+                ]}
+              />{' '}
             </Col>
             <Col xs={24} md={12}>
               <Title level={4}>
@@ -701,7 +725,7 @@ const Help = () => {
               </Title>
               <Paragraph>Visualize your underwater journey with multi-segment routes.</Paragraph>
 
-              <Space direction='vertical' size='middle' className='w-full mb-4'>
+              <Space orientation='vertical' size='middle' className='w-full mb-4'>
                 <div className='rounded-lg overflow-hidden border border-gray-100 shadow-sm'>
                   <Image
                     src='/help-screenshots/dive-route-details.png'
@@ -757,7 +781,7 @@ const Help = () => {
         </span>
       ),
       children: (
-        <Space direction='vertical' size='large' className='w-full py-4'>
+        <Space orientation='vertical' size='large' className='w-full py-4'>
           <Row gutter={[32, 32]}>
             <Col xs={24} lg={14}>
               <div className='rounded-xl overflow-hidden shadow-lg border border-gray-200'>
@@ -833,7 +857,7 @@ const Help = () => {
         </span>
       ),
       children: (
-        <Space direction='vertical' size='large' className='w-full py-4'>
+        <Space orientation='vertical' size='large' className='w-full py-4'>
           <Row gutter={[32, 32]}>
             <Col xs={24} lg={10}>
               <Title level={3}>Connect & Share</Title>
@@ -907,17 +931,14 @@ const Help = () => {
         </div>
 
         {screens.xs ? (
-          <div className='flex bg-white rounded-xl shadow-sm overflow-hidden min-h-[500px]'>
-            <div className='flex-none border-r border-gray-100 bg-gray-50'>
-              <SideBar activeKey={activeTab} onChange={handleTabChange} className='h-full'>
-                {items.map(item => (
-                  <SideBar.Item key={item.key} title={item.label} />
-                ))}
-              </SideBar>
-            </div>
-            <div className='flex-1 p-4 overflow-y-auto'>
-              {items.find(item => item.key === activeTab)?.children}
-            </div>
+          <div className='bg-white rounded-xl shadow-sm overflow-hidden'>
+            <Collapse accordion defaultActiveKey={activeTab} onChange={handleTabChange}>
+              {items.map(item => (
+                <Collapse.Panel title={item.label} key={item.key}>
+                  <div className='p-4'>{item.children}</div>
+                </Collapse.Panel>
+              ))}
+            </Collapse>
           </div>
         ) : (
           <Tabs
@@ -932,7 +953,11 @@ const Help = () => {
 
         <Divider />
         <div className='text-center'>
-          <Space split={<Divider type='vertical' />}>
+          <Space
+            orientation={screens.xs ? 'vertical' : 'horizontal'}
+            separator={!screens.xs && <Divider orientation='vertical' />}
+            size={screens.xs ? 'small' : 'middle'}
+          >
             <Button type='link' href='/changelog' icon={<RocketOutlined />}>
               View Latest Updates
             </Button>

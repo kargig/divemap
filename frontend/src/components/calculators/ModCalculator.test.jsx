@@ -44,20 +44,20 @@ describe('ModCalculator', () => {
 
     // Default EAN32 at 1.4 pO2
     // Max ATA = 1.4 / 0.32 = 4.375 ATA
-    // MOD = (4.375 - 1) * 10 = 33.75m -> displayed as 33.8
+    // MOD = (4.375 - 1.01325) * 10 = 33.61... -> displayed as 33.6
 
     await waitFor(() => {
-      expect(screen.getByText('33.8')).toBeInTheDocument();
+      expect(screen.getByText('33.6')).toBeInTheDocument();
     });
 
     // Change O2 to 50%
     // Max ATA = 1.4 / 0.5 = 2.8 ATA
-    // MOD = 1.8 * 10 = 18m
+    // MOD = (2.8 - 1.01325) * 10 = 17.86... -> displayed as 17.9
     const slider = screen.getByRole('slider');
     fireEvent.change(slider, { target: { value: '50' } });
 
     await waitFor(() => {
-      expect(screen.getByText('18.0')).toBeInTheDocument();
+      expect(screen.getByText('17.9')).toBeInTheDocument();
     });
   });
 
@@ -72,16 +72,16 @@ describe('ModCalculator', () => {
 
     // Tx 18/45 at 1.4 pO2
     // Max ATA = 1.4 / 0.18 = 7.77... ATA
-    // MOD = 67.77... -> 67.8m
+    // MOD = (7.77... - 1.01325) * 10 = 67.64... -> 67.6m
     // END ata = 7.77... * (1 - 0.45) = 7.77... * 0.55 = 4.277... ATA
-    // END = 32.77... -> 32.8m
+    // END = (67.6 + 10) * (1 - 0.45) - 10 = 77.6 * 0.55 - 10 = 32.68... -> 32.7m
 
     fireEvent.change(o2Input, { target: { value: '18' } });
     fireEvent.change(heInput, { target: { value: '45' } });
 
     await waitFor(() => {
-      expect(screen.getByText('67.8')).toBeInTheDocument();
-      expect(screen.getByText(/END at limit: 32.8m/i)).toBeInTheDocument();
+      expect(screen.getByText('67.6')).toBeInTheDocument();
+      expect(screen.getByText(/END at limit: 32.7m/i)).toBeInTheDocument();
     });
   });
 });

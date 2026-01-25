@@ -1721,13 +1721,13 @@ const ResponsiveFilterBar = ({
   // Mobile version with scroll-based behavior
   return (
     <>
-      {/* Mobile Search Bar - visible when scrolling down */}
-      {searchBarVisible && (
+      {/* Sticky Container for Search & Filters */}
+      <div className='sticky top-0 left-0 right-0 z-[100] w-full'>
+        {/* Mobile Search Bar */}
         <div
           ref={searchBarRef}
           data-testid='mobile-search-bar'
-          className='fixed top-0 left-0 right-0 z-[100] bg-white border-b border-gray-200 shadow-sm transition-all duration-300 ease-in-out'
-          style={{ transform: searchBarVisible ? 'translateY(0)' : 'translateY(-100%)' }}
+          className='bg-white border-b border-gray-200 shadow-sm'
         >
           <div className='p-3'>
             <div className='relative'>
@@ -1743,17 +1743,11 @@ const ResponsiveFilterBar = ({
             </div>
           </div>
         </div>
-      )}
 
-      {/* Mobile Quick Filters Bar - visible when scrolling up or down */}
-      {quickFiltersVisible && (
+        {/* Mobile Quick Filters Bar */}
         <div
           data-testid='mobile-quick-filters'
-          className='fixed left-0 right-0 z-[99] bg-white border-b border-gray-200 shadow-sm transition-all duration-300 ease-in-out'
-          style={{
-            top: searchBarVisible ? `${searchBarHeight}px` : '0px',
-            transform: quickFiltersVisible ? 'translateY(0)' : 'translateY(-100%)',
-          }}
+          className='bg-white border-b border-gray-200 shadow-sm'
         >
           <div className='flex items-center justify-between p-3'>
             {/* Filter Icon with Count */}
@@ -1891,7 +1885,7 @@ const ResponsiveFilterBar = ({
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Mobile Filter Overlay - Full Page with Tabs */}
 

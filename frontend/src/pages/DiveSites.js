@@ -668,41 +668,39 @@ const DiveSites = () => {
         )}
 
         {/* Responsive Filter Bar */}
-        {/* Hide on mobile when scrolling up (searchBarVisible is false) */}
-        {(!isMobile || searchBarVisible) && (
-          <>
-            {isLoading ? (
-              <LoadingSkeleton type='filter' />
-            ) : (
-              <ResponsiveFilterBar
-                showFilters={showAdvancedFilters}
-                onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                onClearFilters={clearFilters}
-                activeFiltersCount={getActiveFiltersCount()}
-                filters={{ ...filters, availableTags, user }}
-                onFilterChange={handleFilterChange}
-                onQuickFilter={handleQuickFilter}
-                quickFilters={quickFilters}
-                variant='sticky'
-                showQuickFilters={true}
-                showAdvancedToggle={true}
-                searchQuery={filters.search_query}
-                onSearchChange={value => handleFilterChange('search_query', value)}
-                onSearchSubmit={() => {}}
-                // Add sorting props
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                sortOptions={getSortOptions('dive-sites')}
-                onSortChange={handleSortChange}
-                onReset={resetSorting}
-                viewMode={viewMode}
-                onViewModeChange={handleViewModeChange}
-                compactLayout={compactLayout}
-                onDisplayOptionChange={handleDisplayOptionChange}
-              />
-            )}
-          </>
-        )}
+        {/* Always visible to support sticky behavior */}
+        <>
+          {isLoading ? (
+            <LoadingSkeleton type='filter' />
+          ) : (
+            <ResponsiveFilterBar
+              showFilters={showAdvancedFilters}
+              onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              onClearFilters={clearFilters}
+              activeFiltersCount={getActiveFiltersCount()}
+              filters={{ ...filters, availableTags, user }}
+              onFilterChange={handleFilterChange}
+              onQuickFilter={handleQuickFilter}
+              quickFilters={quickFilters}
+              variant='sticky'
+              showQuickFilters={true}
+              showAdvancedToggle={true}
+              searchQuery={filters.search_query}
+              onSearchChange={value => handleFilterChange('search_query', value)}
+              onSearchSubmit={() => {}}
+              // Add sorting props
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              sortOptions={getSortOptions('dive-sites')}
+              onSortChange={handleSortChange}
+              onReset={resetSorting}
+              viewMode={viewMode}
+              onViewModeChange={handleViewModeChange}
+              compactLayout={compactLayout}
+              onDisplayOptionChange={handleDisplayOptionChange}
+            />
+          )}
+        </>
 
         {/* Map Section - Show immediately when in map view */}
         {viewMode === 'map' && (

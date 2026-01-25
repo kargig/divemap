@@ -359,12 +359,15 @@ class TestMeteoAPIResponseEdgeCases:
         # Use unique coordinates to avoid cache
         fetch_wind_data_single_point(37.767, 24.767, None)
         
-        # Verify wind_speed_unit=ms was requested
+        # Verify wind_speed_unit=ms was requested in at least one call
         assert mock_get.called
-        call_args = mock_get.call_args
-        assert call_args is not None
-        assert 'params' in call_args.kwargs
-        assert call_args.kwargs['params']['wind_speed_unit'] == 'ms'
+        wind_call_found = False
+        for call in mock_get.call_args_list:
+            if 'params' in call.kwargs and 'wind_speed_unit' in call.kwargs['params']:
+                assert call.kwargs['params']['wind_speed_unit'] == 'ms'
+                wind_call_found = True
+                break
+        assert wind_call_found, "wind_speed_unit=ms not found in any API call"
 
     @patch('app.services.open_meteo_service.requests.get')
     def test_response_timezone_parameter(self, mock_get, monkeypatch):

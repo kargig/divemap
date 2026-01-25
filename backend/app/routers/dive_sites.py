@@ -983,13 +983,17 @@ async def get_dive_sites(
                             wind_direction = wind_data.get("wind_direction_10m")
                             wind_speed = wind_data.get("wind_speed_10m")
                             wind_gusts = wind_data.get("wind_gusts_10m")
+                            wave_height = wind_data.get("wave_height")
+                            wave_period = wind_data.get("wave_period")
                             
                             if wind_direction is not None and wind_speed is not None:
                                 suitability_result = calculate_wind_suitability(
                                     wind_direction=wind_direction,
                                     wind_speed=wind_speed,
                                     shore_direction=float(site.shore_direction) if site.shore_direction else None,
-                                    wind_gusts=wind_gusts
+                                    wind_gusts=wind_gusts,
+                                    wave_height=wave_height,
+                                    wave_period=wave_period
                                 )
                                 
                                 site_suitability = suitability_result["suitability"]
@@ -1434,6 +1438,15 @@ async def get_wind_recommendations(
                 )
         
         # Determine wind data source
+        wave_height = None
+        wave_period = None
+        wave_direction = None
+        swell_wave_height = None
+        swell_wave_direction = None
+        swell_wave_period = None
+        sea_surface_temperature = None
+        sea_level_height_msl = None
+
         if wind_direction is None or wind_speed is None:
             # Need to fetch wind data
             if latitude and longitude:
@@ -1446,6 +1459,14 @@ async def get_wind_recommendations(
                 wind_direction = wind_direction or wind_data.get("wind_direction_10m")
                 wind_speed = wind_speed or wind_data.get("wind_speed_10m")
                 wind_gusts = wind_gusts or wind_data.get("wind_gusts_10m")
+                wave_height = wind_data.get("wave_height")
+                wave_period = wind_data.get("wave_period")
+                wave_direction = wind_data.get("wave_direction")
+                swell_wave_height = wind_data.get("swell_wave_height")
+                swell_wave_direction = wind_data.get("swell_wave_direction")
+                swell_wave_period = wind_data.get("swell_wave_period")
+                sea_surface_temperature = wind_data.get("sea_surface_temperature")
+                sea_level_height_msl = wind_data.get("sea_level_height_msl")
             elif all(x is not None for x in [north, south, east, west]):
                 # Use center of bounds for wind data
                 center_lat = (north + south) / 2
@@ -1455,6 +1476,14 @@ async def get_wind_recommendations(
                     wind_direction = wind_direction or wind_data.get("wind_direction_10m")
                     wind_speed = wind_speed or wind_data.get("wind_speed_10m")
                     wind_gusts = wind_gusts or wind_data.get("wind_gusts_10m")
+                    wave_height = wind_data.get("wave_height")
+                    wave_period = wind_data.get("wave_period")
+                    wave_direction = wind_data.get("wave_direction")
+                    swell_wave_height = wind_data.get("swell_wave_height")
+                    swell_wave_direction = wind_data.get("swell_wave_direction")
+                    swell_wave_period = wind_data.get("swell_wave_period")
+                    sea_surface_temperature = wind_data.get("sea_surface_temperature")
+                    sea_level_height_msl = wind_data.get("sea_level_height_msl")
             else:
                 raise HTTPException(
                     status_code=400,
@@ -1490,7 +1519,9 @@ async def get_wind_recommendations(
                 wind_direction=wind_direction,
                 wind_speed=wind_speed,
                 shore_direction=float(site.shore_direction) if site.shore_direction else None,
-                wind_gusts=wind_gusts
+                wind_gusts=wind_gusts,
+                wave_height=wave_height,
+                wave_period=wave_period
             )
             
             # Apply min_suitability filter if specified
@@ -1508,6 +1539,14 @@ async def get_wind_recommendations(
                 "wind_direction": wind_direction,
                 "wind_speed": wind_speed,
                 "wind_gusts": wind_gusts,
+                "wave_height": wave_height,
+                "wave_period": wave_period,
+                "wave_direction": wave_direction,
+                "swell_wave_height": swell_wave_height,
+                "swell_wave_direction": swell_wave_direction,
+                "swell_wave_period": swell_wave_period,
+                "sea_surface_temperature": sea_surface_temperature,
+                "sea_level_height_msl": sea_level_height_msl,
                 "shore_direction": float(site.shore_direction) if site.shore_direction else None,
                 "reasoning": suitability_result["reasoning"],
                 "wind_speed_category": suitability_result["wind_speed_category"]
@@ -1522,7 +1561,15 @@ async def get_wind_recommendations(
             "wind_data": {
                 "wind_direction": wind_direction,
                 "wind_speed": wind_speed,
-                "wind_gusts": wind_gusts
+                "wind_gusts": wind_gusts,
+                "wave_height": wave_height,
+                "wave_period": wave_period,
+                "wave_direction": wave_direction,
+                "swell_wave_height": swell_wave_height,
+                "swell_wave_direction": swell_wave_direction,
+                "swell_wave_period": swell_wave_period,
+                "sea_surface_temperature": sea_surface_temperature,
+                "sea_level_height_msl": sea_level_height_msl
             },
             "total_sites": len(recommendations)
         }
@@ -2189,13 +2236,28 @@ async def upload_dive_site_photo_r2_only(
             detail="You don't have permission to edit this dive site"
         )
 
-    # Validate file size (max 15MB) - ImageProcessingService has its own check too
-    file_content = await file.read()
-    if len(file_content) > 15 * 1024 * 1024:  # 15MB
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds 15MB limit"
-        )
+    # Validate file size (max 15MB) - Read in chunks to prevent memory exhaustion
+    MAX_FILE_SIZE = 15 * 1024 * 1024
+    file_size = 0
+    file_content = bytearray()
+    
+    # Use 1MB chunks
+    CHUNK_SIZE = 1024 * 1024
+    
+    while True:
+        chunk = await file.read(CHUNK_SIZE)
+        if not chunk:
+            break
+        file_size += len(chunk)
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File size exceeds 15MB limit"
+            )
+        file_content.extend(chunk)
+    
+    # Convert bytearray back to bytes for downstream processing
+    file_content = bytes(file_content)
 
     # Generate unique filename
     file_ext = Path(file.filename).suffix if file.filename else '.jpg'

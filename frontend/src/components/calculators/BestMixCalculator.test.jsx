@@ -30,7 +30,7 @@ describe('BestMixCalculator', () => {
     fireEvent.change(depthInput, { target: { value: '30' } });
 
     await waitFor(() => {
-      expect(screen.getByText('EAN35')).toBeInTheDocument();
+      expect(screen.getByText('EAN34')).toBeInTheDocument();
     });
   });
 
@@ -43,17 +43,17 @@ describe('BestMixCalculator', () => {
     const depthInput = screen.getByLabelText(/Planned Depth/i);
     const targetEADInput = screen.getByLabelText(/Target EAD/i);
 
-    // 50m = 6 ATA. pO2 1.4 -> fO2 = 1.4 / 6 = 0.233 (~23%)
-    // Target EAD 30m = 4 ATA. pN2 max = 0.79 * 4 = 3.16 bar.
-    // max FN2 at 50m = 3.16 / 6 = 0.526 (~52%)
-    // fHe = 1 - 0.233 - 0.526 = 0.241 (~24%)
-    // Result should be around Tx 23/24
+    // 50m = 6.01325 ATA. pO2 1.4 -> fO2 = 1.4 / 6.01325 = 0.2328 (~23%)
+    // Target EAD 30m = 4.01325 ATA. pN2 max = 0.79 * 4.01325 = 3.17 bar.
+    // max FN2 at 50m = 3.17 / 6.01325 = 0.527 (~53%)
+    // fHe = 1 - 0.233 - 0.527 = 0.24 (~24%)
+    // Result acronym Tx 23/23, detail 23% O2 / 24% He
 
     fireEvent.change(depthInput, { target: { value: '50' } });
     fireEvent.change(targetEADInput, { target: { value: '30' } });
 
     await waitFor(() => {
-      expect(screen.getByText('Tx 23/24')).toBeInTheDocument();
+      expect(screen.getByText('Tx 23/23')).toBeInTheDocument();
     });
   });
 });

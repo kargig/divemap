@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import L, { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -94,7 +95,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
       });
 
       // Add popup
-      leafletMarker.bindPopup(`
+      const popupContent = `
         <div class="p-2">
           <div class="flex justify-between items-start mb-2">
             <h3 class="text-lg font-semibold text-gray-900 pr-2">${marker.name}</h3>
@@ -126,7 +127,8 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
             View Details
           </a>
         </div>
-      `);
+      `;
+      leafletMarker.bindPopup(DOMPurify.sanitize(popupContent));
 
       clusterGroup.addLayer(leafletMarker);
     });
@@ -183,7 +185,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
       // Create and show cluster popup
       const clusterPopup = L.popup()
         .setLatLng(cluster.getLatLng())
-        .setContent(clusterPopupContent)
+        .setContent(DOMPurify.sanitize(clusterPopupContent))
         .openOn(map);
     });
 
