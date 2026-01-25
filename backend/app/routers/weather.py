@@ -28,6 +28,15 @@ class WindDataPoint(BaseModel):
     wind_direction_10m: Optional[float] = None  # degrees
     wind_gusts_10m: Optional[float] = None  # m/s
     timestamp: Optional[str] = None
+    # Marine Data
+    wave_height: Optional[float] = None  # m
+    wave_direction: Optional[float] = None  # degrees
+    wave_period: Optional[float] = None  # s
+    swell_wave_height: Optional[float] = None  # m
+    swell_wave_direction: Optional[float] = None  # degrees
+    swell_wave_period: Optional[float] = None  # s
+    sea_surface_temperature: Optional[float] = None  # °C
+    sea_level_height_msl: Optional[float] = None  # m
 
 
 class WindDataResponse(BaseModel):
@@ -109,7 +118,16 @@ async def get_wind_data(
                 wind_speed_10m=wind_data.get("wind_speed_10m"),
                 wind_direction_10m=wind_data.get("wind_direction_10m"),
                 wind_gusts_10m=wind_data.get("wind_gusts_10m"),
-                timestamp=wind_data.get("timestamp").isoformat() if wind_data.get("timestamp") else None
+                timestamp=wind_data.get("timestamp").isoformat() if wind_data.get("timestamp") else None,
+                # Marine Data
+                wave_height=wind_data.get("wave_height"),
+                wave_direction=wind_data.get("wave_direction"),
+                wave_period=wind_data.get("wave_period"),
+                swell_wave_height=wind_data.get("swell_wave_height"),
+                swell_wave_direction=wind_data.get("swell_wave_direction"),
+                swell_wave_period=wind_data.get("swell_wave_period"),
+                sea_surface_temperature=wind_data.get("sea_surface_temperature"),
+                sea_level_height_msl=wind_data.get("sea_level_height_msl")
             )]
             
             return WindDataResponse(
@@ -148,7 +166,16 @@ async def get_wind_data(
                     wind_speed_10m=point.get("wind_speed_10m"),
                     wind_direction_10m=point.get("wind_direction_10m"),
                     wind_gusts_10m=point.get("wind_gusts_10m"),
-                    timestamp=point.get("timestamp").isoformat() if point.get("timestamp") else None
+                    timestamp=point.get("timestamp").isoformat() if point.get("timestamp") else None,
+                    # Marine Data
+                    wave_height=point.get("wave_height"),
+                    wave_direction=point.get("wave_direction"),
+                    wave_period=point.get("wave_period"),
+                    swell_wave_height=point.get("swell_wave_height"),
+                    swell_wave_direction=point.get("swell_wave_direction"),
+                    swell_wave_period=point.get("swell_wave_period"),
+                    sea_surface_temperature=point.get("sea_surface_temperature"),
+                    sea_level_height_msl=point.get("sea_level_height_msl")
                 )
                 for point in wind_data_points
             ]

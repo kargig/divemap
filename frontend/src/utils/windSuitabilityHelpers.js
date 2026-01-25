@@ -113,6 +113,16 @@ export const formatWindDirection = direction => {
 };
 
 /**
+ * Format wave height
+ * @param {number} height - Wave height in meters
+ * @returns {string} Formatted string
+ */
+export const formatWaveHeight = height => {
+  if (height === null || height === undefined) return 'N/A';
+  return `${height.toFixed(1)} m`;
+};
+
+/**
  * Check if suitability should be shown
  * @param {boolean} windOverlayEnabled - Whether wind overlay is enabled
  * @param {Object} recommendation - Recommendation object for the dive site

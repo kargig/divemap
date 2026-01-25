@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
  * Custom hook for responsive behavior and scroll detection
@@ -73,7 +73,9 @@ export const useResponsive = () => {
 export const useScrollBehavior = () => {
   const [scrollDirection, setScrollDirection] = useState('none');
   const [scrollPosition, setScrollPosition] = useState(0);
-  const [lastScrollPosition, setLastScrollPosition] = useState(0);
+  const lastScrollPositionRef = useRef(0);
+  const lastScrollDirectionRef = useRef('none');
+  const visibilityTimeoutRef = useRef(null);
   const [navbarVisible, setNavbarVisible] = useState(true);
   const [searchBarVisible, setSearchBarVisible] = useState(false);
   const [quickFiltersVisible, setQuickFiltersVisible] = useState(false);
@@ -81,28 +83,49 @@ export const useScrollBehavior = () => {
   useEffect(() => {
     const handleScroll = () => {
       const currentPosition = window.pageYOffset;
+      const lastScrollPosition = lastScrollPositionRef.current;
       const direction = currentPosition > lastScrollPosition ? 'down' : 'up';
 
       setScrollPosition(currentPosition);
       setScrollDirection(direction);
-      setLastScrollPosition(currentPosition);
+      lastScrollPositionRef.current = currentPosition;
+
+      // Check if an input is focused to prevent hiding search bar while typing (common on mobile)
+      const isInputFocused =
+        typeof document !== 'undefined' &&
+        document.activeElement &&
+        (document.activeElement.tagName === 'INPUT' ||
+          document.activeElement.tagName === 'TEXTAREA');
 
       // Navbar behavior
       if (currentPosition <= 0) {
         // At the top: show navbar, hide search bar and quick filters
+        if (visibilityTimeoutRef.current) clearTimeout(visibilityTimeoutRef.current);
+
         setNavbarVisible(true);
         setSearchBarVisible(false);
         setQuickFiltersVisible(false);
-      } else if (direction === 'up') {
-        // Scrolling up: hide navbar, show only quick filters at top
-        setNavbarVisible(false);
-        setQuickFiltersVisible(true);
-        setSearchBarVisible(false);
-      } else {
-        // Scrolling down: hide navbar, show search bar at top with quick filters below
+        lastScrollDirectionRef.current = direction;
+      } else if (direction === 'down') {
+        // Scrolling down: Show search bar IMMEDIATELY
+        if (visibilityTimeoutRef.current) clearTimeout(visibilityTimeoutRef.current);
+
         setNavbarVisible(false);
         setSearchBarVisible(true);
         setQuickFiltersVisible(true);
+        lastScrollDirectionRef.current = direction;
+      } else if (direction === 'up' && !isInputFocused) {
+        // Scrolling up: Hide search bar with DELAY (only if changing direction)
+        if (lastScrollDirectionRef.current !== 'up') {
+          lastScrollDirectionRef.current = direction;
+
+          if (visibilityTimeoutRef.current) clearTimeout(visibilityTimeoutRef.current);
+          visibilityTimeoutRef.current = setTimeout(() => {
+            setNavbarVisible(false);
+            setQuickFiltersVisible(true);
+            setSearchBarVisible(false);
+          }, 1000);
+        }
       }
     };
 
@@ -128,7 +151,7 @@ export const useScrollBehavior = () => {
 
     window.addEventListener('scroll', throttledHandleScroll, { passive: true });
     return () => window.removeEventListener('scroll', throttledHandleScroll);
-  }, [lastScrollPosition]);
+  }, []);
 
   return {
     scrollDirection,
