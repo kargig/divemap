@@ -13,7 +13,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
-import { getSystemMetrics, getTurnstileStats, getStorageHealth } from '../api';
+import { getSystemMetrics, getTurnstileStats, getStorageHealth } from '../services/admin';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 

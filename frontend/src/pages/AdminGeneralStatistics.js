@@ -29,9 +29,9 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
-import { getGeneralStatistics } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { getGeneralStatistics } from '../services/admin';
 import { getNotificationAnalytics } from '../services/notifications';
 
 const AdminGeneralStatistics = () => {

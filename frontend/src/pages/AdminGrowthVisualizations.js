@@ -7,7 +7,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from 'react-query';
 import {
   Area,
@@ -19,7 +19,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-import { getGrowthData } from '../api';
+import { getGrowthData } from '../services/admin';
 import usePageTitle from '../hooks/usePageTitle';
 
 const AdminGrowthVisualizations = () => {
