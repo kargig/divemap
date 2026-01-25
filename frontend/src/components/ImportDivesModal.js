@@ -14,7 +14,7 @@ import { useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
 
-import { importSubsurfaceXML, confirmImportDives } from '../api';
+import { importSubsurfaceXML, confirmImportDives } from '../services/dives';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { TANK_SIZES } from '../utils/diveConstants';
 

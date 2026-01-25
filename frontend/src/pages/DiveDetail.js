@@ -8,8 +8,6 @@ import {
   Trash2,
   Calendar,
   Clock,
-  Thermometer,
-  Star,
   MapPin,
   Eye,
   EyeOff,
@@ -36,18 +34,10 @@ import {
 } from 'react-router-dom';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
 import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
-import Inline from 'yet-another-react-lightbox/plugins/inline';
 import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 
-import api, {
-  getDive,
-  getDiveMedia,
-  deleteDive,
-  deleteDiveMedia,
-  removeBuddy,
-  uploadDiveProfile,
-} from '../api';
+import api from '../api';
 import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DiveProfileModal from '../components/DiveProfileModal';
@@ -63,6 +53,14 @@ import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import useFlickrImages from '../hooks/useFlickrImages';
 import { useResponsive } from '../hooks/useResponsive';
+import {
+  getDive,
+  getDiveMedia,
+  deleteDive,
+  deleteDiveMedia,
+  removeBuddy,
+  uploadDiveProfile,
+} from '../services/dives';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';

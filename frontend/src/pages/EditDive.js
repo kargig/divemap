@@ -6,18 +6,7 @@ import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import {
-  getDive,
-  updateDive,
-  getDiveSites,
-  getAvailableTags,
-  addDiveMedia,
-  updateDiveMedia,
-  deleteDiveMedia,
-  getDivingCenters,
-  uploadPhotoToR2Only,
-  getDiveMedia,
-} from '../api';
+import { getDiveSites, getAvailableTags, getDivingCenters } from '../api';
 import DivingCenterSearchableDropdown from '../components/DivingCenterSearchableDropdown';
 import { FormField } from '../components/forms/FormField';
 import GasTanksInput from '../components/forms/GasTanksInput';
@@ -28,6 +17,15 @@ import UserSearchInput from '../components/UserSearchInput';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import {
+  getDive,
+  updateDive,
+  addDiveMedia,
+  updateDiveMedia,
+  deleteDiveMedia,
+  uploadPhotoToR2Only,
+  getDiveMedia,
+} from '../services/dives';
 import { extractErrorMessage, extractFieldErrors } from '../utils/apiErrors';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
