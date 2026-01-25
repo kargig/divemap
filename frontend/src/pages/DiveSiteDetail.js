@@ -16,6 +16,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { Collapse } from 'antd';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import {
@@ -38,6 +39,7 @@ import CommunityVerdict from '../components/CommunityVerdict';
 import DiveSiteRoutes from '../components/DiveSiteRoutes';
 import Lightbox from '../components/Lightbox/Lightbox';
 import ReactImage from '../components/Lightbox/ReactImage';
+import WeatherConditionsCard from '../components/MarineConditionsCard';
 import MaskedEmail from '../components/MaskedEmail';
 import MiniMap from '../components/MiniMap';
 import RateLimitError from '../components/RateLimitError';
@@ -74,13 +76,16 @@ const DiveSiteDetail = () => {
   const [comment, setComment] = useState('');
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [isMapMaximized, setIsMapMaximized] = useState(false);
-  const [showNearbySites, setShowNearbySites] = useState(false);
   const [activeMediaTab, setActiveMediaTab] = useState('photos');
   const [activeContentTab, setActiveContentTab] = useState('description');
   const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(new Map());
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [autoOpenVideoId, setAutoOpenVideoId] = useState(null);
+  
+  // Collapse states for lazy loading
+  const [isMarineExpanded, setIsMarineExpanded] = useState(false);
+  const [isNearbyExpanded, setIsNearbyExpanded] = useState(false);
 
   // Route creation mutation
   const createRouteMutation = useMutation(
@@ -101,10 +106,6 @@ const DiveSiteDetail = () => {
       },
     }
   );
-
-  const toggleNearbySites = () => {
-    setShowNearbySites(!showNearbySites);
-  };
 
   const {
     data: diveSite,
@@ -164,12 +165,12 @@ const DiveSiteDetail = () => {
     }
   );
 
-  const { data: nearbyDiveSites } = useQuery(
+  const { data: nearbyDiveSites, isLoading: isNearbyLoading } = useQuery(
     ['dive-site-nearby', id],
     () => api.get(`/api/v1/dive-sites/${id}/nearby?limit=10`),
     {
       select: response => response.data,
-      enabled: !!diveSite && !!diveSite.latitude && !!diveSite.longitude,
+      enabled: isNearbyExpanded && !!diveSite && !!diveSite.latitude && !!diveSite.longitude,
     }
   );
 
@@ -179,6 +180,24 @@ const DiveSiteDetail = () => {
     {
       select: response => response.data,
       enabled: !!diveSite,
+    }
+  );
+
+  const { data: windData, isLoading: isWindLoading } = useQuery(
+    ['wind-data-site', id],
+    () => api.get('/api/v1/weather/wind', {
+      params: {
+        latitude: diveSite.latitude,
+        longitude: diveSite.longitude,
+        wind_speed_unit: 'ms',
+      }
+    }),
+    {
+      select: response => response.data,
+      enabled: isMarineExpanded && !!diveSite && !!diveSite.latitude && !!diveSite.longitude,
+      staleTime: 1000 * 60 * 15, // 15 minutes
+      cacheTime: 1000 * 60 * 30, // 30 minutes
+      retry: false, // Don't retry weather errors aggressively
     }
   );
 
@@ -952,46 +971,51 @@ const DiveSiteDetail = () => {
           <DiveSiteRoutes diveSiteId={id} />
 
           {/* Nearby Dive Sites - Mobile View Only */}
-          {nearbyDiveSites && nearbyDiveSites.length > 0 && (
-            <div className='lg:hidden bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <div className='flex items-center justify-between mb-3 sm:mb-4'>
-                <h2 className='text-lg sm:text-xl font-semibold text-gray-900'>
-                  Nearby Dive Sites
-                </h2>
-                <button
-                  onClick={toggleNearbySites}
-                  className='flex items-center text-blue-600 hover:text-blue-700 md:hidden'
-                >
-                  {showNearbySites ? (
-                    <>
-                      <ChevronUp className='h-4 w-4 mr-1' />
-                      Hide
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className='h-4 w-4 mr-1' />
-                      Show
-                    </>
-                  )}
-                </button>
-              </div>
-              <div className={`${showNearbySites ? 'block' : 'hidden'} md:block`}>
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                  {nearbyDiveSites.slice(0, 6).map(site => (
-                    <button
-                      key={site.id}
-                      onClick={() => navigate(`/dive-sites/${site.id}/${slugify(site.name)}`)}
-                      className='flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left w-full'
-                    >
-                      <MapPin className='w-4 h-4 mr-2 flex-shrink-0 text-blue-600' />
-                      <div className='min-w-0 flex-1'>
-                        <div className='font-medium text-gray-900 truncate'>{site.name}</div>
-                        <div className='text-xs text-gray-500'>{site.distance_km} km away</div>
+          {diveSite.latitude && diveSite.longitude && (
+            <div className='lg:hidden bg-white rounded-lg shadow-md overflow-hidden'>
+              <Collapse
+                ghost
+                onChange={keys => {
+                  // If we open it (keys.length > 0), set expanded to true.
+                  // If we close it, we can keep it expanded (to cache data) or set false.
+                  // Let's set it to true if opened, and keep it true?
+                  // Actually, if I toggle, keys array changes.
+                  // If I set `setIsNearbyExpanded(keys.length > 0)`, it will disable query when closed.
+                  // That's fine, React Query keeps cache.
+                  // But if I want to "Close by default and queries ... only be sent once the user opens them", disabling when closed is also fine (or keeping enabled).
+                  // Simplest is to sync state.
+                  setIsNearbyExpanded(keys.includes('nearby'));
+                }}
+                items={[
+                  {
+                    key: 'nearby',
+                    label: <span className='text-lg font-semibold text-gray-900'>Nearby Dive Sites</span>,
+                    children: (
+                      <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                        {isNearbyLoading ? (
+                          <div className='text-center py-4 text-gray-500'>Loading nearby sites...</div>
+                        ) : nearbyDiveSites && nearbyDiveSites.length > 0 ? (
+                          nearbyDiveSites.slice(0, 6).map(site => (
+                            <button
+                              key={site.id}
+                              onClick={() => navigate(`/dive-sites/${site.id}/${slugify(site.name)}`)}
+                              className='flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left w-full'
+                            >
+                              <MapPin className='w-4 h-4 mr-2 flex-shrink-0 text-blue-600' />
+                              <div className='min-w-0 flex-1'>
+                                <div className='font-medium text-gray-900 truncate'>{site.name}</div>
+                                <div className='text-xs text-gray-500'>{site.distance_km} km away</div>
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className='text-center py-4 text-gray-500'>No nearby dive sites found.</div>
+                        )}
                       </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
+                    ),
+                  },
+                ]}
+              />
             </div>
           )}
 
@@ -1235,6 +1259,26 @@ const DiveSiteDetail = () => {
 
         {/* Sidebar */}
         <div className='space-y-6'>
+          {/* Weather Conditions - Collapsible */}
+          <div className='bg-white rounded-lg shadow-md overflow-hidden'>
+            <Collapse
+              ghost
+              onChange={keys => setIsMarineExpanded(keys.includes('weather'))}
+              items={[
+                {
+                  key: 'weather',
+                  label: <span className='text-lg font-semibold text-gray-900'>Current Weather Conditions</span>,
+                  children: (
+                    <div className='-m-4'>
+                      {/* Negative margin to counteract Collapse padding */}
+                      <WeatherConditionsCard windData={windData} loading={isWindLoading} />
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </div>
+
           {/* Site Info - Desktop View Only - REMOVED (Consolidated to Header) */}
 
           {/* Access Instructions - Desktop View Only */}
@@ -1308,24 +1352,43 @@ const DiveSiteDetail = () => {
           )}
 
           {/* Nearby Dive Sites - Desktop View Only */}
-          {nearbyDiveSites && nearbyDiveSites.length > 0 && (
-            <div className='hidden lg:block bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-4'>Nearby Dive Sites</h3>
-              <div className='space-y-2'>
-                {nearbyDiveSites.slice(0, 6).map(site => (
-                  <button
-                    key={site.id}
-                    onClick={() => navigate(`/dive-sites/${site.id}/${slugify(site.name)}`)}
-                    className='flex items-center p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left w-full'
-                  >
-                    <MapPin className='w-4 h-4 mr-2 flex-shrink-0 text-blue-600' />
-                    <div className='min-w-0 flex-1'>
-                      <div className='font-medium text-gray-900 text-sm truncate'>{site.name}</div>
-                      <div className='text-xs text-gray-500'>{site.distance_km} km away</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
+          {diveSite.latitude && diveSite.longitude && (
+            <div className='hidden lg:block bg-white rounded-lg shadow-md overflow-hidden'>
+              <Collapse
+                ghost
+                onChange={keys => setIsNearbyExpanded(keys.includes('nearby-desktop'))}
+                items={[
+                  {
+                    key: 'nearby-desktop',
+                    label: <span className='text-lg font-semibold text-gray-900'>Nearby Dive Sites</span>,
+                    children: (
+                      <div className='space-y-2'>
+                        {isNearbyLoading ? (
+                          <div className='text-center py-4 text-gray-500'>Loading nearby sites...</div>
+                        ) : nearbyDiveSites && nearbyDiveSites.length > 0 ? (
+                          nearbyDiveSites.slice(0, 6).map(site => (
+                            <button
+                              key={site.id}
+                              onClick={() => navigate(`/dive-sites/${site.id}/${slugify(site.name)}`)}
+                              className='flex items-center p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left w-full'
+                            >
+                              <MapPin className='w-4 h-4 mr-2 flex-shrink-0 text-blue-600' />
+                              <div className='min-w-0 flex-1'>
+                                <div className='font-medium text-gray-900 text-sm truncate'>
+                                  {site.name}
+                                </div>
+                                <div className='text-xs text-gray-500'>{site.distance_km} km away</div>
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className='text-center py-4 text-gray-500'>No nearby dive sites found.</div>
+                        )}
+                      </div>
+                    ),
+                  },
+                ]}
+              />
             </div>
           )}
         </div>

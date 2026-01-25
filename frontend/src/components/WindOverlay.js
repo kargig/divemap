@@ -273,13 +273,38 @@ const WindOverlay = ({
 
       // Create popup with wind information
       const popupContent = `
-        <div class="p-2">
-          <h4 class="font-semibold text-sm mb-1">Wind Conditions</h4>
-          <div class="text-xs space-y-1">
-            <div><strong>Speed:</strong> ${formatWindSpeed(windSpeed)}</div>
-            <div><strong>Direction:</strong> ${formatWindDirection(windDirection)}</div>
-            ${windGusts ? `<div><strong>Gusts:</strong> ${formatWindSpeed(windGusts)}</div>` : ''}
-            ${point.timestamp ? `<div class="text-gray-500 text-xs mt-1">${new Date(point.timestamp).toLocaleString()}</div>` : ''}
+        <div class="p-2 min-w-[150px]">
+          <h4 class="font-semibold text-sm mb-1 text-blue-800 border-b pb-1">Conditions</h4>
+          <div class="text-xs space-y-1.5 mt-1">
+            <div>
+              <div class="font-semibold text-gray-700">Wind</div>
+              <div>${formatWindSpeed(windSpeed)} ${formatWindDirection(windDirection)}</div>
+              ${windGusts ? `<div class="text-gray-500">Gusts: ${formatWindSpeed(windGusts)}</div>` : ''}
+            </div>
+            
+            ${
+              point.wave_height !== undefined && point.wave_height !== null
+                ? `
+            <div>
+              <div class="font-semibold text-gray-700">Waves</div>
+              <div>${point.wave_height.toFixed(1)}m ${point.wave_period ? `(${point.wave_period.toFixed(1)}s)` : ''} ${point.wave_direction !== null && point.wave_direction !== undefined ? formatWindDirection(point.wave_direction) : ''}</div>
+            </div>
+            `
+                : ''
+            }
+
+            ${
+              point.sea_surface_temperature !== undefined && point.sea_surface_temperature !== null
+                ? `
+            <div>
+              <div class="font-semibold text-gray-700">Water</div>
+              <div>Temp: ${point.sea_surface_temperature.toFixed(1)}°C</div>
+            </div>
+            `
+                : ''
+            }
+
+            ${point.timestamp ? `<div class="text-gray-400 text-[10px] mt-2 border-t pt-1">${new Date(point.timestamp).toLocaleString()}</div>` : ''}
           </div>
         </div>
       `;

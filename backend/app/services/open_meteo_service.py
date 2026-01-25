@@ -1146,7 +1146,15 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                     "wind_speed_10m": wind_data.get("wind_speed_10m"),
                     "wind_direction_10m": wind_data.get("wind_direction_10m"),
                     "wind_gusts_10m": wind_data.get("wind_gusts_10m"),
-                    "timestamp": wind_data.get("timestamp")
+                    "timestamp": wind_data.get("timestamp"),
+                    "wave_height": wind_data.get("wave_height"),
+                    "wave_direction": wind_data.get("wave_direction"),
+                    "wave_period": wind_data.get("wave_period"),
+                    "swell_wave_height": wind_data.get("swell_wave_height"),
+                    "swell_wave_direction": wind_data.get("swell_wave_direction"),
+                    "swell_wave_period": wind_data.get("swell_wave_period"),
+                    "sea_surface_temperature": wind_data.get("sea_surface_temperature"),
+                    "sea_level_height_msl": wind_data.get("sea_level_height_msl")
                 })
                 
                 # Create jittered variations for visual density
@@ -1176,7 +1184,15 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                                 "wind_speed_10m": wind_data.get("wind_speed_10m"),
                                 "wind_direction_10m": wind_data.get("wind_direction_10m"),
                                 "wind_gusts_10m": wind_data.get("wind_gusts_10m"),
-                                "timestamp": wind_data.get("timestamp")
+                                "timestamp": wind_data.get("timestamp"),
+                                "wave_height": wind_data.get("wave_height"),
+                                "wave_direction": wind_data.get("wave_direction"),
+                                "wave_period": wind_data.get("wave_period"),
+                                "swell_wave_height": wind_data.get("swell_wave_height"),
+                                "swell_wave_direction": wind_data.get("swell_wave_direction"),
+                                "swell_wave_period": wind_data.get("swell_wave_period"),
+                                "sea_surface_temperature": wind_data.get("sea_surface_temperature"),
+                                "sea_level_height_msl": wind_data.get("sea_level_height_msl")
                             })
                             jittered_point_created = True
                             break  # Successfully created jittered point, move to next

@@ -454,7 +454,7 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
 
                               return `
                         <div class="border-t border-gray-200 pt-1.5 sm:pt-2 mt-1.5 sm:mt-2">
-                          <h4 class="font-semibold text-xs sm:text-sm mb-1 sm:mb-2">Wind Conditions</h4>
+                          <h4 class="font-semibold text-xs sm:text-sm mb-1 sm:mb-2 text-blue-800 border-b pb-1">Weather & Sea Conditions</h4>
                           <div class="space-y-1 sm:space-y-1.5">
                             <div class="flex items-center gap-2">
                               <span class="px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium rounded-full" style="background-color: ${suitabilityColor}20; color: ${suitabilityColor}; border: 1px solid ${suitabilityColor}40;">
@@ -462,11 +462,11 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                               </span>
                             </div>
                             <div class="text-[10px] sm:text-xs text-gray-600 space-y-0.5">
-                              <div><strong>Speed:</strong> ${speedFormatted.ms} m/s (${speedFormatted.knots} knots)</div>
-                              <div><strong>Direction:</strong> ${directionFormatted.full}</div>
-                              ${windGusts ? `<div><strong>Gusts:</strong> ${formatWindSpeed(windGusts).ms} m/s (${formatWindSpeed(windGusts).knots} knots)</div>` : ''}
+                              <div><strong>Wind:</strong> ${speedFormatted.ms} m/s ${directionFormatted.cardinal}</div>
+                              ${rec.wave_height !== undefined && rec.wave_height !== null ? `<div><strong>Waves:</strong> ${rec.wave_height.toFixed(1)}m ${rec.wave_period ? `(${rec.wave_period.toFixed(1)}s)` : ''}</div>` : ''}
+                              ${rec.sea_surface_temperature !== undefined && rec.sea_surface_temperature !== null ? `<div><strong>Water:</strong> ${rec.sea_surface_temperature.toFixed(1)}°C</div>` : ''}
                             </div>
-                            ${rec.reasoning ? `<div class="hidden md:block text-xs text-gray-700 mt-1 italic">${rec.reasoning}</div>` : ''}
+                            ${rec.reasoning ? `<div class="text-xs text-gray-700 mt-1 italic">${rec.reasoning}</div>` : ''}
                             ${suitability === 'unknown' ? `<div class="text-[10px] sm:text-xs text-amber-600 mt-0.5 sm:mt-1 font-medium">⚠️ Warning: Shore direction unknown</div>` : ''}
                           </div>
                         </div>

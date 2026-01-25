@@ -255,7 +255,7 @@ const MarkerClusterGroup = ({
 
             return `
               <div class="border-t border-gray-200 pt-2 mt-2">
-                <h4 class="font-semibold text-sm mb-2">Wind Conditions</h4>
+                <h4 class="font-semibold text-sm mb-2 text-blue-800 border-b pb-1">Weather & Sea conditions</h4>
                 <div class="space-y-1.5">
                   <div class="flex items-center gap-2">
                     <span class="px-2 py-1 text-xs font-medium rounded-full" style="background-color: ${suitabilityColor}20; color: ${suitabilityColor}; border: 1px solid ${suitabilityColor}40;">
@@ -263,12 +263,12 @@ const MarkerClusterGroup = ({
                     </span>
                   </div>
                   <div class="text-xs text-gray-600 space-y-0.5">
-                    <div><strong>Speed:</strong> ${speedFormatted.ms} m/s (${speedFormatted.knots} knots)</div>
-                    <div><strong>Direction:</strong> ${directionFormatted.full}</div>
-                    ${windGusts ? `<div><strong>Gusts:</strong> ${formatWindSpeed(windGusts).ms} m/s (${formatWindSpeed(windGusts).knots} knots)</div>` : ''}
+                    <div><strong>Wind:</strong> ${speedFormatted.ms} m/s ${directionFormatted.cardinal}</div>
+                    ${rec.wave_height !== undefined && rec.wave_height !== null ? `<div><strong>Waves:</strong> ${rec.wave_height.toFixed(1)}m ${rec.wave_period ? `(${rec.wave_period.toFixed(1)}s)` : ''}</div>` : ''}
+                    ${rec.sea_surface_temperature !== undefined && rec.sea_surface_temperature !== null ? `<div><strong>Water:</strong> ${rec.sea_surface_temperature.toFixed(1)}°C</div>` : ''}
                   </div>
                   ${rec.reasoning ? `<div class="text-xs text-gray-700 mt-1 italic">${rec.reasoning}</div>` : ''}
-                  ${suitability === 'unknown' ? `<div class="text-xs text-amber-600 mt-1 font-medium">⚠️ Warning: Shore direction unknown - cannot determine direction-based suitability</div>` : ''}
+                  ${suitability === 'unknown' ? `<div class="text-xs text-amber-600 mt-1 font-medium">⚠️ Warning: Shore direction unknown</div>` : ''}
                 </div>
               </div>
             `;
@@ -749,8 +749,8 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
                     )}
                     {recommendation && (
                       <div className='border-t border-gray-200 pt-1.5 sm:pt-2 mt-1.5 sm:mt-2'>
-                        <h4 className='font-semibold text-xs sm:text-sm mb-1 sm:mb-2'>
-                          Wind Conditions
+                        <h4 className='font-semibold text-xs sm:text-sm mb-1 sm:mb-2 text-blue-800 border-b pb-1'>
+                          Weather & Sea Conditions
                         </h4>
                         <div className='space-y-1 sm:space-y-1.5'>
                           <div className='flex items-center gap-2'>
@@ -766,29 +766,29 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
                             </span>
                           </div>
                           <div className='text-[10px] sm:text-xs text-gray-600 space-y-0.5'>
-                            {recommendation.wind_data?.wind_speed && (
+                            {recommendation.wind_speed && (
                               <div>
-                                <strong>Speed:</strong>{' '}
-                                {formatWindSpeed(recommendation.wind_data.wind_speed).ms} m/s (
-                                {formatWindSpeed(recommendation.wind_data.wind_speed).knots} knots)
+                                <strong>Wind:</strong>{' '}
+                                {formatWindSpeed(recommendation.wind_speed).ms} m/s{' '}
+                                {formatWindDirection(recommendation.wind_direction).cardinal}
                               </div>
                             )}
-                            {recommendation.wind_data?.wind_direction !== undefined && (
+                            {recommendation.wave_height !== undefined && recommendation.wave_height !== null && (
                               <div>
-                                <strong>Direction:</strong>{' '}
-                                {formatWindDirection(recommendation.wind_data.wind_direction).full}
+                                <strong>Waves:</strong>{' '}
+                                {recommendation.wave_height.toFixed(1)}m{' '}
+                                {recommendation.wave_period ? `(${recommendation.wave_period.toFixed(1)}s)` : ''}
                               </div>
                             )}
-                            {recommendation.wind_data?.wind_gusts && (
+                            {recommendation.sea_surface_temperature !== undefined && recommendation.sea_surface_temperature !== null && (
                               <div>
-                                <strong>Gusts:</strong>{' '}
-                                {formatWindSpeed(recommendation.wind_data.wind_gusts).ms} m/s (
-                                {formatWindSpeed(recommendation.wind_data.wind_gusts).knots} knots)
+                                <strong>Water:</strong>{' '}
+                                {recommendation.sea_surface_temperature.toFixed(1)}°C
                               </div>
                             )}
                           </div>
                           {recommendation.reasoning && (
-                            <div className='hidden md:block text-xs text-gray-700 mt-1 italic'>
+                            <div className='text-xs text-gray-700 mt-1 italic'>
                               {recommendation.reasoning}
                             </div>
                           )}
