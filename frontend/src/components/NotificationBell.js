@@ -1,15 +1,14 @@
 import { Bell, Check } from 'lucide-react';
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { getNotifications } from '../api';
-import { useNotificationContext, useNotifications } from '../contexts/NotificationContext';
 import useClickOutside from '../hooks/useClickOutside';
+import { useNotifications } from '../hooks/useNotifications';
+import { getNotifications } from '../services/notifications';
 
 const NotificationBell = () => {
-  const { unreadCount } = useNotificationContext();
-  const { markRead } = useNotifications();
+  const { unreadCount, markRead } = useNotifications();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);

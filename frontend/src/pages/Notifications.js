@@ -1,13 +1,14 @@
 import { Bell, Check, Filter, Settings } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
-import { getNotifications } from '../api';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import NotificationItem from '../components/NotificationItem';
-import { useNotificationContext, useNotifications } from '../contexts/NotificationContext';
+import { useNotificationContext } from '../contexts/NotificationContext';
+import { useNotifications } from '../hooks/useNotifications';
 import usePageTitle from '../hooks/usePageTitle';
+import { getNotifications } from '../services/notifications';
 
 const Notifications = () => {
   usePageTitle('Divemap - Notifications');

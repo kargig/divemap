@@ -29,9 +29,10 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
-import { getGeneralStatistics, getNotificationAnalytics } from '../api';
+import { getGeneralStatistics } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { getNotificationAnalytics } from '../services/notifications';
 
 const AdminGeneralStatistics = () => {
   // Set page title
