@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 # Open-Meteo API base URL
 OPEN_METEO_BASE_URL = "https://api.open-meteo.com/v1/forecast"
+OPEN_METEO_MARINE_URL = "https://marine-api.open-meteo.com/v1/marine"
 
 # Cache for wind data (in-memory dictionary)
 _wind_cache: Dict[str, Dict] = {}
@@ -686,6 +687,29 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
         data = response.json()
         logger.info(f"[API SUCCESS] Successfully fetched wind data from Open-Meteo API for {latitude:.4f}, {longitude:.4f} at {target_datetime}")
 
+        # Fetch Marine Data (Waves, Swell, SST, Tides)
+        marine_hourly = {}
+        try:
+            marine_params = {
+                "latitude": latitude,
+                "longitude": longitude,
+                "hourly": "wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period,sea_surface_temperature,sea_level_height_msl",
+                "start_date": start_date,
+                "end_date": end_date,
+                "timezone": "auto"
+            }
+            # Use a shorter timeout for marine data to not block the main request too long
+            marine_response = requests.get(OPEN_METEO_MARINE_URL, params=marine_params, timeout=5)
+            if marine_response.status_code == 200:
+                marine_data = marine_response.json()
+                if "hourly" in marine_data:
+                    marine_hourly = marine_data["hourly"]
+                    logger.info(f"[MARINE API SUCCESS] Successfully fetched marine data for {latitude:.4f}, {longitude:.4f}")
+            else:
+                logger.warning(f"[MARINE API ERROR] Failed to fetch marine data: Status {marine_response.status_code}")
+        except Exception as e:
+            logger.warning(f"[MARINE API ERROR] Failed to fetch marine data: {e}")
+
         wind_data = None
 
         # Parse hourly forecast data (we always use hourly API now for 24-hour caching)
@@ -713,7 +737,16 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                 "wind_speed_10m": hourly.get("wind_speed_10m", [None])[hour_index] if hour_index < len(hourly.get("wind_speed_10m", [])) else None,  # m/s
                 "wind_direction_10m": hourly.get("wind_direction_10m", [None])[hour_index] if hour_index < len(hourly.get("wind_direction_10m", [])) else None,  # degrees
                 "wind_gusts_10m": hourly.get("wind_gusts_10m", [None])[hour_index] if hour_index < len(hourly.get("wind_gusts_10m", [])) else None,  # m/s
-                "timestamp": target_datetime
+                "timestamp": target_datetime,
+                # Add Marine Data
+                "wave_height": marine_hourly.get("wave_height", [None])[hour_index] if hour_index < len(marine_hourly.get("wave_height", [])) else None,
+                "wave_direction": marine_hourly.get("wave_direction", [None])[hour_index] if hour_index < len(marine_hourly.get("wave_direction", [])) else None,
+                "wave_period": marine_hourly.get("wave_period", [None])[hour_index] if hour_index < len(marine_hourly.get("wave_period", [])) else None,
+                "swell_wave_height": marine_hourly.get("swell_wave_height", [None])[hour_index] if hour_index < len(marine_hourly.get("swell_wave_height", [])) else None,
+                "swell_wave_direction": marine_hourly.get("swell_wave_direction", [None])[hour_index] if hour_index < len(marine_hourly.get("swell_wave_direction", [])) else None,
+                "swell_wave_period": marine_hourly.get("swell_wave_period", [None])[hour_index] if hour_index < len(marine_hourly.get("swell_wave_period", [])) else None,
+                "sea_surface_temperature": marine_hourly.get("sea_surface_temperature", [None])[hour_index] if hour_index < len(marine_hourly.get("sea_surface_temperature", [])) else None,
+                "sea_level_height_msl": marine_hourly.get("sea_level_height_msl", [None])[hour_index] if hour_index < len(marine_hourly.get("sea_level_height_msl", [])) else None
             }
 
             # OPTIMIZATION #10: Cache all 24 hours from forecast response
@@ -727,6 +760,16 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                 wind_speeds = hourly.get("wind_speed_10m", [])
                 wind_directions = hourly.get("wind_direction_10m", [])
                 wind_gusts = hourly.get("wind_gusts_10m", [])
+                
+                # Marine data lists
+                wave_heights = marine_hourly.get("wave_height", [])
+                wave_directions = marine_hourly.get("wave_direction", [])
+                wave_periods = marine_hourly.get("wave_period", [])
+                swell_heights = marine_hourly.get("swell_wave_height", [])
+                swell_directions = marine_hourly.get("swell_wave_direction", [])
+                swell_periods = marine_hourly.get("swell_wave_period", [])
+                ssts = marine_hourly.get("sea_surface_temperature", [])
+                sea_levels = marine_hourly.get("sea_level_height_msl", [])
 
                 for idx, time_str in enumerate(times):
                     if idx < len(wind_speeds) and idx < len(wind_directions) and idx < len(wind_gusts):
@@ -734,16 +777,28 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                         try:
                             hour_datetime = datetime.fromisoformat(time_str)
                             hour_cache_key = _generate_cache_key(latitude, longitude, target_datetime=hour_datetime)
+                            
+                            # Prepare complete data object
+                            data_obj = {
+                                "wind_speed_10m": wind_speeds[idx],
+                                "wind_direction_10m": wind_directions[idx],
+                                "wind_gusts_10m": wind_gusts[idx],
+                                "timestamp": hour_datetime,
+                                # Add marine data if available for this index
+                                "wave_height": wave_heights[idx] if idx < len(wave_heights) else None,
+                                "wave_direction": wave_directions[idx] if idx < len(wave_directions) else None,
+                                "wave_period": wave_periods[idx] if idx < len(wave_periods) else None,
+                                "swell_wave_height": swell_heights[idx] if idx < len(swell_heights) else None,
+                                "swell_wave_direction": swell_directions[idx] if idx < len(swell_directions) else None,
+                                "swell_wave_period": swell_periods[idx] if idx < len(swell_periods) else None,
+                                "sea_surface_temperature": ssts[idx] if idx < len(ssts) else None,
+                                "sea_level_height_msl": sea_levels[idx] if idx < len(sea_levels) else None
+                            }
 
                             # Always cache (even if already cached) to ensure all hours are available
                             # This ensures that if we fetch hour 05:00, all 24 hours are cached and available
                             _wind_cache[hour_cache_key] = {
-                                "data": {
-                                    "wind_speed_10m": wind_speeds[idx],
-                                    "wind_direction_10m": wind_directions[idx],
-                                    "wind_gusts_10m": wind_gusts[idx],
-                                    "timestamp": hour_datetime
-                                },
+                                "data": data_obj,
                                 "timestamp": datetime.now(),
                                 "target_datetime": hour_datetime  # Store for TTL calculation
                             }
@@ -765,7 +820,16 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                                 "wind_speed_10m": wind_speeds[idx],
                                 "wind_direction_10m": wind_directions[idx],
                                 "wind_gusts_10m": wind_gusts[idx],
-                                "timestamp": hour_datetime
+                                "timestamp": hour_datetime,
+                                # Add marine data if available for this index
+                                "wave_height": wave_heights[idx] if idx < len(wave_heights) else None,
+                                "wave_direction": wave_directions[idx] if idx < len(wave_directions) else None,
+                                "wave_period": wave_periods[idx] if idx < len(wave_periods) else None,
+                                "swell_wave_height": swell_heights[idx] if idx < len(swell_heights) else None,
+                                "swell_wave_direction": swell_directions[idx] if idx < len(swell_directions) else None,
+                                "swell_wave_period": swell_periods[idx] if idx < len(swell_periods) else None,
+                                "sea_surface_temperature": ssts[idx] if idx < len(ssts) else None,
+                                "sea_level_height_msl": sea_levels[idx] if idx < len(sea_levels) else None
                             }
 
                             batch_entries.append({
@@ -925,6 +989,29 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                 response_data = response.json()
                 if not isinstance(response_data, list):
                     response_data = [response_data]
+
+                # Batch Fetch Marine Data
+                marine_response_data = []
+                try:
+                    marine_params = {
+                        "latitude": ",".join(lats),
+                        "longitude": ",".join(lons),
+                        "hourly": "wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period,sea_surface_temperature,sea_level_height_msl",
+                        "start_date": start_date,
+                        "end_date": end_date,
+                        "timezone": "auto"
+                    }
+                    marine_resp = requests.get(OPEN_METEO_MARINE_URL, params=marine_params, timeout=20)
+                    if marine_resp.status_code == 200:
+                        data = marine_resp.json()
+                        if not isinstance(data, list):
+                            data = [data]
+                        marine_response_data = data
+                        logger.info(f"[MARINE BATCH] Successfully fetched marine data for {len(data)} locations")
+                    else:
+                        logger.warning(f"[MARINE BATCH ERROR] Failed with status {marine_resp.status_code}")
+                except Exception as e:
+                    logger.warning(f"[MARINE BATCH ERROR] Exception: {e}")
                 
                 # Collect all new entries for batch DB insert
                 all_new_db_entries = []
@@ -932,6 +1019,11 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                 for idx, location_data in enumerate(response_data):
                     req_lat, req_lon, req_key = chunk[idx]
                     
+                    # Get corresponding marine data
+                    marine_loc_data = {}
+                    if idx < len(marine_response_data):
+                        marine_loc_data = marine_response_data[idx].get("hourly", {})
+
                     if "hourly" in location_data:
                         hourly = location_data["hourly"]
                         times = hourly.get("time", [])
@@ -941,6 +1033,16 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                         wind_directions = hourly.get("wind_direction_10m", [])
                         wind_gusts = hourly.get("wind_gusts_10m", [])
                         
+                        # Marine lists
+                        wave_heights = marine_loc_data.get("wave_height", [])
+                        wave_directions = marine_loc_data.get("wave_direction", [])
+                        wave_periods = marine_loc_data.get("wave_period", [])
+                        swell_heights = marine_loc_data.get("swell_wave_height", [])
+                        swell_directions = marine_loc_data.get("swell_wave_direction", [])
+                        swell_periods = marine_loc_data.get("swell_wave_period", [])
+                        ssts = marine_loc_data.get("sea_surface_temperature", [])
+                        sea_levels = marine_loc_data.get("sea_level_height_msl", [])
+
                         for time_idx, time_str in enumerate(times):
                             if time_idx < len(wind_speeds):
                                 try:
@@ -951,7 +1053,16 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                                         "wind_speed_10m": wind_speeds[time_idx],
                                         "wind_direction_10m": wind_directions[time_idx],
                                         "wind_gusts_10m": wind_gusts[time_idx],
-                                        "timestamp": hour_dt
+                                        "timestamp": hour_dt,
+                                        # Add marine data
+                                        "wave_height": wave_heights[time_idx] if time_idx < len(wave_heights) else None,
+                                        "wave_direction": wave_directions[time_idx] if time_idx < len(wave_directions) else None,
+                                        "wave_period": wave_periods[time_idx] if time_idx < len(wave_periods) else None,
+                                        "swell_wave_height": swell_heights[time_idx] if time_idx < len(swell_heights) else None,
+                                        "swell_wave_direction": swell_directions[time_idx] if time_idx < len(swell_directions) else None,
+                                        "swell_wave_period": swell_periods[time_idx] if time_idx < len(swell_periods) else None,
+                                        "sea_surface_temperature": ssts[time_idx] if time_idx < len(ssts) else None,
+                                        "sea_level_height_msl": sea_levels[time_idx] if time_idx < len(sea_levels) else None
                                     }
                                     
                                     # Update L1
