@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import L, { Icon } from 'leaflet';
 import { Info } from 'lucide-react';
 import React, { useMemo, useCallback, useEffect, useRef, useState } from 'react';
@@ -485,7 +486,7 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
           </div>
         `;
 
-          leafletMarker.bindPopup(popupContent, {
+          leafletMarker.bindPopup(DOMPurify.sanitize(popupContent), {
             maxWidth: 240,
             autoPanPadding: [50, 50],
             autoPanPaddingTopLeft: [50, 50],

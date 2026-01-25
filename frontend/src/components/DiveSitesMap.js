@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import L, { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -276,7 +277,7 @@ const MarkerClusterGroup = ({
         : '';
 
       // Add popup
-      leafletMarker.bindPopup(`
+      const popupContent = `
         <div class="p-2">
           <h3 class="font-semibold text-gray-900 mb-1">${marker.name}</h3>
           ${marker.description ? `<p class="text-sm text-gray-600 mb-2 line-clamp-2">${marker.description}</p>` : ''}
@@ -299,7 +300,8 @@ const MarkerClusterGroup = ({
             View Details
           </a>
         </div>
-      `);
+      `;
+      leafletMarker.bindPopup(DOMPurify.sanitize(popupContent));
 
       clusterGroup.addLayer(leafletMarker);
     });

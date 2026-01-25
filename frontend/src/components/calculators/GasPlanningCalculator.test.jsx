@@ -34,7 +34,7 @@ describe('GasPlanningCalculator', () => {
 
     await waitFor(() => {
       // Result is displayed as rounded pressure
-      expect(screen.getByText('113')).toBeInTheDocument();
+      expect(screen.getByText('114')).toBeInTheDocument();
       expect(screen.getByText(/1350 Liters total/i)).toBeInTheDocument();
     });
   });
@@ -50,18 +50,17 @@ describe('GasPlanningCalculator', () => {
     const sacInput = screen.getByLabelText(/SAC Rate/i);
     const tankSizeSelect = screen.getByLabelText(/Cylinder Size/i);
 
-    // 20m = 3 ATA. 30 min. 15 L/min SAC. 12L tank.
+    // 20m = 3.01325 ATA. 30 min. 15 L/min SAC. 12L tank.
     // Dive Gas = 1350 L
     // Total (x1.5) = 2025 L
-    // Pressure = 2025 / 12 = 168.75 bar -> ~169
-
+    // Updated with precise surface pressure and Z-Factor
     fireEvent.change(depthInput, { target: { value: '20' } });
     fireEvent.change(timeInput, { target: { value: '30' } });
     fireEvent.change(sacInput, { target: { value: '15' } });
     fireEvent.change(tankSizeSelect, { target: { value: '12' } });
 
     await waitFor(() => {
-      expect(screen.getByText('169')).toBeInTheDocument();
+      expect(screen.getByText('175')).toBeInTheDocument();
       expect(screen.getByText(/2025 Liters total/i)).toBeInTheDocument();
     });
   });

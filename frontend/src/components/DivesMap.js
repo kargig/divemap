@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import L, { Icon } from 'leaflet';
 import { Calendar, Clock, Thermometer, Star } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
@@ -96,7 +97,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
       });
 
       // Add popup
-      leafletMarker.bindPopup(`
+      const popupContent = `
         <div class="p-2">
           <div class="flex items-center justify-between mb-2">
             <h3 class="font-semibold text-gray-900">
@@ -191,7 +192,8 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
             View Details
           </a>
         </div>
-      `);
+      `;
+      leafletMarker.bindPopup(DOMPurify.sanitize(popupContent));
 
       clusterGroup.addLayer(leafletMarker);
     });
@@ -250,7 +252,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
       // Create and show cluster popup
       const clusterPopup = L.popup()
         .setLatLng(cluster.getLatLng())
-        .setContent(clusterPopupContent)
+        .setContent(DOMPurify.sanitize(clusterPopupContent))
         .openOn(map);
     });
 

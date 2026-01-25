@@ -2236,13 +2236,28 @@ async def upload_dive_site_photo_r2_only(
             detail="You don't have permission to edit this dive site"
         )
 
-    # Validate file size (max 15MB) - ImageProcessingService has its own check too
-    file_content = await file.read()
-    if len(file_content) > 15 * 1024 * 1024:  # 15MB
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds 15MB limit"
-        )
+    # Validate file size (max 15MB) - Read in chunks to prevent memory exhaustion
+    MAX_FILE_SIZE = 15 * 1024 * 1024
+    file_size = 0
+    file_content = bytearray()
+    
+    # Use 1MB chunks
+    CHUNK_SIZE = 1024 * 1024
+    
+    while True:
+        chunk = await file.read(CHUNK_SIZE)
+        if not chunk:
+            break
+        file_size += len(chunk)
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File size exceeds 15MB limit"
+            )
+        file_content.extend(chunk)
+    
+    # Convert bytearray back to bytes for downstream processing
+    file_content = bytes(file_content)
 
     # Generate unique filename
     file_ext = Path(file.filename).suffix if file.filename else '.jpg'

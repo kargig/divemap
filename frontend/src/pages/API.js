@@ -112,7 +112,7 @@ const API = () => {
                 Most endpoints require authentication. Include your access token in the
                 Authorization header:
               </p>
-              <code className='bg-gray-100 px-3 py-2 rounded text-sm font-mono block'>
+              <code className='bg-gray-100 px-3 py-2 rounded text-sm font-mono block overflow-x-auto'>
                 Authorization: Bearer YOUR_ACCESS_TOKEN
               </code>
 
@@ -145,7 +145,7 @@ const API = () => {
 
                 <div className='mt-3 p-3 bg-white rounded border'>
                   <p className='text-blue-700 text-xs font-medium mb-2'>Example Login Request:</p>
-                  <code className='bg-gray-100 px-2 py-1 rounded text-xs font-mono block'>
+                  <code className='bg-gray-100 px-2 py-1 rounded text-xs font-mono block overflow-x-auto'>
                     POST {backendUrl}/api/v1/auth/login
                     <br />
                     Content-Type: application/x-www-form-urlencoded
@@ -185,7 +185,7 @@ const API = () => {
                   <p className='text-green-800 text-sm mb-3'>
                     Authenticate and receive your access token:
                   </p>
-                  <code className='bg-green-100 px-3 py-2 rounded text-sm font-mono block text-green-900'>
+                  <code className='bg-green-100 px-3 py-2 rounded text-sm font-mono block overflow-x-auto text-green-900'>
                     curl -X POST {backendUrl}/api/v1/auth/login \
                     <br />
                     &nbsp;&nbsp;-H &quot;Content-Type: application/x-www-form-urlencoded&quot; \
@@ -203,7 +203,7 @@ const API = () => {
                   <p className='text-blue-800 text-sm mb-3'>
                     Include the token in subsequent API requests:
                   </p>
-                  <code className='bg-blue-100 px-3 py-2 rounded text-sm font-mono block text-blue-900'>
+                  <code className='bg-blue-100 px-3 py-2 rounded text-sm font-mono block overflow-x-auto text-blue-900'>
                     curl -X GET {backendUrl}/api/v1/dive-sites \
                     <br />
                     &nbsp;&nbsp;-H &quot;Authorization: Bearer YOUR_TOKEN_HERE&quot; \
@@ -217,7 +217,7 @@ const API = () => {
                   <p className='text-purple-800 text-sm mb-3'>
                     Example of a POST request with JSON data:
                   </p>
-                  <code className='bg-purple-100 px-3 py-2 rounded text-sm font-mono block text-purple-900'>
+                  <code className='bg-purple-100 px-3 py-2 rounded text-sm font-mono block overflow-x-auto text-purple-900'>
                     curl -X POST {backendUrl}/api/v1/dive-sites \
                     <br />
                     &nbsp;&nbsp;-H &quot;Authorization: Bearer YOUR_TOKEN_HERE&quot; \
@@ -233,7 +233,7 @@ const API = () => {
                   <p className='text-orange-800 text-sm mb-3'>
                     Example of a PUT request to update existing data:
                   </p>
-                  <code className='bg-orange-100 px-3 py-2 rounded text-sm font-mono block text-orange-900'>
+                  <code className='bg-orange-100 px-3 py-2 rounded text-sm font-mono block overflow-x-auto text-orange-900'>
                     curl -X PUT {backendUrl}/api/v1/dive-sites/123 \
                     <br />
                     &nbsp;&nbsp;-H &quot;Authorization: Bearer YOUR_TOKEN_HERE&quot; \
@@ -247,7 +247,7 @@ const API = () => {
                 <div className='p-4 bg-red-50 rounded-lg border border-red-200'>
                   <h4 className='font-medium text-red-900 mb-2'>5. Delete a Resource</h4>
                   <p className='text-red-800 text-sm mb-3'>Example of a DELETE request:</p>
-                  <code className='bg-red-100 px-3 py-2 rounded text-sm font-mono block text-red-900'>
+                  <code className='bg-red-100 px-3 py-2 rounded text-sm font-mono block overflow-x-auto text-red-900'>
                     curl -X DELETE {backendUrl}/api/v1/dive-sites/123 \
                     <br />
                     &nbsp;&nbsp;-H &quot;Authorization: Bearer YOUR_TOKEN_HERE&quot;

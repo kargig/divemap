@@ -56,14 +56,17 @@ const NavbarDesktopControls = () => {
 
       {/* Desktop Navigation */}
       <div className='hidden md:flex items-center space-x-6'>
-        <Link to='/' className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+        <Link
+          to='/'
+          className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
+        >
           <Home className='h-6 w-6' />
           <span className='text-sm'>Home</span>
         </Link>
 
         <Link
           to='/map'
-          className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
+          className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
         >
           <MapPin className='h-6 w-6' />
           <span className='text-sm'>Map</span>
@@ -95,7 +98,7 @@ const NavbarDesktopControls = () => {
           trigger={['click']}
           placement='bottomRight'
         >
-          <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+          <button className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'>
             <Compass className='h-6 w-6' />
             <span className='text-sm'>Diving</span>
             <ChevronDown className='h-4 w-4' />
@@ -104,7 +107,7 @@ const NavbarDesktopControls = () => {
 
         <Link
           to='/diving-centers'
-          className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
+          className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
         >
           <Building className='h-6 w-6' />
           <span className='text-sm'>Diving Centers</span>
@@ -112,7 +115,7 @@ const NavbarDesktopControls = () => {
 
         <Link
           to='/dive-trips'
-          className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
+          className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
         >
           <Calendar className='h-6 w-6' />
           <span className='text-sm'>Dive Trips</span>
@@ -144,7 +147,7 @@ const NavbarDesktopControls = () => {
           trigger={['click']}
           placement='bottomRight'
         >
-          <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+          <button className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'>
             <Award className='h-6 w-6' />
             <span className='text-sm'>Resources</span>
             <ChevronDown className='h-4 w-4' />
@@ -189,7 +192,7 @@ const NavbarDesktopControls = () => {
           trigger={['click']}
           placement='bottomRight'
         >
-          <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+          <button className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'>
             <Info className='h-6 w-6' />
             <span className='text-sm'>Info</span>
             <ChevronDown className='h-4 w-4' />
@@ -293,7 +296,7 @@ const NavbarDesktopControls = () => {
                 trigger={['click']}
                 placement='bottomRight'
               >
-                <button className='flex items-center space-x-1 hover:text-blue-200 transition-colors'>
+                <button className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'>
                   <Settings className='h-6 w-6' />
                   <span className='text-sm'>Admin</span>
                   <ChevronDown className='h-4 w-4' />
@@ -303,7 +306,7 @@ const NavbarDesktopControls = () => {
 
             <Link
               to='/profile'
-              className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
+              className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
             >
               <User className='h-6 w-6' />
               <span className='text-sm'>{user.username}</span>
@@ -311,7 +314,7 @@ const NavbarDesktopControls = () => {
 
             <button
               onClick={handleLogout}
-              className='flex items-center space-x-1 hover:text-blue-200 transition-colors'
+              className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
             >
               <LogOut className='h-6 w-6' />
               <span className='text-sm'>Logout</span>
