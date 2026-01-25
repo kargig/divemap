@@ -1,3 +1,5 @@
+import { Row, Col } from 'antd';
+import { Grid } from 'antd-mobile';
 import L from 'leaflet';
 import escape from 'lodash/escape';
 import {
@@ -60,6 +62,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
+import { useResponsive } from '../hooks/useResponsive';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
@@ -345,6 +348,7 @@ const DiveDetail = () => {
     zoom: 15,
   });
   const [currentZoom, setCurrentZoom] = useState(15);
+  const { isMobile } = useResponsive();
   const fileInputRef = useRef(null);
 
   // Handle profile upload
@@ -890,7 +894,7 @@ const DiveDetail = () => {
           schema={getSchema()}
         />
       )}
-      {/* Breadcrumbs */}
+      {/* Breadcrumbs - Always visible as the primary title source */}
       {dive && (
         <Breadcrumbs
           items={[
@@ -916,13 +920,9 @@ const DiveDetail = () => {
             <ArrowLeft size={20} className='sm:w-6 sm:h-6' />
           </button>
           <div className='min-w-0 flex-1'>
-            <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate'>
-              {dive.name || dive.dive_site?.name || 'Unnamed Dive Site'}
-            </h1>
-            <p className='text-sm sm:text-base text-gray-600'>
-              {formatDate(dive.dive_date)}
-              {dive.dive_time && ` at ${formatTime(dive.dive_time)}`}
-            </p>
+            {/* Title is displayed in breadcrumbs above, removing redundant h1 */}
+            {/* Date/Time is in Dive Information below, removing redundant display */}
+
             {/* Privacy Status and Created By */}
             <div className='flex items-center gap-2 mt-1 flex-wrap'>
               {dive.is_private ? (
@@ -1052,7 +1052,7 @@ const DiveDetail = () => {
             <>
               {/* Basic Information */}
               <div className='bg-white rounded-lg shadow p-6'>
-                <div className='flex items-center gap-2 mb-6'>
+                <div className='flex items-center gap-2 mb-4 pb-2 border-b border-gray-100'>
                   <h2 className='text-xl font-semibold'>Dive Information</h2>
                   {hasDeco && (
                     <span className='text-red-500 font-medium text-sm border border-red-200 bg-red-50 px-2 py-0.5 rounded'>
@@ -1061,138 +1061,335 @@ const DiveDetail = () => {
                   )}
                 </div>
 
-                {/* Primary Metadata Row (Standardized) */}
-                <div className='flex flex-col sm:flex-row sm:items-start gap-6 sm:gap-8 mb-6 pb-6 border-b border-gray-100'>
-                  {/* Difficulty */}
-                  <div className='flex flex-col'>
-                    <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
-                      Difficulty
-                    </span>
-                    <div className='flex items-center mt-0.5'>
-                      {dive.difficulty_code ? (
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
-                        >
-                          {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
-                        </span>
-                      ) : (
-                        <span className='text-sm text-gray-500'>-</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Max Depth */}
-                  <div className='flex flex-col'>
-                    <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
-                      Max Depth
-                    </span>
-                    <div className='flex items-center gap-1.5'>
-                      <TrendingUp className='w-4 h-4 text-gray-400' />
-                      <span className='text-sm font-bold text-gray-900'>
-                        {dive.max_depth || '-'}
-                        <span className='text-xs font-normal text-gray-400 ml-0.5'>m</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Duration */}
-                  <div className='flex flex-col'>
-                    <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
-                      Duration
-                    </span>
-                    <div className='flex items-center gap-1.5'>
-                      <Clock className='w-4 h-4 text-gray-400' />
-                      <span className='text-sm font-bold text-gray-900'>
-                        {dive.duration || '-'}
-                        <span className='text-xs font-normal text-gray-400 ml-0.5'>min</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Date */}
-                  <div className='flex flex-col'>
-                    <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
-                      Date
-                    </span>
-                    <span className='text-sm font-medium text-gray-900'>
-                      {formatDate(dive.dive_date)}
-                    </span>
-                  </div>
-
-                  {/* Tags */}
-                  <div className='flex flex-col'>
-                    <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
-                      Tags
-                    </span>
-                    {dive.tags && dive.tags.length > 0 ? (
-                      <div className='flex flex-wrap gap-2 mt-0.5'>
-                        {dive.tags.map(tag => (
-                          <span
-                            key={tag.id}
-                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${getTagColor(tag.name)}`}
-                          >
-                            {tag.name}
+                {/* Responsive Dive Information */}
+                {isMobile ? (
+                  // Mobile View: Ant Design Mobile Grid
+                  <div className='mb-4'>
+                    <Grid columns={2} gap={16}>
+                      <Grid.Item>
+                        <div className='flex flex-col'>
+                          <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                            Difficulty
                           </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className='text-sm text-gray-400'>-</span>
-                    )}
+                          <div className='flex items-center mt-0.5'>
+                            {dive.difficulty_code ? (
+                              <span
+                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
+                              >
+                                {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
+                              </span>
+                            ) : (
+                              <span className='text-sm text-gray-500'>-</span>
+                            )}
+                          </div>
+                        </div>
+                      </Grid.Item>
+
+                      <Grid.Item>
+                        <div className='flex flex-col'>
+                          <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                            Date & Time
+                          </span>
+
+                          <div className='flex items-center gap-1.5'>
+                            <Calendar className='w-4 h-4 text-gray-400' />
+
+                            <span className='text-sm font-medium text-gray-900'>
+                              {formatDate(dive.dive_date)}
+
+                              {dive.dive_time && (
+                                <span className='text-gray-500 font-normal ml-1'>
+                                  {formatTime(dive.dive_time)}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </Grid.Item>
+
+                      <Grid.Item>
+                        <div className='flex flex-col'>
+                          <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                            Max Depth
+                          </span>
+
+                          <div className='flex items-center gap-1.5'>
+                            <TrendingUp className='w-4 h-4 text-gray-400' />
+
+                            <span className='text-sm font-bold text-gray-900'>
+                              {dive.max_depth || '-'}
+
+                              <span className='text-xs font-normal text-gray-400 ml-0.5'>m</span>
+                            </span>
+                          </div>
+                        </div>
+                      </Grid.Item>
+
+                      <Grid.Item>
+                        <div className='flex flex-col'>
+                          <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                            Duration
+                          </span>
+
+                          <div className='flex items-center gap-1.5'>
+                            <Clock className='w-4 h-4 text-gray-400' />
+
+                            <span className='text-sm font-bold text-gray-900'>
+                              {dive.duration || '-'}
+
+                              <span className='text-xs font-normal text-gray-400 ml-0.5'>min</span>
+                            </span>
+                          </div>
+                        </div>
+                      </Grid.Item>
+
+                      {dive.average_depth && (
+                        <Grid.Item>
+                          <div className='flex flex-col'>
+                            <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                              Avg Depth
+                            </span>
+                            <div className='flex items-center gap-1.5'>
+                              <TrendingUp size={15} className='text-gray-500' />
+                              <span className='text-sm font-medium'>{dive.average_depth}m</span>
+                            </div>
+                          </div>
+                        </Grid.Item>
+                      )}
+
+                      {dive.visibility_rating && (
+                        <Grid.Item>
+                          <div className='flex flex-col'>
+                            <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                              Visibility
+                            </span>
+                            <div className='flex items-center gap-1.5'>
+                              <Eye size={15} className='text-gray-500' />
+                              <span className='text-sm font-medium'>
+                                {dive.visibility_rating}/10
+                              </span>
+                            </div>
+                          </div>
+                        </Grid.Item>
+                      )}
+
+                      {dive.user_rating && (
+                        <Grid.Item>
+                          <div className='flex flex-col'>
+                            <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                              Rating
+                            </span>
+                            <div className='flex items-center gap-1.5'>
+                              <img
+                                src='/arts/divemap_shell.png'
+                                alt='Rating'
+                                className='w-4 h-4 object-contain'
+                              />
+                              <span className='text-sm font-medium'>{dive.user_rating}/10</span>
+                            </div>
+                          </div>
+                        </Grid.Item>
+                      )}
+
+                      {dive.suit_type && (
+                        <Grid.Item>
+                          <div className='flex flex-col'>
+                            <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                              Suit
+                            </span>
+                            <div className='flex items-center gap-1.5'>
+                              <User size={15} className='text-gray-500' />
+                              <span className='text-sm font-medium capitalize'>
+                                {dive.suit_type.replace('_', ' ')}
+                              </span>
+                            </div>
+                          </div>
+                        </Grid.Item>
+                      )}
+
+                      {/* Tags - Full Width */}
+                      <Grid.Item span={2}>
+                        <div className='flex flex-col'>
+                          <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                            Tags
+                          </span>
+                          {dive.tags && dive.tags.length > 0 ? (
+                            <div className='flex flex-wrap gap-2 mt-0.5'>
+                              {dive.tags.map(tag => (
+                                <span
+                                  key={tag.id}
+                                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${getTagColor(tag.name)}`}
+                                >
+                                  {tag.name}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className='text-sm text-gray-400'>-</span>
+                          )}
+                        </div>
+                      </Grid.Item>
+                    </Grid>
                   </div>
-                </div>
+                ) : (
+                  // Desktop View: Ant Design Rows/Cols
+                  <>
+                    {/* Primary Metadata Row */}
+                    <div className='mb-4'>
+                      <Row gutter={[32, 16]}>
+                        <Col>
+                          <div className='flex flex-col'>
+                            <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                              Difficulty
+                            </span>
+                            <div className='flex items-center mt-0.5'>
+                              {dive.difficulty_code ? (
+                                <span
+                                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
+                                >
+                                  {dive.difficulty_label ||
+                                    getDifficultyLabel(dive.difficulty_code)}
+                                </span>
+                              ) : (
+                                <span className='text-sm text-gray-500'>-</span>
+                              )}
+                            </div>
+                          </div>
+                        </Col>
 
-                {/* Secondary Information Grid */}
-                <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4'>
-                  {dive.dive_time && (
-                    <div className='flex items-center gap-2'>
-                      <Clock size={15} className='text-gray-500' />
-                      <span className='text-sm text-gray-600'>Time:</span>
-                      <span className='font-medium'>{formatTime(dive.dive_time)}</span>
-                    </div>
-                  )}
+                        <Col>
+                          <div className='flex flex-col'>
+                            <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                              Max Depth
+                            </span>
+                            <div className='flex items-center gap-1.5'>
+                              <TrendingUp className='w-4 h-4 text-gray-400' />
+                              <span className='text-sm font-bold text-gray-900'>
+                                {dive.max_depth || '-'}
+                                <span className='text-xs font-normal text-gray-400 ml-0.5'>m</span>
+                              </span>
+                            </div>
+                          </div>
+                        </Col>
 
-                  {dive.average_depth && (
-                    <div className='flex items-center gap-2'>
-                      <TrendingUp size={15} className='text-gray-500' />
-                      <span className='text-sm text-gray-600'>Avg Depth:</span>
-                      <span className='font-medium'>{dive.average_depth}m</span>
-                    </div>
-                  )}
+                        <Col>
+                          <div className='flex flex-col'>
+                            <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                              Duration
+                            </span>
+                            <div className='flex items-center gap-1.5'>
+                              <Clock className='w-4 h-4 text-gray-400' />
+                              <span className='text-sm font-bold text-gray-900'>
+                                {dive.duration || '-'}
+                                <span className='text-xs font-normal text-gray-400 ml-0.5'>
+                                  min
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        </Col>
 
-                  {dive.visibility_rating && (
-                    <div className='flex items-center gap-2'>
-                      <Eye size={15} className='text-gray-500' />
-                      <span className='text-sm text-gray-600'>Visibility:</span>
-                      <span className='font-medium'>{dive.visibility_rating}/10</span>
-                    </div>
-                  )}
+                        <Col>
+                          <div className='flex flex-col'>
+                            <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                              Date & Time
+                            </span>
+                            <div className='flex items-center gap-1.5'>
+                              <Calendar className='w-4 h-4 text-gray-400' />
+                              <span className='text-sm font-medium text-gray-900'>
+                                {formatDate(dive.dive_date)}
+                                {dive.dive_time && (
+                                  <span className='text-gray-500 font-normal ml-1'>
+                                    {formatTime(dive.dive_time)}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        </Col>
 
-                  {dive.user_rating && (
-                    <div className='flex items-center gap-2'>
-                      <img
-                        src='/arts/divemap_shell.png'
-                        alt='Rating'
-                        className='w-4 h-4 object-contain'
-                      />
-                      <span className='text-sm text-gray-600'>Rating:</span>
-                      <span className='font-medium'>{dive.user_rating}/10</span>
+                        <Col flex='auto'>
+                          <div className='flex flex-col'>
+                            <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                              Tags
+                            </span>
+                            {dive.tags && dive.tags.length > 0 ? (
+                              <div className='flex flex-wrap gap-2 mt-0.5'>
+                                {dive.tags.map(tag => (
+                                  <span
+                                    key={tag.id}
+                                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${getTagColor(tag.name)}`}
+                                  >
+                                    {tag.name}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className='text-sm text-gray-400'>-</span>
+                            )}
+                          </div>
+                        </Col>
+                      </Row>
                     </div>
-                  )}
 
-                  {dive.suit_type && (
-                    <div className='flex items-center gap-2'>
-                      <User size={15} className='text-gray-500' />
-                      <span className='text-sm text-gray-600'>Suit:</span>
-                      <span className='font-medium capitalize'>
-                        {dive.suit_type.replace('_', ' ')}
-                      </span>
+                    {/* Secondary Information Grid */}
+                    <div className='mb-4'>
+                      <Row gutter={[16, 16]}>
+                        {dive.average_depth && (
+                          <Col xs={24} sm={12} md={6}>
+                            <div className='flex items-center gap-2'>
+                              <TrendingUp size={15} className='text-gray-500' />
+                              <span className='text-sm text-gray-600'>Avg Depth:</span>
+                              <span className='font-medium'>{dive.average_depth}m</span>
+                            </div>
+                          </Col>
+                        )}
+
+                        {dive.visibility_rating && (
+                          <Col xs={24} sm={12} md={6}>
+                            <div className='flex items-center gap-2'>
+                              <Eye size={15} className='text-gray-500' />
+                              <span className='text-sm text-gray-600'>Visibility:</span>
+                              <span className='font-medium'>{dive.visibility_rating}/10</span>
+                            </div>
+                          </Col>
+                        )}
+
+                        {dive.user_rating && (
+                          <Col xs={24} sm={12} md={6}>
+                            <div className='flex items-center gap-2'>
+                              <img
+                                src='/arts/divemap_shell.png'
+                                alt='Rating'
+                                className='w-4 h-4 object-contain'
+                              />
+                              <span className='text-sm text-gray-600'>Rating:</span>
+                              <span className='font-medium'>{dive.user_rating}/10</span>
+                            </div>
+                          </Col>
+                        )}
+
+                        {dive.suit_type && (
+                          <Col xs={24} sm={12} md={6}>
+                            <div className='flex items-center gap-2'>
+                              <User size={15} className='text-gray-500' />
+                              <span className='text-sm text-gray-600'>Suit:</span>
+                              <span className='font-medium capitalize'>
+                                {dive.suit_type.replace('_', ' ')}
+                              </span>
+                            </div>
+                          </Col>
+                        )}
+                      </Row>
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
 
                 {/* Buddies */}
                 <div className='mt-4'>
-                  <h3 className='text-sm font-medium text-gray-700 mb-2'>Dive Buddies</h3>
+                  <h3 className='text-base font-semibold text-gray-900 border-b border-gray-100 pb-2 mb-3'>
+                    Dive Buddies
+                  </h3>
                   {dive.buddies && dive.buddies.length > 0 ? (
                     <div className='space-y-2'>
                       <div className='flex flex-wrap gap-2'>
@@ -1244,7 +1441,9 @@ const DiveDetail = () => {
 
                 {dive.gas_bottles_used && (
                   <div className='mt-4'>
-                    <h3 className='text-sm font-medium text-gray-700 mb-1'>Gas Bottles Used</h3>
+                    <h3 className='text-base font-semibold text-gray-900 border-b border-gray-100 pb-2 mb-3'>
+                      Gas Bottles Used
+                    </h3>
                     <GasTanksDisplay
                       gasData={dive.gas_bottles_used}
                       averageDepth={dive.average_depth}
@@ -1256,7 +1455,9 @@ const DiveDetail = () => {
 
                 {dive.dive_information && (
                   <div className='mt-4'>
-                    <h3 className='text-sm font-medium text-gray-700 mb-1'>Dive Description</h3>
+                    <h3 className='text-base font-semibold text-gray-900 border-b border-gray-100 pb-2 mb-3'>
+                      Dive Description
+                    </h3>
                     <p className='text-gray-600 whitespace-pre-wrap'>{dive.dive_information}</p>
                   </div>
                 )}

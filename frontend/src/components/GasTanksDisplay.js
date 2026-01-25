@@ -1,9 +1,11 @@
 import { ChevronDown, ChevronUp, Info } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 
+import { useResponsive } from '../hooks/useResponsive';
 import { TANK_SIZES } from '../utils/diveConstants';
 
 const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
+  const { isMobile } = useResponsive();
   const [expandedRows, setExpandedRows] = useState({});
 
   const toggleRow = id => {
@@ -234,7 +236,16 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
     cylinderIndex,
     showStats = true
   ) => {
-    const tankName = getTankInfo(item.tank)?.name || item.tank;
+    const tankInfo = getTankInfo(item.tank);
+    const fullTankName = tankInfo?.name || item.tank;
+
+    // Helper to shorten tank name for mobile
+    const shortenTankName = name => {
+      if (!name) return '';
+      return name.replace('Double ', 'D').replace(' Liters', 'L').replace(' (Pony)', '').trim();
+    };
+
+    const tankName = isMobile ? shortenTankName(fullTankName) : fullTankName;
     const start = item.start_pressure || item.pressure;
     const end = item.end_pressure;
     const consumed = calculateConsumption(item.tank, start, end);
@@ -242,13 +253,27 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
     const rowId = cylinderIndex !== undefined ? cylinderIndex : label;
     const isExpanded = !!expandedRows[rowId];
 
+    // Helper for mobile labels
+    const getShortLabel = fullLabel => {
+      if (fullLabel === 'Back Gas') return 'Back';
+      if (fullLabel.startsWith('Stage')) return fullLabel.replace('Stage ', 'S');
+      return fullLabel;
+    };
+
     return (
       <div className='flex flex-col gap-2'>
-        <div className='flex items-center gap-2 flex-wrap'>
-          <span className='text-sm font-semibold text-gray-700 min-w-[70px]'>{label}:</span>
+        <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'} flex-wrap`}>
+          {!isMobile && (
+            <span
+              className={`text-sm font-semibold text-gray-700 ${isMobile ? 'min-w-[60px]' : 'min-w-[70px]'}`}
+            >
+              {label}:
+            </span>
+          )}
           <div
-            className={`${bgClass} ${colorClass} px-3 py-1.5 rounded-md text-sm font-medium flex gap-3 items-center border ${borderClass}`}
+            className={`${bgClass} ${colorClass} ${isMobile ? 'px-2 py-1 text-xs gap-1' : 'px-3 py-1.5 text-sm gap-3'} rounded-md font-medium flex items-center border ${borderClass}`}
           >
+            {isMobile && <span className='font-bold mr-0.5'>{getShortLabel(label)}:</span>}
             <span>{tankName}</span>
             <span className={`${borderClass.replace('border-', 'text-').replace('100', '400')}`}>
               |
@@ -257,13 +282,19 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
           </div>
 
           {sacData && (
-            <div className='flex items-center gap-2'>
-              <div className='px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md text-sm border border-gray-200 flex items-center gap-1'>
-                <span className='font-semibold'>SAC:</span>
-                <span className='hidden sm:inline text-xs text-gray-400 ml-1'>Ideal</span>
-                <span>{sacData.ideal}</span>
-                <span className='text-gray-400 text-xs mx-0.5'>/</span>
-                <span className='hidden sm:inline text-xs text-gray-400'>Real</span>
+            <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
+              <div
+                className={`${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} bg-gray-100 text-gray-600 rounded-md border border-gray-200 flex items-center gap-1`}
+              >
+                {!isMobile && <span className='font-semibold'>SAC:</span>}
+                {!isMobile && (
+                  <>
+                    <span className='hidden sm:inline text-xs text-gray-400 ml-1'>Ideal</span>
+                    <span>{sacData.ideal}</span>
+                    <span className='text-gray-400 text-xs mx-0.5'>/</span>
+                  </>
+                )}
+                {!isMobile && <span className='hidden sm:inline text-xs text-gray-400'>Real</span>}
                 <span className='text-gray-500 font-bold' title='Real Gas SAC (Subsurface style)'>
                   {sacData.real} L/min
                 </span>
@@ -316,7 +347,9 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
         </div>
 
         {isExpanded && (
-          <div className='ml-[78px] flex items-center gap-2 flex-wrap animate-in fade-in slide-in-from-left-2 duration-200'>
+          <div
+            className={`${isMobile ? 'ml-0 mt-2' : 'ml-[78px]'} flex items-center gap-2 flex-wrap animate-in fade-in slide-in-from-left-2 duration-200`}
+          >
             {/* Pressure & Consumption Pill */}
             <div
               className={`${bgClass} ${colorClass} px-3 py-1.5 rounded-md text-xs font-medium flex gap-3 items-center border ${borderClass} opacity-80`}
@@ -333,6 +366,14 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
                 </>
               )}
             </div>
+
+            {/* Ideal SAC (Mobile Only) */}
+            {isMobile && sacData && (
+              <div className='px-3 py-1.5 bg-gray-50 text-gray-600 rounded-md text-xs border border-gray-200 flex items-center gap-2'>
+                <span className='text-gray-500'>Ideal SAC:</span>
+                <span className='font-medium text-gray-700'>{sacData.ideal}</span>
+              </div>
+            )}
 
             {/* Stats Pill */}
             {showStats && sacData && (
@@ -390,36 +431,46 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
 
       {/* Combined SAC for multiple tanks */}
       {data.stages && data.stages.length > 0 && (
-        <div className='mt-4 pt-3 border-t border-gray-200'>
-          <div className='flex items-center gap-2 flex-wrap'>
-            <span className='text-sm font-bold text-gray-900 min-w-[70px]'>Combined SAC:</span>
+        <div className='mt-2'>
+          <div className={`flex items-center ${isMobile ? 'gap-1.5' : 'gap-2'} flex-wrap`}>
+            <span
+              className={`text-sm font-semibold text-gray-700 ${isMobile ? 'min-w-[60px]' : 'min-w-[70px]'}`}
+            >
+              {isMobile ? 'Total:' : 'Combined SAC:'}
+            </span>
 
-            <div className='flex items-center gap-2'>
-              <div className='px-3 py-1.5 bg-sky-50 text-sky-800 rounded-md text-sm border border-sky-100 flex items-center gap-1 shadow-sm'>
-                <span className='text-xs text-sky-400'>Ideal</span>
-                <span className='font-medium'>
-                  {(
-                    (calculateConsumption(
-                      data.back_gas.tank,
-                      data.back_gas.start_pressure || data.back_gas.pressure,
-                      data.back_gas.end_pressure
-                    ) +
-                      data.stages.reduce(
-                        (acc, stage) =>
-                          acc +
-                          (calculateConsumption(
-                            stage.tank,
-                            stage.start_pressure || stage.pressure,
-                            stage.end_pressure
-                          ) || 0),
-                        0
-                      )) /
-                    parseFloat(duration) /
-                    (parseFloat(averageDepth) / 10 + 1)
-                  ).toFixed(1)}
-                </span>
-                <span className='text-sky-200 text-xs mx-0.5'>/</span>
-                <span className='text-xs text-sky-400'>Real</span>
+            <div className={`flex items-center ${isMobile ? 'gap-1.5' : 'gap-2'} flex-wrap`}>
+              <div
+                className={`${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} bg-sky-50 text-sky-800 rounded-md border border-sky-100 flex items-center gap-1 shadow-sm`}
+              >
+                {!isMobile && (
+                  <>
+                    <span className='text-xs text-sky-400'>Ideal</span>
+                    <span className='font-medium'>
+                      {(
+                        (calculateConsumption(
+                          data.back_gas.tank,
+                          data.back_gas.start_pressure || data.back_gas.pressure,
+                          data.back_gas.end_pressure
+                        ) +
+                          data.stages.reduce(
+                            (acc, stage) =>
+                              acc +
+                              (calculateConsumption(
+                                stage.tank,
+                                stage.start_pressure || stage.pressure,
+                                stage.end_pressure
+                              ) || 0),
+                            0
+                          )) /
+                        parseFloat(duration) /
+                        (parseFloat(averageDepth) / 10 + 1)
+                      ).toFixed(1)}
+                    </span>
+                    <span className='text-sky-200 text-xs mx-0.5'>/</span>
+                  </>
+                )}
+                {!isMobile && <span className='text-xs text-sky-400'>Real</span>}
                 <span className='text-sky-600 font-bold'>
                   {(
                     (calculateRealGasConsumption(
@@ -446,20 +497,34 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
                 </span>
               </div>
 
-              <div className='px-3 py-1.5 bg-sky-50/50 text-sky-700 rounded-md text-sm border border-sky-100 flex items-center gap-2'>
-                <span className='text-xs text-sky-500'>
-                  Time:{' '}
+              <div
+                className={`${isMobile ? 'px-2 py-1 text-xs gap-1.5' : 'px-3 py-1.5 text-sm gap-2'} bg-sky-50/50 text-sky-700 rounded-md border border-sky-100 flex items-center`}
+              >
+                {isMobile ? (
                   <span className='font-medium text-sky-800'>
                     {parseFloat(duration).toFixed(0)} min
                   </span>
-                </span>
+                ) : (
+                  <span className='text-xs text-sky-500'>
+                    Time:{' '}
+                    <span className='font-medium text-sky-800'>
+                      {parseFloat(duration).toFixed(0)} min
+                    </span>
+                  </span>
+                )}
                 <span className='text-sky-200'>|</span>
-                <span className='text-xs text-sky-500'>
-                  Avg. Depth:{' '}
+                {isMobile ? (
                   <span className='font-medium text-sky-800'>
                     {parseFloat(averageDepth).toFixed(1)}m
                   </span>
-                </span>
+                ) : (
+                  <span className='text-xs text-sky-500'>
+                    Avg. Depth:{' '}
+                    <span className='font-medium text-sky-800'>
+                      {parseFloat(averageDepth).toFixed(1)}m
+                    </span>
+                  </span>
+                )}
               </div>
             </div>
 

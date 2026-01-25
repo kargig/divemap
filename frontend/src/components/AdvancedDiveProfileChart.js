@@ -10,6 +10,7 @@ import {
   X,
   Contrast,
   Upload,
+  TrendingUp,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
@@ -605,7 +606,9 @@ const AdvancedDiveProfileChart = ({
               </span>
             </div>
             <div className='flex items-center gap-2'>
-              <Activity className={`${isMobileLandscape ? 'h-3 w-3' : 'h-5 w-5'} text-blue-500`} />
+              <TrendingUp
+                className={`${isMobileLandscape ? 'h-3 w-3' : 'h-5 w-5'} text-blue-500`}
+              />
               <span
                 className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}
               >
@@ -613,7 +616,7 @@ const AdvancedDiveProfileChart = ({
               </span>
             </div>
             <div className='flex items-center gap-2'>
-              <Activity className={`${isMobileLandscape ? 'h-3 w-3' : 'h-5 w-5'} text-red-500`} />
+              <TrendingUp className={`${isMobileLandscape ? 'h-3 w-3' : 'h-5 w-5'} text-red-500`} />
               <span
                 className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}
               >

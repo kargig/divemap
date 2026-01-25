@@ -219,7 +219,7 @@ const DiveSites = () => {
       }
 
       navigate(`?${newSearchParams.toString()}`, { replace: true });
-    }, 300),
+    }, 500),
     [navigate]
   );
 
@@ -335,7 +335,7 @@ const DiveSites = () => {
         region: filters.region,
         location: filters.location,
       });
-    }, 800);
+    }, 1500);
     return () => clearTimeout(timeoutId);
   }, [filters.name, filters.search_query, filters.country, filters.region, filters.location]);
 
