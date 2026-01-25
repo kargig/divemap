@@ -16,7 +16,7 @@ import {
   Globe,
   TrendingUp,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import {
@@ -50,9 +50,9 @@ import Button from '../components/ui/Button';
 import ShellRating from '../components/ui/ShellRating';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
+import useFlickrImages from '../hooks/useFlickrImages';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
-import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
@@ -78,7 +78,6 @@ const DiveSiteDetail = () => {
   const [isMapMaximized, setIsMapMaximized] = useState(false);
   const [activeMediaTab, setActiveMediaTab] = useState('photos');
   const [activeContentTab, setActiveContentTab] = useState('description');
-  const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(new Map());
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [autoOpenVideoId, setAutoOpenVideoId] = useState(null);
@@ -86,6 +85,46 @@ const DiveSiteDetail = () => {
   // Collapse states for lazy loading
   const [isMarineExpanded, setIsMarineExpanded] = useState(false);
   const [isNearbyExpanded, setIsNearbyExpanded] = useState(false);
+
+  // Helper to check if URL is video
+  const isVideoUrl = useCallback(url => {
+    if (!url) return false;
+    return (
+      url.includes('youtube.com') ||
+      url.includes('youtu.be') ||
+      url.includes('vimeo.com') ||
+      url.includes('.mp4')
+    );
+  }, []);
+
+  const {
+    data: diveSite,
+    isLoading,
+    error,
+  } = useQuery(['dive-site', id], () => api.get(`/api/v1/dive-sites/${id}`), {
+    select: response => response.data,
+    retry: (failureCount, error) => {
+      if (error.response?.status === 404) return false;
+      return failureCount < 3;
+    },
+    onSuccess: _data => {},
+    onError: _error => {
+      // Error handled by error state
+    },
+  });
+
+  // Media data
+  const { data: media } = useQuery(
+    ['dive-site-media', id],
+    () => api.get(`/api/v1/dive-sites/${id}/media`),
+    {
+      select: response => response.data,
+      enabled: !!id && !!diveSite,
+    }
+  );
+
+  // Use hook to convert Flickr URLs
+  const { data: convertedFlickrUrls = new Map() } = useFlickrImages(media, isVideoUrl);
 
   // Route creation mutation
   const createRouteMutation = useMutation(
@@ -106,22 +145,6 @@ const DiveSiteDetail = () => {
       },
     }
   );
-
-  const {
-    data: diveSite,
-    isLoading,
-    error,
-  } = useQuery(['dive-site', id], () => api.get(`/api/v1/dive-sites/${id}`), {
-    select: response => response.data,
-    retry: (failureCount, error) => {
-      if (error.response?.status === 404) return false;
-      return failureCount < 3;
-    },
-    onSuccess: _data => {},
-    onError: _error => {
-      // Error handled by error state
-    },
-  });
 
   // Redirect to canonical URL with slug
   useEffect(() => {
@@ -147,15 +170,6 @@ const DiveSiteDetail = () => {
     }
   );
 
-  const { data: media } = useQuery(
-    ['dive-site-media', id],
-    () => api.get(`/api/v1/dive-sites/${id}/media`),
-    {
-      select: response => response.data,
-      enabled: !!id && !!diveSite,
-    }
-  );
-
   const { data: divingCenters } = useQuery(
     ['dive-site-diving-centers', id],
     () => api.get(`/api/v1/dive-sites/${id}/diving-centers`),
@@ -164,6 +178,10 @@ const DiveSiteDetail = () => {
       enabled: !!id && !!diveSite,
     }
   );
+
+  // Derived media categories
+  const publicVideos = (media || []).filter(item => isVideoUrl(item.url));
+  const publicPhotos = (media || []).filter(item => !isVideoUrl(item.url));
 
   const { data: nearbyDiveSites, isLoading: isNearbyLoading } = useQuery(
     ['dive-site-nearby', id],
@@ -260,59 +278,8 @@ const DiveSiteDetail = () => {
     commentMutation.mutate(comment);
   };
 
-  const isVideoUrl = url => {
-    return (
-      url.includes('youtube.com') ||
-      url.includes('youtu.be') ||
-      url.includes('vimeo.com') ||
-      url.includes('.mp4')
-    );
-  };
-
   // All media is public (is_public column removed from database)
   const publicMedia = media || [];
-
-  // Public media categories
-  const publicVideos = publicMedia.filter(item => isVideoUrl(item.url));
-  const publicPhotos = publicMedia.filter(item => !isVideoUrl(item.url));
-
-  // Convert Flickr URLs to direct image URLs
-  useEffect(() => {
-    const convertFlickrUrls = async () => {
-      if (!media) return;
-
-      // Get all photos
-      const allPhotos = media.filter(item => !isVideoUrl(item.url));
-      const flickrPhotos = allPhotos.filter(item => isFlickrUrl(item.url));
-
-      if (flickrPhotos.length === 0) return;
-
-      const newConvertedUrls = new Map(convertedFlickrUrls);
-      let hasUpdates = false;
-
-      for (const photo of flickrPhotos) {
-        // Skip if already converted
-        if (newConvertedUrls.has(photo.url)) continue;
-
-        try {
-          const directUrl = await convertFlickrUrlToDirectImage(photo.url);
-          if (directUrl !== photo.url) {
-            newConvertedUrls.set(photo.url, directUrl);
-            hasUpdates = true;
-          }
-        } catch (error) {
-          console.warn('Failed to convert Flickr URL:', photo.url, error);
-        }
-      }
-
-      if (hasUpdates) {
-        setConvertedFlickrUrls(newConvertedUrls);
-      }
-    };
-
-    convertFlickrUrls();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [media]);
 
   // Helper to get the URL (converted if Flickr, original otherwise)
   const getImageUrl = url => {
@@ -338,13 +305,13 @@ const DiveSiteDetail = () => {
   // Auto-select media tab based on availability
   useEffect(() => {
     if (media && media.length > 0) {
-      if (photos.length === 0 && videos.length > 0) {
+      if (publicPhotos.length === 0 && publicVideos.length > 0) {
         setActiveMediaTab('videos');
-      } else if (photos.length > 0 && videos.length === 0) {
+      } else if (publicPhotos.length > 0 && publicVideos.length === 0) {
         setActiveMediaTab('photos');
       }
     }
-  }, [media, photos.length, videos.length]);
+  }, [media, publicPhotos.length, publicVideos.length]);
 
   // Set initial content tab based on available content or URL param
   useEffect(() => {

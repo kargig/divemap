@@ -26,6 +26,8 @@ import {
   ReferenceLine,
 } from 'recharts';
 
+import { useResponsive } from '../hooks/useResponsive';
+
 /**
  * Custom Tooltip component for the chart
  */
@@ -246,17 +248,7 @@ const AdvancedDiveProfileChart = ({
   const [chartScale, setChartScale] = useState(1);
   const [chartOffset, setChartOffset] = useState({ x: 0, y: 0 });
   const [showLandscapeTip, setShowLandscapeTip] = useState(true);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
-
-  // Detect mobile viewport
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobileViewport(window.innerWidth < 640);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const { isMobile: isMobileViewport } = useResponsive();
 
   // Check if dive goes into deco
   const hasDeco = useMemo(() => {

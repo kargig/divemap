@@ -1013,7 +1013,9 @@ const IndependentMapView = () => {
                       }
                     >
                       {geolocationStatus === 'requesting' ? (
-                        <Loader2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 animate-spin' />
+                        <div className='animate-spin'>
+                          <Loader2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                        </div>
                       ) : (
                         <MapPin className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
                       )}
@@ -1040,7 +1042,9 @@ const IndependentMapView = () => {
                       title='Share current map view'
                     >
                       {isGeneratingLink ? (
-                        <Loader2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 animate-spin' />
+                        <div className='animate-spin'>
+                          <Loader2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                        </div>
                       ) : (
                         <Share2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
                       )}
@@ -1084,9 +1088,11 @@ const IndependentMapView = () => {
               >
                 {geolocationStatus === 'requesting' && (
                   <>
-                    <Loader2
-                      className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} animate-spin text-blue-600 flex-shrink-0`}
-                    />
+                    <div className='animate-spin flex-shrink-0'>
+                      <Loader2
+                        className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-blue-600`}
+                      />
+                    </div>
                     <span
                       className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-blue-800`}
                     >

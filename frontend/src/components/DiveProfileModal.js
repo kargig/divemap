@@ -2,6 +2,8 @@ import { Modal } from 'antd';
 import PropTypes from 'prop-types';
 import { useEffect, useState } from 'react';
 
+import { useResponsive } from '../hooks/useResponsive';
+
 import AdvancedDiveProfileChart from './AdvancedDiveProfileChart';
 
 const DiveProfileModal = ({
@@ -14,20 +16,17 @@ const DiveProfileModal = ({
   screenSize,
   onDecoStatusChange,
 }) => {
+  const { viewport } = useResponsive();
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
 
   // Detect mobile landscape mode
   useEffect(() => {
-    const checkMobileLandscape = () => {
-      const isLandscape = window.innerWidth > window.innerHeight;
-      const isMobile = window.innerWidth <= 1024; // Consider mobile if width <= 1024px
+    if (viewport && viewport.width) {
+      const isLandscape = viewport.width > viewport.height;
+      const isMobile = viewport.width <= 1024; // Consider mobile if width <= 1024px
       setIsMobileLandscape(isLandscape && isMobile);
-    };
-
-    checkMobileLandscape();
-    window.addEventListener('resize', checkMobileLandscape);
-    return () => window.removeEventListener('resize', checkMobileLandscape);
-  }, []);
+    }
+  }, [viewport]);
 
   return (
     <Modal
@@ -44,7 +43,7 @@ const DiveProfileModal = ({
       centered={!isMobileLandscape}
       closable={!isMobileLandscape}
       maskClosable={true}
-      destroyOnClose
+      destroyOnHidden
       styles={{
         body: {
           padding: 0,

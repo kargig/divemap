@@ -1,10 +1,11 @@
 import { Bell, Check } from 'lucide-react';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { getNotifications } from '../api';
 import { useNotificationContext, useNotifications } from '../contexts/NotificationContext';
+import useClickOutside from '../hooks/useClickOutside';
 
 const NotificationBell = () => {
   const { unreadCount } = useNotificationContext();
@@ -33,26 +34,7 @@ const NotificationBell = () => {
   };
 
   // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = event => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowDropdown(false);
-      }
-    };
-
-    if (showDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') {
-          setShowDropdown(false);
-        }
-      });
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showDropdown]);
+  useClickOutside(dropdownRef, () => setShowDropdown(false), showDropdown);
 
   const handleBellClick = () => {
     setShowDropdown(!showDropdown);

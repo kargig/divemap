@@ -56,7 +56,7 @@ const Notifications = () => {
     } else {
       setTotalPages(page + 1); // Estimate
     }
-  }, [notifications, pageSize]);
+  }, [notifications, pageSize, page]);
 
   const handleMarkAllRead = async () => {
     try {

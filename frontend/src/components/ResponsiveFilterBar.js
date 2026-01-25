@@ -23,6 +23,7 @@ import {
   getUniqueCountries,
   getUniqueRegions,
 } from '../api';
+import useClickOutside from '../hooks/useClickOutside';
 import { useResponsiveScroll } from '../hooks/useResponsive';
 import { getDifficultyOptions, getDifficultyLabel } from '../utils/difficultyHelpers';
 import { getTagColor } from '../utils/tagHelpers';
@@ -137,7 +138,7 @@ const ResponsiveFilterBar = ({
       };
       updateHeight();
       // Update on resize
-      window.addEventListener('resize', updateHeight);
+      window.addEventListener('resize', updateHeight, { passive: true });
       return () => window.removeEventListener('resize', updateHeight);
     }
   }, [searchBarVisible]);
@@ -402,52 +403,49 @@ const ResponsiveFilterBar = ({
   }, []);
 
   // Handle clicking outside dropdowns
-  useEffect(() => {
-    const handleClickOutside = event => {
-      if (diveSiteDropdownRef.current && !diveSiteDropdownRef.current.contains(event.target)) {
-        setIsDiveSiteDropdownOpen(false);
-      }
-      if (
-        divingCenterDropdownRef.current &&
-        !divingCenterDropdownRef.current.contains(event.target)
-      ) {
-        setIsDivingCenterDropdownOpen(false);
-      }
-      if (
-        diveSiteDropdownRefForTrips.current &&
-        !diveSiteDropdownRefForTrips.current.contains(event.target)
-      ) {
-        setIsDiveSiteDropdownOpenForTrips(false);
-      }
-      if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target)) {
-        setIsCountryDropdownOpen(false);
-      }
-      if (regionDropdownRef.current && !regionDropdownRef.current.contains(event.target)) {
-        setIsRegionDropdownOpen(false);
-      }
-      if (ownerDropdownRef.current && !ownerDropdownRef.current.contains(event.target)) {
-        setIsOwnerDropdownOpen(false);
-        // Reset ref when dropdown closes (user clicked away without selecting)
-        // This allows sync from filters if needed
-        if (!ownerSearch) {
-          ownerSearchInputRef.current = false;
-        }
-      }
-      if (buddyDropdownRef.current && !buddyDropdownRef.current.contains(event.target)) {
-        setIsBuddyDropdownOpen(false);
-        // Reset ref when dropdown closes (user clicked away without selecting)
-        // This allows sync from filters if needed
-        if (!buddySearch) {
-          buddySearchInputRef.current = false;
-        }
-      }
-    };
+  useClickOutside(
+    diveSiteDropdownRef,
+    () => setIsDiveSiteDropdownOpen(false),
+    isDiveSiteDropdownOpen
+  );
+  useClickOutside(
+    divingCenterDropdownRef,
+    () => setIsDivingCenterDropdownOpen(false),
+    isDivingCenterDropdownOpen
+  );
+  useClickOutside(
+    diveSiteDropdownRefForTrips,
+    () => setIsDiveSiteDropdownOpenForTrips(false),
+    isDiveSiteDropdownOpenForTrips
+  );
+  useClickOutside(countryDropdownRef, () => setIsCountryDropdownOpen(false), isCountryDropdownOpen);
+  useClickOutside(regionDropdownRef, () => setIsRegionDropdownOpen(false), isRegionDropdownOpen);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  useClickOutside(
+    ownerDropdownRef,
+    () => {
+      setIsOwnerDropdownOpen(false);
+      // Reset ref when dropdown closes (user clicked away without selecting)
+      // This allows sync from filters if needed
+      if (!ownerSearch) {
+        ownerSearchInputRef.current = false;
+      }
+    },
+    isOwnerDropdownOpen
+  );
+
+  useClickOutside(
+    buddyDropdownRef,
+    () => {
+      setIsBuddyDropdownOpen(false);
+      // Reset ref when dropdown closes (user clicked away without selecting)
+      // This allows sync from filters if needed
+      if (!buddySearch) {
+        buddySearchInputRef.current = false;
+      }
+    },
+    isBuddyDropdownOpen
+  );
 
   // Dive site search state for dives page (API-based)
   const [diveSiteSearchResults, setDiveSiteSearchResults] = useState([]);
