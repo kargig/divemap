@@ -1,8 +1,8 @@
+import { Modal } from 'antd';
 import PropTypes from 'prop-types';
 import { useEffect, useState } from 'react';
 
 import AdvancedDiveProfileChart from './AdvancedDiveProfileChart';
-import Modal from './ui/Modal';
 
 const DiveProfileModal = ({
   isOpen,
@@ -31,14 +31,31 @@ const DiveProfileModal = ({
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
+      open={isOpen}
+      onCancel={onClose}
       title={!isMobileLandscape ? 'Dive Profile - Full View' : null}
-      showCloseButton={!isMobileLandscape}
-      className={`flex flex-col w-full ${
-        isMobileLandscape ? 'max-h-[98vh] max-w-none p-1' : 'max-w-7xl max-h-[95vh] p-0'
-      }`}
-      overlayClassName='z-[9999]' // Keep high z-index
+      footer={null}
+      width={isMobileLandscape ? '100%' : '90%'}
+      style={{
+        maxWidth: isMobileLandscape ? 'none' : '1280px',
+        top: isMobileLandscape ? 0 : 20,
+        padding: isMobileLandscape ? 0 : undefined,
+      }}
+      centered={!isMobileLandscape}
+      closable={!isMobileLandscape}
+      maskClosable={true}
+      destroyOnClose
+      styles={{
+        body: {
+          padding: 0,
+          height: isMobileLandscape ? '100vh' : '85vh',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        },
+      }}
+      className='dive-profile-modal'
+      zIndex={1050}
     >
       {/* Chart content - scrollable */}
       <div className={`flex-1 overflow-y-auto min-h-0 ${isMobileLandscape ? 'p-1' : 'p-6'}`}>
