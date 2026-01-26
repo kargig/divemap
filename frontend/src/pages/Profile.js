@@ -19,13 +19,14 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
 
-import api, { getDivingCenters, getUserPublicProfile } from '../api';
+import api, { getUserPublicProfile } from '../api';
 import { FormField } from '../components/forms/FormField';
 import MaskedEmail from '../components/MaskedEmail';
 import OrganizationLogo from '../components/OrganizationLogo';
 import { getSocialMediaIcon } from '../components/SocialMediaIcons';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { getDivingCenters } from '../services/divingCenters';
 import {
   profileSchema,
   certificationSchema,

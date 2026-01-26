@@ -3,13 +3,13 @@ import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 
+import Modal from '../components/ui/Modal';
 import {
   approveDivingCenterOwnership,
   getOwnershipRequestHistory,
   getOwnershipRequests,
   revokeDivingCenterOwnership,
-} from '../api';
-import Modal from '../components/ui/Modal';
+} from '../services/divingCenters';
 
 // Extracted components to reduce complexity
 const LoadingSpinner = () => (
