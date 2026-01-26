@@ -329,14 +329,10 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
         return;
       }
 
-      // Determine if clustering should be used for dive sites based on current zoom
-      const shouldClusterDiveSites = currentZoom <= 12; // Disable clustering for dive sites at zoom >= 13
+      // Determine if clustering should be used based on current zoom
+      const shouldCluster = currentZoom <= 10; // Disable clustering for all markers at zoom >= 11
 
-      // Separate dive sites from other markers
-      const diveSiteMarkers = markers.filter(m => m.entityType === 'dive_site');
-      const otherMarkers = markers.filter(m => m.entityType !== 'dive_site');
-
-      // Create new cluster group (always used for non-dive-site markers, conditionally for dive sites)
+      // Create new cluster group
       const clusterGroup = L.markerClusterGroup({
         chunkedLoading: true,
         maxClusterRadius: 50,
@@ -417,11 +413,11 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                 `
                 : marker.entityType === 'dive'
                   ? `
-                  <div class="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                    ${marker.data.average_depth ? `<div class="flex items-center gap-1" title="Average depth"><span>↕️</span><span>${marker.data.average_depth}m avg</span></div>` : ''}
-                    ${marker.data.max_depth ? `<div class="flex items-center gap-1" title="Max depth"><span>📏</span><span>${marker.data.max_depth}m max</span></div>` : ''}
-                    ${marker.data.duration ? `<div class="flex items-center gap-1" title="Duration"><span>🕐</span><span>${marker.data.duration}min</span></div>` : ''}
-                    ${marker.data.user_rating ? `<div class="flex items-center gap-1" title="Rating"><span>⭐</span><span>${marker.data.user_rating}/10</span></div>` : ''}
+                  <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600 mt-1">
+                    ${marker.data.average_depth ? `<div class="flex items-center gap-1" title="Average depth"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span>${marker.data.average_depth}m avg</span></div>` : ''}
+                    ${marker.data.max_depth ? `<div class="flex items-center gap-1" title="Max depth"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span>${marker.data.max_depth}m max</span></div>` : ''}
+                    ${marker.data.duration ? `<div class="flex items-center gap-1" title="Duration"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>${marker.data.duration}min</span></div>` : ''}
+                    ${marker.data.user_rating ? `<div class="flex items-center gap-1" title="Rating"><img src="/arts/divemap_shell.png" alt="Rating" width="16" height="16" class="object-contain"><span>${marker.data.user_rating}/10</span></div>` : ''}
                   </div>
                 `
                   : marker.entityType === 'dive_site'
@@ -453,23 +449,61 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                               const speedFormatted = formatWindSpeed(windSpeed);
                               const directionFormatted = formatWindDirection(windDirection);
 
+                              // Icons
+                              const windIcon =
+                                '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 inline mr-0.5 text-gray-500"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>';
+                              const waveIcon =
+                                '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 inline mr-0.5 text-gray-500"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>';
+                              const thermoIcon =
+                                '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 inline mr-0.5 text-gray-500"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>';
+                              const infoIcon =
+                                '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-blue-600"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
+
                               return `
                         <div class="border-t border-gray-200 pt-1.5 sm:pt-2 mt-1.5 sm:mt-2">
-                          <h4 class="font-semibold text-xs sm:text-sm mb-1 sm:mb-2 text-blue-800 border-b pb-1">Weather & Sea Conditions</h4>
-                          <div class="space-y-1 sm:space-y-1.5">
-                            <div class="flex items-center gap-2">
-                              <span class="px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium rounded-full" style="background-color: ${suitabilityColor}20; color: ${suitabilityColor}; border: 1px solid ${suitabilityColor}40;">
+                          <div class="flex justify-between items-center mb-1 sm:mb-2 border-b pb-1">
+                            <h4 class="font-semibold text-xs sm:text-sm text-blue-800">Weather & Sea</h4>
+                            <div class="flex items-center gap-1.5">
+                              <span class="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full" style="background-color: ${suitabilityColor}20; color: ${suitabilityColor}; border: 1px solid ${suitabilityColor}40;">
                                 ${suitabilityLabel}
                               </span>
+                              <div class="group relative cursor-pointer">
+                                ${infoIcon}
+                                <div class="absolute right-0 bottom-full mb-2 w-56 sm:w-64 bg-white p-2 rounded shadow-xl border border-gray-200 z-[9999] text-[10px] sm:text-xs leading-tight hidden group-hover:block">
+                                  <div class="mb-1"><strong>Wind:</strong> ${speedFormatted.ms} m/s (${speedFormatted.knots} kt) ${directionFormatted.cardinal}</div>
+                                  ${rec.wave_height !== undefined && rec.wave_height !== null ? `<div class="mb-1"><strong>Waves:</strong> ${rec.wave_height.toFixed(1)}m ${rec.wave_period ? `(${rec.wave_period.toFixed(1)}s period)` : ''}</div>` : ''}
+                                  ${rec.sea_surface_temperature !== undefined && rec.sea_surface_temperature !== null ? `<div class="mb-1"><strong>Water:</strong> ${rec.sea_surface_temperature.toFixed(1)}°C</div>` : ''}
+                                  ${rec.reasoning ? `<div class="text-gray-500 italic border-t pt-1 mt-1">${rec.reasoning}</div>` : ''}
+                                </div>
+                              </div>
                             </div>
-                            <div class="text-[10px] sm:text-xs text-gray-600 space-y-0.5">
-                              <div><strong>Wind:</strong> ${speedFormatted.ms} m/s ${directionFormatted.cardinal}</div>
-                              ${rec.wave_height !== undefined && rec.wave_height !== null ? `<div><strong>Waves:</strong> ${rec.wave_height.toFixed(1)}m ${rec.wave_period ? `(${rec.wave_period.toFixed(1)}s)` : ''}</div>` : ''}
-                              ${rec.sea_surface_temperature !== undefined && rec.sea_surface_temperature !== null ? `<div><strong>Water:</strong> ${rec.sea_surface_temperature.toFixed(1)}°C</div>` : ''}
-                            </div>
-                            ${rec.reasoning ? `<div class="text-xs text-gray-700 mt-1 italic">${rec.reasoning}</div>` : ''}
-                            ${suitability === 'unknown' ? `<div class="text-[10px] sm:text-xs text-amber-600 mt-0.5 sm:mt-1 font-medium">⚠️ Warning: Shore direction unknown</div>` : ''}
                           </div>
+                          
+                          <!-- Unified Compact View -->
+                          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] sm:text-xs text-gray-600">
+                            <div class="flex items-center gap-1" title="Wind">
+                              ${windIcon} <span>${speedFormatted.ms}</span>
+                            </div>
+                            ${
+                              rec.wave_height !== undefined && rec.wave_height !== null
+                                ? `
+                            <div class="flex items-center gap-1" title="Waves">
+                              ${waveIcon} <span>${rec.wave_height.toFixed(1)}m</span>
+                            </div>`
+                                : ''
+                            }
+                            ${
+                              rec.sea_surface_temperature !== undefined &&
+                              rec.sea_surface_temperature !== null
+                                ? `
+                            <div class="flex items-center gap-1" title="Water Temp">
+                              ${thermoIcon} <span>${rec.sea_surface_temperature.toFixed(1)}°C</span>
+                            </div>`
+                                : ''
+                            }
+                          </div>
+                          
+                          ${suitability === 'unknown' ? `<div class="text-[10px] sm:text-xs text-amber-600 mt-0.5 sm:mt-1 font-medium">⚠️ Warning: Shore direction unknown</div>` : ''}
                         </div>
                       `;
                             })()
@@ -488,9 +522,7 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
 
           leafletMarker.bindPopup(DOMPurify.sanitize(popupContent), {
             maxWidth: 240,
-            autoPanPadding: [50, 50],
-            autoPanPaddingTopLeft: [50, 50],
-            autoPanPaddingBottomRight: [50, 50],
+            autoPanPadding: [20, 20], // Reduced padding to prevent unnecessary auto-panning
           });
           return leafletMarker;
         } catch (error) {
@@ -499,7 +531,7 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
         }
       };
 
-      // Clear existing individual markers (dive sites at zoom >= 13)
+      // Clear existing individual markers
       individualMarkersRef.current.forEach(marker => {
         try {
           map.removeLayer(marker);
@@ -509,26 +541,19 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
       });
       individualMarkersRef.current = [];
 
-      // Add dive site markers conditionally based on zoom
-      diveSiteMarkers.forEach(marker => {
+      // Add markers based on clustering threshold
+      markers.forEach(marker => {
         const leafletMarker = createMarker(marker);
         if (!leafletMarker) return;
 
-        if (shouldClusterDiveSites) {
-          // Add to cluster group at zoom <= 12
+        if (shouldCluster) {
+          // Add to cluster group at zoom <= 10
           clusterGroup.addLayer(leafletMarker);
         } else {
-          // Add directly to map at zoom >= 13 (no clustering)
+          // Add directly to map at zoom >= 11 (no clustering)
           map.addLayer(leafletMarker);
           individualMarkersRef.current.push(leafletMarker);
         }
-      });
-
-      // Add all other markers to cluster group (always clustered)
-      otherMarkers.forEach(marker => {
-        const leafletMarker = createMarker(marker);
-        if (!leafletMarker) return;
-        clusterGroup.addLayer(leafletMarker);
       });
 
       // Add cluster group to map (only if it has markers)

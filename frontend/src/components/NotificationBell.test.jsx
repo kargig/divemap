@@ -5,9 +5,8 @@ import { describe, it, expect, vi } from 'vitest';
 import NotificationBell from './NotificationBell';
 
 // Mock dependencies
-vi.mock('../contexts/NotificationContext', () => ({
-  useNotificationContext: () => ({ unreadCount: 5 }),
-  useNotifications: () => ({ markRead: vi.fn() }),
+vi.mock('../hooks/useNotifications', () => ({
+  useNotifications: () => ({ unreadCount: 5, markRead: vi.fn() }),
 }));
 
 vi.mock('react-query', () => ({

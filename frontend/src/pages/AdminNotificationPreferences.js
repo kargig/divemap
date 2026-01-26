@@ -16,15 +16,16 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
-import api, {
+import api from '../api';
+import Modal from '../components/ui/Modal';
+import { useAuth } from '../contexts/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
+import {
   getUserNotificationPreferences,
   createUserNotificationPreference,
   updateUserNotificationPreference,
   deleteUserNotificationPreference,
-} from '../api';
-import Modal from '../components/ui/Modal';
-import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
+} from '../services/notifications';
 
 const AdminNotificationPreferences = () => {
   const { user } = useAuth();

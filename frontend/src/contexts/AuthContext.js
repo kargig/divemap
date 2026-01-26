@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
-import api, { extractErrorMessage } from '../api';
+import * as authService from '../services/auth';
+import { extractErrorMessage } from '../utils/apiErrors';
 import googleAuth from '../utils/googleAuth';
 import { isTurnstileEnabled } from '../utils/turnstileConfig';
 
@@ -18,7 +19,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('access_token'));
+  const [token, setToken] = useState(() => localStorage.getItem('access_token'));
   const [tokenExpiry, setTokenExpiry] = useState(null);
   // const [refreshTimer, setRefreshTimer] = useState(null); // No longer needed
 
@@ -94,8 +95,8 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const response = await api.get('/api/v1/auth/me');
-      setUser(response.data);
+      const userData = await authService.getCurrentUser();
+      setUser(userData);
       setLoading(false); // Successfully loaded user data
     } catch (error) {
       // Don't log out on gateway timeouts (504) or server errors (5xx)
@@ -141,19 +142,13 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password, turnstileToken) => {
     try {
-      const requestData = {
-        username,
-        password,
-      };
-
       // Only include Turnstile token if it's enabled and provided
-      if (isTurnstileEnabled() && turnstileToken) {
-        requestData.turnstile_token = turnstileToken;
-      }
+      const finalTurnstileToken =
+        isTurnstileEnabled() && turnstileToken ? turnstileToken : undefined;
 
-      const response = await api.post('/api/v1/auth/login', requestData);
+      const data = await authService.login(username, password, finalTurnstileToken);
 
-      const { access_token, expires_in } = response.data;
+      const { access_token, expires_in } = data;
 
       // Store access token
       localStorage.setItem('access_token', access_token);
@@ -187,11 +182,9 @@ export const AuthProvider = ({ children }) => {
 
   const loginWithGoogle = async googleToken => {
     try {
-      const response = await api.post('/api/v1/auth/google-login', {
-        token: googleToken,
-      });
+      const data = await authService.googleLogin(googleToken);
 
-      const { access_token, expires_in } = response.data;
+      const { access_token, expires_in } = data;
 
       localStorage.setItem('access_token', access_token);
       // Note: refresh_token is now set as an HTTP-only cookie by the backend
@@ -215,20 +208,13 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password, turnstileToken) => {
     try {
-      const requestData = {
-        username,
-        email,
-        password,
-      };
-
       // Only include Turnstile token if it's enabled and provided
-      if (isTurnstileEnabled() && turnstileToken) {
-        requestData.turnstile_token = turnstileToken;
-      }
+      const finalTurnstileToken =
+        isTurnstileEnabled() && turnstileToken ? turnstileToken : undefined;
 
-      const response = await api.post('/api/v1/auth/register', requestData);
+      const data = await authService.register(username, email, password, finalTurnstileToken);
 
-      const { access_token, expires_in, message } = response.data;
+      const { access_token, expires_in, message } = data;
 
       // If access_token is null, email verification is required
       if (!access_token) {
@@ -259,11 +245,9 @@ export const AuthProvider = ({ children }) => {
 
   const registerWithGoogle = async googleToken => {
     try {
-      const response = await api.post('/api/v1/auth/google-login', {
-        token: googleToken,
-      });
+      const data = await authService.googleLogin(googleToken);
 
-      const { access_token, expires_in } = response.data;
+      const { access_token, expires_in } = data;
 
       localStorage.setItem('access_token', access_token);
       // Note: refresh_token is now set as an HTTP-only cookie by the backend
@@ -293,7 +277,7 @@ export const AuthProvider = ({ children }) => {
     // }
 
     // Revoke refresh token on backend
-    api.post('/api/v1/auth/logout').catch(console.error);
+    authService.logout().catch(console.error);
 
     localStorage.removeItem('access_token');
     // Note: refresh_token cookie will be cleared by the backend logout endpoint

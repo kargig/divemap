@@ -1,10 +1,15 @@
 import { registerSW } from 'virtual:pwa-register';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 
 const PWAUpdater = () => {
+  const mountedRef = useRef(false);
+
   useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
+
     const updateSW = registerSW({
       onNeedRefresh() {
         toast(

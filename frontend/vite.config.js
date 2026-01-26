@@ -18,6 +18,9 @@ export default defineConfig({
     }),
     VitePWA({
       registerType: 'prompt',
+      devOptions: {
+        enabled: false
+      },
       includeAssets: ['favicons/*.ico', 'favicons/*.png', 'help-screenshots/*.png', 'robots.txt', 'offline.html'],
       manifest: {
         name: 'Divemap - Scuba Dive Site Review Platform',
@@ -109,8 +112,6 @@ export default defineConfig({
         ]
       },
       workbox: {
-        clientsClaim: true,
-        skipWaiting: true,
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB to match the large vendor chunk
         // Exclude non-SPA routes from navigation fallback
         navigateFallbackDenylist: [

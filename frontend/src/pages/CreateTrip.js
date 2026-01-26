@@ -4,17 +4,12 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 
-import {
-  createParsedTrip,
-  getDiveSites,
-  getDivingCenters,
-  getDiveSite,
-  extractErrorMessage,
-} from '../api';
+import { createParsedTrip, getDiveSites, getDivingCenters, getDiveSite } from '../api';
 import NewsletterUpload from '../components/NewsletterUpload';
 import TripFormModal from '../components/TripFormModal';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { extractErrorMessage } from '../utils/apiErrors';
 
 const CreateTrip = () => {
   usePageTitle('Divemap - Create Dive Trip');

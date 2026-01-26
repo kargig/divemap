@@ -18,7 +18,7 @@ import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
-import api, { extractErrorMessage } from '../api';
+import api from '../api';
 import DivingCentersDesktopSearchBar from '../components/DivingCentersDesktopSearchBar';
 import DivingCentersMap from '../components/DivingCentersMap';
 import DivingCentersResponsiveFilterBar from '../components/DivingCentersResponsiveFilterBar';
@@ -34,6 +34,8 @@ import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { useSetting } from '../hooks/useSettings';
 import useSorting from '../hooks/useSorting';
+import { extractErrorMessage } from '../utils/apiErrors';
+import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';

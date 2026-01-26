@@ -6,70 +6,10 @@ import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
 import api from '../api';
+import AnimatedCounter from '../components/AnimatedCounter';
 import BackgroundLogo from '../components/BackgroundLogo';
 import HeroSection from '../components/HeroSection';
 import SEO from '../components/SEO';
-
-// Custom hook for animated counters with configurable growth patterns
-const useAnimatedCounter = (
-  targetValue,
-  duration = 2000,
-  isBackendAvailable = true,
-  growthConfig = { speed: 200, minIncrement: 1, maxIncrement: 5 }
-) => {
-  const [currentValue, setCurrentValue] = useState(0);
-  const [hasBackendDataArrived, setHasBackendDataArrived] = useState(false);
-
-  useEffect(() => {
-    if (!isBackendAvailable && !hasBackendDataArrived) {
-      // If backend is not available, show animated increasing numbers with custom growth pattern
-      const interval = window.setInterval(() => {
-        setCurrentValue(prev => {
-          const increment =
-            Math.floor(
-              Math.random() * (growthConfig.maxIncrement - growthConfig.minIncrement + 1)
-            ) + growthConfig.minIncrement;
-          return prev + increment;
-        });
-      }, growthConfig.speed);
-
-      return () => window.clearInterval(interval);
-    } else if (isBackendAvailable && targetValue !== undefined) {
-      // Backend data has arrived - transition from current animated value to actual value
-      setHasBackendDataArrived(true);
-
-      const startValue = currentValue; // Start from current animated value
-      const startTime = Date.now();
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-
-        // Easing function for smooth animation
-        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-        const current = Math.round(startValue + (targetValue - startValue) * easeOutQuart);
-
-        setCurrentValue(current);
-
-        if (progress < 1) {
-          window.requestAnimationFrame(animate);
-        }
-      };
-
-      window.requestAnimationFrame(animate);
-    }
-  }, [
-    targetValue,
-    duration,
-    isBackendAvailable,
-    hasBackendDataArrived,
-    growthConfig.speed,
-    growthConfig.minIncrement,
-    growthConfig.maxIncrement,
-  ]);
-
-  return currentValue;
-};
 
 const { useBreakpoint } = Grid;
 const { Title, Paragraph, Text } = Typography;
@@ -141,42 +81,6 @@ const Home = () => {
 
   // Determine if backend is available
   const isBackendAvailable = !isError && !isLoading;
-
-  // Animated counters with different growth patterns for each category
-  const animatedDives = useAnimatedCounter(
-    stats?.dives || 0,
-    2000,
-    isBackendAvailable,
-    { speed: 150, minIncrement: 2, maxIncrement: 8 } // Fast growth, medium increments
-  );
-
-  const animatedDiveSites = useAnimatedCounter(
-    stats?.dive_sites || 0,
-    2200,
-    isBackendAvailable,
-    { speed: 300, minIncrement: 1, maxIncrement: 4 } // Slower growth, smaller increments
-  );
-
-  const animatedReviews = useAnimatedCounter(
-    stats?.reviews || 0,
-    2400,
-    isBackendAvailable,
-    { speed: 180, minIncrement: 1, maxIncrement: 6 } // Medium-fast growth, variable increments
-  );
-
-  const animatedDivingCenters = useAnimatedCounter(
-    stats?.diving_centers || 0,
-    2600,
-    isBackendAvailable,
-    { speed: 400, minIncrement: 1, maxIncrement: 3 } // Slowest growth, smallest increments
-  );
-
-  const animatedDiveTrips = useAnimatedCounter(
-    stats?.dive_trips || 0,
-    2800,
-    isBackendAvailable,
-    { speed: 250, minIncrement: 1, maxIncrement: 4 } // Medium growth, small increments
-  );
 
   const schema = {
     '@context': 'https://schema.org',
@@ -355,8 +259,12 @@ const Home = () => {
           <div className='grid grid-cols-2 md:grid-cols-5 gap-8'>
             <Link to='/dives' className='text-center group'>
               <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
-                {animatedDives.toLocaleString()}
-                {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
+                <AnimatedCounter
+                  targetValue={stats?.dives || 0}
+                  isBackendAvailable={isBackendAvailable}
+                  growthConfig={{ speed: 150, minIncrement: 2, maxIncrement: 8 }}
+                  suffix={!isBackendAvailable ? '+' : ''}
+                />
               </div>
               <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
                 Dives Logged
@@ -364,8 +272,13 @@ const Home = () => {
             </Link>
             <Link to='/dive-sites' className='text-center group'>
               <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
-                {animatedDiveSites.toLocaleString()}
-                {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
+                <AnimatedCounter
+                  targetValue={stats?.dive_sites || 0}
+                  duration={2200}
+                  isBackendAvailable={isBackendAvailable}
+                  growthConfig={{ speed: 300, minIncrement: 1, maxIncrement: 4 }}
+                  suffix={!isBackendAvailable ? '+' : ''}
+                />
               </div>
               <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
                 Dive Sites
@@ -373,8 +286,13 @@ const Home = () => {
             </Link>
             <div className='text-center group'>
               <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
-                {animatedReviews.toLocaleString()}
-                {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
+                <AnimatedCounter
+                  targetValue={stats?.reviews || 0}
+                  duration={2400}
+                  isBackendAvailable={isBackendAvailable}
+                  growthConfig={{ speed: 180, minIncrement: 1, maxIncrement: 6 }}
+                  suffix={!isBackendAvailable ? '+' : ''}
+                />
               </div>
               <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
                 Reviews
@@ -382,8 +300,13 @@ const Home = () => {
             </div>
             <Link to='/diving-centers' className='text-center group'>
               <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
-                {animatedDivingCenters.toLocaleString()}
-                {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
+                <AnimatedCounter
+                  targetValue={stats?.diving_centers || 0}
+                  duration={2600}
+                  isBackendAvailable={isBackendAvailable}
+                  growthConfig={{ speed: 400, minIncrement: 1, maxIncrement: 3 }}
+                  suffix={!isBackendAvailable ? '+' : ''}
+                />
               </div>
               <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
                 Centers
@@ -391,8 +314,13 @@ const Home = () => {
             </Link>
             <Link to='/dive-trips' className='text-center group'>
               <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
-                {animatedDiveTrips.toLocaleString()}
-                {!isBackendAvailable && <span className='text-2xl ml-1'>+</span>}
+                <AnimatedCounter
+                  targetValue={stats?.dive_trips || 0}
+                  duration={2800}
+                  isBackendAvailable={isBackendAvailable}
+                  growthConfig={{ speed: 250, minIncrement: 1, maxIncrement: 4 }}
+                  suffix={!isBackendAvailable ? '+' : ''}
+                />
               </div>
               <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
                 Organized Trips

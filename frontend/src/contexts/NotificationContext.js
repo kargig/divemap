@@ -2,12 +2,9 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
-import { getUnreadCount, getNewSinceLastCheck, updateLastCheck } from '../api';
+import { getUnreadCount, getNewSinceLastCheck, updateLastCheck } from '../services/notifications';
 
 import { useAuth } from './AuthContext';
-
-// Re-export useNotifications hook for convenience
-export { useNotifications } from '../hooks/useNotifications';
 
 const NotificationContext = createContext();
 

@@ -7,7 +7,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from 'react-query';
 import {
   Area,
@@ -19,8 +19,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-import { getGrowthData } from '../api';
 import usePageTitle from '../hooks/usePageTitle';
+import { getGrowthData } from '../services/admin';
 
 const AdminGrowthVisualizations = () => {
   usePageTitle('Divemap - Admin - Growth Visualizations');

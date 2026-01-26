@@ -52,7 +52,7 @@ export const useResponsive = () => {
     // Assuming CSR given 'vite' and 'index.html'.
 
     // We add listener
-    window.addEventListener('resize', checkViewport);
+    window.addEventListener('resize', checkViewport, { passive: true });
     return () => window.removeEventListener('resize', checkViewport);
   }, [checkViewport]);
 

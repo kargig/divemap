@@ -18,7 +18,7 @@ export async function convertFlickrUrlToDirectImage(flickrUrl) {
 
   try {
     // Use backend proxy endpoint to avoid CORS issues
-    const { getFlickrOembed } = await import('../api');
+    const { getFlickrOembed } = await import('../services/dives');
     const result = await getFlickrOembed(flickrUrl);
 
     // Return the direct image URL if available

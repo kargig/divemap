@@ -8,8 +8,6 @@ import {
   Trash2,
   Calendar,
   Clock,
-  Thermometer,
-  Star,
   MapPin,
   Eye,
   EyeOff,
@@ -36,19 +34,10 @@ import {
 } from 'react-router-dom';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
 import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
-import Inline from 'yet-another-react-lightbox/plugins/inline';
 import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 
-import api, {
-  getDive,
-  getDiveMedia,
-  deleteDive,
-  deleteDiveMedia,
-  removeBuddy,
-  uploadDiveProfile,
-  extractErrorMessage,
-} from '../api';
+import api from '../api';
 import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DiveProfileModal from '../components/DiveProfileModal';
@@ -62,10 +51,19 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
+import useFlickrImages from '../hooks/useFlickrImages';
 import { useResponsive } from '../hooks/useResponsive';
+import {
+  getDive,
+  getDiveMedia,
+  deleteDive,
+  deleteDiveMedia,
+  removeBuddy,
+  uploadDiveProfile,
+} from '../services/dives';
+import { extractErrorMessage } from '../utils/apiErrors';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
-import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { calculateRouteBearings, formatBearing } from '../utils/routeUtils';
@@ -335,13 +333,12 @@ const DiveDetail = () => {
   const [activeTab, setActiveTab] = useState(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam === 'profile') return 'profile';
-    if (tabParam === 'photos') return 'photos';
+    if (tabParam === 'media' || tabParam === 'photos') return 'media';
     if (tabParam === 'route') return 'route';
     return 'details';
   });
   const [activeMediaTab, setActiveMediaTab] = useState('photos');
-  const [hasDeco, setHasDeco] = useState(false);
-  const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(new Map());
+  const [profileHasDeco, setProfileHasDeco] = useState(undefined);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [routeMapViewport, setRouteMapViewport] = useState({
     center: [38.1158243, 23.2146529], // Default to Psatha dive site coordinates
@@ -350,6 +347,27 @@ const DiveDetail = () => {
   const [currentZoom, setCurrentZoom] = useState(15);
   const { isMobile } = useResponsive();
   const fileInputRef = useRef(null);
+
+  // Helper function to check if URL is a video
+  const isVideoUrl = useCallback(url => {
+    if (!url) return false;
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv'];
+    const lowerUrl = url.toLowerCase();
+    return (
+      videoExtensions.some(ext => lowerUrl.includes(ext)) ||
+      lowerUrl.includes('youtube.com') ||
+      lowerUrl.includes('youtu.be') ||
+      lowerUrl.includes('vimeo.com')
+    );
+  }, []);
+
+  // Fetch dive media separately (not included in main dive response)
+  const { data: diveMedia = [] } = useQuery(['dive-media', id], () => getDiveMedia(id), {
+    enabled: !!id,
+  });
+
+  // Use hook to convert Flickr URLs
+  const { data: convertedFlickrUrls = new Map() } = useFlickrImages(diveMedia, isVideoUrl);
 
   // Handle profile upload
   const handleUploadProfile = () => {
@@ -396,8 +414,8 @@ const DiveDetail = () => {
     const newSearchParams = new URLSearchParams(searchParams);
     if (tab === 'profile') {
       newSearchParams.set('tab', 'profile');
-    } else if (tab === 'photos') {
-      newSearchParams.set('tab', 'photos');
+    } else if (tab === 'media') {
+      newSearchParams.set('tab', 'media');
     } else if (tab === 'route') {
       newSearchParams.set('tab', 'route');
     } else {
@@ -446,20 +464,11 @@ const DiveDetail = () => {
     }
   }, [dive, id, slug, navigate, location.search]);
 
-  // Fetch dive media separately (not included in main dive response)
-  const { data: diveMedia = [] } = useQuery(['dive-media', id], () => getDiveMedia(id), {
-    enabled: !!id && !!dive,
-  });
-
-  // Check if dive has deco tag (case-insensitive)
-  useEffect(() => {
-    if (dive?.tags) {
-      const hasDecoTag = dive.tags.some(
-        tag => tag.name && tag.name.toLowerCase().trim() === 'deco'
-      );
-      setHasDeco(hasDecoTag);
-    }
-  }, [dive?.tags]);
+  // Calculate hasDeco derived state (profile status overrides tag status if available)
+  const hasDeco =
+    profileHasDeco !== undefined
+      ? profileHasDeco
+      : dive?.tags?.some(tag => tag.name && tag.name.toLowerCase().trim() === 'deco');
 
   // Prepare route data for map visualization
   useEffect(() => {
@@ -735,19 +744,6 @@ const DiveDetail = () => {
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
-  // Helper function to check if URL is a video
-  const isVideoUrl = url => {
-    if (!url) return false;
-    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv'];
-    const lowerUrl = url.toLowerCase();
-    return (
-      videoExtensions.some(ext => lowerUrl.includes(ext)) ||
-      lowerUrl.includes('youtube.com') ||
-      lowerUrl.includes('youtu.be') ||
-      lowerUrl.includes('vimeo.com')
-    );
-  };
-
   // Filter media by type (photos vs videos)
   const allPhotos = diveMedia
     ? diveMedia.filter(item => item.media_type === 'photo' && !isVideoUrl(item.url))
@@ -760,46 +756,6 @@ const DiveDetail = () => {
   // All media is public (is_public column removed from database)
   const publicPhotos = allPhotos;
   const publicVideos = allVideos;
-
-  // Convert Flickr URLs to direct image URLs
-  useEffect(() => {
-    const convertFlickrUrls = async () => {
-      if (!diveMedia) return;
-
-      // Get all photos
-      const allPhotosForFlickr = diveMedia.filter(
-        item => item.media_type === 'photo' && !isVideoUrl(item.url)
-      );
-      const flickrPhotos = allPhotosForFlickr.filter(item => isFlickrUrl(item.url));
-
-      if (flickrPhotos.length === 0) return;
-
-      const newConvertedUrls = new Map(convertedFlickrUrls);
-      let hasUpdates = false;
-
-      for (const photo of flickrPhotos) {
-        // Skip if already converted
-        if (newConvertedUrls.has(photo.url)) continue;
-
-        try {
-          const directUrl = await convertFlickrUrlToDirectImage(photo.url);
-          if (directUrl !== photo.url) {
-            newConvertedUrls.set(photo.url, directUrl);
-            hasUpdates = true;
-          }
-        } catch (error) {
-          console.warn('Failed to convert Flickr URL:', photo.url, error);
-        }
-      }
-
-      if (hasUpdates) {
-        setConvertedFlickrUrls(newConvertedUrls);
-      }
-    };
-
-    convertFlickrUrls();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diveMedia]);
 
   // Helper to get the URL (converted if Flickr, original otherwise)
   const getImageUrl = url => {
@@ -815,13 +771,16 @@ const DiveDetail = () => {
     description: item.description || '',
   }));
 
-  // Reset activeMediaTab when switching to photos tab
+  // Auto-select media tab based on availability when switching to media tab
   useEffect(() => {
-    if (activeTab === 'photos') {
-      // Default to photos tab when switching to photos tab
-      setActiveMediaTab('photos');
+    if (activeTab === 'media') {
+      if (publicPhotos.length === 0 && publicVideos.length > 0) {
+        setActiveMediaTab('videos');
+      } else {
+        setActiveMediaTab('photos');
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, publicPhotos.length, publicVideos.length]);
 
   if (isLoading) {
     return (
@@ -1013,9 +972,9 @@ const DiveDetail = () => {
             </button>
             {(allPhotos.length > 0 || allVideos.length > 0) && (
               <button
-                onClick={() => handleTabChange('photos')}
+                onClick={() => handleTabChange('media')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'photos'
+                  activeTab === 'media'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
@@ -1561,7 +1520,7 @@ const DiveDetail = () => {
                 onDecoStatusChange={profileHasDeco => {
                   // If profile data is available, use it; otherwise keep tag-based detection
                   if (profileHasDeco !== undefined) {
-                    setHasDeco(profileHasDeco);
+                    setProfileHasDeco(profileHasDeco);
                   }
                 }}
                 onMaximize={handleOpenProfileModal}
@@ -1579,7 +1538,7 @@ const DiveDetail = () => {
             </div>
           )}
 
-          {activeTab === 'photos' && (allPhotos.length > 0 || allVideos.length > 0) && (
+          {activeTab === 'media' && (allPhotos.length > 0 || allVideos.length > 0) && (
             <div className='bg-white rounded-lg shadow p-6'>
               <h2 className='text-xl font-semibold mb-4'>Photos & Videos</h2>
 
@@ -1641,7 +1600,7 @@ const DiveDetail = () => {
                           url={item.url}
                           description={item.description}
                           className='w-full'
-                          openInNewTab={true}
+                          openInNewTab={false}
                         />
                       </div>
                     </div>
@@ -1887,7 +1846,7 @@ const DiveDetail = () => {
         onDecoStatusChange={profileHasDeco => {
           // If profile data is available, use it; otherwise keep tag-based detection
           if (profileHasDeco !== undefined) {
-            setHasDeco(profileHasDeco);
+            setProfileHasDeco(profileHasDeco);
           }
         }}
       />
