@@ -28,7 +28,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
-import { getDiveSites } from '../api';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import FuzzySearchInput from '../components/FuzzySearchInput';
 import HeroSection from '../components/HeroSection';
@@ -39,6 +38,7 @@ import { useCompactLayout } from '../hooks/useCompactLayout';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
+import { getDiveSites } from '../services/diveSites';
 import { getDivingCenters } from '../services/divingCenters';
 import { getParsedTrips } from '../services/newsletters';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';

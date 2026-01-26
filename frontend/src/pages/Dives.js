@@ -29,7 +29,7 @@ import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
-import api, { getDiveSites, getDiveSite } from '../api';
+import api from '../api';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import DivesMap from '../components/DivesMap';
@@ -49,6 +49,7 @@ import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { deleteDive } from '../services/dives';
+import { getDiveSite, getDiveSites } from '../services/diveSites';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';

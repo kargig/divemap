@@ -16,9 +16,10 @@ import {
 import PropTypes from 'prop-types';
 import { useState, useEffect, useRef } from 'react';
 
-import { getDiveSites, searchUsers, getUniqueCountries, getUniqueRegions } from '../api';
+import { searchUsers } from '../api';
 import useClickOutside from '../hooks/useClickOutside';
 import { useResponsiveScroll } from '../hooks/useResponsive';
+import { getDiveSites, getUniqueCountries, getUniqueRegions } from '../services/diveSites';
 import { searchDivingCenters } from '../services/divingCenters';
 import { getDifficultyOptions, getDifficultyLabel } from '../utils/difficultyHelpers';
 import { getTagColor } from '../utils/tagHelpers';

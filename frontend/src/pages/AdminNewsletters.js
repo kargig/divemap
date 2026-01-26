@@ -17,11 +17,11 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useSearchParams } from 'react-router-dom';
 
-import { getDiveSites, getDiveSite } from '../api';
 import NewsletterUpload from '../components/NewsletterUpload';
 import TripFormModal from '../components/TripFormModal';
 import Modal from '../components/ui/Modal';
 import usePageTitle from '../hooks/usePageTitle';
+import { getDiveSite, getDiveSites } from '../services/diveSites';
 import { getDivingCenters } from '../services/divingCenters';
 import {
   getParsedTrips,

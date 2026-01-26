@@ -17,7 +17,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
-import { getDiveRoutes } from '../api';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import EmptyState from '../components/EmptyState';
@@ -28,6 +27,7 @@ import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
+import { getDiveRoutes } from '../services/diveSites';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getRouteTypeLabel } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
