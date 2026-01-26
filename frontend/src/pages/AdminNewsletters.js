@@ -25,7 +25,6 @@ import {
   updateNewsletter,
   deleteNewsletter,
   deleteNewsletters,
-  extractErrorMessage,
   reparseNewsletter,
   createParsedTrip,
   updateParsedTrip,
@@ -37,6 +36,7 @@ import NewsletterUpload from '../components/NewsletterUpload';
 import TripFormModal from '../components/TripFormModal';
 import Modal from '../components/ui/Modal';
 import usePageTitle from '../hooks/usePageTitle';
+import { extractErrorMessage } from '../utils/apiErrors';
 
 const AdminNewsletters = () => {
   // Set page title

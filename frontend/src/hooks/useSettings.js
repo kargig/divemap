@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
-import { getSetting, updateSetting } from '../api';
+import { getSetting, updateSetting } from '../services/admin';
 
 /**
  * Hook to fetch a setting value by key

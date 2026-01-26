@@ -9,7 +9,8 @@ const WeatherConditionsCard = ({ windData, loading }) => {
   if (loading) {
     return (
       <div className='p-8 text-center'>
-        <Spin tip='Loading current weather data...' />
+        <Spin size='large' />
+        <div className='mt-4 text-gray-500'>Loading current weather data...</div>
       </div>
     );
   }
@@ -42,9 +43,11 @@ const WeatherConditionsCard = ({ windData, loading }) => {
           value={data.wave_height}
           precision={1}
           suffix='m'
-          valueStyle={{
-            color:
-              data.wave_height > 1.5 ? '#cf1322' : data.wave_height > 0.8 ? '#d48806' : '#3f8600',
+          styles={{
+            content: {
+              color:
+                data.wave_height > 1.5 ? '#cf1322' : data.wave_height > 0.8 ? '#d48806' : '#3f8600',
+            },
           }}
         />
       </Col>
@@ -98,7 +101,7 @@ const WeatherConditionsCard = ({ windData, loading }) => {
           value={data.wind_speed_10m}
           precision={1}
           suffix='m/s'
-          valueStyle={{ color: getWindColor(data.wind_speed_10m) }}
+          styles={{ content: { color: getWindColor(data.wind_speed_10m) } }}
         />
         <div className='text-xs text-gray-500 mt-1'>
           {data.wind_speed_10m ? `${formatWindSpeed(data.wind_speed_10m).knots} knots` : ''}
@@ -110,7 +113,7 @@ const WeatherConditionsCard = ({ windData, loading }) => {
           value={data.wind_gusts_10m}
           precision={1}
           suffix='m/s'
-          valueStyle={{ fontSize: '1.2em' }}
+          styles={{ content: { fontSize: '1.2em' } }}
         />
         <div className='text-xs text-gray-500 mt-1'>
           {data.wind_gusts_10m ? `${formatWindSpeed(data.wind_gusts_10m).knots} knots` : ''}

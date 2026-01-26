@@ -1,20 +1,17 @@
 import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
+import { useAuth } from '../contexts/AuthContext';
 import {
-  getNotifications,
   getUnreadCount,
-  getNewSinceLastCheck,
   markNotificationRead,
   markAllRead,
   updateLastCheck,
   deleteNotification,
-  getNotificationPreferences,
   createNotificationPreference,
   updateNotificationPreference,
   deleteNotificationPreference,
-} from '../api';
-import { useAuth } from '../contexts/AuthContext';
+} from '../services/notifications';
 
 /**
  * Hook for managing notifications with polling

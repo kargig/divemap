@@ -6,16 +6,7 @@ import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient, useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
-import {
-  createDive,
-  extractErrorMessage,
-  extractFieldErrors,
-  getDiveSites,
-  getAvailableTags,
-  addDiveMedia,
-  getDivingCenters,
-  uploadPhotoToR2Only,
-} from '../api';
+import { getAvailableTags, getDiveSites, getDivingCenters } from '../api';
 import DivingCenterSearchableDropdown from '../components/DivingCenterSearchableDropdown';
 import { FormField } from '../components/forms/FormField';
 import GasTanksInput from '../components/forms/GasTanksInput';
@@ -24,6 +15,8 @@ import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import UserSearchInput from '../components/UserSearchInput';
 import YouTubePreview from '../components/YouTubePreview';
 import usePageTitle from '../hooks/usePageTitle';
+import { createDive, addDiveMedia, uploadPhotoToR2Only } from '../services/dives';
+import { extractErrorMessage, extractFieldErrors } from '../utils/apiErrors';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';

@@ -49,13 +49,13 @@ const CommunityVerdict = ({ diveSite, onRate, isSubmitting, compact = false }) =
     >
       <div>
         <Card
-          bordered={!compact}
+          variant={!compact ? 'outlined' : 'borderless'}
           className={
             compact
               ? 'bg-transparent shadow-none'
               : 'shadow-sm border border-gray-100 bg-gradient-to-br from-blue-50/50 to-white'
           }
-          bodyStyle={{ padding: compact ? '0' : '24px' }}
+          styles={{ body: { padding: compact ? '0' : '24px' } }}
         >
           <div
             className={`flex flex-col md:flex-row items-center gap-6 ${!compact ? 'justify-between' : 'justify-start'}`}
@@ -74,7 +74,7 @@ const CommunityVerdict = ({ diveSite, onRate, isSubmitting, compact = false }) =
                       <span className='text-xs text-gray-500'>/ 10</span>
                     </div>
                   )}
-                  width={compact ? 70 : 80}
+                  size={compact ? 70 : 80}
                   strokeColor={strokeColor}
                   strokeWidth={8}
                 />
@@ -94,7 +94,7 @@ const CommunityVerdict = ({ diveSite, onRate, isSubmitting, compact = false }) =
                 {/* Social Proof Avatars */}
                 {total_ratings > 0 && (
                   <div className='flex items-center gap-2 mt-1'>
-                    <Avatar.Group maxCount={3} size='small'>
+                    <Avatar.Group max={{ count: 3 }} size='small'>
                       {[...Array(Math.min(total_ratings, 3))].map((_, i) => (
                         <Tooltip title='Verified Diver' key={i}>
                           <Avatar

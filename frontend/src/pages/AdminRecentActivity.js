@@ -16,9 +16,9 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
-import { getRecentActivity } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { getRecentActivity } from '../services/admin';
 
 const AdminRecentActivity = () => {
   const { user } = useAuth();

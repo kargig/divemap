@@ -36,7 +36,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api, {
   getNearbyDivingCenters,
   searchDivingCenters,
-  extractErrorMessage,
   updateDiveSiteMedia,
   uploadDiveSitePhotoToR2Only,
   addDiveSiteMedia,
@@ -47,6 +46,7 @@ import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { extractErrorMessage } from '../utils/apiErrors';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';

@@ -1,11 +1,10 @@
 import { Mail, Globe, MapPin, Trash2, ArrowLeft } from 'lucide-react';
-import React from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
-import { getNotificationPreferences } from '../api';
-import { useNotifications } from '../contexts/NotificationContext';
+import { useNotifications } from '../hooks/useNotifications';
 import usePageTitle from '../hooks/usePageTitle';
+import { getNotificationPreferences } from '../services/notifications';
 
 const NotificationPreferencesPage = () => {
   usePageTitle('Divemap - Notification Preferences');

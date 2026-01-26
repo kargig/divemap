@@ -1,0 +1,34 @@
+---
+description: React performance and architectural best practices
+globs: ["frontend/**/*.js", "frontend/**/*.jsx", "frontend/**/*.ts", "frontend/**/*.tsx"]
+alwaysApply: false
+---
+
+# React Best Practices
+
+## Performance (Critical)
+- **No Waterfalls:** Fetch independent data in parallel. Move `await` operations inside the conditional blocks where data is actually needed.
+- **De-dupe:** Always use React Query for server state; avoid `useEffect` data fetching to prevent duplicate requests.
+- **Lazy Loading:** Use `React.lazy` (or `lazy` from framework) for heavy components (charts, maps, editors) not needed on initial paint.
+
+## Bundle Size
+- **No Barrel Files:** Do NOT create `index.js` files that just re-export components. Import directly: `import { Button } from './Button'`.
+- **Import Efficiency:** Import specific icons or sub-modules rather than the entire library (e.g., `import Menu from 'lucide-react/icons/menu'` vs `import { Menu } from 'lucide-react'`).
+
+## State Management
+- **Lazy Initialization:** Use `useState(() => computation())` for expensive initial values (e.g., parsing local storage, complex calculations).
+- **Functional Updates:** Always use functional updates `setState(prev => ...)` when new state depends on old state. Prevents stale closures.
+- **Transient State:** Use `useRef` for values that change frequently but don't require a re-render (e.g., scroll positions, timer IDs).
+- **Derived State:** Calculate values during render. Do not use `useEffect` to sync state (e.g., don't `setFullName(first + last)` inside an effect).
+- **Local Storage:** Version keys (e.g., `userConfig:v1`) and use try/catch blocks. Store minimal data.
+
+## Effects & Logic
+- **Event Handlers > Effects:** Put interaction logic (e.g., API calls on click) directly in event handlers. Do NOT set a flag in state and trigger the action in a `useEffect`.
+- **Narrow Dependencies:** Depend on primitives (e.g., `user.id`) rather than objects (`user`) in dependency arrays to prevent unnecessary re-runs.
+- **Passive Listeners:** Use `{ passive: true }` for scroll/wheel event listeners to improve scrolling performance.
+
+## Rendering & Animation
+- **Animate Wrappers:** Animate a wrapping `div` instead of the SVG element directly to enable hardware acceleration.
+- **Content Visibility:** Use CSS `content-visibility: auto` for long lists to skip rendering off-screen content.
+- **Stable References:** Wrap functions passed to optimized child components in `useCallback`.
+- **Hoist Static JSX:** Extract static JSX (like complex icons or skeletons) outside components to avoid re-creation on every render.

@@ -1,8 +1,7 @@
 import { X, Check } from 'lucide-react';
-import React from 'react';
 import { Link } from 'react-router-dom';
 
-import { useNotifications } from '../contexts/NotificationContext';
+import { useNotifications } from '../hooks/useNotifications';
 
 const NotificationItem = ({ notification, onDelete }) => {
   const { markRead, deleteNotification: deleteNotif } = useNotifications();

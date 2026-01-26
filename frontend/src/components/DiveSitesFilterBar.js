@@ -1,7 +1,8 @@
 import { Filter, X, ChevronDown } from 'lucide-react';
 import PropTypes from 'prop-types';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
+import { useResponsive } from '../hooks/useResponsive';
 import { getDifficultyOptions, getDifficultyLabel } from '../utils/difficultyHelpers';
 import { getTagColor } from '../utils/tagHelpers';
 
@@ -23,31 +24,7 @@ const DiveSitesFilterBar = ({
   mobileOptimized = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Check if we're on mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      // More reliable mobile detection
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      const userAgent = navigator.userAgent;
-
-      const isMobileDevice =
-        width <= 768 ||
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) ||
-        height <= 650; // Force mobile for small height screens
-
-      // Force mobile for very small screens (like 354x604)
-      const forceMobile = width <= 400 || height <= 650;
-
-      setIsMobile(isMobileDevice || forceMobile);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, [showFilters, isExpanded]);
+  const { isMobile } = useResponsive();
 
   const variantClasses = {
     sticky: 'bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40',

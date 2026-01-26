@@ -77,7 +77,7 @@ const DivingCentersResponsiveFilterBar = ({
       };
       updateHeight();
       // Update on resize
-      window.addEventListener('resize', updateHeight);
+      window.addEventListener('resize', updateHeight, { passive: true });
       return () => window.removeEventListener('resize', updateHeight);
     }
   }, [searchBarVisible]);
