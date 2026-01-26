@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import { getDiveSites, getAvailableTags } from '../api';
+import { getAvailableTags } from '../api';
 import DivingCenterSearchableDropdown from '../components/DivingCenterSearchableDropdown';
 import { FormField } from '../components/forms/FormField';
 import GasTanksInput from '../components/forms/GasTanksInput';
@@ -26,6 +26,7 @@ import {
   uploadPhotoToR2Only,
   getDiveMedia,
 } from '../services/dives';
+import { getDiveSites } from '../services/diveSites';
 import { getDivingCenters } from '../services/divingCenters';
 import { extractErrorMessage, extractFieldErrors } from '../utils/apiErrors';
 import { UI_COLORS } from '../utils/colorPalette';

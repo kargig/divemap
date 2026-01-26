@@ -33,17 +33,18 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import api, {
-  addDiveSiteMedia,
-  updateDiveSiteMedia,
-  updateMediaOrder,
-  uploadDiveSitePhotoToR2Only,
-} from '../api';
+import api from '../api';
 import { FormField } from '../components/forms/FormField';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import {
+  addDiveSiteMedia,
+  updateDiveSiteMedia,
+  updateMediaOrder,
+  uploadDiveSitePhotoToR2Only,
+} from '../services/diveSites';
 import { getNearbyDivingCenters, searchDivingCenters } from '../services/divingCenters';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { UI_COLORS } from '../utils/colorPalette';

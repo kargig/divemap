@@ -7,12 +7,13 @@ import { useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
-import api, { uploadDiveSitePhotoToR2Only, addDiveSiteMedia } from '../api';
+import api from '../api';
 import { FormField } from '../components/forms/FormField';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { addDiveSiteMedia, uploadDiveSitePhotoToR2Only } from '../services/diveSites';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
