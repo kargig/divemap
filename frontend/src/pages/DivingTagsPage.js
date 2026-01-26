@@ -2,8 +2,8 @@ import { Tags, Search, Hash } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
 
-import { getTagsWithCounts } from '../api';
 import usePageTitle from '../hooks/usePageTitle';
+import { getTagsWithCounts } from '../services/tags';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getTagColor } from '../utils/tagHelpers';
 

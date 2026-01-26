@@ -13,9 +13,9 @@ import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
 
-import { getDivingOrganizations, getDivingOrganizationLevels } from '../api';
 import OrganizationLogo from '../components/OrganizationLogo';
 import usePageTitle from '../hooks/usePageTitle';
+import { getDivingOrganizationLevels, getDivingOrganizations } from '../services/organizations';
 
 const CertificationLevelsList = ({ organizationId, identifier }) => {
   const { data: levels, isLoading } = useQuery(
