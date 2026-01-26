@@ -17,6 +17,11 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useSearchParams } from 'react-router-dom';
 
+import { getDiveSites, getDivingCenters, getDiveSite } from '../api';
+import NewsletterUpload from '../components/NewsletterUpload';
+import TripFormModal from '../components/TripFormModal';
+import Modal from '../components/ui/Modal';
+import usePageTitle from '../hooks/usePageTitle';
 import {
   getParsedTrips,
   deleteParsedTrip,
@@ -28,14 +33,7 @@ import {
   reparseNewsletter,
   createParsedTrip,
   updateParsedTrip,
-  getDiveSites,
-  getDivingCenters,
-  getDiveSite,
-} from '../api';
-import NewsletterUpload from '../components/NewsletterUpload';
-import TripFormModal from '../components/TripFormModal';
-import Modal from '../components/ui/Modal';
-import usePageTitle from '../hooks/usePageTitle';
+} from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
 
 const AdminNewsletters = () => {

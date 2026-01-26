@@ -3,12 +3,13 @@ import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 
-import { getParsedTrip, getDiveSite, getDivingCenter } from '../api';
+import { getDiveSite, getDivingCenter } from '../api';
 import Breadcrumbs from '../components/Breadcrumbs';
 import MaskedEmail from '../components/MaskedEmail';
 import SEO from '../components/SEO';
 import TripHeader from '../components/TripHeader';
 import { useAuth } from '../contexts/AuthContext';
+import { getParsedTrip } from '../services/newsletters';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';

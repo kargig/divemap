@@ -22,7 +22,7 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 
-import api, { claimDivingCenterOwnership, getParsedTrips } from '../api';
+import api, { claimDivingCenterOwnership } from '../api';
 import Breadcrumbs from '../components/Breadcrumbs';
 import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
@@ -34,6 +34,7 @@ import ShellRating from '../components/ui/ShellRating';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import { useSetting } from '../hooks/useSettings';
+import { getParsedTrips } from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { decodeHtmlEntities } from '../utils/htmlDecode';

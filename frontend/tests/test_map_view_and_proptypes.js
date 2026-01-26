@@ -13,7 +13,7 @@
 
 const puppeteer = require('puppeteer');
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'http://localhost';
 
 // Test data that matches the backend data types
 const TEST_DIVE_SITE = {
@@ -56,8 +56,8 @@ async function testMapViewFunctionality(browser) {
     await page.waitForSelector('[data-testid="view-mode-toggle"]', { timeout: 5000 });
     
     // Test initial state - should be list view
-    const listViewActive = await page.$('[data-testid="list-view"].active');
-    const mapViewActive = await page.$('[data-testid="map-view"].active');
+    const listViewActive = await page.$('[data-testid="list-view-button"].active');
+    const mapViewActive = await page.$('[data-testid="map-view-button"].active');
     
     if (listViewActive) {
       console.log('  ✅ Initial view is list view');
@@ -75,7 +75,7 @@ async function testMapViewFunctionality(browser) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Check if map view is now active
-      const mapViewActiveAfter = await page.$('[data-testid="map-view"].active');
+      const mapViewActiveAfter = await page.$('[data-testid="map-view-button"].active');
       if (mapViewActiveAfter) {
         console.log('  ✅ Map view is now active');
       } else {
@@ -98,7 +98,7 @@ async function testMapViewFunctionality(browser) {
       await page.waitForSelector('[data-testid="view-mode-toggle"]', { timeout: 5000 });
       
       // Check if map view is still active
-      const mapViewStillActive = await page.$('[data-testid="map-view"].active');
+      const mapViewStillActive = await page.$('[data-testid="map-view-button"].active');
       if (mapViewStillActive) {
         console.log('  ✅ Map view persists after navigation');
       } else {
