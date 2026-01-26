@@ -34,18 +34,17 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import api, {
-  getNearbyDivingCenters,
-  searchDivingCenters,
-  updateDiveSiteMedia,
-  uploadDiveSitePhotoToR2Only,
   addDiveSiteMedia,
+  updateDiveSiteMedia,
   updateMediaOrder,
+  uploadDiveSitePhotoToR2Only,
 } from '../api';
 import { FormField } from '../components/forms/FormField';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { getNearbyDivingCenters, searchDivingCenters } from '../services/divingCenters';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
