@@ -4,11 +4,12 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 
-import { createParsedTrip, getDiveSites, getDivingCenters, getDiveSite } from '../api';
+import { getDiveSites, getDivingCenters, getDiveSite } from '../api';
 import NewsletterUpload from '../components/NewsletterUpload';
 import TripFormModal from '../components/TripFormModal';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { createParsedTrip } from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
 
 const CreateTrip = () => {

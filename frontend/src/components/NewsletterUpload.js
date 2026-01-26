@@ -4,7 +4,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
 
-import { uploadNewsletter, parseNewsletterText } from '../api';
+import { uploadNewsletter, parseNewsletterText } from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
 
 import DivingCenterSearchableDropdown from './DivingCenterSearchableDropdown';
