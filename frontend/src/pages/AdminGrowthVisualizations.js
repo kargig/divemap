@@ -19,8 +19,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-import { getGrowthData } from '../services/admin';
 import usePageTitle from '../hooks/usePageTitle';
+import { getGrowthData } from '../services/admin';
 
 const AdminGrowthVisualizations = () => {
   usePageTitle('Divemap - Admin - Growth Visualizations');

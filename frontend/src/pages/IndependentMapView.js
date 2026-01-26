@@ -1,3 +1,5 @@
+import { Button, Select, Tooltip, Space, Typography } from 'antd';
+import { Button as MobileButton, Selector, Popover } from 'antd-mobile';
 import {
   Map,
   Filter,
@@ -401,6 +403,13 @@ const IndependentMapView = () => {
       prev => {
         const newParams = new URLSearchParams(prev);
 
+        // Sync entity type
+        if (selectedEntityType && selectedEntityType !== 'dive-sites') {
+          newParams.set('type', selectedEntityType);
+        } else {
+          newParams.delete('type');
+        }
+
         if (windOverlayEnabled) {
           newParams.set('wind', 'true');
         } else {
@@ -437,6 +446,7 @@ const IndependentMapView = () => {
       { replace: true }
     );
   }, [
+    selectedEntityType,
     windOverlayEnabled,
     windAnimationEnabled,
     windDateTime,
@@ -839,33 +849,70 @@ const IndependentMapView = () => {
                 <h1 className='text-lg font-semibold text-gray-900'>Interactive Map</h1>
               </div>
               {/* Wrench button - Mobile controls toggle */}
-              <button
-                onClick={() => setShowMobileControls(!showMobileControls)}
-                className={`p-2 rounded-lg border transition-colors ${
-                  showMobileControls
-                    ? 'bg-blue-500 text-white border-blue-600'
-                    : 'bg-gray-500 text-white border-gray-600 hover:bg-gray-600'
-                }`}
-                title='Toggle map controls'
-              >
-                <Wrench className='w-4 h-4' />
-              </button>
+              {isMobile ? (
+                <MobileButton
+                  color={showMobileControls ? 'primary' : 'default'}
+                  fill={showMobileControls ? 'solid' : 'outline'}
+                  size='small'
+                  onClick={() => setShowMobileControls(!showMobileControls)}
+                >
+                  <Wrench className='w-4 h-4' />
+                </MobileButton>
+              ) : (
+                <Button
+                  type={showMobileControls ? 'primary' : 'default'}
+                  icon={<Wrench className='w-4 h-4' />}
+                  onClick={() => setShowMobileControls(!showMobileControls)}
+                >
+                  {showMobileControls ? 'Hide Controls' : 'Show Map Controls'}
+                </Button>
+              )}
             </div>
 
             {/* Bottom row - Description and dropdown */}
-            <div className='flex items-center justify-between'>
-              <p className='text-xs text-gray-600'>Explore dive sites, centers, and dives</p>
-              {/* Entity type selector */}
-              <select
-                value={selectedEntityType}
-                onChange={e => handleEntityTypeChange(e.target.value)}
-                className='px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value='dives'>Dives</option>
-                <option value='dive-sites'>Dive Sites</option>
-                <option value='diving-centers'>Diving Centers</option>
-                <option value='dive-trips'>Dive Trips</option>
-              </select>
+            <div className='flex items-center justify-between mt-2'>
+              <p className='text-xs text-gray-600 hidden sm:block'>
+                Explore dive sites, centers, and dives
+              </p>
+              <div className='flex items-center gap-3 ml-auto sm:ml-0'>
+                <div className='flex items-center gap-1.5'>
+                  <Info className='w-3.5 h-3.5 text-blue-500' />
+                  <span className='text-xs font-medium text-gray-700'>Show on map:</span>
+                </div>
+                {/* Entity type selector */}
+                {isMobile ? (
+                  <Popover.Menu
+                    actions={[
+                      { text: 'Dives', key: 'dives' },
+                      { text: 'Dive Sites', key: 'dive-sites' },
+                      { text: 'Diving Centers', key: 'diving-centers' },
+                      { text: 'Dive Trips', key: 'dive-trips' },
+                    ]}
+                    onAction={node => handleEntityTypeChange(node.key)}
+                    placement='bottomRight'
+                    trigger='click'
+                  >
+                    <MobileButton size='small' className='min-w-[120px]'>
+                      {selectedEntityType
+                        .split('-')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ')}
+                    </MobileButton>
+                  </Popover.Menu>
+                ) : (
+                  <Select
+                    value={selectedEntityType}
+                    onChange={handleEntityTypeChange}
+                    style={{ width: 160 }}
+                    options={[
+                      { value: 'dives', label: 'Dives' },
+                      { value: 'dive-sites', label: 'Dive Sites' },
+                      { value: 'diving-centers', label: 'Diving Centers' },
+                      { value: 'dive-trips', label: 'Dive Trips' },
+                    ]}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Wind Feature Promotion Banner */}
