@@ -363,7 +363,7 @@ async def verify_email(
     from fastapi.responses import RedirectResponse
     
     # Get frontend URL for redirects - default to localhost if not set
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost")
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost").rstrip("/")
     
     # Verify token
     user = email_verification_service.verify_token(token, db)
