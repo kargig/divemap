@@ -4,7 +4,7 @@ const SuggestionChips = ({ suggestions, onSelect }) => {
   if (!suggestions || suggestions.length === 0) return null;
 
   return (
-    <div className='flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-hide'>
+    <div className='flex flex-wrap gap-2 pb-2 px-1'>
       {suggestions.map((suggestion, index) => (
         <button
           key={index}

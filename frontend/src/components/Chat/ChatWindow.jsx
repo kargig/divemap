@@ -1,4 +1,4 @@
-import { X, Send, Trash2, Minimize2, Lock } from 'lucide-react';
+import { X, Send, Trash2, Maximize2, Minimize2, Lock } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -14,6 +14,8 @@ const ChatWindow = ({
   onFeedback,
   context = {},
   isAuthenticated = false,
+  isExpanded = false,
+  onToggleExpand,
 }) => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
@@ -95,13 +97,22 @@ const ChatWindow = ({
               <Trash2 size={16} />
             </button>
           )}
+          {/* Expand/Collapse Button (Desktop only) */}
+          <button
+            data-testid='chat-expand-button'
+            onClick={onToggleExpand}
+            className='p-1.5 hover:bg-blue-700 rounded-full transition-colors hidden md:block'
+            title={isExpanded ? 'Collapse' : 'Expand'}
+          >
+            {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          </button>
           <button
             data-testid='chat-close-button'
             onClick={onClose}
             className='p-1.5 hover:bg-blue-700 rounded-full transition-colors'
             title='Close'
           >
-            {window.innerWidth < 768 ? <X size={18} /> : <Minimize2 size={18} />}
+            <X size={18} />
           </button>
         </div>
       </div>

@@ -25,11 +25,29 @@ async def get_chat_sessions(
     """
     List all chat sessions.
     """
-    query = db.query(ChatSession).options(joinedload(ChatSession.user))
+    # Subquery to calculate total tokens per session
+    token_subquery = db.query(
+        ChatMessageModel.session_id,
+        func.sum(ChatMessageModel.tokens_total).label("total_tokens")
+    ).group_by(ChatMessageModel.session_id).subquery()
+
+    query = db.query(ChatSession, func.coalesce(token_subquery.c.total_tokens, 0))\
+        .outerjoin(token_subquery, ChatSession.id == token_subquery.c.session_id)\
+        .options(joinedload(ChatSession.user))
+
     if user_id:
         query = query.filter(ChatSession.user_id == user_id)
         
-    return query.order_by(desc(ChatSession.updated_at)).offset(offset).limit(limit).all()
+    results = query.order_by(desc(ChatSession.updated_at)).offset(offset).limit(limit).all()
+    
+    # Map results to response
+    response = []
+    for session, total_tokens in results:
+        # Attach the calculated value (Pydantic will pick it up)
+        session.total_tokens = int(total_tokens) if total_tokens else 0
+        response.append(session)
+        
+    return response
 
 @router.get("/sessions/{session_id}", response_model=ChatSessionDetailResponse)
 async def get_session_detail(
@@ -43,6 +61,10 @@ async def get_session_detail(
     session = db.query(ChatSession).options(joinedload(ChatSession.user), joinedload(ChatSession.messages)).filter(ChatSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Chat session not found")
+    
+    # Calculate total tokens from messages
+    session.total_tokens = sum((msg.tokens_total or 0) for msg in session.messages)
+    
     return session
 
 @router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)

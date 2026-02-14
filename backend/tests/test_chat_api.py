@@ -22,9 +22,9 @@ class TestChatAPI:
         
         mock_openai.side_effect = [
             # First call: extract_search_intent
-            intent,
+            (intent, {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}),
             # Second call: generate_response
-            "I found some great wreck dives near Athens for you! [Alekos Wreck](/dive-sites/1)"
+            ("I found some great wreck dives near Athens for you! [Alekos Wreck](/dive-sites/1)", {"prompt_tokens": 20, "completion_tokens": 10, "total_tokens": 30})
         ]
 
         response = client.post("/api/v1/chat/message", json={
@@ -92,7 +92,10 @@ class TestChatAPI:
         """Test admin session listing and transcript view."""
         # 1. Create a session by sending a message
         intent = SearchIntent(intent_type=IntentType.CHIT_CHAT)
-        mock_openai.side_effect = [intent, "Hello!"]
+        mock_openai.side_effect = [
+            (intent, {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}),
+            ("Hello!", {"prompt_tokens": 20, "completion_tokens": 10, "total_tokens": 30})
+        ]
         
         # Use auth_headers for the user sending the message
         from app.auth import create_access_token

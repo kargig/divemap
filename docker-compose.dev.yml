@@ -39,6 +39,8 @@ services:
       - MAX_ACTIVE_SESSIONS_PER_USER=5
       - ENVIRONMENT=development
       - OPENAI_API_KEY=${OPENAI_API_KEY:-foobar}
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - CORS_ORIGINS=http://localhost
       - ALLOWED_ORIGINS=http://localhost
     volumes:

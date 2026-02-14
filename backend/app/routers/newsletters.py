@@ -782,12 +782,11 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
 """
 
         # Call OpenAI API via OpenAIService
-        content = await openai_service.get_chat_completion(
+        content, usage = await openai_service.get_chat_completion(
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that extracts dive trip information from newsletters. Always return valid JSON arrays."},
                 {"role": "user", "content": prompt}
             ],
-            model="gpt-3.5-turbo",
             temperature=0.1
         )
 

@@ -891,6 +891,10 @@ class ChatMessage(Base):
     role = Column(Enum('user', 'assistant', 'system', name='chat_role'), nullable=False)
     content = Column(Text, nullable=False)
     debug_data = Column(sa.JSON, nullable=True) # Intent, search results, etc.
+    tokens_input = Column(Integer, nullable=True)
+    tokens_output = Column(Integer, nullable=True)
+    tokens_cached = Column(Integer, nullable=True)
+    tokens_total = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships

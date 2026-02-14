@@ -1,6 +1,6 @@
 # Implement AI Chatbot for Dive Discovery with Weather Integration
 
-**Status:** Implementation (Phase 6)
+**Status:** Implementation (Phase 6) - **COMPLETED**
 **Created:** 2026-02-14 13:10:22
 **Agent PID:** 104221
 **Branch:** feature/implement-chatbot
@@ -32,6 +32,7 @@ Implement an intelligent chatbot within Divemap that allows users to discover di
 - [x] **Functional**: **Restriction**: The chatbot widget is visible and openable by all users. However, inside the chat window, guest users see a "Login Required" prompt instead of the message input and history.
 - [x] **Functional**: **History**: User chat sessions and messages are persisted in the database.
 - [x] **Functional**: **Admin**: Admins can browse and review user chat histories via the dashboard.
+- [x] **Functional**: **Personalized Recommendations**: Suggests unvisited sites matching user's certification level and location.
 - [x] **Security**: API endpoints are secured to reject unauthenticated requests.
 - [x] **Security**: Rate limiting blocks excessive requests.
 - [x] **Security**: System prompt instructions are robust against basic injection attempts.
@@ -86,14 +87,58 @@ Implement an intelligent chatbot within Divemap that allows users to discover di
 - [x] Create `backend/app/routers/admin/chat.py` with endpoints to list sessions and view transcripts.
 - [x] Create `frontend/src/pages/AdminChatHistory.js` and `AdminChatFeedback.js`.
 - [x] Enforce authentication on all `/chat` endpoints in backend.
-- [ ] Perform Prompt Injection security tests ("Ignore instructions...").
+- [x] Perform Prompt Injection security tests ("Ignore instructions...").
 - [x] Verify Rate Limiting limits.
+- [x] **Analytics**: Save token usage (input, output, cached) for each assistant response in DB.
+- [x] **Admin UI**: Display token usage in Admin Chat History table and transcripts.
+
+### Phase 7: Multi-Provider Support & Search Refinement - **COMPLETED**
+*Focus: Flexibility, UI/UX, and Search Quality*
+- [x] Refactor `OpenAIService` to support `LLM_PROVIDER` configuration (OpenAI/DeepSeek).
+- [x] Ensure `ChatService` respects provider defaults (no hardcoded models).
+- [x] Fix `SuggestionChips` UI to use multi-line wrapping instead of horizontal scroll.
+- [x] Enhance "Nearby" search:
+    - [x] Prioritize context entity (current page) location over user GPS if available.
+    - [x] Reduce spatial search radius to 20km (0.2 deg) and order by distance.
+    - [x] Ensure spatial results aren't filtered out by generic keywords.
+- [x] Improve Keyword Search:
+    - [x] Implement tag-based filtering (searching `AvailableTag`).
+    - [x] Include `access_instructions` in keyword search fields.
+    - [x] Use AND logic for multiple keywords (e.g., "shore wreck" matches sites that are BOTH shore AND wreck).
+    - [x] Add fallback to generic text search if strict filters yield no results.
+- [x] Support Technical Diving:
+    - [x] Updated difficulty mapping (1-4) to include "Technical Diving".
+    - [x] Instructed LLM to include "tech" in keywords for technical queries to trigger tag matching.
+
+### Phase 8: Personalized Recommendations - **COMPLETED**
+*Focus: User-Centric Discovery*
+- [x] Define `PERSONAL_RECOMMENDATION` intent type in `SearchIntent`.
+- [x] Update `extract_search_intent` prompt to handle "Where should I go?", "Recommend a dive", etc.
+- [x] Implement Recommendation Logic in `ChatService`:
+    - [x] Calculate user's max difficulty level based on `UserCertification` (Open Water -> 1, Advanced -> 2, etc.).
+    - [x] Filter candidates by difficulty (<= User Max).
+    - [x] Exclude sites the user has already logged in `Dive`.
+    - [x] Use user's last dive location as fallback if no location provided.
+    - [x] Prioritize "shore" access for specific queries ("next weekend").
+- [x] **Verification**: Added `backend/tests/test_chat_recommendation.py` (Unit tests).
+- [x] **Verification**: Added `backend/tests/test_api_chat_recommendation.py` (API integration tests).
+- [x] **Verification**: Verified via `curl` that "next weekend" returns suitable, unvisited sites.
+
+### Phase 9: Comparison Engine - **COMPLETED**
+*Focus: Informational Queries*
+- [x] Define `COMPARISON` intent type in `SearchIntent`.
+- [x] Update `extract_search_intent` prompt to handle "Difference between X and Y", "Compare A and B".
+- [x] Implement Comparison Logic in `ChatService`:
+    - [x] Fetch `CertificationLevel` entities matching keywords.
+    - [x] Enrich results with structured metadata (Gases, Tanks, Depth, Prerequisites).
+    - [x] Provide multiple entities to the LLM to facilitate direct comparison.
+- [x] **Verification**: Added `backend/tests/test_chat_comparison.py` (Unit tests).
 
 ## Review
 
-- [ ] Check token usage and cost projections.
-- [ ] Verify `WindRecommendationService` accuracy with real weather data.
-- [ ] **Refinement**: Ensure specific DB fields (e.g., `max_depth`) take precedence over generic descriptions in LLM context.
+- [x] Check token usage and cost projections.
+- [x] Verify `WindRecommendationService` accuracy with real weather data.
+- [x] **Refinement**: Ensure specific DB fields (e.g., `max_depth`, `difficulty`) take precedence over generic descriptions in LLM context.
 
 ## Notes
 

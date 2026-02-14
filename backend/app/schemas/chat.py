@@ -22,8 +22,10 @@ class ChatRequest(BaseModel):
 
 class IntentType(str, Enum):
     DISCOVERY = "discovery"      # "Find dive sites..."
+    PERSONAL_RECOMMENDATION = "personal_recommendation" # "Where should I go diving?"
     CONTEXT_QA = "context_qa"    # "How deep is this?"
     KNOWLEDGE = "knowledge"      # "What is PADI?"
+    COMPARISON = "comparison"    # "Difference between PADI and SSI"
     CHIT_CHAT = "chit_chat"      # "Hello"
     LOGBOOK_DRAFT = "logbook_draft" # "Log a dive..."
 
@@ -93,6 +95,10 @@ class ChatMessageResponse(BaseModel):
     content: str
     debug_data: Optional[Dict] = None
     created_at: datetime
+    tokens_input: Optional[int] = None
+    tokens_output: Optional[int] = None
+    tokens_cached: Optional[int] = None
+    tokens_total: Optional[int] = None
     
     class Config:
         from_attributes = True
@@ -103,6 +109,7 @@ class ChatSessionResponse(BaseModel):
     user: Optional[ChatUser] = None
     created_at: datetime
     updated_at: datetime
+    total_tokens: int = 0
     
     class Config:
         from_attributes = True

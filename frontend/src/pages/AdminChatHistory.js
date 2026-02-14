@@ -96,6 +96,15 @@ const AdminChatHistory = () => {
         ),
       },
       {
+        accessorKey: 'total_tokens',
+        header: 'Tokens',
+        cell: ({ row }) => (
+          <span className='font-mono text-gray-600'>
+            {(row.original.total_tokens || 0).toLocaleString()}
+          </span>
+        ),
+      },
+      {
         accessorKey: 'created_at',
         header: 'Started',
         cell: ({ row }) => (
@@ -237,6 +246,18 @@ const AdminChatHistory = () => {
                         {new Date(msg.created_at).toLocaleTimeString()}
                       </div>
                       <div className='whitespace-pre-wrap'>{msg.content}</div>
+
+                      {msg.tokens_total > 0 && (
+                        <div className='mt-2 pt-2 border-t border-white/20 dark:border-gray-700 text-[10px] font-mono opacity-70'>
+                          <div className='flex gap-3'>
+                            <span>Tokens: {msg.tokens_total}</span>
+                            <span>
+                              (In: {msg.tokens_input || 0}, Out: {msg.tokens_output || 0}
+                              {msg.tokens_cached ? `, Cache: ${msg.tokens_cached}` : ''})
+                            </span>
+                          </div>
+                        </div>
+                      )}
 
                       {msg.debug_data && (
                         <details className='mt-2 pt-2 border-t border-white/20 dark:border-gray-700'>
