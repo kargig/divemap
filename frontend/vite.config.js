@@ -118,7 +118,8 @@ export default defineConfig({
           /^\/robots\.txt$/,
           /^\/sitemap\.xml$/,
           /^\/llms\.txt$/,
-          /^\/.*\.md$/
+          /^\/.*\.md$/,
+          /^\/l\/.*$/
         ],
         runtimeCaching: [
           {
