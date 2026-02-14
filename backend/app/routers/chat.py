@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.database import get_db
-from app.auth import get_current_user_optional
+from app.auth import get_current_user, get_current_user_optional
 from app.models import User, ChatFeedback
 from app.schemas.chat import ChatRequest, ChatResponse, ChatFeedbackCreate
 from app.services.chat_service import ChatService
@@ -17,7 +17,7 @@ async def send_message(
     request: Request,
     chat_request: ChatRequest,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Main chatbot interaction endpoint.
@@ -48,6 +48,9 @@ async def submit_feedback(
     new_feedback = ChatFeedback(
         message_id=feedback.message_id,
         user_id=current_user.id if current_user else None,
+        query=feedback.query,
+        response=feedback.response,
+        debug_data=feedback.debug_data,
         rating=feedback.rating,
         category=feedback.category,
         comments=feedback.comments
