@@ -33,6 +33,8 @@ Implement an intelligent chatbot within Divemap that allows users to discover di
 - [x] **Functional**: **History**: User chat sessions and messages are persisted in the database.
 - [x] **Functional**: **Admin**: Admins can browse and review user chat histories via the dashboard.
 - [x] **Functional**: **Personalized Recommendations**: Suggests unvisited sites matching user's certification level and location.
+- [x] **Functional**: **Gear Rental**: Finds cheapest gear prices and providers in a region.
+- [x] **Functional**: **Ratings & Popularity**: Displays and sorts by site ratings and view counts.
 - [x] **Security**: API endpoints are secured to reject unauthenticated requests.
 - [x] **Security**: Rate limiting blocks excessive requests.
 - [x] **Security**: System prompt instructions are robust against basic injection attempts.
@@ -133,6 +135,39 @@ Implement an intelligent chatbot within Divemap that allows users to discover di
     - [x] Enrich results with structured metadata (Gases, Tanks, Depth, Prerequisites).
     - [x] Provide multiple entities to the LLM to facilitate direct comparison.
 - [x] **Verification**: Added `backend/tests/test_chat_comparison.py` (Unit tests).
+
+### Phase 10: Gear Rental Search - **COMPLETED**
+*Focus: Commercial Discovery*
+- [x] Define `GEAR_RENTAL` intent type in `SearchIntent`.
+- [x] Update `extract_search_intent` prompt to handle "Cost of tank", "Rent regulator", etc.
+- [x] Implement Gear Search Logic in `ChatService`:
+    - [x] Query `GearRentalCost` joined with `DivingCenter`.
+    - [x] Filter by location (City, Region, Address) or spatial coordinates.
+    - [x] Filter items by keywords (excluding location words to prevent zero-result bugs).
+    - [x] Sort results by price (Cheapest first).
+- [x] **Verification**: Added `backend/tests/test_chat_gear.py` (Unit tests).
+- [x] **Verification**: Verified via `curl` that "cheaper to rent 12Lt tank air in Attica" returns correct prices and centers.
+
+### Phase 11: Ratings & Popularity - **COMPLETED**
+*Focus: Quality-Based Discovery*
+- [x] Update `extract_search_intent` prompt to handle "highest rated", "best", "popular", "most popular".
+- [x] Update `execute_search` (DISCOVERY) logic:
+    - [x] Eagerly load `ratings` relationship.
+    - [x] Handle sorting by average `SiteRating.score` for "highest_rated".
+    - [x] Handle sorting by `view_count` for "popular".
+    - [x] Calculate average rating and review count in search results.
+- [x] Update `generate_response` prompt context to include "Rating: X/10 (N reviews)".
+- [x] **Verification**: Added `backend/tests/test_chat_ratings.py`.
+- [x] **Verification**: Verified via `curl` that "highest rated dive site in Attica" returns sites sorted by rating.
+- [x] **Refinement**: Updated system prompt to strictly enforce Markdown links for all mentioned entities.
+
+### Phase 12: Stability & Bug Fixes - **COMPLETED**
+*Focus: Robustness and Code Quality*
+- [x] Resolved `NameError: name 'SiteRating' is not defined` in `ChatService`.
+- [x] Removed duplicated `execute_search` method that caused logic inconsistencies.
+- [x] Fixed `has_filters` bypass bug in sorting logic that led to zero-result responses for quality-based queries.
+- [x] Improved keyword filtering to exclude location names (e.g., "Attica"), preventing over-filtering of results.
+- [x] Stabilized backend test suite by ensuring test fixtures (Organizations, Ratings) are idempotent and unique.
 
 ## Review
 

@@ -11,7 +11,7 @@ from app.schemas.chat import SearchIntent, ChatMessage, ChatRequest, ChatRespons
 from app.models import (
     DiveSite, ParsedDiveTrip, User, CertificationLevel, DivingCenter, ParsedDive,
     ChatSession, ChatMessage as ChatMessageModel, CenterDiveSite,
-    AvailableTag, DiveSiteTag, Dive, UserCertification
+    AvailableTag, DiveSiteTag, Dive, UserCertification, GearRentalCost, SiteRating
 )
 from app.routers.search import search_dive_sites, ENTITY_ICONS
 from app.services.open_meteo_service import fetch_wind_data_batch
@@ -44,6 +44,13 @@ class ChatService:
         user_loc_str = f"{request.user_location[0]}, {request.user_location[1]}" if request.user_location else "Unknown"
         
         context_loc_str = "Unknown"
+        
+        # Validate context_entity_type to prevent prompt injection or logic errors
+        ALLOWED_CONTEXT_TYPES = {"dive_site", "diving_center", "dive_trip"}
+        if request.context_entity_type and request.context_entity_type not in ALLOWED_CONTEXT_TYPES:
+            logger.warning(f"Invalid context_entity_type received: {request.context_entity_type}")
+            request.context_entity_type = None
+
         if request.context_entity_id and request.context_entity_type:
             try:
                 if request.context_entity_type == "dive_site":
@@ -79,8 +86,13 @@ Context Entity Location (Lat, Lon): {context_loc_str}
   - "discovery": Use this for general searches (e.g., "Find sites in Athens").
   - "personal_recommendation": Use this for personalized suggestions like "Where should I go diving?", "Recommend a dive for me", or "What's good for my level?".
   - "comparison": Use this when the user asks for a comparison between two or more things (e.g., "Difference between PADI and SSI", "Compare site A and site B").
+  - "gear_rental": Use this when the user asks about renting equipment, prices of tanks, regulators, wetsuits, etc. (e.g., "Cost of 12L tank in Athens", "Rent gear near me").
   - "knowledge": General diving facts.
   - "chit_chat": Greeting or unrelated.
+- **Ratings & Popularity**: If the user asks for "highest rated", "best", "most popular", "top rated":
+  - Set `intent_type` to "discovery".
+  - Include "highest_rated" in `keywords` if they asked for ratings/best.
+  - Include "popular" in `keywords` if they asked for popularity/views.
 - **Context Handling**: If `User's Current Context` is provided and the user says "this", "here", or "current", you MUST set `intent_type` to "context_qa" and map the context ID/Type.
 - **Location & Coordinates**: 
   - If a location is mentioned (e.g., "Athens"), provide its name in `location` AND its approximate `latitude` and `longitude`.
@@ -147,83 +159,6 @@ Context Entity Location (Lat, Lon): {context_loc_str}
             return SearchIntent(intent_type=IntentType.DISCOVERY, keywords=[request.message]), {}
 
 
-
-    def execute_search(self, intent: SearchIntent, current_user: Optional[User] = None) -> List[Dict]:
-        """
-        Execute database queries based on the extracted intent.
-        """
-        results = []
-        limit = 10 
-        
-        logger.info(f"Executing search for intent: {intent}")
-
-        if intent.intent_type == IntentType.DISCOVERY:
-            # 1. Search Dive Sites
-            search_query = self.db.query(DiveSite).options(joinedload(DiveSite.difficulty))
-            
-            has_filters = False
-
-            # Spatial search: Only apply strict bounding box if NO named location is provided
-            # (i.e., pure "nearby" search relative to user/context coordinates).
-            # If a location name exists (e.g. "Attica"), trust the text filter instead of the centroid radius.
-            if intent.latitude and intent.longitude and not intent.location:
-                has_filters = True
-                # Roughly 20km radius (0.2 degree)
-                lat_range = 0.2 
-                lon_range = 0.2
-                search_query = search_query.filter(
-                    DiveSite.latitude >= intent.latitude - (lat_range / 2),
-                    DiveSite.latitude <= intent.latitude + (lat_range / 2),
-                    DiveSite.longitude >= intent.longitude - (lon_range / 2),
-                    DiveSite.longitude <= intent.longitude + (lon_range / 2)
-                )
-                
-                # Order by distance
-                search_query = search_query.order_by(
-                    func.pow(DiveSite.latitude - intent.latitude, 2) + 
-                    func.pow(DiveSite.longitude - intent.longitude, 2)
-                )
-
-            if intent.location:
-                has_filters = True
-                loc_term = intent.location.split(',')[0].strip()
-                loc_term = loc_term.replace('Greece', '').strip()
-                
-                loc_variants = [loc_term]
-                if loc_term.lower() in ["attiki", "athens"]: loc_variants.append("Attica")
-                if loc_term.lower() == "attica": loc_variants.append("Attiki")
-                
-                filters = []
-                for v in loc_variants:
-                    filters.append(DiveSite.region.ilike(f"%{v}%"))
-                    filters.append(DiveSite.country.ilike(f"%{v}%"))
-                    filters.append(DiveSite.description.ilike(f"%{v}%"))
-                
-                search_query = search_query.filter(or_(*filters))
-            
-            if intent.keywords:
-                # Apply AND logic between keywords: Each keyword must match at least one field
-                for kw in intent.keywords:
-                    clean_kw = kw.lower().strip()
-                    # Skip only truly generic filler words. 
-                    if clean_kw in ['dive', 'sites', 'suitable', 'diving', 'tomorrow', 'today', 'around', 'near', 'nearby', 'closest', 'dive sites', 'accessible', 'via']:
-                        continue
-                    if intent.location and clean_kw in intent.location.lower():
-                        continue
-                    
-                    has_filters = True
-                    
-                    # Search in tags
-                    tag_subquery = self.db.query(DiveSiteTag.dive_site_id).join(
-                        AvailableTag, DiveSiteTag.tag_id == AvailableTag.id
-                    ).filter(
-                        or_(
-                            AvailableTag.name.ilike(f"%{kw}%"),
-                            AvailableTag.description.ilike(f"%{kw}%")
-                        )
-                    )
-
-                    # Fields to search for THIS keyword
     def _get_user_difficulty_level(self, user_id: int) -> int:
         """
         Get the user's max difficulty level based on certifications.
@@ -280,11 +215,16 @@ Context Entity Location (Lat, Lon): {context_loc_str}
         results = []
         limit = 10 
         
-        logger.info(f"Executing search for intent: {intent}")
+        # Mask PII (coordinates) in logs
+        log_intent = intent.model_dump(exclude={'latitude', 'longitude'})
+        logger.info(f"Executing search for intent: {log_intent}")
 
         if intent.intent_type == IntentType.DISCOVERY:
             # 1. Search Dive Sites
-            search_query = self.db.query(DiveSite).options(joinedload(DiveSite.difficulty))
+            search_query = self.db.query(DiveSite).options(
+                joinedload(DiveSite.difficulty),
+                joinedload(DiveSite.ratings)
+            )
             
             has_filters = False
 
@@ -332,6 +272,19 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                 # Apply AND logic between keywords: Each keyword must match at least one field
                 for kw in intent.keywords:
                     clean_kw = kw.lower().strip()
+                    
+                    # Handle Sorting Keywords
+                    if clean_kw in ['highest_rated', 'top_rated', 'best']:
+                        search_query = search_query.outerjoin(SiteRating).group_by(DiveSite.id)
+                        search_query = search_query.order_by(func.avg(SiteRating.score).desc())
+                        has_filters = True
+                        continue 
+                    
+                    if clean_kw in ['popular', 'most_popular']:
+                        search_query = search_query.order_by(DiveSite.view_count.desc())
+                        has_filters = True
+                        continue
+
                     # Skip only truly generic filler words. 
                     if clean_kw in ['dive', 'sites', 'suitable', 'diving', 'tomorrow', 'today', 'around', 'near', 'nearby', 'closest', 'dive sites', 'accessible', 'via']:
                         continue
@@ -369,6 +322,12 @@ Context Entity Location (Lat, Lon): {context_loc_str}
             if has_filters:
                 sites = search_query.limit(limit).all()
                 for site in sites:
+                    avg_rating = None
+                    review_count = 0
+                    if site.ratings:
+                        review_count = len(site.ratings)
+                        avg_rating = sum(r.score for r in site.ratings) / review_count
+
                     results.append({
                         "entity_type": "dive_site",
                         "id": site.id,
@@ -380,9 +339,10 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                         "longitude": float(site.longitude) if site.longitude else None,
                         "shore_direction": float(site.shore_direction) if site.shore_direction else None,
                         "difficulty_id": site.difficulty_id,
-
                         "difficulty": site.difficulty.label if site.difficulty else None,
                         "difficulty_code": site.difficulty.code if site.difficulty else None,
+                        "rating": avg_rating,
+                        "review_count": review_count,
                         "route_path": f"/dive-sites/{site.id}"
                     })            
             # Fallback: If no results found with strict filters, try generic text search if keywords exist
@@ -434,6 +394,7 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                         results.append({
                             "entity_type": "dive_trip",
                             "id": trip.id,
+
                             "name": trip.trip_description or f"Trip on {trip.trip_date}",
                             "route_path": f"/dive-trips/{trip.id}",
                             "icon_name": ENTITY_ICONS["dive_trip"],
@@ -441,6 +402,71 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                         })
                 except Exception as e:
                     logger.error(f"Error searching trips: {e}")
+
+        elif intent.intent_type == IntentType.GEAR_RENTAL:
+            query = self.db.query(GearRentalCost).join(DivingCenter)
+            
+            # Filter by Location
+            if intent.location:
+                query = query.filter(
+                    or_(
+                        DivingCenter.city.ilike(f"%{intent.location}%"),
+                        DivingCenter.region.ilike(f"%{intent.location}%"),
+                        DivingCenter.country.ilike(f"%{intent.location}%"),
+                        DivingCenter.address.ilike(f"%{intent.location}%")
+                    )
+                )
+            elif intent.latitude and intent.longitude:
+                # Spatial search for centers
+                lat_range = 0.2
+                lon_range = 0.2
+                query = query.filter(
+                    DivingCenter.latitude >= intent.latitude - (lat_range / 2),
+                    DivingCenter.latitude <= intent.latitude + (lat_range / 2),
+                    DivingCenter.longitude >= intent.longitude - (lon_range / 2),
+                    DivingCenter.longitude <= intent.longitude + (lon_range / 2)
+                )
+
+            # Filter by Item Name (Keywords)
+            if intent.keywords:
+                stop_words = {'rent', 'rental', 'cost', 'price', 'cheap', 'cheaper', 'cheapest', 'how', 'much', 'in', 'at', 'for'}
+                
+                filtered_kws = []
+                for k in intent.keywords:
+                    clean_k = k.lower().strip()
+                    if clean_k in stop_words:
+                        continue
+                    if intent.location and clean_k in intent.location.lower():
+                        continue
+                    # Also skip if keyword is contained in location (e.g. "Athens" in "Athens, Greece")
+                    if intent.location and intent.location.lower() in clean_k:
+                        continue
+                    filtered_kws.append(k)
+                
+                if filtered_kws:
+                    conditions = []
+                    for kw in filtered_kws:
+                        conditions.append(GearRentalCost.item_name.ilike(f"%{kw}%"))
+                    
+                    if conditions:
+                        query = query.filter(and_(*conditions))
+
+            # Sort by Cost
+            query = query.order_by(GearRentalCost.cost.asc())
+            
+            items = query.limit(10).all()
+            for item in items:
+                results.append({
+                    "entity_type": "gear_rental",
+                    "id": item.id,
+                    "name": item.item_name,
+                    "cost": float(item.cost),
+                    "currency": item.currency,
+                    "center_name": item.diving_center.name,
+                    "center_id": item.diving_center.id,
+                    "center_location": f"{item.diving_center.city}, {item.diving_center.region}",
+                    "route_path": f"/diving-centers/{item.diving_center.id}"
+                })
 
         elif intent.intent_type == IntentType.PERSONAL_RECOMMENDATION:
             if current_user:
@@ -675,7 +701,7 @@ Answer the user's question using the provided <search_results> below.
 5. **Time Clarification**: If `ask_for_time` is True, you MUST politely ask the user what time they plan to dive to provide an accurate weather forecast. You can still answer other parts of the question (e.g. depth, description).
 6. **Weather**: If a result contains 'Weather' or 'Suitability' data, this IS the forecast for the requested date. Use it to answer weather-related questions directly.
 7. **Safety**: Always prioritize safety warnings based on weather suitability (e.g., CAUTION, AVOID).
-8. **Links**: ALWAYS link to dive sites or centers using Markdown: [Name](route_path). 
+8. **Links**: ALWAYS link to dive sites, centers, or trips using Markdown: [Name](route_path). Do this for EVERY entity you mention, including in lists or summaries.
 9. **Tone**: Helpful and professional.
 10. **Data Absence**: If the information isn't in <search_results>, politely state that you don't have that specific data.
 """
@@ -694,6 +720,8 @@ Answer the user's question using the provided <search_results> below.
                 # Metadata
                 if item.get('difficulty'):
                     data_context += f"  Difficulty: {item['difficulty']}\n"
+                if item.get('rating') is not None:
+                    data_context += f"  Rating: {item['rating']:.1f}/10 ({item['review_count']} reviews)\n"
                 if item.get('max_depth'):
                     data_context += f"  Max Depth: {item['max_depth']} meters\n"
                 if item.get('marine_life'):
@@ -704,6 +732,22 @@ Answer the user's question using the provided <search_results> below.
                 if item.get('visited_by_centers'):
                     data_context += f"  Diving Centers: {', '.join(item['visited_by_centers'])}\n"
                 
+                # Gear Rental
+                if item['entity_type'] == 'gear_rental':
+                    data_context += f"  Price: {item.get('cost')} {item.get('currency')}\n"
+                    data_context += f"  Provider: {item.get('center_name')} ({item.get('center_location')})\n"
+
+                # Certification Comparison
+                if item['entity_type'] == 'certification':
+                    if item.get('metadata'):
+                        meta = item['metadata']
+                        data_context += f"  Organization: {meta.get('organization')}\n"
+                        data_context += f"  Category: {meta.get('category')}\n"
+                        data_context += f"  Max Depth: {meta.get('max_depth')}\n"
+                        data_context += f"  Gases: {meta.get('gases')}\n"
+                        data_context += f"  Tanks: {meta.get('tanks')}\n"
+                        data_context += f"  Prerequisites: {meta.get('prerequisites')}\n"
+
                 # Weather
                 if 'suitability' in item:
                     wind_card = item.get('current_wind_cardinal', 'Unknown')
@@ -716,6 +760,8 @@ Answer the user's question using the provided <search_results> below.
                 
                 if item.get('description'):
                     data_context += f"  Description: {item['description'][:300]}\n"
+                if item.get('route_path'):
+                    data_context += f"  Link: [{item['name']}]({item['route_path']})\n"
                 data_context += "\n"
         data_context += "</search_results>"
 
