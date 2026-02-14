@@ -843,3 +843,23 @@ class UnsubscribeToken(Base):
         sa.Index('idx_unsubscribe_user', 'user_id'),
         sa.Index('idx_unsubscribe_expires', 'expires_at'),
     )
+
+class ChatFeedback(Base):
+    """
+    User feedback for chatbot responses.
+    Used for tuning prompts and identifying data gaps.
+    """
+    __tablename__ = "chat_feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    message_id = Column(String(50), nullable=True, index=True) # UUID from frontend
+    query = Column(Text, nullable=True) # The user's question
+    response = Column(Text, nullable=True) # The bot's answer
+    rating = Column(Boolean, nullable=False) # True=Up, False=Down
+    category = Column(String(50), nullable=True) # "accuracy", "tone", "safety"
+    comments = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relationships
+    user = relationship("User")

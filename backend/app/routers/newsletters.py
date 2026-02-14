@@ -494,7 +494,9 @@ def find_matching_diving_center(db: Session, center_name: str) -> Optional[int]:
 
     return None
 
-def parse_newsletter_with_openai(content: str, db: Session, diving_center_id_override: Optional[int] = None) -> List[dict]:
+from app.services.openai_service import openai_service
+
+async def parse_newsletter_with_openai(content: str, db: Session, diving_center_id_override: Optional[int] = None) -> List[dict]:
     """Parse newsletter content using OpenAI API"""
     try:
         # Extract diving center from metadata if not provided as override
@@ -779,21 +781,17 @@ IMPORTANT: For dive_site_name, extract the specific dive site name from the trip
 Return ONLY the JSON array, no markdown formatting, no explanations.
 """
 
-        # Call OpenAI API
-        openai.api_key = os.getenv("OPENAI_API_KEY")
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+        # Call OpenAI API via OpenAIService
+        content = await openai_service.get_chat_completion(
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that extracts dive trip information from newsletters. Always return valid JSON arrays."},
                 {"role": "user", "content": prompt}
             ],
+            model="gpt-3.5-turbo",
             temperature=0.1
         )
 
-        if response:
-            content = response.choices[0].message.content
-
+        if content:
             # Log the OpenAI response for debugging
             logger.info(f"OpenAI response: {content}")
 
@@ -852,7 +850,7 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
                     detail=f"Failed to parse structured data from AI service: {str(e)}"
                 )
         else:
-            logger.error(f"OpenAI API error: {response}")
+            logger.error(f"OpenAI API error: {content}")
             return parse_newsletter_content(clean_content, db)
 
     except Exception as e:
@@ -1051,7 +1049,7 @@ async def upload_newsletter(
         # Parse the newsletter content
         try:
             if use_openai.lower() == 'true':
-                parsed_trips = parse_newsletter_with_openai(content_str, db, diving_center_id_from_metadata)
+                parsed_trips = await parse_newsletter_with_openai(content_str, db, diving_center_id_from_metadata)
             else:
                 parsed_trips = parse_newsletter_content(content_str, db, diving_center_id_from_metadata)
             
@@ -1183,7 +1181,7 @@ async def parse_newsletter_text(
         # Parse the newsletter content (metadata will be extracted automatically)
         try:
             if use_openai:
-                parsed_trips = parse_newsletter_with_openai(content_with_metadata, db, diving_center_id_override)
+                parsed_trips = await parse_newsletter_with_openai(content_with_metadata, db, diving_center_id_override)
             else:
                 parsed_trips = parse_newsletter_content(content_with_metadata, db, diving_center_id_override)
 
@@ -1881,7 +1879,7 @@ async def reparse_newsletter(
             diving_center_id_from_metadata = extract_diving_center_from_metadata(newsletter.content)
             
             if use_openai.lower() == 'true':
-                parsed_trips = parse_newsletter_with_openai(newsletter.content, db, diving_center_id_from_metadata)
+                parsed_trips = await parse_newsletter_with_openai(newsletter.content, db, diving_center_id_from_metadata)
             else:
                 parsed_trips = parse_newsletter_content(newsletter.content, db, diving_center_id_from_metadata)
             
