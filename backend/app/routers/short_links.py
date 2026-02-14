@@ -12,8 +12,12 @@ from app.database import get_db
 from app.models import ShortLink
 from pydantic import BaseModel, HttpUrl
 
+from app.limiter import limiter
+
 api_router = APIRouter()
 redirect_router = APIRouter()
+
+DEFAULT_EXPIRATION_WEEKS = 1
 
 class ShortLinkCreate(BaseModel):
     url: HttpUrl
@@ -28,6 +32,7 @@ def generate_short_id(length=6):
     return ''.join(secrets.choice(chars) for _ in range(length))
 
 @api_router.post("/create", response_model=ShortLinkResponse)
+@limiter.limit("10/minute")
 async def create_short_link(
     link_data: ShortLinkCreate,
     request: Request,
@@ -55,8 +60,23 @@ async def create_short_link(
     if parsed_url.fragment:
         relative_url += f"#{parsed_url.fragment}"
 
+    # Deduplication: Check for existing active link
+    now = datetime.now(timezone.utc)
+    existing_link = db.query(ShortLink).filter(
+        ShortLink.original_url == relative_url,
+        ShortLink.expires_at > now
+    ).first()
+
+    if existing_link:
+        # Use X-Forwarded-Proto/Host if available for correct scheme/domain
+        scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
+        host = request.headers.get("Host", request.url.netloc)
+        
+        short_url = f"{scheme}://{host}/l/{existing_link.id}"
+        return ShortLinkResponse(short_url=short_url, expires_at=existing_link.expires_at)
+
     # 1 week TTL
-    expires_at = datetime.now(timezone.utc) + timedelta(weeks=1)
+    expires_at = now + timedelta(weeks=DEFAULT_EXPIRATION_WEEKS)
     
     # Try to generate a unique ID (retrying if collision occurs, though unlikely)
     for _ in range(5):
