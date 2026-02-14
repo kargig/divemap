@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGeolocated } from 'react-geolocated';
+import toast from 'react-hot-toast';
 import { useQueryClient } from 'react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
@@ -733,6 +734,7 @@ const IndependentMapView = () => {
       setShareUrl(response.data.short_url);
     } catch (error) {
       console.error('Failed to generate short link', error);
+      toast.error('Could not shorten link. Using full URL instead.');
       // Fallback to long URL if shortening fails
       setShareUrl(longUrl);
     } finally {
