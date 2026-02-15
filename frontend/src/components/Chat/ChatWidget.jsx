@@ -20,10 +20,7 @@ const ChatWidget = () => {
     if (isOpen && !userLocation && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         position => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lon: position.coords.longitude,
-          });
+          setUserLocation([position.coords.latitude, position.coords.longitude]);
         },
         error => {
           console.debug('Geolocation error:', error);
