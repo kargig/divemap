@@ -35,10 +35,12 @@
     "react-hook-form": "^7.69.0",
     "react-hot-toast": "^2.6.0",
     "react-leaflet": "^4.2.1",
+    "react-markdown": "^10.1.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^7.8.1",
     "react-slider": "^2.0.6",
     "recharts": "^3.2.1",
+    "remark-gfm": "^4.0.1",
     "yet-another-react-lightbox": "^3.26.0",
     "zod": "^4.2.1"
   },

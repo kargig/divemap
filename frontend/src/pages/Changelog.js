@@ -46,9 +46,54 @@ const Changelog = () => {
 
   const releases = [
     {
+      date: 'February 15, 2026',
+      title: 'AI Chatbot & Intelligent Discovery',
+      tag: 'Latest Release',
+      sections: [
+        {
+          title: 'Major Features',
+          type: 'feature',
+          color: 'blue',
+          items: [
+            'AI Chatbot: Context-aware assistant for dive discovery and planning.',
+            'Natural Language Search: Find sites/trips using conversational queries.',
+            'Weather Integration: Real-time suitability analysis for planned dives.',
+            'Personalized Recommendations: Suggestions based on certification and history.',
+            'Gear Rental & Comparison: Price comparison and career guidance.',
+          ],
+        },
+        {
+          title: 'Improvements',
+          type: 'improvement',
+          color: 'green',
+          items: [
+            'Admin Dashboard: Chat history monitoring and feedback review.',
+            'Deep Linking: Support for sharing specific chat contexts.',
+          ],
+        },
+        {
+          title: 'Database',
+          type: 'database',
+          color: 'purple',
+          items: [
+            'Chat Infrastructure: Sessions, messages, and feedback tables.',
+            'Token Usage: Granular tracking for LLM cost analysis.',
+          ],
+        },
+        {
+          title: 'Security',
+          type: 'security',
+          color: 'orange',
+          items: [
+            'PII Masking: Coordinates and sensitive data redaction in logs.',
+            'Rate Limiting: Strict limits for chat endpoints.',
+          ],
+        },
+      ],
+    },
+    {
       date: 'January 22, 2026',
       title: 'New Features & Infrastructure Overhaul',
-      tag: 'Latest Release',
       sections: [
         {
           title: 'Major Features',
@@ -379,7 +424,7 @@ const Changelog = () => {
                 </Space>
               </Space>
               <Paragraph type='secondary' style={{ marginTop: '16px' }}>
-                Last updated: January 22, 2026
+                Last updated: February 15, 2026
               </Paragraph>
             </Space>
           </Card>

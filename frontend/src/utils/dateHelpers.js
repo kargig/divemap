@@ -1,6 +1,23 @@
 /**
- * Date formatting utilities
+ * Helper to safely parse a UTC date string.
+ * Assumes the backend sends UTC timestamps, potentially without the 'Z' suffix.
+ * @param {string|Date} dateString
+ * @returns {Date} Date object
  */
+const parseUTCDate = dateString => {
+  if (!dateString) return new Date();
+  if (dateString instanceof Date) return dateString;
+
+  // If it's a string and doesn't end with Z or have timezone offset, assume UTC
+  if (
+    typeof dateString === 'string' &&
+    !dateString.endsWith('Z') &&
+    !/[+-]\d{2}:\d{2}$/.test(dateString)
+  ) {
+    return new Date(`${dateString}Z`);
+  }
+  return new Date(dateString);
+};
 
 /**
  * Format a date string to a readable format
@@ -12,8 +29,9 @@ export const formatDate = (dateString, options = {}) => {
   if (!dateString) return 'Date TBD';
 
   const { year = 'numeric', month = 'long', day = 'numeric', locale = 'en-US' } = options;
+  const date = parseUTCDate(dateString);
 
-  return new Date(dateString).toLocaleDateString(locale, {
+  return date.toLocaleDateString(locale, {
     year,
     month,
     day,
@@ -28,7 +46,8 @@ export const formatDate = (dateString, options = {}) => {
 export const formatDateShort = dateString => {
   if (!dateString) return 'Date TBD';
 
-  return new Date(dateString).toLocaleDateString('en-US', {
+  const date = parseUTCDate(dateString);
+  return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -43,8 +62,7 @@ export const formatDateShort = dateString => {
 export const formatDateRelative = dateString => {
   if (!dateString) return 'Date TBD';
 
-  // JavaScript Date automatically handles UTC ISO strings and converts to browser timezone
-  const date = new Date(dateString);
+  const date = parseUTCDate(dateString);
   const now = new Date();
   const diffInMs = now.getTime() - date.getTime();
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
@@ -76,8 +94,7 @@ export const formatDateRelative = dateString => {
 export const formatTimeAgo = dateString => {
   if (!dateString) return 'Unknown';
 
-  // JavaScript Date automatically parses UTC ISO strings and converts to browser timezone
-  const date = new Date(dateString);
+  const date = parseUTCDate(dateString);
 
   // Check if date is valid
   if (isNaN(date.getTime())) {

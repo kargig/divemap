@@ -38,6 +38,23 @@ and review dive sites and diving centers.
 - **Wind Overlay & Recommendations**: Real-time wind data overlay with
   intelligent dive site suitability recommendations based on weather conditions
 
+### **AI Assistant**
+
+> Powered by advanced LLMs for intelligent dive planning and discovery.
+
+- **Natural Language Search**: Discover dive sites, trips, and centers using
+  conversational queries (e.g., "Find wreck dives in Athens for beginners")
+- **Weather Integration**: Real-time wind and weather suitability analysis for
+  planned dives
+- **Personalized Recommendations**: Suggests dive sites based on your
+  certification level and diving history
+- **Gear Rental Comparison**: Find the best prices for equipment rental in your
+  area
+- **Certification Guidance**: Interactive guide for diving certifications and
+  organizations
+- **Context Awareness**: Ask questions about the specific dive site or center you
+  are viewing
+
 ### **Mobile Experience**
 
 - **Progressive Web App (PWA)**: Installable application with offline capabilities

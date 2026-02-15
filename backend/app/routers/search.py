@@ -13,7 +13,7 @@ from sqlalchemy import or_, and_
 from app.database import get_db
 from app.models import (
     DiveSite, DiveSiteAlias, DivingCenter, Dive, DiveRoute,
-    ParsedDiveTrip, ParsedDive, User
+    ParsedDiveTrip, ParsedDive, User, AvailableTag, DiveSiteTag
 )
 from app.schemas import (
     GlobalSearchResponse, GlobalSearchResult, EntityTypeSearchResults
@@ -46,6 +46,12 @@ def search_dive_sites(query: str, limit: int, db: Session) -> List[GlobalSearchR
             db.query(DiveSiteAlias.dive_site_id).filter(
                 DiveSiteAlias.alias.ilike(f"%{sanitized_query}%")
             )
+        ),
+        # Add tag search
+        DiveSite.id.in_(
+            db.query(DiveSiteTag.dive_site_id)
+            .join(AvailableTag, DiveSiteTag.tag_id == AvailableTag.id)
+            .filter(AvailableTag.name.ilike(f"%{sanitized_query}%"))
         )
     )
     

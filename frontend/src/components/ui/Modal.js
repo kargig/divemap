@@ -20,10 +20,10 @@ const Modal = ({
       {trigger && <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>}
       <Dialog.Portal>
         <Dialog.Overlay
-          className={`fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity ${overlayClassName}`}
+          className={`fixed inset-0 bg-black bg-opacity-50 z-[100] transition-opacity ${overlayClassName}`}
         />
         <Dialog.Content
-          className={`fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%] bg-white shadow-xl duration-200 p-6 sm:rounded-lg ${className}`}
+          className={`fixed left-[50%] top-[50%] z-[101] translate-x-[-50%] translate-y-[-50%] bg-white shadow-xl duration-200 p-6 sm:rounded-lg ${className}`}
           onPointerDownOutside={e => {
             if (preventOutsideClick) {
               e.preventDefault();

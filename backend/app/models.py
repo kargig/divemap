@@ -843,3 +843,59 @@ class UnsubscribeToken(Base):
         sa.Index('idx_unsubscribe_user', 'user_id'),
         sa.Index('idx_unsubscribe_expires', 'expires_at'),
     )
+
+class ChatFeedback(Base):
+    """
+    User feedback for chatbot responses.
+    Used for tuning prompts and identifying data gaps.
+    """
+    __tablename__ = "chat_feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    message_id = Column(String(50), nullable=True, index=True) # UUID from frontend
+    query = Column(Text, nullable=True) # The user's question
+    response = Column(Text, nullable=True) # The bot's answer
+    debug_data = Column(sa.JSON, nullable=True) # Intent, sources, weather etc.
+    rating = Column(Boolean, nullable=False) # True=Up, False=Down
+    category = Column(String(50), nullable=True) # "accuracy", "tone", "safety"
+    comments = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relationships
+    user = relationship("User")
+
+class ChatSession(Base):
+    """
+    Groups chat messages into a single session.
+    """
+    __tablename__ = "chat_sessions"
+
+    id = Column(String(50), primary_key=True, index=True) # UUID
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Relationships
+    user = relationship("User")
+    messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
+
+class ChatMessage(Base):
+    """
+    Individual chat messages within a session.
+    """
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String(50), ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(Enum('user', 'assistant', 'system', name='chat_role'), nullable=False)
+    content = Column(Text, nullable=False)
+    debug_data = Column(sa.JSON, nullable=True) # Intent, search results, etc.
+    tokens_input = Column(Integer, nullable=True)
+    tokens_output = Column(Integer, nullable=True)
+    tokens_cached = Column(Integer, nullable=True)
+    tokens_total = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relationships
+    session = relationship("ChatSession", back_populates="messages")

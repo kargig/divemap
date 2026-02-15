@@ -11,6 +11,8 @@ import {
   FileText,
   Bell,
   Route,
+  MessageSquare,
+  History,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -112,6 +114,23 @@ const Admin = () => {
         'Manage notification preferences for any user, configure email and website notifications.',
       icon: <Bell className='h-8 w-8 text-indigo-600' />,
       href: '/admin/notification-preferences',
+      color: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100',
+    },
+    {
+      id: 'chat-feedback',
+      title: 'Chatbot Feedback',
+      description:
+        'Review and analyze user feedback on chatbot responses to improve its performance.',
+      icon: <MessageSquare className='h-8 w-8 text-blue-500' />,
+      href: '/admin/chat-feedback',
+      color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
+    },
+    {
+      id: 'chat-history',
+      title: 'Chatbot History',
+      description: 'Browse full transcripts of AI chat sessions to review quality and performance.',
+      icon: <History className='h-8 w-8 text-indigo-600' />,
+      href: '/admin/chat-history',
       color: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100',
     },
   ];

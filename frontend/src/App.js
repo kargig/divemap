@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
+import ChatWidget from './components/Chat/ChatWidget';
 import EmailVerificationBanner from './components/EmailVerificationBanner';
 import Navbar from './components/Navbar';
 import PWAUpdater from './components/PWAUpdater';
@@ -33,6 +34,8 @@ const AdminRecentActivity = lazy(() => import('./pages/AdminRecentActivity'));
 const AdminSystemMetrics = lazy(() => import('./pages/AdminSystemMetrics'));
 const AdminTags = lazy(() => import('./pages/AdminTags'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminChatFeedback = lazy(() => import('./pages/AdminChatFeedback'));
+const AdminChatHistory = lazy(() => import('./pages/AdminChatHistory'));
 const API = lazy(() => import('./pages/API'));
 const Changelog = lazy(() => import('./pages/Changelog'));
 const CheckYourEmail = lazy(() => import('./pages/CheckYourEmail'));
@@ -369,6 +372,22 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
+                    <Route
+                      path='/admin/chat-feedback'
+                      element={
+                        <ProtectedRoute requireAdmin={true}>
+                          <AdminChatFeedback />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path='/admin/chat-history'
+                      element={
+                        <ProtectedRoute requireAdmin={true}>
+                          <AdminChatHistory />
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route path='/dives' element={<Dives />} />
                     <Route
                       path='/dives/create'
@@ -477,6 +496,7 @@ function App() {
                   </Routes>
                 </Suspense>
                 <ReportIssueButton />
+                <ChatWidget />
               </main>
               <Toaster
                 position='top-right'
