@@ -63,7 +63,7 @@ class OpenAIService:
         self,
         messages: List[Dict],
         model: Optional[str] = None,
-        max_tokens: int = 1000,
+        max_tokens: int = 2000,
         temperature: float = 0.7,
         json_schema: Optional[Type[BaseModel]] = None
     ) -> Tuple[Union[str, Dict], Dict[str, int]]:

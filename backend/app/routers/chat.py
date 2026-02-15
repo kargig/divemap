@@ -7,12 +7,12 @@ from app.auth import get_current_user, get_current_user_optional
 from app.models import User, ChatFeedback
 from app.schemas.chat import ChatRequest, ChatResponse, ChatFeedbackCreate
 from app.services.chat_service import ChatService
-from app.limiter import limiter
+from app.limiter import limiter, skip_rate_limit_for_admin
 
 router = APIRouter()
 
 @router.post("/message", response_model=ChatResponse)
-@limiter.limit("5/minute")
+@skip_rate_limit_for_admin("5/minute")
 async def send_message(
     request: Request,
     chat_request: ChatRequest,
