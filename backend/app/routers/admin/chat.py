@@ -16,7 +16,7 @@ router = APIRouter()
 
 @router.get("/sessions", response_model=List[ChatSessionResponse])
 async def get_chat_sessions(
-    user_id: Optional[int] = Query(None),
+    username: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
@@ -35,8 +35,8 @@ async def get_chat_sessions(
         .outerjoin(token_subquery, ChatSession.id == token_subquery.c.session_id)\
         .options(joinedload(ChatSession.user))
 
-    if user_id:
-        query = query.filter(ChatSession.user_id == user_id)
+    if username:
+        query = query.join(ChatSession.user).filter(User.username.ilike(f"%{username}%"))
         
     results = query.order_by(desc(ChatSession.updated_at)).offset(offset).limit(limit).all()
     

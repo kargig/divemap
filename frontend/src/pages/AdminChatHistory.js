@@ -26,7 +26,7 @@ const AdminChatHistory = () => {
   const queryClient = useQueryClient();
 
   const [selectedSessionId, setSelectedSessionId] = useState(null);
-  const [userIdFilter, setUserIdFilter] = useState('');
+  const [usernameFilter, setUsernameFilter] = useState('');
 
   // Table state
   const [pagination, setPagination] = useState({
@@ -40,9 +40,9 @@ const AdminChatHistory = () => {
     data: sessions,
     isLoading: sessionsLoading,
     error: sessionsError,
-  } = useQuery(['adminChatSessions', userIdFilter, pagination], () =>
+  } = useQuery(['adminChatSessions', usernameFilter, pagination], () =>
     getAdminChatSessions({
-      user_id: userIdFilter || undefined,
+      username: usernameFilter || undefined,
       limit: pagination.pageSize,
       offset: pagination.pageIndex * pagination.pageSize,
     })
@@ -183,11 +183,11 @@ const AdminChatHistory = () => {
         <div className='relative flex-1 max-w-xs'>
           <Search className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' size={18} />
           <input
-            type='number'
-            placeholder='Filter by User ID...'
-            value={userIdFilter}
+            type='text'
+            placeholder='Filter by Username...'
+            value={usernameFilter}
             onChange={e => {
-              setUserIdFilter(e.target.value);
+              setUsernameFilter(e.target.value);
               setPagination(prev => ({ ...prev, pageIndex: 0 }));
             }}
             className='w-full bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg text-sm pl-10 pr-3 py-2'

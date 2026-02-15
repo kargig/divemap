@@ -5,7 +5,7 @@ import {
   getPaginationRowModel,
   flexRender,
 } from '@tanstack/react-table';
-import { Eye, ChevronUp, ChevronDown } from 'lucide-react';
+import { Eye, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -39,6 +39,15 @@ const AdminChatHistoryTable = ({
     manualSorting: true,
   });
 
+  // Pagination handlers
+  const handlePageChange = newPage => {
+    onPaginationChange(prev => ({ ...prev, pageIndex: newPage }));
+  };
+
+  const handlePageSizeChange = newPageSize => {
+    onPaginationChange(prev => ({ ...prev, pageIndex: 0, pageSize: newPageSize }));
+  };
+
   if (isLoading) {
     return (
       <div className='flex justify-center items-center h-64'>
@@ -46,6 +55,11 @@ const AdminChatHistoryTable = ({
       </div>
     );
   }
+
+  // Determine if next page is available based on data length matching page size
+  // (since API doesn't return total count)
+  const hasNextPage = data.length === pagination.pageSize;
+  const hasPreviousPage = pagination.pageIndex > 0;
 
   return (
     <div className='space-y-4'>
@@ -108,7 +122,8 @@ const AdminChatHistoryTable = ({
                 table.getRowModel().rows.map(row => (
                   <tr
                     key={row.id}
-                    className='hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors'
+                    className='hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer'
+                    onClick={() => onView && onView(row.original)}
                   >
                     {row.getVisibleCells().map(cell => (
                       <td
@@ -125,6 +140,51 @@ const AdminChatHistoryTable = ({
           </table>
         </div>
       </div>
+
+      {/* Pagination Controls */}
+      <div className='flex flex-col sm:flex-row justify-between items-center gap-4 px-2'>
+        {/* Page Size Selection */}
+        <div className='flex items-center gap-2'>
+          <label htmlFor='page-size-select' className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+            Show:
+          </label>
+          <select
+            id='page-size-select'
+            value={pagination.pageSize}
+            onChange={e => handlePageSizeChange(Number(e.target.value))}
+            className='px-3 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-md text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+          >
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+          <span className='text-sm text-gray-600 dark:text-gray-400'>per page</span>
+        </div>
+
+        {/* Pagination Info */}
+        <div className='text-sm text-gray-600 dark:text-gray-400'>
+          Page {pagination.pageIndex + 1}
+        </div>
+
+        {/* Pagination Navigation */}
+        <div className='flex items-center gap-2'>
+          <button
+            onClick={() => handlePageChange(pagination.pageIndex - 1)}
+            disabled={!hasPreviousPage}
+            className='px-3 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors'
+          >
+            <ChevronLeft className='h-4 w-4' />
+          </button>
+
+          <button
+            onClick={() => handlePageChange(pagination.pageIndex + 1)}
+            disabled={!hasNextPage}
+            className='px-3 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors'
+          >
+            <ChevronRight className='h-4 w-4' />
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -132,7 +192,11 @@ const AdminChatHistoryTable = ({
 AdminChatHistoryTable.propTypes = {
   data: PropTypes.array,
   columns: PropTypes.array.isRequired,
-  pagination: PropTypes.object.isRequired,
+  pagination: PropTypes.shape({
+    pageIndex: PropTypes.number.isRequired,
+    pageSize: PropTypes.number.isRequired,
+    pageCount: PropTypes.number,
+  }).isRequired,
   onPaginationChange: PropTypes.func.isRequired,
   sorting: PropTypes.array,
   onSortingChange: PropTypes.func.isRequired,

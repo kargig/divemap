@@ -326,6 +326,7 @@ export const getAdminChatFeedbackDetail = async id => {
 };
 
 export const getAdminChatSessions = async (params = {}) => {
+  // params can include: username, limit, offset
   const response = await api.get('/api/v1/admin/chat/sessions', { params });
   return response.data;
 };
