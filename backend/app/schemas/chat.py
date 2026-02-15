@@ -38,6 +38,7 @@ class SearchIntent(BaseModel):
     location: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    radius: Optional[float] = None # Search radius in km
     date: Optional[str] = None # YYYY-MM-DD
     time: Optional[str] = None # HH:MM
     date_range: Optional[List[str]] = None # [YYYY-MM-DD, YYYY-MM-DD]

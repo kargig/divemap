@@ -98,12 +98,19 @@ Context Entity Location (Lat, Lon): {context_loc_str}
   - Include "popular" in `keywords` if they asked for popularity/views.
 - **Context Handling**: If `User's Current Context` is provided and the user says "this", "here", or "current", you MUST set `intent_type` to "context_qa" and map the context ID/Type.
 - **Location & Coordinates**: 
-  - If a location is mentioned (e.g., "Athens"), provide its name in `location` AND its approximate `latitude` and `longitude`.
+  - **Cities & Areas**: If the user mentions a known town, city, or region (e.g. "Anavyssos", "Sounio", "Athens"), YOU MUST provide its approximate `latitude` and `longitude`.
+  - **Specific Dive Sites**: Do NOT guess coordinates for specific named dive sites (e.g. "The Cave", "Porto Ennea Reef"). Put the name in `location` and leave `latitude`/`longitude` as `null`. The system will resolve these from the database.
+  - **Search Radius**: If you provide coordinates, estimate a suitable search `radius` in kilometers (km) based on the location type:
+    - Specific Spot/Town (e.g. Anavyssos): 10-20 km
+    - Large City (e.g. Athens): 30 km
+    - Large Region (e.g. Attica): 50-100 km
+    - Country (e.g. Greece): 500 km (or more if needed)
   - If the user refers to their current context (e.g., "weather here"), and you set `intent_type` to "context_qa", you don't need to provide coordinates as the system will fetch them from the database.
 - **Nearby or Weather Search**: If the user asks for "nearby", "near me", "closest", "around here", OR asks for "weather" / "forecast" without specifying a location:
   - Check `User's Current Location`. If available (not "Unknown"), use it.
   - If `User's Current Location` is "Unknown", check `Context Entity Location`. If available, use it.
   - You **MUST** set `latitude` and `longitude` to the selected values.
+  - Set `radius` to 20 (default for nearby search).
   - Set `intent_type` to "discovery".
   - DO NOT set `location` name if you are using coordinates.
 - **Dates & Times**: 
@@ -128,6 +135,7 @@ Context Entity Location (Lat, Lon): {context_loc_str}
   "location": "Athens",
   "latitude": 37.9838,
   "longitude": 23.7275,
+  "radius": 30,
   "date": "2026-02-15",
   "time": "14:00",
   "date_range": null,
@@ -224,6 +232,16 @@ Context Entity Location (Lat, Lon): {context_loc_str}
         logger.info(f"Executing search for intent: {log_intent}")
 
         if intent.intent_type == IntentType.DISCOVERY:
+            # Smart Location Resolution: If location is a specific Dive Site, switch to Spatial Search around it
+            if intent.location and not (intent.latitude and intent.longitude):
+                # Try to find a dive site with this name
+                site_match = self.db.query(DiveSite).filter(DiveSite.name.ilike(f"{intent.location}")).first()
+                if site_match and site_match.latitude and site_match.longitude:
+                    logger.info(f"Resolved location '{intent.location}' to DiveSite '{site_match.name}' coordinates.")
+                    intent.latitude = float(site_match.latitude)
+                    intent.longitude = float(site_match.longitude)
+                    intent.location = None # Clear text location to force radius search
+
             # 1. Search Dive Sites
             search_query = self.db.query(DiveSite).options(
                 joinedload(DiveSite.difficulty),
@@ -231,28 +249,28 @@ Context Entity Location (Lat, Lon): {context_loc_str}
             )
             
             has_filters = False
+            spatial_filters = []
+            text_filters = []
 
-            # Spatial search: Only apply strict bounding box if NO named location is provided
-            # (i.e., pure "nearby" search relative to user/context coordinates).
-            # If a location name exists (e.g. "Attica"), trust the text filter instead of the centroid radius.
-            if intent.latitude and intent.longitude and not intent.location:
+            # 1. Spatial Search (Latitude/Longitude)
+            if intent.latitude and intent.longitude:
                 has_filters = True
-                # Roughly 20km radius (0.2 degree)
-                lat_range = 0.2 
-                lon_range = 0.2
-                search_query = search_query.filter(
-                    DiveSite.latitude >= intent.latitude - (lat_range / 2),
-                    DiveSite.latitude <= intent.latitude + (lat_range / 2),
-                    DiveSite.longitude >= intent.longitude - (lon_range / 2),
-                    DiveSite.longitude <= intent.longitude + (lon_range / 2)
-                )
+                radius_km = intent.radius if intent.radius else 20.0
+                # 1 degree lat is consistently ~111km. 
+                # 1 degree lon varies by latitude, but 100km is a safe rough average for Mediterranean/Red Sea latitudes.
+                deg_range = radius_km / 111.0
                 
-                # Order by distance
-                search_query = search_query.order_by(
-                    func.pow(DiveSite.latitude - intent.latitude, 2) + 
-                    func.pow(DiveSite.longitude - intent.longitude, 2)
-                )
+                lat_min, lat_max = intent.latitude - (deg_range), intent.latitude + (deg_range)
+                lon_min, lon_max = intent.longitude - (deg_range), intent.longitude + (deg_range)
+                
+                spatial_filters = [
+                    DiveSite.latitude >= lat_min,
+                    DiveSite.latitude <= lat_max,
+                    DiveSite.longitude >= lon_min,
+                    DiveSite.longitude <= lon_max
+                ]
 
+            # 2. Text Search (Location Name)
             if intent.location:
                 has_filters = True
                 loc_term = intent.location.split(',')[0].strip()
@@ -262,13 +280,26 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                 if loc_term.lower() in ["attiki", "athens"]: loc_variants.append("Attica")
                 if loc_term.lower() == "attica": loc_variants.append("Attiki")
                 
-                filters = []
                 for v in loc_variants:
-                    filters.append(DiveSite.region.ilike(f"%{v}%"))
-                    filters.append(DiveSite.country.ilike(f"%{v}%"))
-                    filters.append(DiveSite.description.ilike(f"%{v}%"))
-                
-                search_query = search_query.filter(or_(*filters))
+                    text_filters.append(DiveSite.region.ilike(f"%{v}%"))
+                    text_filters.append(DiveSite.country.ilike(f"%{v}%"))
+                    text_filters.append(DiveSite.description.ilike(f"%{v}%"))
+
+            # Combine Spatial and Text filters using OR if both exist
+            if spatial_filters and text_filters:
+                search_query = search_query.filter(or_(and_(*spatial_filters), or_(*text_filters)))
+            elif spatial_filters:
+                search_query = search_query.filter(and_(*spatial_filters))
+            elif text_filters:
+                search_query = search_query.filter(or_(*text_filters))
+
+            # Ordering
+            if intent.latitude and intent.longitude:
+                # Order by distance if coordinates provided
+                search_query = search_query.order_by(
+                    func.pow(DiveSite.latitude - intent.latitude, 2) + 
+                    func.pow(DiveSite.longitude - intent.longitude, 2)
+                )
 
 
             
@@ -295,7 +326,7 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                         continue
 
                     # Skip only truly generic filler words. 
-                    if clean_kw in ['dive', 'sites', 'suitable', 'diving', 'tomorrow', 'today', 'around', 'near', 'nearby', 'closest', 'dive sites', 'accessible', 'via']:
+                    if clean_kw in ['dive', 'sites', 'suitable', 'diving', 'tomorrow', 'today', 'around', 'near', 'nearby', 'closest', 'dive sites', 'accessible', 'via', 'good', 'nice', 'great', 'amazing', 'beautiful', 'best', 'some', 'any', 'tell', 'me', 'about', 'find', 'show', 'search', 'history', 'wreck', 'wrecks', 'info', 'information', 'details', 'list', 'guide']:
                         continue
                     if intent.location and clean_kw in intent.location.lower():
                         continue
@@ -353,22 +384,50 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                         "rating": avg_rating,
                         "review_count": review_count,
                         "route_path": f"/dive-sites/{site.id}"
-                    })            
-            # Fallback: If no results found with strict filters, try generic text search if keywords exist
-            if not results:
-                query_str = " ".join(intent.keywords) if intent.keywords else ""
-                if query_str:
-                    try:
-                        sites = search_dive_sites(query_str, limit, self.db)
-                        # Avoid duplicates if any (unlikely if results was empty, but good practice)
-                        existing_ids = {r['id'] for r in results if r['entity_type'] == 'dive_site'}
-                        for s in sites:
-                            if s.id not in existing_ids:
-                                results.append(s.model_dump())
-                    except Exception as e:
-                        logger.error(f"Error searching dive sites fallback: {e}")
+                    })
 
-            # 2. Search Trips
+            # 2. Search Diving Centers
+            centers_query = self.db.query(DivingCenter)
+            has_center_filters = False
+            
+            if intent.location:
+                has_center_filters = True
+                centers_query = centers_query.filter(
+                    or_(
+                        DivingCenter.city.ilike(f"%{intent.location}%"),
+                        DivingCenter.region.ilike(f"%{intent.location}%"),
+                        DivingCenter.country.ilike(f"%{intent.location}%"),
+                        DivingCenter.name.ilike(f"%{intent.location}%")
+                    )
+                )
+            elif intent.latitude and intent.longitude:
+                has_center_filters = True
+                radius_km = intent.radius if intent.radius else 30.0
+                deg_range = radius_km / 111.0
+                centers_query = centers_query.filter(
+                    DivingCenter.latitude >= intent.latitude - deg_range,
+                    DivingCenter.latitude <= intent.latitude + deg_range,
+                    DivingCenter.longitude >= intent.longitude - deg_range,
+                    DivingCenter.longitude <= intent.longitude + deg_range
+                )
+
+            if has_center_filters:
+                centers = centers_query.limit(limit).all()
+                for center in centers:
+                    results.append({
+                        "entity_type": "diving_center",
+                        "id": center.id,
+                        "name": center.name,
+                        "description": center.description,
+                        "address": center.address,
+                        "city": center.city,
+                        "country": center.country,
+                        "latitude": float(center.latitude) if center.latitude else None,
+                        "longitude": float(center.longitude) if center.longitude else None,
+                        "route_path": f"/diving-centers/{center.id}"
+                    })
+
+            # 3. Search Trips
             date_ok = intent.date or (intent.date_range and len(intent.date_range) >= 2 and intent.date_range[0])
             if date_ok or intent.location:
                 try:
@@ -599,7 +658,12 @@ Context Entity Location (Lat, Lon): {context_loc_str}
 
                 if relevant_keywords:
                     for kw in relevant_keywords:
-                        f = DiveSite.marine_life.ilike(f"%{kw}%")
+                        # Search in multiple fields for marine life keywords
+                        f = or_(
+                            DiveSite.marine_life.ilike(f"%{kw}%"),
+                            DiveSite.name.ilike(f"%{kw}%"),
+                            DiveSite.description.ilike(f"%{kw}%")
+                        )
                         and_filters.append(f)
                         or_filters.append(f)
                     
@@ -767,6 +831,7 @@ Context Entity Location (Lat, Lon): {context_loc_str}
         elif intent.intent_type == IntentType.KNOWLEDGE:
             query_str = " ".join(intent.keywords)
             if query_str:
+                # 1. Try Certification Levels
                 certs = self.db.query(CertificationLevel).filter(
                     or_(
                         CertificationLevel.name.ilike(f"%{query_str}%"),
@@ -786,6 +851,27 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                             "prerequisites": cert.prerequisites
                         }
                     })
+                
+                # 2. ALSO Try Dive Sites if few certs found
+                if len(results) < 3:
+                    # Filter out non-skip keywords for site search
+                    site_kws = [kw for kw in intent.keywords if kw.lower() not in ['history', 'info', 'information', 'about', 'what', 'is', 'the']]
+                    if site_kws:
+                        site_query = self.db.query(DiveSite)
+                        for kw in site_kws:
+                            site_query = site_query.filter(or_(
+                                DiveSite.name.ilike(f"%{kw}%"),
+                                DiveSite.description.ilike(f"%{kw}%")
+                            ))
+                        sites = site_query.limit(5).all()
+                        for site in sites:
+                            results.append({
+                                "entity_type": "dive_site",
+                                "id": site.id,
+                                "name": site.name,
+                                "description": site.description,
+                                "route_path": f"/dive-sites/{site.id}"
+                            })
 
         elif intent.intent_type == IntentType.CONTEXT_QA and intent.context_entity_id:
             if intent.context_entity_type == "dive_site":
@@ -956,7 +1042,8 @@ Current Date: {current_date} ({current_weekday})
 
         response, usage = await openai_service.get_chat_completion(
             messages=messages,
-            temperature=0.7
+            temperature=0.7,
+            max_tokens=3000
         )
         return response, usage
 

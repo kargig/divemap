@@ -64,12 +64,12 @@ const ChatWidget = () => {
           transition-all duration-300 ease-in-out transform origin-bottom-right
           ${
             isOpen
-              ? `opacity-100 scale-100 translate-y-0 pointer-events-auto mb-4 w-[90vw] h-[80vh] md:h-[600px] ${
-                  isExpanded ? 'md:w-[800px]' : 'md:w-[400px]'
+              ? `opacity-100 scale-100 translate-y-0 pointer-events-auto mb-4 w-[95vw] h-[80vh] ${
+                  isExpanded ? 'md:w-[800px] md:h-[85vh]' : 'md:w-[400px] md:h-[600px]'
                 }`
               : 'opacity-0 scale-95 translate-y-10 pointer-events-none h-0 w-0 overflow-hidden'
           }
-          max-h-[600px] shadow-2xl rounded-2xl
+          shadow-2xl rounded-2xl
         `}
       >
         {isOpen && (
