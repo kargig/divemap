@@ -3,7 +3,46 @@
 This document tracks all recent changes, improvements, and bug fixes to the
 Divemap application.
 
-## [Latest Release] - January 22, 2026
+## [Latest Release] - February 15, 2026
+
+### ⚙️ New Features
+
+#### **AI Chatbot & Assistant - ✅ COMPLETE**
+
+A comprehensive, context-aware AI chatbot that assists users with dive site discovery, weather suitability checks, gear rental comparisons, and certification guidance.
+
+**Core Features:**
+
+- **Natural Language Search**: Discover dive sites, trips, and centers using conversational queries (e.g., "Find wreck dives in Athens for beginners").
+- **Weather Integration**: Real-time wind and weather suitability analysis for planned dives.
+- **Personalized Recommendations**: Suggests dive sites based on user's certification level and diving history.
+- **Gear Rental Comparison**: Find the best prices for equipment rental in specific areas.
+- **Certification Guidance**: Interactive guide for diving certifications and career progression.
+- **Context Awareness**: The chatbot is aware of the page you are viewing and can answer context-specific questions.
+- **Admin Dashboard**: Comprehensive tools for monitoring chat history and reviewing user feedback.
+
+**Technical Implementation:**
+
+- **Backend**: `ChatService` with advanced intent classification (Discovery, ContextQA, Weather, Recommendation, Comparison, Gear Rental, Career Path).
+- **LLM Integration**: Robust `OpenAIService` with retry logic, token usage tracking, and PII masking.
+- **Database**: `chat_sessions`, `chat_messages`, and `chat_feedback` tables for persistence and analytics.
+- **Frontend**: Persistent `ChatWidget` with markdown support, history view, and suggestion chips.
+
+**API Endpoints:**
+
+- `POST /api/v1/chat/message` - Send a message to the chatbot.
+- `POST /api/v1/chat/feedback` - Submit feedback for a chat response.
+- `GET /api/v1/admin/chat/history` - (Admin) Browse chat sessions.
+- `GET /api/v1/admin/chat/feedback` - (Admin) Review user feedback.
+
+**Migrations:**
+
+- `0063_add_chatfeedback_table.py`
+- `0064_add_debug_data_to_chatfeedback.py`
+- `0065_add_chat_sessions_and_messages.py`
+- `0066_add_token_usage_to_chat_messages.py`
+
+## [Previous Release] - January 22, 2026
 
 ### ⚙️ New Features
 

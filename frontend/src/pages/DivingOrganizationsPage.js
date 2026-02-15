@@ -124,17 +124,24 @@ const CertificationLevelsList = ({ organizationId, identifier, highlightCourse }
               <div className='p-3 grid gap-3 border-t border-gray-200'>
                 {groupedLevels[category].map(level => {
                   const isHighlighted =
-                    highlightCourse && level.name.toLowerCase().includes(highlightCourse.toLowerCase());
+                    highlightCourse &&
+                    level.name.toLowerCase().includes(highlightCourse.toLowerCase());
                   return (
                     <div
                       key={level.id}
                       ref={isHighlighted ? highlightedRef : null}
                       className={`bg-white rounded border text-sm overflow-hidden transition-all duration-300 ${
-                        isHighlighted ? 'border-blue-500 ring-2 ring-blue-200 shadow-md' : 'border-gray-200'
+                        isHighlighted
+                          ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
+                          : 'border-gray-200'
                       }`}
                     >
-                      <div className={`p-3 border-b ${isHighlighted ? 'border-blue-100 bg-blue-100/50' : 'border-gray-100 bg-blue-50/50'}`}>
-                        <span className={`font-medium ${isHighlighted ? 'text-blue-900' : 'text-gray-900'}`}>
+                      <div
+                        className={`p-3 border-b ${isHighlighted ? 'border-blue-100 bg-blue-100/50' : 'border-gray-100 bg-blue-50/50'}`}
+                      >
+                        <span
+                          className={`font-medium ${isHighlighted ? 'text-blue-900' : 'text-gray-900'}`}
+                        >
                           {level.name}
                           {isHighlighted && (
                             <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800'>
