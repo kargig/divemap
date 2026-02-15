@@ -5,6 +5,7 @@ import time
 import subprocess
 import sys
 import os
+import argparse
 from datetime import datetime
 
 # Configuration
@@ -35,6 +36,7 @@ TEST_CASES = [
     {"prompt": "boat dives near Sounio", "type": "discovery", "expected_min_sources": 1},
     {"prompt": "do you know any snorkeling spots in Naxos ?", "type": "discovery", "expected_min_sources": 1},
     {"prompt": "where can I see monk seals in Greece?", "type": "marine_life", "expected_min_sources": 1},
+    {"prompt": "what are some good shore dive sites in Athens", "type": "discovery", "expected_min_sources": 1},
     {"prompt": "tell me a joke about diving", "type": "chit_chat", "expected_min_sources": 0},
 ]
 
@@ -58,7 +60,7 @@ async def login(client):
         print(f"[!] Auth error: {e}")
         return None
 
-async def run_tests():
+async def run_tests(filter_prompt=None):
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=60.0) as client:
         token = await login(client)
         if not token:
@@ -67,18 +69,29 @@ async def run_tests():
         
         headers = {"Authorization": f"Bearer {token}"}
         
+        # Filter test cases if prompt provided
+        cases_to_run = TEST_CASES
+        if filter_prompt:
+            cases_to_run = [case for case in TEST_CASES if filter_prompt.lower() in case["prompt"].lower()]
+            if not cases_to_run:
+                print(f"[!] No test cases matched filter: '{filter_prompt}'")
+                return
+
         results = []
         print("\n[*] Starting Chat Quality Evaluation...")
+        if filter_prompt:
+            print(f"[*] Filter: '{filter_prompt}'")
         print("-" * 110)
         print(f"{'PROMPT':<45} | {'SOURCES':<8} | {'STATUS':<10} | {'TIME (s)':<8}")
         print("-" * 110)
 
-        for case in TEST_CASES:
+        for case in cases_to_run:
             start_time = time.time()
             try:
                 resp = await client.post(f"{API_PREFIX}/chat/message", json={
                     "message": case["prompt"],
-                    "history": []
+                    "history": [],
+                    "user_location": [37.9838, 23.7275] # Athens coordinates for "near me" tests
                 }, headers=headers)
                 
                 duration = time.time() - start_time
@@ -166,4 +179,8 @@ async def run_tests():
         print(f"[*] Latest report also updated at {latest_report_path}")
 
 if __name__ == "__main__":
-    asyncio.run(run_tests())
+    parser = argparse.ArgumentParser(description="Run chat quality evaluation harness.")
+    parser.add_argument("--prompt", type=str, help="Filter test cases by prompt text (case-insensitive substring match).")
+    args = parser.parse_args()
+    
+    asyncio.run(run_tests(args.prompt))
