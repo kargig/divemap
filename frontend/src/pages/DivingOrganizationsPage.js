@@ -10,14 +10,15 @@ import {
   Info,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from 'react-query';
+import { useSearchParams } from 'react-router-dom';
 
 import OrganizationLogo from '../components/OrganizationLogo';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDivingOrganizationLevels, getDivingOrganizations } from '../services/organizations';
 
-const CertificationLevelsList = ({ organizationId, identifier }) => {
+const CertificationLevelsList = ({ organizationId, identifier, highlightCourse }) => {
   const { data: levels, isLoading } = useQuery(
     ['organization-levels', organizationId],
     () => getDivingOrganizationLevels(identifier),
@@ -27,6 +28,24 @@ const CertificationLevelsList = ({ organizationId, identifier }) => {
   );
 
   const [expandedCategories, setExpandedCategories] = useState({});
+  const highlightedRef = useRef(null);
+
+  useEffect(() => {
+    if (levels && highlightCourse) {
+      const lowerHighlight = highlightCourse.toLowerCase();
+      const levelToHighlight = levels.find(l => l.name.toLowerCase().includes(lowerHighlight));
+      if (levelToHighlight) {
+        const category = levelToHighlight.category || 'General';
+        setExpandedCategories(prev => ({ ...prev, [category]: true }));
+      }
+    }
+  }, [levels, highlightCourse]);
+
+  useEffect(() => {
+    if (highlightedRef.current) {
+      highlightedRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [expandedCategories]);
 
   if (isLoading) {
     return (
@@ -103,58 +122,72 @@ const CertificationLevelsList = ({ organizationId, identifier }) => {
 
             {expandedCategories[category] && (
               <div className='p-3 grid gap-3 border-t border-gray-200'>
-                {groupedLevels[category].map(level => (
-                  <div
-                    key={level.id}
-                    className='bg-white rounded border border-gray-200 text-sm overflow-hidden'
-                  >
-                    <div className='p-3 border-b border-gray-100 bg-blue-50/50'>
-                      <span className='font-medium text-gray-900'>{level.name}</span>
+                {groupedLevels[category].map(level => {
+                  const isHighlighted =
+                    highlightCourse && level.name.toLowerCase().includes(highlightCourse.toLowerCase());
+                  return (
+                    <div
+                      key={level.id}
+                      ref={isHighlighted ? highlightedRef : null}
+                      className={`bg-white rounded border text-sm overflow-hidden transition-all duration-300 ${
+                        isHighlighted ? 'border-blue-500 ring-2 ring-blue-200 shadow-md' : 'border-gray-200'
+                      }`}
+                    >
+                      <div className={`p-3 border-b ${isHighlighted ? 'border-blue-100 bg-blue-100/50' : 'border-gray-100 bg-blue-50/50'}`}>
+                        <span className={`font-medium ${isHighlighted ? 'text-blue-900' : 'text-gray-900'}`}>
+                          {level.name}
+                          {isHighlighted && (
+                            <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800'>
+                              Highlighted
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <div className='p-3 grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-xs'>
+                        {level.max_depth && (
+                          <div className='flex items-start'>
+                            <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                              Max Depth:
+                            </span>
+                            <span className='text-gray-700'>{level.max_depth}</span>
+                          </div>
+                        )}
+                        {level.deco_time_limit && (
+                          <div className='flex items-start'>
+                            <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                              Deco Limit:
+                            </span>
+                            <span className='text-gray-700'>{level.deco_time_limit}</span>
+                          </div>
+                        )}
+                        {level.gases && (
+                          <div className='flex items-start'>
+                            <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                              Gases:
+                            </span>
+                            <span className='text-gray-700'>{level.gases}</span>
+                          </div>
+                        )}
+                        {level.tanks && (
+                          <div className='flex items-start'>
+                            <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                              Tanks:
+                            </span>
+                            <span className='text-gray-700'>{level.tanks}</span>
+                          </div>
+                        )}
+                        {level.prerequisites && (
+                          <div className='flex items-start md:col-span-2'>
+                            <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
+                              Prerequisites:
+                            </span>
+                            <span className='text-gray-700'>{level.prerequisites}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className='p-3 grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-xs'>
-                      {level.max_depth && (
-                        <div className='flex items-start'>
-                          <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
-                            Max Depth:
-                          </span>
-                          <span className='text-gray-700'>{level.max_depth}</span>
-                        </div>
-                      )}
-                      {level.deco_time_limit && (
-                        <div className='flex items-start'>
-                          <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
-                            Deco Limit:
-                          </span>
-                          <span className='text-gray-700'>{level.deco_time_limit}</span>
-                        </div>
-                      )}
-                      {level.gases && (
-                        <div className='flex items-start'>
-                          <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
-                            Gases:
-                          </span>
-                          <span className='text-gray-700'>{level.gases}</span>
-                        </div>
-                      )}
-                      {level.tanks && (
-                        <div className='flex items-start'>
-                          <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
-                            Tanks:
-                          </span>
-                          <span className='text-gray-700'>{level.tanks}</span>
-                        </div>
-                      )}
-                      {level.prerequisites && (
-                        <div className='flex items-start md:col-span-2'>
-                          <span className='font-semibold text-gray-500 w-24 flex-shrink-0'>
-                            Prerequisites:
-                          </span>
-                          <span className='text-gray-700'>{level.prerequisites}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -167,15 +200,24 @@ const CertificationLevelsList = ({ organizationId, identifier }) => {
 CertificationLevelsList.propTypes = {
   organizationId: PropTypes.number.isRequired,
   identifier: PropTypes.number.isRequired,
+  highlightCourse: PropTypes.string,
 };
 
-const OrganizationCard = ({ org }) => {
-  const [drawerOpen, setDrawerOpen] = useState(false);
+const OrganizationCard = ({ org, initialDrawerOpen, highlightCourse }) => {
+  const [drawerOpen, setDrawerOpen] = useState(initialDrawerOpen);
+
+  useEffect(() => {
+    if (initialDrawerOpen) {
+      setDrawerOpen(true);
+    }
+  }, [initialDrawerOpen]);
 
   return (
     <>
       <div
-        className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer'
+        className={`bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer ${
+          initialDrawerOpen ? 'border-blue-400 ring-1 ring-blue-100' : 'border-gray-200'
+        }`}
         onClick={() => setDrawerOpen(true)}
         onKeyDown={e => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -252,7 +294,11 @@ const OrganizationCard = ({ org }) => {
         open={drawerOpen}
         size={'large'}
       >
-        <CertificationLevelsList organizationId={org.id} identifier={org.id} />
+        <CertificationLevelsList
+          organizationId={org.id}
+          identifier={org.id}
+          highlightCourse={highlightCourse}
+        />
       </Drawer>
     </>
   );
@@ -266,11 +312,16 @@ OrganizationCard.propTypes = {
     description: PropTypes.string,
     website: PropTypes.string,
   }).isRequired,
+  initialDrawerOpen: PropTypes.bool,
+  highlightCourse: PropTypes.string,
 };
 
 const DivingOrganizationsPage = () => {
   usePageTitle('Divemap - Diving Organizations');
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchParams] = useSearchParams();
+  const orgParam = searchParams.get('org');
+  const courseParam = searchParams.get('course');
 
   const { data: organizations, isLoading } = useQuery(
     'public-organizations',
@@ -325,9 +376,20 @@ const DivingOrganizationsPage = () => {
           <div className='bg-gray-50 p-6'>
             {filteredOrgs?.length > 0 ? (
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6'>
-                {filteredOrgs.map(org => (
-                  <OrganizationCard key={org.id} org={org} />
-                ))}
+                {filteredOrgs.map(org => {
+                  const isTargetOrg =
+                    orgParam &&
+                    (org.acronym?.toLowerCase() === orgParam.toLowerCase() ||
+                      org.name.toLowerCase().includes(orgParam.toLowerCase()));
+                  return (
+                    <OrganizationCard
+                      key={org.id}
+                      org={org}
+                      initialDrawerOpen={isTargetOrg}
+                      highlightCourse={isTargetOrg ? courseParam : null}
+                    />
+                  );
+                })}
               </div>
             ) : (
               <div className='text-center py-12 bg-white rounded-lg border border-dashed border-gray-300'>

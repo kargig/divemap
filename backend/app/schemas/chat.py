@@ -27,6 +27,8 @@ class IntentType(str, Enum):
     KNOWLEDGE = "knowledge"      # "What is PADI?"
     COMPARISON = "comparison"    # "Difference between PADI and SSI"
     GEAR_RENTAL = "gear_rental"  # "How much for a tank?"
+    CAREER_PATH = "career_path"  # "What comes after Open Water?"
+    MARINE_LIFE = "marine_life"  # "Where can I see seals?"
     CHIT_CHAT = "chit_chat"      # "Hello"
     LOGBOOK_DRAFT = "logbook_draft" # "Log a dive..."
 

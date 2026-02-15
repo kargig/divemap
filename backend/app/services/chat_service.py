@@ -2,8 +2,9 @@ import logging
 import uuid
 from datetime import datetime, date, timezone, timedelta
 from typing import List, Optional, Dict, Any, Tuple
+from urllib.parse import quote
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, aliased
 from sqlalchemy import or_, and_, func
 
 from app.services.openai_service import openai_service
@@ -11,7 +12,7 @@ from app.schemas.chat import SearchIntent, ChatMessage, ChatRequest, ChatRespons
 from app.models import (
     DiveSite, ParsedDiveTrip, User, CertificationLevel, DivingCenter, ParsedDive,
     ChatSession, ChatMessage as ChatMessageModel, CenterDiveSite,
-    AvailableTag, DiveSiteTag, Dive, UserCertification, GearRentalCost, SiteRating
+    AvailableTag, DiveSiteTag, Dive, UserCertification, GearRentalCost, SiteRating, DivingOrganization
 )
 from app.routers.search import search_dive_sites, ENTITY_ICONS
 from app.services.open_meteo_service import fetch_wind_data_batch
@@ -87,6 +88,8 @@ Context Entity Location (Lat, Lon): {context_loc_str}
   - "personal_recommendation": Use this for personalized suggestions like "Where should I go diving?", "Recommend a dive for me", or "What's good for my level?".
   - "comparison": Use this when the user asks for a comparison between two or more things (e.g., "Difference between PADI and SSI", "Compare site A and site B").
   - "gear_rental": Use this when the user asks about renting equipment, prices of tanks, regulators, wetsuits, etc. (e.g., "Cost of 12L tank in Athens", "Rent gear near me").
+  - "career_path": Use this when the user asks about diving courses, certification progression, or what comes next in their training (e.g., "What comes after Open Water?", "PADI pro courses").
+  - "marine_life": Use this when the user asks specifically about seeing certain animals or marine biology (e.g., "Where can I see turtles?", "Sites with nudibranchs").
   - "knowledge": General diving facts.
   - "chit_chat": Greeting or unrelated.
 - **Ratings & Popularity**: If the user asks for "highest rated", "best", "most popular", "top rated":
@@ -270,14 +273,19 @@ Context Entity Location (Lat, Lon): {context_loc_str}
             
             if intent.keywords:
                 # Apply AND logic between keywords: Each keyword must match at least one field
+                applied_rating_sort = False
                 for kw in intent.keywords:
                     clean_kw = kw.lower().strip()
                     
                     # Handle Sorting Keywords
                     if clean_kw in ['highest_rated', 'top_rated', 'best']:
-                        search_query = search_query.outerjoin(SiteRating).group_by(DiveSite.id)
-                        search_query = search_query.order_by(func.avg(SiteRating.score).desc())
-                        has_filters = True
+                        if not applied_rating_sort:
+                            # Use alias to avoid conflict with joinedload(DiveSite.ratings)
+                            RatingAlias = aliased(SiteRating)
+                            search_query = search_query.outerjoin(RatingAlias, DiveSite.ratings).group_by(DiveSite.id)
+                            search_query = search_query.order_by(func.avg(RatingAlias.score).desc())
+                            applied_rating_sort = True
+                            has_filters = True
                         continue 
                     
                     if clean_kw in ['popular', 'most_popular']:
@@ -468,6 +476,157 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                     "route_path": f"/diving-centers/{item.diving_center.id}"
                 })
 
+        elif intent.intent_type == IntentType.CAREER_PATH:
+            # 1. Try to match Organization from keywords dynamically
+            org_name = None
+            org_match = None
+            
+            # First, check against known major organizations (hardcoded for speed/precision)
+            known_orgs = ["PADI", "SSI", "CMAS", "NAUI", "BSAC", "TDI", "IANTD", "GUE", "SDI", "RAID"]
+            for kw in intent.keywords:
+                if kw.upper() in known_orgs:
+                    org_name = kw.upper()
+                    break
+            
+            # If not found in known list, try to find ANY organization matching the keywords
+            if not org_name:
+                for kw in intent.keywords:
+                    # Skip common stop words
+                    if kw.lower() in ["course", "certification", "level", "path", "career", "diving", "diver"]:
+                        continue
+                    
+                    potential_org = self.db.query(DivingOrganization).filter(
+                        or_(
+                            DivingOrganization.name.ilike(f"%{kw}%"),
+                            DivingOrganization.acronym.ilike(f"%{kw}%")
+                        )
+                    ).first()
+                    
+                    if potential_org:
+                        org_match = potential_org
+                        break
+            
+            query = self.db.query(CertificationLevel).join(DivingOrganization)
+            
+            if org_name:
+                query = query.filter(DivingOrganization.acronym == org_name)
+            elif org_match:
+                query = query.filter(DivingOrganization.id == org_match.id)
+            
+            # If still no org found, maybe the user asked about a specific level (e.g. "Advanced Open Water")
+            # in which case we might find multiple orgs.
+            if not org_name and not org_match and intent.keywords:
+                kw_filters = []
+                for kw in intent.keywords:
+                    if kw.lower() not in ["after", "before", "next", "course", "certification", "level", "path", "career"]:
+                        kw_filters.append(CertificationLevel.name.ilike(f"%{kw}%"))
+                
+                if kw_filters:
+                     query = query.filter(or_(*kw_filters))
+
+            # Fetch results
+            certs = query.limit(30).all()
+            
+            # Group by Org
+            org_certs = {}
+            for cert in certs:
+                org = cert.diving_organization.name
+                if org not in org_certs:
+                    org_certs[org] = []
+                
+                # detailed info
+                cert_info = {
+                    "name": cert.name,
+                    "category": cert.category,
+                    "max_depth": cert.max_depth,
+                    "prerequisites": cert.prerequisites,
+                    "order_hint": 0, # We could try to infer order from ID or data if available
+                    "route_path": f"/resources/diving-organizations?org={quote(cert.diving_organization.acronym or cert.diving_organization.name)}&course={quote(cert.name)}"
+                }
+                org_certs[org].append(cert_info)
+            
+            for org, cert_list in org_certs.items():
+                # Find acronym for the org to use in top-level link
+                org_acronym = next((c.diving_organization.acronym for c in certs if c.diving_organization.name == org), org)
+                results.append({
+                    "entity_type": "career_path",
+                    "id": 0, # Dummy ID
+                    "name": f"Career Path: {org}", # Name is required for generate_response
+                    "organization": org,
+                    "courses": [c["name"] for c in cert_list], # Keep simple list for compatibility or summary
+                    "details": cert_list, # Provide full details for the LLM
+                    "route_path": f"/resources/diving-organizations?org={quote(org_acronym)}"
+                })
+
+        elif intent.intent_type == IntentType.MARINE_LIFE:
+            # Search strictly in marine_life column
+            if intent.keywords:
+                query = self.db.query(DiveSite)
+                
+                # Location filter
+                if intent.location:
+                    query = query.filter(
+                        or_(
+                            DiveSite.region.ilike(f"%{intent.location}%"),
+                            DiveSite.country.ilike(f"%{intent.location}%"),
+                            DiveSite.description.ilike(f"%{intent.location}%")
+                        )
+                    )
+                elif intent.latitude and intent.longitude:
+                    lat_range = 0.5 
+                    lon_range = 0.5
+                    query = query.filter(
+                        DiveSite.latitude >= intent.latitude - (lat_range / 2),
+                        DiveSite.latitude <= intent.latitude + (lat_range / 2),
+                        DiveSite.longitude >= intent.longitude - (lon_range / 2),
+                        DiveSite.longitude <= intent.longitude + (lon_range / 2)
+                    )
+
+                # Keyword filter on marine_life column
+                # Strategy: Try to find sites that match ALL keywords first (AND logic)
+                # If that returns too few results, fallback to ANY keyword (OR logic)
+                
+                and_filters = []
+                or_filters = []
+                
+                relevant_keywords = []
+                for kw in intent.keywords:
+                    # Cleanup keywords
+                    if intent.location and kw.lower() in intent.location.lower(): continue
+                    if kw.lower() in ["see", "find", "watch", "look", "where", "sites", "marine", "life", "underwater", "creatures"]: continue
+                    relevant_keywords.append(kw)
+
+                if relevant_keywords:
+                    for kw in relevant_keywords:
+                        f = DiveSite.marine_life.ilike(f"%{kw}%")
+                        and_filters.append(f)
+                        or_filters.append(f)
+                    
+                    # 1. Try Strict AND search
+                    strict_query = query.filter(and_(*and_filters))
+                    sites = strict_query.limit(10).all()
+                    
+                    # 2. Fallback to OR search if strict search yielded few results (< 3)
+                    if len(sites) < 3 and len(relevant_keywords) > 1:
+                        # Get IDs we already have to exclude them
+                        existing_ids = {s.id for s in sites}
+                        fallback_query = query.filter(or_(*or_filters))
+                        if existing_ids:
+                            fallback_query = fallback_query.filter(DiveSite.id.notin_(existing_ids))
+                        
+                        more_sites = fallback_query.limit(10 - len(sites)).all()
+                        sites.extend(more_sites)
+
+                    for site in sites:
+                        results.append({
+                            "entity_type": "dive_site",
+                            "id": site.id,
+                            "name": site.name,
+                            "marine_life": site.marine_life,
+                            "location": f"{site.region}, {site.country}",
+                            "route_path": f"/dive-sites/{site.id}"
+                        })
+
         elif intent.intent_type == IntentType.PERSONAL_RECOMMENDATION:
             if current_user:
                 # 1. Determine Difficulty
@@ -587,10 +746,12 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                 for cert in certs:
                     # Enrich with Organization details
                     org_name = cert.diving_organization.name if cert.diving_organization else "Unknown"
+                    org_acronym = cert.diving_organization.acronym if cert.diving_organization else org_name
                     results.append({
                         "entity_type": "certification",
                         "id": cert.id,
                         "name": cert.name,
+                        "route_path": f"/resources/diving-organizations?org={quote(org_acronym)}&course={quote(cert.name)}",
                         "metadata": {
                             "organization": org_name,
                             "max_depth": cert.max_depth,
@@ -612,12 +773,14 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                     )
                 ).limit(5).all()
                 for cert in certs:
+                    org_acronym = cert.diving_organization.acronym if cert.diving_organization else "Unknown"
                     results.append({
                         "entity_type": "certification",
                         "id": cert.id,
                         "name": cert.name,
+                        "route_path": f"/resources/diving-organizations?org={quote(org_acronym)}&course={quote(cert.name)}",
                         "metadata": {
-                            "organization": cert.diving_organization.acronym if cert.diving_organization else "Unknown",
+                            "organization": org_acronym,
                             "max_depth": cert.max_depth,
                             "prerequisites": cert.prerequisites
                         }
@@ -747,6 +910,16 @@ Answer the user's question using the provided <search_results> below.
                         data_context += f"  Gases: {meta.get('gases')}\n"
                         data_context += f"  Tanks: {meta.get('tanks')}\n"
                         data_context += f"  Prerequisites: {meta.get('prerequisites')}\n"
+                
+                # Career Path
+                if item['entity_type'] == 'career_path':
+                    data_context += f"  Organization: {item.get('organization')}\n"
+                    if item.get('details'):
+                        for c in item['details']:
+                            link_str = f" ([Link]({c['route_path']}))" if c.get('route_path') else ""
+                            data_context += f"    - {c['name']}{link_str}: Depth {c.get('max_depth', '?')}, Cat: {c.get('category', '?')}, Prereq: {c.get('prerequisites', 'None')}\n"
+                    else:
+                        data_context += f"  Courses/Levels: {', '.join(item.get('courses', []))}\n"
 
                 # Weather
                 if 'suitability' in item:
