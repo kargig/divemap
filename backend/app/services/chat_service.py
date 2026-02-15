@@ -325,6 +325,36 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                         has_filters = True
                         continue
 
+                    # Smart Snorkeling Filter
+                    if clean_kw in ['snorkeling', 'snorkel']:
+                        # Tag subquery for shore/snorkeling tags
+                        snorkel_tag_subquery = self.db.query(DiveSiteTag.dive_site_id).join(
+                            AvailableTag, DiveSiteTag.tag_id == AvailableTag.id
+                        ).filter(
+                            or_(
+                                AvailableTag.name.ilike("%shore%"),
+                                AvailableTag.name.ilike("%beach%"),
+                                AvailableTag.name.ilike("%shallow%"),
+                                AvailableTag.name.ilike("%snorkel%")
+                            )
+                        )
+
+                        snorkel_condition = or_(
+                            DiveSite.description.ilike(f"%{clean_kw}%"),
+                            DiveSite.marine_life.ilike(f"%{clean_kw}%"),
+                            and_(DiveSite.max_depth <= 10, DiveSite.max_depth > 0), # Shallow sites
+                            DiveSite.access_instructions.ilike("%shore%"),
+                            DiveSite.access_instructions.ilike("%beach%"),
+                            DiveSite.access_instructions.ilike("%walk%"),
+                            DiveSite.name.ilike("%reef%"), # Heuristic: Reefs are often snorkelable
+                            DiveSite.name.ilike("%bay%"),  # Heuristic: Bays are often calm/shallow
+                            DiveSite.name.ilike("%cove%"),
+                            DiveSite.id.in_(snorkel_tag_subquery) # Check tags
+                        )
+                        search_query = search_query.filter(snorkel_condition)
+                        has_filters = True
+                        continue
+
                     # Skip only truly generic filler words. 
                     if clean_kw in ['dive', 'sites', 'suitable', 'diving', 'tomorrow', 'today', 'around', 'near', 'nearby', 'closest', 'dive sites', 'accessible', 'via', 'good', 'nice', 'great', 'amazing', 'beautiful', 'best', 'some', 'any', 'tell', 'me', 'about', 'find', 'show', 'search', 'history', 'wreck', 'wrecks', 'info', 'information', 'details', 'list', 'guide']:
                         continue
@@ -384,6 +414,55 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                         "rating": avg_rating,
                         "review_count": review_count,
                         "route_path": f"/dive-sites/{site.id}"
+                    })
+
+            # Fallback: If no sites found with keywords but we have location, try spatial search WITHOUT keywords
+            # This prevents empty results when keywords like "shore" or "wreck" don't match specifically but sites exist nearby.
+            if not results and (intent.latitude and intent.longitude) and intent.keywords:
+                logger.info("Strict search returned 0 sites. Attempting fallback spatial search without keywords.")
+                
+                # Re-calculate spatial bounds
+                radius_km = intent.radius if intent.radius else 20.0
+                deg_range = radius_km / 111.0
+                lat_min, lat_max = intent.latitude - (deg_range), intent.latitude + (deg_range)
+                lon_min, lon_max = intent.longitude - (deg_range), intent.longitude + (deg_range)
+                
+                fallback_query = self.db.query(DiveSite).filter(
+                    DiveSite.latitude >= lat_min,
+                    DiveSite.latitude <= lat_max,
+                    DiveSite.longitude >= lon_min,
+                    DiveSite.longitude <= lon_max
+                ).order_by(
+                    func.pow(DiveSite.latitude - intent.latitude, 2) + 
+                    func.pow(DiveSite.longitude - intent.longitude, 2)
+                ).limit(limit)
+                
+                sites = fallback_query.all()
+                for site in sites:
+                    # Logic to calculate rating (duplicated for now, could be refactored)
+                    avg_rating = None
+                    review_count = 0
+                    if site.ratings:
+                        review_count = len(site.ratings)
+                        avg_rating = sum(r.score for r in site.ratings) / review_count
+
+                    results.append({
+                        "entity_type": "dive_site",
+                        "id": site.id,
+                        "name": site.name,
+                        "description": site.description,
+                        "max_depth": float(site.max_depth) if site.max_depth else None,
+                        "marine_life": site.marine_life,
+                        "latitude": float(site.latitude) if site.latitude else None,
+                        "longitude": float(site.longitude) if site.longitude else None,
+                        "shore_direction": float(site.shore_direction) if site.shore_direction else None,
+                        "difficulty_id": site.difficulty_id,
+                        "difficulty": site.difficulty.label if site.difficulty else None,
+                        "difficulty_code": site.difficulty.code if site.difficulty else None,
+                        "rating": avg_rating,
+                        "review_count": review_count,
+                        "route_path": f"/dive-sites/{site.id}",
+                        "is_fallback": True # Mark as fallback result
                     })
 
             # 2. Search Diving Centers
@@ -535,6 +614,39 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                     "center_location": f"{item.diving_center.city}, {item.diving_center.region}",
                     "route_path": f"/diving-centers/{item.diving_center.id}"
                 })
+            
+            # Fallback: If no gear rental items found, find diving centers in the area
+            if not results and (intent.location or (intent.latitude and intent.longitude)):
+                centers_query = self.db.query(DivingCenter)
+                if intent.location:
+                    centers_query = centers_query.filter(
+                        or_(
+                            DivingCenter.city.ilike(f"%{intent.location}%"),
+                            DivingCenter.region.ilike(f"%{intent.location}%"),
+                            DivingCenter.country.ilike(f"%{intent.location}%")
+                        )
+                    )
+                elif intent.latitude and intent.longitude:
+                    radius_km = intent.radius if intent.radius else 30.0
+                    deg_range = radius_km / 111.0
+                    centers_query = centers_query.filter(
+                        DivingCenter.latitude >= intent.latitude - deg_range,
+                        DivingCenter.latitude <= intent.latitude + deg_range,
+                        DivingCenter.longitude >= intent.longitude - deg_range,
+                        DivingCenter.longitude <= intent.longitude + deg_range
+                    )
+                
+                centers = centers_query.limit(5).all()
+                for center in centers:
+                    results.append({
+                        "entity_type": "diving_center",
+                        "id": center.id,
+                        "name": center.name,
+                        "description": center.description,
+                        "address": center.address,
+                        "route_path": f"/diving-centers/{center.id}",
+                        "note": "Contact for gear rental prices"
+                    })
 
         elif intent.intent_type == IntentType.CAREER_PATH:
             # 1. Try to match Organization from keywords dynamically
@@ -655,6 +767,12 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                     if intent.location and kw.lower() in intent.location.lower(): continue
                     if kw.lower() in ["see", "find", "watch", "look", "where", "sites", "marine", "life", "underwater", "creatures"]: continue
                     relevant_keywords.append(kw)
+                    
+                    # Split multi-word keywords (e.g. "monk seals" -> "monk", "seals")
+                    if ' ' in kw:
+                        for word in kw.split():
+                            if len(word) > 3 and word.lower() not in ["with", "and", "the", "for"]:
+                                relevant_keywords.append(word)
 
                 if relevant_keywords:
                     for kw in relevant_keywords:
@@ -958,8 +1076,9 @@ Current Date: {current_date} ({current_weekday})
 6. **Weather**: If a result contains 'Weather' or 'Suitability' data, this IS the forecast for the requested date. Use it to answer weather-related questions directly.
 7. **Safety**: Always prioritize safety warnings based on weather suitability (e.g., CAUTION, AVOID).
 8. **Links**: ALWAYS link to dive sites, centers, or trips using Markdown: [Name](route_path). Do this for EVERY entity you mention, including in lists or summaries.
-9. **Tone**: Helpful and professional.
-10. **Data Absence**: If the information isn't in <search_results>, politely state that you don't have that specific data.
+9. **No Hallucinated Links**: You must ONLY use the links provided in the <search_results>. If you mention a place or site that is NOT in the search results (e.g. from your general knowledge), DO NOT create a link for it. Just write the name as text.
+10. **Tone**: Helpful and professional.
+11. **Data Absence**: If the information isn't in <search_results>, politely state that you don't have that specific data.
 """
         if ask_for_time:
             system_prompt += "\n**IMPORTANT**: The user requested a forecast but did not specify a time. Ask for a time (e.g., 'morning', '14:00') to check wind conditions."
