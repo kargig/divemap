@@ -100,7 +100,7 @@ Context Entity Location (Lat, Lon): {context_loc_str}
 - **Location & Coordinates**: 
   - If a location is mentioned (e.g., "Athens"), provide its name in `location` AND its approximate `latitude` and `longitude`.
   - If the user refers to their current context (e.g., "weather here"), and you set `intent_type` to "context_qa", you don't need to provide coordinates as the system will fetch them from the database.
-- **Nearby Search**: If the user asks for "nearby", "near me", "closest", or "around here":
+- **Nearby or Weather Search**: If the user asks for "nearby", "near me", "closest", "around here", OR asks for "weather" / "forecast" without specifying a location:
   - Check `User's Current Location`. If available (not "Unknown"), use it.
   - If `User's Current Location` is "Unknown", check `Context Entity Location`. If available, use it.
   - You **MUST** set `latitude` and `longitude` to the selected values.
@@ -111,7 +111,8 @@ Context Entity Location (Lat, Lon): {context_loc_str}
   - Convert all dates to strict **YYYY-MM-DD** format in the `date` field.
   - Extract specific times to `time` (HH:MM 24h format).
   - **Important**: If the user says "any time", "I don't care", "whenever", or similar vague/open availability, set `time` to "11:00".
-  - If a date is mentioned but NO time is specified, leave `time` as `null`.
+  - If a date is mentioned (including "today", "tomorrow") but NO time is specified, set `time` to "10:00".
+  - If NO date and NO time are mentioned, and they ask for weather, assume "today" and set `time` to "10:00".
   - Current Reference Date: {current_date}
 - **Difficulty**: 
   - "beginner", "open water" -> 1
@@ -841,6 +842,10 @@ Context Entity Location (Lat, Lon): {context_loc_str}
         """
         Generate a natural language response using OpenAI.
         """
+        current_dt = datetime.now()
+        current_date = current_dt.date().isoformat()
+        current_weekday = current_dt.strftime('%A')
+
         intent_summary = f"Intent: {intent.intent_type.value}"
         if intent.location:
             intent_summary += f", Location: {intent.location}"
@@ -852,6 +857,8 @@ Context Entity Location (Lat, Lon): {context_loc_str}
         system_prompt = f"""
 You are the Divemap Assistant, an expert diving guide.
 Answer the user's question using the provided <search_results> below.
+
+Current Date: {current_date} ({current_weekday})
 
 # Search Context
 {intent_summary}
