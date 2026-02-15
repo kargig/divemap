@@ -166,3 +166,31 @@ class TestRateLimiting:
 
         # All requests should succeed (200) because localhost is exempted
         assert all(r == 200 for r in responses), "Localhost requests should be exempted from rate limiting"
+
+    def test_chat_endpoint_rate_limited(self, client, test_user):
+        """Test that the chat endpoint is rate limited (5/minute limit)"""
+        # Create a user token
+        token = create_access_token(data={"sub": test_user.username})
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # Create a test client that simulates external IP to bypass localhost exemption
+        with patch('app.limiter.get_client_ip', return_value="192.168.1.101"):
+            # Make multiple requests to chat endpoint (which has 5/minute limit)
+            responses = []
+            for i in range(7):  # More than the rate limit (5/minute)
+                response = client.post("/api/v1/chat/message", json={
+                    "message": "Hello",
+                    "history": []
+                }, headers=headers)
+                responses.append(response.status_code)
+
+            # Should have at least one rate limited response (429)
+            assert 429 in responses, "Chat endpoint is not rate limited as expected"
+
+            # Verify that the first few requests were NOT rate limited (can be 200 or 500 if OpenAI is missing)
+            successful_responses = [r for r in responses[:5] if r != 429]
+            assert len(successful_responses) == 5, f"First 5 requests should not be rate limited, got {len(successful_responses)}"
+
+            # Verify that later requests were rate limited
+            rate_limited_responses = [r for r in responses[5:] if r == 429]
+            assert len(rate_limited_responses) > 0, "Later requests should be rate limited"

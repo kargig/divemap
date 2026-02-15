@@ -13,6 +13,7 @@ Uses 3-tier caching:
 import requests
 import math
 import random
+from collections import defaultdict
 from typing import Optional, Dict, List, Tuple
 from datetime import datetime, timedelta, timezone
 import logging
@@ -1213,4 +1214,41 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
         f"expected ~{expected_total} total)"
     )
     return wind_data_points
+
+def fetch_wind_data_batch(locations: List[Tuple[float, float]], target_datetime: Optional[datetime] = None) -> Dict[Tuple[float, float], Optional[Dict]]:
+    """
+    Fetch wind data for multiple locations efficiently.
+    Groups coordinates by 0.1° grid cell to minimize API calls.
+    
+    Returns:
+        Mapping of (lat, lon) -> wind_data dictionary
+    """
+    if not locations:
+        return {}
+
+    # Default to current time if not specified
+    if target_datetime is None:
+        target_datetime = datetime.now()
+
+    results = {}
+    
+    # 1. Group locations by cache cell (0.1°)
+    cell_to_locations = defaultdict(list)
+    for lat, lon in locations:
+        cache_key = _generate_cache_key(lat, lon, target_datetime=target_datetime)
+        cell_to_locations[cache_key].append((lat, lon))
+    
+    # 2. Process each unique cell
+    for cache_key, points in cell_to_locations.items():
+        # Representative point for this cell
+        rep_lat, rep_lon = points[0]
+        
+        # Use existing single point fetch (which handles Tier 1 and Tier 2 caching)
+        wind_data = fetch_wind_data_single_point(rep_lat, rep_lon, target_datetime)
+        
+        # Apply result to all original locations in this cell
+        for point in points:
+            results[point] = wind_data
+            
+    return results
 

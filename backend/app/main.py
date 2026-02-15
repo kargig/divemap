@@ -548,6 +548,19 @@ def load_weather_router():
         router_time = time.time() - router_start
         print(f"✅ Weather router loaded lazily in {router_time:.2f}s")
 
+def load_admin_chat_router():
+    """Load admin chat router lazily when first accessed"""
+    if not hasattr(app, '_admin_chat_router_loaded'):
+        print("🔧 Loading admin-chat router lazily...")
+        router_start = time.time()
+        
+        from app.routers.admin import chat as admin_chat
+        app.include_router(admin_chat.router, prefix="/api/v1/admin/chat", tags=["Admin Chatbot"])
+        
+        app._admin_chat_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Admin-chat router loaded lazily in {router_time:.2f}s")
+
 # Load routers
 load_routers()
 
@@ -571,6 +584,10 @@ async def lazy_router_loading(request: Request, call_next):
     # Load system router
     if (path.startswith("/api/v1/admin/system") or is_docs) and not hasattr(app, '_system_router_loaded'):
         load_system_router()
+    
+    # Load admin chat router
+    if (path.startswith("/api/v1/admin/chat") or is_docs) and not hasattr(app, '_admin_chat_router_loaded'):
+        load_admin_chat_router()
     
     # Load privacy router
     if (path.startswith("/api/v1/privacy") or is_docs) and not hasattr(app, '_privacy_router_loaded'):
@@ -616,6 +633,10 @@ async def lazy_router_loading(request: Request, call_next):
     if (path.startswith("/l/") or path.startswith("/api/v1/short-links") or is_docs) and not hasattr(app, '_short_links_router_loaded'):
         load_short_links_router()
     
+    # Load chat router
+    if (path.startswith("/api/v1/chat") or is_docs) and not hasattr(app, '_chat_router_loaded'):
+        load_chat_router()
+    
     response = await call_next(request)
     return response
 
@@ -634,6 +655,19 @@ def load_short_links_router():
         app._short_links_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Short links router loaded lazily in {router_time:.2f}s")
+
+def load_chat_router():
+    """Load chat router lazily when first accessed"""
+    if not hasattr(app, '_chat_router_loaded'):
+        print("🔧 Loading chat router lazily...")
+        router_start = time.time()
+        
+        from app.routers import chat
+        app.include_router(chat.router, prefix="/api/v1/chat", tags=["Chatbot"])
+        
+        app._chat_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Chat router loaded lazily in {router_time:.2f}s")
 
 
 @app.get("/")

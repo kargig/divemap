@@ -269,3 +269,78 @@ export const searchUsers = async (query, limit = 25, includeSelf = false) => {
   });
   return response.data;
 };
+
+// Chat API
+export const sendChatMessage = async (message, history = [], context = {}) => {
+  try {
+    const response = await api.post('/api/v1/chat/message', {
+      message,
+      history,
+      ...context,
+    });
+    return response.data;
+  } catch (error) {
+    throw extractErrorMessage(error);
+  }
+};
+
+export const submitChatFeedback = async (
+  message_id,
+  rating,
+  category = null,
+  comments = null,
+  query = null,
+  response = null,
+  debug_data = null
+) => {
+  try {
+    const apiResponse = await api.post('/api/v1/chat/feedback', {
+      message_id,
+      rating,
+      category,
+      comments,
+      query,
+      response,
+      debug_data,
+    });
+    return apiResponse.data;
+  } catch (error) {
+    throw extractErrorMessage(error);
+  }
+};
+
+// Admin Chat Feedback APIs
+export const getAdminChatFeedback = async (params = {}) => {
+  const response = await api.get('/api/v1/admin/chat/feedback', { params });
+  return response.data;
+};
+
+export const getAdminChatFeedbackStats = async () => {
+  const response = await api.get('/api/v1/admin/chat/feedback/stats');
+  return response.data;
+};
+
+export const getAdminChatFeedbackDetail = async id => {
+  const response = await api.get(`/api/v1/admin/chat/feedback/${id}`);
+  return response.data;
+};
+
+export const getAdminChatSessions = async (params = {}) => {
+  const response = await api.get('/api/v1/admin/chat/sessions', { params });
+  return response.data;
+};
+
+export const getAdminChatSessionDetail = async sessionId => {
+  const response = await api.get(`/api/v1/admin/chat/sessions/${sessionId}`);
+  return response.data;
+};
+
+export const deleteAdminChatSession = async sessionId => {
+  const response = await api.delete(`/api/v1/admin/chat/sessions/${sessionId}`);
+  return response.data;
+};
+
+export const deleteAdminChatFeedback = async feedbackId => {
+  const response = await api.delete(`/api/v1/admin/chat/feedback/${feedbackId}`);
+  return response.data;
+};
