@@ -8,7 +8,7 @@ from app.models import (
     User, DiveSite, DivingCenter, Dive, SiteRating, CenterRating,
     SiteComment, CenterComment, SiteMedia, DiveMedia, AvailableTag,
     DivingOrganization, UserCertification, ParsedDiveTrip, Newsletter,
-    Notification, NotificationPreference, DiveRoute
+    Notification, NotificationPreference, DiveRoute, AuthAuditLog
 )
 
 
@@ -940,4 +940,175 @@ class TestNotificationAnalytics:
         """Test getting notification analytics as regular user."""
         response = client.get("/api/v1/admin/system/notifications/analytics", headers=auth_headers)
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+class TestAuditLogs:
+    """Test auth audit logs endpoint."""
+
+    def test_get_audit_logs_admin_success(self, client, admin_headers, db_session, test_user):
+        """Test getting audit logs as admin."""
+        # Create test logs
+        log1 = AuthAuditLog(
+            user_id=test_user.id,
+            action="login",
+            ip_address="127.0.0.1",
+            success=True
+        )
+        db_session.add(log1)
+        
+        log2 = AuthAuditLog(
+            user_id=test_user.id,
+            action="password_reset_request",
+            ip_address="127.0.0.1",
+            success=False,
+            details="Blocked: Admin account"
+        )
+        db_session.add(log2)
+        
+        db_session.commit()
+        
+        response = client.get("/api/v1/admin/system/audit-logs", headers=admin_headers)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        assert isinstance(data, list)
+        assert len(data) >= 2
+        
+        # Check first log
+        log = data[0]
+        assert "timestamp" in log
+        assert "username" in log
+        assert log["username"] == test_user.username
+        assert "action" in log
+        assert "success" in log
+        assert "ip_address" in log
+
+    def test_get_audit_logs_unauthorized(self, client):
+        """Test getting audit logs without authentication."""
+        response = client.get("/api/v1/admin/system/audit-logs")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_audit_logs_regular_user_forbidden(self, client, auth_headers):
+        """Test getting audit logs as regular user."""
+        response = client.get("/api/v1/admin/system/audit-logs", headers=auth_headers)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_audit_logs_with_exclusion(self, client, admin_headers, db_session, test_user):
+        """Test getting audit logs with action exclusion."""
+        # Create test logs with different actions
+        log_login = AuthAuditLog(
+            user_id=test_user.id,
+            action="login",
+            ip_address="127.0.0.1",
+            success=True
+        )
+        db_session.add(log_login)
+        
+        log_token = AuthAuditLog(
+            user_id=test_user.id,
+            action="token_created",
+            ip_address="127.0.0.1",
+            success=True
+        )
+        db_session.add(log_token)
+        
+        log_reset = AuthAuditLog(
+            user_id=test_user.id,
+            action="password_reset_request",
+            ip_address="127.0.0.1",
+            success=True
+        )
+        db_session.add(log_reset)
+        
+        db_session.commit()
+        
+        # Test excluding one action
+        response = client.get(
+            "/api/v1/admin/system/audit-logs?exclude_action=token_created", 
+            headers=admin_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Should include login and reset, but not token_created
+        actions = [log["action"] for log in data]
+        assert "login" in actions
+        assert "password_reset_request" in actions
+        assert "token_created" not in actions
+        
+        # Test excluding multiple actions
+        response = client.get(
+            "/api/v1/admin/system/audit-logs?exclude_action=token_created&exclude_action=login", 
+            headers=admin_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Should only include reset
+        actions = [log["action"] for log in data]
+        assert "login" not in actions
+        assert "password_reset_request" in actions
+        assert "token_created" not in actions
+
+    def test_get_audit_logs_with_username_and_ip(self, client, admin_headers, db_session, test_user):
+        """Test getting audit logs with username and IP filtering."""
+        # Create test logs with different users and IPs
+        log1 = AuthAuditLog(
+            user_id=test_user.id,
+            action="login",
+            ip_address="127.0.0.1",
+            success=True
+        )
+        db_session.add(log1)
+        
+        # Create another user for testing
+        other_user = User(
+            username="otheruser",
+            email="other@example.com",
+            password_hash="hashed_password",
+            enabled=True
+        )
+        db_session.add(other_user)
+        db_session.flush()
+        
+        log2 = AuthAuditLog(
+            user_id=other_user.id,
+            action="login",
+            ip_address="192.168.1.1",
+            success=True
+        )
+        db_session.add(log2)
+        
+        db_session.commit()
+        
+        # Test filtering by username (partial match)
+        response = client.get(
+            f"/api/v1/admin/system/audit-logs?username=test", 
+            headers=admin_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        assert len(data) >= 1
+        usernames = [log["username"] for log in data]
+        assert test_user.username in usernames
+        assert other_user.username not in usernames
+        
+        # Test filtering by IP (partial match)
+        response = client.get(
+            f"/api/v1/admin/system/audit-logs?ip_address=192.168", 
+            headers=admin_headers
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        assert len(data) >= 1
+        ips = [log["ip_address"] for log in data]
+        assert "192.168.1.1" in ips
+        assert "127.0.0.1" not in ips
 

@@ -61,6 +61,31 @@ class TestPasswordReset:
         token = db_session.query(PasswordResetToken).filter(PasswordResetToken.user_id == google_user.id).first()
         assert token is None
 
+    def test_request_password_reset_admin_user(self, client, db_session):
+        """Test password reset request for 'admin' user (Security restriction)."""
+        # Create 'admin' user
+        admin_user = User(
+            username="admin",
+            email="admin@example.com",
+            password_hash="dummy",
+            is_admin=True,
+            enabled=True
+        )
+        db_session.add(admin_user)
+        db_session.commit()
+        
+        response = client.post("/api/v1/auth/forgot-password", json={
+            "email_or_username": "admin"
+        })
+        
+        # Should return 200 OK with success message to prevent enumeration
+        assert response.status_code == status.HTTP_200_OK
+        assert "reset link has been sent" in response.json()["message"]
+        
+        # Verify NO token created
+        token = db_session.query(PasswordResetToken).filter(PasswordResetToken.user_id == admin_user.id).first()
+        assert token is None
+
     def test_verify_reset_token_success(self, client, test_user, db_session):
         """Test verifying a valid reset token."""
         # Create token

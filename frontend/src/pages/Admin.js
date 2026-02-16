@@ -13,6 +13,7 @@ import {
   Route,
   MessageSquare,
   History,
+  Shield,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -106,6 +107,14 @@ const Admin = () => {
       icon: <Users className='h-8 w-8 text-orange-600' />,
       href: '/admin/users',
       color: 'bg-orange-50 border-orange-200 hover:bg-orange-100',
+    },
+    {
+      id: 'audit-logs',
+      title: 'Auth Audit Logs',
+      description: 'Monitor security-sensitive authentication and authorization events.',
+      icon: <Shield className='h-8 w-8 text-blue-700' />,
+      href: '/admin/audit-logs',
+      color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
     },
     {
       id: 'notification-preferences',

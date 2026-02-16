@@ -1492,5 +1492,24 @@ class ApiKeyUpdate(BaseModel):
     expires_at: Optional[datetime] = None
     is_active: Optional[bool] = None
 
+class AuthAuditLogResponse(BaseModel):
+    """Response schema for auth audit logs"""
+    id: int
+    user_id: int
+    action: str
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    timestamp: datetime
+    success: bool
+    details: Optional[str] = None
+    username: Optional[str] = None  # Enriched field
+
+    @field_validator('timestamp', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
+        return normalize_datetime_to_utc(cls, v)
+
+    model_config = ConfigDict(from_attributes=True)
+
 class DeleteR2PhotoRequest(BaseModel):
     r2_path: str
