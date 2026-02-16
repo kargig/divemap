@@ -169,6 +169,7 @@ class UserCreateAdmin(BaseModel):
 class UserUpdateAdmin(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
     email: Optional[EmailStr] = None
+    password: Optional[str] = Field(None, min_length=8, max_length=128)
     is_admin: Optional[bool] = None
     is_moderator: Optional[bool] = None
     enabled: Optional[bool] = None

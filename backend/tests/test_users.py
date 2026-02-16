@@ -304,6 +304,27 @@ class TestAdminUserManagement:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Cannot delete your own account" in response.json()["detail"]
 
+    def test_update_user_password_admin(self, client, admin_headers, test_user):
+        """Test updating user password as admin."""
+        new_password = "newpassword123"
+        update_data = {
+            "password": new_password
+        }
+
+        response = client.put(f"/api/v1/users/admin/users/{test_user.id}",
+                            json=update_data, headers=admin_headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        
+        # Verify password login
+        login_data = {
+            "username": test_user.username,
+            "password": new_password
+        }
+        login_response = client.post("/api/v1/auth/login", json=login_data)
+        assert login_response.status_code == status.HTTP_200_OK
+        assert "access_token" in login_response.json()
+
 
 class TestPublicUserProfile:
     """Test public user profile endpoints."""

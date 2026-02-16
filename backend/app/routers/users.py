@@ -339,6 +339,11 @@ async def update_user(
     # Update only provided fields
     update_data = user_update.model_dump(exclude_unset=True)
 
+    # Handle password update separately
+    if 'password' in update_data:
+        password = update_data.pop('password')
+        db_user.password_hash = get_password_hash(password)
+
     for field, value in update_data.items():
         setattr(db_user, field, value)
 
