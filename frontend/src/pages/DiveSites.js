@@ -40,6 +40,7 @@ import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
+import useFlickrImages from '../hooks/useFlickrImages';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
@@ -470,6 +471,27 @@ const DiveSites = () => {
   const hasNextPage = diveSitesResponse?.paginationInfo?.hasNextPage || false;
   const hasPrevPage = diveSitesResponse?.paginationInfo?.hasPrevPage || false;
 
+  // Extract all thumbnail URLs from the results to pass to the hook
+  const thumbnailUrls = useMemo(() => {
+    if (!diveSites?.results) return [];
+    return diveSites.results
+      .filter(site => site.thumbnail)
+      .map(site => ({
+        id: site.id, // We need an ID for the hook
+        url: site.thumbnail,
+        media_type: 'photo', // Assume photo for thumbnail
+      }));
+  }, [diveSites?.results]);
+
+  // Use hook to convert Flickr URLs
+  const { data: convertedFlickrUrls = new Map() } = useFlickrImages(thumbnailUrls);
+
+  // Helper to get the image URL
+  const getThumbnailUrl = site => {
+    if (!site.thumbnail) return null;
+    return convertedFlickrUrls.get(site.thumbnail) || site.thumbnail;
+  };
+
   // Show toast notifications for rate limiting errors
   useEffect(() => {
     handleRateLimitError(error, 'dive sites', () => window.location.reload());
@@ -820,7 +842,7 @@ const DiveSites = () => {
                             className='shrink-0 w-24 h-24 sm:w-40 sm:h-32 rounded-lg overflow-hidden bg-gray-100 hidden sm:block'
                           >
                             <img
-                              src={site.thumbnail}
+                              src={getThumbnailUrl(site)}
                               alt={site.name}
                               className='w-full h-full object-cover hover:scale-105 transition-transform duration-300'
                               loading='lazy'
@@ -938,7 +960,7 @@ const DiveSites = () => {
                                 className='sm:hidden shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-gray-100'
                               >
                                 <img
-                                  src={site.thumbnail}
+                                  src={getThumbnailUrl(site)}
                                   alt={site.name}
                                   className='w-full h-full object-cover'
                                   loading='lazy'
@@ -1055,7 +1077,7 @@ const DiveSites = () => {
                           className='block w-full aspect-video overflow-hidden bg-gray-100'
                         >
                           <img
-                            src={site.thumbnail}
+                            src={getThumbnailUrl(site)}
                             alt={site.name}
                             className='w-full h-full object-cover transition-transform duration-300 hover:scale-105'
                             loading='lazy'
