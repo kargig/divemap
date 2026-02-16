@@ -34,6 +34,7 @@ const AdminRecentActivity = lazy(() => import('./pages/AdminRecentActivity'));
 const AdminSystemMetrics = lazy(() => import('./pages/AdminSystemMetrics'));
 const AdminTags = lazy(() => import('./pages/AdminTags'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminAuditLogs = lazy(() => import('./pages/AdminAuditLogs'));
 const AdminChatFeedback = lazy(() => import('./pages/AdminChatFeedback'));
 const AdminChatHistory = lazy(() => import('./pages/AdminChatHistory'));
 const API = lazy(() => import('./pages/API'));
@@ -365,6 +366,14 @@ function App() {
                       element={
                         <ProtectedRoute requireAdmin={true}>
                           <AdminUsers />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path='/admin/audit-logs'
+                      element={
+                        <ProtectedRoute requireAdmin={true}>
+                          <AdminAuditLogs />
                         </ProtectedRoute>
                       }
                     />

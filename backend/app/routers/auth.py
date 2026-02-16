@@ -639,6 +639,25 @@ async def request_password_reset(
         db.commit()
         
         return {"message": success_message}
+
+    # Check if user is the 'admin' user
+    if user.username == "admin":
+        # Log that 'admin' user attempted reset
+        logger.info(f"Password reset requested for 'admin' user {user.id}")
+        
+        # Log attempt
+        audit_log = AuthAuditLog(
+            user_id=user.id,
+            action="password_reset_request_admin",
+            ip_address=ip_address,
+            user_agent=request.headers.get("user-agent"),
+            success=False,
+            details="Blocked: 'admin' account"
+        )
+        db.add(audit_log)
+        db.commit()
+        
+        return {"message": success_message}
     
     if not user.enabled:
         return {"message": success_message}
