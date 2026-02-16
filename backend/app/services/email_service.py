@@ -343,6 +343,112 @@ class EmailService:
             from_email=from_email,
             from_name=from_name
         )
+
+    def send_password_reset_email(
+        self,
+        user_email: str,
+        reset_token: str,
+        from_email: Optional[str] = None,
+        from_name: Optional[str] = None
+    ) -> bool:
+        """
+        Send password reset email with reset link.
+        
+        Args:
+            user_email: Recipient email address
+            reset_token: Password reset token to include in link
+            from_email: Sender email (optional)
+            from_name: Sender name (optional)
+        
+        Returns:
+            True if email was sent successfully
+        """
+        # Build reset link - points to frontend page
+        # Use FRONTEND_URL as base
+        base_url = os.getenv('FRONTEND_URL', 'http://localhost').rstrip('/')
+        reset_link = f"{base_url}/reset-password?token={reset_token}"
+        
+        # Prepare template context
+        context = {
+            'reset_link': reset_link,
+            'user_email': user_email,
+            'site_name': 'Divemap',
+            'site_url': base_url,
+            'current_year': datetime.now().year
+        }
+        
+        # Render HTML template
+        html_body = self._render_template('password_reset', context, 'html')
+        if not html_body:
+            logger.error("Failed to render HTML template: password_reset")
+            return False
+        
+        # Render text template
+        text_body = self._render_template('password_reset', context, 'txt')
+        if not text_body:
+            import re
+            text_body = re.sub(r'<[^>]+>', '', html_body)
+            text_body = re.sub(r'\n\s*\n', '\n\n', text_body)
+        
+        # Send email via SES
+        subject = "Reset your password - Divemap"
+        return self.ses_service.send_email(
+            to_email=user_email,
+            subject=subject,
+            html_body=html_body,
+            text_body=text_body,
+            from_email=from_email,
+            from_name=from_name
+        )
+
+    def send_password_changed_email(
+        self,
+        user_email: str,
+        from_email: Optional[str] = None,
+        from_name: Optional[str] = None
+    ) -> bool:
+        """
+        Send password changed confirmation email.
+        
+        Args:
+            user_email: Recipient email address
+            from_email: Sender email (optional)
+            from_name: Sender name (optional)
+        
+        Returns:
+            True if email was sent successfully
+        """
+        base_url = os.getenv('FRONTEND_URL', 'http://localhost').rstrip('/')
+        login_url = f"{base_url}/login"
+        
+        context = {
+            'login_url': login_url,
+            'user_email': user_email,
+            'site_name': 'Divemap',
+            'site_url': base_url,
+            'current_year': datetime.now().year
+        }
+        
+        html_body = self._render_template('password_changed', context, 'html')
+        if not html_body:
+            logger.error("Failed to render HTML template: password_changed")
+            return False
+        
+        text_body = self._render_template('password_changed', context, 'txt')
+        if not text_body:
+            import re
+            text_body = re.sub(r'<[^>]+>', '', html_body)
+            text_body = re.sub(r'\n\s*\n', '\n\n', text_body)
+        
+        subject = "Password Changed - Divemap"
+        return self.ses_service.send_email(
+            to_email=user_email,
+            subject=subject,
+            html_body=html_body,
+            text_body=text_body,
+            from_email=from_email,
+            from_name=from_name
+        )
     
     def get_email_config(self, db: Optional[Session] = None) -> Optional[Any]:
         """

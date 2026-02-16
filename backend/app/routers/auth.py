@@ -2,17 +2,21 @@ from datetime import timedelta, datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from slowapi.util import get_remote_address
 from slowapi import Limiter
 from pydantic import BaseModel
 import os
 import logging
+import secrets
 
 from app.database import get_db
-from app.models import User, EmailVerificationToken
-from app.schemas import UserCreate, Token, LoginRequest, UserResponse, RegistrationResponse, ResendVerificationRequest
+from app.models import User, EmailVerificationToken, PasswordResetToken, RefreshToken, AuthAuditLog
+from app.schemas import (
+    UserCreate, Token, LoginRequest, UserResponse, RegistrationResponse, 
+    ResendVerificationRequest, PasswordResetRequest, PasswordResetConfirm
+)
 from app.auth import (
     authenticate_user,
     get_password_hash,
@@ -580,3 +584,194 @@ async def revoke_token(
     db.commit()
     
     return {"message": "Token revoked successfully"}
+
+# Password Reset Endpoints
+
+@router.post("/forgot-password")
+@limiter.limit("5/day")
+async def request_password_reset(
+    request: Request,
+    reset_data: PasswordResetRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Request a password reset email.
+    Rate limited to 5 requests per day per IP.
+    """
+    import hashlib
+    
+    email_or_username = reset_data.email_or_username.strip()
+    
+    # Audit log entry preparation (will commit later)
+    ip_address = get_client_ip(request)
+    
+    # Find user by email or username
+    user = db.query(User).filter(
+        or_(
+            User.email == email_or_username,
+            User.username == email_or_username
+        )
+    ).first()
+    
+    # Generic success message to prevent enumeration
+    success_message = "If an account exists with these details, a password reset link has been sent to your email."
+    
+    if not user:
+        # Log invalid attempt but return success
+        # Note: We rely on slowapi for rate limiting invalid requests too
+        return {"message": success_message}
+    
+    # Check if user uses Google auth
+    if user.google_id:
+        # Log that google user attempted reset
+        logger.info(f"Password reset requested for Google user {user.id}")
+        
+        # Log attempt
+        audit_log = AuthAuditLog(
+            user_id=user.id,
+            action="password_reset_request_google",
+            ip_address=ip_address,
+            user_agent=request.headers.get("user-agent"),
+            success=False,
+            details="Blocked: Google account"
+        )
+        db.add(audit_log)
+        db.commit()
+        
+        return {"message": success_message}
+    
+    if not user.enabled:
+        return {"message": success_message}
+
+    # Generate token
+    # Use secrets for high entropy
+    reset_token = secrets.token_urlsafe(32)
+    # Use SHA256 for deterministic hashing (fast lookups)
+    token_hash = hashlib.sha256(reset_token.encode()).hexdigest()
+    
+    # Expiry: 30 minutes
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    
+    # Store token hash
+    db_token = PasswordResetToken(
+        user_id=user.id,
+        token_hash=token_hash,
+        expires_at=expires_at,
+        ip_address=ip_address
+    )
+    
+    db.add(db_token)
+    
+    # Log request
+    audit_log = AuthAuditLog(
+        user_id=user.id,
+        action="password_reset_request",
+        ip_address=ip_address,
+        user_agent=request.headers.get("user-agent"),
+        success=True
+    )
+    db.add(audit_log)
+    
+    db.commit()
+    
+    # Send email with RAW token
+    try:
+        email_service = EmailService()
+        email_service.send_password_reset_email(user.email, reset_token)
+    except Exception as e:
+        logger.error(f"Failed to send password reset email to {user.email}: {e}")
+        # Still return success to user
+        
+    return {"message": success_message}
+
+@router.get("/verify-reset-token")
+async def verify_reset_token(
+    token: str = Query(..., description="Password reset token"),
+    db: Session = Depends(get_db)
+):
+    """
+    Verify if a password reset token is valid.
+    """
+    import hashlib
+    
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    
+    db_token = db.query(PasswordResetToken).filter(
+        PasswordResetToken.token_hash == token_hash,
+        PasswordResetToken.used_at == None,
+        PasswordResetToken.expires_at > datetime.now(timezone.utc)
+    ).first()
+    
+    if not db_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired password reset token"
+        )
+        
+    return {"valid": True}
+
+@router.post("/reset-password")
+async def reset_password(
+    request: Request,
+    reset_data: PasswordResetConfirm,
+    db: Session = Depends(get_db)
+):
+    """
+    Reset password using a valid token.
+    """
+    import hashlib
+    
+    token_hash = hashlib.sha256(reset_data.token.encode()).hexdigest()
+    
+    db_token = db.query(PasswordResetToken).filter(
+        PasswordResetToken.token_hash == token_hash,
+        PasswordResetToken.used_at == None,
+        PasswordResetToken.expires_at > datetime.now(timezone.utc)
+    ).first()
+    
+    if not db_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired password reset token"
+        )
+    
+    user = db.query(User).filter(User.id == db_token.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    # Validate new password
+    if not validate_password_strength(reset_data.new_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character"
+        )
+        
+    # Update password
+    user.password_hash = get_password_hash(reset_data.new_password)
+    
+    # Mark token used
+    db_token.used_at = datetime.now(timezone.utc)
+    
+    # Revoke all refresh tokens
+    db.query(RefreshToken).filter(RefreshToken.user_id == user.id).update({"is_revoked": True})
+    
+    # Audit log
+    audit_log = AuthAuditLog(
+        user_id=user.id,
+        action="password_reset_success",
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+        success=True
+    )
+    db.add(audit_log)
+    
+    db.commit()
+    
+    # Send confirmation email
+    try:
+        email_service = EmailService()
+        email_service.send_password_changed_email(user.email)
+    except Exception as e:
+        logger.error(f"Failed to send password changed email to {user.email}: {e}")
+        
+    return {"message": "Password has been reset successfully. Please login with your new password."}

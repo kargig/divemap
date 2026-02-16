@@ -62,6 +62,8 @@ const Help = lazy(() => import('./pages/Help'));
 const Home = lazy(() => import('./pages/Home'));
 const IndependentMapView = lazy(() => import('./pages/IndependentMapView'));
 const Login = lazy(() => import('./pages/Login'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPreferences'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Privacy = lazy(() => import('./pages/Privacy'));
@@ -188,6 +190,8 @@ function App() {
                     <Route path='/help' element={<Help />} />
                     <Route path='/privacy' element={<Privacy />} />
                     <Route path='/login' element={<Login />} />
+                    <Route path='/forgot-password' element={<ForgotPassword />} />
+                    <Route path='/reset-password' element={<ResetPassword />} />
                     <Route path='/register' element={<Register />} />
                     <Route path='/verify-email' element={<VerifyEmail />} />
                     <Route path='/check-email' element={<CheckYourEmail />} />
