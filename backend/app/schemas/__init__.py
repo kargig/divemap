@@ -4,6 +4,9 @@ from datetime import datetime, date, time, timezone
 import re
 import enum
 
+# Import auth schemas
+from .auth import PasswordResetRequest, PasswordResetConfirm
+
 # Valid difficulty codes
 DifficultyCode = Optional[Literal['OPEN_WATER', 'ADVANCED_OPEN_WATER', 'DEEP_NITROX', 'TECHNICAL_DIVING']]
 

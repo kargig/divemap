@@ -151,6 +151,7 @@ class User(Base):
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     email_verification_tokens = relationship("EmailVerificationToken", back_populates="user", cascade="all, delete-orphan")
     unsubscribe_token = relationship("UnsubscribeToken", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    password_reset_tokens = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
     social_links = relationship("UserSocialLink", back_populates="user", cascade="all, delete-orphan")
 
 class UserSocialLink(Base):
@@ -843,6 +844,29 @@ class UnsubscribeToken(Base):
         sa.Index('idx_unsubscribe_user', 'user_id'),
         sa.Index('idx_unsubscribe_expires', 'expires_at'),
     )
+
+
+class PasswordResetToken(Base):
+    """Tokens for password reset functionality."""
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String(255), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+    ip_address = Column(String(45), nullable=True)  # For audit and rate limiting
+
+    # Relationships
+    user = relationship("User", back_populates="password_reset_tokens")
+
+    __table_args__ = (
+        sa.Index('idx_password_reset_token_hash', 'token_hash'),
+        sa.Index('idx_password_reset_user', 'user_id'),
+        sa.Index('idx_password_reset_expires', 'expires_at'),
+    )
+
 
 class ChatFeedback(Base):
     """

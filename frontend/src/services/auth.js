@@ -94,3 +94,39 @@ export const refreshAccessToken = async () => {
   );
   return response.data;
 };
+
+/**
+ * Request a password reset
+ * @param {string} emailOrUsername
+ * @returns {Promise<Object>} Response data
+ */
+export const forgotPassword = async emailOrUsername => {
+  const response = await api.post('/api/v1/auth/forgot-password', {
+    email_or_username: emailOrUsername,
+  });
+  return response.data;
+};
+
+/**
+ * Verify a password reset token
+ * @param {string} token
+ * @returns {Promise<Object>} Response data
+ */
+export const verifyResetToken = async token => {
+  const response = await api.get(`/api/v1/auth/verify-reset-token?token=${token}`);
+  return response.data;
+};
+
+/**
+ * Reset password
+ * @param {string} token
+ * @param {string} newPassword
+ * @returns {Promise<Object>} Response data
+ */
+export const resetPassword = async (token, newPassword) => {
+  const response = await api.post('/api/v1/auth/reset-password', {
+    token,
+    new_password: newPassword,
+  });
+  return response.data;
+};
