@@ -144,7 +144,10 @@ const AdminChatFeedbackTable = ({
       <div className='flex flex-col sm:flex-row justify-between items-center gap-4 px-2'>
         {/* Page Size Selection */}
         <div className='flex items-center gap-2'>
-          <label htmlFor='page-size-select' className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+          <label
+            htmlFor='page-size-select'
+            className='text-sm font-medium text-gray-700 dark:text-gray-300'
+          >
             Show:
           </label>
           <select

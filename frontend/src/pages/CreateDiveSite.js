@@ -24,6 +24,7 @@ import {
   createResolver,
   getErrorMessage,
 } from '../utils/formHelpers';
+import { isYouTubeUrl } from '../utils/youtubeHelpers';
 
 const CreateDiveSite = () => {
   // Set page title
@@ -830,6 +831,22 @@ const CreateDiveSite = () => {
                                             className='w-full'
                                             openInNewTab={true}
                                           />
+                                        )}
+                                        {(isFlickrUrl(item.url) || isYouTubeUrl(item.url)) && (
+                                          <div
+                                            className='text-xs text-gray-500 truncate mt-1 px-1'
+                                            title={item.url}
+                                          >
+                                            <a
+                                              href={item.url}
+                                              target='_blank'
+                                              rel='noopener noreferrer'
+                                              className='hover:text-blue-600 transition-colors'
+                                              onClick={e => e.stopPropagation()}
+                                            >
+                                              {item.url}
+                                            </a>
+                                          </div>
                                         )}
                                         <input
                                           type='text'
