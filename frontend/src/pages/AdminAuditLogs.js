@@ -154,7 +154,6 @@ const AdminAuditLogs = () => {
       title: 'Timestamp',
       dataIndex: 'timestamp',
       key: 'timestamp',
-      width: 200,
       render: text => (
         <Space direction='vertical' size={0}>
           <Text strong>{new Date(text).toLocaleDateString()}</Text>
@@ -196,7 +195,6 @@ const AdminAuditLogs = () => {
       title: 'Status',
       dataIndex: 'success',
       key: 'success',
-      width: 100,
       render: success => (
         <Tag color={success ? 'success' : 'error'}>{success ? 'Success' : 'Failure'}</Tag>
       ),
@@ -214,7 +212,7 @@ const AdminAuditLogs = () => {
       render: text =>
         text ? (
           <Tooltip title={text}>
-            <Text style={{ maxWidth: 200 }} ellipsis>
+            <Text ellipsis>
               {text}
             </Text>
           </Tooltip>
@@ -225,7 +223,7 @@ const AdminAuditLogs = () => {
   ];
 
   return (
-    <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-4 sm:p-6'>
       <div className='flex flex-col md:flex-row md:items-center md:justify-between mb-8'>
         <div>
           <Title level={2} style={{ margin: 0 }}>
@@ -355,7 +353,7 @@ const AdminAuditLogs = () => {
         }}
         loading={isLoading}
         onChange={handleTableChange}
-        scroll={{ x: 800 }}
+        scroll={{ x: 'max-content' }}
         style={{
           backgroundColor: '#fff',
           borderRadius: '8px',

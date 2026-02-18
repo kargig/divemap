@@ -61,41 +61,52 @@ def get_client_ip(request: Request) -> str:
     """
     # Check Fly.io specific header first
     if 'Fly-Client-IP' in request.headers:
-        return request.headers['Fly-Client-IP']
+        fly_ip = request.headers['Fly-Client-IP']
+        # Only trust Fly-Client-IP if it's a public IP
+        # This prevents internal Fly IPs (fdaa:...) from being used as client IP
+        if not is_private_ip(fly_ip) and not is_localhost_ip(fly_ip):
+            return fly_ip
 
     # Check Cloudflare header
-    elif 'CF-Connecting-IP' in request.headers:
+    if 'CF-Connecting-IP' in request.headers:
         return request.headers['CF-Connecting-IP']
 
     # Check X-Real-IP header (common with Nginx, Apache)
-    elif 'X-Real-IP' in request.headers:
+    if 'X-Real-IP' in request.headers:
         return request.headers['X-Real-IP']
 
     # Check X-Forwarded-For header (standard proxy header)
-    elif 'X-Forwarded-For' in request.headers:
-        # Get the first IP from the list (client's original IP)
-        # X-Forwarded-For can contain multiple IPs: client, proxy1, proxy2, ...
-        # We ALWAYS take only the leftmost IP as the real client IP
-        # This prevents IP spoofing and ensures consistent behavior
+    if 'X-Forwarded-For' in request.headers:
+        # Get the list of IPs
         forwarded_for = request.headers['X-Forwarded-For']
-        # Split by comma and take the first (leftmost) IP
-        first_ip = forwarded_for.split(',')[0].strip()
-        return first_ip
+        ips = [ip.strip() for ip in forwarded_for.split(',')]
+        
+        # Iterate through IPs in REVERSE order (right to left)
+        # This is critical for security: rightmost IPs are added by trusted proxies.
+        # Leftmost IPs can be spoofed by the client.
+        for ip in reversed(ips):
+            if not is_private_ip(ip) and not is_localhost_ip(ip):
+                return ip
+        
+        # If all IPs are private/internal, return the last one (rightmost) as fallback
+        # The last IP is the one added by the most recent proxy and is more trustworthy
+        # than the first IP which could be spoofed
+        return ips[-1]
 
     # Check True-Client-IP (Akamai, Cloudflare)
-    elif 'True-Client-IP' in request.headers:
+    if 'True-Client-IP' in request.headers:
         return request.headers['True-Client-IP']
 
     # Check X-Client-IP (custom proxy headers)
-    elif 'X-Client-IP' in request.headers:
+    if 'X-Client-IP' in request.headers:
         return request.headers['X-Client-IP']
 
     # Check request.client.host (FastAPI's client host)
-    elif hasattr(request, 'client') and request.client and request.client.host:
+    if hasattr(request, 'client') and request.client and request.client.host:
         return request.client.host
 
     # Fallback to request.remote_addr if available
-    elif hasattr(request, 'remote_addr') and request.remote_addr:
+    if hasattr(request, 'remote_addr') and request.remote_addr:
         return request.remote_addr
 
     # If all else fails, return a placeholder
@@ -180,9 +191,12 @@ def is_localhost_ip(ip_address: str) -> bool:
     return ip_address in localhost_ips
 
 
+import ipaddress
+
 def is_private_ip(ip_address: str) -> bool:
     """
     Check if an IP address is in a private network range.
+    Uses the standard ipaddress library for robust detection.
     
     Args:
         ip_address: IP address string to check
@@ -194,22 +208,29 @@ def is_private_ip(ip_address: str) -> bool:
         if is_private_ip(client_ip):
             print("Request from private network")
     """
-    # Simple check for common private IP ranges
-    # This is a basic implementation - for production use,
-    # consider using ipaddress module for more robust checking
-    
-    if ip_address == "-" or not ip_address:
+    if not ip_address or ip_address == "-":
         return False
     
-    # IPv4 private ranges
-    if ip_address.startswith(("10.", "192.168.", "172.")):
-        return True
-    
-    # IPv6 private ranges (simplified)
-    if ip_address.startswith(("fc00:", "fd00:", "fe80:", "fdaa:")):
-        return True
-    
-    return False
+    try:
+        # Handle potential port numbers in IPv4 addresses (e.g. 127.0.0.1:8000)
+        # IPv6 addresses with ports are typically [::1]:8000, which ip_address handles if brackets present,
+        # but pure string manipulation is safer for stripping ports from simple strings
+        clean_ip = ip_address.split(']')[0].lstrip('[') if ']' in ip_address else ip_address.split(':')[0] if '.' in ip_address else ip_address
+        
+        ip = ipaddress.ip_address(clean_ip)
+        
+        # Check standard private ranges
+        # is_private covers:
+        # - 10.0.0.0/8
+        # - 172.16.0.0/12
+        # - 192.168.0.0/16
+        # - fc00::/7 (Unique Local Addresses, including Fly.io's fdaa:: range)
+        # - fe80::/10 (Link-Local)
+        return ip.is_private or ip.is_loopback or ip.is_link_local
+        
+    except ValueError:
+        # Invalid IP address format
+        return False
 
 
 def format_ip_for_logging(client_ip: str, include_private: bool = False) -> str:
