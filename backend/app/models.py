@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, DECIMAL, Enum, Date, Time, func
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, DECIMAL, Enum, Date, Time, func, LargeBinary
 from sqlalchemy.orm import relationship
 from app.database import Base
 import enum
@@ -923,3 +923,67 @@ class ChatMessage(Base):
 
     # Relationships
     session = relationship("ChatSession", back_populates="messages")
+
+# -----------------------------------------------------------------------------
+# User-to-User Chat Subsystem Models
+# -----------------------------------------------------------------------------
+
+class UserChatRoom(Base):
+    """
+    Represents a 1-on-1 or Group chat room between users.
+    """
+    __tablename__ = "user_chat_rooms"
+
+    id = Column(Integer, primary_key=True, index=True)
+    is_group = Column(Boolean, default=False, nullable=False)
+    name = Column(String(100), nullable=True) # Optional name for group chats
+    encrypted_dek = Column(Text, nullable=False) # Envelope-encrypted Room Key
+    created_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    last_activity_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relationships
+    members = relationship("UserChatRoomMember", back_populates="room", cascade="all, delete-orphan")
+    messages = relationship("UserChatMessage", back_populates="room", cascade="all, delete-orphan")
+    created_by = relationship("User", foreign_keys=[created_by_id])
+
+class UserChatRoomMember(Base):
+    """
+    Mapping of Users to UserChatRooms, including access control and read receipts.
+    """
+    __tablename__ = "user_chat_room_members"
+
+    room_id = Column(Integer, ForeignKey("user_chat_rooms.id", ondelete="CASCADE"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    role = Column(String(20), default="MEMBER", nullable=False) # 'ADMIN' or 'MEMBER'
+    joined_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    left_at = Column(DateTime(timezone=True), nullable=True) # If set, user has left/been removed
+    last_read_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relationships
+    room = relationship("UserChatRoom", back_populates="members")
+    user = relationship("User")
+
+class UserChatMessage(Base):
+    """
+    Encrypted messages within a UserChatRoom.
+    """
+    __tablename__ = "user_chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    room_id = Column(Integer, ForeignKey("user_chat_rooms.id", ondelete="CASCADE"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    content = Column(LargeBinary, nullable=False) # The Fernet-encrypted ciphertext
+    is_edited = Column(Boolean, default=False, nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Indexes
+    # Composite index for optimized cursor-based polling: (room_id, updated_at)
+    __table_args__ = (
+        sa.Index("idx_chat_messages_room_updated", "room_id", "updated_at"),
+    )
+
+    # Relationships
+    room = relationship("UserChatRoom", back_populates="messages")
+    sender = relationship("User", foreign_keys=[sender_id])
