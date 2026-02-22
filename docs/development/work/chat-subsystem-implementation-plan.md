@@ -83,13 +83,13 @@ Heavy asynchronous tasks (like distributing notification alerts to offline users
 
 ### Phase 3: High-Watermark Polling & Short-Circuiting
 
-- [ ] **Code change**: Implement `GET /api/v1/chat/rooms/{room_id}/messages`.
+- [x] **Code change**: Implement `GET /api/v1/chat/rooms/{room_id}/messages`.
     - **Step 1 (Short-Circuit):** Query `chat_rooms.last_activity_at`. If `last_activity_at <= after_updated_at` (from client query param), immediately return HTTP 304 Not Modified.
     - **Step 2 (Fetch):** If activity exists, query `chat_messages WHERE room_id = ? AND updated_at > ?`.
     - **Step 3 (Filter):** Enforce `created_at >= joined_at` for the requesting user.
     - **Step 4 (Decrypt):** Fetch DEK (hits LRU cache), decrypt messages, and return.
-- [ ] **Code change**: Implement `PUT /api/v1/chat/rooms/{room_id}/read` to update the user's `last_read_at` timestamp.
-- [ ] **Automated test**: Write integration tests ensuring the 304 short-circuit works and the LRU cache is hit during repeated requests.
+- [x] **Code change**: Implement `PUT /api/v1/chat/rooms/{room_id}/read` to update the user's `last_read_at` timestamp.
+- [x] **Automated test**: Write integration tests ensuring the 304 short-circuit works and the LRU cache is hit during repeated requests.
 
 ### Phase 4: Frontend UI & Smart Polling
 

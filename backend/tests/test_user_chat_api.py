@@ -117,3 +117,45 @@ def test_list_chat_rooms(client, auth_headers, test_user_other, mock_master_key)
     target_room = next((r for r in rooms if r["id"] == room_id), None)
     assert target_room is not None
     assert "unread_count" in target_room
+
+def test_get_messages_short_circuit(client, auth_headers, test_user_other, mock_master_key):
+    # 1. Create room
+    room_res = client.post(
+        "/api/v1/user-chat/rooms",
+        headers=auth_headers,
+        json={"is_group": False, "participant_ids": [test_user_other.id]}
+    )
+    room_id = room_res.json()["id"]
+    
+    # 2. Send message
+    msg_res = client.post(
+        f"/api/v1/user-chat/rooms/{room_id}/messages",
+        headers=auth_headers,
+        json={"content": "First message"}
+    )
+    msg_data = msg_res.json()
+    
+    # 3. Fetch without cursor -> gets message
+    get_res = client.get(f"/api/v1/user-chat/rooms/{room_id}/messages", headers=auth_headers)
+    assert get_res.status_code == 200
+    assert len(get_res.json()) >= 1
+    
+    # 4. Fetch with cursor representing the future
+    from datetime import datetime, timezone, timedelta
+    future_time = (datetime.now(timezone.utc) + timedelta(minutes=1)).isoformat()
+    
+    import urllib.parse
+    future_time_encoded = urllib.parse.quote(future_time)
+    get_res_304 = client.get(f"/api/v1/user-chat/rooms/{room_id}/messages?after_updated_at={future_time_encoded}", headers=auth_headers)
+    assert get_res_304.status_code == 304, get_res_304.text
+
+def test_mark_room_read(client, auth_headers, test_user_other, mock_master_key):
+    room_res = client.post(
+        "/api/v1/user-chat/rooms",
+        headers=auth_headers,
+        json={"is_group": False, "participant_ids": [test_user_other.id]}
+    )
+    room_id = room_res.json()["id"]
+    
+    res = client.put(f"/api/v1/user-chat/rooms/{room_id}/read", headers=auth_headers)
+    assert res.status_code == 200
