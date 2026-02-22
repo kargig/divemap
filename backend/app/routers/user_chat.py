@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, desc, or_, and_
 from typing import List, Optional
@@ -218,3 +218,63 @@ async def edit_message(
     response_msg = ChatMessageResponse.model_validate(message)
     response_msg.content = message_in.content
     return response_msg
+
+@router.get("/rooms/{room_id}/messages", response_model=List[ChatMessageResponse])
+async def get_messages(
+    room_id: int,
+    response: Response,
+    after_updated_at: Optional[datetime] = None,
+    limit: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Fetch messages for a room. 
+    Optimized with a 304 Not Modified short-circuit using last_activity_at.
+    """
+    room, member = get_room_or_404(db, room_id, current_user.id)
+    
+    # 1. Short-circuit: Check if room has activity since the cursor
+    if after_updated_at:
+        # Ensure both are naive or both are aware for comparison
+        cmp_activity = room.last_activity_at.replace(tzinfo=None) if room.last_activity_at.tzinfo else room.last_activity_at
+        cmp_after = after_updated_at.replace(tzinfo=None) if after_updated_at.tzinfo else after_updated_at
+        if cmp_activity <= cmp_after:
+            response.status_code = status.HTTP_304_NOT_MODIFIED
+            return []
+        
+    # 2. Fetch messages
+    query = db.query(UserChatMessage).options(
+        joinedload(UserChatMessage.sender)
+    ).filter(
+        UserChatMessage.room_id == room_id,
+        UserChatMessage.created_at >= member.joined_at  # Enforce history restriction
+    )
+    
+    if after_updated_at:
+        query = query.filter(UserChatMessage.updated_at > after_updated_at)
+        
+    messages = query.order_by(UserChatMessage.created_at.asc()).limit(limit).all()
+    
+    # 3. Decrypt and return
+    result = []
+    for msg in messages:
+        resp_msg = ChatMessageResponse.model_validate(msg)
+        resp_msg.content = decrypt_message(msg.content, room.encrypted_dek)
+        result.append(resp_msg)
+        
+    return result
+
+@router.put("/rooms/{room_id}/read", status_code=status.HTTP_200_OK)
+async def mark_room_read(
+    room_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Mark all messages in a room as read by updating the last_read_at timestamp."""
+    room, member = get_room_or_404(db, room_id, current_user.id)
+    
+    member.last_read_at = func.now()
+    db.commit()
+    
+    return {"status": "success"}
