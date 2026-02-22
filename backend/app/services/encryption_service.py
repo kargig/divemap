@@ -9,11 +9,12 @@ class EncryptionError(Exception):
     """Custom exception for encryption/decryption errors."""
     pass
 
-def get_master_key() -> bytes:
+def get_master_key() -> bytes | None:
     """Get the Master Encryption Key (MEK) from environment variables."""
     key = os.getenv("CHAT_MASTER_KEY")
     if not key:
-        raise ValueError("CHAT_MASTER_KEY environment variable is not set")
+        logger.warning("CHAT_MASTER_KEY environment variable is not set. Chat subsystem disabled.")
+        return None
     return key.encode('utf-8')
 
 def generate_room_dek() -> str:
@@ -22,8 +23,11 @@ def generate_room_dek() -> str:
 
 def encrypt_room_dek(plaintext_dek: str) -> str:
     """Encrypt a room's DEK using the Master Encryption Key."""
+    mek = get_master_key()
+    if not mek:
+        raise EncryptionError("Chat subsystem is disabled. Missing Master Key.")
     try:
-        f = Fernet(get_master_key())
+        f = Fernet(mek)
         encrypted = f.encrypt(plaintext_dek.encode('utf-8'))
         return encrypted.decode('utf-8')
     except Exception as e:
@@ -36,8 +40,11 @@ def decrypt_room_dek(encrypted_dek: str) -> str:
     Decrypt a room's DEK using the Master Encryption Key.
     Cached in-memory to prevent symmetric decryption CPU thrashing.
     """
+    mek = get_master_key()
+    if not mek:
+        raise EncryptionError("Chat subsystem is disabled. Missing Master Key.")
     try:
-        f = Fernet(get_master_key())
+        f = Fernet(mek)
         decrypted = f.decrypt(encrypted_dek.encode('utf-8'))
         return decrypted.decode('utf-8')
     except InvalidToken:

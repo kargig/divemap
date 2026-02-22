@@ -928,6 +928,32 @@ class ChatMessage(Base):
 # User-to-User Chat Subsystem Models
 # -----------------------------------------------------------------------------
 
+class UserFriendship(Base):
+    """
+    Represents a friendship/buddy relationship between two users.
+    Used to control who can initiate chats.
+    """
+    __tablename__ = "user_friendships"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # To prevent duplicates, we enforce user_id < friend_id in logic
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    friend_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    status = Column(String(20), default="PENDING", nullable=False) # 'PENDING', 'ACCEPTED', 'REJECTED'
+    initiator_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False) # Who sent the request
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Unique constraint
+    __table_args__ = (
+        sa.UniqueConstraint('user_id', 'friend_id', name='_user_friendship_uc'),
+    )
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    friend = relationship("User", foreign_keys=[friend_id])
+    initiator = relationship("User", foreign_keys=[initiator_id])
+
 class UserChatRoom(Base):
     """
     Represents a 1-on-1 or Group chat room between users.

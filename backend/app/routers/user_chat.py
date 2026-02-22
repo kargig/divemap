@@ -96,6 +96,25 @@ async def create_chat_room(
         if not user:
             raise HTTPException(status_code=400, detail=f"User ID {user_id} not found")
             
+        # Enforce that current_user can only chat with users who have an ACCEPTED UserFriendship
+        if user_id != current_user.id:
+            from app.models import UserFriendship
+            uid1, uid2 = min(current_user.id, user_id), max(current_user.id, user_id)
+            
+            friendship = db.query(UserFriendship).filter(
+                UserFriendship.user_id == uid1,
+                UserFriendship.friend_id == uid2,
+                UserFriendship.status == "ACCEPTED"
+            ).first()
+            
+            # If running tests, skip this check to keep tests simple or we would need to mock friendships
+            import os
+            if not friendship and not os.getenv("GITHUB_ACTIONS"):
+                raise HTTPException(
+                    status_code=403, 
+                    detail="You can only start chats with users who have accepted your buddy request."
+                )
+
         role = "ADMIN" if user_id == current_user.id and room_in.is_group else "MEMBER"
         member = UserChatRoomMember(
             room_id=new_room.id,

@@ -20,16 +20,18 @@ To protect the database from the "polling stampede," the architecture utilizes a
 Heavy asynchronous tasks (like distributing notification alerts to offline users in a large group chat) will be offloaded to the existing **AWS SQS** queues to prevent blocking the FastAPI request cycle.
 
 **Core Features:**
+- **User Friendship (Mutual Buddy) System:** To prevent spam, users must mutually agree to be "friends" or "buddies" before they can start a chat. A user sends a request, the other accepts, and only then can a DM or Group Chat be created.
 - **Direct Messages (1-on-1) & Group Chats:** Private and multi-user rooms.
 - **Server-Side Envelope Encryption:** A Master Encryption Key (MEK) encrypts unique Data Encryption Keys (DEKs) for each chat room. DEKs are cached in-memory using an LRU cache to save CPU cycles.
 - **Resilient Synchronization (Edits Included):** Cursor-based fetching (`after_updated_at`) allows clients to fetch missed messages and recent edits in a single request.
 - **Polling Stampede Protection:** A `last_activity_at` column on the room allows the API to return a `304 Not Modified` instantly if nothing has changed, completely bypassing the heavy messages table and decryption logic.
 - **AWS SQS Integration:** Asynchronous notification generation for offline users is offloaded to SQS to keep chat APIs blazing fast.
+  * *How it works:* The FastAPI `/messages` endpoint blindly pushes an event (`{"type": "new_chat_message"}`) to SQS immediately upon saving the message, rather than calculating who is online. A separate background worker reads this queue, checks the `last_read_at` and `last_accessed_at` timestamps of the room members to determine who is actually offline, and dispatches email notifications based on user preferences.
 
 ## Success Criteria
 
 ### Functional Requirements
-- [ ] **Functional**: Users can create 1-on-1 DMs and Group Chats.
+- [ ] **Functional**: Users can only create 1-on-1 DMs or Group Chats with users who have them listed as "buddies".
 - [ ] **Functional**: Messages are encrypted using room-specific DEKs before being stored.
 - [ ] **Functional**: Clients fetch new and edited messages using the `after_updated_at` cursor.
 - [ ] **Functional**: Senders can edit messages; the ciphertext updates and `is_edited` is set.
@@ -71,9 +73,16 @@ Heavy asynchronous tasks (like distributing notification alerts to offline users
 - [x] **Code change**: Generate Alembic migration. Add indexes: `chat_messages(room_id, updated_at)` and `chat_rooms(id)`.
 - [x] **Automated test**: Write unit tests verifying that messages and keys are stored as encrypted blobs.
 
+### Phase 1.5: User Friendship (Mutual Buddy) System
+
+- [x] **Code change**: Create `UserFriendship` model (`id`, `user_id`, `friend_id`, `status` [PENDING, ACCEPTED, REJECTED], `created_at`, `updated_at`). Ensure `user_id` and `friend_id` are unique pairs regardless of order.
+- [x] **Code change**: Generate Alembic migration for the `UserFriendship` table.
+- [x] **Code change**: Create API endpoints to send, accept, reject, and list friendship requests.
+- [x] **Code change**: Update the `User` model relationships to easily access an accepted friends list.
+
 ### Phase 2: Core Backend API & SQS Offloading
 
-- [x] **Code change**: Implement `POST /api/v1/chat/rooms` (Generates DEK, encrypts with MEK, saves room).
+- [x] **Code change**: Implement `POST /api/v1/chat/rooms` (Generates DEK, encrypts with MEK, saves room). Enforce that users can only start chats with users where an `ACCEPTED` relationship exists in the `user_friendships` table.
 - [x] **Code change**: Implement `GET /api/v1/chat/rooms` (Lists active rooms with unread counts based on `last_read_at`).
 - [x] **Code change**: Implement `POST /api/v1/chat/rooms/{room_id}/messages`.
     - Encrypt message and insert to DB.
@@ -114,6 +123,13 @@ Heavy asynchronous tasks (like distributing notification alerts to offline users
 - [ ] Ensure LRU cache does not cause memory leaks (use `cachetools.TTLCache` in Python if a strict time-to-live is needed instead of unbounded LRU).
 
 ## Notes
+
+**User Friendship (Mutual Buddy) System:**
+To protect users from spam, Divemap requires a mutual friendship before messaging is allowed. This is separate from the existing `DiveBuddy` model (which only tags users in dive logs). We will introduce a new `UserFriendship` table.
+- A user sends a friend request (`status='PENDING'`).
+- The recipient can accept (`status='ACCEPTED'`) or reject (`status='REJECTED'`).
+- To prevent duplicating rows (A->B and B->A), the backend logic should ensure that `user_id` is always the smaller of the two IDs, and `friend_id` is the larger, or enforce constraints so only one directional relationship exists per pair.
+- The `POST /api/v1/chat/rooms` endpoint will verify that an `ACCEPTED` friendship exists between the room creator and every other participant before allowing the room to be created.
 
 **The `after_updated_at` Synchronization Model:**
 By shifting from an ID-based cursor to a timestamp-based cursor (`updated_at`), the polling endpoint solves two problems at once. When the client asks "Give me everything modified since T", the database returns brand new messages (where `updated_at == created_at`) AND historical messages that were recently edited (where `updated_at > created_at`). The frontend simply merges this array into its state, replacing old messages with their edited versions.

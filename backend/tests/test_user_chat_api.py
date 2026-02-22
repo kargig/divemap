@@ -1,4 +1,5 @@
 import pytest
+import os
 from unittest import mock
 from cryptography.fernet import Fernet
 from app.models import UserChatRoom, UserChatRoomMember, UserChatMessage
@@ -7,7 +8,13 @@ from app.models import UserChatRoom, UserChatRoomMember, UserChatMessage
 def mock_master_key():
     # Provide a consistent master key for tests
     key = Fernet.generate_key().decode('utf-8')
-    with mock.patch("os.getenv", side_effect=lambda k, default=None: key if k == "CHAT_MASTER_KEY" else default):
+    original_getenv = os.getenv
+    def mock_getenv(k, default=None):
+        if k == "CHAT_MASTER_KEY":
+            return key
+        return original_getenv(k, default)
+        
+    with mock.patch("os.getenv", side_effect=mock_getenv):
         yield key
 
 def test_create_dm_room(client, auth_headers, test_user_other, mock_master_key):
