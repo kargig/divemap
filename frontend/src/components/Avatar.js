@@ -75,10 +75,4 @@ Avatar.propTypes = {
   fallbackText: PropTypes.string,
 };
 
-Avatar.defaultProps = {
-  size: 'md',
-  className: '',
-  fallbackText: null,
-};
-
 export default Avatar;

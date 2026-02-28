@@ -253,8 +253,4 @@ WindOverlayLegend.propTypes = {
   onClose: PropTypes.func,
 };
 
-WindOverlayLegend.defaultProps = {
-  onClose: null,
-};
-
 export default WindOverlayLegend;

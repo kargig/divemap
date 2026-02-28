@@ -42,6 +42,19 @@ async def send_friend_request(
                 existing.updated_at = func.now()
                 db.commit()
                 db.refresh(existing)
+                
+                # Send notification to the original initiator
+                from app.services.notification_service import NotificationService
+                notification_service = NotificationService()
+                notification_service.create_notification(
+                    user_id=existing.initiator_id,
+                    category="system",
+                    title="Buddy Request Accepted",
+                    message=f"{current_user.username} accepted your buddy request.",
+                    link_url=f"/users/{current_user.username}",
+                    db=db
+                )
+                
                 return existing
         elif existing.status == "ACCEPTED":
             raise HTTPException(status_code=400, detail="Already buddies")
@@ -52,6 +65,18 @@ async def send_friend_request(
             existing.updated_at = func.now()
             db.commit()
             db.refresh(existing)
+            
+            # Send notification
+            from app.services.notification_service import NotificationService
+            notification_service = NotificationService()
+            notification_service.create_notification(
+                user_id=req.friend_id,
+                category="system",
+                title="New Buddy Request",
+                message=f"{current_user.username} sent you a buddy request.",
+                link_url=f"/users/{current_user.username}",
+                db=db
+            )
             return existing
 
     new_request = UserFriendship(
@@ -63,6 +88,19 @@ async def send_friend_request(
     db.add(new_request)
     db.commit()
     db.refresh(new_request)
+    
+    # Send notification
+    from app.services.notification_service import NotificationService
+    notification_service = NotificationService()
+    notification_service.create_notification(
+        user_id=req.friend_id,
+        category="system",
+        title="New Buddy Request",
+        message=f"{current_user.username} sent you a buddy request.",
+        link_url=f"/users/{current_user.username}",
+        db=db
+    )
+    
     return new_request
 
 @router.get("", response_model=List[FriendshipResponse])
@@ -110,6 +148,19 @@ async def accept_friend_request(
     friendship.updated_at = func.now()
     db.commit()
     db.refresh(friendship)
+    
+    # Send notification to the initiator
+    from app.services.notification_service import NotificationService
+    notification_service = NotificationService()
+    notification_service.create_notification(
+        user_id=friendship.initiator_id,
+        category="system",
+        title="Buddy Request Accepted",
+        message=f"{current_user.username} accepted your buddy request.",
+        link_url=f"/users/{current_user.username}",
+        db=db
+    )
+    
     return friendship
 
 @router.put("/requests/{friendship_id}/reject", response_model=FriendshipResponse)

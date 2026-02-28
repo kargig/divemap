@@ -10,6 +10,7 @@ import {
   ChevronDown,
   User,
   Map,
+  MessageSquare,
   Building,
   Tags,
   Anchor,
@@ -27,8 +28,10 @@ import {
   Users,
   Crown,
 } from 'lucide-react';
+import { useQuery } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { getTotalUnreadChatMessages } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 import GlobalSearchBar from './GlobalSearchBar';
@@ -37,6 +40,13 @@ import NotificationBell from './NotificationBell';
 const NavbarDesktopControls = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const { data: unreadChatData } = useQuery('unreadChatCount', getTotalUnreadChatMessages, {
+    enabled: !!user,
+    refetchInterval: 30000, // Check every 30 seconds
+  });
+
+  const unreadChatCount = unreadChatData?.unread_count || 0;
 
   const handleLogout = () => {
     logout();
@@ -93,6 +103,18 @@ const NavbarDesktopControls = () => {
                 icon: <Route className='h-4 w-4' />,
                 onClick: () => navigate('/dive-routes'),
               },
+              {
+                key: 'diving-centers',
+                label: 'Diving Centers',
+                icon: <Building className='h-4 w-4' />,
+                onClick: () => navigate('/diving-centers'),
+              },
+              {
+                key: 'dive-trips',
+                label: 'Dive Trips',
+                icon: <Calendar className='h-4 w-4' />,
+                onClick: () => navigate('/dive-trips'),
+              },
             ],
           }}
           trigger={['click']}
@@ -100,26 +122,10 @@ const NavbarDesktopControls = () => {
         >
           <button className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'>
             <Compass className='h-6 w-6' />
-            <span className='text-sm'>Diving</span>
+            <span className='text-sm'>Dive / Explore</span>
             <ChevronDown className='h-4 w-4' />
           </button>
         </Dropdown>
-
-        <Link
-          to='/diving-centers'
-          className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
-        >
-          <Building className='h-6 w-6' />
-          <span className='text-sm'>Diving Centers</span>
-        </Link>
-
-        <Link
-          to='/dive-trips'
-          className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
-        >
-          <Calendar className='h-6 w-6' />
-          <span className='text-sm'>Dive Trips</span>
-        </Link>
 
         <Dropdown
           menu={{
@@ -154,53 +160,20 @@ const NavbarDesktopControls = () => {
           </button>
         </Dropdown>
 
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: 'about',
-                label: 'About',
-                icon: <Info className='h-4 w-4' />,
-                onClick: () => navigate('/about'),
-              },
-              {
-                key: 'api-docs',
-                label: 'API',
-                icon: <Code className='h-4 w-4' />,
-                onClick: () => navigate('/api-docs'),
-              },
-              {
-                key: 'changelog',
-                label: 'Changelog',
-                icon: <FileText className='h-4 w-4' />,
-                onClick: () => navigate('/changelog'),
-              },
-              {
-                key: 'help',
-                label: 'Help',
-                icon: <HelpCircle className='h-4 w-4' />,
-                onClick: () => navigate('/help'),
-              },
-              {
-                key: 'privacy',
-                label: 'Privacy',
-                icon: <Shield className='h-4 w-4' />,
-                onClick: () => navigate('/privacy'),
-              },
-            ],
-          }}
-          trigger={['click']}
-          placement='bottomRight'
-        >
-          <button className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'>
-            <Info className='h-6 w-6' />
-            <span className='text-sm'>Info</span>
-            <ChevronDown className='h-4 w-4' />
-          </button>
-        </Dropdown>
-
         {user ? (
           <div className='flex items-center space-x-4'>
+            <Link
+              to='/messages'
+              className='flex items-center justify-center p-2 text-white hover:text-blue-200 transition-colors relative'
+              title='Messages'
+            >
+              <MessageSquare className='h-5 w-5' />
+              {unreadChatCount > 0 && (
+                <span className='absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center min-w-[1rem] translate-x-1/4 -translate-y-1/4'>
+                  {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                </span>
+              )}
+            </Link>
             <NotificationBell />
 
             {user.is_admin && (
@@ -304,6 +277,52 @@ const NavbarDesktopControls = () => {
               </Dropdown>
             )}
 
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'about',
+                    label: 'About',
+                    icon: <Info className='h-4 w-4' />,
+                    onClick: () => navigate('/about'),
+                  },
+                  {
+                    key: 'api-docs',
+                    label: 'API',
+                    icon: <Code className='h-4 w-4' />,
+                    onClick: () => navigate('/api-docs'),
+                  },
+                  {
+                    key: 'changelog',
+                    label: 'Changelog',
+                    icon: <FileText className='h-4 w-4' />,
+                    onClick: () => navigate('/changelog'),
+                  },
+                  {
+                    key: 'help',
+                    label: 'Help',
+                    icon: <HelpCircle className='h-4 w-4' />,
+                    onClick: () => navigate('/help'),
+                  },
+                  {
+                    key: 'privacy',
+                    label: 'Privacy',
+                    icon: <Shield className='h-4 w-4' />,
+                    onClick: () => navigate('/privacy'),
+                  },
+                ],
+              }}
+              trigger={['click']}
+              placement='bottomRight'
+            >
+              <button
+                className='flex items-center text-white hover:text-blue-200 transition-colors'
+                title='Info'
+              >
+                <Info className='h-6 w-6' />
+              </button>
+            </Dropdown>
+
             <Link
               to='/profile'
               className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
@@ -314,10 +333,10 @@ const NavbarDesktopControls = () => {
 
             <button
               onClick={handleLogout}
-              className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
+              className='flex items-center text-white hover:text-blue-200 transition-colors ml-2'
+              title='Logout'
             >
               <LogOut className='h-6 w-6' />
-              <span className='text-sm'>Logout</span>
             </button>
           </div>
         ) : (

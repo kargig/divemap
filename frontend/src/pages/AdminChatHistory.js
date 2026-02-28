@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link } from 'react-router-dom';
 
 import { getAdminChatSessions, getAdminChatSessionDetail, deleteAdminChatSession } from '../api';
+import ChatbotIcon from '../components/Chat/ChatbotIcon';
 import AdminChatHistoryTable from '../components/tables/AdminChatHistoryTable';
 import Modal from '../components/ui/Modal';
 import usePageTitle from '../hooks/usePageTitle';
@@ -172,7 +173,7 @@ const AdminChatHistory = () => {
           to='/admin/chat-feedback'
           className='flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm'
         >
-          <MessageSquare size={16} />
+          <ChatbotIcon size={16} />
           View Feedback
           <ArrowRight size={16} className='text-gray-400' />
         </Link>

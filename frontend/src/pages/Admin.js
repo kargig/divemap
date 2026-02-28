@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import ChatbotIcon from '../components/Chat/ChatbotIcon';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 
@@ -130,7 +131,7 @@ const Admin = () => {
       title: 'Chatbot Feedback',
       description:
         'Review and analyze user feedback on chatbot responses to improve its performance.',
-      icon: <MessageSquare className='h-8 w-8 text-blue-500' />,
+      icon: <ChatbotIcon size={32} className='text-blue-500' />,
       href: '/admin/chat-feedback',
       color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
     },

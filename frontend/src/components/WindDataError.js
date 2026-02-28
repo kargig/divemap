@@ -92,11 +92,4 @@ WindDataError.propTypes = {
   onDismiss: PropTypes.func,
 };
 
-WindDataError.defaultProps = {
-  error: null,
-  onRetry: null,
-  isUsingCachedData: false,
-  onDismiss: null,
-};
-
 export default WindDataError;

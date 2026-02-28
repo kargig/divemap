@@ -345,3 +345,84 @@ export const deleteAdminChatFeedback = async feedbackId => {
   const response = await api.delete(`/api/v1/admin/chat/feedback/${feedbackId}`);
   return response.data;
 };
+
+// User Chat APIs
+export const getChatRooms = async () => {
+  const response = await api.get('/api/v1/user-chat/rooms');
+  return response.data;
+};
+
+export const getTotalUnreadChatMessages = async () => {
+  const response = await api.get('/api/v1/user-chat/unread-count');
+  return response.data;
+};
+
+export const createChatRoom = async (participantIds, isGroup = false, name = null) => {
+  const payload = {
+    participant_ids: participantIds,
+    is_group: isGroup,
+  };
+  if (name) {
+    payload.name = name;
+  }
+  const response = await api.post('/api/v1/user-chat/rooms', payload);
+  return response.data;
+};
+
+export const getChatMessages = async (roomId, afterUpdatedAt = null) => {
+  const params = {};
+  if (afterUpdatedAt) {
+    params.after_updated_at = afterUpdatedAt;
+  }
+  const response = await api.get(`/api/v1/user-chat/rooms/${roomId}/messages`, { params });
+  return response.data;
+};
+
+export const sendUserChatMessage = async (roomId, content) => {
+  const response = await api.post(`/api/v1/user-chat/rooms/${roomId}/messages`, {
+    content,
+  });
+  return response.data;
+};
+
+export const editUserChatMessage = async (messageId, content) => {
+  const response = await api.put(`/api/v1/user-chat/messages/${messageId}`, {
+    content,
+  });
+  return response.data;
+};
+
+export const markChatRoomRead = async roomId => {
+  const response = await api.put(`/api/v1/user-chat/rooms/${roomId}/read`);
+  return response.data;
+};
+
+// User Friendships (Mutual Buddy) APIs
+export const getUserFriendships = async (statusFilter = 'ACCEPTED') => {
+  const response = await api.get('/api/v1/user-friendships', {
+    params: { status_filter: statusFilter },
+  });
+  return response.data;
+};
+
+export const sendFriendRequest = async friendId => {
+  const response = await api.post('/api/v1/user-friendships/requests', {
+    friend_id: friendId,
+  });
+  return response.data;
+};
+
+export const acceptFriendRequest = async friendshipId => {
+  const response = await api.put(`/api/v1/user-friendships/requests/${friendshipId}/accept`);
+  return response.data;
+};
+
+export const rejectFriendRequest = async friendshipId => {
+  const response = await api.put(`/api/v1/user-friendships/requests/${friendshipId}/reject`);
+  return response.data;
+};
+
+export const removeFriendship = async friendshipId => {
+  const response = await api.delete(`/api/v1/user-friendships/${friendshipId}`);
+  return response.data;
+};

@@ -86,8 +86,4 @@ DiveSiteSuitabilityLegend.propTypes = {
   onClose: PropTypes.func,
 };
 
-DiveSiteSuitabilityLegend.defaultProps = {
-  onClose: null,
-};
-
 export default DiveSiteSuitabilityLegend;

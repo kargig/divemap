@@ -161,6 +161,33 @@ async def list_chat_rooms(
             
     return rooms
 
+@router.get("/unread-count", response_model=dict)
+async def get_total_unread_count(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get the total number of unread messages across all active chat rooms."""
+    # Find all rooms where user is an active member
+    active_memberships = db.query(UserChatRoomMember).filter(
+        UserChatRoomMember.user_id == current_user.id,
+        UserChatRoomMember.left_at.is_(None)
+    ).all()
+    
+    if not active_memberships:
+        return {"unread_count": 0}
+        
+    total_unread = 0
+    for member_record in active_memberships:
+        unread_count = db.query(func.count(UserChatMessage.id)).filter(
+            UserChatMessage.room_id == member_record.room_id,
+            UserChatMessage.created_at > member_record.last_read_at,
+            UserChatMessage.created_at >= member_record.joined_at,
+            UserChatMessage.sender_id != current_user.id
+        ).scalar()
+        total_unread += unread_count
+        
+    return {"unread_count": total_unread}
+
 @router.post("/rooms/{room_id}/messages", response_model=ChatMessageResponse, status_code=status.HTTP_201_CREATED)
 async def send_message(
     room_id: int,

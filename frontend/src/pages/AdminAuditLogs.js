@@ -212,9 +212,7 @@ const AdminAuditLogs = () => {
       render: text =>
         text ? (
           <Tooltip title={text}>
-            <Text ellipsis>
-              {text}
-            </Text>
+            <Text ellipsis>{text}</Text>
           </Tooltip>
         ) : (
           <Text type='secondary'>-</Text>

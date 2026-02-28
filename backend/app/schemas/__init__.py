@@ -697,6 +697,7 @@ class CertificationStats(BaseModel):
     max_stages: Optional[int] = None
 
 class UserPublicProfileResponse(BaseModel):
+    id: int
     username: str
     avatar_url: Optional[str] = None
     is_admin: bool = False
@@ -1351,7 +1352,7 @@ class NotificationPreferenceResponse(BaseModel):
 
 class NotificationPreferenceCreate(BaseModel):
     """Create notification preference"""
-    category: str = Field(..., description="Category: new_dive_sites, new_dives, new_diving_centers, new_dive_trips, admin_alerts")
+    category: str = Field(..., description="Category: new_dive_sites, new_dives, new_diving_centers, new_dive_trips, admin_alerts, system")
     enable_website: bool = True
     enable_email: bool = False
     frequency: str = Field("immediate", description="Frequency: immediate, daily_digest, weekly_digest")

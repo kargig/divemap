@@ -490,7 +490,8 @@ def get_unified_fuzzy_trigger_conditions(
 DEFAULT_NOTIFICATION_CATEGORIES = [
     'new_dive_sites',
     'new_dive_trips',
-    'admin_alerts'
+    'admin_alerts',
+    'system'
 ]
 
 # Opt-in categories (users must manually enable these)

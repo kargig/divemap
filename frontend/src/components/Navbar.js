@@ -4,10 +4,8 @@ import { Link } from 'react-router-dom';
 import { useResponsiveScroll } from '../hooks/useResponsive';
 
 import Logo from './Logo';
-
-// Lazy load the controls to split bundles
-const NavbarDesktopControls = lazy(() => import('./NavbarDesktopControls'));
-const NavbarMobileControls = lazy(() => import('./NavbarMobileControls'));
+import NavbarDesktopControls from './NavbarDesktopControls';
+import NavbarMobileControls from './NavbarMobileControls';
 
 const Navbar = () => {
   const { isMobile, navbarVisible } = useResponsiveScroll();
@@ -104,9 +102,7 @@ const Navbar = () => {
             <Logo size='small' showText={true} textOnly={false} textClassName='text-white' />
           </Link>
 
-          <Suspense fallback={<div className='h-10 w-20' />}>
-            {isMobile ? <NavbarMobileControls /> : <NavbarDesktopControls />}
-          </Suspense>
+          {isMobile ? <NavbarMobileControls /> : <NavbarDesktopControls />}
         </div>
       </div>
     </nav>
