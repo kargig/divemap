@@ -1235,6 +1235,12 @@ const Profile = () => {
               >
                 View Public Profile
               </Link>
+              <Link
+                to='/buddies'
+                className='block w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+              >
+                Manage Buddies
+              </Link>
               <button
                 onClick={() => setIsChangingPassword(true)}
                 className='w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'

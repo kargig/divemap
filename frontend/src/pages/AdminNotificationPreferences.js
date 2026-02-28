@@ -308,6 +308,7 @@ const AdminNotificationPreferences = () => {
     { value: 'new_diving_centers', label: 'New Diving Centers' },
     { value: 'new_dive_trips', label: 'New Dive Trips' },
     { value: 'admin_alerts', label: 'Admin Alerts' },
+    { value: 'system', label: 'System & Social' },
   ];
 
   if (!user?.is_admin) {
@@ -594,7 +595,12 @@ const AdminNotificationPreferences = () => {
                                         setEditingCategory(category.value);
                                         setPreferenceForm({
                                           category: category.value,
-                                          enable_website: category.value !== 'admin_alerts',
+                                          enable_website: [
+                                            'system',
+                                            'new_dive_sites',
+                                            'new_dive_trips',
+                                            'admin_alerts',
+                                          ].includes(category.value),
                                           enable_email: false,
                                           frequency: 'immediate',
                                           area_filter: null,

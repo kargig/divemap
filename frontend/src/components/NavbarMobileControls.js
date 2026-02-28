@@ -27,10 +27,13 @@ import {
   Route,
   User,
   Crown,
+  MessageSquare,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
+import { getTotalUnreadChatMessages } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 import GlobalSearchBar from './GlobalSearchBar';
@@ -41,6 +44,13 @@ const NavbarMobileControls = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const { data: unreadChatData } = useQuery('unreadChatCount', getTotalUnreadChatMessages, {
+    enabled: !!user,
+    refetchInterval: 30000, // Check every 30 seconds
+  });
+
+  const unreadChatCount = unreadChatData?.unread_count || 0;
 
   const handleLogout = () => {
     logout();
@@ -76,6 +86,20 @@ const NavbarMobileControls = () => {
   return (
     <>
       <div className='md:hidden flex items-center gap-4'>
+        {user && (
+          <button
+            onClick={() => handleNavigate('/messages')}
+            className='text-white hover:text-blue-200 transition-colors p-1 relative'
+            aria-label='Messages'
+          >
+            <MessageSquare className='h-6 w-6' />
+            {unreadChatCount > 0 && (
+              <span className='absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center min-w-[1rem] translate-x-1/4 -translate-y-1/4'>
+                {unreadChatCount > 9 ? '9+' : unreadChatCount}
+              </span>
+            )}
+          </button>
+        )}
         {user && <NotificationBell />}
         <button
           onClick={toggleMobileMenu}
@@ -137,7 +161,7 @@ const NavbarMobileControls = () => {
                   title={
                     <div className='flex items-center gap-2'>
                       <Compass className='h-5 w-5 text-blue-100' />
-                      <span>Diving</span>
+                      <span>Dive / Explore</span>
                     </div>
                   }
                 >
@@ -173,24 +197,25 @@ const NavbarMobileControls = () => {
                     >
                       Dive Routes
                     </List.Item>
+                    <List.Item
+                      prefix={<Building className='h-4 w-4 text-blue-200' />}
+                      onClick={() => handleNavigate('/diving-centers')}
+                      className='text-white'
+                      arrow={false}
+                    >
+                      Diving Centers
+                    </List.Item>
+                    <List.Item
+                      prefix={<Calendar className='h-4 w-4 text-blue-200' />}
+                      onClick={() => handleNavigate('/dive-trips')}
+                      className='text-white'
+                      arrow={false}
+                    >
+                      Dive Trips
+                    </List.Item>
                   </List>
                 </Collapse.Panel>
               </Collapse>
-
-              <List.Item
-                prefix={<Building className='h-5 w-5 text-blue-100' />}
-                onClick={() => handleNavigate('/diving-centers')}
-                arrow={false}
-              >
-                Diving Centers
-              </List.Item>
-              <List.Item
-                prefix={<Calendar className='h-5 w-5 text-blue-100' />}
-                onClick={() => handleNavigate('/dive-trips')}
-                arrow={false}
-              >
-                Dive Trips
-              </List.Item>
 
               <Collapse>
                 <Collapse.Panel

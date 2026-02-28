@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
+import BuddyRequests from '../components/BuddyRequests';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import NotificationItem from '../components/NotificationItem';
 import { useNotificationContext } from '../contexts/NotificationContext';
@@ -78,8 +79,8 @@ const Notifications = () => {
 
   if (error) {
     return (
-      <div className='min-h-screen bg-gray-50 py-8'>
-        <div className='max-w-4xl mx-auto px-4'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+        <div className='w-full'>
           <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
             <p className='text-red-800'>Error loading notifications. Please try again.</p>
           </div>
@@ -89,26 +90,26 @@ const Notifications = () => {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50 py-8'>
-      <div className='max-w-4xl mx-auto px-4'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      <div className='w-full'>
         {/* Header */}
-        <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-          <div className='flex items-center justify-between mb-4'>
+        <div className='bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6'>
+          <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4'>
             <div className='flex items-center space-x-3'>
               <Bell className='h-6 w-6 text-blue-600' />
-              <h1 className='text-2xl font-bold text-gray-900'>Notifications</h1>
+              <h1 className='text-xl sm:text-2xl font-bold text-gray-900'>Notifications</h1>
             </div>
-            <div className='flex items-center space-x-3'>
+            <div className='flex items-center space-x-2 sm:space-x-3 overflow-x-auto sm:overflow-x-visible pb-2 sm:pb-0'>
               <Link
                 to='/notifications/preferences'
-                className='flex items-center space-x-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors'
+                className='flex items-center space-x-2 px-3 sm:px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors whitespace-nowrap text-sm'
               >
                 <Settings className='h-4 w-4' />
                 <span>Preferences</span>
               </Link>
               <button
                 onClick={handleMarkAllRead}
-                className='flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+                className='flex items-center space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap text-sm'
               >
                 <Check className='h-4 w-4' />
                 <span>Mark All Read</span>
@@ -117,16 +118,18 @@ const Notifications = () => {
           </div>
 
           {/* Filters */}
-          <div className='flex flex-wrap gap-4'>
-            <div className='flex items-center space-x-2'>
-              <Filter className='h-4 w-4 text-gray-500' />
+          <div className='flex flex-wrap gap-3 sm:gap-4'>
+            <div className='flex items-center space-x-2 flex-1 min-w-[120px]'>
+              <Filter className='h-4 w-4 text-gray-500 shrink-0' />
               <select
+                id='filter-status'
+                name='filter-status'
                 value={filter}
                 onChange={e => {
                   setFilter(e.target.value);
                   setPage(1);
                 }}
-                className='border border-gray-300 rounded-md px-3 py-2 text-sm'
+                className='border border-gray-300 rounded-md px-2 sm:px-3 py-2 text-sm w-full bg-white'
               >
                 <option value='all'>All</option>
                 <option value='unread'>Unread</option>
@@ -134,22 +137,29 @@ const Notifications = () => {
               </select>
             </div>
 
-            <select
-              value={categoryFilter}
-              onChange={e => {
-                setCategoryFilter(e.target.value);
-                setPage(1);
-              }}
-              className='border border-gray-300 rounded-md px-3 py-2 text-sm'
-            >
-              {categories.map(cat => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
+            <div className='flex-1 min-w-[150px]'>
+              <select
+                id='filter-category'
+                name='filter-category'
+                value={categoryFilter}
+                onChange={e => {
+                  setCategoryFilter(e.target.value);
+                  setPage(1);
+                }}
+                className='border border-gray-300 rounded-md px-2 sm:px-3 py-2 text-sm w-full bg-white'
+              >
+                {categories.map(cat => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
+
+        {/* Buddy Requests Section */}
+        <BuddyRequests />
 
         {/* Notifications List */}
         <div className='bg-white rounded-lg shadow-md overflow-hidden'>
@@ -166,24 +176,26 @@ const Notifications = () => {
               </div>
 
               {/* Pagination */}
-              <div className='px-4 py-4 border-t border-gray-200 flex items-center justify-between'>
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className='px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                >
-                  Previous
-                </button>
-                <span className='text-sm text-gray-600'>
+              <div className='px-4 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4'>
+                <div className='flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-start'>
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className='px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-sm'
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setPage(p => p + 1)}
+                    disabled={notifications.length < pageSize}
+                    className='px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-sm'
+                  >
+                    Next
+                  </button>
+                </div>
+                <span className='text-sm text-gray-600 order-first sm:order-none'>
                   Page {page} {totalPages > 1 && `of ${totalPages}`}
                 </span>
-                <button
-                  onClick={() => setPage(p => p + 1)}
-                  disabled={notifications.length < pageSize}
-                  className='px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                >
-                  Next
-                </button>
               </div>
             </>
           ) : (
