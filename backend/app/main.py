@@ -636,6 +636,14 @@ async def lazy_router_loading(request: Request, call_next):
     # Load chat router
     if (path.startswith("/api/v1/chat") or is_docs) and not hasattr(app, '_chat_router_loaded'):
         load_chat_router()
+        
+    # Load user chat router
+    if (path.startswith("/api/v1/user-chat") or is_docs) and not hasattr(app, '_user_chat_router_loaded'):
+        load_user_chat_router()
+        
+    # Load user friendships router
+    if (path.startswith("/api/v1/user-friendships") or is_docs) and not hasattr(app, '_user_friendships_router_loaded'):
+        load_user_friendships_router()
     
     response = await call_next(request)
     return response
@@ -668,6 +676,32 @@ def load_chat_router():
         app._chat_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Chat router loaded lazily in {router_time:.2f}s")
+
+def load_user_chat_router():
+    """Load user chat router lazily when first accessed"""
+    if not hasattr(app, '_user_chat_router_loaded'):
+        print("🔧 Loading user chat router lazily...")
+        router_start = time.time()
+        
+        from app.routers import user_chat
+        app.include_router(user_chat.router, prefix="/api/v1/user-chat", tags=["User Chat"])
+        
+        app._user_chat_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ User Chat router loaded lazily in {router_time:.2f}s")
+
+def load_user_friendships_router():
+    """Load user friendships router lazily when first accessed"""
+    if not hasattr(app, '_user_friendships_router_loaded'):
+        print("🔧 Loading user friendships router lazily...")
+        router_start = time.time()
+        
+        from app.routers import user_friendships
+        app.include_router(user_friendships.router, prefix="/api/v1/user-friendships", tags=["User Friendships"])
+        
+        app._user_friendships_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ User Friendships router loaded lazily in {router_time:.2f}s")
 
 
 @app.get("/")

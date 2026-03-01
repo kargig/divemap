@@ -637,6 +637,7 @@ async def get_user_public_profile(
 
     # Create response object
     response = UserPublicProfileResponse(
+        id=user.id,
         username=user.username,
         avatar_url=user.avatar_url,
         is_admin=user.is_admin,
