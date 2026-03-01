@@ -31,6 +31,7 @@ class IntentType(str, Enum):
     MARINE_LIFE = "marine_life"  # "Where can I see seals?"
     CHIT_CHAT = "chit_chat"      # "Hello"
     LOGBOOK_DRAFT = "logbook_draft" # "Log a dive..."
+    CALCULATOR = "calculator"    # "MOD/SAC calculations"
 
 class SearchIntent(BaseModel):
     intent_type: IntentType
@@ -45,6 +46,7 @@ class SearchIntent(BaseModel):
     difficulty_level: Optional[int] = None # 1-4
     context_entity_id: Optional[int] = None
     context_entity_type: Optional[str] = None
+    calculator_params: Optional[Dict[str, Optional[float]]] = None # Parameters for diving calculations
 
 class ChatResponse(BaseModel):
     response: str

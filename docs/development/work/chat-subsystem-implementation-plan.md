@@ -146,6 +146,14 @@ Heavy asynchronous tasks (like distributing notification alerts to offline users
 - [x] **Code change**: Refactor `NotificationBell` to match the new unified dropdown aesthetic.
 - [x] **Code change**: Optimize `GET /rooms` listing to remove message decryption and focus on timestamps/counts.
 
+### Phase 8: AI Chatbot Integration
+
+- [x] **Code change**: Add `process_bot_mention_task` background task in `backend/app/routers/user_chat.py` to handle LLM response generation asynchronously.
+- [x] **Code change**: Update `POST /api/v1/user-chat/rooms/{room_id}/messages` to intercept `@bot` and `@divemap` mentions and dispatch the background task.
+- [x] **Code change**: Integrate Divemap physics engine (`app.physics`) into `ChatService` to provide high-precision math (MOD, SAC, Best Mix, etc.) directly in chat.
+- [x] **Code change**: Update `MessageBubble.js` to support `ReactMarkdown` with clickable internal links and unique AI styling when `sender_id` is null.
+- [x] **Code change**: Add randomized "Pro Tips" badge to the `ChatRoom` header to educate users about AI mentions and link previews.
+
 ## Review
 
 - [ ] Verify SQS message payload size is well within the 256KB free tier limit (sending only IDs, no message text).

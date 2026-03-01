@@ -1,6 +1,6 @@
-import { Send, Loader2, X, Info, ChevronLeft } from 'lucide-react';
+import { Send, Loader2, X, Info, ChevronLeft, HelpCircle } from 'lucide-react';
 import PropTypes from 'prop-types';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
@@ -14,14 +14,38 @@ import Avatar from '../Avatar';
 
 import MessageBubble from './MessageBubble';
 
+const CHAT_TIPS = [
+  <>
+    Tag <span className='font-bold'>@bot</span> to ask about weather or dive sites.
+  </>,
+  <>
+    Tag <span className='font-bold'>@divemap</span> for instant AI assistance.
+  </>,
+  <>
+    Paste a <span className='font-bold'>dive site link</span> for a rich preview.
+  </>,
+  <>
+    Ask <span className='font-bold'>@bot</span> about <span className='font-bold'>MOD</span> or{' '}
+    <span className='font-bold'>SAC</span> calculations.
+  </>,
+  <>
+    Ask <span className='font-bold'>@bot</span> for nearby diving centers.
+  </>,
+];
+
 const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [editingMessage, setEditingMessage] = useState(null);
+  const [showHints, setShowHints] = useState(() => !localStorage.getItem('chat_hints_dismissed'));
   const [prevRoomId, setPrevRoomId] = useState(roomId);
   const scrollRef = useRef(null);
   const lastSyncTime = useRef(null);
+
+  const activeTip = useMemo(() => {
+    return CHAT_TIPS[Math.floor(Math.random() * CHAT_TIPS.length)];
+  }, [roomId]);
 
   // Reset state when room changes to prevent showing old messages or sending wrong cursor
   if (roomId !== prevRoomId) {
@@ -31,6 +55,11 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
     setEditingMessage(null);
     lastSyncTime.current = null;
   }
+
+  const dismissHints = () => {
+    setShowHints(false);
+    localStorage.setItem('chat_hints_dismissed', 'true');
+  };
 
   // 1. Initial Load & Optimized Polling
   const { isFetching } = useQuery(
@@ -151,13 +180,31 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
             )}
           </div>
         </div>
-        <button
-          onClick={onToggleSettings}
-          className='p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors'
-          title='Room Settings'
-        >
-          <Info className='h-5 w-5' />
-        </button>
+
+        <div className='flex items-center gap-2'>
+          {showHints && (
+            <div className='hidden lg:flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-full animate-in fade-in slide-in-from-right-4 duration-300'>
+              <HelpCircle size={14} className='text-blue-500 shrink-0' />
+              <div className='text-[10px] text-blue-800 dark:text-blue-200 flex items-center gap-2'>
+                <span className='whitespace-nowrap'>{activeTip}</span>
+                <button
+                  onClick={dismissHints}
+                  className='text-blue-400 hover:text-blue-600 transition-colors ml-1'
+                  title='Dismiss tips'
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={onToggleSettings}
+            className='p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors'
+            title='Room Settings'
+          >
+            <Info className='h-5 w-5' />
+          </button>
+        </div>
       </div>
 
       {/* Message List */}
